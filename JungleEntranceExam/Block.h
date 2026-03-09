@@ -1,6 +1,6 @@
 #pragma once
 #include "UGameObject.h"
-struct FVector;
+#include "Shape.h"
 
 enum class EBlockType
 {
@@ -8,7 +8,7 @@ enum class EBlockType
 	Hard,
 	Immortal
 };
-enum class EBlcokColor
+enum class EBlockColor
 {
 	White = 50,
 	Orange = 60,
@@ -20,10 +20,27 @@ enum class EBlcokColor
 	Yellow = 120,
 	Silver = 50
 };
+
+static FColor GetColorFromBlockColor(EBlockColor blockColor)
+{
+	switch (blockColor)
+	{
+	case EBlockColor::White:    return FColor(0.9f, 0.9f, 0.9f);
+	case EBlockColor::Orange:   return FColor(1.0f, 0.55f, 0.0f);
+	case EBlockColor::Cyan:     return FColor(0.0f, 0.9f, 0.9f);
+	case EBlockColor::Green:    return FColor(0.0f, 0.8f, 0.0f);
+	case EBlockColor::Red:      return FColor(0.9f, 0.0f, 0.0f);
+	case EBlockColor::Blue:     return FColor(0.15f, 0.3f, 1.0f);
+	case EBlockColor::Magenta:  return FColor(0.9f, 0.0f, 0.9f);
+	case EBlockColor::Yellow:   return FColor(1.0f, 0.95f, 0.0f);
+	default:                    return FColor(1.0f, 1.0f, 1.0f);
+	}
+}
+class URenderer;
 class Block : public UGameObject
 {
 public:
-	Block(EBlockType InType, int Round = 1);
+	Block(EBlockType InType, EBlockColor InColor, int Round=1);
 	~Block();
 
 	void Init(float cx, float cy, float hw, float hh);
@@ -35,7 +52,7 @@ public:
 
 public:
 	EBlockType Type;
-	EBlcokColor Color;
+	EBlockColor Color;
 	int MaxHp;
 	int CurrHp;
 	float CenterX, CenterY;
