@@ -4,7 +4,14 @@
 UBall::UBall() : Location(0.0f, 0.0f, 0.0f), Velocity(0.0f, 0.0f, 0.0f), Radius(0.1f), Mass(0.1f)
 {
     ++TotalNumBalls;
-    SetRadius(Radius);
+    Mass = (4.0f / 3.0f) * Pi * std::powf(Radius, 3);
+}
+
+UBall::UBall(const FVector& _Location, const FVector& _Velocity, const float _Radius) 
+    : Location(_Location), Velocity(_Velocity), Radius(_Radius)
+{
+    ++TotalNumBalls;
+    Mass = (4.0f / 3.0f) * Pi * std::powf(Radius, 3);
 }
 
 UBall::~UBall()
@@ -28,7 +35,7 @@ void UBall::Update(float deltaTime)
     // 렌더링 (상수 버퍼 업데이트)
 void UBall::Render(URenderer& renderer)
 {
-    renderer.UpdateConstant(Location, Radius);
+    renderer.UpdateConstant(Location, FVector(Radius, Radius, 0));
 }
 
     // 벽 충돌 적용
@@ -60,7 +67,7 @@ void UBall::ApplyWallCollision()
     // 충격량 적용
 void UBall::ApplyGravity(float deltaTime, const FVector& gravity)
 {
-    Velocity = Add(Velocity, Mul(gravity, deltaTime));
+    //Velocity = Velocity + gravity * deltaTime;
 }
 
 // 반지름 설정 (질량 자동 설정, 반지름에 비례)
@@ -68,32 +75,36 @@ void UBall::SetRadius(float InRadius)
 {
     Radius = InRadius;
 
-    Mass = Radius;
+    Mass = Mass = (4.0f / 3.0f) * Pi * std::powf(Radius, 3);
 }
 
-float UBall::GetRadius() const 
-{ 
-	return Radius;
-}
-const FVector& UBall::GetLocation() const
-{ 
-	return Location; 
-}
-void UBall::Init_VertexBuffer(ID3D11Buffer* _SphereVertexBuffer) 
+bool UBall::CheckCollision(const UDiagram* Other)
 {
-	SphereVertexBuffer = _SphereVertexBuffer;
-}
-
-bool UBall::CheckCollision(const UDiagram* Other) {
+    const UBar* PlayerBar{ dynamic_cast<const UBar*>(Other) };
+    if (PlayerBar)
+    {
+        if ((PlayerBar->Location.x - (PlayerBar->XLength + Radius) <= Location.x && Location.x <= PlayerBar->Location.x + (PlayerBar->XLength + Radius))
+            && Location.y - Radius <= PlayerBar->Location.y + PlayerBar->YLength) {
+            Velocity.y *= -1.0f;
+            Location.y = PlayerBar->Location.y + PlayerBar->YLength + Radius;
+        }   
+    }
 	const UBall* OtherBall{ dynamic_cast<const UBall*>(Other) };
-	if (OtherBall) {
+	if (OtherBall)
+    {
 		float dx{ Location.x - OtherBall->Location.x };
 		float dy{ Location.y - OtherBall->Location.y };
 		float distanceSquared{ dx * dx + dy * dy };
 		float radiusSum{ Radius + OtherBall->Radius };
 		return distanceSquared <= (radiusSum * radiusSum);
 	}
+    
 	return false;
+}
+
+void UBall::BallBounceAtBar()
+{
+
 }
 
 void UBall::ResolveCollision(UBall* Other) {

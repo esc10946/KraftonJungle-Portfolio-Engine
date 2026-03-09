@@ -1,8 +1,8 @@
 #pragma once
 
 #include "UDiagram.h"
+#include "UBar.h"
 #include "FVector.h"
-#include "FVertexSimple.h"
 
 class UBall : public UDiagram
 {
@@ -12,13 +12,12 @@ public:
     float Radius;               // 공의 반지름
     float Mass;                 // 공의 질량 (반지름과 비례하다고 가정)
     inline static int TotalNumBalls{ 0 };
-    inline static ID3D11Buffer* SphereVertexBuffer{ nullptr };
 
     // 생성자 및 소멸자
 public:
-    static void Init_VertexBuffer(ID3D11Buffer* _SphereVertexBuffer);
-
     UBall();
+
+    UBall(const FVector& _Location, const FVector& _Velocity, const float _Radius);
 
     virtual ~UBall() override;
 
@@ -38,11 +37,9 @@ public:
     // 반지름 설정 (질량 자동 설정, 반지름에 비례)
     void SetRadius(float InRadius);
 
-	float GetRadius() const;
-
-	const FVector& GetLocation() const;
-
 	virtual bool CheckCollision(const UDiagram* Other) override;
+
+    void BallBounceAtBar();
 
     void ResolveCollision(UBall* Other);
 };

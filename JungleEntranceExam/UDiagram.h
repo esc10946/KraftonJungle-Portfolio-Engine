@@ -1,10 +1,13 @@
 #pragma once
 
 #include <cmath>
+#include <algorithm>
 
 #include "UGameObject.h"
 #include "URenderer.h"
 #include "FVector.h"
+
+const float Pi = 3.1415926535f;
 
 // 도형 기본 클래스
 class UDiagram : public UGameObject
@@ -24,5 +27,6 @@ public:
     // 중력 적용
     virtual void ApplyGravity(float deltaTime, const FVector& gravity) = 0;
 
+    // 다른 도형과 충돌 판정
     virtual bool CheckCollision(const UDiagram* Other) = 0;
 };
