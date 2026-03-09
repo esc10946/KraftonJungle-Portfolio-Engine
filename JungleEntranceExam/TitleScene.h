@@ -1,24 +1,30 @@
 #pragma once
 #include "UScene.h"
 
+class UUIButton;
+class UGameObject;
+
 class UTitleScene :
     public UScene
 {
 
 public:
-    UTitleScene(){
-        SceneName = "TitleScene";
-        Init();
-    }
+    UTitleScene() = default;
+    virtual ~UTitleScene() { Release(); }
 
-    ~UTitleScene() = default;
+    // UScene을(를) 통해 상속됨
+    void Init() override;
+    void Update(float delta) override;
+    void Release() override;
 
     void GameStart();
     void GameEnd();
     void Credit();
 
-    // UScene을(를) 통해 상속됨
-    void Init() override;
-    void Release() override;
+private:
+    UGameObject* TitleLogo = nullptr;
+    UUIButton* StartButton = nullptr;
+    UUIButton* EndButton = nullptr;
+    UUIButton* CreditButton = nullptr;
 };
 
