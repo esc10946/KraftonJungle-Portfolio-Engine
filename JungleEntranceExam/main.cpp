@@ -420,6 +420,48 @@ public:
             DeviceContext->Unmap(ConstantBuffer, 0);
         }
     }
+
+    void RenderRect(float cx, float cy, float hw, float hh, FColor Color)
+    {
+        const FColor BgColor = Color* 0.5f;
+        const float L= cx - hw;
+        const float R= cx + hw;
+        const float T = cy + hh;
+        const float B = cy - hh;
+
+        const float brdX = hw * 0.10f;
+        const float brdY = hh * 0.12f;
+
+        const float IL = L + brdX;
+        const float IR = R - brdX;
+        const float IT = T - brdY;
+        const float IB = B + brdY;
+
+        FVertexSimple verts[12] =
+        {
+
+            { L,  T,  0.0f,  BgColor.r, BgColor.g, BgColor.b, 1.0f },
+            { L,  B,  0.0f,  BgColor.r, BgColor.g, BgColor.b, 1.0f },
+            { R,  B,  0.0f,  BgColor.r, BgColor.g, BgColor.b, 1.0f },
+            { L,  T,  0.0f,  BgColor.r, BgColor.g, BgColor.b, 1.0f },
+            { R,  B,  0.0f,  BgColor.r, BgColor.g, BgColor.b, 1.0f },
+            { R,  T,  0.0f,  BgColor.r, BgColor.g, BgColor.b, 1.0f },
+
+
+            { IL, IT, 0.0f,  Color.r, Color.g, Color.b, 1.0f },
+            { IL, IB, 0.0f,  Color.r, Color.g, Color.b, 1.0f },
+            { IR, IB, 0.0f,  Color.r, Color.g, Color.b, 1.0f },
+            { IL, IT, 0.0f,  Color.r, Color.g, Color.b, 1.0f },
+            { IR, IB, 0.0f,  Color.r, Color.g, Color.b, 1.0f },
+            { IR, IT, 0.0f,  Color.r, Color.g, Color.b, 1.0f },
+        };
+        ID3D11Buffer* vb = CreateVertexBuffer(verts, sizeof(verts));
+
+        UpdateConstant(FVector(0.0f, 0.0f, 0.0f), 1.0f);
+        RenderPrimitive(vb, 12);
+
+        ReleaseVertexBuffer(vb);
+    }
 };
 
 // 도형 기본 클래스
