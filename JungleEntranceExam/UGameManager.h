@@ -1,0 +1,39 @@
+#pragma once
+
+//게임을 계속 진행하는지 혹은 종료시킬지 상태를 파악하는 매니저
+class UGameManager
+{
+private:
+	UGameManager();
+	~UGameManager() = default;
+
+	void initialize();
+	void Exit();
+
+public:
+	
+	static UGameManager* GetInstance() {
+
+		if (gameManager == nullptr) {
+			gameManager = new UGameManager();
+		}
+		return gameManager;
+	}
+	void Update(float deltaTime);
+
+	int GetTotalScore() { return currentScore; }
+	void AddScore(const unsigned int value);
+	void RessetGM();
+
+	void AddHealth(const unsigned int value);
+	void SubHealth(const unsigned int value);
+
+private:
+
+	const unsigned int MaxHealth = 3;
+	unsigned int currentHealth;
+	unsigned int currentScore;
+
+	static UGameManager* gameManager;
+};
+

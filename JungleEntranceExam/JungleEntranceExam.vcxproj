@@ -123,6 +123,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="FVector.cpp" />
     <ClCompile Include="ImGui\imgui.cpp" />
     <ClCompile Include="ImGui\imgui_demo.cpp" />
     <ClCompile Include="ImGui\imgui_draw.cpp" />
@@ -131,8 +132,22 @@
     <ClCompile Include="ImGui\imgui_tables.cpp" />
     <ClCompile Include="ImGui\imgui_widgets.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="temp.cpp" />
+    <ClCompile Include="TitleScene.cpp" />
+    <ClCompile Include="Types.cpp" />
+    <ClCompile Include="UBall.cpp" />
+    <ClCompile Include="UBar.cpp" />
+    <ClCompile Include="UGameManager.cpp" />
+    <ClCompile Include="UGameObject.cpp" />
+    <ClCompile Include="UGameScene.cpp" />
+    <ClCompile Include="URenderer.cpp" />
+    <ClCompile Include="UScene.cpp" />
+    <ClCompile Include="USceneManager.cpp" />
+    <ClCompile Include="Util.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="FVector.h" />
+    <ClInclude Include="FVertexSimple.h" />
     <ClInclude Include="ImGui\imconfig.h" />
     <ClInclude Include="ImGui\imgui.h" />
     <ClInclude Include="ImGui\imgui_impl_dx11.h" />
@@ -142,6 +157,18 @@
     <ClInclude Include="ImGui\imstb_textedit.h" />
     <ClInclude Include="ImGui\imstb_truetype.h" />
     <ClInclude Include="Sphere.h" />
+    <ClInclude Include="TitleScene.h" />
+    <ClInclude Include="Types.h" />
+    <ClInclude Include="UBall.h" />
+    <ClInclude Include="UBar.h" />
+    <ClInclude Include="UDiagram.h" />
+    <ClInclude Include="UGameManager.h" />
+    <ClInclude Include="UGameObject.h" />
+    <ClInclude Include="UGameScene.h" />
+    <ClInclude Include="URenderer.h" />
+    <ClInclude Include="UScene.h" />
+    <ClInclude Include="USceneManager.h" />
+    <ClInclude Include="Util.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="ShaderW0.hlsl">
