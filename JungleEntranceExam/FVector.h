@@ -1,0 +1,21 @@
+#pragma once
+
+// Structure for a 3D vector
+class FVector
+{
+public:
+    FVector(float _x = 0, float _y = 0, float _z = 0) : x(_x), y(_y), z(_z) {}
+    float Dot(const FVector& a, const FVector& b);
+    FVector operator+(const FVector& Other) const;
+    FVector operator-(const FVector& Other) const;
+    FVector operator*(const float s) const;
+    FVector operator/(const float s) const;
+
+public:
+    float x, y, z;
+};
+
+FVector Add(const FVector& a, const FVector& b);
+FVector Sub(const FVector& a, const FVector& b);
+FVector Mul(const FVector& v, float s);
+FVector Div(const FVector& v, float s);
