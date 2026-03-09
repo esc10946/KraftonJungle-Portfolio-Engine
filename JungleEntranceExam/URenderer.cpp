@@ -270,7 +270,23 @@ void URenderer::ReleaseConstantBuffer()
     }
 }
 
-void URenderer::UpdateConstant(FVector Offset, float Scale)
+//void URenderer::UpdateConstant(FVector Offset, float Scale)
+//{
+//    if (ConstantBuffer)
+//    {
+//        D3D11_MAPPED_SUBRESOURCE constantbufferMSR;
+//
+//        DeviceContext->Map(ConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &constantbufferMSR);
+//        FConstants* constants = (FConstants*)constantbufferMSR.pData;
+//        {
+//            constants->Offset = Offset;
+//            constants->Scale = Scale;
+//        }
+//        DeviceContext->Unmap(ConstantBuffer, 0);
+//    }
+//}
+
+void URenderer::UpdateConstant(FVector Offset, FVector Scale)
 {
     if (ConstantBuffer)
     {

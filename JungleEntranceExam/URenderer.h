@@ -8,10 +8,18 @@
 #include "FVector.h"
 
 // Constant Buffer(상수 버퍼) 관련 함수
+//struct FConstants
+//{
+//    FVector Offset;
+//    float Scale;
+//};
+
 struct FConstants
 {
     FVector Offset;
-    float Scale;
+    float Pad1;
+    FVector Scale;
+    float Pad2;
 };
 
 class URenderer
@@ -56,5 +64,6 @@ public:
     void ReleaseVertexBuffer(ID3D11Buffer* vertexBuffer);
     void CreateConstantBuffer();
     void ReleaseConstantBuffer();
-    void UpdateConstant(FVector Offset, float Scale);
+    // void UpdateConstant(FVector Offset, float Scale);
+    void UpdateConstant(FVector Offset, FVector Scale);
 };

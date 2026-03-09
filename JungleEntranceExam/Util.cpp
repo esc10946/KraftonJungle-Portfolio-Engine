@@ -11,3 +11,12 @@ float RandomFloatInRange(float min, float max)
 {
     return min + (max - min) * ((float)rand() / (float)RAND_MAX);
 }
+
+float GetRandomFloat(float min, float max)
+{
+    static std::random_device rd;
+    static std::mt19937 gen(rd());
+    static std::uniform_real_distribution<float> dis(min, max);
+
+    return dis(gen);
+}

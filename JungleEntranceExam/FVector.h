@@ -4,7 +4,7 @@
 class FVector
 {
 public:
-    FVector(float _x = 0, float _y = 0, float _z = 0) : x(_x), y(_y), z(_z) {}
+    FVector(float _x = 0.0f, float _y = 0.0f, float _z = 0.0f) : x(_x), y(_y), z(_z) {}
     float Dot(const FVector& a, const FVector& b);
     FVector operator+(const FVector& Other) const;
     FVector operator-(const FVector& Other) const;
