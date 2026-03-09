@@ -15,6 +15,8 @@
 #include "ImGui/imgui_impl_dx11.h"
 #include "imGui/imgui_impl_win32.h"
 
+#include "Shape.h"
+
 // 윈도우의 입력 이벤트를 ImGui에 전달하고, ImGui가 사용했는지 여부를 알려주는 함수
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -46,21 +48,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	return 0;
 }
-
-// 정점 구조체 선언
-struct FVertexSimple
-{
-    float x, y, z;    // Position
-    float r, g, b, a; // Color
-};
-
-// Structure for a 3D vector
-struct FVector
-{
-    float x, y, z;
-    FVector(float _x = 0, float _y = 0, float _z = 0) : x(_x), y(_y), z(_z) {}
-};
-
 // 구(Sphere) Vertices 정의가 포함된 헤더파일
 #include "Sphere.h"
 
