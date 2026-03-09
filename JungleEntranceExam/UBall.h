@@ -8,7 +8,8 @@ class UBall : public UDiagram
 {
 public:
     FVector Location;           // 공의 위치
-    FVector Velocity;           // 공의 속도
+    FVector Velocity;           // 공의 방향
+    float Speed;                // 공의 속력
     float Radius;               // 공의 반지름
     float Mass;                 // 공의 질량 (반지름과 비례하다고 가정)
     inline static int TotalNumBalls{ 0 };
@@ -17,7 +18,7 @@ public:
 public:
     UBall();
 
-    UBall(const FVector& _Location, const FVector& _Velocity, const float _Radius);
+    UBall(const FVector& _Location, const FVector& _Velocity, const float _Speed, const float _Radius);
 
     virtual ~UBall() override;
 
@@ -39,7 +40,7 @@ public:
 
 	virtual bool CheckCollision(const UDiagram* Other) override;
 
-    void BallBounceAtBar();
+    void BallBounceAtBar(const UBar& PlayerBar);
 
     void ResolveCollision(UBall* Other);
 };

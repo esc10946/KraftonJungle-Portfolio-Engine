@@ -1,14 +1,14 @@
 #include "UBall.h"
 
 // 생성자 및 소멸자
-UBall::UBall() : Location(0.0f, 0.0f, 0.0f), Velocity(0.0f, 0.0f, 0.0f), Radius(0.1f), Mass(0.1f)
+UBall::UBall() : Location(0.0f, 0.0f, 0.0f), Velocity(0.0f, 0.0f, 0.0f),Speed(1.0f), Radius(0.1f), Mass(0.1f)
 {
     ++TotalNumBalls;
     Mass = (4.0f / 3.0f) * Pi * std::powf(Radius, 3);
 }
 
-UBall::UBall(const FVector& _Location, const FVector& _Velocity, const float _Radius) 
-    : Location(_Location), Velocity(_Velocity), Radius(_Radius)
+UBall::UBall(const FVector& _Location, const FVector& _Velocity,const float _Speed, const float _Radius) 
+    : Location(_Location), Velocity(_Velocity),Speed(_Speed), Radius(_Radius)
 {
     ++TotalNumBalls;
     Mass = (4.0f / 3.0f) * Pi * std::powf(Radius, 3);
@@ -24,9 +24,9 @@ UBall::~UBall()
 void UBall::Update(float deltaTime)
 {
     // 속도에 기반하여 위치 적용
-    Location.x += Velocity.x * deltaTime;
-    Location.y += Velocity.y * deltaTime;
-    Location.z += Velocity.z * deltaTime;
+    Location.x += Velocity.x * Speed * deltaTime;
+    Location.y += Velocity.y * Speed * deltaTime;
+    // Location.z += Velocity.z * deltaTime;
 
     // 벽 충돌 적용
     ApplyWallCollision();
@@ -83,11 +83,10 @@ bool UBall::CheckCollision(const UDiagram* Other)
     const UBar* PlayerBar{ dynamic_cast<const UBar*>(Other) };
     if (PlayerBar)
     {
-        if ((PlayerBar->Location.x - (PlayerBar->XLength + Radius) <= Location.x && Location.x <= PlayerBar->Location.x + (PlayerBar->XLength + Radius))
-            && Location.y - Radius <= PlayerBar->Location.y + PlayerBar->YLength) {
-            Velocity.y *= -1.0f;
-            Location.y = PlayerBar->Location.y + PlayerBar->YLength + Radius;
-        }   
+        if (Location.y - Radius <= PlayerBar->Location.y + PlayerBar->YLength)
+        {
+            return (PlayerBar->Location.x - (PlayerBar->XLength + Radius) <= Location.x && Location.x <= PlayerBar->Location.x + (PlayerBar->XLength + Radius));
+        }
     }
 	const UBall* OtherBall{ dynamic_cast<const UBall*>(Other) };
 	if (OtherBall)
@@ -98,13 +97,18 @@ bool UBall::CheckCollision(const UDiagram* Other)
 		float radiusSum{ Radius + OtherBall->Radius };
 		return distanceSquared <= (radiusSum * radiusSum);
 	}
-    
 	return false;
 }
 
-void UBall::BallBounceAtBar()
+void UBall::BallBounceAtBar(const UBar& PlayerBar)
 {
-
+    Velocity.x = Velocity.x + ((Location.x - PlayerBar.Location.x) / PlayerBar.XLength) / 3;
+    if (Velocity.x > 0.87f)
+        Velocity.x = 0.87f;
+    else if (Velocity.x < -0.87f)
+        Velocity.x = -0.87f;
+    Velocity.y = sqrtf(1 - powf(Velocity.x, 2));
+    Location.y = PlayerBar.Location.y + PlayerBar.YLength + Radius;
 }
 
 void UBall::ResolveCollision(UBall* Other) {

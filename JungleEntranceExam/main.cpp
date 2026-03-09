@@ -93,7 +93,7 @@ static void InitBall(UBall& input)
     input.Location.z = 0.0f;
 
     // 임의의 속도(Velocity)
-    input.Velocity.x = 1.0f; //GetRandomFloat(1.5f, 2.0f);
+    input.Velocity.x = 0.0f; //GetRandomFloat(1.5f, 2.0f);
     input.Velocity.y = 1.0f; //GetRandomFloat(1.5f, 2.0f);
     input.Velocity.z = 0.0f;
 }
@@ -324,7 +324,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     LARGE_INTEGER startTime, endTime;
     double elapsedTime = 0.0;
 
-    UBar Bar(FVector(0.0f, -0.95f, 0.0f), 0.7f, 0.1f, 0);
+    UBar Bar(FVector(0.0f, -0.95f, 0.0f), 0.7f, 0.3f, 0);
     UBall Ball;
     InitBall(Ball);
 
@@ -364,7 +364,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         Bar.Update(dt);
         Ball.Update(dt);
 
-        Ball.CheckCollision(&Bar);
+        if (Ball.CheckCollision(&Bar))
+        {
+            Ball.BallBounceAtBar(Bar);
+        }
 
         // 준비 작업
         renderer.Prepare();
