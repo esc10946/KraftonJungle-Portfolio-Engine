@@ -68,3 +68,23 @@ void UBar::SetScale(const float _Scale)
 	Scale = _Scale;
 	XLength = 1.000000f * Scale;
 }
+
+void UBar::AddScore(int Amount)
+{
+	OutputDebugStringA("AddScore called\n");
+}
+
+void UBar::SpawnExtraBalls(int Count)
+{
+	OutputDebugStringA("SpawnExtraBalls called\n");
+}
+
+void UBar::ModifyPaddleSize(float DeltaSize, float Duration)
+{
+	OutputDebugStringA("ModifyPaddleSize called\n");
+}
+
+void UBar::ModifyBallSpeed(float Multiplier, float Duration)
+{
+	OutputDebugStringA("ModifyBallSpeed called\n");
+}

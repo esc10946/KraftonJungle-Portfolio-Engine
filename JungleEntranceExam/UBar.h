@@ -1,6 +1,7 @@
 #pragma once
 
 #include "UDiagram.h"
+#include "ItemEffectReceiver.h"
 
 enum EDirection
 {
@@ -8,7 +9,7 @@ enum EDirection
     Right = 1
 };
 
-class UBar : public UDiagram
+class UBar : public UDiagram, public IItemEffectReceiver
 {
 public:
     FVector Location;           // 바의 위치
@@ -43,4 +44,10 @@ public:
     // void ResolveCollision(UBar* Other);
 
     void SetScale(const float _Scale);
+
+    // 아이템 관련
+    virtual void AddScore(int Amount) override;
+    virtual void SpawnExtraBalls(int Count) override;
+    virtual void ModifyPaddleSize(float DeltaSize, float Duration) override;
+    virtual void ModifyBallSpeed(float Multiplier, float Duration) override;
 };

@@ -12,7 +12,13 @@
 #include "Bar.h"
 #include "UBall.h"
 #include "Sphere.h"
+#include "UItem.h"
 #include "Util.h"
+
+// Item 관련 헤더
+#include "Item/ItemEffectReceiver.h"
+#include "Item/BrickBreakItemManager.h"
+#include "DummyReceiver.h"
 
 // ImGui 관련 헤더
 #include "ImGui/imgui.h"
@@ -298,7 +304,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     UINT NumVerticesBar = sizeof(bar_vertices) / sizeof(FVertexSimple);
     ID3D11Buffer* vertexBufferBar = renderer.CreateVertexBuffer(bar_vertices, sizeof(bar_vertices));
 
-
     // 반드시 UBall이 아닌 UPrimitive로 선언하여야 하며 바꾸면 안됩니다.
     //UPrimitive** PrimitiveList = nullptr;
 
@@ -328,6 +333,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     UBall Ball;
     InitBall(Ball);
 
+    // Item Manager
+    UBrickBreakItemManager ItemManager;
+
 	// Main Loop (Quit Message가 들어오기 전까지 아래 Loop를 무한히 실행하게 됨)
 	while (bIsExit == false)
 	{
@@ -353,6 +361,24 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             if (msg.message == WM_KEYDOWN) {
                 if (msg.wParam == VK_LEFT)  Bar.Direction = -1;
                 if (msg.wParam == VK_RIGHT) Bar.Direction = 1;
+
+                if (msg.wParam == 'T')
+                {
+                    // 아이템 생성 테스트
+                    FVector pos(0.0f, 0.0f, 0.0f);
+
+                    ItemManager.SpawnItem(FItemDesc(), pos, FVector(0.0f, -1.0f, 0.0f));
+
+                    // 더미 충돌 테스트
+                    //FRect paddle;
+
+                    //paddle.Left = 350;
+                    //paddle.Right = 450;
+                    //paddle.Top = 500;
+                    //paddle.Bottom = 520;
+
+                    //ItemManager.CheckPlayerCollision(paddle, &Receiver);
+                }
             }
             else if (msg.message == WM_KEYUP) {
                 Bar.Direction = 0; // 키를 떼면 멈춤
@@ -406,6 +432,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
         Ball.Render(renderer);
         renderer.RenderPrimitive(vertexBufferSphere, NumVerticesSphere);
+
+        ItemManager.Update(dt);
+        ItemManager.Render(renderer);
+
 
         //ImGui_ImplDX11_NewFrame();      // 렌더러(D3D11) 쪽에서 ImGui 프레임 준비
         //ImGui_ImplWin32_NewFrame();     // 플랫폼(Win32) 쪽에서 ImGui 프레임 준비
@@ -467,6 +497,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     //ImGui_ImplDX11_Shutdown();
     //ImGui_ImplWin32_Shutdown();
     //ImGui::DestroyContext();
+
+    ItemManager.Clear();
 
     // vertexBuffer 릴리즈
     renderer.ReleaseVertexBuffer(vertexBufferBar);
