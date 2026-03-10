@@ -18,7 +18,8 @@ enum class EBlockColor
 	Blue = 100,
 	Magenta = 110,
 	Yellow = 120,
-	Silver = 50
+	Silver = 1,
+	Gold = 2
 };
 
 static FColor GetColorFromBlockColor(EBlockColor blockColor)
@@ -33,6 +34,8 @@ static FColor GetColorFromBlockColor(EBlockColor blockColor)
 	case EBlockColor::Blue:     return FColor(0.15f, 0.3f, 1.0f);
 	case EBlockColor::Magenta:  return FColor(0.9f, 0.0f, 0.9f);
 	case EBlockColor::Yellow:   return FColor(1.0f, 0.95f, 0.0f);
+	case EBlockColor::Silver:   return FColor(1.00f, 0.55f, 0.10f);
+	case EBlockColor::Gold:     return FColor(0.53f, 0.60f, 0.67f);
 	default:                    return FColor(1.0f, 1.0f, 1.0f);
 	}
 }
@@ -46,10 +49,11 @@ public:
 	void Init(float cx, float cy, float hw, float hh);
 
 	void Update(float DeltaTime) override;
-	void Render(URenderer& Renderer) override;
+	void Render(URenderer& Renderer) override {};
 	bool CheckBallCollision(const FVector& BallPos, float Radius, FVector& OutNormal) const;// if creating the Ball Class, Make overload function
 	int  TakeDamage();
 
+	FColor GetColor() const;
 public:
 	EBlockType Type;
 	EBlockColor Color;
@@ -57,7 +61,7 @@ public:
 	int CurrHp;
 	float CenterX, CenterY;
 	float HalfW, HalfH;
-
+	int score;
 
 
 };

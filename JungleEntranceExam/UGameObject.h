@@ -16,8 +16,6 @@ public:
     bool IsActive() const { return bActive; }
     void SetActive(bool InActive) { bActive = InActive; }
 
-    //const char* GetTag() const { return Tag; }
-    //void SetTag(const char* InTag) { Tag = InTag; }
 
 protected:
     bool        bActive = true;

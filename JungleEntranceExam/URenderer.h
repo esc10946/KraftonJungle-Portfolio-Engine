@@ -285,9 +285,41 @@ public:
     struct FConstants
     {
         FVector Offset;
-        float Scale;
+        float   ScaleX;
+        float   ScaleY;
+        float   Pad[3];
+        float   Color[4];
     };
+    ID3D11Buffer* RectVB = nullptr;
 
+    void CreateRectBuffer()
+    {
+        const FColor fill = { 1,1,1,1 };
+        const FColor border = { 0.3f,0.3f,0.3f,1 };
+        const float bx = 0.10f, by = 0.12f;
+        FVertexSimple verts[12] =
+        {
+     
+            {-1,  1, 0, border.r, border.g, border.b, 1},
+            { 1, -1, 0, border.r, border.g, border.b, 1},
+            {-1, -1, 0, border.r, border.g, border.b, 1},
+            {-1,  1, 0, border.r, border.g, border.b, 1},
+            { 1,  1, 0, border.r, border.g, border.b, 1},
+            { 1, -1, 0, border.r, border.g, border.b, 1},
+  
+            {-1 + bx,  1 - by, 0, fill.r, fill.g, fill.b, 1},
+            { 1 - bx, -1 + by, 0, fill.r, fill.g, fill.b, 1},
+            {-1 + bx, -1 + by, 0, fill.r, fill.g, fill.b, 1},
+            {-1 + bx,  1 - by, 0, fill.r, fill.g, fill.b, 1},
+            { 1 - bx,  1 - by, 0, fill.r, fill.g, fill.b, 1},
+            { 1 - bx, -1 + by, 0, fill.r, fill.g, fill.b, 1},
+        };
+        RectVB = CreateVertexBuffer(verts, sizeof(verts));
+    }
+    void ReleaseRectBuffer()
+    {
+        if (RectVB) { RectVB->Release(); RectVB = nullptr; }
+    }
     void CreateConstantBuffer()
     {
         D3D11_BUFFER_DESC constantbufferdesc = {};
@@ -308,23 +340,27 @@ public:
         }
     }
 
+    void UpdateConstant(FVector Offset, float ScaleX, float ScaleY, FColor Color)
+    {
+        if (!ConstantBuffer) return;
+
+        D3D11_MAPPED_SUBRESOURCE msr;
+        DeviceContext->Map(ConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &msr);
+        FConstants* c = (FConstants*)msr.pData;
+        c->Offset = Offset;
+        c->ScaleX = ScaleX;
+        c->ScaleY = ScaleY;
+        c->Color[0] = Color.r;
+        c->Color[1] = Color.g;
+        c->Color[2] = Color.b;
+        c->Color[3] = Color.a;
+        DeviceContext->Unmap(ConstantBuffer, 0);
+    }
     void UpdateConstant(FVector Offset, float Scale)
     {
-        if (ConstantBuffer)
-        {
-            D3D11_MAPPED_SUBRESOURCE constantbufferMSR;
-
-            DeviceContext->Map(ConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &constantbufferMSR);
-            FConstants* constants = (FConstants*)constantbufferMSR.pData;
-            {
-                constants->Offset = Offset;
-                constants->Scale = Scale;
-            }
-            DeviceContext->Unmap(ConstantBuffer, 0);
-        }
+        UpdateConstant(Offset, Scale, Scale, FColor(1, 1, 1, 1));
     }
-
-    void RenderRect(float cx, float cy, float hw, float hh, FColor Color)
+    /*void RenderRect(float cx, float cy, float hw, float hh, FColor Color)
     {
         const FColor BgColor = Color* 0.5f;
         const float L= cx - hw;
@@ -366,5 +402,5 @@ public:
         RenderPrimitive(vb, 12);
 
         ReleaseVertexBuffer(vb);
-    }
+    }*/
 };

@@ -1,5 +1,5 @@
 #pragma once
-
+//main.cpp 에 있던 선언 옮김
 // 정점 구조체 선언
 struct FVertexSimple
 {
@@ -14,6 +14,8 @@ struct FVector
     FVector(float _x = 0, float _y = 0, float _z = 0) : x(_x), y(_y), z(_z) {}
 };
 
+
+//추가된 색상 구조체
 struct FColor
 {
     float r, g, b, a;

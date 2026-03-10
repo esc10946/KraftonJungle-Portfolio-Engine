@@ -2,8 +2,10 @@
 cbuffer constants : register(b0)
 {
     float3 Offset;
-    float Scale;
-    //float Pad;
+    float  ScaleX;
+    float  ScaleY;
+    float3 Pad;
+    float4 Color;
 }
 
 struct VS_INPUT
@@ -29,11 +31,11 @@ PS_INPUT mainVS(VS_INPUT input)
     // output.position = float4(Offset, 0) + input.position;
     
     // 상수버퍼를 통해 넘겨 받은 Offset과 Scale 값을 바탕으로 Vertex들의 위치를 이동
-    float3 scaledPos = input.position.xyz * Scale;
+    float3 scaledPos = input.position.xyz * float3(ScaleX, ScaleY, 1.0f);;
     output.position = float4(scaledPos + Offset, input.position.w);
     
     // Pass the color to the pixel shader
-    output.color = input.color;
+    output.color=input.color * Color;
     
     return output;
 }
