@@ -12,6 +12,7 @@
 #include "Bar.h"
 #include "UBall.h"
 #include "Sphere.h"
+#include "UBlock.h"
 #include "Util.h"
 
 // ImGui 관련 헤더
@@ -328,6 +329,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     UBall Ball;
     InitBall(Ball);
 
+    UBlock* testBlocks[3] = {
+    new UBlock(EBlockType::Normal,   EBlockColor::Red,    1),
+    new UBlock(EBlockType::Hard,     EBlockColor::White, 1),
+    new UBlock(EBlockType::Immortal, EBlockColor::White,   1),
+    };
+    testBlocks[0]->Init(-0.6f, 0.5f, 0.1f, 0.025f);
+    testBlocks[1]->Init(0.0f, 0.5f, 0.1f, 0.025f);
+    testBlocks[2]->Init(0.6f, 0.5f, 0.1f, 0.025f);
+
 	// Main Loop (Quit Message가 들어오기 전까지 아래 Loop를 무한히 실행하게 됨)
 	while (bIsExit == false)
 	{
@@ -369,6 +379,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             Ball.BallBounceAtBar(Bar);
         }
 
+        for (auto* b : testBlocks)
+        {
+            EBlockCollision CollisionState = Ball.CheckBlockCollision(*b);
+
+            Ball.BallBounceAtBlock(CollisionState, *b);
+        }
+
         // 준비 작업
         renderer.Prepare();
         renderer.PrepareShader();
@@ -406,6 +423,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
         Ball.Render(renderer);
         renderer.RenderPrimitive(vertexBufferSphere, NumVerticesSphere);
+
+        for (auto* b : testBlocks)
+            b->Render(renderer);
 
         //ImGui_ImplDX11_NewFrame();      // 렌더러(D3D11) 쪽에서 ImGui 프레임 준비
         //ImGui_ImplWin32_NewFrame();     // 플랫폼(Win32) 쪽에서 ImGui 프레임 준비

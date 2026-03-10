@@ -2,6 +2,7 @@
 
 #include "UDiagram.h"
 #include "UBar.h"
+#include "UBlock.h"
 #include "FVector.h"
 
 class UBall : public UDiagram
@@ -40,7 +41,11 @@ public:
 
 	virtual bool CheckCollision(const UDiagram* Other) override;
 
+    EBlockCollision CheckBlockCollision(const UBlock& Block);
+
     void BallBounceAtBar(const UBar& PlayerBar);
+
+    void BallBounceAtBlock(const EBlockCollision Position, const UBlock& Block);
 
     void ResolveCollision(UBall* Other);
 };

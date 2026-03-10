@@ -136,12 +136,15 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="UBall.cpp" />
     <ClCompile Include="UBar.cpp" />
+    <ClCompile Include="UBlock.cpp" />
+    <ClCompile Include="UBlock.h" />
     <ClCompile Include="UGameObject.cpp" />
     <ClCompile Include="URenderer.cpp" />
     <ClCompile Include="Util.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bar.h" />
+    <ClInclude Include="FColor.h" />
     <ClInclude Include="FVector.h" />
     <ClInclude Include="ImGui\imconfig.h" />
     <ClInclude Include="ImGui\imgui.h" />

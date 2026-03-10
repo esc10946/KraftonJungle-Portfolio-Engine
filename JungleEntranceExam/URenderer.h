@@ -6,6 +6,7 @@
 
 #include "FVertexSimple.h"
 #include "FVector.h"
+#include "FColor.h"
 
 // Constant Buffer(상수 버퍼) 관련 함수
 //struct FConstants
@@ -66,4 +67,6 @@ public:
     void ReleaseConstantBuffer();
     // void UpdateConstant(FVector Offset, float Scale);
     void UpdateConstant(FVector Offset, FVector Scale);
+
+    void RenderRect(float cx, float cy, float hw, float hh, FColor Color);
 };

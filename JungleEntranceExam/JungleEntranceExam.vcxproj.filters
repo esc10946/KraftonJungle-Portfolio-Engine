@@ -66,6 +66,12 @@
     <ClCompile Include="UBar.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="UBlock.h">
+      <Filter>헤더 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="UBlock.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ImGui\imconfig.h">
@@ -92,9 +98,6 @@
     <ClInclude Include="ImGui\imstb_truetype.h">
       <Filter>ImGui</Filter>
     </ClInclude>
-    <ClInclude Include="Sphere.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="UBall.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
@@ -116,8 +119,14 @@
     <ClInclude Include="UBar.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="Bar.h">
+    <ClInclude Include="FColor.h">
       <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Bar.h">
+      <Filter>리소스 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Sphere.h">
+      <Filter>리소스 파일</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
