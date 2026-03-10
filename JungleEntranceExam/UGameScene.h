@@ -11,7 +11,10 @@ public:
     UGameScene();
     ~UGameScene();
 
+
+    // UScene을(를) 통해 상속됨
     void Update(float delta) override;
+    void Render(URenderer render) override;
     bool HaveBalls();
 
     // UScene을(를) 통해 상속됨

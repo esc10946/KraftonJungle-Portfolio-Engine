@@ -2,6 +2,8 @@
 #include "UGameObject.h"
 #include "UGameManager.h" 
 #include "UBall.h"
+#include "UBar.h"
+#include "Util.h"
 
 UGameScene::UGameScene()
 {
@@ -13,6 +15,33 @@ UGameScene::~UGameScene()
     Release(); 
 }
 
+
+// 공 생성 함수
+static UBall* CreateBall()
+{
+    // new 연산자를 사용해 공의 Instance를 생성
+    UBall* Ball = new UBall();
+
+    // 임의의 크기(Radius): 너무 큰 값을 방지하기 위해, 공의 크기를 화면 너비의 1/10로 제한
+    float maxRadiusX = (rightBorder - leftBorder) * 0.05f;
+    float maxRadiusY = (topBorder - bottomBorder) * 0.05f;
+    float maxAllowedRadius = (maxRadiusX < maxRadiusY) ? maxRadiusX : maxRadiusY;
+    float r = GetRandomFloat(0.01f, maxAllowedRadius);
+    Ball->SetRadius(r);
+
+    // 임의의 위치(Location): 화면 경계 안쪽의 랜덤한 위치, 반지름을 마진값으로 함
+    Ball->Location.x = GetRandomFloat(leftBorder + Ball->Radius, rightBorder - Ball->Radius);
+    Ball->Location.y = GetRandomFloat(bottomBorder + Ball->Radius, topBorder - Ball->Radius);
+    Ball->Location.z = 0.0f;
+
+    // 임의의 속도(Velocity)
+    Ball->Velocity.x = 1.0f;
+    Ball->Velocity.y = 1.0f;
+    Ball->Velocity.z = 0.0f;
+
+    return Ball;
+}
+
 //해당 게임에서 생성되는 모든 오브젝트여기서 생성
 void UGameScene::Init()
 {
@@ -20,8 +49,18 @@ void UGameScene::Init()
     SceneType = ESceneType::InGame;
 
     ActiveBallList.clear();
-    //볼의 위치 혹은 속도 초기화 --
-    ActiveBallList.push_back(new UBall());
+
+    UBall* newBall = CreateBall();
+
+    //1번 플레이어가 움직이는 바
+    UBar* Bar_1 = new UBar(FVector(0.0f, -0.95f, 0.0f), 0.7f, 0.1f, 0);
+
+    //2번 플레이어가 움직이는 바
+    UBar* Bar_2 = new UBar(FVector(0.0f, 0.95f, 0.0f), 0.7f, 0.1f, 0);
+
+    AddObject(newBall);
+    AddObject(Bar_1);
+    AddObject(Bar_2);
 
     //게임매니저 초기화
     gameManager = UGameManager::GetInstance();
@@ -60,8 +99,16 @@ void UGameScene::Update(float delta)
 {
     for (UGameObject* Object : UGameObjectList)
     {
-        if (Object != nullptr) {
-            //Object->Update(delta);
+        UDiagram* Diagram = dynamic_cast<UDiagram*>(Object);
+        if (Diagram != nullptr) {
+            Diagram->Update(delta);
+        }
+    }
+
+    for (UBall* ball : ActiveBallList)
+    {
+        if (ball != nullptr) {
+            ball->Update(delta);
         }
     }
 
@@ -70,10 +117,11 @@ void UGameScene::Update(float delta)
     // 밖에 공이 나갔는지 판별
     if (!HaveBalls())
     {
-        // 게임 매니저에게 체력한칸을 줄여달라고함
         gameManager->SubHealth(1);
 
-        //공의 속도, 위치 초기화
+        // 공이 다 나갔으니 새 공을 하나 스폰해줍니다.
+        UBall* newBall = CreateBall();
+        ActiveBallList.push_back(newBall);
     }
 }
 
@@ -128,3 +176,25 @@ void UGameScene::AddObject(UGameObject* Object)
         UGameObjectList.push_back(Object);
     }
 }
+
+void UGameScene::Render(URenderer render)
+{
+    for (UGameObject* Object : UGameObjectList)
+    {
+        UDiagram* Diagram = dynamic_cast<UDiagram*>(Object);
+
+        if (Diagram != nullptr) {
+            Diagram->Render(render);
+            render.RenderRectangle();
+        }
+    }
+
+    for (UBall* ball : ActiveBallList)
+    {
+        if (ball != nullptr) {
+            ball->Render(render);
+            render.RenderSphere();
+        }
+    }
+}
+

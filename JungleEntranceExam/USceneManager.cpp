@@ -2,6 +2,8 @@
 #include "TitleScene.h"
 #include "UGameScene.h"
 
+USceneManager* USceneManager::sceneManager = nullptr;
+
 void USceneManager::LoadScene(ESceneType sceneName)
 {
 	currentScene->SetActive(false);
@@ -20,6 +22,11 @@ void USceneManager::LoadScene(ESceneType sceneName)
 ESceneType USceneManager::GetCurrentSceneName() const
 {
 	return currentScene->GetSceneType();
+}
+
+void USceneManager::AddObjectToCurrentScene(UGameObject* Object)
+{
+	currentScene->AddObject(Object);
 }
 
 USceneManager::USceneManager()

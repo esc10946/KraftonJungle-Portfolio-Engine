@@ -19,6 +19,7 @@ public:
 	void LoadScene(ESceneType sceneName);
 	UScene* GetCurrentScene() const { return currentScene; }
 	ESceneType GetCurrentSceneName() const;
+	void AddObjectToCurrentScene(UGameObject* Object);
 
 private:
 	USceneManager();

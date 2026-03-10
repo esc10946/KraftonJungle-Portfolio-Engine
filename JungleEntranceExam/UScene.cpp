@@ -1,5 +1,6 @@
 #include "UScene.h"
 #include "UGameObject.h"
+#include "URenderer.h"
 
 UGameObject* UScene::SearchObject(unsigned int ID)
 {
@@ -17,13 +18,6 @@ void UScene::Update(float delta)
 {
 	for (UGameObject* Object : UGameObjectList) {
 		//Object->Update(delta);
-	}
-}
-
-void UScene::Render()
-{
-	for (UGameObject* Object : UGameObjectList) {
-		//Object->Render();W
 	}
 }
 

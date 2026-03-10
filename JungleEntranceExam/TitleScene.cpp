@@ -1,5 +1,6 @@
 #include "TitleScene.h"
 #include "USceneManager.h"
+#include "URenderer.h"
 
 void UTitleScene::Init()
 {
@@ -46,6 +47,10 @@ void UTitleScene::Update(float delta)
     // }
 }
 
+void UTitleScene::Render(URenderer render)
+{
+}
+
 void UTitleScene::Release()
 {
     // UScene에 만들어둔 기본 Release 로직 (UGameObjectList 비우기) 호출
@@ -58,10 +63,11 @@ void UTitleScene::GameStart()
 
 void UTitleScene::GameEnd()
 {
-    //PostQuitMessage(0);
+    PostQuitMessage(0);
 }
 
 void UTitleScene::Credit()
 {
 
 }
+

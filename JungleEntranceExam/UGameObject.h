@@ -2,6 +2,11 @@
 
 static unsigned int NextID = 0;
 
+const float leftBorder = -1.0f;
+const float rightBorder = 1.0f;
+const float topBorder = 1.0f;
+const float bottomBorder = -1.0f;
+
 class UGameObject
 {
 public:

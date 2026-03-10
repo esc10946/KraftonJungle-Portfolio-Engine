@@ -12,13 +12,7 @@ private:
 
 public:
 	
-	static UGameManager* GetInstance() {
-
-		if (gameManager == nullptr) {
-			gameManager = new UGameManager();
-		}
-		return gameManager;
-	}
+	static UGameManager* GetInstance();
 	void Update(float deltaTime);
 
 	int GetTotalScore() { return currentScore; }

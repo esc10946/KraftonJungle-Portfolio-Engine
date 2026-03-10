@@ -15,6 +15,7 @@ public:
     // UScene을(를) 통해 상속됨
     void Init() override;
     void Update(float delta) override;
+    void Render(URenderer render) override;
     void Release() override;
 
     void GameStart();

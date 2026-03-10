@@ -228,6 +228,27 @@ void URenderer::RenderPrimitive(ID3D11Buffer* pBuffer, UINT numVertices)
     DeviceContext->Draw(numVertices, 0);
 }
 
+void URenderer::RenderSphere()
+{
+    UINT offset = 0;
+    DeviceContext->IASetVertexBuffers(0, 1, &vertexBufferSphere, &Stride, &offset);
+    DeviceContext->Draw(NumVerticesSphere, 0);
+}
+
+void URenderer::RenderRectangle()
+{
+    UINT offset = 0;
+    DeviceContext->IASetVertexBuffers(0, 1, &vertexBufferRect, &Stride, &offset);
+    DeviceContext->Draw(NumVerticesBar, 0);
+}
+
+void URenderer::RenderTriangle()
+{
+    UINT offset = 0;
+    DeviceContext->IASetVertexBuffers(0, 1, &vertexBufferTriangle, &Stride, &offset);
+    DeviceContext->Draw(3, 0);
+}
+
 // Vertex Buffer 생성 함수
 ID3D11Buffer* URenderer::CreateVertexBuffer(FVertexSimple* vertices, UINT byteWidth)
 {

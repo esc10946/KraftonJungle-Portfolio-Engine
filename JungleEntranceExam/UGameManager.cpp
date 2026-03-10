@@ -1,9 +1,15 @@
 #include "UGameManager.h"
 #include "USceneManager.h"
 
+UGameManager* UGameManager::gameManager = nullptr;
+
 UGameManager::UGameManager()
 {
 	RessetGM();
+}
+
+void UGameManager::initialize()
+{
 }
 
 //인게임에서 초기화면으로 돌아가는 함수
@@ -12,6 +18,14 @@ void UGameManager::Exit()
 {
 	initialize();
 	USceneManager::GetInstance().LoadScene(ESceneType::Title);
+}
+
+UGameManager* UGameManager::GetInstance()
+{
+	if (gameManager == nullptr) {
+		gameManager = new UGameManager();
+	}
+	return gameManager;
 }
 
 void UGameManager::Update(float deltaTime)
