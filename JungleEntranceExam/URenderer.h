@@ -71,7 +71,7 @@ public:
     void RenderTriangle();
 
     ID3D11Buffer* CreateVertexBuffer(FVertexSimple* vertices, UINT byteWidth);
-    void ReleaseVertexBuffer(ID3D11Buffer* vertexBuffer);
+    void ReleaseVertexBuffer();
     void CreateConstantBuffer();
     void ReleaseConstantBuffer();
     // void UpdateConstant(FVector Offset, float Scale);

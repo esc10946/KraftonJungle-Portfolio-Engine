@@ -15,7 +15,8 @@ public:
 	static UGameManager* GetInstance();
 	void Update(float deltaTime);
 
-	int GetTotalScore() { return currentScore; }
+	int GetTotalScore() const { return currentScore; }
+	int GetCurLife() const { return currentHealth; }
 	void AddScore(const unsigned int value);
 	void RessetGM();
 

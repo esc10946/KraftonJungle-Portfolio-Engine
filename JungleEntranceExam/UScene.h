@@ -1,5 +1,8 @@
 #pragma once
 #include "Types.h"
+#include "ImGui/imgui.h"
+#include "ImGui/imgui_impl_dx11.h"
+#include "ImGui/imgui_impl_win32.h"
 #include <vector>
 #include <string>
 
@@ -15,6 +18,7 @@ public:
     UGameObject* SearchObject(unsigned int ID);
     virtual void Update(float delta);
     virtual void Render(URenderer renderer) = 0;
+    virtual void UIRender()= 0;
 
     void SetActive(bool doActive) { bisActive = doActive; }
 

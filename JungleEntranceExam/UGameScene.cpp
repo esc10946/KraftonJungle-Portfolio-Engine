@@ -15,6 +15,38 @@ UGameScene::~UGameScene()
     Release(); 
 }
 
+void UGameScene::UIRender()
+{
+    ImGui_ImplDX11_NewFrame();
+    ImGui_ImplWin32_NewFrame();
+    ImGui::NewFrame();
+    
+    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+
+    float padding = 20.0f;
+
+    ImVec2 windowPos(viewport->WorkPos.x + viewport->WorkSize.x - padding, viewport->WorkPos.y + padding);
+
+    ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always, ImVec2(1.0f, 0.0f));
+
+    ImGuiWindowFlags hudFlags =
+        ImGuiWindowFlags_NoDecoration |
+        ImGuiWindowFlags_NoBackground |
+        ImGuiWindowFlags_NoMove |
+        ImGuiWindowFlags_NoInputs |
+        ImGuiWindowFlags_AlwaysAutoResize;
+
+    ImGui::Begin("HUD", nullptr, hudFlags);
+
+    ImGui::SetWindowFontScale(4.0f);
+    ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "SCORE: %d", gameManager->GetTotalScore());
+    ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "LIVES: %d", gameManager->GetCurLife());
+    ImGui::End();
+
+    ImGui::Render();
+    ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+}
+
 
 // 공 생성 함수
 static UBall* CreateBall()

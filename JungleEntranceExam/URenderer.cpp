@@ -266,9 +266,16 @@ ID3D11Buffer* URenderer::CreateVertexBuffer(FVertexSimple* vertices, UINT byteWi
     return vertexBuffer;
 }
 // Vertex Buffer를 Release 시키는 함수
-void URenderer::ReleaseVertexBuffer(ID3D11Buffer* vertexBuffer)
+void URenderer::ReleaseVertexBuffer()
 {
-    vertexBuffer->Release();
+    if(vertexBufferRect)
+        vertexBufferRect->Release();
+
+    if (vertexBufferSphere)
+        vertexBufferSphere->Release();
+
+    if (vertexBufferTriangle)
+        vertexBufferTriangle->Release();
 }
 
 void URenderer::CreateConstantBuffer()

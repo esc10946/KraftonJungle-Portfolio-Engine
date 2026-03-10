@@ -21,6 +21,7 @@
 #include "ImGui/imgui_internal.h"
 #include "ImGui/imgui_impl_dx11.h"
 #include "imGui/imgui_impl_win32.h"
+#include "UInputManager.h"
 
 // 윈도우의 입력 이벤트를 ImGui에 전달하고, ImGui가 사용했는지 여부를 알려주는 함수
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -254,7 +255,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     ImGuiIO& io = ImGui::GetIO();
     ImGui_ImplWin32_Init((void*)hWnd);
     ImGui_ImplDX11_Init(renderer.Device, renderer.DeviceContext);
-
     
     // 반드시 UBall이 아닌 UPrimitive로 선언하여야 하며 바꾸면 안됩니다.
     //UPrimitive** PrimitiveList = nullptr;
@@ -287,7 +287,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     //게임씬 초기화
     USceneManager& sceneManager = USceneManager::GetInstance();
-    sceneManager.LoadScene(ESceneType::InGame);
+    sceneManager.LoadScene(ESceneType::Title);
 
 	// Main Loop (Quit Message가 들어오기 전까지 아래 Loop를 무한히 실행하게 됨)
 	while (bIsExit == false)
@@ -323,6 +323,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             //}
 		}
 
+        UInputManager::GetInstance()->Update();
 		////////////////////////////////////////////
 		// 매번 실행되는 코드를 여기에 추가합니다.
         UScene* currentScene = sceneManager.GetCurrentScene();
@@ -334,6 +335,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         renderer.Prepare();
         renderer.PrepareShader();
         currentScene->Render(renderer);
+        currentScene->UIRender();
 
         // 생성한 버텍스 버퍼를 넘겨 실질적인 렌더링 요청
         
@@ -395,6 +397,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         //ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());    // 데이터(Draw Data)를 D3D11 Draw Call로 변환해서 실제로 그림
 
         // 다 그렸으면 버퍼 스왑
+        
         renderer.SwapBuffer();
 
 		////////////////////////////////////////////
@@ -430,14 +433,26 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     //ImGui_ImplWin32_Shutdown();
     //ImGui::DestroyContext();
 
+
+
     // vertexBuffer 릴리즈
-    renderer.ReleaseVertexBuffer(renderer.vertexBufferRect);
+    renderer.ReleaseVertexBuffer();
 
     // Constant Buffer 릴리즈
     renderer.ReleaseConstantBuffer();
 
     // 렌더러 소멸 직전, 쉐이더 소멸
     renderer.ReleaseShader();
+
+    ID3D11Debug* debugDevice = nullptr;
+    HRESULT hr = renderer.Device->QueryInterface(__uuidof(ID3D11Debug), (void**)&debugDevice);
+
+    if (SUCCEEDED(hr))
+    {
+        debugDevice->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+
+        debugDevice->Release();
+    }
 
     // 렌더러 소멸
     renderer.Release();

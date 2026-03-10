@@ -20,12 +20,14 @@ public:
 
     void GameStart();
     void GameEnd();
-    void Credit();
 
 private:
     UGameObject* TitleLogo = nullptr;
     UUIButton* StartButton = nullptr;
     UUIButton* EndButton = nullptr;
     UUIButton* CreditButton = nullptr;
+
+    // UScene을(를) 통해 상속됨
+    void UIRender() override;
 };
 
