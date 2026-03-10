@@ -4,4 +4,4 @@
 
 std::vector<UBlock*> CreateStage(int Round);
 
-void GetStageInfo(int StageNum, int& outRow, int& outCol)
+void GetStageInfo(int StageNum, int& outRow, int& outCol);
