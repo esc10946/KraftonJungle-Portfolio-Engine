@@ -43,6 +43,12 @@ void USoundManager::Release()
         pSystem->release();
         pSystem = nullptr;
     }
+
+    if (instance != nullptr)
+    {
+        delete instance;
+        instance = nullptr;
+    }
 }
 
 void USoundManager::LoadSound(const std::string& name, const std::string& filepath, bool bLoop)

@@ -35,6 +35,15 @@ void UInputManager::Update()
     }
 }
 
+void UInputManager::Release()
+{
+    if (instance != nullptr)
+    {
+        delete instance;
+        instance = nullptr;
+    }
+}
+
 UInputManager::UInputManager() {
     for (int i = 0; i < 256; ++i) {
         KeyStates[i] = EKeyState::None;

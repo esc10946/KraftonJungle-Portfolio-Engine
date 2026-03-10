@@ -23,6 +23,7 @@
 #include "imGui/imgui_impl_win32.h"
 #include "UInputManager.h"
 #include "USoundManager.h"
+#include "UGameManager.h"
 
 // 윈도우의 입력 이벤트를 ImGui에 전달하고, ImGui가 사용했는지 여부를 알려주는 함수
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -436,7 +437,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     //ImGui_ImplWin32_Shutdown();
     //ImGui::DestroyContext();
 
-
+    USoundManager::GetInstance().Release();
+    USceneManager::GetInstance().Release();
+    UInputManager::GetInstance()->Release();
+    UGameManager::GetInstance()->Release();
 
     // vertexBuffer 릴리즈
     renderer.ReleaseVertexBuffer();

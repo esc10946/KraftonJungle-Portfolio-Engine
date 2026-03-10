@@ -20,6 +20,8 @@ public:
     bool GetKeyPress(int key) { return KeyStates[key] == EKeyState::Press; }
     bool GetKeyUp(int key) { return KeyStates[key] == EKeyState::Up; }
 
+    void Release();
+
 private:
     UInputManager();
     ~UInputManager();
