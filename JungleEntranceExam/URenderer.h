@@ -65,7 +65,6 @@ public:
     void ReleaseVertexBuffer(ID3D11Buffer* vertexBuffer);
     void CreateConstantBuffer();
     void ReleaseConstantBuffer();
-    // void UpdateConstant(FVector Offset, float Scale);
     void UpdateConstant(FVector Offset, FVector Scale);
 
     void RenderRect(float cx, float cy, float hw, float hh, FColor Color);

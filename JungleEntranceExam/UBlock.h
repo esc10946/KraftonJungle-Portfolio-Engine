@@ -57,7 +57,7 @@ public:
 	void Init(float cx, float cy, float hw, float hh);
 
 	void Update(float DeltaTime) override;
-	void Render(URenderer& Renderer) override {};
+	void Render(URenderer& Renderer) override;
 	bool CheckBallCollision(const FVector& BallPos, float Radius, FVector& OutNormal) const;// if creating the Ball Class, Make overload function
 	int  TakeDamage();
 

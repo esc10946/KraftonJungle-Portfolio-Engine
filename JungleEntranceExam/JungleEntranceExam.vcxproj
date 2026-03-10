@@ -162,9 +162,7 @@
     <ClInclude Include="UGameObject.h" />
     <ClInclude Include="URenderer.h" />
     <ClInclude Include="Util.h" />
-    <ClInclude Include="Shape.h" />
     <ClInclude Include="Stage.h" />
-    <ClInclude Include="UGameObject.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="ShaderW0.hlsl">
@@ -172,7 +170,6 @@
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="URenderer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

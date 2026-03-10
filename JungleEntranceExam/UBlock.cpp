@@ -2,7 +2,7 @@
 
 
 static int TotalScore=0;
-UBlock::UBlock(EBlockType InType, EBlockColor InColor, int Round) :Type(InType),CenterX(0),CenterY(0),HalfW(0),HalfH(0)
+UBlock::UBlock(EBlockType InType, EBlockColor InColor, int Round) :Type(InType),CenterX(0),CenterY(0),HalfW(0),HalfH(0),MaxX(0),MaxY(0),MinX(0),MinY(0)
 {
     switch (Type)
     {
@@ -51,6 +51,29 @@ void UBlock::Update(float DeltaTime)
     // hmm...
 
 }
+void UBlock::Render(URenderer& Renderer)
+{
+    if (!IsActive())
+        return;
+    FColor color;
+    switch (Type)
+    {
+    case EBlockType::Normal:
+        color = GetColorFromBlockColor(Color);
+        break;
+    case EBlockType::Hard:
+        color = FColor(0.53f, 0.60f, 0.67f);
+        break;
+    case EBlockType::Immortal:
+        color = FColor(1.00f, 0.55f, 0.10f);
+        break;
+    default:
+        color = FColor(1.0f, 1.0f, 1.0f);
+        break;
+
+    }
+    Renderer.RenderRect(CenterX, CenterY, HalfW, HalfH, color);
+}
 bool UBlock::CheckBallCollision(const FVector& BallPos, float Radius, FVector& OutNormal) const
 {
     //if (!IsActive()) return false;
@@ -68,29 +91,6 @@ bool UBlock::CheckBallCollision(const FVector& BallPos, float Radius, FVector& O
     return true;
 }
 
-//void Block::Render(URenderer& Renderer)
-//{
-//    if (!IsActive())
-//        return;
-//    FColor color;
-//    switch (Type)
-//    {
-//	case EBlockType::Normal:
-//        color = GetColorFromBlockColor(Color);
-//        break;
-//    case EBlockType::Hard:
-//        color = FColor(0.53f, 0.60f, 0.67f); 
-//        break;
-//	case EBlockType::Immortal:
-//        color = FColor(1.00f, 0.55f, 0.10f);
-//        break;
-//    default:
-//        color = FColor(1.0f, 1.0f, 1.0f);
-//        break;
-//            
-//    }
-//    Renderer.RenderRect(CenterX, CenterY, HalfW, HalfH, color);
-//}
 
 
 int UBlock::TakeDamage()//쿨타임 필요할거같은데혹은 다른 충돌이 있으면 초기화되던가

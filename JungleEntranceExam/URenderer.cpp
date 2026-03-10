@@ -285,7 +285,35 @@ void URenderer::ReleaseConstantBuffer()
 //        DeviceContext->Unmap(ConstantBuffer, 0);
 //    }
 //}
-
+//ID3D11Buffer* RectVB = nullptr;
+//void URenderer::CreateRectBuffer()
+//{
+//    const FColor fill = { 1,1,1,1 };
+//    const FColor border = { 0.3f,0.3f,0.3f,1 };
+//    const float bx = 0.10f, by = 0.12f;
+//    FVertexSimple verts[12] =
+//    {
+//
+//        {-1,  1, 0, border.r, border.g, border.b, 1},
+//        { 1, -1, 0, border.r, border.g, border.b, 1},
+//        {-1, -1, 0, border.r, border.g, border.b, 1},
+//        {-1,  1, 0, border.r, border.g, border.b, 1},
+//        { 1,  1, 0, border.r, border.g, border.b, 1},
+//        { 1, -1, 0, border.r, border.g, border.b, 1},
+//
+//        {-1 + bx,  1 - by, 0, fill.r, fill.g, fill.b, 1},
+//        { 1 - bx, -1 + by, 0, fill.r, fill.g, fill.b, 1},
+//        {-1 + bx, -1 + by, 0, fill.r, fill.g, fill.b, 1},
+//        {-1 + bx,  1 - by, 0, fill.r, fill.g, fill.b, 1},
+//        { 1 - bx,  1 - by, 0, fill.r, fill.g, fill.b, 1},
+//        { 1 - bx, -1 + by, 0, fill.r, fill.g, fill.b, 1},
+//    };
+//    RectVB = CreateVertexBuffer(verts, sizeof(verts));
+//}
+//void ReleaseRectBuffer()
+//{
+//    if (RectVB) { RectVB->Release(); RectVB = nullptr; }
+//}
 void URenderer::UpdateConstant(FVector Offset, FVector Scale)
 {
     if (ConstantBuffer)

@@ -21,7 +21,6 @@
 #include "ImGui/imgui_impl_dx11.h"
 #include "imGui/imgui_impl_win32.h"
 
-#include "Shape.h"
 
 // 윈도우의 입력 이벤트를 ImGui에 전달하고, ImGui가 사용했는지 여부를 알려주는 함수
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -287,7 +286,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     // Constant Buffer 생성
     renderer.CreateConstantBuffer();
-    renderer.CreateRectBuffer();
+    //renderer.CreateRectBuffer();
     // ImGui를 사용하기 위한 초기화
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -422,10 +421,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         //}
         Bar.Render(renderer);
         renderer.RenderPrimitive(vertexBufferBar, NumVerticesBar);
-
         Ball.Render(renderer);
- 
-        for (int i = 0; i < 3; ++i)
+        renderer.RenderPrimitive(vertexBufferSphere, NumVerticesSphere);
+
+        for (auto* b : testBlocks)
+            b->Render(renderer);
+ /*       for (int i = 0; i < 3; ++i)
         {
             UBlock* b = testBlocks[i];
             if (!b->IsActive()) continue;
@@ -437,14 +438,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 b->GetColor()
             );
             renderer.RenderPrimitive(renderer.RectVB, 12);
-        }
-        ImGui_ImplDX11_NewFrame();      // 렌더러(D3D11) 쪽에서 ImGui 프레임 준비
-        ImGui_ImplWin32_NewFrame();     // 플랫폼(Win32) 쪽에서 ImGui 프레임 준비
-        ImGui::NewFrame();
-
+        }*/
         //ImGui_ImplDX11_NewFrame();      // 렌더러(D3D11) 쪽에서 ImGui 프레임 준비
         //ImGui_ImplWin32_NewFrame();     // 플랫폼(Win32) 쪽에서 ImGui 프레임 준비
         //ImGui::NewFrame();
+
 
         ///***** 이후 ImGui UI 컨트롤 추가는 ImGui::NewFrame()과 ImGui::Render() 사이인 여기에 위치합니다. *****/
         //ImGui::Begin("Jungle Property Window");
@@ -507,7 +505,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     renderer.ReleaseVertexBuffer(vertexBufferBar);
 
     // Constant Buffer 릴리즈
-	renderer.CreateRectBuffer();
+	//renderer.CreateRectBuffer();
     renderer.ReleaseConstantBuffer();
 
     // 렌더러 소멸 직전, 쉐이더 소멸
