@@ -72,8 +72,8 @@ static UBall* CreateBall()
     Ball->Location.z = 0.0f;
 
     // 임의의 속도(Velocity)
-    Ball->Velocity.x = GetRandomFloat(1.5f, 2.0f);
-    Ball->Velocity.y = GetRandomFloat(1.5f, 2.0f);
+    Ball->Velocity.x = GetRandomFloat(0.5f, 0.6f);
+    Ball->Velocity.y = GetRandomFloat(0.5f, 0.6f);
     Ball->Velocity.z = 0.0f;
 
     return Ball;
@@ -95,8 +95,10 @@ static void InitBall(UBall& input)
 
     // 임의의 속도(Velocity)
     input.Velocity.x = 0.0f; //GetRandomFloat(1.5f, 2.0f);
-    input.Velocity.y = 1.0f; //GetRandomFloat(1.5f, 2.0f);
+    input.Velocity.y = -1.0f; //GetRandomFloat(1.5f, 2.0f);
     input.Velocity.z = 0.0f;
+
+    input.Speed = 0.3f;
 }
 
 //// Primitive List 크기를 증가시킬 때 호출
@@ -325,7 +327,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     LARGE_INTEGER startTime, endTime;
     double elapsedTime = 0.0;
 
-    UBar Bar(FVector(0.0f, -0.95f, 0.0f), 0.7f, 0.3f, 0);
+    UBar Bar(FVector(0.0f, -0.95f, 0.0f), 1.0f, 0.15f, 0);
     UBall Ball;
     InitBall(Ball);
 

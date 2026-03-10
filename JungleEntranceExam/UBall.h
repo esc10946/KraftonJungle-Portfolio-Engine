@@ -1,5 +1,7 @@
 #pragma once
 
+#include <iostream>
+
 #include "UDiagram.h"
 #include "UBar.h"
 #include "UBlock.h"
