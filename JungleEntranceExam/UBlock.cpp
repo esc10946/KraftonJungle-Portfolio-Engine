@@ -1,20 +1,25 @@
 #include "UBlock.h"
 
 
-static int TotalScore=0;
+static int TotalScore=0;// 현재 전체 스코어
+
+static int TotalActiveBlocks = 0;// 현재 활성화된 블록 수
 UBlock::UBlock(EBlockType InType, EBlockColor InColor, int Round) :Type(InType),CenterX(0),CenterY(0),HalfW(0),HalfH(0),MaxX(0),MaxY(0),MinX(0),MinY(0)
 {
+   
     switch (Type)
     {
     case EBlockType::Normal:
         MaxHp = 1;
 		Color = InColor;
         score = static_cast<int>(InColor);
+        TotalActiveBlocks++;
         break;
     case EBlockType::Hard:
         MaxHp = 2 + (Round / 8);
         Color = EBlockColor::Silver;
         score = 50*Round;
+        TotalActiveBlocks++;
         break;
     case EBlockType::Immortal:
         MaxHp = INT_MAX;
@@ -104,9 +109,14 @@ int UBlock::TakeDamage()//쿨타임 필요할거같은데혹은 다른 충돌이 있으면 초기화되�
         SetActive(false);
         const int score = static_cast<int>(Color);
         TotalScore += score;
+        TotalActiveBlocks--;
         return score;
     }
     return 0;
+}
+int UBlock::GetScore()
+{
+	return TotalScore;
 }
 
 FColor UBlock::GetColor() const

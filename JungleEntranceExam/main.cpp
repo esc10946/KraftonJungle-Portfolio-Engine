@@ -14,7 +14,7 @@
 #include "Sphere.h"
 #include "UBlock.h"
 #include "Util.h"
-
+#include "Stage.h"
 // ImGui 관련 헤더
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_internal.h"
@@ -330,14 +330,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     UBall Ball;
     InitBall(Ball);
 
-    UBlock* testBlocks[3] = {
-    new UBlock(EBlockType::Normal,   EBlockColor::Red,    1),
-    new UBlock(EBlockType::Hard,     EBlockColor::White, 1),
-    new UBlock(EBlockType::Immortal, EBlockColor::White,   1),
-    };
-    testBlocks[0]->Init(-0.6f, 0.5f, 0.1f, 0.025f);
-    testBlocks[1]->Init(0.0f, 0.5f, 0.1f, 0.025f);
-    testBlocks[2]->Init(0.6f, 0.5f, 0.1f, 0.025f);
+    //UBlock* testBlocks[3] = {
+    //new UBlock(EBlockType::Normal,   EBlockColor::Red,    1),
+    //new UBlock(EBlockType::Hard,     EBlockColor::White, 1),
+    //new UBlock(EBlockType::Immortal, EBlockColor::White,   1),
+    //};
+    //testBlocks[0]->Init(-0.6f, 0.5f, 0.1f, 0.025f);
+    //testBlocks[1]->Init(0.0f, 0.5f, 0.1f, 0.025f);
+    //testBlocks[2]->Init(0.6f, 0.5f, 0.1f, 0.025f);
+    
+	int CurrentRound = 1;
+
+    std::vector<UBlock*> stageblocks = CreateStage(CurrentRound);
+
 
 	// Main Loop (Quit Message가 들어오기 전까지 아래 Loop를 무한히 실행하게 됨)
 	while (bIsExit == false)
@@ -380,11 +385,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             Ball.BallBounceAtBar(Bar);
         }
 
-        for (auto* b : testBlocks)
+        for (auto* b : stageblocks)
         {
+            if (!b->IsActive()) continue;
             EBlockCollision CollisionState = Ball.CheckBlockCollision(*b);
 
             Ball.BallBounceAtBlock(CollisionState, *b);
+
+
+            //int score = b->TakeDamage();
         }
 
         // 준비 작업
@@ -424,7 +433,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         Ball.Render(renderer);
         renderer.RenderPrimitive(vertexBufferSphere, NumVerticesSphere);
 
-        for (auto* b : testBlocks)
+        for (auto* b : stageblocks)
             b->Render(renderer);
  /*       for (int i = 0; i < 3; ++i)
         {
@@ -495,7 +504,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     //delete[] PrimitiveList;
     //PrimitiveList = nullptr;
     //NumPrimitives = 0;
-
+    for (auto* b : stageblocks)
+        delete b;
+	stageblocks.clear();
     //// ImGui 관련
     //ImGui_ImplDX11_Shutdown();
     //ImGui_ImplWin32_Shutdown();

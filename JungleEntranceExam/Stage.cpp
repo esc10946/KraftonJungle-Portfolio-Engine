@@ -84,28 +84,35 @@ static std::vector<UBlock*> BulidStage(int(&map)[ROWS][COLS], int round)
 			int code = map[r][c];
 			if (code == 0) 
 				continue;
-			float cx = START_X + c * STEP_X;
-			float cy = START_Y + r * STEP_Y;
+			float cx = -1.0f + START_X + (c * STEP_X)+0.1f;
+			float cy = 1.0f - (START_Y + r * STEP_Y)-0.3f;
 			UBlock* b = MakeBlock(code, cx, cy, round);
-			if(b)
+			if (b) {
+				b->Init(cx, cy, HALF_BW, HALF_BH);
 				blocks.push_back(b);
+			}
 		}
 	}
 	return blocks;
 }
 std::vector<UBlock*> CreateStage(int Round)
 {
+	std::vector<UBlock*> result;
 	switch (Round)
 	{
+		
 	case 1:
-		BulidStage(stage1, Round);
+		result = BulidStage(stage1, Round);
 		break;
 	case 2:
-		BulidStage(stage2, Round);
+		result = BulidStage(stage2, Round);
 		break;
 	case 3:
-		BulidStage(stage3, Round);
+		result = BulidStage(stage3, Round);
+		break;
+	default:
+		result = BulidStage(stage1, Round);
 		break;
 	}
-    return std::vector<UBlock*>();
+    return result;
 }

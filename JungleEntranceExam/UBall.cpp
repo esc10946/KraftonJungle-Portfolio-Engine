@@ -185,8 +185,11 @@ EBlockCollision UBall::CheckBlockCollision(const UBlock& Block)
     return EBlockCollision::None;
 }
 
-void UBall::BallBounceAtBlock(const EBlockCollision Position, const UBlock& Block)
+void UBall::BallBounceAtBlock(const EBlockCollision Position, UBlock& Block)
 {
+    if (Position == EBlockCollision::None) return;
+
+    Block.TakeDamage();
     switch (Position)
     {
         case EBlockCollision::Vertical:
@@ -194,6 +197,7 @@ void UBall::BallBounceAtBlock(const EBlockCollision Position, const UBlock& Bloc
             // 상단 또는 하단 면 충돌
             Velocity.y *= -1.0f;
             Location.y = (Location.y > Block.CenterY) ? Block.MaxY + Radius : Block.MinY - Radius;
+           
             break;
         }
         case EBlockCollision::Horizontal:
@@ -210,6 +214,7 @@ void UBall::BallBounceAtBlock(const EBlockCollision Position, const UBlock& Bloc
             Velocity.y *= -1.0f;
             break;
         }
+     
     }
 }
 

@@ -48,7 +48,7 @@ static FColor GetColorFromBlockColor(EBlockColor blockColor)
 	}
 }
 class URenderer;
-class UBlock : public UGameObject
+class UBlock : public UDiagram
 {
 public:
 	UBlock(EBlockType InType, EBlockColor InColor, int Round=1);
@@ -59,7 +59,9 @@ public:
 	void Update(float DeltaTime) override;
 	void Render(URenderer& Renderer) override;
 	bool CheckBallCollision(const FVector& BallPos, float Radius, FVector& OutNormal) const;// if creating the Ball Class, Make overload function
-	int  TakeDamage();
+	int TakeDamage();
+
+	int GetScore();
 
 	FColor GetColor() const;
 	void ApplyWallCollision() {}
