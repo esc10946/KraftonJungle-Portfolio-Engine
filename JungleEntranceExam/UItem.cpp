@@ -21,10 +21,11 @@ void UItem::Update(float deltaTime)
 	Location.x += (Speed * deltaTime * Direction.x);
 	Location.y += (Speed * deltaTime * Direction.y);
 
-	// TODO: 패들과의 충돌 체크
-	
-
 	// TODO: 화면 밖으로 나가면 제거 처리
+	if (Location.y < -1.0)
+	{
+		Destroy();
+	}
 }
 
 // 렌더링 (상수 버퍼 업데이트)
