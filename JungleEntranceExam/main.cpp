@@ -24,10 +24,7 @@
 #include "UInputManager.h"
 #include "USoundManager.h"
 
-extern "C" {
-    HRESULT __stdcall RoInitialize(int initType);
-    void    __stdcall RoUninitialize();
-}
+
 #pragma comment(lib, "runtimeobject.lib")
 // 윈도우의 입력 이벤트를 ImGui에 전달하고, ImGui가 사용했는지 여부를 알려주는 함수
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -212,8 +209,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
-    // 0 = RO_INIT_SINGLETHREADED, 1 = RO_INIT_MULTITHREADED
-    RoInitialize(1);
+
     //// 콘솔 창 생성
     //AllocConsole();
 
@@ -472,6 +468,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     // 렌더러 소멸
     renderer.Release();
-    RoUninitialize();
+ 
 	return 0;
 }

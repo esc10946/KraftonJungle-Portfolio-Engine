@@ -2,11 +2,14 @@
 extern "C" {
 	HRESULT __stdcall RoGetActivationFactory(HSTRING activatableClassId, REFIID iid, void** factory);
 	HRESULT __stdcall WindowsCreateStringReference(const wchar_t* sourceString, uint32_t length, HSTRING_HEADER* hstringHeader, HSTRING* string);
+	HRESULT __stdcall RoInitialize(int initType);
+	void    __stdcall RoUninitialize();
 ;
 }
 #pragma comment(lib, "runtimeobject.lib")
 UGamepadManager::UGamepadManager()
 {
+	RoInitialize(1);
 	//// HSTRING 생성 준비
 	HSTRING_HEADER hstrHeader;
 	HSTRING hClassName;
@@ -29,6 +32,7 @@ UGamepadManager::~UGamepadManager()
 		pGamepadStatics->Release();
 		pGamepadStatics = nullptr;
 	}
+	RoUninitialize();
 }
 
 void UGamepadManager::Update()
