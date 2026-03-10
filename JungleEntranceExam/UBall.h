@@ -41,11 +41,13 @@ public:
 
 	virtual bool CheckCollision(const UDiagram* Other) override;
 
-    EBlockCollision CheckBlockCollision(const UBlock& Block);
+    EBlockCollision CheckBarCollision(const UBar& Bar, FVector& CollisionPos);
 
-    void BallBounceAtBar(const UBar& PlayerBar);
+    void BallBounceAtBar(const EBlockCollision Position, const UBar& Bar, const FVector& CollisionPos);
 
-    void BallBounceAtBlock(const EBlockCollision Position, const UBlock& Block);
+    EBlockCollision CheckBlockCollision(const UBlock& Block, FVector& CollisionPos);
+
+    void BallBounceAtBlock(const EBlockCollision Position, const UBlock& Block, const FVector& CollisonPos);
 
     void ResolveCollision(UBall* Other);
 };

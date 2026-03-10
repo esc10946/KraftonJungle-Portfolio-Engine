@@ -270,7 +270,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	bool bIsExit = false;
 
     // random seed
-    srand(GetTickCount64());
+    // srand(GetTickCount64());
 
     /* 생성하는 코드를 여기에 추가합니다. */
 
@@ -338,6 +338,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     testBlocks[1]->Init(0.0f, 0.5f, 0.1f, 0.025f);
     testBlocks[2]->Init(0.6f, 0.5f, 0.1f, 0.025f);
 
+    FVector CollisionPos;
+
 	// Main Loop (Quit Message가 들어오기 전까지 아래 Loop를 무한히 실행하게 됨)
 	while (bIsExit == false)
 	{
@@ -374,16 +376,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         Bar.Update(dt);
         Ball.Update(dt);
 
-        if (Ball.CheckCollision(&Bar))
-        {
-            Ball.BallBounceAtBar(Bar);
-        }
+        EBlockCollision CollisionState = Ball.CheckBarCollision(Bar, CollisionPos);
+        Ball.BallBounceAtBar(CollisionState, Bar, CollisionPos);
 
         for (auto* b : testBlocks)
         {
-            EBlockCollision CollisionState = Ball.CheckBlockCollision(*b);
+            EBlockCollision CollisionState = Ball.CheckBlockCollision(*b, CollisionPos);
 
-            Ball.BallBounceAtBlock(CollisionState, *b);
+            Ball.BallBounceAtBlock(CollisionState, *b, CollisionPos);
         }
 
         // 준비 작업
