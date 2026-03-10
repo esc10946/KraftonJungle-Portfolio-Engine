@@ -48,6 +48,6 @@ public:
     // 아이템 관련
     virtual void AddScore(int Amount) override;
     virtual void SpawnExtraBalls(int Count) override;
-    virtual void ModifyPaddleSize(float DeltaSize, float Duration) override;
-    virtual void ModifyBallSpeed(float Multiplier, float Duration) override;
+    virtual void ModifyPaddleSize(float DeltaSize) override;
+    virtual void ModifyBallSpeed(float Multiplier) override;
 };

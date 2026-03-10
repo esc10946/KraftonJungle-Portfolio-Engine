@@ -6,6 +6,7 @@
 #include "Util.h"
 #include "UClearScene.h"
 #include "USceneManager.h"
+#include "UItemManager.h"
 #include "Stage.h"
 
 UGameScene::UGameScene()
@@ -173,6 +174,10 @@ void UGameScene::Update(float delta)
         }
     }
 
+    // Item Objects Update
+    UItemManager::Get().Update(delta);
+    UItemManager::Get().CheckCollision(Bar_1);
+
     gameManager->Update(delta);
 
     // 밖에 공이 나갔는지 판별
@@ -272,6 +277,9 @@ void UGameScene::Render(URenderer render)
             render.RenderSphere();
         }
     }
+
+    // Item Objects Render
+    UItemManager::Get().Render(render);
 
     for (auto* b : stageblocks)
         b->Render(render);

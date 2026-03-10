@@ -108,12 +108,12 @@ void UBar::SpawnExtraBalls(int Count)
 	OutputDebugStringA("SpawnExtraBalls called\n");
 }
 
-void UBar::ModifyPaddleSize(float DeltaSize, float Duration)
+void UBar::ModifyPaddleSize(float DeltaSize)
 {
 	OutputDebugStringA("ModifyPaddleSize called\n");
 }
 
-void UBar::ModifyBallSpeed(float Multiplier, float Duration)
+void UBar::ModifyBallSpeed(float Multiplier)
 {
 	OutputDebugStringA("ModifyBallSpeed called\n");
 }

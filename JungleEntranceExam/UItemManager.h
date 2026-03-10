@@ -1,16 +1,21 @@
 #pragma once
 
-//#include "BrickBreakItemTypes.h"
-#include "../UItem.h"
+#include "UItem.h"
 #include "ItemEffectReceiver.h"
 
 class UItem;
 
-class UBrickBreakItemManager
+class UItemManager
 {
 public:
-    UBrickBreakItemManager();
-    ~UBrickBreakItemManager();
+    static UItemManager& Get();
+
+private:
+    UItemManager();
+    ~UItemManager();
+
+    UItemManager(const UItemManager&) = delete;
+    UItemManager& operator=(const UItemManager&) = delete;
 
 public:
     void Initialize();
@@ -22,9 +27,7 @@ public:
 
 public:
     void SpawnItem(const FItemDesc& ItemDesc, const FVector& SpawnPosition, const FVector& Direction);
-    //void SpawnItem(const FItemSpawnInfo& SpawnInfo);
-
-    //void CheckPlayerCollision(const FRect& PaddleBounds, IItemEffectReceiver* Receiver);
+    void CheckCollision(UDiagram* Paddle);
     void RemoveDeadItems();
 
     int GetItemCount() const;

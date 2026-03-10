@@ -96,6 +96,15 @@
     <ClCompile Include="Types.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="UItem.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="UItemManager.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="ItemLibrary.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ImGui\imconfig.h">
@@ -183,6 +192,24 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="TitleScene.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="ItemRect.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="UItem.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="UItemManager.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="ItemLibrary.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="ItemShapeData.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="ItemEffectReceiver.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
