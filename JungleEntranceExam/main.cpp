@@ -12,19 +12,16 @@
 #include "Bar.h"
 #include "UBall.h"
 #include "Sphere.h"
-#include "UItem.h"
 #include "Util.h"
-
-// Item 관련 헤더
-#include "Item/ItemEffectReceiver.h"
-#include "Item/BrickBreakItemManager.h"
-#include "DummyReceiver.h"
+#include "USceneManager.h"
+#include "UScene.h"
 
 // ImGui 관련 헤더
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_internal.h"
 #include "ImGui/imgui_impl_dx11.h"
 #include "imGui/imgui_impl_win32.h"
+#include "UInputManager.h"
 
 // 윈도우의 입력 이벤트를 ImGui에 전달하고, ImGui가 사용했는지 여부를 알려주는 함수
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -56,52 +53,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 
 	return 0;
-}
-
-// 공 생성 함수
-static UBall* CreateBall()
-{
-    // new 연산자를 사용해 공의 Instance를 생성
-    UBall* Ball = new UBall();
-
-    // 임의의 크기(Radius): 너무 큰 값을 방지하기 위해, 공의 크기를 화면 너비의 1/10로 제한
-    float maxRadiusX = (rightBorder - leftBorder) * 0.05f;
-    float maxRadiusY = (topBorder - bottomBorder) * 0.05f;
-    float maxAllowedRadius = (maxRadiusX < maxRadiusY) ? maxRadiusX : maxRadiusY;
-    float r = GetRandomFloat(0.01f, maxAllowedRadius);
-    Ball->SetRadius(r);
-    
-    // 임의의 위치(Location): 화면 경계 안쪽의 랜덤한 위치, 반지름을 마진값으로 함
-    Ball->Location.x = GetRandomFloat(leftBorder + Ball->Radius, rightBorder - Ball->Radius);
-    Ball->Location.y = GetRandomFloat(bottomBorder + Ball->Radius, topBorder - Ball->Radius);
-    Ball->Location.z = 0.0f;
-
-    // 임의의 속도(Velocity)
-    Ball->Velocity.x = GetRandomFloat(1.5f, 2.0f);
-    Ball->Velocity.y = GetRandomFloat(1.5f, 2.0f);
-    Ball->Velocity.z = 0.0f;
-
-    return Ball;
-}
-
-static void InitBall(UBall& input)
-{
-    // 임의의 크기(Radius): 너무 큰 값을 방지하기 위해, 공의 크기를 화면 너비의 1/10로 제한
-    float maxRadiusX = (rightBorder - leftBorder) * 0.05f;
-    float maxRadiusY = (topBorder - bottomBorder) * 0.05f;
-    float maxAllowedRadius = (maxRadiusX < maxRadiusY) ? maxRadiusX : maxRadiusY;
-    float r = 0.05f; //GetRandomFloat(0.1f, 0.2f);
-    input.SetRadius(r);
-
-    // 임의의 위치(Location): 화면 경계 안쪽의 랜덤한 위치, 반지름을 마진값으로 함
-    input.Location.x = GetRandomFloat(leftBorder + input.Radius, rightBorder - input.Radius);
-    input.Location.y = GetRandomFloat(bottomBorder + input.Radius, topBorder - input.Radius);
-    input.Location.z = 0.0f;
-
-    // 임의의 속도(Velocity)
-    input.Velocity.x = 0.0f; //GetRandomFloat(1.5f, 2.0f);
-    input.Velocity.y = 1.0f; //GetRandomFloat(1.5f, 2.0f);
-    input.Velocity.z = 0.0f;
 }
 
 //// Primitive List 크기를 증가시킬 때 호출
@@ -291,18 +242,20 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     // Constant Buffer 생성
     renderer.CreateConstantBuffer();
 
+    //render에서 초기화
+    // Renderer와 Shader 생성 이후, vertexBuffer 생성
+    renderer.NumVerticesSphere = sizeof(sphere_vertices) / sizeof(FVertexSimple);
+    renderer.vertexBufferSphere = renderer.CreateVertexBuffer(sphere_vertices, sizeof(sphere_vertices));
+    renderer.NumVerticesBar = sizeof(bar_vertices) / sizeof(FVertexSimple);
+    renderer.vertexBufferRect = renderer.CreateVertexBuffer(bar_vertices, sizeof(bar_vertices));
+
     // ImGui를 사용하기 위한 초기화
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     ImGui_ImplWin32_Init((void*)hWnd);
     ImGui_ImplDX11_Init(renderer.Device, renderer.DeviceContext);
-
-    // Renderer와 Shader 생성 이후, vertexBuffer 생성
-    UINT NumVerticesSphere = sizeof(sphere_vertices) / sizeof(FVertexSimple);
-    ID3D11Buffer* vertexBufferSphere = renderer.CreateVertexBuffer(sphere_vertices, sizeof(sphere_vertices));
-    UINT NumVerticesBar = sizeof(bar_vertices) / sizeof(FVertexSimple);
-    ID3D11Buffer* vertexBufferBar = renderer.CreateVertexBuffer(bar_vertices, sizeof(bar_vertices));
+    
 
     // 반드시 UBall이 아닌 UPrimitive로 선언하여야 하며 바꾸면 안됩니다.
     //UPrimitive** PrimitiveList = nullptr;
@@ -329,12 +282,13 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     LARGE_INTEGER startTime, endTime;
     double elapsedTime = 0.0;
 
-    UBar Bar(FVector(0.0f, -0.95f, 0.0f), 0.7f, 0.3f, 0);
+    /*UBar Bar(FVector(0.0f, -0.95f, 0.0f), 0.7f, 0.1f, 0);
     UBall Ball;
-    InitBall(Ball);
+    InitBall(Ball);*/
+    //게임씬 초기화
+    USceneManager& sceneManager = USceneManager::GetInstance();
+    sceneManager.LoadScene(ESceneType::Title);
 
-    // Item Manager
-    UBrickBreakItemManager ItemManager;
 
 	// Main Loop (Quit Message가 들어오기 전까지 아래 Loop를 무한히 실행하게 됨)
 	while (bIsExit == false)
@@ -358,46 +312,31 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				bIsExit = true;
 				break;
 			}
-            if (msg.message == WM_KEYDOWN) {
-                if (msg.wParam == VK_LEFT)  Bar.Direction = -1;
+
+                //if (msg.wParam == VK_LEFT)
+                //    sceneManager.LoadScene(ESceneType::Title);
+                //if (msg.wParam == VK_RIGHT)
+                //    sceneManager.LoadScene(ESceneType::InGame);
                 if (msg.wParam == VK_RIGHT) Bar.Direction = 1;
-
-                if (msg.wParam == 'T')
-                {
-                    // 아이템 생성 테스트
-                    FVector pos(0.0f, 0.0f, 0.0f);
-
-                    ItemManager.SpawnItem(FItemDesc(), pos, FVector(0.0f, -1.0f, 0.0f));
-
-                    // 더미 충돌 테스트
-                    //FRect paddle;
-
-                    //paddle.Left = 350;
-                    //paddle.Right = 450;
-                    //paddle.Top = 500;
-                    //paddle.Bottom = 520;
-
-                    //ItemManager.CheckPlayerCollision(paddle, &Receiver);
-                }
             }
-            else if (msg.message == WM_KEYUP) {
-                Bar.Direction = 0; // 키를 떼면 멈춤
-            }
+            //else if (msg.message == WM_KEYUP) {
+            //    Bar.Direction = 0; // 키를 떼면 멈춤
+            //}
 		}
 
+        UInputManager::GetInstance()->Update();
 		////////////////////////////////////////////
 		// 매번 실행되는 코드를 여기에 추가합니다.
-        Bar.Update(dt);
-        Ball.Update(dt);
+        UScene* currentScene = sceneManager.GetCurrentScene();
+        currentScene->Update(dt);
 
-        if (Ball.CheckCollision(&Bar))
-        {
-            Ball.BallBounceAtBar(Bar);
-        }
+        //Ball.CheckCollision(&Bar);
 
         // 준비 작업
         renderer.Prepare();
         renderer.PrepareShader();
+        currentScene->Render(renderer);
+        currentScene->UIRender();
 
         // 생성한 버텍스 버퍼를 넘겨 실질적인 렌더링 요청
         
@@ -426,16 +365,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
         //    // 실제 Draw
         //    renderer.RenderPrimitive(vertexBufferSphere, NumVerticesSphere);
-        //}
-        Bar.Render(renderer);
-        renderer.RenderPrimitive(vertexBufferBar, NumVerticesBar);
+        ////}
+        //Bar.Render(renderer);
+        //renderer.RenderPrimitive(vertexBufferBar, NumVerticesBar);
 
-        Ball.Render(renderer);
-        renderer.RenderPrimitive(vertexBufferSphere, NumVerticesSphere);
-
-        ItemManager.Update(dt);
-        ItemManager.Render(renderer);
-
+        //Ball.Render(renderer);
+        //renderer.RenderPrimitive(vertexBufferSphere, NumVerticesSphere);
 
         //ImGui_ImplDX11_NewFrame();      // 렌더러(D3D11) 쪽에서 ImGui 프레임 준비
         //ImGui_ImplWin32_NewFrame();     // 플랫폼(Win32) 쪽에서 ImGui 프레임 준비
@@ -463,6 +398,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         //ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());    // 데이터(Draw Data)를 D3D11 Draw Call로 변환해서 실제로 그림
 
         // 다 그렸으면 버퍼 스왑
+        
         renderer.SwapBuffer();
 
 		////////////////////////////////////////////
@@ -498,16 +434,26 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     //ImGui_ImplWin32_Shutdown();
     //ImGui::DestroyContext();
 
-    ItemManager.Clear();
+
 
     // vertexBuffer 릴리즈
-    renderer.ReleaseVertexBuffer(vertexBufferBar);
+    renderer.ReleaseVertexBuffer();
 
     // Constant Buffer 릴리즈
     renderer.ReleaseConstantBuffer();
 
     // 렌더러 소멸 직전, 쉐이더 소멸
     renderer.ReleaseShader();
+
+    ID3D11Debug* debugDevice = nullptr;
+    HRESULT hr = renderer.Device->QueryInterface(__uuidof(ID3D11Debug), (void**)&debugDevice);
+
+    if (SUCCEEDED(hr))
+    {
+        debugDevice->ReportLiveDeviceObjects(D3D11_RLDO_DETAIL);
+
+        debugDevice->Release();
+    }
 
     // 렌더러 소멸
     renderer.Release();
