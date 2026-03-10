@@ -415,6 +415,52 @@ UBall* UBall::CreateBallAtBar(const UBar& Bar)
     return Ball;
 }
 
+UBall** UBall::CreateMultiBalls(const UBall* sourceBall)
+{
+    if (sourceBall == nullptr)
+        return nullptr;
+
+    UBall** createdBalls = new UBall * [2];
+
+    createdBalls[0] = new UBall();
+    createdBalls[1] = new UBall();
+
+    // 원본 공 속성 복사
+    createdBalls[0]->SetRadius(sourceBall->Radius);
+    createdBalls[1]->SetRadius(sourceBall->Radius);
+
+    createdBalls[0]->Location = sourceBall->Location;
+    createdBalls[1]->Location = sourceBall->Location;
+
+    createdBalls[0]->Speed = sourceBall->Speed;
+    createdBalls[1]->Speed = sourceBall->Speed;
+
+    createdBalls[0]->Acceleration = sourceBall->Acceleration;
+    createdBalls[1]->Acceleration = sourceBall->Acceleration;
+
+    // 대각선 방향 벡터 정규화
+    const float diagonal = 0.70710678f; // 1 / sqrt(2)
+
+    // 왼쪽 위 대각선
+    createdBalls[0]->Velocity.x = -diagonal * sourceBall->Speed;
+    createdBalls[0]->Velocity.y = diagonal * sourceBall->Speed;
+    createdBalls[0]->Velocity.z = 0.0f;
+
+    // 오른쪽 위 대각선
+    createdBalls[1]->Velocity.x = diagonal * sourceBall->Speed;
+    createdBalls[1]->Velocity.y = diagonal * sourceBall->Speed;
+    createdBalls[1]->Velocity.z = 0.0f;
+
+    // 겹침 방지용으로 위치 약간 분리
+    createdBalls[0]->Location.x -= sourceBall->Radius * 0.5f;
+    createdBalls[1]->Location.x += sourceBall->Radius * 0.5f;
+
+    createdBalls[0]->SetIsMove(true);
+    createdBalls[1]->SetIsMove(true);
+
+    return createdBalls;
+}
+
 //void UBall::InitBall(UBall& input)
 //{
 //    // 임의의 크기(Radius): 너무 큰 값을 방지하기 위해, 공의 크기를 화면 너비의 1/10로 제한

@@ -5,7 +5,7 @@ FItemDesc ItemLibrary::MakeRandomItem()
     int r = rand() % 100;
 
     // 멀티볼 아이템 (확률 : --%)
-    if (r < 10)
+    if (r < 30)
         return MakeMultiBall(2);
     // 스코어 보너스 아이템 (확률 : --%)
     if (r < 40)

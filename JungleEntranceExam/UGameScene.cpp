@@ -199,6 +199,8 @@ void UGameScene::Update(float delta)
 
     if (bIsBrickEmpty()) // 벽돌 다 깨짐!
     {
+        // 아이템 관련 리소스 해제
+        UItemManager::Get().Clear();
 
         USoundManager::GetInstance().StopAll();
         USoundManager::GetInstance().Play("Victory");
@@ -266,6 +268,16 @@ bool UGameScene::bIsBrickEmpty()
         if (b->IsActive()) return false;
     }
     return true;
+}
+
+std::vector<UBall*>& UGameScene::GetActiveBalls()
+{
+    return ActiveBallList;
+}
+
+void UGameScene::AddBall(UBall* ball)
+{
+    ActiveBallList.push_back(ball);
 }
 
 void UGameScene::Render(URenderer render)

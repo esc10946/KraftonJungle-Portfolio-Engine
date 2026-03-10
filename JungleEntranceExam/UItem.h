@@ -7,13 +7,13 @@ enum class EItemType
 {
     None = 0,
 
-    MultiBall,
-    ScoreBonus,
+    MultiBall,      // 공 갯수 증가
+    ScoreBonus,     // 점수 추가
 
-    PaddleExpand,
-    PaddleShrink,
-    BallSpeedUp,
-    BallSpeedDown,
+    PaddleExpand,   // 패들 길이 증가
+    PaddleShrink,   // 패들 길이 감소
+    BallSpeedUp,    // 공 속도 증가
+    BallSpeedDown,  // 공 속도 감소
 };
 
 enum class EItemApplyType

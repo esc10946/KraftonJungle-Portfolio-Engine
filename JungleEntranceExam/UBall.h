@@ -65,5 +65,7 @@ public:
 
     static UBall* CreateBallAtBar(const UBar& Bar);
 
+    static UBall** CreateMultiBalls(const UBall* sourceBall);
+
     // static void InitBall(UBall& input);
 };
