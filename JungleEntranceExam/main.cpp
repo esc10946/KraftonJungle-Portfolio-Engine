@@ -317,8 +317,9 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 //    sceneManager.LoadScene(ESceneType::Title);
                 //if (msg.wParam == VK_RIGHT)
                 //    sceneManager.LoadScene(ESceneType::InGame);
-                if (msg.wParam == VK_RIGHT) Bar.Direction = 1;
-            }
+
+                //if (msg.wParam == VK_RIGHT) Bar.Direction = 1;
+            //}
             //else if (msg.message == WM_KEYUP) {
             //    Bar.Direction = 0; // ≈∞∏¶ ∂º∏È ∏ÿ√„
             //}
@@ -433,8 +434,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     //ImGui_ImplDX11_Shutdown();
     //ImGui_ImplWin32_Shutdown();
     //ImGui::DestroyContext();
-
-
 
     // vertexBuffer ∏±∏Æ¡Ó
     renderer.ReleaseVertexBuffer();
