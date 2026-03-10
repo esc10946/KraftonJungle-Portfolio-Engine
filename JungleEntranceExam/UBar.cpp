@@ -111,6 +111,9 @@ void UBar::SpawnExtraBalls(int Count)
 void UBar::ModifyPaddleSize(float DeltaSize)
 {
 	OutputDebugStringA("ModifyPaddleSize called\n");
+
+	float modifiedScale = Scale * DeltaSize;
+	SetScale(modifiedScale);
 }
 
 void UBar::ModifyBallSpeed(float Multiplier)

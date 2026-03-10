@@ -175,7 +175,7 @@ void UItem::ApplyEffect(IItemEffectReceiver* Receiver)
 		break;
 
 	case EItemType::PaddleShrink:
-		Receiver->ModifyPaddleSize(-ItemDesc.FloatValue);
+		Receiver->ModifyPaddleSize(ItemDesc.FloatValue);
 		break;
 
 	case EItemType::BallSpeedUp:

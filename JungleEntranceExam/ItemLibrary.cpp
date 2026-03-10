@@ -12,15 +12,15 @@ FItemDesc ItemLibrary::MakeRandomItem()
         return MakeScoreBonus(100);
     // 패들 길이 증가 아이템 (확률 : --%)
     if (r < 60)
-        return MakePaddleExpand(30.0f, 10.0f);
+        return MakePaddleExpand(1.2f);
     // 패들 길이 감소 아이템 (확률 : --%)
     if (r < 75)
-        return MakePaddleShrink(30.0f, 10.0f);
+        return MakePaddleShrink(0.8f);
     // 공 속도 증가 아이템 (확률 : --%)
     if (r < 90)
-        return MakeBallSpeedUp(1.5f, 8.0f);
+        return MakeBallSpeedUp(1.5f);
     // 공 속도 감소 아이템 (확률 : --%)
-    return MakeBallSpeedDown(0.7f, 8.0f);
+    return MakeBallSpeedDown(0.7f);
 }
 
 FItemDesc ItemLibrary::MakeMultiBall(int Count)
@@ -43,46 +43,42 @@ FItemDesc ItemLibrary::MakeScoreBonus(int Score)
     return Desc;
 }
 
-FItemDesc ItemLibrary::MakePaddleExpand(float DeltaSize, float Duration)
+FItemDesc ItemLibrary::MakePaddleExpand(float DeltaSize)
 {
     FItemDesc Desc;
     Desc.Type = EItemType::PaddleExpand;
     Desc.ApplyType = EItemApplyType::Immediate;
     Desc.FloatValue = DeltaSize;
-    Desc.Duration = Duration;
     Desc.DebugName = "PaddleExpand";
     return Desc;
 }
 
-FItemDesc ItemLibrary::MakePaddleShrink(float DeltaSize, float Duration)
+FItemDesc ItemLibrary::MakePaddleShrink(float DeltaSize)
 {
     FItemDesc Desc;
     Desc.Type = EItemType::PaddleShrink;
     Desc.ApplyType = EItemApplyType::Immediate;
     Desc.FloatValue = DeltaSize;
-    Desc.Duration = Duration;
     Desc.DebugName = "PaddleShrink";
     return Desc;
 }
 
-FItemDesc ItemLibrary::MakeBallSpeedUp(float Multiplier, float Duration)
+FItemDesc ItemLibrary::MakeBallSpeedUp(float Multiplier)
 {
     FItemDesc Desc;
     Desc.Type = EItemType::BallSpeedUp;
     Desc.ApplyType = EItemApplyType::Immediate;
     Desc.FloatValue = Multiplier;
-    Desc.Duration = Duration;
     Desc.DebugName = "BallSpeedUp";
     return Desc;
 }
 
-FItemDesc ItemLibrary::MakeBallSpeedDown(float Multiplier, float Duration)
+FItemDesc ItemLibrary::MakeBallSpeedDown(float Multiplier)
 {
     FItemDesc Desc;
     Desc.Type = EItemType::BallSpeedDown;
     Desc.ApplyType = EItemApplyType::Immediate;
     Desc.FloatValue = Multiplier;
-    Desc.Duration = Duration;
     Desc.DebugName = "BallSpeedDown";
     return Desc;
 }
