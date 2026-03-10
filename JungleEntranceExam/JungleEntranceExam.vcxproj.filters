@@ -96,13 +96,10 @@
     <ClCompile Include="Types.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="UItem.cpp">
+    <ClCompile Include="USoundManager.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="UItemManager.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
-    <ClCompile Include="ItemLibrary.cpp">
+    <ClCompile Include="UGamepadManager.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
@@ -186,30 +183,18 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="UClearScene.h">
+    <ClInclude Include="Stage.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="Types.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="TitleScene.h">
+    <ClInclude Include="UBlock.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="ItemRect.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="UItem.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="UItemManager.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="ItemLibrary.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="ItemShapeData.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="ItemEffectReceiver.h">
+    <ClInclude Include="USoundManager.h">
+    <ClInclude Include="UGamepadManager.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>

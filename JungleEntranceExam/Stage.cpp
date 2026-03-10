@@ -1,7 +1,6 @@
 #include "Stage.h"
 //Grid?
 
-static const int COLS = 13;
 static const float HALF_BW = 0.065f;// (2.0f - a)/ 13.0f / 2.0f
 static const float HALF_BH = 0.035f;// HALF_BW * 0.5f +a
 static const float STEP_X = HALF_BW * 2.0f;//-+a // Row gap
@@ -16,14 +15,17 @@ static const float START_Y = 2 * HALF_BH;// +a // first block center y
 
 static EBlockColor ColorTable[]=
 { 
-	EBlockColor::White,		//0
+
+	EBlockColor::NONE,		//0
 	EBlockColor::Orange,	//1
 	EBlockColor::Cyan,		//2
 	EBlockColor::Green,		//3
 	EBlockColor::Red,		//4
 	EBlockColor::Blue,		//5
 	EBlockColor::Magenta,	//6
-	EBlockColor::Yellow		//7
+	EBlockColor::Yellow,	//7.
+	EBlockColor::White,		//8
+
 };
 
 static int stage1[6][13] =
@@ -38,10 +40,40 @@ static int stage1[6][13] =
 };
 static int stage2[13][13] =
 {
+	N(8),_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,
+	N(8),N(1),_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,
+	N(8),N(1),N(2),_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,
+	N(8),N(1),N(2),N(3),_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,
+	N(8),N(1),N(2),N(3),N(4),_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,
+	N(8),N(1),N(2),N(3),N(4),N(5),_   ,_   ,_   ,_   ,_   ,_   ,_   ,
+	N(8),N(1),N(2),N(3),N(4),N(5),N(6),_   ,_   ,_   ,_   ,_   ,_   ,
+	N(8),N(1),N(2),N(3),N(4),N(5),N(6),N(7),_   ,_   ,_   ,_   ,_   ,
+	N(8),N(1),N(2),N(3),N(4),N(5),N(6),N(7),N(8),_   ,_   ,_   ,_   ,
+	N(8),N(1),N(2),N(3),N(4),N(5),N(6),N(7),N(8),N(1),_   ,_   ,_   ,
+	N(8),N(1),N(2),N(3),N(4),N(5),N(6),N(7),N(8),N(1),N(2),_   ,_   ,
+	N(8),N(1),N(2),N(3),N(4),N(5),N(6),N(7),N(8),N(1),N(2),N(3),_   ,
+	H,	 H,	  H,   H,	H,	 H,	  H,   H,	H,	 H,	  H,   H,	N(4),
 };
-static int stage3[13][13] =
+static int stage3[15][13] =
 {
+	N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),
+	_    ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_  ,
+	N(8),N(8),N(8),I,	I,	 I,	  I,   I,	I,	 I,	  I,   I,	I   ,		
+	_    ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_  ,
+	N(4),N(4),N(4),N(4),N(4),N(4),N(4),N(4),N(4),N(4),N(4),N(4),N(4),
+	_    ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_  ,
+	I,   I,	  I,   I,   I,   I,	  I,   I,   I,	 I,   N(8),N(8),N(8),
+	_    ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_  ,
+	N(6),N(6),N(6),N(6),N(6),N(6),N(6),N(6),N(6),N(6),N(6),N(6),N(6),
+	_    ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_  ,
+	N(5),N(5),N(5),I,	I,	 I,	  I,   I,	I,	 I,	  I,   I,	I,
+	_    ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_  ,
+	N(2),N(2),N(2),N(2),N(2),N(2),N(2),N(2),N(2),N(2),N(2),N(2),N(2),
+	_    ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_  ,
+	I,   I,	  I,   I,   I,   I,	  I,   I,   I,	 I,   N(2),N(2),N(2),
+
 };
+
 
 #undef N
 #undef H
@@ -72,7 +104,7 @@ static UBlock* MakeBlock(int code, float cx, float cy, int round)
 	//block->Init(); grid 사용할것
 	return block;
 }
-template <int ROWS>
+template <int ROWS,int COLS>
 static std::vector<UBlock*> BulidStage(int(&map)[ROWS][COLS], int round)
 {
 	std::vector<UBlock*> blocks;

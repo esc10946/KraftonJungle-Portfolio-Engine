@@ -6,6 +6,7 @@
 #include "Util.h"
 #include "UClearScene.h"
 #include "USceneManager.h"
+#include "USoundManager.h"
 #include "UItemManager.h"
 #include "Stage.h"
 
@@ -52,31 +53,32 @@ void UGameScene::UIRender()
 }
 
 
-// 공 생성 함수
-static UBall* CreateBall()
-{
-    // new 연산자를 사용해 공의 Instance를 생성
-    UBall* Ball = new UBall();
-
-    // 임의의 크기(Radius): 너무 큰 값을 방지하기 위해, 공의 크기를 화면 너비의 1/10로 제한
-    float maxRadiusX = (rightBorder - leftBorder) * 0.05f;
-    float maxRadiusY = (topBorder - bottomBorder) * 0.05f;
-    float maxAllowedRadius = (maxRadiusX < maxRadiusY) ? maxRadiusX : maxRadiusY;
-    float r = GetRandomFloat(0.01f, maxAllowedRadius);
-    Ball->SetRadius(r);
-
-    // 임의의 위치(Location): 화면 경계 안쪽의 랜덤한 위치, 반지름을 마진값으로 함
-    Ball->Location.x = GetRandomFloat(leftBorder + Ball->Radius, rightBorder - Ball->Radius);
-    Ball->Location.y = GetRandomFloat(bottomBorder + Ball->Radius, topBorder - Ball->Radius);
-    Ball->Location.z = 0.0f;
-
-    // 임의의 속도(Velocity)
-    Ball->Velocity.x = 1.0f;
-    Ball->Velocity.y = 1.0f;
-    Ball->Velocity.z = 0.0f;
-
-    return Ball;
-}
+//// 공 생성 함수
+//static UBall* CreateBall()
+//{
+//    // new 연산자를 사용해 공의 Instance를 생성
+//    UBall* Ball = new UBall();
+//
+//    // 임의의 크기(Radius): 너무 큰 값을 방지하기 위해, 공의 크기를 화면 너비의 1/10로 제한
+//    float maxRadiusX = (rightBorder - leftBorder) * 0.05f;
+//    float maxRadiusY = (topBorder - bottomBorder) * 0.05f;
+//    float maxAllowedRadius = (maxRadiusX < maxRadiusY) ? maxRadiusX : maxRadiusY;
+//    float r = maxAllowedRadius / 2;
+//    Ball->SetRadius(r);
+//
+//    // 임의의 위치(Location): 화면 경계 안쪽의 랜덤한 위치, 반지름을 마진값으로 함
+//    Ball->Velocity.x = GetRandomFloat(0.5f, 0.6f);
+//    Ball->Velocity.y = GetRandomFloat(0.5f, 0.6f);
+//    Ball->Location.z = 0.0f;
+//
+//    // 임의의 속도(Velocity)
+//    Ball->Velocity.x = 1.0f;
+//    Ball->Velocity.y = -1.0f;
+//    Ball->Velocity.z = 0.0f;
+//    Ball->Speed = 1.f;
+//
+//    return Ball;
+//}
 
 //해당 게임에서 생성되는 모든 오브젝트여기서 생성
 void UGameScene::Init()
@@ -86,13 +88,13 @@ void UGameScene::Init()
 
     ActiveBallList.clear();
 
-    UBall* newBall = CreateBall();
-
     //1번 플레이어가 움직이는 바
-    Bar_1 = new UBar(FVector(0.0f, -0.95f, 0.0f), 0.7f, 0.1f, 0);
+    Bar_1 = new UBar(FVector(0.0f, -0.95f, 0.0f), 1.0f, 0.15f, 0, EPlaySide::Up);
 
     //2번 플레이어가 움직이는 바
-    Bar_2 = new UBar(FVector(0.0f, 0.95f, 0.0f), 0.7f, 0.1f, 1);
+    Bar_2 = new UBar(FVector(0.0f, 0.95f, 0.0f), 1.0f, 0.15f, 1, EPlaySide::Down);
+
+    UBall* newBall = UBall::CreateBallAtBar(*Bar_1);
 
     AddObject(newBall);
     AddObject(Bar_1);
@@ -142,6 +144,7 @@ void UGameScene::Release()
 /// <param name="delta"></param>
 void UGameScene::Update(float delta)
 {
+    FVector CollisionPos;
     for (UGameObject* Object : UGameObjectList)
     {
         UDiagram* Diagram = dynamic_cast<UDiagram*>(Object);
@@ -156,20 +159,23 @@ void UGameScene::Update(float delta)
             ball->Update(delta);
         }
 
-        if (ball->CheckCollision(Bar_1))
-        {
-            ball->BallBounceAtBar(*Bar_1);
-        }
+        EBlockCollision CollisionState1 = ball->CheckBarCollision(*Bar_1, CollisionPos);
+        ball->BallBounceAtBar(CollisionState1, *Bar_1, CollisionPos);
+        
+        EBlockCollision CollisionState2 = ball->CheckBarCollision(*Bar_2, CollisionPos);
+        ball->BallBounceAtBar(CollisionState2, *Bar_2, CollisionPos);
+    
 
         for (auto* b : stageblocks)
         {
             if (!b->IsActive()) continue;
 
-            EBlockCollision CollisionState = (*ball).CheckBlockCollision(*b);
-
-            //점수 얻는 
-            if ((*ball).BallBounceAtBlock(CollisionState, *b)) {
-                gameManager->AddScore(b->GetScore());
+            EBlockCollision CollisionState = (*ball).CheckBlockCollision(*b, CollisionPos);
+            if (CollisionState != EBlockCollision::None)
+            {
+                (*ball).BallBounceAtBlock(CollisionState, *b, CollisionPos);
+                gameManager->SetScore(b->GetScore()); 
+                USoundManager::GetInstance().Play("Brick");
             }
         }
     }
@@ -184,14 +190,18 @@ void UGameScene::Update(float delta)
     if (!HaveBalls())
     {
         // 공이 다 나갔으니 새 공을 하나 스폰해줍니다.
-        UBall* newBall = CreateBall();
+        UBall* newBall = UBall::CreateBallAtBar(*Bar_1);
         ActiveBallList.push_back(newBall);
 
+        USoundManager::GetInstance().Play("Damage");
         gameManager->SubHealth(1);
     }
 
     if (bIsBrickEmpty()) // 벽돌 다 깨짐!
     {
+
+        USoundManager::GetInstance().StopAll();
+        USoundManager::GetInstance().Play("Victory");
         UClearScene::FinalScore = gameManager->GetTotalScore();
         USceneManager::GetInstance().LoadScene(ESceneType::Clear);
         return;
@@ -220,7 +230,7 @@ bool UGameScene::HaveBalls()
         float Radius = ball->Radius;
 
         //만약에 공이 밖으로 나가지 않았으면 다음거 확인
-        if (Location.y < 1 + Radius && Location.y > -1 - Radius) {
+        if (Location.y < 1 - Radius && Location.y > -1 + Radius) {
             //공이 아직 남아있음
             hasBallLeft = true;
             ++it; 
@@ -253,7 +263,7 @@ void UGameScene::AddObject(UGameObject* Object)
 bool UGameScene::bIsBrickEmpty()
 {
     for (auto& b : stageblocks) {
-        return !(b->IsActive() == true);
+        if (b->IsActive()) return false;
     }
     return true;
 }

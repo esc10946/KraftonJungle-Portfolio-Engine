@@ -1,5 +1,6 @@
 #include "UGameManager.h"
 #include "USceneManager.h"
+#include "USoundManager.h"
 
 UGameManager* UGameManager::gameManager = nullptr;
 
@@ -17,6 +18,8 @@ void UGameManager::initialize()
 void UGameManager::Exit()
 {
 	initialize();
+
+	USoundManager::GetInstance().Play("GameOver");
 	USceneManager::GetInstance().LoadScene(ESceneType::Title);
 }
 
@@ -37,6 +40,11 @@ void UGameManager::AddScore(const unsigned int value)
 {
 	currentScore += value;
 	//UpdateScore
+}
+
+void UGameManager::SetScore(const unsigned int value)
+{
+	currentScore = value;
 }
 
 void UGameManager::RessetGM()

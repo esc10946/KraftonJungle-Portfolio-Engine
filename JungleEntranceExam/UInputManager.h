@@ -1,6 +1,6 @@
 #pragma once
 #include <windows.h>
-
+#include "UGamepadManager.h"
 enum class EKeyState
 {
     None,   // ¾È ´­¸²
@@ -11,6 +11,7 @@ enum class EKeyState
 
 class UInputManager
 {
+
 public:
     static UInputManager* GetInstance();
 
@@ -20,12 +21,16 @@ public:
     bool GetKeyPress(int key) { return KeyStates[key] == EKeyState::Press; }
     bool GetKeyUp(int key) { return KeyStates[key] == EKeyState::Up; }
 
+    float GetAxisX(int playerIndex) const;
+
 private:
     UInputManager();
     ~UInputManager();
 
     static UInputManager* instance;
-
     EKeyState KeyStates[256];
+    UGamepadManager GamepadMgr;
+    float PlayerAxesX[2] = { 0.0f, 0.0f };
+
 };
 
