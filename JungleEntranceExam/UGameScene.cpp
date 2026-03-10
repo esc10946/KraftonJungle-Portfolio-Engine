@@ -6,6 +6,7 @@
 #include "Util.h"
 #include "UClearScene.h"
 #include "USceneManager.h"
+#include "Stage.h"
 
 UGameScene::UGameScene()
 {
@@ -96,6 +97,10 @@ void UGameScene::Init()
     AddObject(Bar_1);
     AddObject(Bar_2);
 
+    //stage 블럭들
+    int CurrentRound = 1;
+    stageblocks = CreateStage(CurrentRound);
+
     //게임매니저 초기화
     gameManager = UGameManager::GetInstance();
     gameManager->RessetGM();
@@ -123,6 +128,11 @@ void UGameScene::Release()
     }
 
     UGameObjectList.clear();
+
+    for (auto* b : stageblocks)
+        delete b;
+
+    stageblocks.clear();
 }
 
 /// <summary>
@@ -149,6 +159,18 @@ void UGameScene::Update(float delta)
         {
             ball->BallBounceAtBar(*Bar_1);
         }
+
+        for (auto* b : stageblocks)
+        {
+            if (!b->IsActive()) continue;
+
+            EBlockCollision CollisionState = (*ball).CheckBlockCollision(*b);
+
+            //점수 얻는 
+            if ((*ball).BallBounceAtBlock(CollisionState, *b)) {
+                gameManager->AddScore(b->GetScore());
+            }
+        }
     }
 
     gameManager->Update(delta);
@@ -163,7 +185,7 @@ void UGameScene::Update(float delta)
         gameManager->SubHealth(1);
     }
 
-    if (false)//BrickList.empty()) // 벽돌 다 깨짐!
+    if (bIsBrickEmpty()) // 벽돌 다 깨짐!
     {
         UClearScene::FinalScore = gameManager->GetTotalScore();
         USceneManager::GetInstance().LoadScene(ESceneType::Clear);
@@ -223,6 +245,14 @@ void UGameScene::AddObject(UGameObject* Object)
     }
 }
 
+bool UGameScene::bIsBrickEmpty()
+{
+    for (auto& b : stageblocks) {
+        return !(b->IsActive() == true);
+    }
+    return true;
+}
+
 void UGameScene::Render(URenderer render)
 {
     for (UGameObject* Object : UGameObjectList)
@@ -242,5 +272,8 @@ void UGameScene::Render(URenderer render)
             render.RenderSphere();
         }
     }
+
+    for (auto* b : stageblocks)
+        b->Render(render);
 }
 

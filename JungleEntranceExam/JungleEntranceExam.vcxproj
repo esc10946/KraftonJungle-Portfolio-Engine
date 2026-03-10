@@ -136,10 +136,12 @@
     <ClCompile Include="ImGui\imgui_widgets.cpp" />
     <ClCompile Include="Item\BrickBreakItemManager.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Stage.cpp" />
     <ClCompile Include="TitleScene.cpp" />
     <ClCompile Include="Types.cpp" />
     <ClCompile Include="UBall.cpp" />
     <ClCompile Include="UBar.cpp" />
+    <ClCompile Include="UBlock.cpp" />
     <ClCompile Include="UClearScene.cpp" />
     <ClCompile Include="UGameManager.cpp" />
     <ClCompile Include="UGameObject.cpp" />
@@ -153,7 +155,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bar.h" />
+    <ClInclude Include="FColor.h" />
     <ClInclude Include="FVector.h" />
+    <ClInclude Include="TitleScene.h" />
+    <ClInclude Include="Types.h" />
+    <ClInclude Include="UBlock.h" />
     <ClInclude Include="ImGui\imconfig.h" />
     <ClInclude Include="ImGui\imgui.h" />
     <ClInclude Include="ImGui\imgui_impl_dx11.h" />
@@ -167,8 +173,6 @@
     <ClInclude Include="Item\DummyReceiver.h" />
     <ClInclude Include="Item\ItemEffectReceiver.h" />
     <ClInclude Include="Sphere.h" />
-    <ClInclude Include="TitleScene.h" />
-    <ClInclude Include="Types.h" />
     <ClInclude Include="UBall.h" />
     <ClInclude Include="UBar.h" />
     <ClInclude Include="UClearScene.h" />
@@ -182,11 +186,14 @@
     <ClInclude Include="UScene.h" />
     <ClInclude Include="USceneManager.h" />
     <ClInclude Include="Util.h" />
+    <ClInclude Include="Stage.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="ShaderW0.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
