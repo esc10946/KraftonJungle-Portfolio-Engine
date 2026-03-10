@@ -8,6 +8,12 @@ enum EDirection
     Right = 1
 };
 
+enum class EPlaySide
+{
+    Up = 1,
+    Down = -1
+};
+
 class UBar : public UDiagram
 {
 public:
@@ -18,10 +24,11 @@ public:
     float YLength;               // 바의 세로 절반길이
     int PlayerNo;
     int Direction;
+    EPlaySide Side;
 
     // 생성자 및 소멸자
 public:
-    UBar(const FVector& _Location, const float _Speed, const float _Scale, int _PlayerNo);
+    UBar(const FVector& _Location, const float _Speed, const float _Scale, int _PlayerNo, EPlaySide _Side);
 
     virtual ~UBar() override;
 

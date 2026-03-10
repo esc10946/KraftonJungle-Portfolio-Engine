@@ -1,14 +1,14 @@
 #include "UBall.h"
 
 // 생성자 및 소멸자
-UBall::UBall() : Location(0.0f, 0.0f, 0.0f), Velocity(0.0f, 0.0f, 0.0f),Speed(1.0f), Radius(0.1f), Mass(0.1f)
+UBall::UBall() : Location(0.0f, 0.0f, 0.0f), Velocity(0.0f, 0.0f, 0.0f),Speed(1.0f), Radius(0.1f), Mass(0.1f), IsMove(false), BarPtr(nullptr), Acceleration(0.0f), SpeedLimit(5.0f)
 {
     ++TotalNumBalls;
     Mass = (4.0f / 3.0f) * Pi * std::powf(Radius, 3);
 }
 
-UBall::UBall(const FVector& _Location, const FVector& _Velocity,const float _Speed, const float _Radius) 
-    : Location(_Location), Velocity(_Velocity),Speed(_Speed), Radius(_Radius)
+UBall::UBall(const FVector& _Location, const FVector& _Velocity,const float _Speed, const float _Radius, const bool _IsMove, UBar* _BarPtr, const float _Acceleration, const float _SpeedLimit)
+    : Location(_Location), Velocity(_Velocity),Speed(_Speed), Radius(_Radius), IsMove(_IsMove), BarPtr(_BarPtr), Acceleration(_Acceleration), SpeedLimit(_SpeedLimit)
 {
     ++TotalNumBalls;
     Mass = (4.0f / 3.0f) * Pi * std::powf(Radius, 3);
@@ -23,13 +23,34 @@ UBall::~UBall()
     // 물리/이동 업데이트
 void UBall::Update(float deltaTime)
 {
-    // 속도에 기반하여 위치 적용
-    Location.x += Velocity.x * Speed * deltaTime;
-    Location.y += Velocity.y * Speed * deltaTime;
-    // Location.z += Velocity.z * deltaTime;
+    static int StartMoveKey = (BarPtr->PlayerNo == 0) ? VK_UP : 'S';
 
-    // 벽 충돌 적용
-    ApplyWallCollision();
+    if (IsMove)
+    {
+        // 속도에 기반하여 위치 적용
+        Location.x += Velocity.x * Speed * deltaTime;
+        Location.y += Velocity.y * Speed * deltaTime;
+        // Location.z += Velocity.z * deltaTime;
+
+        // 벽 충돌 적용
+        ApplyWallCollision();
+
+        if (Speed < SpeedLimit)
+            Speed += Acceleration;
+    }
+    else
+    {
+        if (BarPtr != nullptr)
+        {
+            Location = BarPtr->Location + FVector(0, Radius * static_cast<int>(BarPtr->Side), 0);
+        }
+        UInputManager* input = UInputManager::GetInstance();
+
+        if (input->GetKeyDown(StartMoveKey))
+        {
+            IsMove = true;
+        }
+    }
 }
 
     // 렌더링 (상수 버퍼 업데이트)
@@ -339,3 +360,61 @@ void UBall::BallBounceAtBlock(const EBlockCollision Position, UBlock& Block, con
     }
 }
 
+void UBall::SetIsMove(const bool _IsMove)
+{
+    IsMove = _IsMove;
+}
+
+bool UBall::GetIsMove()
+{
+    return IsMove;
+}
+
+UBall* UBall::CreateBallAtBar(const UBar& Bar)
+{
+    // new 연산자를 사용해 공의 Instance를 생성
+    UBall* Ball = new UBall();
+
+    float maxRadiusX = (rightBorder - leftBorder) * 0.05f;
+    float maxRadiusY = (topBorder - bottomBorder) * 0.05f;
+    float maxAllowedRadius = (maxRadiusX < maxRadiusY) ? maxRadiusX : maxRadiusY;
+    float r = maxAllowedRadius / 2;
+    Ball->SetRadius(r);
+
+    Ball->Location.x = Bar.Location.x;
+    Ball->Location.y = Bar.Location.y + (Bar.YLength + Ball->Radius) * static_cast<int>(Bar.Side);
+    Ball->Location.z = 0.0f;
+
+    Ball->Velocity.y = GetRandomFloat(0.8f, 1.0f);
+    Ball->Velocity.x = sqrt(1 - Ball->Velocity.y * Ball->Velocity.y) * GetRandomSide();
+    Ball->Velocity.z = 0.0f;
+    Ball->Speed = 0.5f;
+
+    Ball->SetIsMove(false);
+    Ball->BarPtr = const_cast<UBar*>(&Bar);
+    Ball->Acceleration = 0.0002f;
+
+    return Ball;
+}
+
+//void UBall::InitBall(UBall& input)
+//{
+//    // 임의의 크기(Radius): 너무 큰 값을 방지하기 위해, 공의 크기를 화면 너비의 1/10로 제한
+//    float maxRadiusX = (rightBorder - leftBorder) * 0.05f;
+//    float maxRadiusY = (topBorder - bottomBorder) * 0.05f;
+//    float maxAllowedRadius = (maxRadiusX < maxRadiusY) ? maxRadiusX : maxRadiusY;
+//    float r = 0.05f; //GetRandomFloat(0.1f, 0.2f);
+//    input.SetRadius(r);
+//
+//    // 임의의 위치(Location): 화면 경계 안쪽의 랜덤한 위치, 반지름을 마진값으로 함
+//    input.Location.x = GetRandomFloat(leftBorder + input.Radius, rightBorder - input.Radius);
+//    input.Location.y = GetRandomFloat(bottomBorder + input.Radius, topBorder - input.Radius);
+//    input.Location.z = 0.0f;
+//
+//    // 임의의 속도(Velocity)
+//    input.Velocity.x = 0.0f; //GetRandomFloat(1.5f, 2.0f);
+//    input.Velocity.y = -1.0f; //GetRandomFloat(1.5f, 2.0f);
+//    input.Velocity.z = 0.0f;
+//
+//    input.Speed = 0.3f;
+//}

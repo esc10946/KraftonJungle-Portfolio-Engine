@@ -21,6 +21,7 @@ UBlock::UBlock(EBlockType InType, EBlockColor InColor, int Round) :Type(InType),
         score = 50*Round;
         TotalActiveBlocks++;
         break;
+
     case EBlockType::Immortal:
         MaxHp = INT_MAX;
         Color = EBlockColor::Gold;

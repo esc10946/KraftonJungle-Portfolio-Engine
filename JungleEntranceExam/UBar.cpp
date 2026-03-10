@@ -2,7 +2,7 @@
 #include "UInputManager.h"
 
 // 생성자 및 소멸자
-UBar::UBar(const FVector& _Location, const float _Speed, const float _Scale, int _PlayerNo)
+UBar::UBar(const FVector& _Location, const float _Speed, const float _Scale, int _PlayerNo, EPlaySide _Side)
 	: UDiagram()
 	, Location(_Location)
 	, Speed(_Speed)
@@ -11,6 +11,7 @@ UBar::UBar(const FVector& _Location, const float _Speed, const float _Scale, int
 	, XLength(1.0f * _Scale)
 	, YLength(0.025f)
 	, Direction(0)
+	, Side(_Side)
 {
 }
 
