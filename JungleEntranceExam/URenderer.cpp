@@ -278,6 +278,12 @@ void URenderer::ReleaseVertexBuffer()
         vertexBufferTriangle->Release();
 }
 
+void URenderer::ReleaseVertexBuffer(ID3D11Buffer* pbuffer)
+{
+    if(pbuffer)
+        pbuffer->Release();
+}
+
 void URenderer::CreateConstantBuffer()
 {
     D3D11_BUFFER_DESC constantbufferdesc = {};

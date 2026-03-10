@@ -73,6 +73,7 @@ public:
 
     ID3D11Buffer* CreateVertexBuffer(FVertexSimple* vertices, UINT byteWidth);
     void ReleaseVertexBuffer();
+    void ReleaseVertexBuffer(ID3D11Buffer* pbuffer);
     void CreateConstantBuffer();
     void ReleaseConstantBuffer();
     void UpdateConstant(FVector Offset, FVector Scale);

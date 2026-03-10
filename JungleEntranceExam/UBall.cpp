@@ -185,9 +185,9 @@ EBlockCollision UBall::CheckBlockCollision(const UBlock& Block)
     return EBlockCollision::None;
 }
 
-void UBall::BallBounceAtBlock(const EBlockCollision Position, UBlock& Block)
+bool UBall::BallBounceAtBlock(const EBlockCollision Position, UBlock& Block)
 {
-    if (Position == EBlockCollision::None) return;
+    if (Position == EBlockCollision::None) return false;
 
     Block.TakeDamage();
     switch (Position)
@@ -214,7 +214,8 @@ void UBall::BallBounceAtBlock(const EBlockCollision Position, UBlock& Block)
             Velocity.y *= -1.0f;
             break;
         }
-     
     }
+
+    return true;
 }
 

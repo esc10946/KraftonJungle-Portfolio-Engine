@@ -4,6 +4,7 @@
 class UGameManager;
 class UBall;
 class UBar;
+class UBlock;
 
 class UGameScene:
     public UScene
@@ -24,10 +25,12 @@ public:
     void Release() override;
 
     void AddObject(UGameObject* Object) override;
+    bool bIsBrickEmpty();
 
 private:
     UGameManager* gameManager = nullptr;
 
+    std::vector<UBlock*> stageblocks;
     std::vector<UBall*> ActiveBallList;
     UBar* Bar_1;
     UBar* Bar_2;

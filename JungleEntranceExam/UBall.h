@@ -45,7 +45,7 @@ public:
 
     void BallBounceAtBar(const UBar& PlayerBar);
 
-    void BallBounceAtBlock(const EBlockCollision Position, UBlock& Block);
+    bool BallBounceAtBlock(const EBlockCollision Position, UBlock& Block);
 
     void ResolveCollision(UBall* Other);
 };

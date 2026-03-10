@@ -135,17 +135,27 @@
     <ClCompile Include="ImGui\imgui_widgets.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Stage.cpp" />
+    <ClCompile Include="TitleScene.cpp" />
+    <ClCompile Include="Types.cpp" />
     <ClCompile Include="UBall.cpp" />
     <ClCompile Include="UBar.cpp" />
     <ClCompile Include="UBlock.cpp" />
+    <ClCompile Include="UClearScene.cpp" />
+    <ClCompile Include="UGameManager.cpp" />
     <ClCompile Include="UGameObject.cpp" />
+    <ClCompile Include="UGameScene.cpp" />
+    <ClCompile Include="UInputManager.cpp" />
     <ClCompile Include="URenderer.cpp" />
+    <ClCompile Include="UScene.cpp" />
+    <ClCompile Include="USceneManager.cpp" />
     <ClCompile Include="Util.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bar.h" />
     <ClInclude Include="FColor.h" />
     <ClInclude Include="FVector.h" />
+    <ClInclude Include="TitleScene.h" />
+    <ClInclude Include="Types.h" />
     <ClInclude Include="UBlock.h" />
     <ClInclude Include="ImGui\imconfig.h" />
     <ClInclude Include="ImGui\imgui.h" />
@@ -158,9 +168,15 @@
     <ClInclude Include="Sphere.h" />
     <ClInclude Include="UBall.h" />
     <ClInclude Include="UBar.h" />
+    <ClInclude Include="UClearScene.h" />
     <ClInclude Include="UDiagram.h" />
+    <ClInclude Include="UGameManager.h" />
     <ClInclude Include="UGameObject.h" />
+    <ClInclude Include="UGameScene.h" />
+    <ClInclude Include="UInputManager.h" />
     <ClInclude Include="URenderer.h" />
+    <ClInclude Include="UScene.h" />
+    <ClInclude Include="USceneManager.h" />
     <ClInclude Include="Util.h" />
     <ClInclude Include="Stage.h" />
   </ItemGroup>
