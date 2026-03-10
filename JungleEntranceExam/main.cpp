@@ -22,6 +22,7 @@
 #include "ImGui/imgui_impl_dx11.h"
 #include "imGui/imgui_impl_win32.h"
 #include "UInputManager.h"
+#include "USoundManager.h"
 
 // 윈도우의 입력 이벤트를 ImGui에 전달하고, ImGui가 사용했는지 여부를 알려주는 함수
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -285,6 +286,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     UBall Ball;
     InitBall(Ball);*/
 
+    USoundManager::GetInstance().Init();
     //게임씬 초기화
     USceneManager& sceneManager = USceneManager::GetInstance();
     sceneManager.LoadScene(ESceneType::Title);
@@ -323,6 +325,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
             //}
 		}
 
+        USoundManager::GetInstance().Update();
         UInputManager::GetInstance()->Update();
 		////////////////////////////////////////////
 		// 매번 실행되는 코드를 여기에 추가합니다.

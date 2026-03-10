@@ -96,6 +96,9 @@
     <ClCompile Include="Types.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="USoundManager.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ImGui\imconfig.h">
@@ -183,6 +186,9 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="TitleScene.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="USoundManager.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>

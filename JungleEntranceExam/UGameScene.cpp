@@ -6,6 +6,7 @@
 #include "Util.h"
 #include "UClearScene.h"
 #include "USceneManager.h"
+#include "USoundManager.h"
 #include "Stage.h"
 
 UGameScene::UGameScene()
@@ -172,7 +173,8 @@ void UGameScene::Update(float delta)
             if (CollisionState != EBlockCollision::None)
             {
                 (*ball).BallBounceAtBlock(CollisionState, *b, CollisionPos);
-                gameManager->SetScore(b->GetScore());
+                gameManager->SetScore(b->GetScore()); 
+                USoundManager::GetInstance().Play("Brick");
             }
         }
     }
@@ -186,11 +188,15 @@ void UGameScene::Update(float delta)
         UBall* newBall = UBall::CreateBallAtBar(*Bar_1);
         ActiveBallList.push_back(newBall);
 
+        USoundManager::GetInstance().Play("Damage");
         gameManager->SubHealth(1);
     }
 
     if (bIsBrickEmpty()) // º®µ¹ ´Ù ±úÁü!
     {
+
+        USoundManager::GetInstance().StopAll();
+        USoundManager::GetInstance().Play("Victory");
         UClearScene::FinalScore = gameManager->GetTotalScore();
         USceneManager::GetInstance().LoadScene(ESceneType::Clear);
         return;

@@ -2,6 +2,7 @@
 #include "TitleScene.h"
 #include "UGameScene.h"
 #include "UClearScene.h"
+#include "USoundManager.h"
 
 USceneManager* USceneManager::sceneManager = nullptr;
 
@@ -18,11 +19,21 @@ void USceneManager::LoadScene(ESceneType sceneName)
     {
     case ESceneType::Title:
         currentScene = titleScene;
+        if (USoundManager::GetInstance().IsPlaying("BGM") == false)
+        {
+            USoundManager::GetInstance().StopAll();
+            USoundManager::GetInstance().Play("BGM");
+        }
         break;
 
     case ESceneType::InGame:
         inGameScene->Init(); 
         currentScene = inGameScene;
+        if (USoundManager::GetInstance().IsPlaying("BGM") == false)
+        {
+            USoundManager::GetInstance().StopAll();
+            USoundManager::GetInstance().Play("BGM");
+        }
         break;
 
     case ESceneType::Clear:
