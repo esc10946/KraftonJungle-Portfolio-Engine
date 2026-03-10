@@ -49,7 +49,7 @@ public:
 
     EBlockCollision CheckBlockCollision(const UBlock& Block, FVector& CollisionPos);
 
-    void BallBounceAtBlock(const EBlockCollision Position, const UBlock& Block, const FVector& CollisonPos);
+    void BallBounceAtBlock(const EBlockCollision Position, UBlock& Block, const FVector& CollisonPos);
 
     void ResolveCollision(UBall* Other);
 };

@@ -61,18 +61,19 @@ static UBall* CreateBall()
     float maxRadiusX = (rightBorder - leftBorder) * 0.05f;
     float maxRadiusY = (topBorder - bottomBorder) * 0.05f;
     float maxAllowedRadius = (maxRadiusX < maxRadiusY) ? maxRadiusX : maxRadiusY;
-    float r = GetRandomFloat(0.01f, maxAllowedRadius);
+    float r = maxAllowedRadius / 2;
     Ball->SetRadius(r);
 
     // 임의의 위치(Location): 화면 경계 안쪽의 랜덤한 위치, 반지름을 마진값으로 함
-    Ball->Location.x = GetRandomFloat(leftBorder + Ball->Radius, rightBorder - Ball->Radius);
-    Ball->Location.y = GetRandomFloat(bottomBorder + Ball->Radius, topBorder - Ball->Radius);
+    Ball->Velocity.x = GetRandomFloat(0.5f, 0.6f);
+    Ball->Velocity.y = GetRandomFloat(0.5f, 0.6f);
     Ball->Location.z = 0.0f;
 
     // 임의의 속도(Velocity)
     Ball->Velocity.x = 1.0f;
-    Ball->Velocity.y = 1.0f;
+    Ball->Velocity.y = -1.0f;
     Ball->Velocity.z = 0.0f;
+    Ball->Speed = 1.f;
 
     return Ball;
 }
@@ -88,10 +89,10 @@ void UGameScene::Init()
     UBall* newBall = CreateBall();
 
     //1번 플레이어가 움직이는 바
-    Bar_1 = new UBar(FVector(0.0f, -0.95f, 0.0f), 0.7f, 0.1f, 0);
+    Bar_1 = new UBar(FVector(0.0f, -0.95f, 0.0f), 1.0f, 0.15f, 0);
 
     //2번 플레이어가 움직이는 바
-    Bar_2 = new UBar(FVector(0.0f, 0.95f, 0.0f), 0.7f, 0.1f, 1);
+    Bar_2 = new UBar(FVector(0.0f, 0.95f, 0.0f), 1.0f, 0.15f, 1);
 
     AddObject(newBall);
     AddObject(Bar_1);
@@ -141,6 +142,7 @@ void UGameScene::Release()
 /// <param name="delta"></param>
 void UGameScene::Update(float delta)
 {
+    FVector CollisionPos;
     for (UGameObject* Object : UGameObjectList)
     {
         UDiagram* Diagram = dynamic_cast<UDiagram*>(Object);
@@ -155,19 +157,21 @@ void UGameScene::Update(float delta)
             ball->Update(delta);
         }
 
-        if (ball->CheckCollision(Bar_1))
-        {
-            ball->BallBounceAtBar(*Bar_1);
-        }
+        EBlockCollision CollisionState1 = ball->CheckBarCollision(*Bar_1, CollisionPos);
+        ball->BallBounceAtBar(CollisionState1, *Bar_1, CollisionPos);
+        
+        EBlockCollision CollisionState2 = ball->CheckBarCollision(*Bar_2, CollisionPos);
+        ball->BallBounceAtBar(CollisionState2, *Bar_2, CollisionPos);
+    
 
         for (auto* b : stageblocks)
         {
             if (!b->IsActive()) continue;
 
-            EBlockCollision CollisionState = (*ball).CheckBlockCollision(*b);
-
-            //점수 얻는 
-            if ((*ball).BallBounceAtBlock(CollisionState, *b)) {
+            EBlockCollision CollisionState = (*ball).CheckBlockCollision(*b, CollisionPos);
+            if (CollisionState != EBlockCollision::None)
+            {
+                (*ball).BallBounceAtBlock(CollisionState, *b, CollisionPos);
                 gameManager->SetScore(b->GetScore());
             }
         }
@@ -215,7 +219,7 @@ bool UGameScene::HaveBalls()
         float Radius = ball->Radius;
 
         //만약에 공이 밖으로 나가지 않았으면 다음거 확인
-        if (Location.y < 1 + Radius && Location.y > -1 - Radius) {
+        if (Location.y < 1 - Radius && Location.y > -1 + Radius) {
             //공이 아직 남아있음
             hasBallLeft = true;
             ++it; 

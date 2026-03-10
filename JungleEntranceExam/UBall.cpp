@@ -287,8 +287,12 @@ EBlockCollision UBall::CheckBlockCollision(const UBlock& Block, FVector& Collisi
     return EBlockCollision::None;
 }
 
-void UBall::BallBounceAtBlock(const EBlockCollision Position, const UBlock& Block, const FVector& CollisionPos)
+void UBall::BallBounceAtBlock(const EBlockCollision Position, UBlock& Block, const FVector& CollisionPos)
 {
+    if (Position == EBlockCollision::None) return;
+
+    Block.TakeDamage();
+
     switch (Position)
     {
         case EBlockCollision::Vertical:
