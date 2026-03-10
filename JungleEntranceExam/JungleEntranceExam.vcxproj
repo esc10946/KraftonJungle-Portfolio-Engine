@@ -102,6 +102,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -123,7 +124,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="UBlock.cpp" />
+    <ClCompile Include="FVector.cpp" />
+    <ClCompile Include="FVertexSimple.h" />
     <ClCompile Include="ImGui\imgui.cpp" />
     <ClCompile Include="ImGui\imgui_demo.cpp" />
     <ClCompile Include="ImGui\imgui_draw.cpp" />
@@ -133,9 +135,17 @@
     <ClCompile Include="ImGui\imgui_widgets.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Stage.cpp" />
+    <ClCompile Include="UBall.cpp" />
+    <ClCompile Include="UBar.cpp" />
+    <ClCompile Include="UBlock.cpp" />
     <ClCompile Include="UGameObject.cpp" />
+    <ClCompile Include="URenderer.cpp" />
+    <ClCompile Include="Util.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Bar.h" />
+    <ClInclude Include="FColor.h" />
+    <ClInclude Include="FVector.h" />
     <ClInclude Include="UBlock.h" />
     <ClInclude Include="ImGui\imconfig.h" />
     <ClInclude Include="ImGui\imgui.h" />
@@ -146,6 +156,12 @@
     <ClInclude Include="ImGui\imstb_textedit.h" />
     <ClInclude Include="ImGui\imstb_truetype.h" />
     <ClInclude Include="Sphere.h" />
+    <ClInclude Include="UBall.h" />
+    <ClInclude Include="UBar.h" />
+    <ClInclude Include="UDiagram.h" />
+    <ClInclude Include="UGameObject.h" />
+    <ClInclude Include="URenderer.h" />
+    <ClInclude Include="Util.h" />
     <ClInclude Include="Shape.h" />
     <ClInclude Include="Stage.h" />
     <ClInclude Include="UGameObject.h" />

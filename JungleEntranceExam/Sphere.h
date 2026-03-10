@@ -1,5 +1,7 @@
 #pragma once
 
+#include "FVertexSimple.h"
+
 FVertexSimple sphere_vertices[] = {
 	{ 0.000000f, 1.000000f, 0.000000f, 0.500000f, 1.000000f, 0.500000f, 1.000000f },
 	{ 0.156434f, 0.987688f, 0.000000f, 0.578217f, 0.993844f, 0.500000f, 1.000000f },

@@ -1,6 +1,6 @@
 #pragma once
-#include "UGameObject.h"
-#include "Shape.h"
+
+#include "UDiagram.h"
 
 enum class EBlockType
 {
@@ -20,6 +20,14 @@ enum class EBlockColor
 	Yellow = 120,
 	Silver = 1,
 	Gold = 2
+};
+
+enum class EBlockCollision
+{
+	None = 0,
+	Horizontal = 1,
+	Vertical = 2,
+	Corner = 3,
 };
 
 static FColor GetColorFromBlockColor(EBlockColor blockColor)
@@ -54,6 +62,14 @@ public:
 	int  TakeDamage();
 
 	FColor GetColor() const;
+	void ApplyWallCollision() {}
+
+	// 중력 적용
+	void ApplyGravity(float deltaTime, const FVector& gravity) {}
+
+	// 다른 도형과 충돌 판정
+	bool CheckCollision(const UDiagram* Other) { return false; }
+
 public:
 	EBlockType Type;
 	EBlockColor Color;
@@ -61,6 +77,8 @@ public:
 	int CurrHp;
 	float CenterX, CenterY;
 	float HalfW, HalfH;
+	float MinX, MaxX;
+	float MinY, MaxY;
 	int score;
 
 
