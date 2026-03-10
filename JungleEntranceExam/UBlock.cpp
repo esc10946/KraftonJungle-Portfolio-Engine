@@ -1,5 +1,5 @@
 #include "UBlock.h"
-
+#include <iostream>
 
 static int TotalScore=0;// 현재 전체 스코어
 
@@ -13,6 +13,7 @@ UBlock::UBlock(EBlockType InType, EBlockColor InColor, int Round) :Type(InType),
         MaxHp = 1;
 		Color = InColor;
         score = static_cast<int>(InColor);
+		
         TotalActiveBlocks++;
         break;
     case EBlockType::Hard:
@@ -63,22 +64,7 @@ void UBlock::Render(URenderer& Renderer)
     if (!IsActive())
         return;
     FColor color;
-    switch (Type)
-    {
-    case EBlockType::Normal:
-        color = GetColorFromBlockColor(Color);
-        break;
-    case EBlockType::Hard:
-        color = FColor(0.53f, 0.60f, 0.67f);
-        break;
-    case EBlockType::Immortal:
-        color = FColor(1.00f, 0.55f, 0.10f);
-        break;
-    default:
-        color = FColor(1.0f, 1.0f, 1.0f);
-        break;
-
-    }
+    color = GetColorFromBlockColor(Color);
     Renderer.RenderRect(CenterX, CenterY, HalfW, HalfH, color);
 }
 bool UBlock::CheckBallCollision(const FVector& BallPos, float Radius, FVector& OutNormal) const
@@ -109,9 +95,9 @@ int UBlock::TakeDamage()//쿨타임 필요할거같은데혹은 다른 충돌이 있으면 초기화되�
     if (CurrHp == 0)
     {
         SetActive(false);
-        const int score = static_cast<int>(Color);
         TotalScore += score;
         TotalActiveBlocks--;
+		std::cout << "Score : " << TotalScore << " Active Blocks : " << TotalActiveBlocks << std::endl;
         return score;
     }
     return 0;

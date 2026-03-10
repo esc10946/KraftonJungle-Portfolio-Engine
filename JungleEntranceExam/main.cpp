@@ -25,6 +25,8 @@
 #include "USoundManager.h"
 #include "UGameManager.h"
 
+
+#pragma comment(lib, "runtimeobject.lib")
 // 윈도우의 입력 이벤트를 ImGui에 전달하고, ImGui가 사용했는지 여부를 알려주는 함수
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -208,6 +210,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
+
+    //// 콘솔 창 생성
+    //AllocConsole();
+
+    //// 표준 출력을 콘솔로 연결 (printf나 std::cout을 쓰기 위해)
+    //FILE* pFile;
+    //freopen_s(&pFile, "CONOUT$", "w", stdout);
 	// 윈도우 클래스 이름
 	WCHAR WindowClass[] = L"JungleWindowClass";
 
@@ -463,6 +472,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     // 렌더러 소멸
     renderer.Release();
-
+ 
 	return 0;
 }

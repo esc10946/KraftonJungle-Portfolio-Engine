@@ -33,6 +33,43 @@ void UInputManager::Update()
             }
         }
     }
+    GamepadMgr.Update();
+
+	PlayerAxesX[0] = 0.0f;
+    if (GetKeyPress(VK_LEFT) && GetKeyPress(VK_RIGHT))
+    {
+        PlayerAxesX[0] = 0.0f;
+    }
+    if (GetKeyPress(VK_LEFT))
+    {
+        PlayerAxesX[0] = -1.0f;
+    }
+    if (GetKeyPress(VK_RIGHT))
+    {
+        PlayerAxesX[0] = 1.0f;
+    }
+
+    PlayerAxesX[1] = 0.0f;
+    if (GamepadMgr.IsConnected())
+    {
+		PlayerAxesX[1] = GamepadMgr.GetLeftThumbstickX();
+    }
+    else
+    {
+        if (GetKeyPress('A') && GetKeyPress('D'))
+        {
+            PlayerAxesX[1] = 0.0f;
+        }
+        if (GetKeyPress('A'))
+        {
+            PlayerAxesX[1] = -1.0f;
+        }
+        if (GetKeyPress('D'))
+        {
+            PlayerAxesX[1] = 1.0f;
+        }
+    }
+
 }
 
 void UInputManager::Release()
@@ -43,6 +80,12 @@ void UInputManager::Release()
         instance = nullptr;
     }
 }
+
+float UInputManager::GetAxisX(int playerIndex) const
+{
+    return (playerIndex >= 0 && playerIndex < 2) ? PlayerAxesX[playerIndex] : 0.0f;
+}
+
 
 UInputManager::UInputManager() {
     for (int i = 0; i < 256; ++i) {

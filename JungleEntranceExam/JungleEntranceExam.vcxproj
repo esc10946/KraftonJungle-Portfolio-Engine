@@ -151,6 +151,7 @@
     <ClCompile Include="UGameObject.cpp" />
     <ClCompile Include="UGameScene.cpp" />
     <ClCompile Include="UInputManager.cpp" />
+    <ClCompile Include="UGamepadManager.cpp" />
     <ClCompile Include="URenderer.cpp" />
     <ClCompile Include="UScene.cpp" />
     <ClCompile Include="USceneManager.cpp" />
@@ -181,6 +182,7 @@
     <ClInclude Include="UGameObject.h" />
     <ClInclude Include="UGameScene.h" />
     <ClInclude Include="UInputManager.h" />
+    <ClInclude Include="UGamepadManager.h" />
     <ClInclude Include="URenderer.h" />
     <ClInclude Include="UScene.h" />
     <ClInclude Include="USceneManager.h" />

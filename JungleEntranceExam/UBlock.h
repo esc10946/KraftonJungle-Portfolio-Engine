@@ -10,6 +10,7 @@ enum class EBlockType
 };
 enum class EBlockColor
 {
+
 	White = 50,
 	Orange = 60,
 	Cyan = 70,
@@ -19,7 +20,8 @@ enum class EBlockColor
 	Magenta = 110,
 	Yellow = 120,
 	Silver = 1,
-	Gold = 2
+	Gold = 2,
+	NONE = 0,
 };
 
 enum class EBlockCollision
@@ -42,8 +44,8 @@ static FColor GetColorFromBlockColor(EBlockColor blockColor)
 	case EBlockColor::Blue:     return FColor(0.15f, 0.3f, 1.0f);
 	case EBlockColor::Magenta:  return FColor(0.9f, 0.0f, 0.9f);
 	case EBlockColor::Yellow:   return FColor(1.0f, 0.95f, 0.0f);
-	case EBlockColor::Silver:   return FColor(1.00f, 0.55f, 0.10f);
-	case EBlockColor::Gold:     return FColor(0.53f, 0.60f, 0.67f);
+	case EBlockColor::Silver:   return FColor(0.20f, 0.30f, 0.37f);
+	case EBlockColor::Gold:     return FColor(0.5f, 0.25f, 0.05f); 
 	default:                    return FColor(1.0f, 1.0f, 1.0f);
 	}
 }
