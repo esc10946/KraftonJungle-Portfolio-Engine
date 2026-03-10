@@ -128,6 +128,23 @@ static std::vector<UBlock*> BulidStage(int(&map)[ROWS][COLS], int round)
 	}
 	return blocks;
 }
+template <int ROWS, int COLS>
+static void GetStageMap(int(&map)[ROWS][COLS], int& outRow, int& outCol)
+{
+	outRow = ROWS;
+	outCol = COLS;
+}
+void GetStageInfo(int StageNum, int& outRow, int& outCol)
+{
+	switch (StageNum)
+	{
+	case 1: GetStageMap(stage1, outRow, outCol); break;
+	case 2: GetStageMap(stage2, outRow, outCol); break;
+	case 3: GetStageMap(stage3, outRow, outCol); break;
+	default:GetStageMap(stage1, outRow, outCol); break;
+	}
+}
+
 std::vector<UBlock*> CreateStage(int Round)
 {
 	std::vector<UBlock*> result;
@@ -148,4 +165,10 @@ std::vector<UBlock*> CreateStage(int Round)
 		break;
 	}
     return result;
+}
+
+
+int GetStageRow(int Round)
+{
+	return 0;
 }
