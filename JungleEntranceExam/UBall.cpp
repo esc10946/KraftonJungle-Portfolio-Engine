@@ -230,7 +230,7 @@ void UBall::BallBounceAtBar(const EBlockCollision Position, const UBar& Bar, con
 {
     if (Position == EBlockCollision::None) return;
 
-    USoundManager::GetInstance().Play("Hit");
+    if(IsMove) USoundManager::GetInstance().Play("Hit");
 
     switch (Position)
     {
