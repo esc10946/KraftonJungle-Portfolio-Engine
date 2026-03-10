@@ -6,6 +6,7 @@
 #include "UGameObject.h"
 #include "URenderer.h"
 #include "FVector.h"
+#include "FColor.h"
 
 const float Pi = 3.1415926535f;
 
