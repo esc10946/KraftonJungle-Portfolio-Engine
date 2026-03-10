@@ -6,6 +6,7 @@
 #include "Util.h"
 #include "UClearScene.h"
 #include "USceneManager.h"
+#include "USoundManager.h"
 #include "Stage.h"
 
 UGameScene::UGameScene()
@@ -178,6 +179,7 @@ void UGameScene::Update(float delta)
     }
 
     gameManager->Update(delta);
+    USoundManager::GetInstance().Update();
 
     // 밖에 공이 나갔는지 판별
     if (!HaveBalls())

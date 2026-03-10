@@ -50,6 +50,7 @@ void UBlock::Init(float cx, float cy, float hw, float hh)
     MaxX = CenterX + HalfW;
     MinY = CenterY - HalfH;
     MaxY = CenterY + HalfH;
+    TotalScore = 0;
 }
 void UBlock::Update(float DeltaTime)
 {
