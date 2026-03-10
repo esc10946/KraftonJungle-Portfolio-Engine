@@ -18,6 +18,7 @@ public:
 	int GetTotalScore() const { return currentScore; }
 	int GetCurLife() const { return currentHealth; }
 	void AddScore(const unsigned int value);
+	void SetScore(const unsigned int value);
 	void RessetGM();
 
 	void AddHealth(const unsigned int value);

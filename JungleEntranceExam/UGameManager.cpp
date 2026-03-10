@@ -39,6 +39,11 @@ void UGameManager::AddScore(const unsigned int value)
 	//UpdateScore
 }
 
+void UGameManager::SetScore(const unsigned int value)
+{
+	currentScore = value;
+}
+
 void UGameManager::RessetGM()
 {
 	currentHealth = MaxHealth;

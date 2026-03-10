@@ -168,7 +168,7 @@ void UGameScene::Update(float delta)
 
             //점수 얻는 
             if ((*ball).BallBounceAtBlock(CollisionState, *b)) {
-                gameManager->AddScore(b->GetScore());
+                gameManager->SetScore(b->GetScore());
             }
         }
     }
@@ -248,7 +248,7 @@ void UGameScene::AddObject(UGameObject* Object)
 bool UGameScene::bIsBrickEmpty()
 {
     for (auto& b : stageblocks) {
-        return !(b->IsActive() == true);
+        if (b->IsActive()) return false;
     }
     return true;
 }
