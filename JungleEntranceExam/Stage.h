@@ -1,5 +1,5 @@
 #pragma once
-#include "Block.h"
+#include "UBlock.h"
 #include <vector>
 
-std::vector<Block*> CreateStage(int Round);
+std::vector<UBlock*> CreateStage(int Round);

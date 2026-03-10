@@ -1,11 +1,11 @@
-#include "Block.h"
+#include "UBlock.h"
 
 #include "UGameObject.h"
 #include "URenderer.h"
 #include <d3d11.h>
 #include <cmath>
 static int TotalScore=0;
-Block::Block(EBlockType InType, EBlockColor InColor, int Round) :Type(InType),CenterX(0),CenterY(0),HalfW(0),HalfH(0)
+UBlock::UBlock(EBlockType InType, EBlockColor InColor, int Round) :Type(InType),CenterX(0),CenterY(0),HalfW(0),HalfH(0)
 {
     switch (Type)
     {
@@ -34,23 +34,23 @@ Block::Block(EBlockType InType, EBlockColor InColor, int Round) :Type(InType),Ce
    // SetTag("Block");
 }
 
-Block::~Block()
+UBlock::~UBlock()
 {
 }
 
-void Block::Init(float cx, float cy, float hw, float hh)
+void UBlock::Init(float cx, float cy, float hw, float hh)
 {
     CenterX = cx;
     CenterY = cy;
     HalfH = hh;
     HalfW = hw;
 }
-void Block::Update(float DeltaTime)
+void UBlock::Update(float DeltaTime)
 {
     // hmm...
 
 }
-bool Block::CheckBallCollision(const FVector& BallPos, float Radius, FVector& OutNormal) const
+bool UBlock::CheckBallCollision(const FVector& BallPos, float Radius, FVector& OutNormal) const
 {
     if (!IsActive()) return false;
     const float overlapX = (HalfW + Radius) - fabsf(BallPos.x - CenterX);
@@ -92,7 +92,7 @@ bool Block::CheckBallCollision(const FVector& BallPos, float Radius, FVector& Ou
 //}
 
 
-int Block::TakeDamage()//쿨타임 필요할거같은데혹은 다른 충돌이 있으면 초기화되던가
+int UBlock::TakeDamage()//쿨타임 필요할거같은데혹은 다른 충돌이 있으면 초기화되던가
 {
     if (!IsActive() || Type == EBlockType::Immortal)
         return 0;
@@ -108,7 +108,7 @@ int Block::TakeDamage()//쿨타임 필요할거같은데혹은 다른 충돌이 있으면 초기화되던
 	return 0;
 }
 
-FColor Block::GetColor() const
+FColor UBlock::GetColor() const
 {
 	if (!IsActive())
 		return FColor(0.0f, 0.0f, 0.0f, 0.0f);

@@ -2,8 +2,8 @@
 //Grid?
 
 static const int COLS = 13;
-static const float HALF_BW = 0.065;// (2.0f - a)/ 13.0f / 2.0f
-static const float HALF_BH = 0.035;// HALF_BW * 0.5f +a
+static const float HALF_BW = 0.065f;// (2.0f - a)/ 13.0f / 2.0f
+static const float HALF_BH = 0.035f;// HALF_BW * 0.5f +a
 static const float STEP_X = HALF_BW * 2.0f;//-+a // Row gap
 static const float STEP_Y = HALF_BH * 2.0f;//+a   // Col gap
 static const float START_X = 2 * HALF_BW;// +a // first block center x
@@ -46,7 +46,7 @@ static int stage3[13][13] =
 #undef H
 #undef I
 #undef _
-static Block* MakeBlock(int code, float cx, float cy, int round)
+static UBlock* MakeBlock(int code, float cx, float cy, int round)
 {
 	if(code == 0)
 		return nullptr;
@@ -67,14 +67,14 @@ static Block* MakeBlock(int code, float cx, float cy, int round)
 		type = EBlockType::Normal;
 		color = ColorTable[code];
 	}
-	Block* block = new Block(type, color, round);
+	UBlock* block = new UBlock(type, color, round);
 	//block->Init(); grid 사용할것
 	return block;
 }
 template <int ROWS>
-static std::vector<Block*> BulidStage(int(&map)[ROWS][COLS], int round)
+static std::vector<UBlock*> BulidStage(int(&map)[ROWS][COLS], int round)
 {
-	std::vector<Block*> blocks;
+	std::vector<UBlock*> blocks;
 	blocks.reserve(ROWS*COLS);
 
 	for (int r = 0; r < ROWS; ++r)
@@ -86,14 +86,14 @@ static std::vector<Block*> BulidStage(int(&map)[ROWS][COLS], int round)
 				continue;
 			float cx = START_X + c * STEP_X;
 			float cy = START_Y + r * STEP_Y;
-			Block* b = MakeBlock(code, cx, cy, round);
+			UBlock* b = MakeBlock(code, cx, cy, round);
 			if(b)
 				blocks.push_back(b);
 		}
 	}
 	return blocks;
 }
-std::vector<Block*> CreateStage(int Round)
+std::vector<UBlock*> CreateStage(int Round)
 {
 	switch (Round)
 	{
@@ -107,5 +107,5 @@ std::vector<Block*> CreateStage(int Round)
 		BulidStage(stage3, Round);
 		break;
 	}
-    return std::vector<Block*>();
+    return std::vector<UBlock*>();
 }

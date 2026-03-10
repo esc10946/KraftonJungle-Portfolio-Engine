@@ -40,11 +40,11 @@ static FColor GetColorFromBlockColor(EBlockColor blockColor)
 	}
 }
 class URenderer;
-class Block : public UGameObject
+class UBlock : public UGameObject
 {
 public:
-	Block(EBlockType InType, EBlockColor InColor, int Round=1);
-	~Block();
+	UBlock(EBlockType InType, EBlockColor InColor, int Round=1);
+	~UBlock();
 
 	void Init(float cx, float cy, float hw, float hh);
 

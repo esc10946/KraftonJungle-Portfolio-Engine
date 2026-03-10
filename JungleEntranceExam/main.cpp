@@ -10,7 +10,7 @@
 
 #include "Shape.h"
 #include "URenderer.h"
-#include "Block.h"
+#include "UBlock.h"
 // 윈도우의 입력 이벤트를 ImGui에 전달하고, ImGui가 사용했는지 여부를 알려주는 함수
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -456,10 +456,10 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     LARGE_INTEGER startTime, endTime;
     double elapsedTime = 0.0;
 
-    Block* testBlocks[3] = {
-    new Block(EBlockType::Normal,   EBlockColor::Red,    1),
-    new Block(EBlockType::Hard,     EBlockColor::White, 1),
-    new Block(EBlockType::Immortal, EBlockColor::White,   1),
+    UBlock* testBlocks[3] = {
+    new UBlock(EBlockType::Normal,   EBlockColor::Red,    1),
+    new UBlock(EBlockType::Hard,     EBlockColor::White, 1),
+    new UBlock(EBlockType::Immortal, EBlockColor::White,   1),
     };
     testBlocks[0]->Init(-0.6f, 0.5f, 0.25f, 0.08f);
     testBlocks[1]->Init(0.0f, 0.5f, 0.25f, 0.08f);
@@ -547,7 +547,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         }
         for (int i = 0; i < 3; ++i)
         {
-            Block* b = testBlocks[i];
+            UBlock* b = testBlocks[i];
             if (!b->IsActive()) continue;
 
             renderer.UpdateConstant(
