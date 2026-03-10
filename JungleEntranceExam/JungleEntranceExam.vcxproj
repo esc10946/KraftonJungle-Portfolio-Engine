@@ -139,6 +139,7 @@
     <ClCompile Include="UBar.cpp" />
     <ClCompile Include="UBlock.cpp" />
     <ClCompile Include="UGameObject.cpp" />
+    <ClCompile Include="UGamepadManager.cpp" />
     <ClCompile Include="URenderer.cpp" />
     <ClCompile Include="Util.cpp" />
   </ItemGroup>
@@ -160,6 +161,7 @@
     <ClInclude Include="UBar.h" />
     <ClInclude Include="UDiagram.h" />
     <ClInclude Include="UGameObject.h" />
+    <ClInclude Include="UGamepadManager.h" />
     <ClInclude Include="URenderer.h" />
     <ClInclude Include="Util.h" />
     <ClInclude Include="Stage.h" />

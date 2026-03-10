@@ -1,5 +1,5 @@
 #include <windows.h>
-
+#include <windows.gaming.input.h>
 // D3D 사용에 필요한 라이브러리들을 링크
 #pragma comment(lib, "user32")
 #pragma comment(lib, "d3d11")
@@ -251,6 +251,12 @@ static void InitBall(UBall& input)
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
+    // 콘솔 창 생성
+    AllocConsole();
+
+    // 표준 출력을 콘솔로 연결 (printf나 std::cout을 쓰기 위해)
+    FILE* pFile;
+    freopen_s(&pFile, "CONOUT$", "w", stdout);
 	// 윈도우 클래스 이름
 	WCHAR WindowClass[] = L"JungleWindowClass";
 
@@ -339,7 +345,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     //testBlocks[1]->Init(0.0f, 0.5f, 0.1f, 0.025f);
     //testBlocks[2]->Init(0.6f, 0.5f, 0.1f, 0.025f);
     
-	int CurrentRound = 1;
+	int CurrentRound = 3;
 
     std::vector<UBlock*> stageblocks = CreateStage(CurrentRound);
 
