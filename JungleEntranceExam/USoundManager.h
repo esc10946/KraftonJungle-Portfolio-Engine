@@ -21,7 +21,10 @@ public:
     void LoadSound(const std::string& name, const std::string& filepath, bool bLoop = false);
 
     void Play(const std::string& name);
-
+    void Stop(const std::string& name); 
+    void StopAll();                    
+    void StopSFX();
+    bool IsPlaying(const std::string& name);
 private:
     USoundManager() = default;
     ~USoundManager() = default;
@@ -30,6 +33,7 @@ private:
 
     FMOD::System* pSystem = nullptr;
 
-    std::map<std::string, FMOD::Sound*> SoundMap;
+    std::map<std::string, FMOD::Sound*> SoundMap; 
+    std::map<std::string, FMOD::Channel*> ChannelMap;
 };
 

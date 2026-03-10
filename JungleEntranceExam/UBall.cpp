@@ -1,4 +1,5 @@
 #include "UBall.h"
+#include "USoundManager.h"
 
 // 생성자 및 소멸자
 UBall::UBall() : Location(0.0f, 0.0f, 0.0f), Velocity(0.0f, 0.0f, 0.0f),Speed(1.0f), Radius(0.1f), Mass(0.1f)
@@ -41,26 +42,39 @@ void UBall::Render(URenderer& renderer)
     // 벽 충돌 적용
 void UBall::ApplyWallCollision()
 {
+    bool bHitWall = false;
+
     // 벽과 충돌 여부를 체크하고 반사 시킴 (벽 끼임 방지 추가)
     if (Location.x < leftBorder + Radius)
     {
         Location.x = leftBorder + Radius;
-        if (Velocity.x < 0.0f) Velocity.x *= -1.0f;
+        if (Velocity.x < 0.0f)
+        {
+            Velocity.x *= -1.0f;
+            bHitWall = true; // 부딪힘 체크!
+        }
     }
     if (Location.x > rightBorder - Radius)
     {
         Location.x = rightBorder - Radius;
-        if (Velocity.x > 0.0f) Velocity.x *= -1.0f;
+        if (Velocity.x > 0.0f)
+        {
+            Velocity.x *= -1.0f;
+            bHitWall = true;
+        }
     }
     if (Location.y > topBorder - Radius)
     {
         Location.y = topBorder - Radius;
-        if (Velocity.y > 0.0f) Velocity.y *= -1.0f;
+        if (Velocity.y > 0.0f)
+        {
+            Velocity.y *= -1.0f;
+        }
     }
-    if (Location.y < bottomBorder + Radius)
+
+    if (bHitWall)
     {
-        Location.y = bottomBorder + Radius;
-        if (Velocity.y < 0.0f) Velocity.y *= -1.0f;
+        USoundManager::GetInstance().Play("Hit");
     }
 }
 
@@ -193,6 +207,10 @@ EBlockCollision UBall::CheckBarCollision(const UBar& Bar, FVector& CollisionPos)
 
 void UBall::BallBounceAtBar(const EBlockCollision Position, const UBar& Bar, const FVector& CollisionPos)
 {
+    if (Position == EBlockCollision::None) return;
+
+    USoundManager::GetInstance().Play("Hit");
+
     switch (Position)
     {
     case EBlockCollision::Vertical:

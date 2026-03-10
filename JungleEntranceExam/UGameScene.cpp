@@ -173,13 +173,13 @@ void UGameScene::Update(float delta)
             if (CollisionState != EBlockCollision::None)
             {
                 (*ball).BallBounceAtBlock(CollisionState, *b, CollisionPos);
-                gameManager->SetScore(b->GetScore());
+                gameManager->SetScore(b->GetScore()); 
+                USoundManager::GetInstance().Play("Brick");
             }
         }
     }
 
     gameManager->Update(delta);
-    USoundManager::GetInstance().Update();
 
     // ¹Û¿¡ °øÀÌ ³ª°¬´ÂÁö ÆÇº°
     if (!HaveBalls())
@@ -188,11 +188,15 @@ void UGameScene::Update(float delta)
         UBall* newBall = CreateBall();
         ActiveBallList.push_back(newBall);
 
+        USoundManager::GetInstance().Play("Damage");
         gameManager->SubHealth(1);
     }
 
     if (bIsBrickEmpty()) // º®µ¹ ´Ù ±úÁü!
     {
+
+        USoundManager::GetInstance().StopAll();
+        USoundManager::GetInstance().Play("Victory");
         UClearScene::FinalScore = gameManager->GetTotalScore();
         USceneManager::GetInstance().LoadScene(ESceneType::Clear);
         return;

@@ -1,12 +1,12 @@
 ﻿#include "TitleScene.h"
 #include "USceneManager.h"
+#include "UsoundManager.h"
 #include "URenderer.h"
 
 void UTitleScene::Init()
 {
     UGameObjectList.clear();
     SceneType = ESceneType::Title;
-
 }
 
 void UTitleScene::Update(float delta)
@@ -33,6 +33,7 @@ void UTitleScene::Release()
 
 void UTitleScene::GameStart()
 {
+    USoundManager::GetInstance().Play("Start");
     USceneManager::GetInstance().LoadScene(ESceneType::InGame);
 }
 
