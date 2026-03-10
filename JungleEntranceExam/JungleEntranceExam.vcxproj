@@ -139,6 +139,7 @@
     <ClCompile Include="ImGui\imgui_impl_win32.cpp" />
     <ClCompile Include="ImGui\imgui_tables.cpp" />
     <ClCompile Include="ImGui\imgui_widgets.cpp" />
+    <ClCompile Include="ItemLibrary.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Stage.cpp" />
     <ClCompile Include="TitleScene.cpp" />
@@ -152,6 +153,8 @@
     <ClCompile Include="UGameScene.cpp" />
     <ClCompile Include="UInputManager.cpp" />
     <ClCompile Include="UGamepadManager.cpp" />
+    <ClCompile Include="UItem.cpp" />
+    <ClCompile Include="UItemManager.cpp" />
     <ClCompile Include="URenderer.cpp" />
     <ClCompile Include="UScene.cpp" />
     <ClCompile Include="USceneManager.cpp" />
@@ -162,6 +165,10 @@
     <ClInclude Include="Bar.h" />
     <ClInclude Include="FColor.h" />
     <ClInclude Include="FVector.h" />
+    <ClInclude Include="ItemEffectReceiver.h" />
+    <ClInclude Include="ItemLibrary.h" />
+    <ClInclude Include="ItemRect.h" />
+    <ClInclude Include="ItemShapeData.h" />
     <ClInclude Include="TitleScene.h" />
     <ClInclude Include="Types.h" />
     <ClInclude Include="UBlock.h" />
@@ -183,6 +190,8 @@
     <ClInclude Include="UGameScene.h" />
     <ClInclude Include="UInputManager.h" />
     <ClInclude Include="UGamepadManager.h" />
+    <ClInclude Include="UItem.h" />
+    <ClInclude Include="UItemManager.h" />
     <ClInclude Include="URenderer.h" />
     <ClInclude Include="UScene.h" />
     <ClInclude Include="USceneManager.h" />
