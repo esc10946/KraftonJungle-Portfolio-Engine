@@ -2,6 +2,7 @@
 extern "C" {
 	HRESULT __stdcall RoGetActivationFactory(HSTRING activatableClassId, REFIID iid, void** factory);
 	HRESULT __stdcall WindowsCreateStringReference(const wchar_t* sourceString, uint32_t length, HSTRING_HEADER* hstringHeader, HSTRING* string);
+;
 }
 #pragma comment(lib, "runtimeobject.lib")
 UGamepadManager::UGamepadManager()

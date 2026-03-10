@@ -15,13 +15,18 @@
 #include "UBlock.h"
 #include "Util.h"
 #include "Stage.h"
+#include "UGamepadManager.h"
 // ImGui 관련 헤더
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_internal.h"
 #include "ImGui/imgui_impl_dx11.h"
 #include "imGui/imgui_impl_win32.h"
 
-
+extern "C" {
+    HRESULT __stdcall RoInitialize(int initType);
+    void    __stdcall RoUninitialize();
+}
+#pragma comment(lib, "runtimeobject.lib")
 // 윈도우의 입력 이벤트를 ImGui에 전달하고, ImGui가 사용했는지 여부를 알려주는 함수
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -251,6 +256,8 @@ static void InitBall(UBall& input)
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
+    // 0 = RO_INIT_SINGLETHREADED, 1 = RO_INIT_MULTITHREADED
+    RoInitialize(1);
     // 콘솔 창 생성
     AllocConsole();
 
@@ -344,7 +351,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     //testBlocks[0]->Init(-0.6f, 0.5f, 0.1f, 0.025f);
     //testBlocks[1]->Init(0.0f, 0.5f, 0.1f, 0.025f);
     //testBlocks[2]->Init(0.6f, 0.5f, 0.1f, 0.025f);
-    
+    UGamepadManager GamepadManager;
 	int CurrentRound = 3;
 
     std::vector<UBlock*> stageblocks = CreateStage(CurrentRound);
@@ -380,6 +387,18 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
                 Bar.Direction = 0; // 키를 떼면 멈춤
             }
 		}
+        // Gamepad Input update
+		GamepadManager.Update();
+        if (GamepadManager.IsConnected())
+        {
+			float stickX = GamepadManager.GetLeftThumbstickX();
+            if (std::abs(stickX) > 0.0f)
+                Bar.Direction = (stickX > 0.0f) ? 1 : -1;
+            else
+                Bar.Direction = 0;
+        }
+
+
 
 		////////////////////////////////////////////
 		// 매번 실행되는 코드를 여기에 추가합니다.
@@ -530,6 +549,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     // 렌더러 소멸
     renderer.Release();
-
+    RoUninitialize();
 	return 0;
 }
