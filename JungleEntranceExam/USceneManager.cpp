@@ -1,6 +1,7 @@
 #include "USceneManager.h"
 #include "TitleScene.h"
 #include "UGameScene.h"
+#include "UClearScene.h"
 
 USceneManager* USceneManager::sceneManager = nullptr;
 
@@ -13,9 +14,30 @@ void USceneManager::LoadScene(ESceneType sceneName)
 		return;
 	}
 
-	currentScene = sceneName == ESceneType::Title ? titleScene : inGameScene;
+    switch (sceneName)
+    {
+    case ESceneType::Title:
+        currentScene = titleScene;
+        break;
 
-	currentScene->Init();
+    case ESceneType::InGame:
+        inGameScene->Init(); 
+        currentScene = inGameScene;
+        break;
+
+    case ESceneType::Clear:
+        currentScene = clearScene;
+        break;
+
+    case ESceneType::None:
+        break;
+    }
+
+    if (currentScene != nullptr)
+    {
+        currentScene->Init();
+    }
+
 	currentScene->SetActive(true);
 }
 
@@ -33,6 +55,7 @@ USceneManager::USceneManager()
 {
 	titleScene = new UTitleScene();
 	inGameScene = new UGameScene();
+    clearScene = new UClearScene();
 	currentScene = titleScene;
 }
 

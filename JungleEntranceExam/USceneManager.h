@@ -28,8 +28,8 @@ private:
 private:
 	UScene* titleScene = nullptr;
 	UScene* inGameScene = nullptr;
+	UScene* clearScene = nullptr;
 	UScene* currentScene = nullptr;
-
 
 	static USceneManager* sceneManager;
 };

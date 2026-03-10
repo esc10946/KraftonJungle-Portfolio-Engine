@@ -4,6 +4,8 @@
 #include "UBall.h"
 #include "UBar.h"
 #include "Util.h"
+#include "UClearScene.h"
+#include "USceneManager.h"
 
 UGameScene::UGameScene()
 {
@@ -154,11 +156,18 @@ void UGameScene::Update(float delta)
     // 밖에 공이 나갔는지 판별
     if (!HaveBalls())
     {
-        gameManager->SubHealth(1);
-
         // 공이 다 나갔으니 새 공을 하나 스폰해줍니다.
         UBall* newBall = CreateBall();
         ActiveBallList.push_back(newBall);
+
+        gameManager->SubHealth(1);
+    }
+
+    if (false)//BrickList.empty()) // 벽돌 다 깨짐!
+    {
+        UClearScene::FinalScore = gameManager->GetTotalScore();
+        USceneManager::GetInstance().LoadScene(ESceneType::Clear);
+        return;
     }
 }
 

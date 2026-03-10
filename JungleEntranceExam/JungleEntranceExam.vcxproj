@@ -138,6 +138,7 @@
     <ClCompile Include="Types.cpp" />
     <ClCompile Include="UBall.cpp" />
     <ClCompile Include="UBar.cpp" />
+    <ClCompile Include="UClearScene.cpp" />
     <ClCompile Include="UGameManager.cpp" />
     <ClCompile Include="UGameObject.cpp" />
     <ClCompile Include="UGameScene.cpp" />
@@ -163,6 +164,7 @@
     <ClInclude Include="Types.h" />
     <ClInclude Include="UBall.h" />
     <ClInclude Include="UBar.h" />
+    <ClInclude Include="UClearScene.h" />
     <ClInclude Include="UDiagram.h" />
     <ClInclude Include="UGameManager.h" />
     <ClInclude Include="UGameObject.h" />
