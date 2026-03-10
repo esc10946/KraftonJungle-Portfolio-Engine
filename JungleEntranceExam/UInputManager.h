@@ -1,12 +1,12 @@
-#pragma once
+﻿#pragma once
 #include <windows.h>
 #include "UGamepadManager.h"
 enum class EKeyState
 {
-    None,   // �� ����
-    Down,   // ��� ���� (�� 1�����Ӹ� true)
-    Press,  // �� ������ �ִ� ��
-    Up      // ��� �� (�� 1�����Ӹ� true)
+    None,
+    Down,
+    Press,
+    Up
 };
 
 class UInputManager
@@ -15,7 +15,7 @@ class UInputManager
 public:
     static UInputManager* GetInstance();
 
-    void Update(); // �� �����Ӹ��� Ű���� ���¸� �������� �Լ�
+    void Update();
 
     bool GetKeyDown(int key) { return KeyStates[key] == EKeyState::Down; }
     bool GetKeyPress(int key) { return KeyStates[key] == EKeyState::Press; }
