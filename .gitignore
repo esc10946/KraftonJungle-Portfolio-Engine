@@ -34,7 +34,3 @@ imgui.ini
 # 기타 OS 임시 파일
 Thumbs.db
 .DS_Store
-
-# FMOD 라이브러리 강제 포함 (예외 처리)
-!FMOD/lib/fmod_vc.lib
-!x64/Debug/fmod.dll
