@@ -15,6 +15,7 @@ public:
 	void Update();
 	bool IsPressed(GamepadButtons btn) const;
 	float GetLeftThumbstickX() const;
+
 	bool IsConnected() const { return pGamepad != nullptr; }
 private:
 	IGamepadStatics* pGamepadStatics = nullptr;
