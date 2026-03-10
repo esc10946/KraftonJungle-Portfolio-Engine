@@ -100,16 +100,16 @@ bool UBall::CheckCollision(const UDiagram* Other)
 	return false;
 }
 
-void UBall::BallBounceAtBar(const UBar& PlayerBar)
-{
-    Velocity.x = Velocity.x + ((Location.x - PlayerBar.Location.x) / PlayerBar.XLength) / 3;
-    if (Velocity.x > 0.87f)
-        Velocity.x = 0.87f;
-    else if (Velocity.x < -0.87f)
-        Velocity.x = -0.87f;
-    Velocity.y = sqrtf(1 - powf(Velocity.x, 2));
-    Location.y = PlayerBar.Location.y + PlayerBar.YLength + Radius;
-}
+//void UBall::BallBounceAtBar(const UBar& PlayerBar)
+//{
+//    Velocity.x = Velocity.x + ((Location.x - PlayerBar.Location.x) / PlayerBar.XLength) / 3;
+//    if (Velocity.x > 0.80f)
+//        Velocity.x = 0.80f;
+//    else if (Velocity.x < -0.80f)
+//        Velocity.x = -0.80f;
+//    Velocity.y = sqrtf(1 - powf(Velocity.x, 2));
+//    Location.y = PlayerBar.Location.y + PlayerBar.YLength + Radius;
+//}
 
 void UBall::ResolveCollision(UBall* Other) {
     float dx{ Other->Location.x - Location.x };
@@ -152,44 +152,143 @@ void UBall::ResolveCollision(UBall* Other) {
     }
 }
 
-EBlockCollision UBall::CheckBlockCollision(const UBlock& Block)
+EBlockCollision UBall::CheckBarCollision(const UBar& Bar, FVector& CollisionPos)
 {
     // 2. 공의 중심에서 벽돌 위의 가장 가까운 점(P) 찾기
-    float closestX = std::clamp(Location.x, Block.MinX, Block.MaxX);
-    float closestY = std::clamp(Location.y, Block.MinY, Block.MaxY);
+    float ClosestX = std::clamp(Location.x, Bar.Location.x - Bar.XLength, Bar.Location.x + Bar.XLength);
+    float ClosestY = std::clamp(Location.y, Bar.Location.y - Bar.YLength, Bar.Location.y + Bar.YLength);
 
     // 3. 공의 중심과 점 P 사이의 거리 계산
-    float distanceX = Location.x - closestX;
-    float distanceY = Location.y - closestY;
-    float distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
+    float DistanceX = Location.x - ClosestX;
+    float DistanceY = Location.y - ClosestY;
+    float DistanceSquared = (DistanceX * DistanceX) + (DistanceY * DistanceY);
 
-    if (distanceSquared < (Radius * Radius))
+    if (DistanceSquared < (Radius * Radius))
     {
         // 충돌 발생! 어느 면인지 판정
-        bool hitVertical = (Location.x >= Block.MinX && Location.x <= Block.MaxX);
-        bool hitHorizontal = (Location.y >= Block.MinY && Location.y <= Block.MaxY);
+        bool HitVertical = (Location.x >= Bar.Location.x - Bar.XLength && Location.x <= Bar.Location.x + Bar.XLength);
+        bool HitHorizontal = (Location.y >= Bar.Location.y - Bar.YLength && Location.y <= Bar.Location.y + Bar.YLength);
 
-        if (hitVertical)
+        if (HitVertical)
         {
+            CollisionPos.x = (Location.x > Bar.Location.x) ? Location.x - Radius : Location.x + Radius;
+            CollisionPos.y = Location.y;
             return EBlockCollision::Vertical;
         }
-        else if (hitHorizontal)
+        else if (HitHorizontal)
         {
+            CollisionPos.x = Location.x;
+            CollisionPos.y = (Location.y > Bar.Location.y) ? Location.y - Radius : Location.y + Radius;
             return EBlockCollision::Horizontal;
         }
         else
         {
+            CollisionPos.x = ClosestX;
+            CollisionPos.y = ClosestY;
             return EBlockCollision::Corner;
         }
     }
     return EBlockCollision::None;
 }
 
-bool UBall::BallBounceAtBlock(const EBlockCollision Position, UBlock& Block)
+void UBall::BallBounceAtBar(const EBlockCollision Position, const UBar& Bar, const FVector& CollisionPos)
 {
-    if (Position == EBlockCollision::None) return false;
+    switch (Position)
+    {
+    case EBlockCollision::Vertical:
+    {
+        // 상단 또는 하단 면 충돌
+        Velocity.x = Velocity.x + ((Location.x - Bar.Location.x) / Bar.XLength) / 3;
+            if (Velocity.x > 0.80f)
+                Velocity.x = 0.80f;
+            else if (Velocity.x < -0.80f)
+                Velocity.x = -0.80f;
+            Velocity.y = sqrtf(1 - powf(Velocity.x, 2)) * (Velocity.y < 0 ? 1.0f : -1.0f);
+        Location.y = (Location.y > Bar.Location.y) ? Bar.Location.y + Bar.YLength + Radius : Bar.Location.y - Bar.YLength - Radius;
+        break;
+    }
+    case EBlockCollision::Horizontal:
+    {
+        // 좌측 또는 우측 면 충돌
+        Velocity.x *= -1.0f;
+        Location.x = (Location.x > Bar.Location.x) ? Bar.Location.x + Bar.XLength + Radius : Bar.Location.x - Bar.XLength - Radius;
+        break;
+    }
+    case EBlockCollision::Corner:
+    {
+        // 모서리 충돌
+        FVector NormalDir = Location - CollisionPos;
+        float Dist = NormalDir.Length();
 
-    Block.TakeDamage();
+        if (Dist < 1e-6f) Dist = 1.0f;
+
+        FVector NormalizedNormal = NormalDir / Dist;
+
+        float DotVN = Velocity.Dot(NormalizedNormal);
+        if (DotVN < 0.0f) // 공이 면을 향해 다가올 때만
+        {
+            FVector R = Velocity - (NormalizedNormal * 2.0f * DotVN);
+            Velocity = R;
+        }
+
+        if (std::abs(Velocity.y) < 0.2f)
+        {
+            Velocity.y = (Velocity.y >= 0.0f) ? 0.2f : -0.2f;
+            float xSign = (Velocity.x >= 0.0f) ? 1.0f : -1.0f;
+            Velocity.x = std::sqrt(1.0f - Velocity.y * Velocity.y) * xSign;
+        }
+        if (Velocity.y < 0.0f)
+        {
+            Velocity.y *= -1;
+        }
+        Location = CollisionPos + (NormalizedNormal * (Radius + 0.001f));
+
+        break;
+    }
+    }
+}
+
+EBlockCollision UBall::CheckBlockCollision(const UBlock& Block, FVector& CollisionPos)
+{
+    // 2. 공의 중심에서 벽돌 위의 가장 가까운 점(P) 찾기
+    float ClosestX = std::clamp(Location.x, Block.MinX, Block.MaxX);
+    float ClosestY = std::clamp(Location.y, Block.MinY, Block.MaxY);
+
+    // 3. 공의 중심과 점 P 사이의 거리 계산
+    float distanceX = Location.x - ClosestX;
+    float distanceY = Location.y - ClosestY;
+    float distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
+
+    if (distanceSquared < (Radius * Radius))
+    {
+        // 충돌 발생! 어느 면인지 판정
+        bool HitVertical = (Location.x >= Block.MinX && Location.x <= Block.MaxX);
+        bool HitHorizontal = (Location.y >= Block.MinY && Location.y <= Block.MaxY);
+
+        if (HitVertical)
+        {
+            CollisionPos.x = (Location.x > Block.CenterX) ? Location.x - Radius : Location.x + Radius;
+            CollisionPos.y = Location.y;
+            return EBlockCollision::Vertical;
+        }
+        else if (HitHorizontal)
+        {
+            CollisionPos.x = Location.x;
+            CollisionPos.y = (Location.y > Block.CenterY) ? Location.y - Radius : Location.y + Radius;
+            return EBlockCollision::Horizontal;
+        }
+        else
+        {
+            CollisionPos.x = ClosestX;
+            CollisionPos.y = ClosestY;
+            return EBlockCollision::Corner;
+        }
+    }
+    return EBlockCollision::None;
+}
+
+void UBall::BallBounceAtBlock(const EBlockCollision Position, const UBlock& Block, const FVector& CollisionPos)
+{
     switch (Position)
     {
         case EBlockCollision::Vertical:
@@ -197,7 +296,6 @@ bool UBall::BallBounceAtBlock(const EBlockCollision Position, UBlock& Block)
             // 상단 또는 하단 면 충돌
             Velocity.y *= -1.0f;
             Location.y = (Location.y > Block.CenterY) ? Block.MaxY + Radius : Block.MinY - Radius;
-           
             break;
         }
         case EBlockCollision::Horizontal:
@@ -210,12 +308,30 @@ bool UBall::BallBounceAtBlock(const EBlockCollision Position, UBlock& Block)
         case EBlockCollision::Corner:
         {
             // 모서리 충돌
-            Velocity.x *= -1.0f;
-            Velocity.y *= -1.0f;
+            FVector NormalDir = Location - CollisionPos;
+            float Dist = NormalDir.Length();
+
+            if (Dist < 1e-6f) Dist = 1.0f;
+
+            FVector NormalizedNormal = NormalDir / Dist;
+
+            float DotVN = Velocity.Dot(NormalizedNormal);
+            if (DotVN < 0.0f) // 공이 면을 향해 다가올 때만
+            {
+                FVector R = Velocity - (NormalizedNormal * 2.0f * DotVN);
+                Velocity = R;
+            }
+
+            if (std::abs(Velocity.y) < 0.2f)
+            {
+                Velocity.y = (Velocity.y >= 0.0f) ? 0.2f : -0.2f;
+                float xSign = (Velocity.x >= 0.0f) ? 1.0f : -1.0f;
+                Velocity.x = std::sqrt(1.0f - Velocity.y * Velocity.y) * xSign;
+            }
+            Location = CollisionPos + (NormalizedNormal * (Radius + 0.001f));
+
             break;
         }
     }
-
-    return true;
 }
 
