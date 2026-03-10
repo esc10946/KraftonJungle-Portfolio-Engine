@@ -3,6 +3,7 @@
 
 class UGameManager;
 class UBall;
+class UBar;
 
 class UGameScene:
     public UScene
@@ -27,4 +28,6 @@ private:
     UGameManager* gameManager = nullptr;
 
     std::vector<UBall*> ActiveBallList;
+    UBar* Bar_1;
+    UBar* Bar_2;
 };

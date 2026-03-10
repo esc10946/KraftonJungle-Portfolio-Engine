@@ -53,10 +53,10 @@ void UGameScene::Init()
     UBall* newBall = CreateBall();
 
     //1번 플레이어가 움직이는 바
-    UBar* Bar_1 = new UBar(FVector(0.0f, -0.95f, 0.0f), 0.7f, 0.1f, 0);
+    Bar_1 = new UBar(FVector(0.0f, -0.95f, 0.0f), 0.7f, 0.1f, 0);
 
     //2번 플레이어가 움직이는 바
-    UBar* Bar_2 = new UBar(FVector(0.0f, 0.95f, 0.0f), 0.7f, 0.1f, 0);
+    Bar_2 = new UBar(FVector(0.0f, 0.95f, 0.0f), 0.7f, 0.1f, 1);
 
     AddObject(newBall);
     AddObject(Bar_1);
@@ -109,6 +109,11 @@ void UGameScene::Update(float delta)
     {
         if (ball != nullptr) {
             ball->Update(delta);
+        }
+
+        if (ball->CheckCollision(Bar_1))
+        {
+            ball->BallBounceAtBar(*Bar_1);
         }
     }
 
