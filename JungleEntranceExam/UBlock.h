@@ -73,8 +73,12 @@ public:
 
 	// 다른 도형과 충돌 판정
 	bool CheckCollision(const UDiagram* Other) { return false; }
+	bool IsActive() const { return bActive; }
+	void SetActive(bool InActive) { bActive = InActive; }
+
 
 public:
+	bool        bActive = true;
 	EBlockType Type;
 	EBlockColor Color;
 	int MaxHp;

@@ -72,6 +72,33 @@
     <ClCompile Include="UBlock.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="UScene.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="USceneManager.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="UGameScene.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="UInputManager.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="UGameManager.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="UClearScene.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="TitleScene.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="Types.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="USoundManager.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
     <ClCompile Include="UGamepadManager.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
@@ -140,6 +167,33 @@
     <ClInclude Include="UBlock.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="USceneManager.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="UScene.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="UInputManager.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="UGameScene.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="UGameManager.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="UClearScene.h">
+    <ClInclude Include="Stage.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Types.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="TitleScene.h">
+    <ClInclude Include="UBlock.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="USoundManager.h">
     <ClInclude Include="UGamepadManager.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>

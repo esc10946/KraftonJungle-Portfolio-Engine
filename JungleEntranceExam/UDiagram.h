@@ -8,7 +8,7 @@
 #include "FVector.h"
 #include "FColor.h"
 
-const float Pi = 3.1415926535f;
+inline const float Pi = 3.1415926535f;
 
 // 도형 기본 클래스
 class UDiagram : public UGameObject

@@ -1,25 +1,33 @@
 #pragma once
 
+#include <iostream>
+
 #include "UDiagram.h"
 #include "UBar.h"
 #include "UBlock.h"
 #include "FVector.h"
+#include "Util.h"
+#include "UInputManager.h"
 
 class UBall : public UDiagram
 {
 public:
     FVector Location;           // 공의 위치
     FVector Velocity;           // 공의 방향
-    float Speed;                // 공의 속력
-    float Radius;               // 공의 반지름
-    float Mass;                 // 공의 질량 (반지름과 비례하다고 가정)
+    float   Speed;                // 공의 속력
+    float   Radius;               // 공의 반지름
+    float   Mass;                 // 공의 질량 (반지름과 비례하다고 가정)
+    bool    IsMove;
+    UBar*   BarPtr;
+    float   Acceleration;
+    float   SpeedLimit;
     inline static int TotalNumBalls{ 0 };
 
     // 생성자 및 소멸자
 public:
     UBall();
 
-    UBall(const FVector& _Location, const FVector& _Velocity, const float _Speed, const float _Radius);
+    UBall(const FVector& _Location, const FVector& _Velocity, const float _Speed, const float _Radius, const bool _IsMove, UBar* _BarPtr, const float _Acceleration, const float _SpeedLimit);
 
     virtual ~UBall() override;
 
@@ -41,11 +49,21 @@ public:
 
 	virtual bool CheckCollision(const UDiagram* Other) override;
 
-    EBlockCollision CheckBlockCollision(const UBlock& Block);
+    EBlockCollision CheckBarCollision(const UBar& Bar, FVector& CollisionPos);
 
-    void BallBounceAtBar(const UBar& PlayerBar);
+    void BallBounceAtBar(const EBlockCollision Position, const UBar& Bar, const FVector& CollisionPos);
 
-    void BallBounceAtBlock(const EBlockCollision Position, UBlock& Block);
+    EBlockCollision CheckBlockCollision(const UBlock& Block, FVector& CollisionPos);
+
+    void BallBounceAtBlock(const EBlockCollision Position, UBlock& Block, const FVector& CollisonPos);
 
     void ResolveCollision(UBall* Other);
+
+    void SetIsMove(const bool _IsMove);
+
+    bool GetIsMove();
+
+    static UBall* CreateBallAtBar(const UBar& Bar);
+
+    // static void InitBall(UBall& input);
 };

@@ -22,6 +22,7 @@ UBlock::UBlock(EBlockType InType, EBlockColor InColor, int Round) :Type(InType),
         score = 50*Round;
         TotalActiveBlocks++;
         break;
+
     case EBlockType::Immortal:
         MaxHp = INT_MAX;
         Color = EBlockColor::Gold;
@@ -51,6 +52,7 @@ void UBlock::Init(float cx, float cy, float hw, float hh)
     MaxX = CenterX + HalfW;
     MinY = CenterY - HalfH;
     MaxY = CenterY + HalfH;
+    TotalScore = 0;
 }
 void UBlock::Update(float DeltaTime)
 {

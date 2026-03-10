@@ -45,6 +45,12 @@ public:
     ID3D11InputLayout* SimpleInputLayout;
     unsigned int Stride;
 
+    UINT NumVerticesSphere;
+    UINT NumVerticesBar;
+
+    ID3D11Buffer* vertexBufferSphere = nullptr;
+    ID3D11Buffer* vertexBufferRect = nullptr;
+    ID3D11Buffer* vertexBufferTriangle = nullptr;
 
 public:
     void Create(HWND hWindow);
@@ -61,8 +67,13 @@ public:
     void Prepare();
     void PrepareShader();
     void RenderPrimitive(ID3D11Buffer* pBuffer, UINT numVertices);
+    void RenderSphere();
+    void RenderRectangle();
+    void RenderTriangle();
+
     ID3D11Buffer* CreateVertexBuffer(FVertexSimple* vertices, UINT byteWidth);
-    void ReleaseVertexBuffer(ID3D11Buffer* vertexBuffer);
+    void ReleaseVertexBuffer();
+    void ReleaseVertexBuffer(ID3D11Buffer* pbuffer);
     void CreateConstantBuffer();
     void ReleaseConstantBuffer();
     void UpdateConstant(FVector Offset, FVector Scale);

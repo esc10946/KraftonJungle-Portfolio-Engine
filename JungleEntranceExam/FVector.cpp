@@ -1,36 +1,49 @@
 #include "FVector.h"
 #include <stdexcept>
 
-inline float FVector::Dot(const FVector& a, const FVector& b)
+float FVector::Dot(const FVector& Other) const
 {
-    return a.x * b.x + a.y * b.y + a.z * b.z;
+    return x * Other.x + y * Other.y + z * Other.z;
+}
+
+FVector FVector::operator+(const FVector& Other) const
+{
+    return FVector(x + Other.x, y + Other.y, z + Other.z);
+}
+
+FVector  FVector::operator-(const FVector& Other) const
+{
+    return FVector(x - Other.x, y - Other.y, z - Other.z);
+}
+
+FVector  FVector::operator*(const float s) const
+{
+    return FVector(x * s, y * s, z * s);
+}
+
+FVector  FVector::operator/(const float s) const
+{
+    if (s == 0)
+        throw std::invalid_argument("Division by zero condition!");
+    return FVector(x / s, y / s, z / s);
+}
+
+FVector FVector::Normalize() const
+{
+    float SquareSum = x * x + y * y + z * z;
+    float Denominator = sqrtf(SquareSum);
+
+    return FVector(x / Denominator, y / Denominator, z / Denominator);
+}
+
+float FVector::Length() const
+{
+    return sqrtf(x * x + y * y + z * z);
 }
 
 inline float Dot(const FVector& a, const FVector& b)
 {
     return a.x * b.x + a.y * b.y + a.z * b.z;
-}
-
-inline FVector FVector::operator+(const FVector& Other) const
-{
-    return FVector(x + Other.x, y + Other.y, z + Other.z);
-}
-
-inline FVector  FVector::operator-(const FVector& Other) const
-{
-    return FVector(x - Other.x, y - Other.y, z - Other.z);
-}
-
-inline FVector  FVector::operator*(const float s) const
-{
-    return FVector(x * s, y * s, z * s);
-}
-
-inline FVector  FVector::operator/(const float s) const
-{
-    if (s == 0)
-        throw std::invalid_argument("Division by zero condition!");
-    return FVector(x / s, y / s, z / s);
 }
 
 // µŒ ∫§≈Õ¿« «‘
