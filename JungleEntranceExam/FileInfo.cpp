@@ -1,4 +1,4 @@
-#include "FileInfo.h"
+﻿#include "FileInfo.h"
 #include <fstream>
 
 void HightScoreUpdate(int score)

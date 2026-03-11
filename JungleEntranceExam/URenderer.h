@@ -1,6 +1,6 @@
-#pragma once
+﻿#pragma once
 
-// D3D 사용에 필요한 헤더파일들을 포함
+// D3D ?ъ슜???꾩슂???ㅻ뜑?뚯씪?ㅼ쓣 ?ы븿
 #include <d3d11.h>
 #include <d3dcompiler.h>
 
@@ -8,7 +8,7 @@
 #include "FVector.h"
 #include "FColor.h"
 
-// Constant Buffer(상수 버퍼) 관련 함수
+// Constant Buffer(?곸닔 踰꾪띁) 愿???⑥닔
 //struct FConstants
 //{
 //    FVector Offset;
@@ -27,19 +27,19 @@ struct FConstants
 class URenderer
 {
 public:
-    // Direct3D 11 장치(Device)와 장치 컨텍스트(Device Context) 및 스왑 체인(Swap Chain)을 관리하기 위한 포인터들
-    ID3D11Device* Device = nullptr; // GPU와 통신하기 위한 Direct3D 장치
-    ID3D11DeviceContext* DeviceContext = nullptr; // GPU 명령 실행을 담당하는 컨텍스트
-    IDXGISwapChain* SwapChain = nullptr; // 프레임 버퍼를 교체하는 데 사용되는 스왑 체인
+    // Direct3D 11 ?μ튂(Device)? ?μ튂 而⑦뀓?ㅽ듃(Device Context) 諛??ㅼ솑 泥댁씤(Swap Chain)??愿由ы븯湲??꾪븳 ?ъ씤?곕뱾
+    ID3D11Device* Device = nullptr; // GPU? ?듭떊?섍린 ?꾪븳 Direct3D ?μ튂
+    ID3D11DeviceContext* DeviceContext = nullptr; // GPU 紐낅졊 ?ㅽ뻾???대떦?섎뒗 而⑦뀓?ㅽ듃
+    IDXGISwapChain* SwapChain = nullptr; // ?꾨젅??踰꾪띁瑜?援먯껜?섎뒗 ???ъ슜?섎뒗 ?ㅼ솑 泥댁씤
 
-    // 렌더링에 필요한 리소스 및 상태를 관리하기 위한 변수들
-    ID3D11Texture2D* FrameBuffer = nullptr; // 화면 출력용 텍스처
-    ID3D11RenderTargetView* FrameBufferRTV = nullptr; // 텍스처를 렌더 타겟으로 사용하는 뷰
-    ID3D11RasterizerState* RasterizerState = nullptr; // 래스터라이저 상태(컬링, 채우기 모드 등 정의)
-    ID3D11Buffer* ConstantBuffer = nullptr; // 쉐이더에 데이터를 전달하기 위한 상수 버퍼
+    // ?뚮뜑留곸뿉 ?꾩슂??由ъ냼??諛??곹깭瑜?愿由ы븯湲??꾪븳 蹂?섎뱾
+    ID3D11Texture2D* FrameBuffer = nullptr; // ?붾㈃ 異쒕젰???띿뒪泥?
+    ID3D11RenderTargetView* FrameBufferRTV = nullptr; // ?띿뒪泥섎? ?뚮뜑 ?寃잛쑝濡??ъ슜?섎뒗 酉?
+    ID3D11RasterizerState* RasterizerState = nullptr; // ?섏뒪?곕씪?댁? ?곹깭(而щ쭅, 梨꾩슦湲?紐⑤뱶 ???뺤쓽)
+    ID3D11Buffer* ConstantBuffer = nullptr; // ?먯씠?붿뿉 ?곗씠?곕? ?꾨떖?섍린 ?꾪븳 ?곸닔 踰꾪띁
 
-    FLOAT ClearColor[4] = { 0.025f, 0.025f, 0.025f, 1.0f }; // 화면을 초기화(clear)할 때 사용할 색상 (RGBA)
-    D3D11_VIEWPORT ViewportInfo; // 렌더링 영역을 정의하는 뷰포트 정보
+    FLOAT ClearColor[4] = { 0.025f, 0.025f, 0.025f, 1.0f }; // ?붾㈃??珥덇린??clear)?????ъ슜???됱긽 (RGBA)
+    D3D11_VIEWPORT ViewportInfo; // ?뚮뜑留??곸뿭???뺤쓽?섎뒗 酉고룷???뺣낫
 
     ID3D11VertexShader* SimpleVertexShader=nullptr;
     ID3D11PixelShader* SimplePixelShader = nullptr;

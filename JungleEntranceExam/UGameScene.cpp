@@ -1,4 +1,4 @@
-#include "UGameScene.h"
+﻿#include "UGameScene.h"
 #include "UGameObject.h"
 #include "UGameManager.h" 
 #include "UBall.h"
@@ -54,7 +54,7 @@ void UGameScene::UIRender()
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }
 
-//해당 게임에서 생성되는 모든 오브젝트여기서 생성
+//?대떦 寃뚯엫?먯꽌 ?앹꽦?섎뒗 紐⑤뱺 ?ㅻ툕?앺듃?ш린???앹꽦
 void UGameScene::Init()
 {
     UGameObjectList.clear();
@@ -62,10 +62,10 @@ void UGameScene::Init()
 
     ActiveBallList.clear();
 
-    //1번 플레이어가 움직이는 바
+    //1踰??뚮젅?댁뼱媛 ?吏곸씠??諛?
     Bar_1 = new UBar(FVector(0.0f, -0.95f, 0.0f), 1.0f, 0.15f, 0, EPlaySide::Up);
 
-    //2번 플레이어가 움직이는 바
+    //2踰??뚮젅?댁뼱媛 ?吏곸씠??諛?
     Bar_2 = new UBar(FVector(0.0f, 0.95f, 0.0f), 1.0f, 0.15f, 1, EPlaySide::Down);
 
     UBall* newBall = UBall::CreateBallAtBar(*Bar_1);
@@ -88,7 +88,7 @@ void UGameScene::Init()
 
     GetStageInfo(CurrentStage, CurrentStageRow, CurrentStageCol);
 
-    //게임매니저 초기화
+    //寃뚯엫留ㅻ땲? 珥덇린??
     particlePool = new UParticlePool(200);
     gameManager = UGameManager::GetInstance();
     gameManager->RessetGM();
@@ -96,9 +96,9 @@ void UGameScene::Init()
 
 void UGameScene::Release()
 {
-    //Map에서 할당한 brick들을 해제해야함
+    //Map?먯꽌 ?좊떦??brick?ㅼ쓣 ?댁젣?댁빞??
 
-    //생성된 모든 Ball을 제거
+    //?앹꽦??紐⑤뱺 Ball???쒓굅
     for (UBall* ball : ActiveBallList)
     {
         if (ball != nullptr) {
@@ -107,7 +107,7 @@ void UGameScene::Release()
     }
     ActiveBallList.clear();
 
-    //생성된 모든 UGameObject을 제거
+    //?앹꽦??紐⑤뱺 UGameObject???쒓굅
     for (UGameObject* Object : UGameObjectList)
     {
         if (Object != nullptr) {
@@ -125,7 +125,7 @@ void UGameScene::Release()
 }
 
 /// <summary>
-/// 해당 맵에 있는 모든 객체에 업데이트를 호출함
+/// ?대떦 留듭뿉 ?덈뒗 紐⑤뱺 媛앹껜???낅뜲?댄듃瑜??몄텧??
 /// </summary>
 /// <param name="delta"></param>
 void UGameScene::Update(float delta)
@@ -182,14 +182,14 @@ void UGameScene::Update(float delta)
                     CurRow = idx / CurrentStageCol;
                     CurCol = idx % CurrentStageCol;
 
-                    // 현재 충돌한 모서리 방향에 따른 인접 블록 조사 방향 설정
-                    int dCol = (CollisionPos.x < b->CenterX) ? -1 : 1; // 왼쪽 모서리면 -1, 오른쪽이면 1
-                    int dRow = (CollisionPos.y < b->CenterY) ? 1 : -1; // 아래쪽 모서리면 1, 위쪽이면 -1 (좌표계 확인 필요)
+                    // ?꾩옱 異⑸룎??紐⑥꽌由?諛⑺뼢???곕Ⅸ ?몄젒 釉붾줉 議곗궗 諛⑺뼢 ?ㅼ젙
+                    int dCol = (CollisionPos.x < b->CenterX) ? -1 : 1; // ?쇱そ 紐⑥꽌由щ㈃ -1, ?ㅻⅨ履쎌씠硫?1
+                    int dRow = (CollisionPos.y < b->CenterY) ? 1 : -1; // ?꾨옒履?紐⑥꽌由щ㈃ 1, ?꾩そ?대㈃ -1 (醫뚰몴怨??뺤씤 ?꾩슂)
 
                     bool HasHorizontalBlock = false;
                     bool HasVerticalBlock = false;
 
-                    // 1. 옆(수평) 방향에 블록이 있는지 확인
+                    // 1. ???섑룊) 諛⑺뼢??釉붾줉???덈뒗吏 ?뺤씤
                     int CheckCol = CurCol + dCol;
                     if (CheckCol >= 0 && CheckCol < CurrentStageCol) {
                         if (stageblocks[CurRow * CurrentStageCol + CheckCol]
@@ -197,7 +197,7 @@ void UGameScene::Update(float delta)
                             HasHorizontalBlock = true;
                     }
 
-                    // 2. 위/아래(수직) 방향에 블록이 있는지 확인
+                    // 2. ???꾨옒(?섏쭅) 諛⑺뼢??釉붾줉???덈뒗吏 ?뺤씤
                     int CheckRow = CurRow + dRow;
                     if (CheckRow >= 0 && CheckRow < CurrentStageRow) {
                         if (stageblocks[CheckRow * CurrentStageCol + CurCol]
@@ -205,18 +205,18 @@ void UGameScene::Update(float delta)
                             HasVerticalBlock = true;
                     }
 
-                    // 3. 판정 교정 로직
+                    // 3. ?먯젙 援먯젙 濡쒖쭅
                     if (HasHorizontalBlock && !HasVerticalBlock) {
-                        // 옆은 막혔고 위/아래가 비었음 -> 윗면/아랫면 충돌로 간주
+                        // ?놁? 留됲삍怨????꾨옒媛 鍮꾩뿀??-> ?쀫㈃/?꾨옯硫?異⑸룎濡?媛꾩＜
                         CollisionState = EBlockCollision::Horizontal;
                         stageblocks[CurRow * CurrentStageCol + CheckCol]->SetSkipCalc(true);
                     }
                     else if (!HasHorizontalBlock && HasVerticalBlock) {
-                        // 위/아래는 막혔고 옆이 비었음 -> 옆면 충돌로 간주
+                        // ???꾨옒??留됲삍怨??놁씠 鍮꾩뿀??-> ?녿㈃ 異⑸룎濡?媛꾩＜
                         CollisionState = EBlockCollision::Vertical;
                         stageblocks[CheckRow * CurrentStageCol + CurCol]->SetSkipCalc(true);
                     }
-                    // 둘 다 비어있으면(else) 원래의 Corner 판정 유지 (반사 벡터 사용)
+                    // ????鍮꾩뼱?덉쑝硫?else) ?먮옒??Corner ?먯젙 ?좎? (諛섏궗 踰≫꽣 ?ъ슜)
                 }
 
                 (*ball).BallBounceAtBlock(CollisionState, *b, CollisionPos);
@@ -233,10 +233,10 @@ void UGameScene::Update(float delta)
 
     gameManager->Update(delta);
 
-    // 밖에 공이 나갔는지 판별
+    // 諛뽰뿉 怨듭씠 ?섍컮?붿? ?먮퀎
     if (!HaveBalls())
     {
-        // 공이 다 나갔으니 새 공을 하나 스폰해줍니다.
+        // 怨듭씠 ???섍컮?쇰땲 ??怨듭쓣 ?섎굹 ?ㅽ룿?댁쨳?덈떎.
         UBall* newBall = UBall::CreateBallAtBar(*Bar_1);
         ActiveBallList.push_back(newBall);
 
@@ -244,9 +244,9 @@ void UGameScene::Update(float delta)
         gameManager->SubHealth(1);
     }
     particlePool->Update(delta);
-    if (bIsBrickEmpty()) // 벽돌 다 깨짐!
+    if (bIsBrickEmpty()) // 踰쎈룎 ??源⑥쭚!
     {
-        // ������ ���� ���ҽ� ����
+        // 占쏙옙占쏙옙占쏙옙 占쏙옙占쏙옙 占쏙옙占쌀쏙옙 占쏙옙占쏙옙
         UItemManager::Get().Clear();
 
         USoundManager::GetInstance().StopAll();
@@ -259,7 +259,7 @@ void UGameScene::Update(float delta)
 }
 
 /// <summary>
-/// 모든 공을 확인하고 남은 게 있는지 여부를 반환
+/// 紐⑤뱺 怨듭쓣 ?뺤씤?섍퀬 ?⑥? 寃??덈뒗吏 ?щ?瑜?諛섑솚
 /// </summary>
 /// <returns></returns>
 bool UGameScene::HaveBalls()
@@ -270,7 +270,7 @@ bool UGameScene::HaveBalls()
     {
         UBall* ball = *it;
 
-        //예외 처리
+        //?덉쇅 泥섎━
         if (ball == nullptr) {
             it = ActiveBallList.erase(it);
             continue;
@@ -279,9 +279,9 @@ bool UGameScene::HaveBalls()
         FVector Location = ball->Location;
         float Radius = ball->Radius;
 
-        //만약에 공이 밖으로 나가지 않았으면 다음거 확인
+        //留뚯빟??怨듭씠 諛뽰쑝濡??섍?吏 ?딆븯?쇰㈃ ?ㅼ쓬嫄??뺤씤
         if (Location.y < 1 - Radius && Location.y > -1 + Radius) {
-            //공이 아직 남아있음
+            //怨듭씠 ?꾩쭅 ?⑥븘?덉쓬
             hasBallLeft = true;
             ++it; 
         }
@@ -295,7 +295,7 @@ bool UGameScene::HaveBalls()
 }
 
 /// <summary>
-/// 공만 따로 구분짓는 코드 
+/// 怨듬쭔 ?곕줈 援щ텇吏볥뒗 肄붾뱶 
 /// </summary>
 /// <param name="Object"></param>
 void UGameScene::AddObject(UGameObject* Object)

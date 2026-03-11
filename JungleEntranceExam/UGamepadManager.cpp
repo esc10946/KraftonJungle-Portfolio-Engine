@@ -1,4 +1,4 @@
-#include "UGamepadManager.h"
+Ôªø#include "UGamepadManager.h"
 extern "C" {
 	HRESULT __stdcall RoGetActivationFactory(HSTRING activatableClassId, REFIID iid, void** factory);
 	HRESULT __stdcall WindowsCreateStringReference(const wchar_t* sourceString, uint32_t length, HSTRING_HEADER* hstringHeader, HSTRING* string);
@@ -10,11 +10,11 @@ extern "C" {
 UGamepadManager::UGamepadManager()
 {
 	RoInitialize(1);
-	//// HSTRING ª˝º∫ ¡ÿ∫Ò
+	//// HSTRING ÏÉùÏÑ± Ï§ÄÎπÑ
 	HSTRING_HEADER hstrHeader;
 	HSTRING hClassName;
 	const wchar_t* className = RuntimeClass_Windows_Gaming_Input_Gamepad;
-	// HSTRING ª˝º∫
+	// HSTRING ÏÉùÏÑ±
 	HRESULT hr = WindowsCreateStringReference(className, (unsigned int)wcslen(className), &hstrHeader, &hClassName);
 	if (SUCCEEDED(hr))
 		RoGetActivationFactory(hClassName, __uuidof(IGamepadStatics), (void**)&pGamepadStatics);

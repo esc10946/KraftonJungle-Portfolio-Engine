@@ -1,8 +1,8 @@
-#include "TitleScene.h"
+﻿#include "TitleScene.h"
 #include "USceneManager.h"
 #include "UsoundManager.h"
 #include "URenderer.h"
-
+#include "UGameObject.h"
 void UTitleScene::Init()
 {
     UGameObjectList.clear();
@@ -20,7 +20,7 @@ void UTitleScene::Render(URenderer render)
 
 void UTitleScene::Release()
 {
-    //생성된 모든 UGameObject을 제거
+    //?앹꽦??紐⑤뱺 UGameObject???쒓굅
     for (UGameObject* Object : UGameObjectList)
     {
         if (Object != nullptr) {
@@ -50,7 +50,7 @@ void UTitleScene::UIRender()
 
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
 
-    // 1. 창을 화면 정중앙에 배치
+    // 1. 李쎌쓣 ?붾㈃ ?뺤쨷?숈뿉 諛곗튂
     ImVec2 centerPos = ImVec2(
         viewport->WorkPos.x + viewport->WorkSize.x * 0.5f,
         viewport->WorkPos.y + viewport->WorkSize.y * 0.5f
@@ -70,27 +70,27 @@ void UTitleScene::UIRender()
     const char* titleText = "Brick Breaker";
     ImGui::SetWindowFontScale(8.0f);
 
-    // 글자가 차지할 가로 길이를 계산하고 커서를 이동시킵니다.
+    // 湲?먭? 李⑥???媛濡?湲몄씠瑜?怨꾩궛?섍퀬 而ㅼ꽌瑜??대룞?쒗궢?덈떎.
     float titleWidth = ImGui::CalcTextSize(titleText).x;
     ImGui::SetCursorPosX((windowWidth - titleWidth) * 0.5f);
     ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), titleText);
 
-    ImGui::Text("\n"); // 줄바꿈
+    ImGui::Text("\n"); // 以꾨컮轅?
 
     // ==========================================
-    // 2. 버튼 중앙 정렬 
+    // 2. 踰꾪듉 以묒븰 ?뺣젹 
     // ==========================================
     ImGui::SetWindowFontScale(4.0f);
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.1f, 0.1f, 0.0f));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 1.0f, 1.0f, 0.1f));
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.6f, 1.0f, 1.0f, 0.1f));
 
-    // 통일감을 위해 버튼 크기를 고정합니다.
+    // ?듭씪媛먯쓣 ?꾪빐 踰꾪듉 ?ш린瑜?怨좎젙?⑸땲??
     float btnWidth = 400.0f;
     float btnHeight = 80.0f;
     ImVec2 btnSize(btnWidth, btnHeight);
 
-    // 게임 시작 버튼
+    // 寃뚯엫 ?쒖옉 踰꾪듉
     ImGui::SetCursorPosX((windowWidth - btnWidth) * 0.5f);
     if (ImGui::Button("Game Start", btnSize))
     {
@@ -99,7 +99,7 @@ void UTitleScene::UIRender()
 
     ImGui::Text("\n");
 
-    // 게임 종료 버튼
+    // 寃뚯엫 醫낅즺 踰꾪듉
     ImGui::SetCursorPosX((windowWidth - btnWidth) * 0.5f);
     if (ImGui::Button("Quit", btnSize))
     {
@@ -107,7 +107,7 @@ void UTitleScene::UIRender()
     }
 
     ImGui::Text("\n");
-    ImGui::PopStyleColor(3); // 버튼 스타일 원상복구
+    ImGui::PopStyleColor(3); // 踰꾪듉 ?ㅽ????먯긽蹂듦뎄
 
     ImGui::SetWindowFontScale(1.5f);
     const char* teamText = "Team 8: Kim Hyung-do,  Kim Ho-jun,  Jo Sang-hyeon,  Kim Sun-myeong";

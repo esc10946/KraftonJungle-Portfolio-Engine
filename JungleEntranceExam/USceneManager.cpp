@@ -1,4 +1,4 @@
-#include "USceneManager.h"
+ï»¿#include "USceneManager.h"
 #include "TitleScene.h"
 #include "UGameScene.h"
 #include "UClearScene.h"
@@ -10,7 +10,7 @@ void USceneManager::LoadScene(ESceneType sceneName)
 {
 	currentScene->SetActive(false);
 
-	//Å¸ÀÌÆ² È­¸é È¤Àº ÀÎ°ÔÀÓ È­¸éÀ¸·Î º¯È¯
+	//íƒ€ì´í‹€ í™”ë©´ í˜¹ì€ ì¸ê²Œìž„ í™”ë©´ìœ¼ë¡œ ë³€í™˜
 	if (currentScene->GetSceneType() == sceneName) {
 		return;
 	}

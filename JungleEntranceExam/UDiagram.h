@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <cmath>
 #include <algorithm>
@@ -10,19 +10,19 @@
 
 inline const float Pi = 3.1415926535f;
 
-// 도형 기본 클래스
+// ?꾪삎 湲곕낯 ?대옒??
 class UDiagram : public UGameObject
 {
 public:
     virtual ~UDiagram() {}
 
 
-    // 벽 충돌 적용
+    // 踰?異⑸룎 ?곸슜
     virtual void ApplyWallCollision() = 0;
 
-    // 중력 적용
+    // 以묐젰 ?곸슜
     virtual void ApplyGravity(float deltaTime, const FVector& gravity) = 0;
 
-    // 다른 도형과 충돌 판정
+    // ?ㅻⅨ ?꾪삎怨?異⑸룎 ?먯젙
     virtual bool CheckCollision(const UDiagram* Other) = 0;
 };

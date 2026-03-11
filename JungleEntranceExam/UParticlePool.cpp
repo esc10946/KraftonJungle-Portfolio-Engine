@@ -1,4 +1,4 @@
-#include "UParticlePool.h"
+﻿#include "UParticlePool.h"
 
 
 UParticlePool::UParticlePool(int size) : poolSize(size)

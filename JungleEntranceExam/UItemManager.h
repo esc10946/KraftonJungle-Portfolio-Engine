@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "UItem.h"
 #include "ItemEffectReceiver.h"
