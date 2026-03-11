@@ -75,6 +75,18 @@ void UItem::Render(URenderer& renderer)
 		vertexBufferSize = sizeof(item_paddle_shrink_vertices);
 		break;
 
+	case EItemType::PaddleSpeedUp:
+		vertices = item_paddle_speed_up_vertices;
+		vertexCount = sizeof(item_paddle_speed_up_vertices) / sizeof(FVertexSimple);
+		vertexBufferSize = sizeof(item_paddle_speed_up_vertices);
+		break;
+
+	case EItemType::PaddleSpeedDown:
+		vertices = item_paddle_speed_down_vertices;
+		vertexCount = sizeof(item_paddle_speed_down_vertices) / sizeof(FVertexSimple);
+		vertexBufferSize = sizeof(item_paddle_speed_down_vertices);
+		break;
+
 	case EItemType::BallSpeedUp:
 		vertices = item_ball_speed_up_vertices;
 		vertexCount = sizeof(item_ball_speed_up_vertices) / sizeof(FVertexSimple);
@@ -203,6 +215,14 @@ void UItem::ApplyEffect(IItemEffectReceiver* Receiver)
 
 	case EItemType::PaddleShrink:
 		Receiver->ModifyPaddleSize(ItemDesc.FloatValue);
+		break;
+
+	case EItemType::PaddleSpeedUp:
+		Receiver->ModifyPaddleSpeed(ItemDesc.FloatValue);
+		break;
+
+	case EItemType::PaddleSpeedDown:
+		Receiver->ModifyPaddleSpeed(ItemDesc.FloatValue);
 		break;
 
 	case EItemType::BallSpeedUp:

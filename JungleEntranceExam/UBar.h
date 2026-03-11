@@ -27,6 +27,12 @@ public:
     int Direction;
     EPlaySide Side;
 
+    const float MinSpeed = 0.3f;
+    const float MaxSpeed = 5.0f;
+
+    const float MinScale = 0.05f;
+    const float MaxScale = 0.3f;
+
     // 생성자 및 소멸자
 public:
     UBar(const FVector& _Location, const float _Speed, const float _Scale, int _PlayerNo, EPlaySide _Side);
@@ -51,11 +57,13 @@ public:
     // void ResolveCollision(UBar* Other);
 
     void SetScale(const float _Scale);
+    void SetSpeed(const float _Speed);
 
     // 아이템 관련
     virtual void AddLife() override;
     virtual void SpawnExtraBalls(int Count) override;
     virtual void AddScore(int Amount) override;
     virtual void ModifyPaddleSize(float DeltaSize) override;
+    virtual void ModifyPaddleSpeed(float Multiplier) override;
     virtual void ModifyBallSpeed(float Multiplier) override;
 };
