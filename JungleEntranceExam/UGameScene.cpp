@@ -115,9 +115,6 @@ void UGameScene::Release()
 
     UGameObjectList.clear();
 
-    for (auto* b : stageblocks)
-        delete b;
-
     stageblocks.clear();
 }
 
