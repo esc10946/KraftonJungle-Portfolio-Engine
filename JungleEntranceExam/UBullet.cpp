@@ -1,4 +1,4 @@
-#include "UBullet.h"
+﻿#include "UBullet.h"
 
 UBullet::UBullet(int _BulletDirection)
 	: BulletDirection(_BulletDirection)

@@ -328,8 +328,8 @@ void UGameScene::Update(float delta)
 
             FVector& CurLocation{ b.GetLocation() };
 
-            int CurCol{ static_cast<int>((CurLocation.x - (-1.0f + StageData.START_X)) / StageData.STEP_X) };
-
+            int CurCol{ static_cast<int>((CurLocation.x  - (-1.0f + StageData.START_X + 0.035f/*1 - HALF_BW*/)) / StageData.STEP_X)};
+            if (CurCol < 0 || CurCol >= CurrentStageCol) continue;
             for (int CurRow{ CurrentStageRow - 1 }; CurRow >= 0;CurRow--)
             {
                 if (!stageblocks[CurRow * CurrentStageCol + CurCol])
@@ -369,8 +369,8 @@ void UGameScene::Update(float delta)
 
             FVector& CurLocation{ b.GetLocation() };
 
-            int CurCol{ static_cast<int>((CurLocation.x - (-1.0f + StageData.START_X)) / StageData.STEP_X) };
-
+            int CurCol{ static_cast<int>((CurLocation.x -  (-1.0f + StageData.START_X)+ 0.035f) / StageData.STEP_X) };
+            if (CurCol < 0 || CurCol >= CurrentStageCol) continue;
             for (int CurRow{ 0 }; CurRow < CurrentStageRow;CurRow++)
             {
                 if (!stageblocks[CurRow * CurrentStageCol + CurCol])
