@@ -108,7 +108,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     renderer.NumVerticesSphere = sizeof(sphere_vertices) / sizeof(FVertexSimple);
     renderer.vertexBufferSphere = renderer.CreateVertexBuffer(sphere_vertices, sizeof(sphere_vertices));
     renderer.NumVerticesBar = sizeof(bar_vertices) / sizeof(FVertexSimple);
-    renderer.vertexBufferRect = renderer.CreateVertexBuffer(bar_vertices, sizeof(bar_vertices));
+    renderer.vertexBufferBar = renderer.CreateVertexBuffer(bar_vertices, sizeof(bar_vertices));
     renderer.NumVerticesBullet = sizeof(bullet_vertices) / sizeof(FVertexSimple);
     renderer.vertexBufferBullet = renderer.CreateVertexBuffer(bullet_vertices, sizeof(bullet_vertices));
 
