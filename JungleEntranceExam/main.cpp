@@ -1,4 +1,4 @@
-#include <windows.h>
+﻿#include <windows.h>
 
 // D3D 사용에 필요한 라이브러리들을 링크
 #pragma comment(lib, "user32")
