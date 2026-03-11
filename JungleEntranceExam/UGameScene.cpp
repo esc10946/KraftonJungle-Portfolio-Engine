@@ -60,7 +60,7 @@ void UGameScene::UIRender()
 
         if (ImGui::BeginPopupModal("Stage Clear Check", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove))
         {
-            ImGui::Text("\n               Stage %d Clear!         \n\n", CurrentStage);
+            ImGui::Text("\n             Stage %d Clear!         \n\n", CurrentStage);
             ImGui::Separator();
 
             // 버튼 배치 (중앙 정렬을 위해 약간의 여백 추가 가능)
@@ -141,6 +141,7 @@ void UGameScene::Init()
 
 
     GetStageInfo(CurrentStage, CurrentStageRow, CurrentStageCol);
+    StageData = GetStageData();
 
     //게임매니저 초기화
     particlePool = new UParticlePool(200);
@@ -177,6 +178,7 @@ void UGameScene::NextStage(int StageNo)
         if (b) AddObject(b);
     }
     UItemManager::Get().Clear();
+    StageData = GetStageData();
 }
 void UGameScene::Release()
 {
@@ -307,9 +309,92 @@ void UGameScene::Update(float delta)
                 gameManager->SetScore(b->GetScore());
                 USoundManager::GetInstance().Play("Brick");
             }
-
+            
         }
     }
+
+    std::vector<UBullet>& FlyingBulletVecRef1{ Bar_1->GetFlyingBulletVec() };
+    for (UBullet& b : FlyingBulletVecRef1)
+    {
+        if (b.GetIsHit())
+        {
+            b.SetIsFlying(false);
+            b.SetIsHit(false);
+            continue;
+        }
+        if (b.GetIsFlying())
+        {
+            b.Update(delta);
+
+            FVector& CurLocation{ b.GetLocation() };
+
+            int CurCol{ static_cast<int>((CurLocation.x - (-1.0f + StageData.START_X)) / StageData.STEP_X) };
+
+            for (int CurRow{ CurrentStageRow - 1 }; CurRow >= 0;CurRow--)
+            {
+                if (!stageblocks[CurRow * CurrentStageCol + CurCol])
+                {
+                    continue;
+                }
+                if (stageblocks[CurRow * CurrentStageCol + CurCol]->IsActive())
+                {
+                    if (b.CheckBlockHit(*stageblocks[CurRow * CurrentStageCol + CurCol], delta))
+                    {
+                        b.SetIsHit(true);
+                        FVector BulletDirection(0.0f, 1.0f, 0.0f);
+                        stageblocks[CurRow * CurrentStageCol + CurCol]->TakeDamage(BulletDirection);
+                        CurLocation.y = stageblocks[CurRow * CurrentStageCol + CurCol]->MinY;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    std::vector<UBullet>& FlyingBulletVecRef2{ Bar_2->GetFlyingBulletVec() };
+    for (UBullet& b : FlyingBulletVecRef2)
+    {
+        if (b.GetIsHit())
+        {
+            b.SetIsFlying(false);
+            b.SetIsHit(false);
+            continue;
+        }
+        if (b.GetIsFlying())
+        {
+            b.Update(delta);
+
+            FVector& CurLocation{ b.GetLocation() };
+
+            int CurCol{ static_cast<int>((CurLocation.x - (-1.0f + StageData.START_X)) / StageData.STEP_X) };
+
+            for (int CurRow{ 0 }; CurRow < CurrentStageRow;CurRow++)
+            {
+                if (!stageblocks[CurRow * CurrentStageCol + CurCol])
+                {
+                    continue;
+                }
+                if (stageblocks[CurRow * CurrentStageCol + CurCol]->IsActive())
+                {
+                    if (b.CheckBlockHit(*stageblocks[CurRow * CurrentStageCol + CurCol], delta))
+                    {
+                        b.SetIsHit(true);
+                        FVector BulletDirection(0.0f, -1.0f, 0.0f);
+                        stageblocks[CurRow * CurrentStageCol + CurCol]->TakeDamage(BulletDirection);
+                        CurLocation.y = stageblocks[CurRow * CurrentStageCol + CurCol]->MinY;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+    }
+    
 
     // Item Objects Update
     UItemManager::Get().Update(delta);
@@ -471,6 +556,26 @@ void UGameScene::Render(URenderer render)
 
             continue;
         b->Render(render);
+    }
+
+    std::vector<UBullet>& FlyingBulletVecRef1{ Bar_1->GetFlyingBulletVec() };
+    for (UBullet& b : FlyingBulletVecRef1)
+    {
+        if (b.GetIsFlying())
+        {
+            b.Render(render);
+            render.RenderBullet();
+        }
+    }
+
+    std::vector<UBullet>& FlyingBulletVecRef2{ Bar_2->GetFlyingBulletVec() };
+    for (UBullet& b : FlyingBulletVecRef2)
+    {
+        if (b.GetIsFlying())
+        {
+            b.Render(render);
+            render.RenderBullet();
+        }
     }
     if (particlePool) {
         particlePool->Render(render);
