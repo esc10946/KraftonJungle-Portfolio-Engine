@@ -131,23 +131,20 @@ void UBar::SpawnExtraBalls(int Count)
 		if (balls.empty())
 			return;
 
-		for (int i = 0; i < Count; i++)
+		// 랜덤 공 선택
+		int index = rand() % balls.size();
+		UBall* selectedBall = balls[index];
+
+		// 멀티볼 생성
+		UBall** newBalls = UBall::CreateMultiBalls(selectedBall);
+
+		if (newBalls)
 		{
-			// 랜덤 공 선택
-			int index = rand() % balls.size();
-			UBall* selectedBall = balls[index];
+			// 씬에 추가
+			gameScene->AddBall(newBalls[0]);
+			gameScene->AddBall(newBalls[1]);
 
-			// 멀티볼 생성
-			UBall** newBalls = UBall::CreateMultiBalls(selectedBall);
-
-			if (newBalls)
-			{
-				// 씬에 추가
-				gameScene->AddBall(newBalls[0]);
-				gameScene->AddBall(newBalls[1]);
-
-				delete[] newBalls;
-			}
+			delete[] newBalls;
 		}
 	}
 }
@@ -163,4 +160,22 @@ void UBar::ModifyPaddleSize(float DeltaSize)
 void UBar::ModifyBallSpeed(float Multiplier)
 {
 	OutputDebugStringA("ModifyBallSpeed called\n");
+
+	if (USceneManager::GetInstance().GetCurrentSceneName() == ESceneType::InGame)
+	{
+		UGameScene* gameScene = dynamic_cast<UGameScene*>(USceneManager::GetInstance().GetCurrentScene());
+
+		if (gameScene == nullptr)
+			return;
+
+		std::vector<UBall*>& balls = gameScene->GetActiveBalls();
+
+		if (balls.empty())
+			return;
+
+		for (int i = 0; i < balls.size(); i++)
+		{
+			balls[i]->SetSpeed(balls[i]->GetSpeed() * Multiplier);
+		}
+	}
 }

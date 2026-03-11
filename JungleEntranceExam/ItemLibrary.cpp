@@ -14,7 +14,7 @@ FItemDesc ItemLibrary::MakeRandomItem()
     if (r < 60)
         return MakePaddleExpand(1.2f);
     // 패들 길이 감소 아이템 (확률 : --%)
-    if (r < 75)
+    if (r < 70)
         return MakePaddleShrink(0.8f);
     // 공 속도 증가 아이템 (확률 : --%)
     if (r < 90)
