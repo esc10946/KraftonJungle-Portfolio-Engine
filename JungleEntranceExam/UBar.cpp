@@ -1,4 +1,4 @@
-#include "UBar.h"
+﻿#include "UBar.h"
 #include "UBall.h"
 #include "UInputManager.h"
 #include "UGameScene.h"
@@ -47,9 +47,28 @@ void UBar::Update(float deltaTime)
 	else                   Direction = 0;
 	Location.x += (Speed * deltaTime * Direction);
 
-	if (input->GetKeyDown(ShootKey))
+	if (PlayerNo == 0)
 	{
-		Shoot();
+		if (input->GetKeyDown(VK_DOWN))
+		{
+			Shoot();
+		}
+	}
+	else
+	{
+		bool bKeyboardShoot = false;
+	
+		if(input->getGamepadManager().IsConnected())
+			bool bGamepadShoot = input->getGamepadManager().IsPressed(ABI::Windows::Gaming::Input::GamepadButtons_A);
+		else
+			bool bKeyboardShoot = input->GetKeyDown('S');
+
+
+		if (bKeyboardShoot)
+		{
+			Shoot();
+		}
+
 	}
 
 	// 벽 충돌 적용

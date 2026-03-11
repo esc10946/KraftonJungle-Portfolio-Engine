@@ -23,7 +23,7 @@ public:
 
     void Release();
     float GetAxisX(int playerIndex) const;
-
+    UGamepadManager& getGamepadManager() { return GamepadMgr; };
 private:
     UInputManager();
     ~UInputManager();

@@ -1,4 +1,4 @@
-#include "Stage.h"
+﻿#include "Stage.h"
 //Grid?
 
 static const float HALF_BW = 0.065f;// (2.0f - a)/ 13.0f / 2.0f
