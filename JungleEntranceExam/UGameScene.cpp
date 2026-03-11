@@ -9,7 +9,7 @@
 #include "USoundManager.h"
 #include "UItemManager.h"
 #include "Stage.h"
-
+#include "UParticlePool.h"
 UGameScene::UGameScene()
 {
     Init(); 
@@ -87,7 +87,7 @@ void UGameScene::Init()
     GetStageInfo(CurrentStage, CurrentStageRow, CurrentStageCol);
 
     //게임매니저 초기화
-
+    particlePool = new UParticlePool(200);
     gameManager = UGameManager::GetInstance();
     gameManager->RessetGM();
 }
@@ -114,7 +114,11 @@ void UGameScene::Release()
     }
 
     UGameObjectList.clear();
-
+    if (particlePool != nullptr)
+    {
+        delete particlePool;
+        particlePool = nullptr;
+    }
     stageblocks.clear();
 }
 
@@ -237,7 +241,7 @@ void UGameScene::Update(float delta)
         USoundManager::GetInstance().Play("Damage");
         gameManager->SubHealth(1);
     }
-
+    particlePool->Update(delta);
     if (bIsBrickEmpty()) // 벽돌 다 깨짐!
     {
         // ������ ���� ���ҽ� ����
@@ -351,6 +355,9 @@ void UGameScene::Render(URenderer render)
 
             continue;
         b->Render(render);
+    }
+    if (particlePool) {
+        particlePool->Render(render);
     }
 }
 

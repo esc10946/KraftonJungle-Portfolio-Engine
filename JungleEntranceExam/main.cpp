@@ -1,4 +1,4 @@
-﻿#include <windows.h>
+#include <windows.h>
 
 // D3D 사용에 필요한 라이브러리들을 링크
 #pragma comment(lib, "user32")
@@ -62,12 +62,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
 
-    // 콘솔 창 생성
-    AllocConsole();
-
-    // 표준 출력을 콘솔로 연결 (printf나 std::cout을 쓰기 위해)
-    FILE* pFile;
-    freopen_s(&pFile, "CONOUT$", "w", stdout);
 	// 윈도우 클래스 이름
 	WCHAR WindowClass[] = L"JungleWindowClass";
 

@@ -1,11 +1,14 @@
 #include "UBlock.h"
 #include "UItemManager.h"
 #include "ItemLibrary.h"
-#include <iostream>
-
+#include "UGameScene.h"
+#include "USceneManager.h"
+#include "UParticlePool.h"
+#include "UParticle.h"
 static int TotalScore=0;// 현재 전체 스코어
 
 static int TotalActiveBlocks = 0;// 현재 활성화된 블록 수
+
 UBlock::UBlock(EBlockType InType, EBlockColor InColor, int Round) :Type(InType),CenterX(0),CenterY(0),HalfW(0),HalfH(0),MaxX(0),MaxY(0),MinX(0),MinY(0)
 {
    
@@ -37,6 +40,7 @@ UBlock::UBlock(EBlockType InType, EBlockColor InColor, int Round) :Type(InType),
         break;
     }
     CurrHp = MaxHp;
+
    // SetTag("Block");
 }
 
@@ -107,19 +111,30 @@ int UBlock::TakeDamage()
     CurrHp--;
 
     if (CurrHp == 0)
-    {
-        SetActive(false);
-        TotalScore += score;
-        TotalActiveBlocks--;
+        return BreakBlock();
 
-        FItemDesc ItemDesc = ItemLibrary::MakeRandomItem();
-
-        UItemManager::Get().SpawnItem(ItemDesc, FVector(CenterX, CenterY, 0.0f), FVector(0.0f, -1.0f, 0.0f));
-        return score;
-    }
     else
         WipeProgress = -2.5f;
     return 0;
+}
+int UBlock::BreakBlock()
+{
+    FColor blockColor = GetColor(); 
+    SetActive(false);
+    TotalScore += score;
+    TotalActiveBlocks--;
+
+    FItemDesc ItemDesc = ItemLibrary::MakeRandomItem();
+    UItemManager::Get().SpawnItem(ItemDesc, FVector(CenterX, CenterY, 0.0f), FVector(0.0f, -1.0f, 0.0f));
+    for (int i = 0; i < 15; ++i) {
+        UParticle* p = dynamic_cast<UGameScene*>(USceneManager::GetInstance().GetCurrentScene())->GetParticlePool()->GetInactiveParticle();
+        if (p) {
+            FVector randVel(((rand() % 200) - 100) / 100.0f, ((rand() % 200) - 100) / 100.0f, 0);
+            p->Spawn(FVector(CenterX, CenterY, 0), randVel, blockColor, 2.0f);
+        }
+    }
+
+    return score;
 }
 int UBlock::GetScore()
 {

@@ -8,7 +8,7 @@ public:
     UClearScene() = default;
     ~UClearScene() = default;
 
-    // USceneÀ»(¸¦) ÅëÇØ »ó¼ÓµÊ
+    // USceneì„(ë¥¼) í†µí•´ ìƒì†ë¨
     void Render(URenderer renderer) override;
     void UIRender() override;
     void Init() override;

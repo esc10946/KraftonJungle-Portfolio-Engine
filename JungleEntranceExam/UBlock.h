@@ -1,7 +1,7 @@
-﻿#pragma once
+#pragma once
 
 #include "UDiagram.h"
-
+class UScene;
 enum class EBlockType
 {
 	Normal,
@@ -62,7 +62,7 @@ public:
 	void Render(URenderer& Renderer) override;
 	bool CheckBallCollision(const FVector& BallPos, float Radius, FVector& OutNormal) const;// if creating the Ball Class, Make overload function
 	int TakeDamage();
-
+	int BreakBlock();
 	int GetScore();
 
 	FColor GetColor() const;
@@ -88,9 +88,12 @@ public:
 	int CurrHp;
 	float CenterX, CenterY;
 	float HalfW, HalfH;
-	float MinX, MaxX;
+ 	float MinX, MaxX;
 	float MinY, MaxY;
 	int score;
 	float WipeProgress = -3.0f;
+
+
+
 };
 

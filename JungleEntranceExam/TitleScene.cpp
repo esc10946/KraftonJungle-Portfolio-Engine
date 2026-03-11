@@ -1,4 +1,4 @@
-﻿#include "TitleScene.h"
+#include "TitleScene.h"
 #include "USceneManager.h"
 #include "UsoundManager.h"
 #include "URenderer.h"
