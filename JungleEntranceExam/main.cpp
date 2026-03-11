@@ -266,6 +266,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     ImGui_ImplWin32_Init((void*)hWnd);
     ImGui_ImplDX11_Init(renderer.Device, renderer.DeviceContext);
     
+
     // 반드시 UBall이 아닌 UPrimitive로 선언하여야 하며 바꾸면 안됩니다.
     //UPrimitive** PrimitiveList = nullptr;
 
@@ -300,6 +301,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     USceneManager& sceneManager = USceneManager::GetInstance();
     sceneManager.LoadScene(ESceneType::Title);
 
+
 	// Main Loop (Quit Message가 들어오기 전까지 아래 Loop를 무한히 실행하게 됨)
 	while (bIsExit == false)
 	{
@@ -322,13 +324,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 				bIsExit = true;
 				break;
 			}
-            if (msg.message == WM_KEYDOWN) {
 
                 //if (msg.wParam == VK_LEFT)
                 //    sceneManager.LoadScene(ESceneType::Title);
                 //if (msg.wParam == VK_RIGHT)
                 //    sceneManager.LoadScene(ESceneType::InGame);
-            }
+
+                //if (msg.wParam == VK_RIGHT) Bar.Direction = 1;
+            //}
             //else if (msg.message == WM_KEYUP) {
             //    Bar.Direction = 0; // 키를 떼면 멈춤
             //}
@@ -444,8 +447,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     //ImGui_ImplDX11_Shutdown();
     //ImGui_ImplWin32_Shutdown();
     //ImGui::DestroyContext();
-
-
 
     // vertexBuffer 릴리즈
     renderer.ReleaseVertexBuffer();

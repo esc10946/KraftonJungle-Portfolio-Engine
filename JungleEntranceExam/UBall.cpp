@@ -2,14 +2,24 @@
 #include "USoundManager.h"
 
 // 생성자 및 소멸자
-UBall::UBall() : Location(0.0f, 0.0f, 0.0f), Velocity(0.0f, 0.0f, 0.0f),Speed(1.0f), Radius(0.1f), Mass(0.1f), IsMove(false), BarPtr(nullptr), Acceleration(0.0f), SpeedLimit(5.0f)
+UBall::UBall() : 
+    Location(0.0f, 0.0f, 0.0f), 
+    Velocity(0.0f, 0.0f, 0.0f),
+    Speed(1.0f), 
+    Radius(0.1f), 
+    Mass(0.1f), 
+    IsMove(false), 
+    BarPtr(nullptr), 
+    Acceleration(0.0f),
+    SpeedLimitMin(0.5f),
+    SpeedLimitMax(5.0f)
 {
     ++TotalNumBalls;
     Mass = (4.0f / 3.0f) * Pi * std::powf(Radius, 3);
 }
 
 UBall::UBall(const FVector& _Location, const FVector& _Velocity,const float _Speed, const float _Radius, const bool _IsMove, UBar* _BarPtr, const float _Acceleration, const float _SpeedLimit)
-    : Location(_Location), Velocity(_Velocity),Speed(_Speed), Radius(_Radius), IsMove(_IsMove), BarPtr(_BarPtr), Acceleration(_Acceleration), SpeedLimit(_SpeedLimit)
+    : Location(_Location), Velocity(_Velocity),Speed(_Speed), Radius(_Radius), IsMove(_IsMove), BarPtr(_BarPtr), Acceleration(_Acceleration), SpeedLimitMax(_SpeedLimit)
 {
     ++TotalNumBalls;
     Mass = (4.0f / 3.0f) * Pi * std::powf(Radius, 3);
@@ -36,7 +46,7 @@ void UBall::Update(float deltaTime)
         // 벽 충돌 적용
         ApplyWallCollision();
 
-        if (Speed < SpeedLimit)
+        if (Speed < SpeedLimitMax)
             Speed += Acceleration;
     }
     else
@@ -111,6 +121,19 @@ void UBall::SetRadius(float InRadius)
     Radius = InRadius;
 
     Mass = Mass = (4.0f / 3.0f) * Pi * std::powf(Radius, 3);
+}
+
+float UBall::GetSpeed()
+{
+    return Speed;
+}
+
+void UBall::SetSpeed(float inSpeed)
+{
+    Speed = inSpeed;
+
+    if (Speed > SpeedLimitMax) Speed = SpeedLimitMax;
+    else if (Speed < SpeedLimitMin) Speed = SpeedLimitMin;
 }
 
 bool UBall::CheckCollision(const UDiagram* Other)
@@ -413,6 +436,52 @@ UBall* UBall::CreateBallAtBar(const UBar& Bar)
     Ball->Acceleration = 0.0002f;
 
     return Ball;
+}
+
+UBall** UBall::CreateMultiBalls(const UBall* sourceBall)
+{
+    if (sourceBall == nullptr)
+        return nullptr;
+
+    UBall** createdBalls = new UBall * [2];
+
+    createdBalls[0] = new UBall();
+    createdBalls[1] = new UBall();
+
+    // 원본 공 속성 복사
+    createdBalls[0]->SetRadius(sourceBall->Radius);
+    createdBalls[1]->SetRadius(sourceBall->Radius);
+
+    createdBalls[0]->Location = sourceBall->Location;
+    createdBalls[1]->Location = sourceBall->Location;
+
+    createdBalls[0]->Speed = sourceBall->Speed;
+    createdBalls[1]->Speed = sourceBall->Speed;
+
+    createdBalls[0]->Acceleration = sourceBall->Acceleration;
+    createdBalls[1]->Acceleration = sourceBall->Acceleration;
+
+    // 대각선 방향 벡터 정규화
+    const float diagonal = 0.70710678f; // 1 / sqrt(2)
+
+    // 왼쪽 위 대각선
+    createdBalls[0]->Velocity.x = -diagonal * sourceBall->Speed;
+    createdBalls[0]->Velocity.y = diagonal * sourceBall->Speed;
+    createdBalls[0]->Velocity.z = 0.0f;
+
+    // 오른쪽 위 대각선
+    createdBalls[1]->Velocity.x = diagonal * sourceBall->Speed;
+    createdBalls[1]->Velocity.y = diagonal * sourceBall->Speed;
+    createdBalls[1]->Velocity.z = 0.0f;
+
+    // 겹침 방지용으로 위치 약간 분리
+    createdBalls[0]->Location.x -= sourceBall->Radius * 0.5f;
+    createdBalls[1]->Location.x += sourceBall->Radius * 0.5f;
+
+    createdBalls[0]->SetIsMove(true);
+    createdBalls[1]->SetIsMove(true);
+
+    return createdBalls;
 }
 
 //void UBall::InitBall(UBall& input)

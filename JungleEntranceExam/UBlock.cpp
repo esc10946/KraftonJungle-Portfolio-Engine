@@ -1,4 +1,6 @@
 #include "UBlock.h"
+#include "UItemManager.h"
+#include "ItemLibrary.h"
 #include <iostream>
 
 static int TotalScore=0;// 현재 전체 스코어
@@ -97,6 +99,12 @@ int UBlock::TakeDamage()//쿨타임 필요할거같은데혹은 다른 충돌이 있으면 초기화되�
         SetActive(false);
         TotalScore += score;
         TotalActiveBlocks--;
+
+        // 아이템 생성
+        FItemDesc ItemDesc = ItemLibrary::MakeRandomItem();
+
+        UItemManager::Get().SpawnItem(ItemDesc, FVector(CenterX, CenterY, 0.0f), FVector(0.0f, -1.0f, 0.0f));
+
 		std::cout << "Score : " << TotalScore << " Active Blocks : " << TotalActiveBlocks << std::endl;
         return score;
     }

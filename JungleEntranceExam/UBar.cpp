@@ -1,5 +1,9 @@
 #include "UBar.h"
+#include "UBall.h"
 #include "UInputManager.h"
+#include "UGameScene.h"
+#include "USceneManager.h"
+#include "UGameManager.h"
 
 // 생성자 및 소멸자
 UBar::UBar(const FVector& _Location, const float _Speed, const float _Scale, int _PlayerNo, EPlaySide _Side)
@@ -102,4 +106,76 @@ void UBar::SetScale(const float _Scale)
 {
 	Scale = _Scale;
 	XLength = 1.000000f * Scale;
+}
+
+void UBar::AddScore(int Amount)
+{
+	OutputDebugStringA("AddScore called\n");
+
+	UGameManager::GetInstance()->AddScore(Amount);
+}
+
+void UBar::SpawnExtraBalls(int Count)
+{
+	OutputDebugStringA("SpawnExtraBalls called\n");
+
+	if (USceneManager::GetInstance().GetCurrentSceneName() == ESceneType::InGame)
+	{
+		UGameScene* gameScene = dynamic_cast<UGameScene*>(USceneManager::GetInstance().GetCurrentScene());
+
+		if (gameScene == nullptr)
+			return;
+
+		std::vector<UBall*>& balls = gameScene->GetActiveBalls();
+	
+		if (balls.empty())
+			return;
+
+		// 랜덤 공 선택
+		int index = rand() % balls.size();
+		UBall* selectedBall = balls[index];
+
+		// 멀티볼 생성
+		UBall** newBalls = UBall::CreateMultiBalls(selectedBall);
+
+		if (newBalls)
+		{
+			// 씬에 추가
+			gameScene->AddBall(newBalls[0]);
+			gameScene->AddBall(newBalls[1]);
+
+			delete[] newBalls;
+		}
+	}
+}
+
+void UBar::ModifyPaddleSize(float DeltaSize)
+{
+	OutputDebugStringA("ModifyPaddleSize called\n");
+
+	float modifiedScale = Scale * DeltaSize;
+	SetScale(modifiedScale);
+}
+
+void UBar::ModifyBallSpeed(float Multiplier)
+{
+	OutputDebugStringA("ModifyBallSpeed called\n");
+
+	if (USceneManager::GetInstance().GetCurrentSceneName() == ESceneType::InGame)
+	{
+		UGameScene* gameScene = dynamic_cast<UGameScene*>(USceneManager::GetInstance().GetCurrentScene());
+
+		if (gameScene == nullptr)
+			return;
+
+		std::vector<UBall*>& balls = gameScene->GetActiveBalls();
+
+		if (balls.empty())
+			return;
+
+		for (int i = 0; i < balls.size(); i++)
+		{
+			balls[i]->SetSpeed(balls[i]->GetSpeed() * Multiplier);
+		}
+	}
 }

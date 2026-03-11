@@ -20,7 +20,8 @@ public:
     bool    IsMove;
     UBar*   BarPtr;
     float   Acceleration;
-    float   SpeedLimit;
+    float   SpeedLimitMin;
+    float   SpeedLimitMax;
     inline static int TotalNumBalls{ 0 };
 
     // 생성자 및 소멸자
@@ -47,6 +48,10 @@ public:
     // 반지름 설정 (질량 자동 설정, 반지름에 비례)
     void SetRadius(float InRadius);
 
+    // 공 속도 변경
+    float GetSpeed();
+    void SetSpeed(float inSpeed);
+
 	virtual bool CheckCollision(const UDiagram* Other) override;
 
     EBlockCollision CheckBarCollision(const UBar& Bar, FVector& CollisionPos);
@@ -64,6 +69,8 @@ public:
     bool GetIsMove();
 
     static UBall* CreateBallAtBar(const UBar& Bar);
+
+    static UBall** CreateMultiBalls(const UBall* sourceBall);
 
     // static void InitBall(UBall& input);
 };

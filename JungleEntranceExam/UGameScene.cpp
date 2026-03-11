@@ -7,6 +7,7 @@
 #include "UClearScene.h"
 #include "USceneManager.h"
 #include "USoundManager.h"
+#include "UItemManager.h"
 #include "Stage.h"
 
 UGameScene::UGameScene()
@@ -179,6 +180,10 @@ void UGameScene::Update(float delta)
         }
     }
 
+    // Item Objects Update
+    UItemManager::Get().Update(delta);
+    UItemManager::Get().CheckCollision(Bar_1);
+
     gameManager->Update(delta);
 
     // 밖에 공이 나갔는지 판별
@@ -194,6 +199,8 @@ void UGameScene::Update(float delta)
 
     if (bIsBrickEmpty()) // 벽돌 다 깨짐!
     {
+        // 아이템 관련 리소스 해제
+        UItemManager::Get().Clear();
 
         USoundManager::GetInstance().StopAll();
         USoundManager::GetInstance().Play("Victory");
@@ -263,6 +270,16 @@ bool UGameScene::bIsBrickEmpty()
     return true;
 }
 
+std::vector<UBall*>& UGameScene::GetActiveBalls()
+{
+    return ActiveBallList;
+}
+
+void UGameScene::AddBall(UBall* ball)
+{
+    ActiveBallList.push_back(ball);
+}
+
 void UGameScene::Render(URenderer render)
 {
     for (UGameObject* Object : UGameObjectList)
@@ -282,6 +299,9 @@ void UGameScene::Render(URenderer render)
             render.RenderSphere();
         }
     }
+
+    // Item Objects Render
+    UItemManager::Get().Render(render);
 
     for (auto* b : stageblocks)
         b->Render(render);
