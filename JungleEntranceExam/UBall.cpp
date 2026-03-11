@@ -1,4 +1,4 @@
-﻿#include "UBall.h"
+#include "UBall.h"
 #include "USoundManager.h"
 
 // 생성자 및 소멸자
@@ -52,11 +52,41 @@ void UBall::Update(float deltaTime)
             IsMove = true;
         }
     }
+
+    curTimer += deltaTime;
+
+    if (Speed > 1 && curTimer > trailTimer) {
+        trailSpawnLoc.push_front(Location);
+
+        if (trailSpawnLoc.size() > maxTrailCount) {
+            trailSpawnLoc.pop_back();
+        }
+        curTimer = 0;
+    }
+    else if (Speed <= 1) {
+        if (curTimer > trailTimer) 
+        {
+            if (!trailSpawnLoc.empty()) {
+                trailSpawnLoc.pop_back();
+            }
+            curTimer = 0.0f;
+        }
+    }
 }
 
     // 렌더링 (상수 버퍼 업데이트)
 void UBall::Render(URenderer& renderer)
 {
+    for (int i = (int)trailSpawnLoc.size() - 1; i >= 0; i--)
+    {
+        float alpha = 0.5f - ((float)i / maxTrailCount)/2;
+
+        renderer.UpdateConstant(trailSpawnLoc[i], FVector(Radius, Radius, 0), alpha);
+        // render.SetColor(1.0f, 0.5f, 0.0f, alpha); // 불꽃 같은 주황색 꼬리!
+        // render.RenderSphere();
+        renderer.RenderSphere();
+    }
+
     renderer.UpdateConstant(Location, FVector(Radius, Radius, 0));
 }
 
