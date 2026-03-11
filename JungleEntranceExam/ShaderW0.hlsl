@@ -46,7 +46,7 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
     {
         float diagonalPos = input.localX + input.localY;
         
-        float sweep = saturate(1.0f - abs(diagonalPos - WipeProgress) / 0.1f);
+        float sweep = saturate(1.0f - abs(diagonalPos - WipeProgress) / 0.17f);
         return lerp(baseColor, float4(1, 1, 1, 1), sweep);
     }
     return baseColor;

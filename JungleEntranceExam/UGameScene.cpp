@@ -1,4 +1,4 @@
-#include "UGameScene.h"
+﻿#include "UGameScene.h"
 #include "UGameObject.h"
 #include "UGameManager.h" 
 #include "UBall.h"
@@ -48,6 +48,59 @@ void UGameScene::UIRender()
     ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "HIGH: %d", GetHightScore());
     ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "SCORE: %d", gameManager->GetTotalScore());
     ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "LIVES: %d", gameManager->GetCurLife());
+
+    if (ShowStageClearModal)
+    {
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+        ImGui::SetNextWindowSize(ImVec2(300, 150)); // 창 크기 조절
+
+        // 팝업 열기 (이름은 고유해야 함)
+        ImGui::OpenPopup("Stage Clear Check");
+
+        if (ImGui::BeginPopupModal("Stage Clear Check", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove))
+        {
+            ImGui::Text("\n             Stage %d Clear!         \n\n", CurrentStage);
+            ImGui::Separator();
+
+            // 버튼 배치 (중앙 정렬을 위해 약간의 여백 추가 가능)
+            ImGui::SetCursorPosX(100);
+            if (ImGui::Button("Next Stage", ImVec2(100, 40)))
+            {
+                this->NextStage(CurrentStage + 1);
+                ShowStageClearModal = false;
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
+    }
+    else if (ShowGameOverModal)
+    {
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+        ImGui::SetNextWindowSize(ImVec2(300, 150)); // 창 크기 조절
+
+        // 팝업 열기 (이름은 고유해야 함)
+        ImGui::OpenPopup("Game Over Check");
+
+        if (ImGui::BeginPopupModal("Game Over Check", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove))
+        {
+            ImGui::Text("\n               Game Over!         \n\n");
+            ImGui::Separator();
+
+            // 버튼 배치 (중앙 정렬을 위해 약간의 여백 추가 가능)
+            ImGui::SetCursorPosX(100);
+            if (ImGui::Button("TITLE MENU", ImVec2(100, 40)))
+            {
+                ShowGameOverModal = false;
+                gameManager->SubHealth(1);
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
+    }
     ImGui::End();
 
     ImGui::Render();
@@ -59,7 +112,8 @@ void UGameScene::Init()
 {
     UGameObjectList.clear();
     SceneType = ESceneType::InGame;
-
+    ShowStageClearModal = false;
+    ShowGameOverModal = false;
     ActiveBallList.clear();
 
     //1번 플레이어가 움직이는 바
@@ -75,8 +129,8 @@ void UGameScene::Init()
     AddObject(Bar_2);
 
 
-    int CurrentRound = 2;
-    stageblocks = CreateStage(CurrentRound);
+    CurrentStage = 2;
+    stageblocks = CreateStage(CurrentStage);
     for (auto& b : stageblocks)
     {
         if (!b)
@@ -87,13 +141,45 @@ void UGameScene::Init()
 
 
     GetStageInfo(CurrentStage, CurrentStageRow, CurrentStageCol);
+    StageData = GetStageData();
 
     //게임매니저 초기화
     particlePool = new UParticlePool(200);
     gameManager = UGameManager::GetInstance();
     gameManager->RessetGM();
 }
+void UGameScene::NextStage(int StageNo)
+{
+    Bar_1->SetLocation(FVector(0.0f, -0.95f, 0.0f));
+    Bar_2->SetLocation(FVector(0.0f, 0.95f, 0.0f));
 
+    for (UBall* ball : ActiveBallList)
+    {
+        if (ball) 
+            delete ball;
+    }
+    ActiveBallList.clear();
+    for (auto* block : stageblocks)
+    {
+        if (block) 
+            delete block;
+    }
+    stageblocks.clear();
+    UGameObjectList.clear();
+    AddObject(Bar_1);
+    AddObject(Bar_2);
+    AddObject(UBall::CreateBallAtBar(*Bar_1));
+
+    CurrentStage = StageNo;
+    stageblocks = CreateStage(CurrentStage);
+    GetStageInfo(CurrentStage, CurrentStageRow, CurrentStageCol);
+    for (auto& b : stageblocks)
+    {
+        if (b) AddObject(b);
+    }
+    UItemManager::Get().Clear();
+    StageData = GetStageData();
+}
 void UGameScene::Release()
 {
     //Map에서 할당한 brick들을 해제해야함
@@ -223,9 +309,92 @@ void UGameScene::Update(float delta)
                 gameManager->SetScore(b->GetScore());
                 USoundManager::GetInstance().Play("Brick");
             }
-
+            
         }
     }
+
+    std::vector<UBullet>& FlyingBulletVecRef1{ Bar_1->GetFlyingBulletVec() };
+    for (UBullet& b : FlyingBulletVecRef1)
+    {
+        if (b.GetIsHit())
+        {
+            b.SetIsFlying(false);
+            b.SetIsHit(false);
+            continue;
+        }
+        if (b.GetIsFlying())
+        {
+            b.Update(delta);
+
+            FVector& CurLocation{ b.GetLocation() };
+
+            int CurCol{ static_cast<int>((CurLocation.x - (-1.0f + StageData.START_X)) / StageData.STEP_X) };
+
+            for (int CurRow{ CurrentStageRow - 1 }; CurRow >= 0;CurRow--)
+            {
+                if (!stageblocks[CurRow * CurrentStageCol + CurCol])
+                {
+                    continue;
+                }
+                if (stageblocks[CurRow * CurrentStageCol + CurCol]->IsActive())
+                {
+                    if (b.CheckBlockHit(*stageblocks[CurRow * CurrentStageCol + CurCol], delta))
+                    {
+                        b.SetIsHit(true);
+                        FVector BulletDirection(0.0f, 1.0f, 0.0f);
+                        stageblocks[CurRow * CurrentStageCol + CurCol]->TakeDamage(BulletDirection);
+                        CurLocation.y = stageblocks[CurRow * CurrentStageCol + CurCol]->MinY;
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    std::vector<UBullet>& FlyingBulletVecRef2{ Bar_2->GetFlyingBulletVec() };
+    for (UBullet& b : FlyingBulletVecRef2)
+    {
+        if (b.GetIsHit())
+        {
+            b.SetIsFlying(false);
+            b.SetIsHit(false);
+            continue;
+        }
+        if (b.GetIsFlying())
+        {
+            b.Update(delta);
+
+            FVector& CurLocation{ b.GetLocation() };
+
+            int CurCol{ static_cast<int>((CurLocation.x - (-1.0f + StageData.START_X)) / StageData.STEP_X) };
+
+            for (int CurRow{ 0 }; CurRow < CurrentStageRow;CurRow++)
+            {
+                if (!stageblocks[CurRow * CurrentStageCol + CurCol])
+                {
+                    continue;
+                }
+                if (stageblocks[CurRow * CurrentStageCol + CurCol]->IsActive())
+                {
+                    if (b.CheckBlockHit(*stageblocks[CurRow * CurrentStageCol + CurCol], delta))
+                    {
+                        b.SetIsHit(true);
+                        FVector BulletDirection(0.0f, -1.0f, 0.0f);
+                        stageblocks[CurRow * CurrentStageCol + CurCol]->TakeDamage(BulletDirection);
+                        CurLocation.y = stageblocks[CurRow * CurrentStageCol + CurCol]->MinY;
+                    }
+                }
+                else
+                {
+                    break;
+                }
+            }
+        }
+    }
+    
 
     // Item Objects Update
     UItemManager::Get().Update(delta);
@@ -240,21 +409,40 @@ void UGameScene::Update(float delta)
         UBall* newBall = UBall::CreateBallAtBar(*Bar_1);
         ActiveBallList.push_back(newBall);
 
+        // 아이템 관련 리소스 해제
+        UItemManager::Get().Clear();
+
         USoundManager::GetInstance().Play("Damage");
-        gameManager->SubHealth(1);
+        if (gameManager->GetCurLife() > 1)
+        {
+            gameManager->SubHealth(1);
+        }
+        else
+        {
+            StopAllBall();
+            ShowGameOverModal = true;
+        }
     }
     particlePool->Update(delta);
     if (bIsBrickEmpty()) // 벽돌 다 깨짐!
     {
-        // ������ ���� ���ҽ� ����
+
         UItemManager::Get().Clear();
 
-        USoundManager::GetInstance().StopAll();
-        USoundManager::GetInstance().Play("Victory");
-        UClearScene::FinalScore = gameManager->GetTotalScore();
-        HightScoreUpdate(UClearScene::FinalScore);
-        USceneManager::GetInstance().LoadScene(ESceneType::Clear);
-        return;
+        if (CurrentStage != 3)
+        {
+            StopAllBall();
+            ShowStageClearModal = true;
+        }
+        else
+        {
+            USoundManager::GetInstance().StopAll();
+            USoundManager::GetInstance().Play("Victory");
+            UClearScene::FinalScore = gameManager->GetTotalScore();
+            HightScoreUpdate(UClearScene::FinalScore);
+            USceneManager::GetInstance().LoadScene(ESceneType::Clear);
+            return;
+        }
     }
 }
 
@@ -328,6 +516,16 @@ void UGameScene::AddBall(UBall* ball)
     ActiveBallList.push_back(ball);
 }
 
+void UGameScene::StopAllBall()
+{
+    for (UBall* ball : ActiveBallList)
+    {
+        if (ball != nullptr) {
+            ball->StopMove();
+        }
+    }
+}
+
 void UGameScene::Render(URenderer render)
 {
     for (UGameObject* Object : UGameObjectList)
@@ -359,8 +557,27 @@ void UGameScene::Render(URenderer render)
             continue;
         b->Render(render);
     }
+
+    std::vector<UBullet>& FlyingBulletVecRef1{ Bar_1->GetFlyingBulletVec() };
+    for (UBullet& b : FlyingBulletVecRef1)
+    {
+        if (b.GetIsFlying())
+        {
+            b.Render(render);
+            render.RenderBullet();
+        }
+    }
+
+    std::vector<UBullet>& FlyingBulletVecRef2{ Bar_2->GetFlyingBulletVec() };
+    for (UBullet& b : FlyingBulletVecRef2)
+    {
+        if (b.GetIsFlying())
+        {
+            b.Render(render);
+            render.RenderBullet();
+        }
+    }
     if (particlePool) {
         particlePool->Render(render);
     }
 }
-

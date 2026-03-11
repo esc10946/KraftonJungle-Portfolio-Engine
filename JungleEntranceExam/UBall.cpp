@@ -1,4 +1,4 @@
-#include "UBall.h"
+﻿#include "UBall.h"
 #include "USoundManager.h"
 
 // 생성자 및 소멸자
@@ -42,7 +42,13 @@ UBall::UBall() :
 }
 
 UBall::UBall(const FVector& _Location, const FVector& _Velocity, const float _Speed, const float _Radius, const bool _IsMove, UBar* _BarPtr, const float _Acceleration, const float _SpeedLimit)
-    : Location(_Location), Velocity(_Velocity), Speed(_Speed), Radius(_Radius), IsMove(_IsMove), BarPtr(_BarPtr), Acceleration(_Acceleration), SpeedLimitMax(_SpeedLimit)
+    : Location(_Location),
+    Velocity(_Velocity),
+    Speed(_Speed), Radius(_Radius),
+    IsMove(_IsMove), BarPtr(_BarPtr),
+    Acceleration(_Acceleration),
+    SpeedLimitMax(_SpeedLimit),
+    SpeedLimitMin(0.5f)
 {
     ++TotalNumBalls;
     Mass = (4.0f / 3.0f) * Pi * std::powf(Radius, 3);
@@ -151,7 +157,7 @@ void UBall::Render(URenderer& renderer)
     {
         float alpha = 0.5f - ((float)i / maxTrailCount) / 2;
 
-        renderer.UpdateConstant(trailSpawnLoc[i], FVector(Radius, Radius, 0), FColor(1,1,1,alpha));
+        renderer.UpdateConstant(trailSpawnLoc[i], FVector(Radius, Radius, 0), FColor(1, 1, 1, alpha));
         // render.SetColor(1.0f, 0.5f, 0.0f, alpha); // 불꽃 같은 주황색 꼬리!
         // render.RenderSphere();
         renderer.RenderPrimitive(BallVertexBuffer, BallVertexCount);
@@ -234,6 +240,11 @@ void UBall::SetSpeed(float inSpeed)
 
     if (Speed > SpeedLimitMax) Speed = SpeedLimitMax;
     else if (Speed < SpeedLimitMin) Speed = SpeedLimitMin;
+}
+
+void UBall::StopMove()
+{
+    Speed = 0.0f;
 }
 
 bool UBall::CheckCollision(const UDiagram* Other)
@@ -492,8 +503,12 @@ UBall* UBall::CreateBallAtBar(const UBar& Bar)
     Ball->Location.y = Bar.Location.y + (Bar.YLength + Ball->Radius) * static_cast<int>(Bar.Side);
     Ball->Location.z = 0.0f;
 
-    Ball->Velocity.y = GetRandomFloat(0.8f, 1.0f);
-    Ball->Velocity.x = sqrt(1 - Ball->Velocity.y * Ball->Velocity.y) * GetRandomSide();
+    Ball->Velocity.y = 1.0f;
+    Ball->Velocity.x = 0.0f;
+
+
+    /*Ball->Velocity.y = GetRandomFloat(0.8f, 1.0f);
+    Ball->Velocity.x = sqrt(1 - Ball->Velocity.y * Ball->Velocity.y) * GetRandomSide();*/
     Ball->Velocity.z = 0.0f;
     Ball->Speed = 0.5f;
 

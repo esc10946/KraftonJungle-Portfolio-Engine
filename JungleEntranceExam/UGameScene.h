@@ -1,11 +1,14 @@
-#pragma once
+﻿#pragma once
 #include "UScene.h"
+#include "Stage.h"
 
 class UGameManager;
 class UBall;
 class UBar;
 class UBlock;
 class UParticlePool;
+class UBullet;
+
 class UGameScene:
     public UScene
 {
@@ -24,12 +27,16 @@ public:
     void Init() override;
     void Release() override;
 
+    void NextStage(int StageNo);
+
     void AddObject(UGameObject* Object) override;
     bool bIsBrickEmpty();
 
     std::vector<UBall*>& GetActiveBalls();
     void AddBall(UBall* ball);
 	UParticlePool* GetParticlePool() const { return particlePool; }
+    void StopAllBall();
+
 private:
     UGameManager* gameManager = nullptr;
 	UParticlePool* particlePool = nullptr;
@@ -37,7 +44,10 @@ private:
     std::vector<UBall*> ActiveBallList;
     UBar* Bar_1;
     UBar* Bar_2;
-    int CurrentStage;
+    int CurrentStage=1;
     int CurrentStageRow;
     int CurrentStageCol;
+    bool ShowStageClearModal{ false };
+    bool ShowGameOverModal{ false };
+    StageData StageData;
 };

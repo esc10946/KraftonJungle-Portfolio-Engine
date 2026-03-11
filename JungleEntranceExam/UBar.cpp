@@ -16,7 +16,20 @@ UBar::UBar(const FVector& _Location, const float _Speed, const float _Scale, int
 	, YLength(0.025f)
 	, Direction(0)
 	, Side(_Side)
+	, LoadedBulletCount(0)
+	, ShootInterval(0.5f)
+	, LastFireTime(std::chrono::steady_clock::now())
+	, FlyingBulletVecSize(30)
+	, CurrentShootSide(EDirection::Left)
+	, ShootKey((PlayerNo == 0) ? VK_DOWN : 'X')
 {
+	FlyingBullet.reserve(FlyingBulletVecSize);
+	for (int i = 0; i < FlyingBulletVecSize; i++)
+	{
+		FlyingBullet.push_back(UBullet(static_cast<int>(Side)));
+	}
+
+	LoadedBulletCount = 30;
 }
 
 UBar::~UBar()
@@ -26,40 +39,18 @@ UBar::~UBar()
 // 물리/이동 업데이트
 void UBar::Update(float deltaTime)
 {
-	
-	/*int leftKey = (PlayerNo == 0) ? VK_LEFT : 'A';
-	int rightKey = (PlayerNo == 0) ? VK_RIGHT : 'D';*/
-
 	UInputManager* input = UInputManager::GetInstance();
 	
-	//if (!input->GetKeyPress(leftKey) && !input->GetKeyPress(rightKey))
-	//{
-	//	Direction = 0; // 아무것도 안 누르면 멈춤
-	//}
-
-	//if (input->GetKeyDown(leftKey))
-	//{
-	//	Direction = -1; // 왼쪽 키 누르면 왼쪽으로
-	//}
-	//if (input->GetKeyDown(rightKey))
-	//{
-	//	Direction = 1;  // 오른쪽 키 누르면 오른쪽으로
-	//}
-
-	//if (input->GetKeyUp(leftKey) && input->GetKeyPress(rightKey))
-	//{
-	//	Direction = 1;  // 왼쪽 떼고 오른쪽 누르고 있으면 오른쪽으로
-	//}
-	//if (input->GetKeyUp(rightKey) && input->GetKeyPress(leftKey))
-	//{
-	//	Direction = -1; // 오른쪽 떼고 왼쪽 누르고 있으면 왼쪽으로
-	//}
-
 	float moveX = input->GetAxisX(PlayerNo);
 	if (moveX > 0.0f)      Direction = 1;
 	else if (moveX < 0.0f) Direction = -1;
 	else                   Direction = 0;
 	Location.x += (Speed * deltaTime * Direction);
+
+	if (input->GetKeyDown(ShootKey))
+	{
+		Shoot();
+	}
 
 	// 벽 충돌 적용
 	ApplyWallCollision();
@@ -75,15 +66,6 @@ void UBar::Render(URenderer& renderer)
 void UBar::ApplyWallCollision()
 {
 	Location.x = std::clamp(Location.x, leftBorder + XLength, rightBorder - XLength);
-	//// 벽과 충돌 여부를 체크하고 벽에 닿았으면 멈춤
-	//if (Location.x < leftBorder + XLength)
-	//{
-	//	Location.x = leftBorder + XLength;
-	//}
-	//if (Location.x > rightBorder - XLength)
-	//{
-	//	Location.x = rightBorder - XLength;
-	//}
 }
 
 // 충격량 적용
@@ -110,6 +92,19 @@ void UBar::SetScale(const float _Scale)
 	else if (Scale < MinScale) Scale = MinScale;
 
 	XLength = 1.000000f * Scale;
+}
+
+FVector UBar::GetLocation() const
+{
+	return Location;
+}
+
+void UBar::SetLocation(const FVector& NewLoc) {
+	Location = NewLoc;
+}
+
+void UBar::SetLocation(FVector&& NewLoc) {
+	Location = std::move(NewLoc);
 }
 
 void UBar::SetSpeed(const float _Speed)
@@ -201,6 +196,47 @@ void UBar::ModifyBallSpeed(float Multiplier)
 		for (int i = 0; i < balls.size(); i++)
 		{
 			balls[i]->SetSpeed(balls[i]->GetSpeed() * Multiplier);
+		}
+	}
+}
+
+std::vector<UBullet>& UBar::GetFlyingBulletVec()
+{
+	return FlyingBullet;
+}
+
+void UBar::Shoot()
+{
+	if (LoadedBulletCount == 0)
+	{
+		return;
+	}
+
+	auto CurrentTime = std::chrono::steady_clock::now();
+	std::chrono::duration<float> ElapsedTime = CurrentTime - LastFireTime;
+	if (ElapsedTime.count() < ShootInterval)
+	{
+		return;
+	}
+
+	for (UBullet& b : FlyingBullet)
+	{
+		if (!b.GetIsFlying())
+		{
+			b.SetIsFlying(true);
+			if (CurrentShootSide == EDirection::Left)
+			{
+				b.SetLocation(Location + FVector(-XLength, 0.0f, 0.0f));
+				CurrentShootSide = EDirection::Right;
+			}
+			else
+			{
+				b.SetLocation(Location + FVector(XLength, 0.0f, 0.0f));
+				CurrentShootSide = EDirection::Left;
+			}
+			LastFireTime = CurrentTime;
+			LoadedBulletCount--;
+			return;
 		}
 	}
 }

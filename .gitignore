@@ -34,3 +34,4 @@ imgui.ini
 # 기타 OS 임시 파일
 Thumbs.db
 .DS_Store
+/JungleEntranceExam/inc

@@ -1,4 +1,4 @@
-#include "UBlock.h"
+﻿#include "UBlock.h"
 #include "UItemManager.h"
 #include "ItemLibrary.h"
 #include "UGameScene.h"
@@ -64,11 +64,11 @@ void UBlock::Update(float DeltaTime)
 {
     if (WipeProgress >= -2.5f && WipeProgress < 2.5f)
     {
-        WipeProgress += DeltaTime * 12.0f; // 범위가 넓어졌으니 속도를 조금 올림
+        WipeProgress += DeltaTime * 17.0f; 
 
         if (WipeProgress >= 2.5f)
         {
-            WipeProgress = -3.0f; // 완전히 꺼진 상태
+            WipeProgress = -3.0f; 
         }
     }
 

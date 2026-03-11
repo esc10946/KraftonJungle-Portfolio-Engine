@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <iostream>
 #include <queue>
@@ -62,6 +62,7 @@ public:
     // 공 속도 변경
     float GetSpeed();
     void SetSpeed(float inSpeed);
+    void StopMove();
 
 	virtual bool CheckCollision(const UDiagram* Other) override;
 

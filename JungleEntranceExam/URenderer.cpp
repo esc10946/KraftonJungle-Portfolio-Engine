@@ -1,57 +1,57 @@
 #include "URenderer.h"
 
-// 렌더러 초기화 함수
+// ������ �ʱ�ȭ �Լ�
 void URenderer::Create(HWND hWindow)
 {
-    // Direct3D 장치 및 스왑 체인 생성
+    // Direct3D ��ġ �� ���� ü�� ����
     CreateDeviceAndSwapChain(hWindow);
 
-    // 프레임 버퍼 생성
+    // ������ ���� ����
     CreateFrameBuffer();
 
-    // 래스터라이저 상태 생성
+    // �����Ͷ����� ���� ����
     CreateRasterizerState();
 
-    // 깊이 스텐실 버퍼 및 블렌드 상태는 이 코드에서는 다루지 않음
+    // ���� ���ٽ� ���� �� ����� ���´� �� �ڵ忡���� �ٷ��� ����
 }
 
-// Direct3D 장치 및 스왑 체인을 생성하는 함수
+// Direct3D ��ġ �� ���� ü���� �����ϴ� �Լ�
 void URenderer::CreateDeviceAndSwapChain(HWND hWindow)
 {
-    // 지원하는 Direct3D 기능 레벨을 정의
+    // �����ϴ� Direct3D ��� ������ ����
     D3D_FEATURE_LEVEL featurelevels[] = { D3D_FEATURE_LEVEL_11_0 };
 
-    // 스왑 체인 설정 구조체 초기화
+    // ���� ü�� ���� ����ü �ʱ�ȭ
     DXGI_SWAP_CHAIN_DESC swapchaindesc = {};
-    swapchaindesc.BufferDesc.Width = 0; // 창 크기에 맞게 자동으로 설정
-    swapchaindesc.BufferDesc.Height = 0; // 창 크기에 맞게 자동으로 설정
-    swapchaindesc.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM; // 색상 포맷
-    swapchaindesc.SampleDesc.Count = 1; // 멀티 샘플링 비활성화
-    swapchaindesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // 렌더 타겟으로 사용
-    swapchaindesc.BufferCount = 2; // 더블 버퍼링
-    swapchaindesc.OutputWindow = hWindow; // 렌더링할 창 핸들
-    swapchaindesc.Windowed = TRUE; // 창 모드
-    swapchaindesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // 스왑 방식
+    swapchaindesc.BufferDesc.Width = 0; // â ũ�⿡ �°� �ڵ����� ����
+    swapchaindesc.BufferDesc.Height = 0; // â ũ�⿡ �°� �ڵ����� ����
+    swapchaindesc.BufferDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM; // ���� ����
+    swapchaindesc.SampleDesc.Count = 1; // ��Ƽ ���ø� ��Ȱ��ȭ
+    swapchaindesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT; // ���� Ÿ������ ���
+    swapchaindesc.BufferCount = 2; // ���� ���۸�
+    swapchaindesc.OutputWindow = hWindow; // �������� â �ڵ�
+    swapchaindesc.Windowed = TRUE; // â ���
+    swapchaindesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD; // ���� ���
 
-    // Direct3D 장치와 스왑 체인을 생성
+    // Direct3D ��ġ�� ���� ü���� ����
     D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr,
         D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_DEBUG,
         featurelevels, ARRAYSIZE(featurelevels), D3D11_SDK_VERSION,
         &swapchaindesc, &SwapChain, &Device, nullptr, &DeviceContext);
 
-    // 생성된 스왑 체인의 정보 가져오기
+    // ������ ���� ü���� ���� ��������
     SwapChain->GetDesc(&swapchaindesc);
 
-    // 뷰포트 정보 설정
+    // ����Ʈ ���� ����
     ViewportInfo = { 0.0f, 0.0f, (float)swapchaindesc.BufferDesc.Width, (float)swapchaindesc.BufferDesc.Height, 0.0f, 1.0f };
 }
 
-// Direct3D 장치 및 스왑 체인을 해제하는 함수
+// Direct3D ��ġ �� ���� ü���� �����ϴ� �Լ�
 void URenderer::ReleaseDeviceAndSwapChain()
 {
     if (DeviceContext)
     {
-        DeviceContext->Flush(); // 남아있는 GPU 명령 실행
+        DeviceContext->Flush(); // �����ִ� GPU ��� ����
     }
 
     if (SwapChain)
@@ -73,21 +73,21 @@ void URenderer::ReleaseDeviceAndSwapChain()
     }
 }
 
-// 프레임 버퍼를 생성하는 함수
+// ������ ���۸� �����ϴ� �Լ�
 void URenderer::CreateFrameBuffer()
 {
-    // 스왑 체인으로부터 백 버퍼 텍스처 가져오기
+    // ���� ü�����κ��� �� ���� �ؽ�ó ��������
     SwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&FrameBuffer);
 
-    // 렌더 타겟 뷰 생성
+    // ���� Ÿ�� �� ����
     D3D11_RENDER_TARGET_VIEW_DESC framebufferRTVdesc = {};
-    framebufferRTVdesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB; // 색상 포맷
-    framebufferRTVdesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D; // 2D 텍스처
+    framebufferRTVdesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM_SRGB; // ���� ����
+    framebufferRTVdesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D; // 2D �ؽ�ó
 
     Device->CreateRenderTargetView(FrameBuffer, &framebufferRTVdesc, &FrameBufferRTV);
 }
 
-// 프레임 버퍼를 해제하는 함수
+// ������ ���۸� �����ϴ� �Լ�
 void URenderer::ReleaseFrameBuffer()
 {
     if (FrameBuffer)
@@ -103,17 +103,17 @@ void URenderer::ReleaseFrameBuffer()
     }
 }
 
-// 래스터라이저 상태를 생성하는 함수
+// �����Ͷ����� ���¸� �����ϴ� �Լ�
 void URenderer::CreateRasterizerState()
 {
     D3D11_RASTERIZER_DESC rasterizerdesc = {};
-    rasterizerdesc.FillMode = D3D11_FILL_SOLID; // 채우기 모드
-    rasterizerdesc.CullMode = D3D11_CULL_BACK; // 백 페이스 컬링
+    rasterizerdesc.FillMode = D3D11_FILL_SOLID; // ä��� ���
+    rasterizerdesc.CullMode = D3D11_CULL_BACK; // �� ���̽� �ø�
 
     Device->CreateRasterizerState(&rasterizerdesc, &RasterizerState);
 }
 
-// 래스터라이저 상태를 해제하는 함수
+// �����Ͷ����� ���¸� �����ϴ� �Լ�
 void URenderer::ReleaseRasterizerState()
 {
     if (RasterizerState)
@@ -123,25 +123,25 @@ void URenderer::ReleaseRasterizerState()
     }
 }
 
-// 렌더러에 사용된 모든 리소스를 해제하는 함수
+// �������� ���� ��� ���ҽ��� �����ϴ� �Լ�
 void URenderer::Release()
 {
     RasterizerState->Release();
 
-    // 렌더 타겟을 초기화
+    // ���� Ÿ���� �ʱ�ȭ
     DeviceContext->OMSetRenderTargets(0, nullptr, nullptr);
 
     ReleaseFrameBuffer();
     ReleaseDeviceAndSwapChain();
 }
 
-// 스왑 체인의 백 버퍼와 프론트 버퍼를 교체하여 화면에 출력
+// ���� ü���� �� ���ۿ� ����Ʈ ���۸� ��ü�Ͽ� ȭ�鿡 ���
 void URenderer::SwapBuffer()
 {
-    SwapChain->Present(1, 0); // 1: VSync 활성화
+    SwapChain->Present(1, 0); // 1: VSync Ȱ��ȭ
 }
 
-// Shader를 생성하는 함수
+// Shader�� �����ϴ� �Լ�
 void URenderer::CreateShader()
 {
     ID3DBlob* vertexshaderCSO;
@@ -169,7 +169,7 @@ void URenderer::CreateShader()
     pixelshaderCSO->Release();
 }
 
-// Shader 리소스를 해제하는 하는 함수
+// Shader ���ҽ��� �����ϴ� �ϴ� �Լ�
 void URenderer::ReleaseShader()
 {
     if (SimpleInputLayout)
@@ -191,7 +191,7 @@ void URenderer::ReleaseShader()
     }
 }
 
-// 프레임 렌더링을 시작하기 위한 기본 상태 설정
+// ������ �������� �����ϱ� ���� �⺻ ���� ����
 void URenderer::Prepare()
 {
     D3D11_BLEND_DESC blendDesc;
@@ -219,14 +219,14 @@ void URenderer::Prepare()
     DeviceContext->OMSetBlendState(pBlendState, nullptr, 0xffffffff);
 }
 
-// 이번 그리기에서 사용할 쉐이더(VS/PS)와 정점 입력 레이아웃을 파이프라인에 바인딩
+// �̹� �׸��⿡�� ����� ���̴�(VS/PS)�� ���� �Է� ���̾ƿ��� ���������ο� ���ε�
 void URenderer::PrepareShader()
 {
     DeviceContext->VSSetShader(SimpleVertexShader, nullptr, 0);
     DeviceContext->PSSetShader(SimplePixelShader, nullptr, 0);
     DeviceContext->IASetInputLayout(SimpleInputLayout);
 
-    // 버텍스 쉐이더에 상수 버퍼를 설정
+    // ���ؽ� ���̴��� ��� ���۸� ����
     if (ConstantBuffer)
     {
         DeviceContext->VSSetConstantBuffers(0, 1, &ConstantBuffer);
@@ -234,7 +234,7 @@ void URenderer::PrepareShader()
     }
 }
 
-// 정점 버퍼를 입력 어셈블러에 바인딩하고 지정한 정점 개수만큼 Draw
+// ���� ���۸� �Է� �������� ���ε��ϰ� ������ ���� ������ŭ Draw
 void URenderer::RenderPrimitive(ID3D11Buffer* pBuffer, UINT numVertices)
 {
     UINT offset = 0;
@@ -264,7 +264,14 @@ void URenderer::RenderTriangle()
     DeviceContext->Draw(3, 0);
 }
 
-// Vertex Buffer 생성 함수
+void URenderer::RenderBullet()
+{
+    UINT offset = 0;
+    DeviceContext->IASetVertexBuffers(0, 1, &vertexBufferBullet, &Stride, &offset);
+    DeviceContext->Draw(NumVerticesBullet, 0);
+}
+
+// Vertex Buffer ���� �Լ�
 ID3D11Buffer* URenderer::CreateVertexBuffer(FVertexSimple* vertices, UINT byteWidth)
 {
     D3D11_BUFFER_DESC vertexbufferdesc = {};
@@ -280,7 +287,7 @@ ID3D11Buffer* URenderer::CreateVertexBuffer(FVertexSimple* vertices, UINT byteWi
 
     return vertexBuffer;
 }
-// Vertex Buffer를 Release 시키는 함수
+// Vertex Buffer�� Release ��Ű�� �Լ�
 void URenderer::ReleaseVertexBuffer()
 {
     if (vertexBufferRect)
@@ -386,12 +393,12 @@ void URenderer::CreateRectBuffer()
         { 1.0f,  1.0f, 0.0f,0.3f,0.3f,0.3f,0 },
         { 1.0f, -1.0f, 0.0f,0.3f,0.3f,0.3f,0 },
 
-        {-1.0f + bx,  1.0f - by, 0.0f, 1.0f, 1.0f, 1.0f, 1}, // 좌상
-        { 1.0f - bx, -1.0f + by, 0.0f, 1.0f, 1.0f, 1.0f, 1}, // 우하
-        {-1.0f + bx, -1.0f + by, 0.0f, 1.0f, 1.0f, 1.0f, 1}, // 좌하
-        {-1.0f + bx,  1.0f - by, 0.0f, 1.0f, 1.0f, 1.0f, 1}, // 좌상
-        { 1.0f - bx,  1.0f - by, 0.0f, 1.0f, 1.0f, 1.0f, 1}, // 우상
-        { 1.0f - bx, -1.0f + by, 0.0f, 1.0f, 1.0f, 1.0f, 1}, // 우하
+        {-1.0f + bx,  1.0f - by, 0.0f, 1.0f, 1.0f, 1.0f, 1}, // �»�
+        { 1.0f - bx, -1.0f + by, 0.0f, 1.0f, 1.0f, 1.0f, 1}, // ����
+        {-1.0f + bx, -1.0f + by, 0.0f, 1.0f, 1.0f, 1.0f, 1}, // ����
+        {-1.0f + bx,  1.0f - by, 0.0f, 1.0f, 1.0f, 1.0f, 1}, // �»�
+        { 1.0f - bx,  1.0f - by, 0.0f, 1.0f, 1.0f, 1.0f, 1}, // ���
+        { 1.0f - bx, -1.0f + by, 0.0f, 1.0f, 1.0f, 1.0f, 1}, // ����
 
     };
 	vertexBufferRect = CreateVertexBuffer(verts, sizeof(verts));

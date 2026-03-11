@@ -1,6 +1,6 @@
 #pragma once
 
-// D3D 사용에 필요한 헤더파일들을 포함
+// D3D ��뿡 �ʿ��� ������ϵ��� ����
 #include <d3d11.h>
 #include <d3dcompiler.h>
 
@@ -8,7 +8,7 @@
 #include "FVector.h"
 #include "FColor.h"
 
-// Constant Buffer(상수 버퍼) 관련 함수
+// Constant Buffer(��� ����) ���� �Լ�
 //struct FConstants
 //{
 //    FVector Offset;
@@ -27,25 +27,26 @@ struct FConstants
 class URenderer
 {
 public:
-    // Direct3D 11 장치(Device)와 장치 컨텍스트(Device Context) 및 스왑 체인(Swap Chain)을 관리하기 위한 포인터들
-    ID3D11Device* Device = nullptr; // GPU와 통신하기 위한 Direct3D 장치
-    ID3D11DeviceContext* DeviceContext = nullptr; // GPU 명령 실행을 담당하는 컨텍스트
-    IDXGISwapChain* SwapChain = nullptr; // 프레임 버퍼를 교체하는 데 사용되는 스왑 체인
+    // Direct3D 11 ��ġ(Device)�� ��ġ ���ؽ�Ʈ(Device Context) �� ���� ü��(Swap Chain)�� �����ϱ� ���� �����͵�
+    ID3D11Device* Device = nullptr; // GPU�� ����ϱ� ���� Direct3D ��ġ
+    ID3D11DeviceContext* DeviceContext = nullptr; // GPU ��� ������ ����ϴ� ���ؽ�Ʈ
+    IDXGISwapChain* SwapChain = nullptr; // ������ ���۸� ��ü�ϴ� �� ���Ǵ� ���� ü��
 
-    // 렌더링에 필요한 리소스 및 상태를 관리하기 위한 변수들
-    ID3D11Texture2D* FrameBuffer = nullptr; // 화면 출력용 텍스처
-    ID3D11RenderTargetView* FrameBufferRTV = nullptr; // 텍스처를 렌더 타겟으로 사용하는 뷰
-    ID3D11RasterizerState* RasterizerState = nullptr; // 래스터라이저 상태(컬링, 채우기 모드 등 정의)
-    ID3D11Buffer* ConstantBuffer = nullptr; // 쉐이더에 데이터를 전달하기 위한 상수 버퍼
+    // �������� �ʿ��� ���ҽ� �� ���¸� �����ϱ� ���� ������
+    ID3D11Texture2D* FrameBuffer = nullptr; // ȭ�� ��¿� �ؽ�ó
+    ID3D11RenderTargetView* FrameBufferRTV = nullptr; // �ؽ�ó�� ���� Ÿ������ ����ϴ� ��
+    ID3D11RasterizerState* RasterizerState = nullptr; // �����Ͷ����� ����(�ø�, ä��� ��� �� ����)
+    ID3D11Buffer* ConstantBuffer = nullptr; // ���̴��� �����͸� �����ϱ� ���� ��� ����
 
-    FLOAT ClearColor[4] = { 0.025f, 0.025f, 0.025f, 1.0f }; // 화면을 초기화(clear)할 때 사용할 색상 (RGBA)
-    D3D11_VIEWPORT ViewportInfo; // 렌더링 영역을 정의하는 뷰포트 정보
+    FLOAT ClearColor[4] = { 0.025f, 0.025f, 0.025f, 1.0f }; // ȭ���� �ʱ�ȭ(clear)�� �� ����� ���� (RGBA)
+    D3D11_VIEWPORT ViewportInfo; // ������ ������ �����ϴ� ����Ʈ ����
 
     ID3D11VertexShader* SimpleVertexShader=nullptr;
     ID3D11PixelShader* SimplePixelShader = nullptr;
     ID3D11InputLayout* SimpleInputLayout = nullptr;
     unsigned int Stride;
 
+    UINT NumVerticesBullet;
     UINT NumVerticesSphere=0;
     UINT NumVerticesBar=12;
     UINT NumVerticesRect = 12;
@@ -54,6 +55,7 @@ public:
     ID3D11Buffer* vertexBufferBar = nullptr;
     ID3D11Buffer* vertexBufferRect = nullptr;
     ID3D11Buffer* vertexBufferTriangle = nullptr;
+    ID3D11Buffer* vertexBufferBullet = nullptr;
 
 public:
     void Create(HWND hWindow);
@@ -73,6 +75,7 @@ public:
     void RenderSphere();
     void RenderRectangle();
     void RenderTriangle();
+    void RenderBullet();
 
     ID3D11Buffer* CreateVertexBuffer(FVertexSimple* vertices, UINT byteWidth);
     void ReleaseVertexBuffer();
