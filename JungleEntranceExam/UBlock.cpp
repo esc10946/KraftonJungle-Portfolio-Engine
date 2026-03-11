@@ -1,13 +1,13 @@
-﻿#include "UBlock.h"
+#include "UBlock.h"
 #include "UItemManager.h"
 #include "ItemLibrary.h"
 #include "UGameScene.h"
 #include "USceneManager.h"
 #include "UParticlePool.h"
 #include "UParticle.h"
-static int TotalScore=0;// ?꾩옱 ?꾩껜 ?ㅼ퐫??
+static int TotalScore=0;// 현재 전체 스코어
 
-static int TotalActiveBlocks = 0;// ?꾩옱 ?쒖꽦?붾맂 釉붾줉 ??
+static int TotalActiveBlocks = 0;// 현재 활성화된 블록 수
 
 UBlock::UBlock(EBlockType InType, EBlockColor InColor, int Round) :Type(InType),CenterX(0),CenterY(0),HalfW(0),HalfH(0),MaxX(0),MaxY(0),MinX(0),MinY(0)
 {
@@ -64,11 +64,11 @@ void UBlock::Update(float DeltaTime)
 {
     if (WipeProgress >= -2.5f && WipeProgress < 2.5f)
     {
-        WipeProgress += DeltaTime * 12.0f; // 踰붿쐞媛 ?볦뼱議뚯쑝???띾룄瑜?議곌툑 ?щ┝
+        WipeProgress += DeltaTime * 12.0f; // 범위가 넓어졌으니 속도를 조금 올림
 
         if (WipeProgress >= 2.5f)
         {
-            WipeProgress = -3.0f; // ?꾩쟾??爰쇱쭊 ?곹깭
+            WipeProgress = -3.0f; // 완전히 꺼진 상태
         }
     }
 

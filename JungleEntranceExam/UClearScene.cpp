@@ -1,4 +1,4 @@
-﻿#include "UClearScene.h"
+#include "UClearScene.h"
 #include "URenderer.h"
 #include "USceneManager.h"
 

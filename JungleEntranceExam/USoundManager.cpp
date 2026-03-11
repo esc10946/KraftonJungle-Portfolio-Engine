@@ -1,8 +1,8 @@
-ï»¿#include "USoundManager.h"
+#include "USoundManager.h"
 #include <iostream>
 #include <Windows.h>
 
-// ì •ì  ë³€ìˆ˜ ì´ˆê¸°í™”
+// Á¤Àû º¯¼ö ÃÊ±âÈ­
 USoundManager* USoundManager::instance = nullptr;
 
 void USoundManager::Init()
@@ -31,13 +31,13 @@ void USoundManager::Update()
 
 void USoundManager::Release()
 {
-    // ë¡œë“œí•´ë‘” ëª¨ë“  ì‚¬ìš´ë“œ(CD) ë©”ëª¨ë¦¬ í•´ì œ
+    // ·ÎµåÇØµĞ ¸ğµç »ç¿îµå(CD) ¸Ş¸ğ¸® ÇØÁ¦
     for (auto& pair : SoundMap) {
         pair.second->release();
     }
     SoundMap.clear();
 
-    // ì‹œìŠ¤í…œ ì¢…ë£Œ
+    // ½Ã½ºÅÛ Á¾·á
     if (pSystem != nullptr) {
         pSystem->close();
         pSystem->release();
@@ -67,7 +67,7 @@ void USoundManager::LoadSound(const std::string& name, const std::string& filepa
     else
     {
         char errorMsg[256];
-        sprintf_s(errorMsg, "[ì‚¬ìš´ë“œ ì—ëŸ¬] %s íŒŒì¼ ë¡œë“œ ì‹¤íŒ¨! (ì—ëŸ¬ì½”ë“œ: %d)\n", filepath.c_str(), result);
+        sprintf_s(errorMsg, "[»ç¿îµå ¿¡·¯] %s ÆÄÀÏ ·Îµå ½ÇÆĞ! (¿¡·¯ÄÚµå: %d)\n", filepath.c_str(), result);
         OutputDebugStringA(errorMsg);
     }
 }
@@ -80,12 +80,12 @@ void USoundManager::Play(const std::string& name)
         FMOD::Channel* pChannel = nullptr;
         pSystem->playSound(iter->second, nullptr, false, &pChannel);
 
-        // ë°›ì€ ë¦¬ëª¨ì»¨ì„ ë³´ê´€í•¨ì— ì´ë¦„í‘œë¥¼ ë¶™ì—¬ì„œ ì €ì¥!
+        // ¹ŞÀº ¸®¸ğÄÁÀ» º¸°üÇÔ¿¡ ÀÌ¸§Ç¥¸¦ ºÙ¿©¼­ ÀúÀå!
         ChannelMap[name] = pChannel;
     }
 }
 
-// íŠ¹ì • ì†Œë¦¬ í•˜ë‚˜ë§Œ ë„ê¸° 
+// Æ¯Á¤ ¼Ò¸® ÇÏ³ª¸¸ ²ô±â 
 void USoundManager::Stop(const std::string& name)
 {
     auto iter = ChannelMap.find(name);

@@ -1,4 +1,4 @@
-ï»¿#include "FVector.h"
+#include "FVector.h"
 #include <stdexcept>
 
 float FVector::Dot(const FVector& Other) const
@@ -46,26 +46,26 @@ inline float Dot(const FVector& a, const FVector& b)
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
-// ë‘ ë²¡í„°ì˜ í•¨
+// µÎ º¤ÅÍÀÇ ÇÔ
 inline FVector Add(const FVector& a, const FVector& b)
 {
     return { a.x + b.x, a.y + b.y, a.z + b.z };
 }
 
-// ë‘ ë²¡í„°ì˜ ì°¨
+// µÎ º¤ÅÍÀÇ Â÷
 inline FVector Sub(const FVector& a, const FVector& b)
 {
 
     return { a.x - b.x, a.y - b.y, a.z - b.z };
 }
 
-// ë²¡í„° ê³±
+// º¤ÅÍ °ö
 inline FVector Mul(const FVector& v, float s)
 {
     return { v.x * s, v.y * s, v.z * s };
 }
 
-// ë²¡í„° ë‚˜ëˆ—ì…ˆ
+// º¤ÅÍ ³ª´°¼À
 inline FVector Div(const FVector& v, float s)
 {
     if (s == 0)

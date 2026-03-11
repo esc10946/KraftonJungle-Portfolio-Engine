@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <windows.gaming.input.h>
 #include <vector>

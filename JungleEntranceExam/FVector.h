@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 // Structure for a 3D vector
 class FVector

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #ifndef __FILE_INFO_H__
 #define __FILE_INFO_H__
 

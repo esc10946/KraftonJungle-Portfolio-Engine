@@ -1,4 +1,4 @@
-﻿#include "UGameManager.h"
+#include "UGameManager.h"
 #include "USceneManager.h"
 #include "USoundManager.h"
 #include "UItemManager.h"
@@ -14,8 +14,8 @@ void UGameManager::initialize()
 {
 }
 
-//?멸쾶?꾩뿉??珥덇린?붾㈃?쇰줈 ?뚯븘媛???⑥닔
-//SceneManager?먭쾶 title???붿껌
+//인게임에서 초기화면으로 돌아가는 함수
+//SceneManager에게 title을 요청
 void UGameManager::Exit()
 {
 	initialize();
@@ -66,13 +66,13 @@ void UGameManager::Release()
 void UGameManager::AddHealth(const unsigned int value)
 {
 	currentHealth += value;
-	//理쒕? 泥대젰 
+	//최대 체력 
 	currentHealth = currentHealth < MaxHealth ? currentHealth : MaxHealth;
 }
 
 void UGameManager::SubHealth(const unsigned int value)
 {
-	// ?꾩씠??愿??由ъ냼???댁젣
+	// 아이템 관련 리소스 해제
 	UItemManager::Get().Clear();
 
 	if (value >= currentHealth) {

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "UDiagram.h"
 class UScene;
@@ -68,10 +68,10 @@ public:
 	FColor GetColor() const;
 	void ApplyWallCollision() {}
 
-	// 以묐젰 ?곸슜
+	// 중력 적용
 	void ApplyGravity(float deltaTime, const FVector& gravity) {}
 
-	// ?ㅻⅨ ?꾪삎怨?異⑸룎 ?먯젙
+	// 다른 도형과 충돌 판정
 	bool CheckCollision(const UDiagram* Other) { return false; }
 	bool IsActive() const { return bActive; }
 	void SetActive(bool InActive) { bActive = InActive; }

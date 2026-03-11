@@ -1,4 +1,4 @@
-﻿#include "UParticle.h"
+#include "UParticle.h"
 #include <iostream>
 
 
