@@ -108,11 +108,9 @@ void UBar::SetScale(const float _Scale)
 	XLength = 1.000000f * Scale;
 }
 
-void UBar::AddScore(int Amount)
+void UBar::AddLife()
 {
-	OutputDebugStringA("AddScore called\n");
-
-	UGameManager::GetInstance()->AddScore(Amount);
+	UGameManager::GetInstance()->AddHealth(1);
 }
 
 void UBar::SpawnExtraBalls(int Count)
@@ -147,6 +145,13 @@ void UBar::SpawnExtraBalls(int Count)
 			delete[] newBalls;
 		}
 	}
+}
+
+void UBar::AddScore(int Amount)
+{
+	OutputDebugStringA("AddScore called\n");
+
+	UGameManager::GetInstance()->AddScore(Amount);
 }
 
 void UBar::ModifyPaddleSize(float DeltaSize)

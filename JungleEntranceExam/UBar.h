@@ -53,8 +53,9 @@ public:
     void SetScale(const float _Scale);
 
     // 아이템 관련
-    virtual void AddScore(int Amount) override;
+    virtual void AddLife() override;
     virtual void SpawnExtraBalls(int Count) override;
+    virtual void AddScore(int Amount) override;
     virtual void ModifyPaddleSize(float DeltaSize) override;
     virtual void ModifyBallSpeed(float Multiplier) override;
 };

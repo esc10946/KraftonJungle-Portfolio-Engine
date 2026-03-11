@@ -45,6 +45,12 @@ void UItem::Render(URenderer& renderer)
 
 	switch (ItemDesc.Type)
 	{
+	case EItemType::AddLife:
+		vertices = item_add_life_vertices;
+		vertexCount = sizeof(item_add_life_vertices) / sizeof(FVertexSimple);
+		vertexBufferSize = sizeof(item_add_life_vertices);
+		break;
+
 	case EItemType::MultiBall:
 		vertices = item_multi_ball_vertices;
 		vertexCount = sizeof(item_multi_ball_vertices) / sizeof(FVertexSimple);
@@ -162,6 +168,10 @@ void UItem::ApplyEffect(IItemEffectReceiver* Receiver)
 {
 	switch (ItemDesc.Type)
 	{
+	case EItemType::AddLife:
+		Receiver->AddLife();
+		break;
+
 	case EItemType::MultiBall:
 		Receiver->SpawnExtraBalls(ItemDesc.IntValue);
 		break;

@@ -4,6 +4,9 @@ FItemDesc ItemLibrary::MakeRandomItem()
 {
     int r = rand() % 100;
 
+    // 목숨 추가 아이템 (확률 : --%)
+    if (r < 5)
+        return MakeAddLife();
     // 멀티볼 아이템 (확률 : --%)
     if (r < 30)
         return MakeMultiBall(2);
@@ -21,6 +24,15 @@ FItemDesc ItemLibrary::MakeRandomItem()
         return MakeBallSpeedUp(1.5f);
     // 공 속도 감소 아이템 (확률 : --%)
     return MakeBallSpeedDown(0.7f);
+}
+
+FItemDesc ItemLibrary::MakeAddLife()
+{
+    FItemDesc Desc;
+    Desc.Type = EItemType::AddLife;
+    Desc.ApplyType = EItemApplyType::Immediate;
+    Desc.DebugName = "AddLife";
+    return Desc;
 }
 
 FItemDesc ItemLibrary::MakeMultiBall(int Count)

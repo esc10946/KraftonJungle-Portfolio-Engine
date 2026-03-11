@@ -6,6 +6,7 @@ public:
     virtual ~IItemEffectReceiver() {}
 
 public:
+    virtual void AddLife() = 0;
     virtual void SpawnExtraBalls(int Count) = 0;
     virtual void AddScore(int Amount) = 0;
 

@@ -7,6 +7,7 @@ enum class EItemType
 {
     None = 0,
 
+    AddLife,        // 목숨 추가
     MultiBall,      // 공 갯수 증가
     ScoreBonus,     // 점수 추가
 
