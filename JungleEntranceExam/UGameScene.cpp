@@ -73,7 +73,7 @@ void UGameScene::Init()
     AddObject(Bar_2);
 
     //stage 블럭들
-    CurrentStage = 2;
+    CurrentStage = 1;
     stageblocks = CreateStage(CurrentStage);
     GetStageInfo(CurrentStage, CurrentStageRow, CurrentStageCol);
 
