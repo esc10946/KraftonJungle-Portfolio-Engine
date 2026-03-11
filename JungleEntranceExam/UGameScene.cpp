@@ -72,7 +72,7 @@ void UGameScene::Init()
     AddObject(Bar_2);
 
     //stage 블럭들
-    CurrentStage = 3;
+    CurrentStage = 2;
     stageblocks = CreateStage(CurrentStage);
     GetStageInfo(CurrentStage, CurrentStageRow, CurrentStageCol);
 
@@ -284,7 +284,7 @@ void UGameScene::AddObject(UGameObject* Object)
 bool UGameScene::bIsBrickEmpty()
 {
     for (auto& b : stageblocks) {
-        if (b->IsActive()) return false;
+        if (b && b->IsActive()) return false;
     }
     return true;
 }
