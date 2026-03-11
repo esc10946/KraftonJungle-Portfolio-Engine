@@ -210,12 +210,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
 
-    //// 콘솔 창 생성
-    //AllocConsole();
+    // 콘솔 창 생성
+    AllocConsole();
 
-    //// 표준 출력을 콘솔로 연결 (printf나 std::cout을 쓰기 위해)
-    //FILE* pFile;
-    //freopen_s(&pFile, "CONOUT$", "w", stdout);
+    // 표준 출력을 콘솔로 연결 (printf나 std::cout을 쓰기 위해)
+    FILE* pFile;
+    freopen_s(&pFile, "CONOUT$", "w", stdout);
 	// 윈도우 클래스 이름
 	WCHAR WindowClass[] = L"JungleWindowClass";
 
@@ -251,14 +251,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     // Constant Buffer 생성
     renderer.CreateConstantBuffer();
-
+    renderer.CreateRectBuffer();
     //render에서 초기화
     // Renderer와 Shader 생성 이후, vertexBuffer 생성
     renderer.NumVerticesSphere = sizeof(sphere_vertices) / sizeof(FVertexSimple);
     renderer.vertexBufferSphere = renderer.CreateVertexBuffer(sphere_vertices, sizeof(sphere_vertices));
     renderer.NumVerticesBar = sizeof(bar_vertices) / sizeof(FVertexSimple);
-    renderer.vertexBufferRect = renderer.CreateVertexBuffer(bar_vertices, sizeof(bar_vertices));
-
+    renderer.vertexBufferBar = renderer.CreateVertexBuffer(bar_vertices, sizeof(bar_vertices));
+    //renderer.vertexBufferRect = renderer.CreateVertexBuffer(bar_vertices, sizeof(bar_vertices));
     // ImGui를 사용하기 위한 초기화
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -452,6 +452,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     renderer.ReleaseVertexBuffer();
 
     // Constant Buffer 릴리즈
+    renderer.ReleaseRectBuffer();
     renderer.ReleaseConstantBuffer();
 
     // 렌더러 소멸 직전, 쉐이더 소멸

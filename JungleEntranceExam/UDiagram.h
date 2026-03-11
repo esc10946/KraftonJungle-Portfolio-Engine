@@ -4,7 +4,7 @@
 #include <algorithm>
 
 #include "UGameObject.h"
-#include "URenderer.h"
+
 #include "FVector.h"
 #include "FColor.h"
 
@@ -16,11 +16,6 @@ class UDiagram : public UGameObject
 public:
     virtual ~UDiagram() {}
 
-    // 물리/이동 업데이트
-    virtual void Update(float deltaTime) = 0;
-
-    // 렌더링
-    virtual void Render(URenderer& renderer) = 0;
 
     // 벽 충돌 적용
     virtual void ApplyWallCollision() = 0;

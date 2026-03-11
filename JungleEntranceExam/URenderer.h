@@ -18,9 +18,10 @@
 struct FConstants
 {
     FVector Offset;
-    float Pad1;
+    float WipeProgress;
     FVector Scale;
     float Pad2;
+    FColor BlockColor;
 };
 
 class URenderer
@@ -47,8 +48,10 @@ public:
 
     UINT NumVerticesSphere;
     UINT NumVerticesBar;
+    UINT NumVerticesRect = 12;
 
     ID3D11Buffer* vertexBufferSphere = nullptr;
+    ID3D11Buffer* vertexBufferBar = nullptr;
     ID3D11Buffer* vertexBufferRect = nullptr;
     ID3D11Buffer* vertexBufferTriangle = nullptr;
 
@@ -78,5 +81,11 @@ public:
     void ReleaseConstantBuffer();
     void UpdateConstant(FVector Offset, FVector Scale);
 
-    void RenderRect(float cx, float cy, float hw, float hh, FColor Color);
+    void UpdateConstant(FVector Offset, FVector Scale, FColor Color, float WipeProgress=-3.0f);
+
+    void CreateRectBuffer();
+    void ReleaseRectBuffer();
+
+
+    //void RenderRect(float cx, float cy, float hw, float hh, float progress, FColor Color);
 };

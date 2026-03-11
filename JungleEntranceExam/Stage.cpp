@@ -115,8 +115,11 @@ static std::vector<UBlock*> BulidStage(int(&map)[ROWS][COLS], int round)
 		for (int c = 0; c < COLS; ++c)
 		{
 			int code = map[r][c];
-			if (code == 0) 
+			if (code == 0)
+			{
+				blocks.push_back(nullptr);
 				continue;
+			}
 			float cx = -1.0f + START_X + (c * STEP_X)+0.1f;
 			float cy = 1.0f - (START_Y + r * STEP_Y)-0.3f;
 			UBlock* b = MakeBlock(code, cx, cy, round);

@@ -1,7 +1,7 @@
 #include "UScene.h"
 #include "UGameObject.h"
 #include "URenderer.h"
-
+#include "UDiagram.h"
 UGameObject* UScene::SearchObject(unsigned int ID)
 {
 	for (UGameObject* Object : UGameObjectList) {
@@ -17,7 +17,7 @@ UGameObject* UScene::SearchObject(unsigned int ID)
 void UScene::Update(float delta)
 {
 	for (UGameObject* Object : UGameObjectList) {
-		//Object->Update(delta);
+		Object->Update(delta);
 	}
 }
 

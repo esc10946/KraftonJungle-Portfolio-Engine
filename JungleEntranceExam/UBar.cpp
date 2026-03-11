@@ -68,7 +68,7 @@ void UBar::Update(float deltaTime)
 // 렌더링 (상수 버퍼 업데이트)
 void UBar::Render(URenderer& renderer)
 {
-	renderer.UpdateConstant(Location, FVector(Scale, 1.0f, 0));
+	renderer.UpdateConstant(Location, FVector(Scale, YLength, 0));
 }
 
 // 벽 충돌 적용

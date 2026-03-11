@@ -101,9 +101,14 @@ void UGameScene::Init()
     AddObject(Bar_2);
 
     //stage 블럭들
-    int CurrentRound = 1;
+    int CurrentRound = 2;
     stageblocks = CreateStage(CurrentRound);
-
+    for (auto* b : stageblocks)
+    {
+        if (!b)
+            nullptr;
+		AddObject(b);
+    }
     //게임매니저 초기화
     gameManager = UGameManager::GetInstance();
     gameManager->RessetGM();
@@ -168,7 +173,11 @@ void UGameScene::Update(float delta)
 
         for (auto* b : stageblocks)
         {
-            if (!b->IsActive()) continue;
+            if (!b)
+                continue;
+
+            if (!b->IsActive()) 
+                continue;
 
             EBlockCollision CollisionState = (*ball).CheckBlockCollision(*b, CollisionPos);
             if (CollisionState != EBlockCollision::None)
@@ -304,6 +313,10 @@ void UGameScene::Render(URenderer render)
     UItemManager::Get().Render(render);
 
     for (auto* b : stageblocks)
+    {
+        if (!b)
+            continue;
         b->Render(render);
+    }
 }
 

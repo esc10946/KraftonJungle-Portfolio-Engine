@@ -75,7 +75,7 @@ public:
 	bool CheckCollision(const UDiagram* Other) { return false; }
 	bool IsActive() const { return bActive; }
 	void SetActive(bool InActive) { bActive = InActive; }
-
+	float GetWipeProgress() const;
 
 public:
 	bool        bActive = true;
@@ -88,6 +88,6 @@ public:
 	float MinX, MaxX;
 	float MinY, MaxY;
 	int score;
-
-
+	float WipeProgress = -3.0f;
 };
+

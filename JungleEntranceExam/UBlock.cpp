@@ -54,20 +54,32 @@ void UBlock::Init(float cx, float cy, float hw, float hh)
     MaxX = CenterX + HalfW;
     MinY = CenterY - HalfH;
     MaxY = CenterY + HalfH;
-    TotalScore = 0;
+
 }
 void UBlock::Update(float DeltaTime)
 {
-    // hmm...
+    if (WipeProgress >= -2.5f && WipeProgress < 2.5f)
+    {
+        WipeProgress += DeltaTime * 12.0f; // 범위가 넓어졌으니 속도를 조금 올림
+
+        if (WipeProgress >= 2.5f)
+        {
+            WipeProgress = -3.0f; // 완전히 꺼진 상태
+        }
+    }
 
 }
 void UBlock::Render(URenderer& Renderer)
 {
     if (!IsActive())
         return;
-    FColor color;
-    color = GetColorFromBlockColor(Color);
-    Renderer.RenderRect(CenterX, CenterY, HalfW, HalfH, color);
+    Renderer.UpdateConstant(
+        FVector(CenterX, CenterY, 0.0f),
+        FVector(HalfW, HalfH, 1.0f),
+        GetColor(),
+        GetWipeProgress()
+    );
+    Renderer.RenderRectangle();
 }
 bool UBlock::CheckBallCollision(const FVector& BallPos, float Radius, FVector& OutNormal) const
 {
@@ -108,6 +120,8 @@ int UBlock::TakeDamage()//쿨타임 필요할거같은데혹은 다른 충돌이 있으면 초기화되�
 		std::cout << "Score : " << TotalScore << " Active Blocks : " << TotalActiveBlocks << std::endl;
         return score;
     }
+    else
+        WipeProgress = -2.5f;
     return 0;
 }
 int UBlock::GetScore()
@@ -120,4 +134,9 @@ FColor UBlock::GetColor() const
 	if (!IsActive())
 		return FColor(0.0f, 0.0f, 0.0f, 0.0f);
     return GetColorFromBlockColor(Color);
+}
+
+float  UBlock::GetWipeProgress() const
+{
+	return WipeProgress;
 }

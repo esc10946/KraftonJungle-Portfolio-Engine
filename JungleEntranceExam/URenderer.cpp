@@ -216,6 +216,7 @@ void URenderer::PrepareShader()
     if (ConstantBuffer)
     {
         DeviceContext->VSSetConstantBuffers(0, 1, &ConstantBuffer);
+        DeviceContext->PSSetConstantBuffers(0, 1, &ConstantBuffer);
     }
 }
 
@@ -239,7 +240,7 @@ void URenderer::RenderRectangle()
 {
     UINT offset = 0;
     DeviceContext->IASetVertexBuffers(0, 1, &vertexBufferRect, &Stride, &offset);
-    DeviceContext->Draw(NumVerticesBar, 0);
+    DeviceContext->Draw(NumVerticesRect, 0);
 }
 
 void URenderer::RenderTriangle()
@@ -268,14 +269,23 @@ ID3D11Buffer* URenderer::CreateVertexBuffer(FVertexSimple* vertices, UINT byteWi
 // Vertex Buffer를 Release 시키는 함수
 void URenderer::ReleaseVertexBuffer()
 {
-    if(vertexBufferRect)
+    if (vertexBufferRect)
+    {
         vertexBufferRect->Release();
+        vertexBufferRect = nullptr; 
+    }
 
     if (vertexBufferSphere)
+    {
         vertexBufferSphere->Release();
+        vertexBufferSphere = nullptr;
+    }
 
     if (vertexBufferTriangle)
+    {
         vertexBufferTriangle->Release();
+        vertexBufferTriangle = nullptr;
+    }
 }
 
 void URenderer::ReleaseVertexBuffer(ID3D11Buffer* pbuffer)
@@ -319,7 +329,7 @@ void URenderer::ReleaseConstantBuffer()
 //        DeviceContext->Unmap(ConstantBuffer, 0);
 //    }
 //}
-//ID3D11Buffer* RectVB = nullptr;
+
 //void URenderer::CreateRectBuffer()
 //{
 //    const FColor fill = { 1,1,1,1 };
@@ -348,6 +358,39 @@ void URenderer::ReleaseConstantBuffer()
 //{
 //    if (RectVB) { RectVB->Release(); RectVB = nullptr; }
 //}
+
+void URenderer::CreateRectBuffer()
+{
+
+	const float bx = 0.05f, by = 0.12f;
+    FVertexSimple verts[12] =
+    {
+        {-1.0f,  1.0f, 0.0f,0.3f,0.3f,0.3f,0 },
+        { 1.0f, -1.0f, 0.0f,0.3f,0.3f,0.3f,0 },
+        {-1.0f, -1.0f, 0.0f,0.3f,0.3f,0.3f,0 },
+        {-1.0f,  1.0f, 0.0f,0.3f,0.3f,0.3f,0 },
+        { 1.0f,  1.0f, 0.0f,0.3f,0.3f,0.3f,0 },
+        { 1.0f, -1.0f, 0.0f,0.3f,0.3f,0.3f,0 },
+
+        {-1.0f + bx,  1.0f - by, 0.0f, 1.0f, 1.0f, 1.0f, 1}, // 좌상
+        { 1.0f - bx, -1.0f + by, 0.0f, 1.0f, 1.0f, 1.0f, 1}, // 우하
+        {-1.0f + bx, -1.0f + by, 0.0f, 1.0f, 1.0f, 1.0f, 1}, // 좌하
+        {-1.0f + bx,  1.0f - by, 0.0f, 1.0f, 1.0f, 1.0f, 1}, // 좌상
+        { 1.0f - bx,  1.0f - by, 0.0f, 1.0f, 1.0f, 1.0f, 1}, // 우상
+        { 1.0f - bx, -1.0f + by, 0.0f, 1.0f, 1.0f, 1.0f, 1}, // 우하
+
+    };
+	vertexBufferRect = CreateVertexBuffer(verts, sizeof(verts));
+    NumVerticesRect = 12;
+}
+void URenderer::ReleaseRectBuffer()
+{
+    if (vertexBufferRect)
+    {
+		vertexBufferRect->Release();
+		vertexBufferRect = nullptr;
+    }
+}
 void URenderer::UpdateConstant(FVector Offset, FVector Scale)
 {
     if (ConstantBuffer)
@@ -358,53 +401,73 @@ void URenderer::UpdateConstant(FVector Offset, FVector Scale)
         FConstants* constants = (FConstants*)constantbufferMSR.pData;
         {
             constants->Offset = Offset;
+            constants->WipeProgress = -2.0f;
             constants->Scale = Scale;
+            constants->BlockColor = FColor(1, 1, 1, 1);
         }
         DeviceContext->Unmap(ConstantBuffer, 0);
     }
 }
 
-
-void URenderer::RenderRect(float cx, float cy, float hw, float hh, FColor Color)
+void URenderer::UpdateConstant(FVector Offset, FVector Scale,FColor Color, float WipeProgress)
 {
-    const FColor BgColor = Color * 0.5f;
-    const float L = cx - hw;
-    const float R = cx + hw;
-    const float T = cy + hh;
-    const float B = cy - hh;
-
-    const float brdX = hw * 0.10f;
-    const float brdY = hh * 0.12f;
-
-    const float IL = L + brdX;
-    const float IR = R - brdX;
-    const float IT = T - brdY;
-    const float IB = B + brdY;
-
-    FVertexSimple verts[12] =
+    if (ConstantBuffer)
     {
+        D3D11_MAPPED_SUBRESOURCE constantbufferMSR;
 
-        { L,  T,  0.0f,  BgColor.r, BgColor.g, BgColor.b, 1.0f },
-        { R,  B,  0.0f,  BgColor.r, BgColor.g, BgColor.b, 1.0f },
-        { L,  B,  0.0f,  BgColor.r, BgColor.g, BgColor.b, 1.0f },
-
-        { L,  T,  0.0f,  BgColor.r, BgColor.g, BgColor.b, 1.0f },
-        { R,  T,  0.0f,  BgColor.r, BgColor.g, BgColor.b, 1.0f },
-        { R,  B,  0.0f,  BgColor.r, BgColor.g, BgColor.b, 1.0f },
-
-
-        { IL, IT, 0.0f,  Color.r, Color.g, Color.b, 1.0f },
-        { IR, IB, 0.0f,  Color.r, Color.g, Color.b, 1.0f },
-        { IL, IB, 0.0f,  Color.r, Color.g, Color.b, 1.0f },
-
-        { IL, IT, 0.0f,  Color.r, Color.g, Color.b, 1.0f },
-        { IR, IT, 0.0f,  Color.r, Color.g, Color.b, 1.0f },
-        { IR, IB, 0.0f,  Color.r, Color.g, Color.b, 1.0f },
-    };
-    ID3D11Buffer* vb = CreateVertexBuffer(verts, sizeof(verts));
-
-    UpdateConstant(FVector(0.0f, 0.0f, 0.0f), FVector(1.0f, 1.0f, 1.0f));
-    RenderPrimitive(vb, 12);
-
-    ReleaseVertexBuffer(vb);
+        DeviceContext->Map(ConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &constantbufferMSR);
+        FConstants* constants = (FConstants*)constantbufferMSR.pData;
+        {
+            constants->Offset = Offset;
+            constants->WipeProgress = WipeProgress;
+            constants->Scale = Scale;
+            constants->BlockColor = Color;
+         
+        }
+        DeviceContext->Unmap(ConstantBuffer, 0);
+    }
 }
+
+//void URenderer::RenderRect(float cx, float cy, float hw, float hh, float Progress,FColor Color)
+//{
+//    const FColor BgColor = Color * 0.5f;
+//    const float L = cx - hw;
+//    const float R = cx + hw;
+//    const float T = cy + hh;
+//    const float B = cy - hh;
+//
+//    const float brdX = hw * 0.10f;
+//    const float brdY = hh * 0.12f;
+//
+//    const float IL = L + brdX;
+//    const float IR = R - brdX;
+//    const float IT = T - brdY;
+//    const float IB = B + brdY;
+//
+//    FVertexSimple verts[12] =
+//    {
+//
+//        { L,  T,  0.0f,  BgColor.r, BgColor.g, BgColor.b, 1.0f },
+//        { R,  B,  0.0f,  BgColor.r, BgColor.g, BgColor.b, 1.0f },
+//        { L,  B,  0.0f,  BgColor.r, BgColor.g, BgColor.b, 1.0f },
+//
+//        { L,  T,  0.0f,  BgColor.r, BgColor.g, BgColor.b, 1.0f },
+//        { R,  T,  0.0f,  BgColor.r, BgColor.g, BgColor.b, 1.0f },
+//        { R,  B,  0.0f,  BgColor.r, BgColor.g, BgColor.b, 1.0f },
+//
+//
+//        { IL, IT, 0.0f,  Color.r, Color.g, Color.b, 1.0f },
+//        { IR, IB, 0.0f,  Color.r, Color.g, Color.b, 1.0f },
+//        { IL, IB, 0.0f,  Color.r, Color.g, Color.b, 1.0f },
+//
+//        { IL, IT, 0.0f,  Color.r, Color.g, Color.b, 1.0f },
+//        { IR, IT, 0.0f,  Color.r, Color.g, Color.b, 1.0f },
+//        { IR, IB, 0.0f,  Color.r, Color.g, Color.b, 1.0f },
+//    };
+//    ID3D11Buffer* vb = CreateVertexBuffer(verts, sizeof(verts));
+//
+//    UpdateConstant(FVector(0.0f, 0.0f, 0.0f), FVector(1.0f, 1.0f, 1.0f), Progress);
+//    RenderPrimitive(vb, 12);
+//
+//    ReleaseVertexBuffer(vb);
+//}
