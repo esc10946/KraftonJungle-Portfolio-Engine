@@ -105,12 +105,19 @@ bool UBar::CheckCollision(const UDiagram* Other)
 void UBar::SetScale(const float _Scale)
 {
 	Scale = _Scale;
+
+	if (Scale > MaxScale) Scale = MaxScale;
+	else if (Scale < MinScale) Scale = MinScale;
+
 	XLength = 1.000000f * Scale;
 }
 
 void UBar::SetSpeed(const float _Speed)
 {
 	Speed = _Speed;
+
+	if (Speed > MaxSpeed) Speed = MaxSpeed;
+	else if (Speed < MinSpeed) Speed = MinSpeed;
 }
 
 void UBar::AddLife()

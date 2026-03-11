@@ -27,6 +27,12 @@ public:
     int Direction;
     EPlaySide Side;
 
+    const float MinSpeed = 0.3f;
+    const float MaxSpeed = 5.0f;
+
+    const float MinScale = 0.05f;
+    const float MaxScale = 0.3f;
+
     // 생성자 및 소멸자
 public:
     UBar(const FVector& _Location, const float _Speed, const float _Scale, int _PlayerNo, EPlaySide _Side);
