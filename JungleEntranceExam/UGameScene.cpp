@@ -1,4 +1,4 @@
-﻿#include "UGameScene.h"
+#include "UGameScene.h"
 #include "UGameObject.h"
 #include "UGameManager.h" 
 #include "UBall.h"
@@ -46,6 +46,60 @@ void UGameScene::UIRender()
     ImGui::SetWindowFontScale(4.0f);
     ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "SCORE: %d", gameManager->GetTotalScore());
     ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "LIVES: %d", gameManager->GetCurLife());
+
+    if (ShowStageClearModal)
+    {
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+        ImGui::SetNextWindowSize(ImVec2(300, 150)); // 창 크기 조절
+
+        // 팝업 열기 (이름은 고유해야 함)
+        ImGui::OpenPopup("Stage Clear Check");
+
+        if (ImGui::BeginPopupModal("Stage Clear Check", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove))
+        {
+            ImGui::Text("\n               Stage %d Clear!         \n\n", CurrentStage);
+            ImGui::Separator();
+
+            // 버튼 배치 (중앙 정렬을 위해 약간의 여백 추가 가능)
+            ImGui::SetCursorPosX(100);
+            if (ImGui::Button("Next Stage", ImVec2(100, 40)))
+            {
+                this->NextStage(CurrentStage + 1);
+                ShowStageClearModal = false;
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
+    }
+    else if (ShowGameOverModal)
+    {
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(center, ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+        ImGui::SetNextWindowSize(ImVec2(300, 150)); // 창 크기 조절
+
+        // 팝업 열기 (이름은 고유해야 함)
+        ImGui::OpenPopup("Game Over Check");
+
+        if (ImGui::BeginPopupModal("Game Over Check", NULL, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove))
+        {
+            ImGui::Text("\n               Game Over!         \n\n");
+            ImGui::Separator();
+
+            // 버튼 배치 (중앙 정렬을 위해 약간의 여백 추가 가능)
+            ImGui::SetCursorPosX(100);
+            if (ImGui::Button("TITLE MENU", ImVec2(100, 40)))
+            {
+                ShowGameOverModal = false;
+                gameManager->SubHealth(1);
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
+    }
+
     ImGui::End();
 
     ImGui::Render();
@@ -57,6 +111,8 @@ void UGameScene::Init()
 {
     UGameObjectList.clear();
     SceneType = ESceneType::InGame;
+    ShowStageClearModal = false ;
+    ShowGameOverModal = false;
 
     ActiveBallList.clear();
 
@@ -73,13 +129,31 @@ void UGameScene::Init()
     AddObject(Bar_2);
 
     //stage 블럭들
-    CurrentStage = 2;
+    CurrentStage = 1;
     stageblocks = CreateStage(CurrentStage);
     GetStageInfo(CurrentStage, CurrentStageRow, CurrentStageCol);
 
     //게임매니저 초기화
     gameManager = UGameManager::GetInstance();
     gameManager->RessetGM();
+}
+
+void UGameScene::NextStage(int StageNo)
+{
+    Bar_1->SetLocation(FVector(0.0f, -0.95f, 0.0f));
+    Bar_2->SetLocation(FVector(0.0f, 0.95f, 0.0f));
+
+    for (UBall* ball : ActiveBallList)
+        delete ball;
+    ActiveBallList.clear();
+    AddObject(UBall::CreateBallAtBar(*Bar_1));
+
+    for (auto* block : stageblocks)
+        delete block;
+    stageblocks.clear();
+    CurrentStage = StageNo;
+    stageblocks = CreateStage(CurrentStage);
+    GetStageInfo(CurrentStage, CurrentStageRow, CurrentStageCol);
 }
 
 void UGameScene::Release()
@@ -220,20 +294,38 @@ void UGameScene::Update(float delta)
         UBall* newBall = UBall::CreateBallAtBar(*Bar_1);
         ActiveBallList.push_back(newBall);
 
+        // 아이템 관련 리소스 해제
+        UItemManager::Get().Clear();
+
         USoundManager::GetInstance().Play("Damage");
-        gameManager->SubHealth(1);
+        if (gameManager->GetCurLife() > 1)
+        {
+            gameManager->SubHealth(1);
+        }
+        else
+        {
+            StopAllBall();
+            ShowGameOverModal = true;
+        }
     }
 
     if (bIsBrickEmpty()) // 벽돌 다 깨짐!
     {
-        // ������ ���� ���ҽ� ����
         UItemManager::Get().Clear();
-
-        USoundManager::GetInstance().StopAll();
-        USoundManager::GetInstance().Play("Victory");
-        UClearScene::FinalScore = gameManager->GetTotalScore();
-        USceneManager::GetInstance().LoadScene(ESceneType::Clear);
-        return;
+        
+        if (CurrentStage != 3)
+        {
+            StopAllBall();
+            ShowStageClearModal = true;
+        }
+        else
+        {
+            USoundManager::GetInstance().StopAll();
+            USoundManager::GetInstance().Play("Victory");
+            UClearScene::FinalScore = gameManager->GetTotalScore();
+            USceneManager::GetInstance().LoadScene(ESceneType::Clear);
+            return;
+        }
     }
 }
 
@@ -305,6 +397,16 @@ std::vector<UBall*>& UGameScene::GetActiveBalls()
 void UGameScene::AddBall(UBall* ball)
 {
     ActiveBallList.push_back(ball);
+}
+
+void UGameScene::StopAllBall()
+{
+    for (UBall* ball : ActiveBallList)
+    {
+        if (ball != nullptr) {
+            ball->StopMove();
+        }
+    }
 }
 
 void UGameScene::Render(URenderer render)

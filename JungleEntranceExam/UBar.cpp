@@ -73,6 +73,19 @@ void UBar::SetScale(const float _Scale)
 	XLength = 1.000000f * Scale;
 }
 
+FVector UBar::GetLocation() const
+{
+	return Location;
+}
+
+void UBar::SetLocation(const FVector& NewLoc) {
+	Location = NewLoc;
+}
+
+void UBar::SetLocation(FVector&& NewLoc) {
+	Location = std::move(NewLoc);
+}
+
 void UBar::AddLife()
 {
 	UGameManager::GetInstance()->AddHealth(1);

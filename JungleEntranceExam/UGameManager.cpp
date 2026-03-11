@@ -72,9 +72,6 @@ void UGameManager::AddHealth(const unsigned int value)
 
 void UGameManager::SubHealth(const unsigned int value)
 {
-	// 아이템 관련 리소스 해제
-	UItemManager::Get().Clear();
-
 	if (value >= currentHealth) {
 		Exit();
 		return;

@@ -1,4 +1,4 @@
-﻿#include "UBall.h"
+#include "UBall.h"
 #include "USoundManager.h"
 
 // ������ �� �Ҹ���
@@ -134,6 +134,11 @@ void UBall::SetSpeed(float inSpeed)
 
     if (Speed > SpeedLimitMax) Speed = SpeedLimitMax;
     else if (Speed < SpeedLimitMin) Speed = SpeedLimitMin;
+}
+
+void UBall::StopMove()
+{
+    Speed = 0.0f;
 }
 
 bool UBall::CheckCollision(const UDiagram* Other)
@@ -392,8 +397,12 @@ UBall* UBall::CreateBallAtBar(const UBar& Bar)
     Ball->Location.y = Bar.Location.y + (Bar.YLength + Ball->Radius) * static_cast<int>(Bar.Side);
     Ball->Location.z = 0.0f;
 
-    Ball->Velocity.y = GetRandomFloat(0.8f, 1.0f);
-    Ball->Velocity.x = sqrt(1 - Ball->Velocity.y * Ball->Velocity.y) * GetRandomSide();
+    Ball->Velocity.y = 1.0f;
+    Ball->Velocity.x = 0.0f;
+
+
+    /*Ball->Velocity.y = GetRandomFloat(0.8f, 1.0f);
+    Ball->Velocity.x = sqrt(1 - Ball->Velocity.y * Ball->Velocity.y) * GetRandomSide();*/
     Ball->Velocity.z = 0.0f;
     Ball->Speed = 0.5f;
 
