@@ -1,4 +1,6 @@
 #include "UBlock.h"
+#include "UItemManager.h"
+#include "ItemLibrary.h"
 #include <iostream>
 
 static int TotalScore=0;// 현재 전체 스코어
@@ -86,7 +88,7 @@ bool UBlock::CheckBallCollision(const FVector& BallPos, float Radius, FVector& O
 
 
 
-int UBlock::TakeDamage()//쿨타임 필요할거같은데혹은 다른 충돌이 있으면 초기화되던가
+int UBlock::TakeDamage(FVector& ballDir)//쿨타임 필요할거같은데혹은 다른 충돌이 있으면 초기화되던가
 {
     if (!IsActive() || Type == EBlockType::Immortal)
         return 0;
@@ -97,6 +99,28 @@ int UBlock::TakeDamage()//쿨타임 필요할거같은데혹은 다른 충돌이 있으면 초기화되�
         SetActive(false);
         TotalScore += score;
         TotalActiveBlocks--;
+
+        // 아이템 확률 생성 (확률 : --%)
+        int r = rand() % 100;
+
+        if (r < 100)
+        {
+            FItemDesc ItemDesc = ItemLibrary::MakeRandomItem();
+
+            FVector ItemDir;
+            if (ballDir.y > 0.0f)
+            {
+                // 공이 위로 이동 중이었다면
+                ItemDir = FVector(0.0f, -1.0f, 0.0f);
+            }
+            else
+            {
+                // 공이 아래로 이동 중이었다면
+                ItemDir = FVector(0.0f, 1.0f, 0.0f);
+            }
+            UItemManager::Get().SpawnItem(ItemDesc, FVector(CenterX, CenterY, 0.0f), ItemDir);
+        }
+
 		std::cout << "Score : " << TotalScore << " Active Blocks : " << TotalActiveBlocks << std::endl;
         return score;
     }

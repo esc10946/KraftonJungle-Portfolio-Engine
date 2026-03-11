@@ -27,6 +27,9 @@ public:
     void AddObject(UGameObject* Object) override;
     bool bIsBrickEmpty();
 
+    std::vector<UBall*>& GetActiveBalls();
+    void AddBall(UBall* ball);
+
 private:
     UGameManager* gameManager = nullptr;
 
