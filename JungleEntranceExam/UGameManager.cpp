@@ -54,6 +54,15 @@ void UGameManager::RessetGM()
 	currentScore = 0;
 }
 
+void UGameManager::Release()
+{
+	if (gameManager != nullptr)
+	{
+		delete gameManager;
+		gameManager = nullptr;
+	}
+}
+
 void UGameManager::AddHealth(const unsigned int value)
 {
 	currentHealth += value;

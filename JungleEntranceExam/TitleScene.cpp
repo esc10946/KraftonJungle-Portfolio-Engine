@@ -49,13 +49,12 @@ void UTitleScene::UIRender()
     ImGui::NewFrame();
 
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
-    const float padding = 200.f;
+
+    // 1. 창을 화면 정중앙에 배치
     ImVec2 centerPos = ImVec2(
         viewport->WorkPos.x + viewport->WorkSize.x * 0.5f,
         viewport->WorkPos.y + viewport->WorkSize.y * 0.5f
     );
-
-    // 2. 좌표는 화면 중앙(centerPos), 피봇도 창의 중앙(0.5f, 0.5f)으로 세팅!
     ImGui::SetNextWindowPos(centerPos, ImGuiCond_Always, ImVec2(0.5f, 0.5f));
 
     ImGuiWindowFlags hudFlags =
@@ -66,39 +65,60 @@ void UTitleScene::UIRender()
 
     ImGui::Begin("Title", nullptr, hudFlags);
 
+    float windowWidth = ImGui::GetWindowWidth();
 
-    ImGui::SetWindowFontScale(5.0f);
-    ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "Brick Braker");
-    ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "\n");
-    ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "\n");
+    const char* titleText = "Brick Breaker";
+    ImGui::SetWindowFontScale(8.0f);
 
+    // 글자가 차지할 가로 길이를 계산하고 커서를 이동시킵니다.
+    float titleWidth = ImGui::CalcTextSize(titleText).x;
+    ImGui::SetCursorPosX((windowWidth - titleWidth) * 0.5f);
+    ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), titleText);
+
+    ImGui::Text("\n"); // 줄바꿈
+
+    // ==========================================
+    // 2. 버튼 중앙 정렬 
+    // ==========================================
+    ImGui::SetWindowFontScale(4.0f);
     ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0.8f, 0.1f, 0.1f, 0.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 1.0f, 1.0f, 0.1f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(1.6f, 1.0f, 1.0f, 0.1f));
 
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(1.0f, 0.2f, 0.2f, 0.0f));
+    // 통일감을 위해 버튼 크기를 고정합니다.
+    float btnWidth = 400.0f;
+    float btnHeight = 80.0f;
+    ImVec2 btnSize(btnWidth, btnHeight);
 
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.6f, 0.0f, 0.0f, 0.0f));
-
-
-    //게임 시작 버튼
-    if (ImGui::Button("Game Start"))
+    // 게임 시작 버튼
+    ImGui::SetCursorPosX((windowWidth - btnWidth) * 0.5f);
+    if (ImGui::Button("Game Start", btnSize))
     {
         USceneManager::GetInstance().LoadScene(ESceneType::InGame);
     }
+
     ImGui::Text("\n");
 
-    //게임 종료 버튼
-    if (ImGui::Button("Quit"))
+    // 게임 종료 버튼
+    ImGui::SetCursorPosX((windowWidth - btnWidth) * 0.5f);
+    if (ImGui::Button("Quit", btnSize))
     {
         GameEnd();
     }
+
     ImGui::Text("\n");
+    ImGui::PopStyleColor(3); // 버튼 스타일 원상복구
 
-    ImGui::PopStyleColor(3);
-    ImGui::SetWindowFontScale(2.0f);
+    ImGui::SetWindowFontScale(1.5f);
+    const char* teamText = "Team 8: Kim Hyung-do,  Kim Ho-jun,  Jo Sang-hyeon,  Kim Sun-myeong";
 
-    ImGui::Text("Team 8: Kim Hyung-do,  Kim Ho-jun,  Jo Sang-hyeon,  Kim Sun-myeong");
+    float teamWidth = ImGui::CalcTextSize(teamText).x;
+    ImGui::SetCursorPosX((windowWidth - teamWidth) * 0.5f);
+    ImGui::Text(teamText);
+
+    // ==========================================
+
     ImGui::End();
     ImGui::Render();
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }
-

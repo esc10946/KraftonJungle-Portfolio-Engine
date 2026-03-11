@@ -20,6 +20,7 @@ public:
 	void AddScore(const unsigned int value);
 	void SetScore(const unsigned int value);
 	void RessetGM();
+	void Release();
 
 	void AddHealth(const unsigned int value);
 	void SubHealth(const unsigned int value);

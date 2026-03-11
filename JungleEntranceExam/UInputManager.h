@@ -1,12 +1,12 @@
-#pragma once
+癤�#pragma once
 #include <windows.h>
 #include "UGamepadManager.h"
 enum class EKeyState
 {
-    None,   // 안 눌림
-    Down,   // 방금 눌림 (딱 1프레임만 true)
-    Press,  // 꾹 누르고 있는 중
-    Up      // 방금 뗌 (딱 1프레임만 true)
+    None,
+    Down,
+    Press,
+    Up
 };
 
 class UInputManager
@@ -15,12 +15,13 @@ class UInputManager
 public:
     static UInputManager* GetInstance();
 
-    void Update(); // 매 프레임마다 키보드 상태를 갱신해줄 함수
+    void Update();
 
     bool GetKeyDown(int key) { return KeyStates[key] == EKeyState::Down; }
     bool GetKeyPress(int key) { return KeyStates[key] == EKeyState::Press; }
     bool GetKeyUp(int key) { return KeyStates[key] == EKeyState::Up; }
 
+    void Release();
     float GetAxisX(int playerIndex) const;
 
 private:

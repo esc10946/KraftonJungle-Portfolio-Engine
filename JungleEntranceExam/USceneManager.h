@@ -20,7 +20,8 @@ public:
 	UScene* GetCurrentScene() const { return currentScene; }
 	ESceneType GetCurrentSceneName() const;
 	void AddObjectToCurrentScene(UGameObject* Object);
-
+	
+	void Release();
 private:
 	USceneManager();
 	~USceneManager();

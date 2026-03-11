@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include "UDiagram.h"
 
@@ -68,17 +68,20 @@ public:
 	FColor GetColor() const;
 	void ApplyWallCollision() {}
 
-	// Áß·Â Àû¿ë
+	// ì¤‘ë ¥ ì ìš©
 	void ApplyGravity(float deltaTime, const FVector& gravity) {}
 
-	// ´Ù¸¥ µµÇü°ú Ãæµ¹ ÆÇÁ¤
+	// ë‹¤ë¥¸ ë„í˜•ê³¼ ì¶©ëŒ íŒì •
 	bool CheckCollision(const UDiagram* Other) { return false; }
 	bool IsActive() const { return bActive; }
 	void SetActive(bool InActive) { bActive = InActive; }
+	bool CheckSkip() const { return SkipCalc; }
+	void SetSkipCalc(bool InSkipCalc) { SkipCalc = InSkipCalc; }
 	float GetWipeProgress() const;
 
 public:
 	bool        bActive = true;
+	bool		SkipCalc = false;
 	EBlockType Type;
 	EBlockColor Color;
 	int MaxHp;

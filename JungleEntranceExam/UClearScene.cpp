@@ -22,17 +22,19 @@ void UClearScene::UIRender()
 
     ImGui::Begin("ClearScreen", nullptr, ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoBackground);
 
-    ImGui::SetWindowFontScale(3.0f);
+    ImGui::SetWindowFontScale(6.0f);
+    float windowWidth = ImGui::GetWindowWidth();
+    float titleWidth = ImGui::CalcTextSize("STAGE CLEAR!").x;
+
+    ImGui::SetCursorPosX((windowWidth - titleWidth) * 0.5f);
     ImGui::TextColored(ImVec4(1, 1, 0, 1), "STAGE CLEAR!"); 
 
-    ImGui::SetWindowFontScale(1.5f);
+    ImGui::SetWindowFontScale(2.5f);
     ImGui::Text("YOUR FINAL SCORE: %d", FinalScore);
-
-    ImGui::Text("Team 8: Hyungdo, Hojun, Sanghyeon, Sunmyeong");
 
     ImGui::Separator(); 
 
-    ImVec2 btnSize(200, 50);
+    ImVec2 btnSize(250, 50);
     ImGui::SetCursorPosX((ImGui::GetWindowWidth() - btnSize.x) * 0.5f);
     if (ImGui::Button("RESTART", btnSize))
     {

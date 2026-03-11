@@ -72,6 +72,15 @@ void UInputManager::Update()
 
 }
 
+void UInputManager::Release()
+{
+    if (instance != nullptr)
+    {
+        delete instance;
+        instance = nullptr;
+    }
+}
+
 float UInputManager::GetAxisX(int playerIndex) const
 {
     return (playerIndex >= 0 && playerIndex < 2) ? PlayerAxesX[playerIndex] : 0.0f;

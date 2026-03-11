@@ -62,6 +62,15 @@ void USceneManager::AddObjectToCurrentScene(UGameObject* Object)
 	currentScene->AddObject(Object);
 }
 
+void USceneManager::Release()
+{
+    if (sceneManager != nullptr)
+    {
+        delete sceneManager;
+        sceneManager = nullptr;
+    }
+}
+
 USceneManager::USceneManager()
 {
 	titleScene = new UTitleScene();

@@ -183,6 +183,8 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="UClearScene.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
     <ClInclude Include="Stage.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
@@ -190,10 +192,14 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="TitleScene.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
     <ClInclude Include="UBlock.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="USoundManager.h">
+    <Filter>헤더 파일</Filter>
+    </ClInclude>
     <ClInclude Include="UGamepadManager.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>

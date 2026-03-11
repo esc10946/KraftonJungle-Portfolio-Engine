@@ -1,4 +1,4 @@
-#include "Stage.h"
+ï»¿#include "Stage.h"
 //Grid?
 
 static const float HALF_BW = 0.065f;// (2.0f - a)/ 13.0f / 2.0f
@@ -101,7 +101,7 @@ static UBlock* MakeBlock(int code, float cx, float cy, int round)
 		color = ColorTable[code];
 	}
 	UBlock* block = new UBlock(type, color, round);
-	//block->Init(); grid »ç¿ëÇÒ°Í
+	//block->Init(); grid ì‚¬ìš©í• ê²ƒ
 	return block;
 }
 template <int ROWS,int COLS>
