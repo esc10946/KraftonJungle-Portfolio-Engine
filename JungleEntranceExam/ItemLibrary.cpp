@@ -8,13 +8,13 @@ FItemDesc ItemLibrary::MakeRandomItem()
     if (r < 30)
         return MakeMultiBall(2);
     // 스코어 보너스 아이템 (확률 : --%)
-    if (r < 40)
+    if (r < 45)
         return MakeScoreBonus(100);
     // 패들 길이 증가 아이템 (확률 : --%)
-    if (r < 60)
+    if (r < 65)
         return MakePaddleExpand(1.2f);
     // 패들 길이 감소 아이템 (확률 : --%)
-    if (r < 70)
+    if (r < 80)
         return MakePaddleShrink(0.8f);
     // 공 속도 증가 아이템 (확률 : --%)
     if (r < 90)

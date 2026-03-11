@@ -100,10 +100,15 @@ int UBlock::TakeDamage()//쿨타임 필요할거같은데혹은 다른 충돌이 있으면 초기화되�
         TotalScore += score;
         TotalActiveBlocks--;
 
-        // 아이템 생성
-        FItemDesc ItemDesc = ItemLibrary::MakeRandomItem();
+        // 아이템 확률 생성 (확률 : --%)
+        int r = rand() % 100;
 
-        UItemManager::Get().SpawnItem(ItemDesc, FVector(CenterX, CenterY, 0.0f), FVector(0.0f, -1.0f, 0.0f));
+        if (r < 50)
+        {
+            FItemDesc ItemDesc = ItemLibrary::MakeRandomItem();
+
+            UItemManager::Get().SpawnItem(ItemDesc, FVector(CenterX, CenterY, 0.0f), FVector(0.0f, -1.0f, 0.0f));
+        }
 
 		std::cout << "Score : " << TotalScore << " Active Blocks : " << TotalActiveBlocks << std::endl;
         return score;
