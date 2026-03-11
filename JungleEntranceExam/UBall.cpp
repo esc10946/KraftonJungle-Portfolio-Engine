@@ -353,7 +353,7 @@ void UBall::BallBounceAtBlock(const EBlockCollision Position, UBlock& Block, con
 {
     if (Position == EBlockCollision::None) return;
 
-    Block.TakeDamage();
+    Block.TakeDamage(Velocity);
 
     switch (Position)
     {

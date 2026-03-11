@@ -88,7 +88,7 @@ bool UBlock::CheckBallCollision(const FVector& BallPos, float Radius, FVector& O
 
 
 
-int UBlock::TakeDamage()//쿨타임 필요할거같은데혹은 다른 충돌이 있으면 초기화되던가
+int UBlock::TakeDamage(FVector& ballDir)//쿨타임 필요할거같은데혹은 다른 충돌이 있으면 초기화되던가
 {
     if (!IsActive() || Type == EBlockType::Immortal)
         return 0;
@@ -107,7 +107,18 @@ int UBlock::TakeDamage()//쿨타임 필요할거같은데혹은 다른 충돌이 있으면 초기화되�
         {
             FItemDesc ItemDesc = ItemLibrary::MakeRandomItem();
 
-            UItemManager::Get().SpawnItem(ItemDesc, FVector(CenterX, CenterY, 0.0f), FVector(0.0f, -1.0f, 0.0f));
+            FVector ItemDir;
+            if (ballDir.y > 0.0f)
+            {
+                // 공이 위로 이동 중이었다면
+                ItemDir = FVector(0.0f, -1.0f, 0.0f);
+            }
+            else
+            {
+                // 공이 아래로 이동 중이었다면
+                ItemDir = FVector(0.0f, 1.0f, 0.0f);
+            }
+            UItemManager::Get().SpawnItem(ItemDesc, FVector(CenterX, CenterY, 0.0f), ItemDir);
         }
 
 		std::cout << "Score : " << TotalScore << " Active Blocks : " << TotalActiveBlocks << std::endl;
