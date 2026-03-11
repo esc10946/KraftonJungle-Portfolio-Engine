@@ -21,7 +21,8 @@ public:
     bool    IsMove;
     UBar*   BarPtr;
     float   Acceleration;
-    float   SpeedLimit;
+    float   SpeedLimitMin;
+    float   SpeedLimitMax;
     inline static int TotalNumBalls{ 0 };
 private:
     std::deque<FVector> trailSpawnLoc;
@@ -54,6 +55,10 @@ public:
     // 반지름 설정 (질량 자동 설정, 반지름에 비례)
     void SetRadius(float InRadius);
 
+    // �� �ӵ� ����
+    float GetSpeed();
+    void SetSpeed(float inSpeed);
+
 	virtual bool CheckCollision(const UDiagram* Other) override;
 
     EBlockCollision CheckBarCollision(const UBar& Bar, FVector& CollisionPos);
@@ -71,6 +76,8 @@ public:
     bool GetIsMove();
 
     static UBall* CreateBallAtBar(const UBar& Bar);
+
+    static UBall** CreateMultiBalls(const UBall* sourceBall);
 
     // static void InitBall(UBall& input);
 };

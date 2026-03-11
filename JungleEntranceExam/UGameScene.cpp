@@ -7,6 +7,7 @@
 #include "UClearScene.h"
 #include "USceneManager.h"
 #include "USoundManager.h"
+#include "UItemManager.h"
 #include "Stage.h"
 
 UGameScene::UGameScene()
@@ -205,6 +206,11 @@ void UGameScene::Update(float delta)
         }
     }
 
+    // Item Objects Update
+    UItemManager::Get().Update(delta);
+    UItemManager::Get().CheckCollision(Bar_1);
+    UItemManager::Get().CheckCollision(Bar_2);
+
     gameManager->Update(delta);
 
     // ë°–ì— ê³µì´ ë‚˜ê°”ëŠ”ì§€ íŒë³„
@@ -220,6 +226,8 @@ void UGameScene::Update(float delta)
 
     if (bIsBrickEmpty()) // ë²½ëŒ ë‹¤ ê¹¨ì§!
     {
+        // ¾ÆÀÌÅÛ °ü·Ã ¸®¼Ò½º ÇØÁ¦
+        UItemManager::Get().Clear();
 
         USoundManager::GetInstance().StopAll();
         USoundManager::GetInstance().Play("Victory");
@@ -289,6 +297,16 @@ bool UGameScene::bIsBrickEmpty()
     return true;
 }
 
+std::vector<UBall*>& UGameScene::GetActiveBalls()
+{
+    return ActiveBallList;
+}
+
+void UGameScene::AddBall(UBall* ball)
+{
+    ActiveBallList.push_back(ball);
+}
+
 void UGameScene::Render(URenderer render)
 {
     for (UGameObject* Object : UGameObjectList)
@@ -308,6 +326,9 @@ void UGameScene::Render(URenderer render)
             render.RenderSphere();
         }
     }
+
+    // Item Objects Render
+    UItemManager::Get().Render(render);
 
     for (auto* b : stageblocks)
     {
