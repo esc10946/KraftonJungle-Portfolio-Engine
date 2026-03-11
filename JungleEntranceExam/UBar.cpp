@@ -26,34 +26,8 @@ UBar::~UBar()
 // 물리/이동 업데이트
 void UBar::Update(float deltaTime)
 {
-	
-	/*int leftKey = (PlayerNo == 0) ? VK_LEFT : 'A';
-	int rightKey = (PlayerNo == 0) ? VK_RIGHT : 'D';*/
-
 	UInputManager* input = UInputManager::GetInstance();
 	
-	//if (!input->GetKeyPress(leftKey) && !input->GetKeyPress(rightKey))
-	//{
-	//	Direction = 0; // 아무것도 안 누르면 멈춤
-	//}
-
-	//if (input->GetKeyDown(leftKey))
-	//{
-	//	Direction = -1; // 왼쪽 키 누르면 왼쪽으로
-	//}
-	//if (input->GetKeyDown(rightKey))
-	//{
-	//	Direction = 1;  // 오른쪽 키 누르면 오른쪽으로
-	//}
-
-	//if (input->GetKeyUp(leftKey) && input->GetKeyPress(rightKey))
-	//{
-	//	Direction = 1;  // 왼쪽 떼고 오른쪽 누르고 있으면 오른쪽으로
-	//}
-	//if (input->GetKeyUp(rightKey) && input->GetKeyPress(leftKey))
-	//{
-	//	Direction = -1; // 오른쪽 떼고 왼쪽 누르고 있으면 왼쪽으로
-	//}
 
 	float moveX = input->GetAxisX(PlayerNo);
 	if (moveX > 0.0f)      Direction = 1;
@@ -75,15 +49,6 @@ void UBar::Render(URenderer& renderer)
 void UBar::ApplyWallCollision()
 {
 	Location.x = std::clamp(Location.x, leftBorder + XLength, rightBorder - XLength);
-	//// 벽과 충돌 여부를 체크하고 벽에 닿았으면 멈춤
-	//if (Location.x < leftBorder + XLength)
-	//{
-	//	Location.x = leftBorder + XLength;
-	//}
-	//if (Location.x > rightBorder - XLength)
-	//{
-	//	Location.x = rightBorder - XLength;
-	//}
 }
 
 // 충격량 적용
@@ -110,6 +75,19 @@ void UBar::SetScale(const float _Scale)
 	else if (Scale < MinScale) Scale = MinScale;
 
 	XLength = 1.000000f * Scale;
+}
+
+FVector UBar::GetLocation() const
+{
+	return Location;
+}
+
+void UBar::SetLocation(const FVector& NewLoc) {
+	Location = NewLoc;
+}
+
+void UBar::SetLocation(FVector&& NewLoc) {
+	Location = std::move(NewLoc);
 }
 
 void UBar::SetSpeed(const float _Speed)

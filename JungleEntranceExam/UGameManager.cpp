@@ -14,8 +14,8 @@ void UGameManager::initialize()
 {
 }
 
-//인게임에서 초기화면으로 돌아가는 함수
-//SceneManager에게 title을 요청
+//�ΰ��ӿ��� �ʱ�ȭ������ ���ư��� �Լ�
+//SceneManager���� title�� ��û
 void UGameManager::Exit()
 {
 	initialize();
@@ -66,15 +66,12 @@ void UGameManager::Release()
 void UGameManager::AddHealth(const unsigned int value)
 {
 	currentHealth += value;
-	//최대 체력 
+	//�ִ� ü�� 
 	currentHealth = currentHealth < MaxHealth ? currentHealth : MaxHealth;
 }
 
 void UGameManager::SubHealth(const unsigned int value)
 {
-	// 아이템 관련 리소스 해제
-	UItemManager::Get().Clear();
-
 	if (value >= currentHealth) {
 		HightScoreUpdate(currentScore);
 		Exit();
