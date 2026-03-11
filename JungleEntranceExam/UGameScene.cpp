@@ -284,7 +284,7 @@ void UGameScene::AddObject(UGameObject* Object)
 bool UGameScene::bIsBrickEmpty()
 {
     for (auto& b : stageblocks) {
-        if (b->IsActive()) return false;
+        if (b && b->IsActive()) return false;
     }
     return true;
 }
