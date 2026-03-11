@@ -21,7 +21,7 @@ UBar::UBar(const FVector& _Location, const float _Speed, const float _Scale, int
 	, LastFireTime(std::chrono::steady_clock::now())
 	, FlyingBulletVecSize(30)
 	, CurrentShootSide(EDirection::Left)
-	, ShootKey((PlayerNo == 0) ? VK_DOWN : 'X')
+	, ShootKey((PlayerNo == 0) ? VK_DOWN : 'S')
 {
 	FlyingBullet.reserve(FlyingBulletVecSize);
 	for (int i = 0; i < FlyingBulletVecSize; i++)

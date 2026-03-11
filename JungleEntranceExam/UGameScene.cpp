@@ -122,12 +122,9 @@ void UGameScene::Init()
     //2번 플레이어가 움직이는 바
     Bar_2 = new UBar(FVector(0.0f, 0.95f, 0.0f), 1.0f, 0.15f, 1, EPlaySide::Down);
 
-    UBall* newBall = UBall::CreateBallAtBar(*Bar_1);
-
-    AddObject(newBall);
+    AddObject(UBall::CreateBallAtBar(*Bar_1));
     AddObject(Bar_1);
     AddObject(Bar_2);
-
 
     CurrentStage = 2;
     stageblocks = CreateStage(CurrentStage);
@@ -137,8 +134,6 @@ void UGameScene::Init()
             nullptr;
         AddObject(b);
     }
-
-
 
     GetStageInfo(CurrentStage, CurrentStageRow, CurrentStageCol);
     StageData = GetStageData();
@@ -330,8 +325,14 @@ void UGameScene::Update(float delta)
 
             int CurCol{ static_cast<int>((CurLocation.x - (-1.0f + StageData.START_X)) / StageData.STEP_X) };
 
+            if (CurCol < 0 || CurCol >= CurrentStageCol)
+            {
+                continue;
+            }
+
             for (int CurRow{ CurrentStageRow - 1 }; CurRow >= 0;CurRow--)
             {
+                
                 if (!stageblocks[CurRow * CurrentStageCol + CurCol])
                 {
                     continue;
@@ -371,6 +372,11 @@ void UGameScene::Update(float delta)
 
             int CurCol{ static_cast<int>((CurLocation.x - (-1.0f + StageData.START_X)) / StageData.STEP_X) };
 
+            if (CurCol < 0 || CurCol >= CurrentStageCol)
+            {
+                continue;
+            }
+
             for (int CurRow{ 0 }; CurRow < CurrentStageRow;CurRow++)
             {
                 if (!stageblocks[CurRow * CurrentStageCol + CurCol])
@@ -384,12 +390,12 @@ void UGameScene::Update(float delta)
                         b.SetIsHit(true);
                         FVector BulletDirection(0.0f, -1.0f, 0.0f);
                         stageblocks[CurRow * CurrentStageCol + CurCol]->TakeDamage(BulletDirection);
-                        CurLocation.y = stageblocks[CurRow * CurrentStageCol + CurCol]->MinY;
+                        CurLocation.y = stageblocks[CurRow * CurrentStageCol + CurCol]->MaxY;
                     }
-                }
-                else
-                {
-                    break;
+                    else
+                    {
+                        break;
+                    }
                 }
             }
         }

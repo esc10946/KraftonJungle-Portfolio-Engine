@@ -3,7 +3,7 @@
 UBullet::UBullet(int _BulletDirection)
 	: BulletDirection(_BulletDirection)
 {
-
+	Scale *= BulletDirection;
 }
 
 UBullet::~UBullet()
@@ -105,12 +105,26 @@ bool UBullet::CheckBlockHit(const UBlock& Block, float DeltaTime) const
 {
 	FVector PastLocation(Location.x, Location.y - (Speed * BulletDirection * DeltaTime), Location.z);
 
-	if (PastLocation.y + UBullet::Height <= Block.CenterY && Block.CenterY <= Location.y + UBullet::Height)
+	if (BulletDirection > 0)
 	{
-		return true;
+		if (PastLocation.y + UBullet::Height <= Block.CenterY && Block.CenterY <= Location.y + UBullet::Height)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
 	}
 	else
 	{
-		return false;
+		if (Location.y - UBullet::Height <= Block.CenterY && Block.CenterY <= PastLocation.y - UBullet::Height)
+		{
+			return true;
+		}
+		else
+		{
+			return false;
+		}
 	}
 }
