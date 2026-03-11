@@ -1,8 +1,8 @@
-#include "UBall.h"
+ï»¿#include "UBall.h"
 #include "USoundManager.h"
 
-// »ı¼ºÀÚ ¹× ¼Ò¸êÀÚ
-UBall::UBall() : Location(0.0f, 0.0f, 0.0f), Velocity(0.0f, 0.0f, 0.0f),Speed(1.0f), Radius(0.1f), Mass(0.1f), IsMove(false), BarPtr(nullptr), Acceleration(0.0f), SpeedLimit(5.0f)
+// ìƒì„±ì ë° ì†Œë©¸ì
+UBall::UBall() : Location(0.0f, 0.0f, 0.0f), Velocity(0.0f, 0.0f, 0.0f),Speed(1.0f), Radius(0.1f), Mass(0.1f), IsMove(false), BarPtr(nullptr), Acceleration(0.0f), SpeedLimit(3.0f)
 {
     ++TotalNumBalls;
     Mass = (4.0f / 3.0f) * Pi * std::powf(Radius, 3);
@@ -20,20 +20,20 @@ UBall::~UBall()
     --TotalNumBalls;
 }
 
-    // UPrimitive ÀÎÅÍÆäÀÌ½º ±¸Çö
-    // ¹°¸®/ÀÌµ¿ ¾÷µ¥ÀÌÆ®
+    // UPrimitive ì¸í„°í˜ì´ìŠ¤ êµ¬í˜„
+    // ë¬¼ë¦¬/ì´ë™ ì—…ë°ì´íŠ¸
 void UBall::Update(float deltaTime)
 {
     static int StartMoveKey = (BarPtr->PlayerNo == 0) ? VK_UP : 'S';
 
     if (IsMove)
     {
-        // ¼Óµµ¿¡ ±â¹İÇÏ¿© À§Ä¡ Àû¿ë
+        // ì†ë„ì— ê¸°ë°˜í•˜ì—¬ ìœ„ì¹˜ ì ìš©
         Location.x += Velocity.x * Speed * deltaTime;
         Location.y += Velocity.y * Speed * deltaTime;
         // Location.z += Velocity.z * deltaTime;
 
-        // º® Ãæµ¹ Àû¿ë
+        // ë²½ ì¶©ëŒ ì ìš©
         ApplyWallCollision();
 
         if (Speed < SpeedLimit)
@@ -54,25 +54,25 @@ void UBall::Update(float deltaTime)
     }
 }
 
-    // ·»´õ¸µ (»ó¼ö ¹öÆÛ ¾÷µ¥ÀÌÆ®)
+    // ë Œë”ë§ (ìƒìˆ˜ ë²„í¼ ì—…ë°ì´íŠ¸)
 void UBall::Render(URenderer& renderer)
 {
     renderer.UpdateConstant(Location, FVector(Radius, Radius, 0));
 }
 
-    // º® Ãæµ¹ Àû¿ë
+    // ë²½ ì¶©ëŒ ì ìš©
 void UBall::ApplyWallCollision()
 {
     bool bHitWall = false;
 
-    // º®°ú Ãæµ¹ ¿©ºÎ¸¦ Ã¼Å©ÇÏ°í ¹İ»ç ½ÃÅ´ (º® ³¢ÀÓ ¹æÁö Ãß°¡)
+    // ë²½ê³¼ ì¶©ëŒ ì—¬ë¶€ë¥¼ ì²´í¬í•˜ê³  ë°˜ì‚¬ ì‹œí‚´ (ë²½ ë¼ì„ ë°©ì§€ ì¶”ê°€)
     if (Location.x < leftBorder + Radius)
     {
         Location.x = leftBorder + Radius;
         if (Velocity.x < 0.0f)
         {
             Velocity.x *= -1.0f;
-            bHitWall = true; // ºÎµúÈû Ã¼Å©!
+            bHitWall = true; // ë¶€ë”ªí˜ ì²´í¬!
         }
     }
     if (Location.x > rightBorder - Radius)
@@ -99,13 +99,13 @@ void UBall::ApplyWallCollision()
     }
 }
 
-    // Ãæ°İ·® Àû¿ë
+    // ì¶©ê²©ëŸ‰ ì ìš©
 void UBall::ApplyGravity(float deltaTime, const FVector& gravity)
 {
     //Velocity = Velocity + gravity * deltaTime;
 }
 
-// ¹İÁö¸§ ¼³Á¤ (Áú·® ÀÚµ¿ ¼³Á¤, ¹İÁö¸§¿¡ ºñ·Ê)
+// ë°˜ì§€ë¦„ ì„¤ì • (ì§ˆëŸ‰ ìë™ ì„¤ì •, ë°˜ì§€ë¦„ì— ë¹„ë¡€)
 void UBall::SetRadius(float InRadius)
 {
     Radius = InRadius;
@@ -128,23 +128,12 @@ bool UBall::CheckCollision(const UDiagram* Other)
     {
 		float dx{ Location.x - OtherBall->Location.x };
 		float dy{ Location.y - OtherBall->Location.y };
-		float distanceSquared{ dx * dx + dy * dy };
+		float DistanceSquared{ dx * dx + dy * dy };
 		float radiusSum{ Radius + OtherBall->Radius };
-		return distanceSquared <= (radiusSum * radiusSum);
+		return DistanceSquared <= (radiusSum * radiusSum);
 	}
 	return false;
 }
-
-//void UBall::BallBounceAtBar(const UBar& PlayerBar)
-//{
-//    Velocity.x = Velocity.x + ((Location.x - PlayerBar.Location.x) / PlayerBar.XLength) / 3;
-//    if (Velocity.x > 0.80f)
-//        Velocity.x = 0.80f;
-//    else if (Velocity.x < -0.80f)
-//        Velocity.x = -0.80f;
-//    Velocity.y = sqrtf(1 - powf(Velocity.x, 2));
-//    Location.y = PlayerBar.Location.y + PlayerBar.YLength + Radius;
-//}
 
 void UBall::ResolveCollision(UBall* Other) {
     float dx{ Other->Location.x - Location.x };
@@ -189,39 +178,30 @@ void UBall::ResolveCollision(UBall* Other) {
 
 EBlockCollision UBall::CheckBarCollision(const UBar& Bar, FVector& CollisionPos)
 {
-    // 2. °øÀÇ Áß½É¿¡¼­ º®µ¹ À§ÀÇ °¡Àå °¡±î¿î Á¡(P) Ã£±â
+    // 2. ê³µì˜ ì¤‘ì‹¬ì—ì„œ ë²½ëŒ ìœ„ì˜ ê°€ì¥ ê°€ê¹Œìš´ ì (P) ì°¾ê¸°
     float ClosestX = std::clamp(Location.x, Bar.Location.x - Bar.XLength, Bar.Location.x + Bar.XLength);
     float ClosestY = std::clamp(Location.y, Bar.Location.y - Bar.YLength, Bar.Location.y + Bar.YLength);
 
-    // 3. °øÀÇ Áß½É°ú Á¡ P »çÀÌÀÇ °Å¸® °è»ê
+    // 3. ê³µì˜ ì¤‘ì‹¬ê³¼ ì  P ì‚¬ì´ì˜ ê±°ë¦¬ ê³„ì‚°
     float DistanceX = Location.x - ClosestX;
     float DistanceY = Location.y - ClosestY;
     float DistanceSquared = (DistanceX * DistanceX) + (DistanceY * DistanceY);
 
     if (DistanceSquared < (Radius * Radius))
     {
-        // Ãæµ¹ ¹ß»ı! ¾î´À ¸éÀÎÁö ÆÇÁ¤
-        bool HitVertical = (Location.x >= Bar.Location.x - Bar.XLength && Location.x <= Bar.Location.x + Bar.XLength);
-        bool HitHorizontal = (Location.y >= Bar.Location.y - Bar.YLength && Location.y <= Bar.Location.y + Bar.YLength);
+        // ì¶©ëŒ ë°œìƒ! ì–´ëŠ ë©´ì¸ì§€ íŒì •
+        bool HitHorizontal = (Bar.Location.x - Bar.XLength <= Location.x && Location.x <= Bar.Location.x + Bar.XLength);
+        bool HitVertical = (Bar.Location.y - Bar.YLength <= Location.y && Location.y <= Bar.Location.y + Bar.YLength);
+
+        CollisionPos.x = ClosestX;
+        CollisionPos.y = ClosestY;
 
         if (HitVertical)
-        {
-            CollisionPos.x = (Location.x > Bar.Location.x) ? Location.x - Radius : Location.x + Radius;
-            CollisionPos.y = Location.y;
             return EBlockCollision::Vertical;
-        }
         else if (HitHorizontal)
-        {
-            CollisionPos.x = Location.x;
-            CollisionPos.y = (Location.y > Bar.Location.y) ? Location.y - Radius : Location.y + Radius;
             return EBlockCollision::Horizontal;
-        }
         else
-        {
-            CollisionPos.x = ClosestX;
-            CollisionPos.y = ClosestY;
             return EBlockCollision::Corner;
-        }
     }
     return EBlockCollision::None;
 }
@@ -234,9 +214,9 @@ void UBall::BallBounceAtBar(const EBlockCollision Position, const UBar& Bar, con
 
     switch (Position)
     {
-    case EBlockCollision::Vertical:
+    case EBlockCollision::Horizontal:
     {
-        // »ó´Ü ¶Ç´Â ÇÏ´Ü ¸é Ãæµ¹
+        // ìƒë‹¨ ë˜ëŠ” í•˜ë‹¨ ë©´ ì¶©ëŒ
         Velocity.x = Velocity.x + ((Location.x - Bar.Location.x) / Bar.XLength) / 3;
             if (Velocity.x > 0.80f)
                 Velocity.x = 0.80f;
@@ -246,40 +226,37 @@ void UBall::BallBounceAtBar(const EBlockCollision Position, const UBar& Bar, con
         Location.y = (Location.y > Bar.Location.y) ? Bar.Location.y + Bar.YLength + Radius : Bar.Location.y - Bar.YLength - Radius;
         break;
     }
-    case EBlockCollision::Horizontal:
+    case EBlockCollision::Vertical:
     {
-        // ÁÂÃø ¶Ç´Â ¿ìÃø ¸é Ãæµ¹
+        // ì¢Œì¸¡ ë˜ëŠ” ìš°ì¸¡ ë©´ ì¶©ëŒ
         Velocity.x *= -1.0f;
         Location.x = (Location.x > Bar.Location.x) ? Bar.Location.x + Bar.XLength + Radius : Bar.Location.x - Bar.XLength - Radius;
         break;
     }
     case EBlockCollision::Corner:
     {
-        // ¸ğ¼­¸® Ãæµ¹
+        // ëª¨ì„œë¦¬ ì¶©ëŒ
         FVector NormalDir = Location - CollisionPos;
         float Dist = NormalDir.Length();
+        int YSign = Velocity.y > 0 ? 1 : -1;
 
         if (Dist < 1e-6f) Dist = 1.0f;
 
         FVector NormalizedNormal = NormalDir / Dist;
 
         float DotVN = Velocity.Dot(NormalizedNormal);
-        if (DotVN < 0.0f) // °øÀÌ ¸éÀ» ÇâÇØ ´Ù°¡¿Ã ¶§¸¸
+        if (DotVN < 0.0f) // ê³µì´ ë©´ì„ í–¥í•´ ë‹¤ê°€ì˜¬ ë•Œë§Œ
         {
             FVector R = Velocity - (NormalizedNormal * 2.0f * DotVN);
             Velocity = R;
         }
+        if (std::abs(Velocity.y) < 0.3f)
+        {
+            Velocity.y = (Velocity.y >= 0.0f) ? 0.3f : -0.3f;
+            Velocity.x = std::sqrt(1.0f - Velocity.y * Velocity.y) * ((Velocity.x >= 0.0f) ? 1.0f : -1.0f);
+        }
+        Velocity.y *= (Velocity.y * YSign > 0 ? -1 : 1);
 
-        if (std::abs(Velocity.y) < 0.2f)
-        {
-            Velocity.y = (Velocity.y >= 0.0f) ? 0.2f : -0.2f;
-            float xSign = (Velocity.x >= 0.0f) ? 1.0f : -1.0f;
-            Velocity.x = std::sqrt(1.0f - Velocity.y * Velocity.y) * xSign;
-        }
-        if (Velocity.y < 0.0f)
-        {
-            Velocity.y *= -1;
-        }
         Location = CollisionPos + (NormalizedNormal * (Radius + 0.001f));
 
         break;
@@ -289,39 +266,29 @@ void UBall::BallBounceAtBar(const EBlockCollision Position, const UBar& Bar, con
 
 EBlockCollision UBall::CheckBlockCollision(const UBlock& Block, FVector& CollisionPos)
 {
-    // 2. °øÀÇ Áß½É¿¡¼­ º®µ¹ À§ÀÇ °¡Àå °¡±î¿î Á¡(P) Ã£±â
+    // 2. ê³µì˜ ì¤‘ì‹¬ì—ì„œ ë²½ëŒ ìœ„ì˜ ê°€ì¥ ê°€ê¹Œìš´ ì (P) ì°¾ê¸°
     float ClosestX = std::clamp(Location.x, Block.MinX, Block.MaxX);
     float ClosestY = std::clamp(Location.y, Block.MinY, Block.MaxY);
 
-    // 3. °øÀÇ Áß½É°ú Á¡ P »çÀÌÀÇ °Å¸® °è»ê
-    float distanceX = Location.x - ClosestX;
-    float distanceY = Location.y - ClosestY;
-    float distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
+    // 3. ê³µì˜ ì¤‘ì‹¬ê³¼ ì  P ì‚¬ì´ì˜ ê±°ë¦¬ ê³„ì‚°
+    float DistanceX = Location.x - ClosestX;
+    float DistanceY = Location.y - ClosestY;
+    float DistanceSquared = (DistanceX * DistanceX) + (DistanceY * DistanceY);
 
-    if (distanceSquared < (Radius * Radius))
+    if (DistanceSquared < (Radius * Radius))
     {
-        // Ãæµ¹ ¹ß»ı! ¾î´À ¸éÀÎÁö ÆÇÁ¤
-        bool HitVertical = (Location.x >= Block.MinX && Location.x <= Block.MaxX);
-        bool HitHorizontal = (Location.y >= Block.MinY && Location.y <= Block.MaxY);
+        // ì¶©ëŒ ë°œìƒ! ì–´ëŠ ë©´ì¸ì§€ íŒì •
+        bool HitVertical = (Block.MinY <= Location.y && Location.y <= Block.MaxY);
+        bool HitHorizontal = (Block.MinX <= Location.x && Location.x <= Block.MaxX);
 
+        CollisionPos.x = ClosestX;
+        CollisionPos.y = ClosestY;
         if (HitVertical)
-        {
-            CollisionPos.x = (Location.x > Block.CenterX) ? Location.x - Radius : Location.x + Radius;
-            CollisionPos.y = Location.y;
             return EBlockCollision::Vertical;
-        }
         else if (HitHorizontal)
-        {
-            CollisionPos.x = Location.x;
-            CollisionPos.y = (Location.y > Block.CenterY) ? Location.y - Radius : Location.y + Radius;
             return EBlockCollision::Horizontal;
-        }
         else
-        {
-            CollisionPos.x = ClosestX;
-            CollisionPos.y = ClosestY;
             return EBlockCollision::Corner;
-        }
     }
     return EBlockCollision::None;
 }
@@ -336,21 +303,21 @@ void UBall::BallBounceAtBlock(const EBlockCollision Position, UBlock& Block, con
     {
         case EBlockCollision::Vertical:
         {
-            // »ó´Ü ¶Ç´Â ÇÏ´Ü ¸é Ãæµ¹
-            Velocity.y *= -1.0f;
-            Location.y = (Location.y > Block.CenterY) ? Block.MaxY + Radius : Block.MinY - Radius;
-            break;
-        }
-        case EBlockCollision::Horizontal:
-        {
-            // ÁÂÃø ¶Ç´Â ¿ìÃø ¸é Ãæµ¹
+            // ì¢Œì¸¡ ë˜ëŠ” ìš°ì¸¡ ë©´ ì¶©ëŒ
             Velocity.x *= -1.0f;
             Location.x = (Location.x > Block.CenterX) ? Block.MaxX + Radius : Block.MinX - Radius;
             break;
         }
+        case EBlockCollision::Horizontal:
+        {
+            // ìƒë‹¨ ë˜ëŠ” í•˜ë‹¨ ë©´ ì¶©ëŒ
+            Velocity.y *= -1.0f;
+            Location.y = (Location.y > Block.CenterY) ? Block.MaxY + Radius : Block.MinY - Radius;
+            break;
+        }
         case EBlockCollision::Corner:
         {
-            // ¸ğ¼­¸® Ãæµ¹
+            // ëª¨ì„œë¦¬ ì¶©ëŒ
             FVector NormalDir = Location - CollisionPos;
             float Dist = NormalDir.Length();
 
@@ -359,17 +326,16 @@ void UBall::BallBounceAtBlock(const EBlockCollision Position, UBlock& Block, con
             FVector NormalizedNormal = NormalDir / Dist;
 
             float DotVN = Velocity.Dot(NormalizedNormal);
-            if (DotVN < 0.0f) // °øÀÌ ¸éÀ» ÇâÇØ ´Ù°¡¿Ã ¶§¸¸
+            if (DotVN < 0.0f) // ê³µì´ ë©´ì„ í–¥í•´ ë‹¤ê°€ì˜¬ ë•Œë§Œ
             {
                 FVector R = Velocity - (NormalizedNormal * 2.0f * DotVN);
                 Velocity = R;
             }
 
-            if (std::abs(Velocity.y) < 0.2f)
+            if (std::abs(Velocity.y) < 0.3f)
             {
-                Velocity.y = (Velocity.y >= 0.0f) ? 0.2f : -0.2f;
-                float xSign = (Velocity.x >= 0.0f) ? 1.0f : -1.0f;
-                Velocity.x = std::sqrt(1.0f - Velocity.y * Velocity.y) * xSign;
+                Velocity.y = (Velocity.y >= 0.0f) ? 0.3f : -0.3f;
+                Velocity.x = std::sqrt(1.0f - Velocity.y * Velocity.y) * ((Velocity.x >= 0.0f) ? 1.0f : -1.0f);
             }
             Location = CollisionPos + (NormalizedNormal * (Radius + 0.001f));
 
@@ -390,7 +356,7 @@ bool UBall::GetIsMove()
 
 UBall* UBall::CreateBallAtBar(const UBar& Bar)
 {
-    // new ¿¬»êÀÚ¸¦ »ç¿ëÇØ °øÀÇ Instance¸¦ »ı¼º
+    // new ì—°ì‚°ìë¥¼ ì‚¬ìš©í•´ ê³µì˜ Instanceë¥¼ ìƒì„±
     UBall* Ball = new UBall();
 
     float maxRadiusX = (rightBorder - leftBorder) * 0.05f;
@@ -414,25 +380,3 @@ UBall* UBall::CreateBallAtBar(const UBar& Bar)
 
     return Ball;
 }
-
-//void UBall::InitBall(UBall& input)
-//{
-//    // ÀÓÀÇÀÇ Å©±â(Radius): ³Ê¹« Å« °ªÀ» ¹æÁöÇÏ±â À§ÇØ, °øÀÇ Å©±â¸¦ È­¸é ³ÊºñÀÇ 1/10·Î Á¦ÇÑ
-//    float maxRadiusX = (rightBorder - leftBorder) * 0.05f;
-//    float maxRadiusY = (topBorder - bottomBorder) * 0.05f;
-//    float maxAllowedRadius = (maxRadiusX < maxRadiusY) ? maxRadiusX : maxRadiusY;
-//    float r = 0.05f; //GetRandomFloat(0.1f, 0.2f);
-//    input.SetRadius(r);
-//
-//    // ÀÓÀÇÀÇ À§Ä¡(Location): È­¸é °æ°è ¾ÈÂÊÀÇ ·£´ıÇÑ À§Ä¡, ¹İÁö¸§À» ¸¶Áø°ªÀ¸·Î ÇÔ
-//    input.Location.x = GetRandomFloat(leftBorder + input.Radius, rightBorder - input.Radius);
-//    input.Location.y = GetRandomFloat(bottomBorder + input.Radius, topBorder - input.Radius);
-//    input.Location.z = 0.0f;
-//
-//    // ÀÓÀÇÀÇ ¼Óµµ(Velocity)
-//    input.Velocity.x = 0.0f; //GetRandomFloat(1.5f, 2.0f);
-//    input.Velocity.y = -1.0f; //GetRandomFloat(1.5f, 2.0f);
-//    input.Velocity.z = 0.0f;
-//
-//    input.Speed = 0.3f;
-//}

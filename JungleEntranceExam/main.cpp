@@ -59,155 +59,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	return 0;
 }
 
-//// Primitive List 크기를 증가시킬 때 호출
-//static void IncreasePrimitiveList(UPrimitive**& currPrimList, int& currNumBalls, int NewNumBalls)
-//{
-//    if (NewNumBalls <= currNumBalls) return;
-//
-//    UPrimitive** NewList = new UPrimitive * [NewNumBalls];
-//
-//    // 기존 포인터 복사하여 새로운 List 생성
-//    for (int i = 0; i < currNumBalls; ++i)
-//        NewList[i] = currPrimList[i];
-//
-//    // 그 뒤에 새로운 공들을 생성
-//    for (int i = currNumBalls; i < NewNumBalls; ++i)
-//        NewList[i] = CreateBall();
-//
-//    // 새로 만든 List로 교체
-//    delete[] currPrimList;
-//    currPrimList = NewList;
-//
-//    currNumBalls = NewNumBalls;
-//}
-//
-//// PrimitiveList 크기를 감소시킬 때 호출
-//static void DecreasePrimitiveList(UPrimitive**& currPrimList, int& currNumBalls, int NewNumBalls)
-//{
-//    if (NewNumBalls >= currNumBalls) return;
-//
-//    while (currNumBalls > NewNumBalls)
-//    {
-//        // 임의의 공이 소멸 (소멸된 인덱스에는 맨 뒤의 값을 넣음)
-//        int delIndex = rand() % currNumBalls;
-//
-//        delete currPrimList[delIndex];
-//
-//        currPrimList[delIndex] = currPrimList[currNumBalls - 1];
-//        currPrimList[currNumBalls - 1] = nullptr;
-//
-//        --currNumBalls;
-//    }
-//
-//    // 배열 크기 줄이기
-//    UPrimitive** NewList = new UPrimitive * [currNumBalls];
-//    for (int i = 0; i < currNumBalls; ++i)
-//        NewList[i] = currPrimList[i];
-//
-//    delete[] currPrimList;
-//    currPrimList = NewList;
-//}
-//
-//// PrimitiveList를 재조정 하는 함수
-//static void AdjustPrimitiveListTo(UPrimitive**& currPrimList, int& currNumBalls, int NewNumBalls)
-//{
-//    if (NewNumBalls < 1) NewNumBalls = 1;
-//
-//    if (NewNumBalls > currNumBalls)
-//        IncreasePrimitiveList(currPrimList, currNumBalls, NewNumBalls);
-//    else if (NewNumBalls < currNumBalls)
-//        DecreasePrimitiveList(currPrimList, currNumBalls, NewNumBalls);
-//}
-//
-//// 두 공의 충돌 계산 함수
-//void ResolveBallCollision(UBall& ballA, UBall& ballB)
-//{
-//    // 충돌 검사
-//    FVector deltaVec = Sub(ballB.Location, ballA.Location);
-//
-//    float radiusSum = ballA.Radius + ballB.Radius;
-//    float dist2 = Dot(deltaVec, deltaVec);
-//
-//    if (dist2 >= radiusSum * radiusSum) return; // 비용 문제로, 먼저 거리 제곱으로 검사
-//
-//    float dist = sqrtf(dist2);
-//
-//    // 충돌 법선 단위 벡터 계산 (너무 작으면 임의 방향으로 설정)
-//    FVector n;
-//    float kEpsilon = 1e-6f; // 임의의 아주 아주 작은 값
-//
-//    if (dist > kEpsilon)
-//        n = Div(deltaVec, dist);
-//    else
-//        n = FVector(1.0f, 0.0f, 0.0f);
-//
-//    // 겹침 보정 (질량의 역수에 비례하여 침투한 만큼 밀려남)
-//    float mA = ballA.Radius;
-//    float mB = ballB.Radius;
-//
-//    float inv_mA = (mA > kEpsilon) ? (1.0f / mA) : 0.0f;
-//    float inv_mB = (mB > kEpsilon) ? (1.0f / mB) : 0.0f;
-//
-//    float penetration = radiusSum - dist;   // 겹침 정도
-//    float invSum = inv_mA + inv_mB;
-//
-//    if (invSum > kEpsilon)
-//    {
-//        const float percent = 0.8f; // 밀어내는 정도에 대한 보정 값
-//        const float slop = 0.0005f; // 겹침 허용 오차
-//
-//        float corrected = (penetration > slop) ? (penetration - slop) : 0.0f;   // 밀어낼 힘
-//
-//        FVector correction = Mul(n, corrected * percent / invSum);    // 밀어낼 방향과 힘 벡터
-//
-//        ballA.Location = Sub(ballA.Location, Mul(correction, inv_mA));
-//        ballB.Location = Add(ballB.Location, Mul(correction, inv_mB));
-//    }
-//
-//    // 탄성 충돌
-//    FVector velocityA = ballA.Velocity;
-//    FVector velocityB = ballB.Velocity;
-//
-//    FVector relativVel = Sub(velocityB, velocityA);   // 상대 속도
-//    float velAlongNormal = Dot(relativVel, n);
-//
-//    if (velAlongNormal > 0.0f) return;  // 이미 서로 멀어지는 중 (충돌 스킵)
-//
-//    float e = 1.0f; // 탄성계수
-//
-//    float j = -(1.0f + e) * velAlongNormal; // 임펄스 j (튕겨지는 세기)
-//    j /= invSum;
-//
-//    FVector impulse = Mul(n, j);
-//
-//    velocityA = Sub(velocityA, Mul(impulse, inv_mA));
-//    velocityB = Add(velocityB, Mul(impulse, inv_mB));
-//
-//    // 실제 velocity에 반영
-//    ballA.Velocity = velocityA;
-//    ballB.Velocity = velocityB;
-//}
-//
-//// 공들의 충돌 처리 함수
-//void BallsCollision(UPrimitive** PrimitiveList, int NumPrimitives)
-//{
-//    // 공과 공 사이 충돌
-//    for (int i = 0; i < NumPrimitives; ++i)
-//    {
-//        UBall* ballA = static_cast<UBall*>(PrimitiveList[i]);
-//
-//        for (int j = i + 1; j < NumPrimitives; ++j)
-//        {
-//            UBall* ballB = static_cast<UBall*>(PrimitiveList[j]);
-//
-//            ResolveBallCollision(*ballA, *ballB);
-//        }
-//    }
-//}
-
-//// 공의 총 개수
-//int UBall::TotalNumBalls = 0;
-
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
 
@@ -264,20 +115,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     ImGui_ImplWin32_Init((void*)hWnd);
     ImGui_ImplDX11_Init(renderer.Device, renderer.DeviceContext);
     
-    // 반드시 UBall이 아닌 UPrimitive로 선언하여야 하며 바꾸면 안됩니다.
-    //UPrimitive** PrimitiveList = nullptr;
-
-    //int NumPrimitives = 0;          // 현재 관리 중인 공 개수
-    //int TargetNumPrimitives = 1;    // UI로 조절하는 목표 공 개수
-
-    //// 중력 적용 여부
-    //bool bEnableGravity = true;
-
-    //// 중력 가속도 (기본 -Y 방향)
-    //const float gravityAccel = 9.8f;
-    //FVector gravityVec(0.0f, -gravityAccel, 0.0f);
-
-
     // FPS 제한
     const int targetFPS = 60;
     const double targetFrameTime = 1000.0 / targetFPS; // 한 프레임의 목표 시간 (밀리초 단위)
@@ -288,10 +125,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     LARGE_INTEGER startTime, endTime;
     double elapsedTime = 0.0;
-
-    /*UBar Bar(FVector(0.0f, -0.95f, 0.0f), 0.7f, 0.1f, 0);
-    UBall Ball;
-    InitBall(Ball);*/
 
     USoundManager::GetInstance().Init();
     //게임씬 초기화
@@ -339,72 +172,11 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         UScene* currentScene = sceneManager.GetCurrentScene();
         currentScene->Update(dt);
 
-        //Ball.CheckCollision(&Bar);
-
         // 준비 작업
         renderer.Prepare();
         renderer.PrepareShader();
         currentScene->Render(renderer);
         currentScene->UIRender();
-
-        // 생성한 버텍스 버퍼를 넘겨 실질적인 렌더링 요청
-        
-        //// 중력 적용
-        //if (bEnableGravity)
-        //{
-        //    for (int i = 0; i < NumPrimitives; ++i)
-        //    {
-        //        PrimitiveList[i]->ApplyGravity(dt, gravityVec);
-        //    }
-        //}
-
-        // 업데이트
-        //for (int i = 0; i < NumPrimitives; ++i)
-        //{
-        //    PrimitiveList[i]->Update(dt);
-        //}
-
-        //// 공과 공 사이의 충돌 계산
-        //BallsCollision(PrimitiveList, NumPrimitives);
-
-        // 렌더링
-        //for (int i = 0; i < NumPrimitives; ++i)
-        //{
-        //    PrimitiveList[i]->Render(renderer);
-
-        //    // 실제 Draw
-        //    renderer.RenderPrimitive(vertexBufferSphere, NumVerticesSphere);
-        ////}
-        //Bar.Render(renderer);
-        //renderer.RenderPrimitive(vertexBufferBar, NumVerticesBar);
-
-        //Ball.Render(renderer);
-        //renderer.RenderPrimitive(vertexBufferSphere, NumVerticesSphere);
-
-        //ImGui_ImplDX11_NewFrame();      // 렌더러(D3D11) 쪽에서 ImGui 프레임 준비
-        //ImGui_ImplWin32_NewFrame();     // 플랫폼(Win32) 쪽에서 ImGui 프레임 준비
-        //ImGui::NewFrame();
-
-        ///***** 이후 ImGui UI 컨트롤 추가는 ImGui::NewFrame()과 ImGui::Render() 사이인 여기에 위치합니다. *****/
-        //ImGui::Begin("Jungle Property Window");
-        //
-        //ImGui::Text("Hello Jungle World!");
-
-        //ImGui::Checkbox("Gravity", &bEnableGravity);
-
-        //ImGui::InputInt("Number of Balls", &TargetNumPrimitives);
-
-        //if (TargetNumPrimitives < 1)
-        //    TargetNumPrimitives = 1;
-
-        //// 목표 개수를 반영
-        //AdjustPrimitiveListTo(PrimitiveList, NumPrimitives, TargetNumPrimitives);
-
-        //ImGui::End();
-        ///*****                              (실제 ImGui UI를 코드로 그리는 구간)                         *****/
-
-        //ImGui::Render();    // 지금까지 쌓아둔 UI 명령들을 렌더링용 데이터(Draw Data)로 변환
-        //ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());    // 데이터(Draw Data)를 D3D11 Draw Call로 변환해서 실제로 그림
 
         // 다 그렸으면 버퍼 스왑
         
@@ -425,23 +197,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
         } while (elapsedTime < targetFrameTime);
 	}
-
-	/* 소멸하는 코드를 여기에 추가합니다. */
-
-    // Primitive 관련
-    //for (int i = 0; i < NumPrimitives; ++i)
-    //{
-    //    delete PrimitiveList[i];
-    //    PrimitiveList[i] = nullptr;
-    //}
-    //delete[] PrimitiveList;
-    //PrimitiveList = nullptr;
-    //NumPrimitives = 0;
-
-    //// ImGui 관련
-    //ImGui_ImplDX11_Shutdown();
-    //ImGui_ImplWin32_Shutdown();
-    //ImGui::DestroyContext();
 
     USoundManager::GetInstance().Release();
     USceneManager::GetInstance().Release();

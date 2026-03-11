@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 #include "UScene.h"
 
 class UGameManager;
@@ -15,12 +15,12 @@ public:
 
     void UIRender();
 
-    // USceneÀ»(¸¦) ÅëÇØ »ó¼ÓµÊ
+    // USceneì„(ë¥¼) í†µí•´ ìƒì†ë¨
     void Update(float delta) override;
     void Render(URenderer render) override;
     bool HaveBalls();
 
-    // USceneÀ»(¸¦) ÅëÇØ »ó¼ÓµÊ
+    // USceneì„(ë¥¼) í†µí•´ ìƒì†ë¨
     void Init() override;
     void Release() override;
 
@@ -34,4 +34,7 @@ private:
     std::vector<UBall*> ActiveBallList;
     UBar* Bar_1;
     UBar* Bar_2;
+    int CurrentStage;
+    int CurrentStageRow;
+    int CurrentStageCol;
 };

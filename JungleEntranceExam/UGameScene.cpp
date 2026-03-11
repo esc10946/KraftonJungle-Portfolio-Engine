@@ -1,4 +1,4 @@
-#include "UGameScene.h"
+ï»¿#include "UGameScene.h"
 #include "UGameObject.h"
 #include "UGameManager.h" 
 #include "UBall.h"
@@ -51,35 +51,7 @@ void UGameScene::UIRender()
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }
 
-
-//// °ø »ı¼º ÇÔ¼ö
-//static UBall* CreateBall()
-//{
-//    // new ¿¬»êÀÚ¸¦ »ç¿ëÇØ °øÀÇ Instance¸¦ »ı¼º
-//    UBall* Ball = new UBall();
-//
-//    // ÀÓÀÇÀÇ Å©±â(Radius): ³Ê¹« Å« °ªÀ» ¹æÁöÇÏ±â À§ÇØ, °øÀÇ Å©±â¸¦ È­¸é ³ÊºñÀÇ 1/10·Î Á¦ÇÑ
-//    float maxRadiusX = (rightBorder - leftBorder) * 0.05f;
-//    float maxRadiusY = (topBorder - bottomBorder) * 0.05f;
-//    float maxAllowedRadius = (maxRadiusX < maxRadiusY) ? maxRadiusX : maxRadiusY;
-//    float r = maxAllowedRadius / 2;
-//    Ball->SetRadius(r);
-//
-//    // ÀÓÀÇÀÇ À§Ä¡(Location): È­¸é °æ°è ¾ÈÂÊÀÇ ·£´ıÇÑ À§Ä¡, ¹İÁö¸§À» ¸¶Áø°ªÀ¸·Î ÇÔ
-//    Ball->Velocity.x = GetRandomFloat(0.5f, 0.6f);
-//    Ball->Velocity.y = GetRandomFloat(0.5f, 0.6f);
-//    Ball->Location.z = 0.0f;
-//
-//    // ÀÓÀÇÀÇ ¼Óµµ(Velocity)
-//    Ball->Velocity.x = 1.0f;
-//    Ball->Velocity.y = -1.0f;
-//    Ball->Velocity.z = 0.0f;
-//    Ball->Speed = 1.f;
-//
-//    return Ball;
-//}
-
-//ÇØ´ç °ÔÀÓ¿¡¼­ »ı¼ºµÇ´Â ¸ğµç ¿ÀºêÁ§Æ®¿©±â¼­ »ı¼º
+//í•´ë‹¹ ê²Œì„ì—ì„œ ìƒì„±ë˜ëŠ” ëª¨ë“  ì˜¤ë¸Œì íŠ¸ì—¬ê¸°ì„œ ìƒì„±
 void UGameScene::Init()
 {
     UGameObjectList.clear();
@@ -87,10 +59,10 @@ void UGameScene::Init()
 
     ActiveBallList.clear();
 
-    //1¹ø ÇÃ·¹ÀÌ¾î°¡ ¿òÁ÷ÀÌ´Â ¹Ù
+    //1ë²ˆ í”Œë ˆì´ì–´ê°€ ì›€ì§ì´ëŠ” ë°”
     Bar_1 = new UBar(FVector(0.0f, -0.95f, 0.0f), 1.0f, 0.15f, 0, EPlaySide::Up);
 
-    //2¹ø ÇÃ·¹ÀÌ¾î°¡ ¿òÁ÷ÀÌ´Â ¹Ù
+    //2ë²ˆ í”Œë ˆì´ì–´ê°€ ì›€ì§ì´ëŠ” ë°”
     Bar_2 = new UBar(FVector(0.0f, 0.95f, 0.0f), 1.0f, 0.15f, 1, EPlaySide::Down);
 
     UBall* newBall = UBall::CreateBallAtBar(*Bar_1);
@@ -99,20 +71,21 @@ void UGameScene::Init()
     AddObject(Bar_1);
     AddObject(Bar_2);
 
-    //stage ºí·°µé
-    int CurrentRound = 1;
-    stageblocks = CreateStage(CurrentRound);
+    //stage ë¸”ëŸ­ë“¤
+    CurrentStage = 3;
+    stageblocks = CreateStage(CurrentStage);
+    GetStageInfo(CurrentStage, CurrentStageRow, CurrentStageCol);
 
-    //°ÔÀÓ¸Å´ÏÀú ÃÊ±âÈ­
+    //ê²Œì„ë§¤ë‹ˆì € ì´ˆê¸°í™”
     gameManager = UGameManager::GetInstance();
     gameManager->RessetGM();
 }
 
 void UGameScene::Release()
 {
-    //Map¿¡¼­ ÇÒ´çÇÑ brickµéÀ» ÇØÁ¦ÇØ¾ßÇÔ
+    //Mapì—ì„œ í• ë‹¹í•œ brickë“¤ì„ í•´ì œí•´ì•¼í•¨
 
-    //»ı¼ºµÈ ¸ğµç BallÀ» Á¦°Å
+    //ìƒì„±ëœ ëª¨ë“  Ballì„ ì œê±°
     for (UBall* ball : ActiveBallList)
     {
         if (ball != nullptr) {
@@ -121,7 +94,7 @@ void UGameScene::Release()
     }
     ActiveBallList.clear();
 
-    //»ı¼ºµÈ ¸ğµç UGameObjectÀ» Á¦°Å
+    //ìƒì„±ëœ ëª¨ë“  UGameObjectì„ ì œê±°
     for (UGameObject* Object : UGameObjectList)
     {
         if (Object != nullptr) {
@@ -138,12 +111,13 @@ void UGameScene::Release()
 }
 
 /// <summary>
-/// ÇØ´ç ¸Ê¿¡ ÀÖ´Â ¸ğµç °´Ã¼¿¡ ¾÷µ¥ÀÌÆ®¸¦ È£ÃâÇÔ
+/// í•´ë‹¹ ë§µì— ìˆëŠ” ëª¨ë“  ê°ì²´ì— ì—…ë°ì´íŠ¸ë¥¼ í˜¸ì¶œí•¨
 /// </summary>
 /// <param name="delta"></param>
 void UGameScene::Update(float delta)
 {
     FVector CollisionPos;
+    FVector Dummy;
     for (UGameObject* Object : UGameObjectList)
     {
         UDiagram* Diagram = dynamic_cast<UDiagram*>(Object);
@@ -165,26 +139,78 @@ void UGameScene::Update(float delta)
         ball->BallBounceAtBar(CollisionState2, *Bar_2, CollisionPos);
     
 
+        int idx = -1;
+        int CurRow = 0;
+        int CurCol = 0;
         for (auto* b : stageblocks)
         {
-            if (!b->IsActive()) continue;
+            idx++;
+            if (!b || !b->IsActive()) continue;
+            if (b->CheckSkip())
+            {
+                b->SetSkipCalc(false);
+                continue;
+            }
 
             EBlockCollision CollisionState = (*ball).CheckBlockCollision(*b, CollisionPos);
             if (CollisionState != EBlockCollision::None)
             {
+                if (CollisionState == EBlockCollision::Corner)
+                {
+                    CurRow = idx / CurrentStageCol;
+                    CurCol = idx % CurrentStageCol;
+
+                    // í˜„ì¬ ì¶©ëŒí•œ ëª¨ì„œë¦¬ ë°©í–¥ì— ë”°ë¥¸ ì¸ì ‘ ë¸”ë¡ ì¡°ì‚¬ ë°©í–¥ ì„¤ì •
+                    int dCol = (CollisionPos.x < b->CenterX) ? -1 : 1; // ì™¼ìª½ ëª¨ì„œë¦¬ë©´ -1, ì˜¤ë¥¸ìª½ì´ë©´ 1
+                    int dRow = (CollisionPos.y < b->CenterY) ? 1 : -1; // ì•„ë˜ìª½ ëª¨ì„œë¦¬ë©´ 1, ìœ„ìª½ì´ë©´ -1 (ì¢Œí‘œê³„ í™•ì¸ í•„ìš”)
+
+                    bool HasHorizontalBlock = false;
+                    bool HasVerticalBlock = false;
+
+                    // 1. ì˜†(ìˆ˜í‰) ë°©í–¥ì— ë¸”ë¡ì´ ìˆëŠ”ì§€ í™•ì¸
+                    int CheckCol = CurCol + dCol;
+                    if (CheckCol >= 0 && CheckCol < CurrentStageCol) {
+                        if (stageblocks[CurRow * CurrentStageCol + CheckCol]
+                            && stageblocks[CurRow * CurrentStageCol + CheckCol]->IsActive())
+                            HasHorizontalBlock = true;
+                    }
+
+                    // 2. ìœ„/ì•„ë˜(ìˆ˜ì§) ë°©í–¥ì— ë¸”ë¡ì´ ìˆëŠ”ì§€ í™•ì¸
+                    int CheckRow = CurRow + dRow;
+                    if (CheckRow >= 0 && CheckRow < CurrentStageRow) {
+                        if (stageblocks[CheckRow * CurrentStageCol + CurCol]
+                            && stageblocks[CheckRow * CurrentStageCol + CurCol]->IsActive())
+                            HasVerticalBlock = true;
+                    }
+
+                    // 3. íŒì • êµì • ë¡œì§
+                    if (HasHorizontalBlock && !HasVerticalBlock) {
+                        // ì˜†ì€ ë§‰í˜”ê³  ìœ„/ì•„ë˜ê°€ ë¹„ì—ˆìŒ -> ìœ—ë©´/ì•„ë«ë©´ ì¶©ëŒë¡œ ê°„ì£¼
+                        CollisionState = EBlockCollision::Horizontal;
+                        stageblocks[CurRow * CurrentStageCol + CheckCol]->SetSkipCalc(true);
+                    }
+                    else if (!HasHorizontalBlock && HasVerticalBlock) {
+                        // ìœ„/ì•„ë˜ëŠ” ë§‰í˜”ê³  ì˜†ì´ ë¹„ì—ˆìŒ -> ì˜†ë©´ ì¶©ëŒë¡œ ê°„ì£¼
+                        CollisionState = EBlockCollision::Vertical;
+                        stageblocks[CheckRow * CurrentStageCol + CurCol]->SetSkipCalc(true);
+                    }
+                    // ë‘˜ ë‹¤ ë¹„ì–´ìˆìœ¼ë©´(else) ì›ë˜ì˜ Corner íŒì • ìœ ì§€ (ë°˜ì‚¬ ë²¡í„° ì‚¬ìš©)
+                }
+
                 (*ball).BallBounceAtBlock(CollisionState, *b, CollisionPos);
                 gameManager->SetScore(b->GetScore()); 
                 USoundManager::GetInstance().Play("Brick");
             }
+            
         }
     }
 
     gameManager->Update(delta);
 
-    // ¹Û¿¡ °øÀÌ ³ª°¬´ÂÁö ÆÇº°
+    // ë°–ì— ê³µì´ ë‚˜ê°”ëŠ”ì§€ íŒë³„
     if (!HaveBalls())
     {
-        // °øÀÌ ´Ù ³ª°¬À¸´Ï »õ °øÀ» ÇÏ³ª ½ºÆùÇØÁİ´Ï´Ù.
+        // ê³µì´ ë‹¤ ë‚˜ê°”ìœ¼ë‹ˆ ìƒˆ ê³µì„ í•˜ë‚˜ ìŠ¤í°í•´ì¤ë‹ˆë‹¤.
         UBall* newBall = UBall::CreateBallAtBar(*Bar_1);
         ActiveBallList.push_back(newBall);
 
@@ -192,7 +218,7 @@ void UGameScene::Update(float delta)
         gameManager->SubHealth(1);
     }
 
-    if (bIsBrickEmpty()) // º®µ¹ ´Ù ±úÁü!
+    if (bIsBrickEmpty()) // ë²½ëŒ ë‹¤ ê¹¨ì§!
     {
 
         USoundManager::GetInstance().StopAll();
@@ -204,7 +230,7 @@ void UGameScene::Update(float delta)
 }
 
 /// <summary>
-/// ¸ğµç °øÀ» È®ÀÎÇÏ°í ³²Àº °Ô ÀÖ´ÂÁö ¿©ºÎ¸¦ ¹İÈ¯
+/// ëª¨ë“  ê³µì„ í™•ì¸í•˜ê³  ë‚¨ì€ ê²Œ ìˆëŠ”ì§€ ì—¬ë¶€ë¥¼ ë°˜í™˜
 /// </summary>
 /// <returns></returns>
 bool UGameScene::HaveBalls()
@@ -215,7 +241,7 @@ bool UGameScene::HaveBalls()
     {
         UBall* ball = *it;
 
-        //¿¹¿Ü Ã³¸®
+        //ì˜ˆì™¸ ì²˜ë¦¬
         if (ball == nullptr) {
             it = ActiveBallList.erase(it);
             continue;
@@ -224,9 +250,9 @@ bool UGameScene::HaveBalls()
         FVector Location = ball->Location;
         float Radius = ball->Radius;
 
-        //¸¸¾à¿¡ °øÀÌ ¹ÛÀ¸·Î ³ª°¡Áö ¾Ê¾ÒÀ¸¸é ´ÙÀ½°Å È®ÀÎ
+        //ë§Œì•½ì— ê³µì´ ë°–ìœ¼ë¡œ ë‚˜ê°€ì§€ ì•Šì•˜ìœ¼ë©´ ë‹¤ìŒê±° í™•ì¸
         if (Location.y < 1 - Radius && Location.y > -1 + Radius) {
-            //°øÀÌ ¾ÆÁ÷ ³²¾ÆÀÖÀ½
+            //ê³µì´ ì•„ì§ ë‚¨ì•„ìˆìŒ
             hasBallLeft = true;
             ++it; 
         }
@@ -240,7 +266,7 @@ bool UGameScene::HaveBalls()
 }
 
 /// <summary>
-/// °ø¸¸ µû·Î ±¸ºĞÁş´Â ÄÚµå 
+/// ê³µë§Œ ë”°ë¡œ êµ¬ë¶„ì§“ëŠ” ì½”ë“œ 
 /// </summary>
 /// <param name="Object"></param>
 void UGameScene::AddObject(UGameObject* Object)
@@ -284,6 +310,10 @@ void UGameScene::Render(URenderer render)
     }
 
     for (auto* b : stageblocks)
+    {
+        if (!b)         //<-added
+            continue;
         b->Render(render);
+    }
 }
 

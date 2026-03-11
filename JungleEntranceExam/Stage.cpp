@@ -1,4 +1,4 @@
-#include "Stage.h"
+ï»¿#include "Stage.h"
 //Grid?
 
 static const float HALF_BW = 0.065f;// (2.0f - a)/ 13.0f / 2.0f
@@ -101,7 +101,7 @@ static UBlock* MakeBlock(int code, float cx, float cy, int round)
 		color = ColorTable[code];
 	}
 	UBlock* block = new UBlock(type, color, round);
-	//block->Init(); grid »ç¿ëÇÒ°Í
+	//block->Init(); grid ì‚¬ìš©í• ê²ƒ
 	return block;
 }
 template <int ROWS,int COLS>
@@ -115,8 +115,11 @@ static std::vector<UBlock*> BulidStage(int(&map)[ROWS][COLS], int round)
 		for (int c = 0; c < COLS; ++c)
 		{
 			int code = map[r][c];
-			if (code == 0) 
+			if (code == 0)
+			{
+				blocks.push_back(nullptr);  // <- added
 				continue;
+			}
 			float cx = -1.0f + START_X + (c * STEP_X)+0.1f;
 			float cy = 1.0f - (START_Y + r * STEP_Y)-0.3f;
 			UBlock* b = MakeBlock(code, cx, cy, round);
