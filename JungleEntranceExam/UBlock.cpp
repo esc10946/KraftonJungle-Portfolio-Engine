@@ -124,17 +124,31 @@ int UBlock::BreakBlock()
     TotalScore += score;
     TotalActiveBlocks--;
 
-    FItemDesc ItemDesc = ItemLibrary::MakeRandomItem();
-    UItemManager::Get().SpawnItem(ItemDesc, FVector(CenterX, CenterY, 0.0f), FVector(0.0f, -1.0f, 0.0f));
-    for (int i = 0; i < 15; ++i) {
-        UParticle* p = dynamic_cast<UGameScene*>(USceneManager::GetInstance().GetCurrentScene())->GetParticlePool()->GetInactiveParticle();
-        if (p) {
-            FVector randVel(((rand() % 200) - 100) / 100.0f, ((rand() % 200) - 100) / 100.0f, 0);
-            p->Spawn(FVector(CenterX, CenterY, 0), randVel, blockColor, 2.0f);
-        }
-    }
+        // 아이템 확률 생성 (확률 : --%)
+        int r = rand() % 100;
 
-    return score;
+        if (r < 50)
+        {
+            FItemDesc ItemDesc = ItemLibrary::MakeRandomItem();
+
+            FVector ItemDir;
+            if (ballDir.y > 0.0f)
+            {
+                // 공이 위로 이동 중이었다면
+                ItemDir = FVector(0.0f, -1.0f, 0.0f);
+            }
+            else
+            {
+                // 공이 아래로 이동 중이었다면
+                ItemDir = FVector(0.0f, 1.0f, 0.0f);
+            }
+            UItemManager::Get().SpawnItem(ItemDesc, FVector(CenterX, CenterY, 0.0f), ItemDir);
+        }
+
+		std::cout << "Score : " << TotalScore << " Active Blocks : " << TotalActiveBlocks << std::endl;
+        return score;
+    }
+    return 0;
 }
 int UBlock::GetScore()
 {

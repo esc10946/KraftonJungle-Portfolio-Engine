@@ -22,6 +22,8 @@ struct FConstants
     FVector Scale;
     float Pad2;
     FColor BlockColor;
+    float Alpha;
+    float pad[3];
 };
 
 class URenderer
@@ -79,7 +81,7 @@ public:
     void ReleaseVertexBuffer(ID3D11Buffer* pbuffer);
     void CreateConstantBuffer();
     void ReleaseConstantBuffer();
-    void UpdateConstant(FVector Offset, FVector Scale);
+    void UpdateConstant(FVector Offset, FVector Scale, float alpha = 1.f);
 
     void UpdateConstant(FVector Offset, FVector Scale, FColor Color, float WipeProgress=-3.0f);
 

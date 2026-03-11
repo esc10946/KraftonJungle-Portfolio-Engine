@@ -7,11 +7,14 @@ enum class EItemType
 {
     None = 0,
 
+    AddLife,        // 목숨 추가
     MultiBall,      // 공 갯수 증가
     ScoreBonus,     // 점수 추가
 
     PaddleExpand,   // 패들 길이 증가
     PaddleShrink,   // 패들 길이 감소
+    PaddleSpeedUp,  // 패들 속도 증가
+    PaddleSpeedDown,// 패들 속도 감소
     BallSpeedUp,    // 공 속도 증가
     BallSpeedDown,  // 공 속도 감소
 };

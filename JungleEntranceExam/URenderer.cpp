@@ -194,6 +194,18 @@ void URenderer::ReleaseShader()
 // 프레임 렌더링을 시작하기 위한 기본 상태 설정
 void URenderer::Prepare()
 {
+    D3D11_BLEND_DESC blendDesc;
+    ZeroMemory(&blendDesc, sizeof(blendDesc));
+
+    blendDesc.RenderTarget[0].BlendEnable = TRUE; // 블렌딩 활성화
+    blendDesc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+    blendDesc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+    blendDesc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+    blendDesc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+    blendDesc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+    blendDesc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+    blendDesc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+
     DeviceContext->ClearRenderTargetView(FrameBufferRTV, ClearColor);
 
     DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -201,8 +213,10 @@ void URenderer::Prepare()
     DeviceContext->RSSetViewports(1, &ViewportInfo);
     DeviceContext->RSSetState(RasterizerState);
 
+    ID3D11BlendState* pBlendState;
+    Device->CreateBlendState(&blendDesc, &pBlendState);
     DeviceContext->OMSetRenderTargets(1, &FrameBufferRTV, nullptr);
-    DeviceContext->OMSetBlendState(nullptr, nullptr, 0xffffffff);
+    DeviceContext->OMSetBlendState(pBlendState, nullptr, 0xffffffff);
 }
 
 // 이번 그리기에서 사용할 쉐이더(VS/PS)와 정점 입력 레이아웃을 파이프라인에 바인딩
@@ -404,6 +418,7 @@ void URenderer::UpdateConstant(FVector Offset, FVector Scale)
             constants->WipeProgress = -3.0f;
             constants->Scale = Scale;
             constants->BlockColor = FColor(1, 1, 1, 1);
+            constants->Alpha = alpha;
         }
         DeviceContext->Unmap(ConstantBuffer, 0);
     }

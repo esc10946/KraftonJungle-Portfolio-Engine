@@ -105,14 +105,24 @@ bool UBar::CheckCollision(const UDiagram* Other)
 void UBar::SetScale(const float _Scale)
 {
 	Scale = _Scale;
+
+	if (Scale > MaxScale) Scale = MaxScale;
+	else if (Scale < MinScale) Scale = MinScale;
+
 	XLength = 1.000000f * Scale;
 }
 
-void UBar::AddScore(int Amount)
+void UBar::SetSpeed(const float _Speed)
 {
-	OutputDebugStringA("AddScore called\n");
+	Speed = _Speed;
 
-	UGameManager::GetInstance()->AddScore(Amount);
+	if (Speed > MaxSpeed) Speed = MaxSpeed;
+	else if (Speed < MinSpeed) Speed = MinSpeed;
+}
+
+void UBar::AddLife()
+{
+	UGameManager::GetInstance()->AddHealth(1);
 }
 
 void UBar::SpawnExtraBalls(int Count)
@@ -149,12 +159,27 @@ void UBar::SpawnExtraBalls(int Count)
 	}
 }
 
+void UBar::AddScore(int Amount)
+{
+	OutputDebugStringA("AddScore called\n");
+
+	UGameManager::GetInstance()->AddScore(Amount);
+}
+
 void UBar::ModifyPaddleSize(float DeltaSize)
 {
 	OutputDebugStringA("ModifyPaddleSize called\n");
 
 	float modifiedScale = Scale * DeltaSize;
 	SetScale(modifiedScale);
+}
+
+void UBar::ModifyPaddleSpeed(float Multiplier)
+{
+	OutputDebugStringA("ModifyPaddleSpeed called\n");
+
+	float modifiedSpeed = Speed * Multiplier;
+	SetSpeed(modifiedSpeed);
 }
 
 void UBar::ModifyBallSpeed(float Multiplier)

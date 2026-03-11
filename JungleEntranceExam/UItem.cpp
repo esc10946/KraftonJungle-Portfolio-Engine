@@ -45,6 +45,12 @@ void UItem::Render(URenderer& renderer)
 
 	switch (ItemDesc.Type)
 	{
+	case EItemType::AddLife:
+		vertices = item_add_life_vertices;
+		vertexCount = sizeof(item_add_life_vertices) / sizeof(FVertexSimple);
+		vertexBufferSize = sizeof(item_add_life_vertices);
+		break;
+
 	case EItemType::MultiBall:
 		vertices = item_multi_ball_vertices;
 		vertexCount = sizeof(item_multi_ball_vertices) / sizeof(FVertexSimple);
@@ -67,6 +73,18 @@ void UItem::Render(URenderer& renderer)
 		vertices = item_paddle_shrink_vertices;
 		vertexCount = sizeof(item_paddle_shrink_vertices) / sizeof(FVertexSimple);
 		vertexBufferSize = sizeof(item_paddle_shrink_vertices);
+		break;
+
+	case EItemType::PaddleSpeedUp:
+		vertices = item_paddle_speed_up_vertices;
+		vertexCount = sizeof(item_paddle_speed_up_vertices) / sizeof(FVertexSimple);
+		vertexBufferSize = sizeof(item_paddle_speed_up_vertices);
+		break;
+
+	case EItemType::PaddleSpeedDown:
+		vertices = item_paddle_speed_down_vertices;
+		vertexCount = sizeof(item_paddle_speed_down_vertices) / sizeof(FVertexSimple);
+		vertexBufferSize = sizeof(item_paddle_speed_down_vertices);
 		break;
 
 	case EItemType::BallSpeedUp:
@@ -122,12 +140,29 @@ void UItem::ApplyGravity(float deltaTime, const FVector& gravity)
 bool UItem::CheckCollision(const UDiagram* Other)
 {
 	const UBar* PlayerBar{ dynamic_cast<const UBar*>(Other) };
-	if (PlayerBar)
+
+	if (PlayerBar == nullptr)
+		return false;
+
+	// X축 범위 먼저 검사
+	bool bInXRange =
+		(PlayerBar->Location.x - (PlayerBar->XLength + Scale) <= Location.x) &&
+		(Location.x <= PlayerBar->Location.x + (PlayerBar->XLength + Scale));
+
+	if (!bInXRange)
+		return false;
+
+	// Player 1
+	if (PlayerBar->PlayerNo == 0)
 	{
-		if (Location.y - Scale <= PlayerBar->Location.y + PlayerBar->YLength)
-		{
-			return (PlayerBar->Location.x - (PlayerBar->XLength + Scale) <= Location.x && Location.x <= PlayerBar->Location.x + (PlayerBar->XLength + Scale));
-		}
+		// 아이템의 아래쪽이 바의 위쪽에 닿았는가
+		return (Location.y - Scale <= PlayerBar->Location.y + PlayerBar->YLength);
+	}
+	// Player 2
+	else if (PlayerBar->PlayerNo == 1)
+	{
+		// 아이템의 위쪽이 바의 아래쪽에 닿았는가
+		return (Location.y + Scale >= PlayerBar->Location.y - PlayerBar->YLength);
 	}
 
 	return false;
@@ -162,6 +197,10 @@ void UItem::ApplyEffect(IItemEffectReceiver* Receiver)
 {
 	switch (ItemDesc.Type)
 	{
+	case EItemType::AddLife:
+		Receiver->AddLife();
+		break;
+
 	case EItemType::MultiBall:
 		Receiver->SpawnExtraBalls(ItemDesc.IntValue);
 		break;
@@ -176,6 +215,14 @@ void UItem::ApplyEffect(IItemEffectReceiver* Receiver)
 
 	case EItemType::PaddleShrink:
 		Receiver->ModifyPaddleSize(ItemDesc.FloatValue);
+		break;
+
+	case EItemType::PaddleSpeedUp:
+		Receiver->ModifyPaddleSpeed(ItemDesc.FloatValue);
+		break;
+
+	case EItemType::PaddleSpeedDown:
+		Receiver->ModifyPaddleSpeed(ItemDesc.FloatValue);
 		break;
 
 	case EItemType::BallSpeedUp:

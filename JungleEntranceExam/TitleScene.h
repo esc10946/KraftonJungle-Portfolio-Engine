@@ -27,6 +27,7 @@ private:
     UUIButton* EndButton = nullptr;
     UUIButton* CreditButton = nullptr;
 
+
     // UScene을(를) 통해 상속됨
     void UIRender() override;
 };
