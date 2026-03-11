@@ -37,7 +37,7 @@ PS_INPUT mainVS(VS_INPUT input)
     float3 finalPos = scaledPos + Offset.xyz;
     output.position = float4(finalPos, input.position.w);
     output.localX = input.position.x;
-       output.localY = input.position.y;
+    output.localY = input.position.y;
     // Pass the color to the pixel shader
     output.color = input.color;
     

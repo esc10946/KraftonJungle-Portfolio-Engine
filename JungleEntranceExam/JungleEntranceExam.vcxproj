@@ -133,6 +133,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="FileInfo.cpp" />
     <ClCompile Include="FVector.cpp" />
     <ClCompile Include="FVertexSimple.h" />
     <ClCompile Include="ImGui\imgui.cpp" />
@@ -169,6 +170,7 @@
   <ItemGroup>
     <ClInclude Include="Bar.h" />
     <ClInclude Include="FColor.h" />
+    <ClInclude Include="FileInfo.h" />
     <ClInclude Include="FVector.h" />
     <ClInclude Include="ItemEffectReceiver.h" />
     <ClInclude Include="ItemLibrary.h" />

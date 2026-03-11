@@ -10,6 +10,7 @@
 #include "UItemManager.h"
 #include "Stage.h"
 #include "UParticlePool.h"
+#include "FileInfo.h"
 UGameScene::UGameScene()
 {
     Init(); 
@@ -44,7 +45,8 @@ void UGameScene::UIRender()
     ImGui::Begin("HUD", nullptr, hudFlags);
 
     ImGui::SetWindowFontScale(4.0f);
-    ImGui::TextColored(ImVec4(1.0f, 1.0f, 0.0f, 1.0f), "SCORE: %d", gameManager->GetTotalScore());
+    ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "HIGH: %d", GetHightScore());
+    ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "SCORE: %d", gameManager->GetTotalScore());
     ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "LIVES: %d", gameManager->GetCurLife());
     ImGui::End();
 
@@ -250,6 +252,7 @@ void UGameScene::Update(float delta)
         USoundManager::GetInstance().StopAll();
         USoundManager::GetInstance().Play("Victory");
         UClearScene::FinalScore = gameManager->GetTotalScore();
+        HightScoreUpdate(UClearScene::FinalScore);
         USceneManager::GetInstance().LoadScene(ESceneType::Clear);
         return;
     }
