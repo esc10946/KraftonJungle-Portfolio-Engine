@@ -1,4 +1,4 @@
-﻿#include "UGameScene.h"
+#include "UGameScene.h"
 #include "UGameObject.h"
 #include "UGameManager.h" 
 #include "UBall.h"
@@ -72,19 +72,22 @@ void UGameScene::Init()
     AddObject(Bar_1);
     AddObject(Bar_2);
 
-    //stage 블럭들
+
     int CurrentRound = 2;
     stageblocks = CreateStage(CurrentRound);
-    for (auto* b : stageblocks)
+    for (auto& b : stageblocks)
     {
         if (!b)
             nullptr;
 		AddObject(b);
     }
 
+
+
     GetStageInfo(CurrentStage, CurrentStageRow, CurrentStageCol);
 
     //게임매니저 초기화
+
     gameManager = UGameManager::GetInstance();
     gameManager->RessetGM();
 }
@@ -152,17 +155,21 @@ void UGameScene::Update(float delta)
         int CurCol = 0;
         for (auto* b : stageblocks)
         {
-            idx++;
+
             if (!b)
                 continue;
 
-            if (!b->IsActive())
+            if (!b->IsActive()) 
                 continue;
+
+            idx++;
+            if (!b || !b->IsActive()) continue;
             if (b->CheckSkip())
             {
                 b->SetSkipCalc(false);
                 continue;
             }
+
 
             EBlockCollision CollisionState = (*ball).CheckBlockCollision(*b, CollisionPos);
             if (CollisionState != EBlockCollision::None)
@@ -236,7 +243,7 @@ void UGameScene::Update(float delta)
 
     if (bIsBrickEmpty()) // 벽돌 다 깨짐!
     {
-        // 아이템 관련 리소스 해제
+        // ������ ���� ���ҽ� ����
         UItemManager::Get().Clear();
 
         USoundManager::GetInstance().StopAll();
@@ -336,12 +343,15 @@ void UGameScene::Render(URenderer render)
             render.RenderSphere();
         }
     }
-}
+
+    // Item Objects Render
     UItemManager::Get().Render(render);
 
     for (auto* b : stageblocks)
     {
-        if (!b) 
+
+        if (!b) //<-added
+
             continue;
         b->Render(render);
     }

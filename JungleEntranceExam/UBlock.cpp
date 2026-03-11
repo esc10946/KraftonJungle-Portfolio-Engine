@@ -3,9 +3,9 @@
 #include "ItemLibrary.h"
 #include <iostream>
 
-static int TotalScore=0;// ÇöÀç ÀüÃ¼ ½ºÄÚ¾î
+static int TotalScore=0;// í˜„ì¬ ì „ì²´ ìŠ¤ì½”ì–´
 
-static int TotalActiveBlocks = 0;// ÇöÀç È°¼ºÈ­µÈ ºí·Ï ¼ö
+static int TotalActiveBlocks = 0;// í˜„ì¬ í™œì„±í™”ëœ ë¸”ë¡ ìˆ˜
 UBlock::UBlock(EBlockType InType, EBlockColor InColor, int Round) :Type(InType),CenterX(0),CenterY(0),HalfW(0),HalfH(0),MaxX(0),MaxY(0),MinX(0),MinY(0)
 {
    
@@ -60,11 +60,11 @@ void UBlock::Update(float DeltaTime)
 {
     if (WipeProgress >= -2.5f && WipeProgress < 2.5f)
     {
-        WipeProgress += DeltaTime * 12.0f; // ¹üÀ§°¡ ³Ğ¾îÁ³À¸´Ï ¼Óµµ¸¦ Á¶±İ ¿Ã¸²
+        WipeProgress += DeltaTime * 12.0f; // ë²”ìœ„ê°€ ë„“ì–´ì¡Œìœ¼ë‹ˆ ì†ë„ë¥¼ ì¡°ê¸ˆ ì˜¬ë¦¼
 
         if (WipeProgress >= 2.5f)
         {
-            WipeProgress = -3.0f; // ¿ÏÀüÈ÷ ²¨Áø »óÅÂ
+            WipeProgress = -3.0f; // ì™„ì „íˆ êº¼ì§„ ìƒíƒœ
         }
     }
 
@@ -100,7 +100,7 @@ bool UBlock::CheckBallCollision(const FVector& BallPos, float Radius, FVector& O
 
 
 
-int UBlock::TakeDamage()//ÄğÅ¸ÀÓ ÇÊ¿äÇÒ°Å°°Àºµ¥È¤Àº ´Ù¸¥ Ãæµ¹ÀÌ ÀÖÀ¸¸é ÃÊ±âÈ­µÇ´ø°¡
+int UBlock::TakeDamage()
 {
     if (!IsActive() || Type == EBlockType::Immortal)
         return 0;
@@ -112,12 +112,9 @@ int UBlock::TakeDamage()//ÄğÅ¸ÀÓ ÇÊ¿äÇÒ°Å°°Àºµ¥È¤Àº ´Ù¸¥ Ãæµ¹ÀÌ ÀÖÀ¸¸é ÃÊ±âÈ­µÇ´
         TotalScore += score;
         TotalActiveBlocks--;
 
-        // ¾ÆÀÌÅÛ »ı¼º
         FItemDesc ItemDesc = ItemLibrary::MakeRandomItem();
 
         UItemManager::Get().SpawnItem(ItemDesc, FVector(CenterX, CenterY, 0.0f), FVector(0.0f, -1.0f, 0.0f));
-
-		std::cout << "Score : " << TotalScore << " Active Blocks : " << TotalActiveBlocks << std::endl;
         return score;
     }
     else
