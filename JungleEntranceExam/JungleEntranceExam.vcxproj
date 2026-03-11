@@ -147,6 +147,7 @@
     <ClCompile Include="UBall.cpp" />
     <ClCompile Include="UBar.cpp" />
     <ClCompile Include="UBlock.cpp" />
+    <ClCompile Include="UBullet.cpp" />
     <ClCompile Include="UClearScene.cpp" />
     <ClCompile Include="UGameManager.cpp" />
     <ClCompile Include="UGameObject.cpp" />
@@ -163,6 +164,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bar.h" />
+    <ClInclude Include="Bullet.h" />
     <ClInclude Include="FColor.h" />
     <ClInclude Include="FVector.h" />
     <ClInclude Include="ItemEffectReceiver.h" />
@@ -183,6 +185,7 @@
     <ClInclude Include="Sphere.h" />
     <ClInclude Include="UBall.h" />
     <ClInclude Include="UBar.h" />
+    <ClInclude Include="UBullet.h" />
     <ClInclude Include="UClearScene.h" />
     <ClInclude Include="UDiagram.h" />
     <ClInclude Include="UGameManager.h" />

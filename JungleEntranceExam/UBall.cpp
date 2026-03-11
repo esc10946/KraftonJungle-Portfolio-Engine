@@ -18,8 +18,14 @@ UBall::UBall() :
     Mass = (4.0f / 3.0f) * Pi * std::powf(Radius, 3);
 }
 
-UBall::UBall(const FVector& _Location, const FVector& _Velocity,const float _Speed, const float _Radius, const bool _IsMove, UBar* _BarPtr, const float _Acceleration, const float _SpeedLimit)
-    : Location(_Location), Velocity(_Velocity),Speed(_Speed), Radius(_Radius), IsMove(_IsMove), BarPtr(_BarPtr), Acceleration(_Acceleration), SpeedLimitMax(_SpeedLimit)
+UBall::UBall(const FVector& _Location, const FVector& _Velocity, const float _Speed, const float _Radius, const bool _IsMove, UBar* _BarPtr, const float _Acceleration, const float _SpeedLimit)
+    : Location(_Location),
+    Velocity(_Velocity),
+    Speed(_Speed), Radius(_Radius),
+    IsMove(_IsMove), BarPtr(_BarPtr),
+    Acceleration(_Acceleration),
+    SpeedLimitMax(_SpeedLimit),
+    SpeedLimitMin(0.5f)
 {
     ++TotalNumBalls;
     Mass = (4.0f / 3.0f) * Pi * std::powf(Radius, 3);

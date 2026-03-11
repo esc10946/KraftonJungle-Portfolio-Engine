@@ -47,10 +47,12 @@ public:
 
     UINT NumVerticesSphere;
     UINT NumVerticesBar;
+    UINT NumVerticesBullet;
 
     ID3D11Buffer* vertexBufferSphere = nullptr;
     ID3D11Buffer* vertexBufferRect = nullptr;
     ID3D11Buffer* vertexBufferTriangle = nullptr;
+    ID3D11Buffer* vertexBufferBullet = nullptr;
 
 public:
     void Create(HWND hWindow);
@@ -70,6 +72,7 @@ public:
     void RenderSphere();
     void RenderRectangle();
     void RenderTriangle();
+    void RenderBullet();
 
     ID3D11Buffer* CreateVertexBuffer(FVertexSimple* vertices, UINT byteWidth);
     void ReleaseVertexBuffer();

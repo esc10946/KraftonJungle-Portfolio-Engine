@@ -2,8 +2,9 @@
 
 #include "UDiagram.h"
 #include "ItemEffectReceiver.h"
+#include "UBullet.h"
 
-enum EDirection
+enum class EDirection
 {
     Left = -1,
     Right = 1
@@ -26,6 +27,14 @@ public:
     int PlayerNo;
     int Direction;
     EPlaySide Side;
+
+    int LoadedBulletCount;
+    float ShootInterval;
+    std::chrono::steady_clock::time_point LastFireTime;
+    std::vector<UBullet> FlyingBullet;
+    int FlyingBulletVecSize;
+    EDirection CurrentShootSide;
+    int ShootKey;
 
     // 생성자 및 소멸자
 public:
@@ -62,4 +71,8 @@ public:
     virtual void AddScore(int Amount) override;
     virtual void ModifyPaddleSize(float DeltaSize) override;
     virtual void ModifyBallSpeed(float Multiplier) override;
+
+    std::vector<UBullet>& GetFlyingBulletVec();
+
+    void Shoot();
 };

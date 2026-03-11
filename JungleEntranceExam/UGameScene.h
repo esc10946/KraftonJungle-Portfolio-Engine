@@ -1,10 +1,12 @@
 #pragma once
 #include "UScene.h"
+#include "Stage.h"
 
 class UGameManager;
 class UBall;
 class UBar;
 class UBlock;
+class UBullet;
 
 class UGameScene:
     public UScene
@@ -45,4 +47,5 @@ private:
     int CurrentStageCol;
     bool ShowStageClearModal{ false };
     bool ShowGameOverModal{ false };
+    StageData StageData;
 };

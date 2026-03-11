@@ -1,4 +1,4 @@
-﻿#include "Stage.h"
+#include "Stage.h"
 //Grid?
 
 static const float HALF_BW = 0.065f;// (2.0f - a)/ 13.0f / 2.0f
@@ -7,6 +7,7 @@ static const float STEP_X = HALF_BW * 2.0f;//-+a // Row gap
 static const float STEP_Y = HALF_BH * 2.0f;//+a   // Col gap
 static const float START_X = 2 * HALF_BW;// +a // first block center x
 static const float START_Y = 2 * HALF_BH;// +a // first block center y
+
 
 #define N(c) (c) 
 #define H 100
@@ -38,6 +39,17 @@ static int stage1[6][13] =
 	N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3)	//G
 	//N(1)
 };
+
+//static int stage2[6][13] =
+//{
+//	//H,	 H,	  H,   H,	H,	 H,	  H,   H,	H,	 H,	  H,   H,	H,		//Hard
+//	//N(4),N(4),N(4),N(4),N(4),N(4),N(4),N(4),N(4),N(4),N(4),N(4),N(4),	//R
+//	//N(7),N(7),N(7),N(7),N(7),N(7),N(7),N(7),N(7),N(7),N(7),N(7),N(7),	//Y
+//	//N(5),N(5),N(5),N(5),N(5),N(5),N(5),N(5),N(5),N(5),N(5),N(5),N(5),	//B
+//	//N(6),N(6),N(6),N(6),N(6),N(6),N(6),N(6),N(6),N(6),N(6),N(6),N(6),	//M
+//	//N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3)	//G
+//	N(1)
+//};
 static int stage2[13][13] =
 {
 	N(8),_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,
@@ -174,4 +186,18 @@ std::vector<UBlock*> CreateStage(int Round)
 int GetStageRow(int Round)
 {
 	return 0;
+}
+
+StageData GetStageData()
+{
+	StageData Data;
+
+	Data.HALF_BW = HALF_BW;
+	Data.HALF_BH = HALF_BH;
+	Data.STEP_X = STEP_X;
+	Data.STEP_Y = STEP_Y;
+	Data.START_X = START_X;
+	Data.START_Y = START_Y;
+
+	return Data;
 }

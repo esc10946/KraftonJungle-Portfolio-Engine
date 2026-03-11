@@ -249,6 +249,13 @@ void URenderer::RenderTriangle()
     DeviceContext->Draw(3, 0);
 }
 
+void URenderer::RenderBullet()
+{
+    UINT offset = 0;
+    DeviceContext->IASetVertexBuffers(0, 1, &vertexBufferBullet, &Stride, &offset);
+    DeviceContext->Draw(NumVerticesBullet, 0);
+}
+
 // Vertex Buffer 생성 함수
 ID3D11Buffer* URenderer::CreateVertexBuffer(FVertexSimple* vertices, UINT byteWidth)
 {
