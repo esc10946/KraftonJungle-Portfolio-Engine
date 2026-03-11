@@ -129,7 +129,7 @@ void UGameScene::Init()
     AddObject(Bar_2);
 
 
-    CurrentStage = 1;
+    CurrentStage = 2;
     stageblocks = CreateStage(CurrentStage);
     for (auto& b : stageblocks)
     {
