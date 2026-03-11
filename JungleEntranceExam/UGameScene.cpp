@@ -246,7 +246,7 @@ void UGameScene::Update(float delta)
     particlePool->Update(delta);
     if (bIsBrickEmpty()) // 벽돌 다 깨짐!
     {
-        // ������ ���� ���ҽ� ����
+
         UItemManager::Get().Clear();
 
         USoundManager::GetInstance().StopAll();
