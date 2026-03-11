@@ -12,7 +12,7 @@ public:
     UTitleScene() = default;
     virtual ~UTitleScene() { Release(); }
 
-    // USceneÀ»(¸¦) ÅëÇØ »ó¼ÓµÊ
+    // USceneì„(ë¥¼) í†µí•´ ìƒì†ë¨
     void Init() override;
     void Update(float delta) override;
     void Render(URenderer render) override;
@@ -27,7 +27,8 @@ private:
     UUIButton* EndButton = nullptr;
     UUIButton* CreditButton = nullptr;
 
-    // USceneÀ»(¸¦) ÅëÇØ »ó¼ÓµÊ
+
+    // USceneì„(ë¥¼) í†µí•´ ìƒì†ë¨
     void UIRender() override;
 };
 

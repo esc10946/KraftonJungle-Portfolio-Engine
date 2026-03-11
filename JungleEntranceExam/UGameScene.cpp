@@ -1,4 +1,4 @@
-ï»¿#include "UGameScene.h"
+#include "UGameScene.h"
 #include "UGameObject.h"
 #include "UGameManager.h" 
 #include "UBall.h"
@@ -73,7 +73,7 @@ void UGameScene::Init()
     AddObject(Bar_2);
 
     //stage ë¸”ëŸ­ë“¤
-    CurrentStage = 3;
+    CurrentStage = 2;
     stageblocks = CreateStage(CurrentStage);
     GetStageInfo(CurrentStage, CurrentStageRow, CurrentStageCol);
 
@@ -226,7 +226,6 @@ void UGameScene::Update(float delta)
 
     if (bIsBrickEmpty()) // ë²½ëŒ ë‹¤ ê¹¨ì§!
     {
-        // ¾ÆÀÌÅÛ °ü·Ã ¸®¼Ò½º ÇØÁ¦
         UItemManager::Get().Clear();
 
         USoundManager::GetInstance().StopAll();

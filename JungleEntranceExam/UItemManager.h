@@ -37,7 +37,6 @@ private:
     void AddItem(UItem* NewItem);
     void RemoveItemAt(int Index);
 
-private:
     UItem** ItemList = nullptr;
     int ItemCount = 0;
     int Capacity = 0;
