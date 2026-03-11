@@ -418,11 +418,11 @@ void URenderer::UpdateConstant(FVector Offset, FVector Scale)
             constants->WipeProgress = -3.0f;
             constants->Scale = Scale;
             constants->BlockColor = FColor(1, 1, 1, 1);
-            constants->Alpha = alpha;
         }
         DeviceContext->Unmap(ConstantBuffer, 0);
     }
 }
+
 
 void URenderer::UpdateConstant(FVector Offset, FVector Scale,FColor Color, float WipeProgress)
 {

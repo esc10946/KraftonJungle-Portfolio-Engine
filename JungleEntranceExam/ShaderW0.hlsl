@@ -3,13 +3,8 @@ cbuffer constants : register(b0)
     float3 Offset;
     float WipeProgress;
     float4 Scale;
-    //float Pad;
     float4 BlockColor;
 }
-    float Alpha;
-    float3 Padding;
-};
-
 struct VS_INPUT
 {
     float4 position : POSITION;
@@ -37,7 +32,6 @@ PS_INPUT mainVS(VS_INPUT input)
     output.localY = input.position.y;
     // Pass the color to the pixel shader
     output.color = input.color;
-    output.color.a = Alpha;
     
     return output;
 }

@@ -104,26 +104,14 @@ bool UBlock::CheckBallCollision(const FVector& BallPos, float Radius, FVector& O
 
 
 
-int UBlock::TakeDamage()
+int UBlock::TakeDamage(FVector& ballDir)
 {
     if (!IsActive() || Type == EBlockType::Immortal)
         return 0;
     CurrHp--;
 
     if (CurrHp == 0)
-        return BreakBlock();
-
-    else
-        WipeProgress = -2.5f;
-    return 0;
-}
-int UBlock::BreakBlock()
-{
-    FColor blockColor = GetColor(); 
-    SetActive(false);
-    TotalScore += score;
-    TotalActiveBlocks--;
-
+    {
         // 아이템 확률 생성 (확률 : --%)
         int r = rand() % 100;
 
@@ -145,11 +133,31 @@ int UBlock::BreakBlock()
             UItemManager::Get().SpawnItem(ItemDesc, FVector(CenterX, CenterY, 0.0f), ItemDir);
         }
 
-		std::cout << "Score : " << TotalScore << " Active Blocks : " << TotalActiveBlocks << std::endl;
-        return score;
+        return BreakBlock();
     }
+    else
+        WipeProgress = -2.5f;
     return 0;
 }
+int UBlock::BreakBlock()
+{
+    FColor blockColor = GetColor(); 
+    SetActive(false);
+    TotalScore += score;
+    TotalActiveBlocks--;
+
+      
+    for (int i = 0; i < 15; ++i) {
+        UParticle* p = dynamic_cast<UGameScene*>(USceneManager::GetInstance().GetCurrentScene())->GetParticlePool()->GetInactiveParticle();
+        if (p) {
+            FVector randVel(((rand() % 200) - 100) / 100.0f, ((rand() % 200) - 100) / 100.0f, 0);
+            p->Spawn(FVector(CenterX, CenterY, 0), randVel, blockColor, 2.0f);
+        }
+    }
+    return score;
+ }
+ 
+
 int UBlock::GetScore()
 {
 	return TotalScore;
