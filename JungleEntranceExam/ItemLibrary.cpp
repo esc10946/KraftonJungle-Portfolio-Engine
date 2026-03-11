@@ -8,17 +8,23 @@ FItemDesc ItemLibrary::MakeRandomItem()
     if (r < 5)
         return MakeAddLife();
     // 멀티볼 아이템 (확률 : --%)
-    if (r < 30)
+    if (r < 20)
         return MakeMultiBall(2);
     // 스코어 보너스 아이템 (확률 : --%)
-    if (r < 45)
+    if (r < 30)
         return MakeScoreBonus(100);
     // 패들 길이 증가 아이템 (확률 : --%)
-    if (r < 65)
+    if (r < 45)
         return MakePaddleExpand(1.2f);
     // 패들 길이 감소 아이템 (확률 : --%)
-    if (r < 80)
+    if (r < 55)
         return MakePaddleShrink(0.8f);
+    // 패들 속도 증가 아이템 (확률 : --%)
+    if (r < 70)
+        return MakePaddleSpeedUp(1.2f);
+    // 패들 속도 감소 아이템 (확률 : --%)
+    if (r < 80)
+        return MakePaddleSpeedDown(0.8f);
     // 공 속도 증가 아이템 (확률 : --%)
     if (r < 90)
         return MakeBallSpeedUp(1.5f);
@@ -72,6 +78,26 @@ FItemDesc ItemLibrary::MakePaddleShrink(float DeltaSize)
     Desc.ApplyType = EItemApplyType::Immediate;
     Desc.FloatValue = DeltaSize;
     Desc.DebugName = "PaddleShrink";
+    return Desc;
+}
+
+FItemDesc ItemLibrary::MakePaddleSpeedUp(float Multiplier)
+{
+    FItemDesc Desc;
+    Desc.Type = EItemType::PaddleSpeedUp;
+    Desc.ApplyType = EItemApplyType::Immediate;
+    Desc.FloatValue = Multiplier;
+    Desc.DebugName = "PaddleSpeedUp";
+    return Desc;
+}
+
+FItemDesc ItemLibrary::MakePaddleSpeedDown(float Multiplier)
+{
+    FItemDesc Desc;
+    Desc.Type = EItemType::PaddleSpeedDown;
+    Desc.ApplyType = EItemApplyType::Immediate;
+    Desc.FloatValue = Multiplier;
+    Desc.DebugName = "PaddleSpeedDown";
     return Desc;
 }
 

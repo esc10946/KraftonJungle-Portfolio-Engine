@@ -108,6 +108,11 @@ void UBar::SetScale(const float _Scale)
 	XLength = 1.000000f * Scale;
 }
 
+void UBar::SetSpeed(const float _Speed)
+{
+	Speed = _Speed;
+}
+
 void UBar::AddLife()
 {
 	UGameManager::GetInstance()->AddHealth(1);
@@ -160,6 +165,14 @@ void UBar::ModifyPaddleSize(float DeltaSize)
 
 	float modifiedScale = Scale * DeltaSize;
 	SetScale(modifiedScale);
+}
+
+void UBar::ModifyPaddleSpeed(float Multiplier)
+{
+	OutputDebugStringA("ModifyPaddleSpeed called\n");
+
+	float modifiedSpeed = Speed * Multiplier;
+	SetSpeed(modifiedSpeed);
 }
 
 void UBar::ModifyBallSpeed(float Multiplier)
