@@ -128,12 +128,29 @@ void UItem::ApplyGravity(float deltaTime, const FVector& gravity)
 bool UItem::CheckCollision(const UDiagram* Other)
 {
 	const UBar* PlayerBar{ dynamic_cast<const UBar*>(Other) };
-	if (PlayerBar)
+
+	if (PlayerBar == nullptr)
+		return false;
+
+	// X축 범위 먼저 검사
+	bool bInXRange =
+		(PlayerBar->Location.x - (PlayerBar->XLength + Scale) <= Location.x) &&
+		(Location.x <= PlayerBar->Location.x + (PlayerBar->XLength + Scale));
+
+	if (!bInXRange)
+		return false;
+
+	// Player 1
+	if (PlayerBar->PlayerNo == 0)
 	{
-		if (Location.y - Scale <= PlayerBar->Location.y + PlayerBar->YLength)
-		{
-			return (PlayerBar->Location.x - (PlayerBar->XLength + Scale) <= Location.x && Location.x <= PlayerBar->Location.x + (PlayerBar->XLength + Scale));
-		}
+		// 아이템의 아래쪽이 바의 위쪽에 닿았는가
+		return (Location.y - Scale <= PlayerBar->Location.y + PlayerBar->YLength);
+	}
+	// Player 2
+	else if (PlayerBar->PlayerNo == 1)
+	{
+		// 아이템의 위쪽이 바의 아래쪽에 닿았는가
+		return (Location.y + Scale >= PlayerBar->Location.y - PlayerBar->YLength);
 	}
 
 	return false;

@@ -183,7 +183,7 @@ void UGameScene::Update(float delta)
     // Item Objects Update
     UItemManager::Get().Update(delta);
     UItemManager::Get().CheckCollision(Bar_1);
-    //UItemManager::Get().CheckCollision(Bar_2);
+    UItemManager::Get().CheckCollision(Bar_2);
 
     gameManager->Update(delta);
 
