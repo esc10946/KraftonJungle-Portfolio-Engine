@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "UScene.h"
 
 class UGameManager;
@@ -41,7 +41,7 @@ private:
     std::vector<UBall*> ActiveBallList;
     UBar* Bar_1;
     UBar* Bar_2;
-    int CurrentStage;
+    int CurrentStage=1;
     int CurrentStageRow;
     int CurrentStageCol;
     bool ShowStageClearModal{ false };

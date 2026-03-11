@@ -1,4 +1,4 @@
-#include "UGameManager.h"
+﻿#include "UGameManager.h"
 #include "USceneManager.h"
 #include "USoundManager.h"
 #include "UItemManager.h"
@@ -14,8 +14,6 @@ void UGameManager::initialize()
 {
 }
 
-//�ΰ��ӿ��� �ʱ�ȭ������ ���ư��� �Լ�
-//SceneManager���� title�� ��û
 void UGameManager::Exit()
 {
 	initialize();
@@ -66,7 +64,6 @@ void UGameManager::Release()
 void UGameManager::AddHealth(const unsigned int value)
 {
 	currentHealth += value;
-	//�ִ� ü�� 
 	currentHealth = currentHealth < MaxHealth ? currentHealth : MaxHealth;
 }
 
