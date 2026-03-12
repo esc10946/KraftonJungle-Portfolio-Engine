@@ -73,7 +73,6 @@ public:
     void CreateConstantBuffer();
     void ReleaseConstantBuffer();
     void UpdateConstant(FVector Offset, FVector Scale);
-    void UpdateConstant(FVector Offset, FVector Scale, float alpha);
 
     void UpdateConstant(FVector Offset, FVector Scale, FColor Color, float WipeProgress=-3.0f);
 
