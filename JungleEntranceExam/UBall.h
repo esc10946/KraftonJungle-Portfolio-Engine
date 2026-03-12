@@ -23,6 +23,7 @@ public:
     float   Acceleration;
     float   SpeedLimitMin;
     float   SpeedLimitMax;
+    float   FlashTimer = 0.f;
     inline static int TotalNumBalls{ 0 };
 private:
     std::deque<FVector> trailSpawnLoc;

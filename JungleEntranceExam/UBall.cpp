@@ -11,8 +11,9 @@ UBall::UBall() :
     IsMove(false),
     BarPtr(nullptr),
     Acceleration(0.0f),
-    SpeedLimitMin(0.5f),   // 추가됨
-    SpeedLimitMax(5.0f)    // 추가됨
+    SpeedLimitMin(0.5f),
+    SpeedLimitMax(5.0f), 
+    FlashTimer(0.0f)
 {
     ++TotalNumBalls;
     Mass = (4.0f / 3.0f) * Pi * std::powf(Radius, 3);
@@ -25,7 +26,8 @@ UBall::UBall(const FVector& _Location, const FVector& _Velocity, const float _Sp
     IsMove(_IsMove), BarPtr(_BarPtr),
     Acceleration(_Acceleration),
     SpeedLimitMax(_SpeedLimit),
-    SpeedLimitMin(0.5f)
+    SpeedLimitMin(0.5f),
+    FlashTimer(0.0f)
 {
     ++TotalNumBalls;
     Mass = (4.0f / 3.0f) * Pi * std::powf(Radius, 3);
@@ -68,7 +70,8 @@ void UBall::Update(float deltaTime)
             IsMove = true;
         }
     }
-
+    if (FlashTimer > 0.f)
+        FlashTimer -= deltaTime * 4.0f;
     curTimer += deltaTime;
 
     if (Speed > 1 && curTimer > trailTimer) {
@@ -103,7 +106,8 @@ void UBall::Render(URenderer& renderer)
         renderer.RenderSphere();
     }
 
-    renderer.UpdateConstant(Location, FVector(Radius, Radius, 0));
+    renderer.UpdateConstant(Location, FVector(Radius, Radius, 0), FColor(1, 1, 1, 1), -3.0f, FlashTimer);
+    renderer.RenderSphere();
 }
 
 // 벽 충돌 적용
@@ -360,7 +364,8 @@ EBlockCollision UBall::CheckBlockCollision(const UBlock& Block, FVector& Collisi
 void UBall::BallBounceAtBlock(const EBlockCollision Position, UBlock& Block, const FVector& CollisionPos)
 {
     if (Position == EBlockCollision::None) return;
-
+    if (FlashTimer <= 0.f)
+        FlashTimer = 1.0f;
     Block.TakeDamage(Velocity);
 
     switch (Position)

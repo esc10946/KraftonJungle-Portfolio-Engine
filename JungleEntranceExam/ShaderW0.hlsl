@@ -3,7 +3,10 @@ cbuffer constants : register(b0)
     float3 Offset;
     float WipeProgress;
     float4 Scale;
+    float FlashTimer;
+    float3 _pad;
     float4 BlockColor;
+
 }
 struct VS_INPUT
 {
@@ -48,6 +51,14 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
         
         float sweep = saturate(1.0f - abs(diagonalPos - WipeProgress) / 0.17f);
         return lerp(baseColor, float4(1, 1, 1, 1), sweep);
+    }
+    
+    if (FlashTimer > 0.f)
+    {
+        float d = length(float2(input.localX, input.localY)); 
+        float t = saturate(FlashTimer);
+        float glow = t * (1.0f / (d + 0.5f)) * 0.7f;
+        baseColor = lerp(baseColor, float4(1, 1, 1, 1), saturate(glow));
     }
     return baseColor;
 }
