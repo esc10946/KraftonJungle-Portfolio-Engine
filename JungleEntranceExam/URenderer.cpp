@@ -250,6 +250,13 @@ void URenderer::RenderSphere()
     DeviceContext->Draw(NumVerticesSphere, 0);
 }
 
+void URenderer::RenderNewSphere()
+{
+    UINT offset = 0;
+    DeviceContext->IASetVertexBuffers(0, 1, &vertexBufferNewSphere, &Stride, &offset);
+    DeviceContext->Draw(NumVerticesNewSphere, 0);
+}
+
 void URenderer::RenderRectangle()
 {
     UINT offset = 0;

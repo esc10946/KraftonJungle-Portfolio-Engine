@@ -151,32 +151,17 @@ void UBall::Update(float deltaTime)
 // 렌더링 (상수 버퍼 업데이트)
 void UBall::Render(URenderer& renderer)
 {
-    if (BallVertexBuffer == nullptr)
-    {
-        BallVertexBuffer = renderer.CreateVertexBuffer(BallVertices, sizeof(FVertexSimple) * BallVertexCount);
-    }
 
     for (int i = (int)trailSpawnLoc.size() - 1; i >= 0; i--)
     {
         float alpha = 0.5f - ((float)i / maxTrailCount) / 2;
 
         renderer.UpdateConstant(trailSpawnLoc[i], FVector(Radius, Radius, 0), FColor(1, 1, 1, alpha));
-        // render.SetColor(1.0f, 0.5f, 0.0f, alpha); // 불꽃 같은 주황색 꼬리!
-        // render.RenderSphere();
-        renderer.RenderPrimitive(BallVertexBuffer, BallVertexCount);
+        renderer.RenderNewSphere();
     }
 
     renderer.UpdateConstant(Location, FVector(Radius, Radius, 1.0f));
-
-    if (BallVertexBuffer == nullptr)
-    {
-        BallVertexBuffer = renderer.CreateVertexBuffer(BallVertices, sizeof(FVertexSimple) * BallVertexCount);
-    }
-
-    if (BallVertexBuffer != nullptr)
-    {
-        renderer.RenderPrimitive(BallVertexBuffer, BallVertexCount);
-    }
+    renderer.RenderNewSphere();
 }
 
 // 벽 충돌 적용

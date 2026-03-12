@@ -87,7 +87,6 @@ public:
 
     // static void InitBall(UBall& input);
 
-private:
     static void CreateCircleVertices(
         FVertexSimple* outVertices,
         int segmentCount,
