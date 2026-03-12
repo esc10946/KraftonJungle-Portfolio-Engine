@@ -32,7 +32,7 @@ FItemDesc ItemLibrary::MakeRandomItem()
     if (r < 100)
         return MakeBallSpeedDown(0.7f);
     else
-        return AddBullet(10);
+        return AddBullet(5);
 }
 
 FItemDesc ItemLibrary::MakeAddLife()

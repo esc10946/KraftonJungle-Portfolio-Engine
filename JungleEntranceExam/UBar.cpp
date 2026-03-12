@@ -16,10 +16,10 @@ UBar::UBar(const FVector& _Location, const float _Speed, const float _Scale, int
 	, YLength(0.025f)
 	, Direction(0)
 	, Side(_Side)
-	, LoadedBulletCount(0)
+	, LoadedBulletCount(5)
 	, ShootInterval(0.5f)
 	, LastFireTime(std::chrono::steady_clock::now())
-	, FlyingBulletVecSize(10)
+	, FlyingBulletVecSize(30)
 	, CurrentShootSide(EDirection::Left)
 	, ShootKey((PlayerNo == 0) ? VK_DOWN : 'S')
 {
@@ -28,8 +28,6 @@ UBar::UBar(const FVector& _Location, const float _Speed, const float _Scale, int
 	{
 		FlyingBullet.push_back(UBullet(static_cast<int>(Side)));
 	}
-
-	LoadedBulletCount = 30;
 }
 
 UBar::~UBar()
