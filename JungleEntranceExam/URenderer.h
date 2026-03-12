@@ -1,19 +1,11 @@
-#pragma once
+﻿#pragma once
 
-// D3D ��뿡 �ʿ��� ������ϵ��� ����
 #include <d3d11.h>
 #include <d3dcompiler.h>
 
 #include "FVertexSimple.h"
 #include "FVector.h"
 #include "FColor.h"
-
-// Constant Buffer(��� ����) ���� �Լ�
-//struct FConstants
-//{
-//    FVector Offset;
-//    float Scale;
-//};
 
 struct FConstants
 {
@@ -27,19 +19,17 @@ struct FConstants
 class URenderer
 {
 public:
-    // Direct3D 11 ��ġ(Device)�� ��ġ ���ؽ�Ʈ(Device Context) �� ���� ü��(Swap Chain)�� �����ϱ� ���� �����͵�
-    ID3D11Device* Device = nullptr; // GPU�� ����ϱ� ���� Direct3D ��ġ
-    ID3D11DeviceContext* DeviceContext = nullptr; // GPU ��� ������ ����ϴ� ���ؽ�Ʈ
-    IDXGISwapChain* SwapChain = nullptr; // ������ ���۸� ��ü�ϴ� �� ���Ǵ� ���� ü��
+    ID3D11Device* Device = nullptr;
+    ID3D11DeviceContext* DeviceContext = nullptr;
+    IDXGISwapChain* SwapChain = nullptr;
 
-    // �������� �ʿ��� ���ҽ� �� ���¸� �����ϱ� ���� ������
-    ID3D11Texture2D* FrameBuffer = nullptr; // ȭ�� ��¿� �ؽ�ó
-    ID3D11RenderTargetView* FrameBufferRTV = nullptr; // �ؽ�ó�� ���� Ÿ������ ����ϴ� ��
-    ID3D11RasterizerState* RasterizerState = nullptr; // �����Ͷ����� ����(�ø�, ä��� ��� �� ����)
-    ID3D11Buffer* ConstantBuffer = nullptr; // ���̴��� �����͸� �����ϱ� ���� ��� ����
+    ID3D11Texture2D* FrameBuffer = nullptr;
+    ID3D11RenderTargetView* FrameBufferRTV = nullptr;
+    ID3D11RasterizerState* RasterizerState = nullptr;
+    ID3D11Buffer* ConstantBuffer = nullptr;
 
-    FLOAT ClearColor[4] = { 0.025f, 0.025f, 0.025f, 1.0f }; // ȭ���� �ʱ�ȭ(clear)�� �� ����� ���� (RGBA)
-    D3D11_VIEWPORT ViewportInfo; // ������ ������ �����ϴ� ����Ʈ ����
+    FLOAT ClearColor[4] = { 0.025f, 0.025f, 0.025f, 1.0f };
+    D3D11_VIEWPORT ViewportInfo;
 
     ID3D11VertexShader* SimpleVertexShader=nullptr;
     ID3D11PixelShader* SimplePixelShader = nullptr;
@@ -89,9 +79,4 @@ public:
 
     void CreateRectBuffer();
     void ReleaseRectBuffer();
-
-  
-
-
-    //void RenderRect(float cx, float cy, float hw, float hh, float progress, FColor Color);
 };

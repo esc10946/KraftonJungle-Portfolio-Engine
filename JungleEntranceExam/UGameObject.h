@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "URenderer.h"
 static unsigned int NextID = 0;
 
