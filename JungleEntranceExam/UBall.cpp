@@ -12,10 +12,33 @@ UBall::UBall() :
     BarPtr(nullptr),
     Acceleration(0.0f),
     SpeedLimitMin(0.5f),   // 추가됨
-    SpeedLimitMax(5.0f)    // 추가됨
+    SpeedLimitMax(5.0f),   // 추가됨
+    BallVertices(nullptr)
+    , BallVertexCount(0)
+    , BallVertexBuffer(nullptr)
 {
     ++TotalNumBalls;
     Mass = (4.0f / 3.0f) * Pi * std::powf(Radius, 3);
+
+    // Ball Vertex 생성
+    const int SegmentCount = 32;
+    BallVertexCount = SegmentCount * 3;
+
+    BallVertices = new FVertexSimple[BallVertexCount];
+
+    // 반지름 1.0 기준 원형 메시 생성
+    // 실제 크기는 Render에서 Radius로 스케일 적용
+    CreateCircleVertices(
+        BallVertices,
+        SegmentCount,
+        1.0f,
+
+        // 중심 색 (더 밝게)
+        0.85f, 0.85f, 0.90f, 1.0f,
+
+        // 가장자리 색 (조금 더 어둡게)
+        0.35f, 0.38f, 0.45f, 1.0f
+    );
 }
 
 UBall::UBall(const FVector& _Location, const FVector& _Velocity, const float _Speed, const float _Radius, const bool _IsMove, UBar* _BarPtr, const float _Acceleration, const float _SpeedLimit)
@@ -29,11 +52,43 @@ UBall::UBall(const FVector& _Location, const FVector& _Velocity, const float _Sp
 {
     ++TotalNumBalls;
     Mass = (4.0f / 3.0f) * Pi * std::powf(Radius, 3);
+
+    // Ball Vertex 생성
+    const int SegmentCount = 24;
+    BallVertexCount = SegmentCount * 3;
+
+    BallVertices = new FVertexSimple[BallVertexCount];
+
+    // 반지름 1.0 기준 원형 메시 생성
+    // 실제 크기는 Render에서 Radius로 스케일 적용
+    CreateCircleVertices(
+        BallVertices,
+        SegmentCount,
+        1.0f,
+
+        // 중심 색 (더 밝게)
+        0.95f, 0.95f, 1.0f, 1.0f,
+
+        // 가장자리 색 (조금 더 어둡게)
+        0.65f, 0.68f, 0.75f, 1.0f
+    );
 }
 
 UBall::~UBall()
 {
     --TotalNumBalls;
+
+    if (BallVertexBuffer != nullptr)
+    {
+        BallVertexBuffer->Release();
+        BallVertexBuffer = nullptr;
+    }
+
+    if (BallVertices != nullptr)
+    {
+        delete[] BallVertices;
+        BallVertices = nullptr;
+    }
 }
 
 // UPrimitive 인터페이스 구현
@@ -93,6 +148,11 @@ void UBall::Update(float deltaTime)
 // 렌더링 (상수 버퍼 업데이트)
 void UBall::Render(URenderer& renderer)
 {
+    if (BallVertexBuffer == nullptr)
+    {
+        BallVertexBuffer = renderer.CreateVertexBuffer(BallVertices, sizeof(FVertexSimple) * BallVertexCount);
+    }
+
     for (int i = (int)trailSpawnLoc.size() - 1; i >= 0; i--)
     {
         float alpha = 0.5f - ((float)i / maxTrailCount) / 2;
@@ -100,10 +160,20 @@ void UBall::Render(URenderer& renderer)
         renderer.UpdateConstant(trailSpawnLoc[i], FVector(Radius, Radius, 0), FColor(1, 1, 1, alpha));
         // render.SetColor(1.0f, 0.5f, 0.0f, alpha); // 불꽃 같은 주황색 꼬리!
         // render.RenderSphere();
-        renderer.RenderSphere();
+        renderer.RenderPrimitive(BallVertexBuffer, BallVertexCount);
     }
 
-    renderer.UpdateConstant(Location, FVector(Radius, Radius, 0));
+    renderer.UpdateConstant(Location, FVector(Radius, Radius, 1.0f));
+
+    if (BallVertexBuffer == nullptr)
+    {
+        BallVertexBuffer = renderer.CreateVertexBuffer(BallVertices, sizeof(FVertexSimple) * BallVertexCount);
+    }
+
+    if (BallVertexBuffer != nullptr)
+    {
+        renderer.RenderPrimitive(BallVertexBuffer, BallVertexCount);
+    }
 }
 
 // 벽 충돌 적용
@@ -427,7 +497,7 @@ UBall* UBall::CreateBallAtBar(const UBar& Bar)
     float maxRadiusY = (topBorder - bottomBorder) * 0.05f;
     float maxAllowedRadius = (maxRadiusX < maxRadiusY) ? maxRadiusX : maxRadiusY;
     float r = maxAllowedRadius / 2;
-    Ball->SetRadius(r);
+    Ball->SetRadius(0.03f);
 
     Ball->Location.x = Bar.Location.x;
     Ball->Location.y = Bar.Location.y + (Bar.YLength + Ball->Radius) * static_cast<int>(Bar.Side);
@@ -493,4 +563,48 @@ UBall** UBall::CreateMultiBalls(const UBall* sourceBall)
     createdBalls[1]->SetIsMove(true);
 
     return createdBalls;
+}
+
+void UBall::CreateCircleVertices(FVertexSimple* outVertices, int segmentCount, float radius, float centerR, float centerG, float centerB, float centerA, float edgeR, float edgeG, float edgeB, float edgeA)
+{
+    if (outVertices == nullptr || segmentCount < 3)
+        return;
+
+    const float PI = 3.1415926535f;
+
+    for (int i = 0; i < segmentCount; ++i)
+    {
+        float angle0 = (2.0f * PI * i) / (float)segmentCount;
+        float angle1 = (2.0f * PI * (i + 1)) / (float)segmentCount;
+
+        int index = i * 3;
+
+        // 중심점 (더 밝은 색)
+        outVertices[index + 0].x = 0.0f;
+        outVertices[index + 0].y = 0.0f;
+        outVertices[index + 0].z = 0.0f;
+        outVertices[index + 0].r = centerR;
+        outVertices[index + 0].g = centerG;
+        outVertices[index + 0].b = centerB;
+        outVertices[index + 0].a = centerA;
+
+        // winding/culling 문제 해결된 순서 유지
+        // 바깥점 1
+        outVertices[index + 1].x = radius * cosf(angle1);
+        outVertices[index + 1].y = radius * sinf(angle1);
+        outVertices[index + 1].z = 0.0f;
+        outVertices[index + 1].r = edgeR;
+        outVertices[index + 1].g = edgeG;
+        outVertices[index + 1].b = edgeB;
+        outVertices[index + 1].a = edgeA;
+
+        // 바깥점 2
+        outVertices[index + 2].x = radius * cosf(angle0);
+        outVertices[index + 2].y = radius * sinf(angle0);
+        outVertices[index + 2].z = 0.0f;
+        outVertices[index + 2].r = edgeR;
+        outVertices[index + 2].g = edgeG;
+        outVertices[index + 2].b = edgeB;
+        outVertices[index + 2].a = edgeA;
+    }
 }

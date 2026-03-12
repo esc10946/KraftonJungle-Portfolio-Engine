@@ -549,7 +549,7 @@ void UGameScene::Render(URenderer render)
     {
         if (ball != nullptr) {
             ball->Render(render);
-            render.RenderSphere();
+            //render.RenderSphere();
         }
     }
 

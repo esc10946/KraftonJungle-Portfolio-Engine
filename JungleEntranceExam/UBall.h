@@ -31,6 +31,10 @@ private:
     float trailTimer = 0.01f;
     float curTimer = 0.f;
 
+    ID3D11Buffer* BallVertexBuffer;
+    FVertexSimple* BallVertices;
+    int BallVertexCount;
+
     // 생성자 및 소멸자
 public:
     UBall();
@@ -81,4 +85,12 @@ public:
     static UBall** CreateMultiBalls(const UBall* sourceBall);
 
     // static void InitBall(UBall& input);
+
+private:
+    static void CreateCircleVertices(
+        FVertexSimple* outVertices,
+        int segmentCount,
+        float radius,
+        float centerR, float centerG, float centerB, float centerA,
+        float edgeR, float edgeG, float edgeB, float edgeA);
 };
