@@ -66,7 +66,7 @@ void UItemManager::Clear()
 
 void UItemManager::SpawnItem(const FItemDesc& ItemDesc, const FVector& SpawnPosition, const FVector& Direction)
 {
-    UItem* NewItem = new UItem(SpawnPosition, Direction, 0.1f, 0.05f, ItemDesc);
+    UItem* NewItem = new UItem(SpawnPosition, Direction, 0.1f, 0.035f, ItemDesc);
     AddItem(NewItem);
 }
 
