@@ -72,6 +72,7 @@ public:
     virtual void ModifyPaddleSize(float DeltaSize) override;
     virtual void ModifyPaddleSpeed(float Multiplier) override;
     virtual void ModifyBallSpeed(float Multiplier) override;
+    virtual void AddBullet(int BulletCount);
 
     std::vector<UBullet>& GetFlyingBulletVec();
 

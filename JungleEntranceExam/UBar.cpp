@@ -19,7 +19,7 @@ UBar::UBar(const FVector& _Location, const float _Speed, const float _Scale, int
 	, LoadedBulletCount(0)
 	, ShootInterval(0.5f)
 	, LastFireTime(std::chrono::steady_clock::now())
-	, FlyingBulletVecSize(30)
+	, FlyingBulletVecSize(10)
 	, CurrentShootSide(EDirection::Left)
 	, ShootKey((PlayerNo == 0) ? VK_DOWN : 'S')
 {
@@ -218,6 +218,13 @@ void UBar::ModifyBallSpeed(float Multiplier)
 			balls[i]->SetSpeed(balls[i]->GetSpeed() * Multiplier);
 		}
 	}
+}
+
+void UBar::AddBullet(int BulletCount)
+{
+	OutputDebugStringA("AddBullet called\n");
+
+	LoadedBulletCount += BulletCount;
 }
 
 std::vector<UBullet>& UBar::GetFlyingBulletVec()
