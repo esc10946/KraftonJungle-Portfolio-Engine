@@ -17,6 +17,7 @@ public:
     ~UGameScene();
 
     void UIRender();
+    void RenderLifeUI(URenderer& render);
 
     // UScene을(를) 통해 상속됨
     void Update(float delta) override;
