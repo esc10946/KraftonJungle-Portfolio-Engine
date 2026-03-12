@@ -4,6 +4,7 @@
 #include "UGameScene.h"
 #include "USceneManager.h"
 #include "UParticlePool.h"
+#include "UGameManager.h"
 #include "UParticle.h"
 static int TotalScore = 0;// 현재 전체 스코어
 
@@ -149,7 +150,7 @@ int UBlock::BreakBlock()
 {
 	FColor blockColor = GetColor();
 	SetActive(false);
-	TotalScore += score;
+	UGameManager::GetInstance()->AddScore(score);
 	TotalActiveBlocks--;
 
 

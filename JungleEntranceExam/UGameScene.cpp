@@ -155,8 +155,6 @@ void UGameScene::Init()
     //2번 플레이어가 움직이는 바
     Bar_2 = new UBar(FVector(0.0f, 0.95f, 0.0f), 1.0f, 0.15f, 1, EPlaySide::Down);
 
-
-
     AddObject(UBall::CreateBallAtBar(*Bar_1));
     AddObject(Bar_1);
     AddObject(Bar_2);
@@ -247,6 +245,8 @@ void UGameScene::Release()
 /// <param name="delta"></param>
 void UGameScene::Update(float delta)
 {
+    if (ShowGameOverModal || ShowStageClearModal) return;
+
     FVector CollisionPos;
     FVector Dummy;
     for (UGameObject* Object : UGameObjectList)
@@ -330,7 +330,7 @@ void UGameScene::Update(float delta)
                 }
 
                 (*ball).BallBounceAtBlock(CollisionState, *b, CollisionPos);
-                gameManager->SetScore(b->GetScore());
+                //gameManager->SetScore(b->GetScore());
                 USoundManager::GetInstance().Play("Brick");
             }
             
@@ -372,7 +372,7 @@ void UGameScene::Update(float delta)
                         b.SetIsHit(true);
                         FVector BulletDirection(0.0f, 1.0f, 0.0f);
                         BlockPtr->TakeDamage(BulletDirection);
-                        gameManager->SetScore(BlockPtr->GetScore());
+                        //gameManager->SetScore(BlockPtr->GetScore());
                         CurLocation.y = BlockPtr->MinY;
                     }
                     else
@@ -419,7 +419,7 @@ void UGameScene::Update(float delta)
                         b.SetIsHit(true);
                         FVector BulletDirection(0.0f, -1.0f, 0.0f);
                         BlockPtr->TakeDamage(BulletDirection);
-                        gameManager->SetScore(BlockPtr->GetScore());
+                        //gameManager->SetScore(BlockPtr->GetScore());
                         CurLocation.y = BlockPtr->MaxY;
                     }
                     else
