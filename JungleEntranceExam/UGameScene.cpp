@@ -44,10 +44,18 @@ void UGameScene::UIRender()
 
     ImGui::Begin("HUD", nullptr, hudFlags);
 
-    ImGui::SetWindowFontScale(4.0f);
-    ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "HIGH: %d", GetHightScore());
-    ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "SCORE: %d", gameManager->GetTotalScore());
-    ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "LIVES: %d", gameManager->GetCurLife());
+    ImGui::SetWindowFontScale(3.0f);
+    ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "HIGH:");
+
+    ImGui::SetWindowFontScale(3.0f);
+    ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "%d", GetHightScore());
+
+    ImGui::SetWindowFontScale(3.0f);
+    ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "SCORE:");
+
+    ImGui::SetWindowFontScale(3.0f);
+    ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "%d", gameManager->GetTotalScore());
+    //ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "LIVES: %d", gameManager->GetCurLife());
 
     if (ShowStageClearModal)
     {
@@ -94,7 +102,7 @@ void UGameScene::UIRender()
             if (ImGui::Button("TITLE MENU", ImVec2(100, 40)))
             {
                 ShowGameOverModal = false;
-                gameManager->SubHealth(1);
+                gameManager->Exit();
                 ImGui::CloseCurrentPopup();
             }
 
@@ -105,6 +113,31 @@ void UGameScene::UIRender()
 
     ImGui::Render();
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+}
+
+void UGameScene::RenderLifeUI(URenderer& renderer)
+{
+    const int maxLives = 3;
+    const int curLives = gameManager->GetCurLife();
+    const float uiRadius = 0.03f;   // UI용 작은 공 크기
+    const float spacing = 0.08f;    // 공 사이의 간격
+    FVector startPos(-0.9f, 0.9f, 0.0f); // 화면 왼쪽 상단 좌표
+
+    for (int i = 0; i < maxLives; ++i) {
+
+        FVector pos = startPos + FVector(i * spacing, 0, 0);
+
+        if (i < curLives)
+        {
+            renderer.UpdateConstant(pos, FVector(uiRadius, uiRadius, 0), FColor(1, 1, 1, 1));
+        }
+        else
+        {
+            renderer.UpdateConstant(pos, FVector(uiRadius, uiRadius, 0), FColor(1, 1, 1, 0.1));
+        }
+
+        renderer.RenderSphere();
+    }
 }
 
 //해당 게임에서 생성되는 모든 오브젝트여기서 생성
@@ -122,11 +155,13 @@ void UGameScene::Init()
     //2번 플레이어가 움직이는 바
     Bar_2 = new UBar(FVector(0.0f, 0.95f, 0.0f), 1.0f, 0.15f, 1, EPlaySide::Down);
 
+
+
     AddObject(UBall::CreateBallAtBar(*Bar_1));
     AddObject(Bar_1);
     AddObject(Bar_2);
 
-    CurrentStage = 3;
+    CurrentStage = 1;
     stageblocks = CreateStage(CurrentStage);
     for (auto& b : stageblocks)
     {
@@ -143,6 +178,7 @@ void UGameScene::Init()
     gameManager = UGameManager::GetInstance();
     gameManager->RessetGM();
 }
+
 void UGameScene::NextStage(int StageNo)
 {
     Bar_1->SetLocation(FVector(0.0f, -0.95f, 0.0f));
@@ -331,20 +367,19 @@ void UGameScene::Update(float delta)
             }
             for (int CurRow{ CurrentStageRow - 1 }; CurRow >= 0;CurRow--)
             {
-                UBlock* BlockPtr{ stageblocks[CurRow * CurrentStageCol + CurCol] };
-                if (!BlockPtr)
+                
+                if (!stageblocks[CurRow * CurrentStageCol + CurCol])
                 {
                     continue;
                 }
-                if (BlockPtr->IsActive())
+                if (stageblocks[CurRow * CurrentStageCol + CurCol]->IsActive())
                 {
-                    if (b.CheckBlockHit(*BlockPtr, delta))
+                    if (b.CheckBlockHit(*stageblocks[CurRow * CurrentStageCol + CurCol], delta))
                     {
                         b.SetIsHit(true);
                         FVector BulletDirection(0.0f, 1.0f, 0.0f);
-                        BlockPtr->TakeDamage(BulletDirection);
-                        gameManager->SetScore(BlockPtr->GetScore());
-                        CurLocation.y = BlockPtr->MinY;
+                        stageblocks[CurRow * CurrentStageCol + CurCol]->TakeDamage(BulletDirection);
+                        CurLocation.y = stageblocks[CurRow * CurrentStageCol + CurCol]->MinY;
                     }
                     else
                     {
@@ -378,20 +413,18 @@ void UGameScene::Update(float delta)
             }
             for (int CurRow{ 0 }; CurRow < CurrentStageRow;CurRow++)
             {
-                UBlock* BlockPtr{ stageblocks[CurRow * CurrentStageCol + CurCol] };
-                if (!BlockPtr)
+                if (!stageblocks[CurRow * CurrentStageCol + CurCol])
                 {
                     continue;
                 }
-                if (BlockPtr->IsActive())
+                if (stageblocks[CurRow * CurrentStageCol + CurCol]->IsActive())
                 {
-                    if (b.CheckBlockHit(*BlockPtr, delta))
+                    if (b.CheckBlockHit(*stageblocks[CurRow * CurrentStageCol + CurCol], delta))
                     {
                         b.SetIsHit(true);
                         FVector BulletDirection(0.0f, -1.0f, 0.0f);
-                        BlockPtr->TakeDamage(BulletDirection);
-                        gameManager->SetScore(BlockPtr->GetScore());
-                        CurLocation.y = BlockPtr->MaxY;
+                        stageblocks[CurRow * CurrentStageCol + CurCol]->TakeDamage(BulletDirection);
+                        CurLocation.y = stageblocks[CurRow * CurrentStageCol + CurCol]->MaxY;
                     }
                     else
                     {
@@ -426,6 +459,7 @@ void UGameScene::Update(float delta)
         }
         else
         {
+            gameManager->SubHealth(1);
             StopAllBall();
             ShowGameOverModal = true;
         }
@@ -549,9 +583,10 @@ void UGameScene::Render(URenderer render)
     {
         if (ball != nullptr) {
             ball->Render(render);
-            //render.RenderSphere();
+            render.RenderSphere();
         }
     }
+
 
     // Item Objects Render
     UItemManager::Get().Render(render);
@@ -587,4 +622,6 @@ void UGameScene::Render(URenderer render)
     if (particlePool) {
         particlePool->Render(render);
     }
+
+    RenderLifeUI(render);
 }

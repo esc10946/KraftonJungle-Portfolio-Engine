@@ -16,7 +16,7 @@ void UGameManager::initialize()
 
 void UGameManager::Exit()
 {
-	initialize();
+	RessetGM();
 
 	USoundManager::GetInstance().Play("GameOver");
 	USceneManager::GetInstance().LoadScene(ESceneType::Title);
@@ -69,10 +69,9 @@ void UGameManager::AddHealth(const unsigned int value)
 
 void UGameManager::SubHealth(const unsigned int value)
 {
+	currentHealth = max(currentHealth - value, 0);
 	if (value >= currentHealth) {
 		HightScoreUpdate(currentScore);
-		Exit();
 		return;
 	}
-	currentHealth -= value;
 }
