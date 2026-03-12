@@ -129,11 +129,11 @@ void UGameScene::RenderLifeUI(URenderer& renderer)
 
         if (i < curLives)
         {
-            renderer.UpdateConstant(pos, FVector(uiRadius, uiRadius, 0), FColor(1, 1, 1, 1));
+            renderer.UpdateConstant(pos, FVector(uiRadius, uiRadius, 0), FColor(1.0, 1.0, 1.0, 1.0f));
         }
         else
         {
-            renderer.UpdateConstant(pos, FVector(uiRadius, uiRadius, 0), FColor(1, 1, 1, 0.1));
+            renderer.UpdateConstant(pos, FVector(uiRadius, uiRadius, 0), FColor(1.0, 1.0, 1.0, 0.1f));
         }
 
         renderer.RenderSphere();
@@ -605,6 +605,13 @@ void UGameScene::Render(URenderer render)
             render.RenderBullet();
         }
     }
+    if (Bar_1->LoadedBulletCount > 0)
+    {
+        UBullet Dummy(static_cast<int>(Bar_1->Side));
+        Dummy.SetLocation(Bar_1->Location + FVector(Bar_1->XLength * static_cast<int>(Bar_1->CurrentShootSide), 0.0f, 0.0f));
+        Dummy.Render(render);
+        render.RenderBullet();
+    }
 
     std::vector<UBullet>& FlyingBulletVecRef2{ Bar_2->GetFlyingBulletVec() };
     for (UBullet& b : FlyingBulletVecRef2)
@@ -615,6 +622,15 @@ void UGameScene::Render(URenderer render)
             render.RenderBullet();
         }
     }
+    if (Bar_2->LoadedBulletCount > 0)
+    {
+        UBullet Dummy(static_cast<int>(Bar_2->Side));
+        Dummy.SetLocation(Bar_2->Location + FVector(Bar_2->XLength * static_cast<int>(Bar_2->CurrentShootSide), 0.0f, 0.0f));
+        Dummy.Render(render);
+        render.RenderBullet();
+    }
+    
+
     if (particlePool) {
         particlePool->Render(render);
     }
