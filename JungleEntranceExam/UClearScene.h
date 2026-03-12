@@ -1,4 +1,4 @@
-#pragma once
+Ôªø#pragma once
 #include "UScene.h"
 
 class UClearScene :
@@ -8,7 +8,6 @@ public:
     UClearScene() = default;
     ~UClearScene() = default;
 
-    // UScene¿ª(∏¶) ≈Î«ÿ ªÛº”µ 
     void Render(URenderer renderer) override;
     void UIRender() override;
     void Init() override;

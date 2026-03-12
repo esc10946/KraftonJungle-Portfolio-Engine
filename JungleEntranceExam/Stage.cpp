@@ -8,6 +8,7 @@ static const float STEP_Y = HALF_BH * 2.0f;//+a   // Col gap
 static const float START_X = 2 * HALF_BW;// +a // first block center x
 static const float START_Y = 2 * HALF_BH;// +a // first block center y
 
+
 #define N(c) (c) 
 #define H 100
 #define I 200
@@ -38,6 +39,17 @@ static int stage1[6][13] =
 	N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3)	//G
 	//N(1)
 };
+
+//static int stage2[6][13] =
+//{
+//	//H,	 H,	  H,   H,	H,	 H,	  H,   H,	H,	 H,	  H,   H,	H,		//Hard
+//	//N(4),N(4),N(4),N(4),N(4),N(4),N(4),N(4),N(4),N(4),N(4),N(4),N(4),	//R
+//	//N(7),N(7),N(7),N(7),N(7),N(7),N(7),N(7),N(7),N(7),N(7),N(7),N(7),	//Y
+//	//N(5),N(5),N(5),N(5),N(5),N(5),N(5),N(5),N(5),N(5),N(5),N(5),N(5),	//B
+//	//N(6),N(6),N(6),N(6),N(6),N(6),N(6),N(6),N(6),N(6),N(6),N(6),N(6),	//M
+//	//N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3),N(3)	//G
+//	N(1)
+//};
 static int stage2[13][13] =
 {
 	N(8),_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,_   ,
@@ -117,11 +129,11 @@ static std::vector<UBlock*> BulidStage(int(&map)[ROWS][COLS], int round)
 			int code = map[r][c];
 			if (code == 0)
 			{
-				blocks.push_back(nullptr);  // <- added
+				blocks.push_back(nullptr);
 				continue;
 			}
 			float cx = -1.0f + START_X + (c * STEP_X)+0.1f;
-			float cy = 1.0f - (START_Y + r * STEP_Y)-0.3f;
+			float cy = 1.0f - (START_Y + r * STEP_Y)-0.4f;
 			UBlock* b = MakeBlock(code, cx, cy, round);
 			if (b) {
 				b->Init(cx, cy, HALF_BW, HALF_BH);
@@ -174,4 +186,18 @@ std::vector<UBlock*> CreateStage(int Round)
 int GetStageRow(int Round)
 {
 	return 0;
+}
+
+StageData GetStageData()
+{
+	StageData Data;
+
+	Data.HALF_BW = HALF_BW;
+	Data.HALF_BH = HALF_BH;
+	Data.STEP_X = STEP_X;
+	Data.STEP_Y = STEP_Y;
+	Data.START_X = START_X;
+	Data.START_Y = START_Y;
+
+	return Data;
 }

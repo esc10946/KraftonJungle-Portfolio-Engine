@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 class IItemEffectReceiver
 {
@@ -11,5 +11,7 @@ public:
     virtual void AddScore(int Amount) = 0;
 
     virtual void ModifyPaddleSize(float DeltaSize) = 0;
+    virtual void ModifyPaddleSpeed(float Multiplier) = 0;
     virtual void ModifyBallSpeed(float Multiplier) = 0;
+    virtual void AddBullet(int BulletCount) = 0;
 };

@@ -1,4 +1,4 @@
-#include "UBar.h"
+﻿#include "UBar.h"
 #include "UBall.h"
 #include "UInputManager.h"
 #include "UGameScene.h"
@@ -16,7 +16,20 @@ UBar::UBar(const FVector& _Location, const float _Speed, const float _Scale, int
 	, YLength(0.025f)
 	, Direction(0)
 	, Side(_Side)
+	, LoadedBulletCount(0)
+	, ShootInterval(0.5f)
+	, LastFireTime(std::chrono::steady_clock::now())
+	, FlyingBulletVecSize(10)
+	, CurrentShootSide(EDirection::Left)
+	, ShootKey((PlayerNo == 0) ? VK_DOWN : 'S')
 {
+	FlyingBullet.reserve(FlyingBulletVecSize);
+	for (int i = 0; i < FlyingBulletVecSize; i++)
+	{
+		FlyingBullet.push_back(UBullet(static_cast<int>(Side)));
+	}
+
+	LoadedBulletCount = 30;
 }
 
 UBar::~UBar()
@@ -28,12 +41,36 @@ void UBar::Update(float deltaTime)
 {
 	UInputManager* input = UInputManager::GetInstance();
 	
-
 	float moveX = input->GetAxisX(PlayerNo);
 	if (moveX > 0.0f)      Direction = 1;
 	else if (moveX < 0.0f) Direction = -1;
 	else                   Direction = 0;
 	Location.x += (Speed * deltaTime * Direction);
+
+	if (PlayerNo == 0)
+	{
+		if (input->GetKeyDown(ShootKey))
+		{
+			Shoot();
+		}
+	}
+	else
+	{
+		bool bKeyboardShoot = false;
+		bool bGamepadShoot = false;
+	
+		if(input->getGamepadManager().IsConnected())
+			bGamepadShoot = input->getGamepadManager().IsPressed(ABI::Windows::Gaming::Input::GamepadButtons_A);
+		else
+			bKeyboardShoot = input->GetKeyDown(ShootKey);
+
+
+		if (bKeyboardShoot || bGamepadShoot)
+		{
+			Shoot();
+		}
+
+	}
 
 	// 벽 충돌 적용
 	ApplyWallCollision();
@@ -42,7 +79,7 @@ void UBar::Update(float deltaTime)
 // 렌더링 (상수 버퍼 업데이트)
 void UBar::Render(URenderer& renderer)
 {
-	renderer.UpdateConstant(Location, FVector(Scale, 1.0f, 0));
+	renderer.UpdateConstant(Location, FVector(Scale, YLength, 0));
 }
 
 // 벽 충돌 적용
@@ -70,7 +107,32 @@ bool UBar::CheckCollision(const UDiagram* Other)
 void UBar::SetScale(const float _Scale)
 {
 	Scale = _Scale;
+
+	if (Scale > MaxScale) Scale = MaxScale;
+	else if (Scale < MinScale) Scale = MinScale;
+
 	XLength = 1.000000f * Scale;
+}
+
+FVector UBar::GetLocation() const
+{
+	return Location;
+}
+
+void UBar::SetLocation(const FVector& NewLoc) {
+	Location = NewLoc;
+}
+
+void UBar::SetLocation(FVector&& NewLoc) {
+	Location = std::move(NewLoc);
+}
+
+void UBar::SetSpeed(const float _Speed)
+{
+	Speed = _Speed;
+
+	if (Speed > MaxSpeed) Speed = MaxSpeed;
+	else if (Speed < MinSpeed) Speed = MinSpeed;
 }
 
 void UBar::AddLife()
@@ -127,6 +189,14 @@ void UBar::ModifyPaddleSize(float DeltaSize)
 	SetScale(modifiedScale);
 }
 
+void UBar::ModifyPaddleSpeed(float Multiplier)
+{
+	OutputDebugStringA("ModifyPaddleSpeed called\n");
+
+	float modifiedSpeed = Speed * Multiplier;
+	SetSpeed(modifiedSpeed);
+}
+
 void UBar::ModifyBallSpeed(float Multiplier)
 {
 	OutputDebugStringA("ModifyBallSpeed called\n");
@@ -146,6 +216,54 @@ void UBar::ModifyBallSpeed(float Multiplier)
 		for (int i = 0; i < balls.size(); i++)
 		{
 			balls[i]->SetSpeed(balls[i]->GetSpeed() * Multiplier);
+		}
+	}
+}
+
+void UBar::AddBullet(int BulletCount)
+{
+	OutputDebugStringA("AddBullet called\n");
+
+	LoadedBulletCount += BulletCount;
+}
+
+std::vector<UBullet>& UBar::GetFlyingBulletVec()
+{
+	return FlyingBullet;
+}
+
+void UBar::Shoot()
+{
+	if (LoadedBulletCount == 0)
+	{
+		return;
+	}
+
+	auto CurrentTime = std::chrono::steady_clock::now();
+	std::chrono::duration<float> ElapsedTime = CurrentTime - LastFireTime;
+	if (ElapsedTime.count() < ShootInterval)
+	{
+		return;
+	}
+
+	for (UBullet& b : FlyingBullet)
+	{
+		if (!b.GetIsFlying())
+		{
+			b.SetIsFlying(true);
+			if (CurrentShootSide == EDirection::Left)
+			{
+				b.SetLocation(Location + FVector(-XLength, 0.0f, 0.0f));
+				CurrentShootSide = EDirection::Right;
+			}
+			else
+			{
+				b.SetLocation(Location + FVector(XLength, 0.0f, 0.0f));
+				CurrentShootSide = EDirection::Left;
+			}
+			LastFireTime = CurrentTime;
+			LoadedBulletCount--;
+			return;
 		}
 	}
 }

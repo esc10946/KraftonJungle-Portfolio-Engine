@@ -104,6 +104,7 @@
       <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <AdditionalIncludeDirectories>FMOD\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -121,15 +122,18 @@
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <AdditionalIncludeDirectories>FMOD\inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
-      <SubSystem>Console</SubSystem>
+      <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>FMOD\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>fmod_vc.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="FileInfo.cpp" />
     <ClCompile Include="FVector.cpp" />
     <ClCompile Include="FVertexSimple.h" />
     <ClCompile Include="ImGui\imgui.cpp" />
@@ -147,6 +151,7 @@
     <ClCompile Include="UBall.cpp" />
     <ClCompile Include="UBar.cpp" />
     <ClCompile Include="UBlock.cpp" />
+    <ClCompile Include="UBullet.cpp" />
     <ClCompile Include="UClearScene.cpp" />
     <ClCompile Include="UGameManager.cpp" />
     <ClCompile Include="UGameObject.cpp" />
@@ -155,6 +160,8 @@
     <ClCompile Include="UGamepadManager.cpp" />
     <ClCompile Include="UItem.cpp" />
     <ClCompile Include="UItemManager.cpp" />
+    <ClCompile Include="UParticle.cpp" />
+    <ClCompile Include="UParticlePool.cpp" />
     <ClCompile Include="URenderer.cpp" />
     <ClCompile Include="UScene.cpp" />
     <ClCompile Include="USceneManager.cpp" />
@@ -163,7 +170,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Bar.h" />
+    <ClInclude Include="Bullet.h" />
     <ClInclude Include="FColor.h" />
+    <ClInclude Include="FileInfo.h" />
     <ClInclude Include="FVector.h" />
     <ClInclude Include="ItemEffectReceiver.h" />
     <ClInclude Include="ItemLibrary.h" />
@@ -183,6 +192,7 @@
     <ClInclude Include="Sphere.h" />
     <ClInclude Include="UBall.h" />
     <ClInclude Include="UBar.h" />
+    <ClInclude Include="UBullet.h" />
     <ClInclude Include="UClearScene.h" />
     <ClInclude Include="UDiagram.h" />
     <ClInclude Include="UGameManager.h" />
@@ -192,6 +202,8 @@
     <ClInclude Include="UGamepadManager.h" />
     <ClInclude Include="UItem.h" />
     <ClInclude Include="UItemManager.h" />
+    <ClInclude Include="UParticle.h" />
+    <ClInclude Include="UParticlePool.h" />
     <ClInclude Include="URenderer.h" />
     <ClInclude Include="UScene.h" />
     <ClInclude Include="USceneManager.h" />
@@ -200,9 +212,10 @@
     <ClInclude Include="Stage.h" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="ShaderW0.hlsl">
+    <Text Include="ShaderW0.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-    </FxCompile>
+      <FileType>Document</FileType>
+    </Text>
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>

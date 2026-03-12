@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "UDiagram.h"
-
+class UScene;
 enum class EBlockType
 {
 	Normal,
@@ -62,21 +62,20 @@ public:
 	void Render(URenderer& Renderer) override;
 	bool CheckBallCollision(const FVector& BallPos, float Radius, FVector& OutNormal) const;// if creating the Ball Class, Make overload function
 	int TakeDamage(FVector& ballDir);
-
+	int BreakBlock();
 	int GetScore();
 
 	FColor GetColor() const;
 	void ApplyWallCollision() {}
 
-	// 중력 적용
 	void ApplyGravity(float deltaTime, const FVector& gravity) {}
 
-	// 다른 도형과 충돌 판정
 	bool CheckCollision(const UDiagram* Other) { return false; }
 	bool IsActive() const { return bActive; }
 	void SetActive(bool InActive) { bActive = InActive; }
 	bool CheckSkip() const { return SkipCalc; }
 	void SetSkipCalc(bool InSkipCalc) { SkipCalc = InSkipCalc; }
+	float GetWipeProgress() const;
 
 public:
 	bool        bActive = true;
@@ -87,9 +86,9 @@ public:
 	int CurrHp;
 	float CenterX, CenterY;
 	float HalfW, HalfH;
-	float MinX, MaxX;
+ 	float MinX, MaxX;
 	float MinY, MaxY;
 	int score;
-
-
+	float WipeProgress = -3.0f;
 };
+

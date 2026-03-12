@@ -1,9 +1,10 @@
-#pragma once
+癤�#pragma once
 
 #include "UDiagram.h"
 #include "ItemEffectReceiver.h"
+#include "UBullet.h"
 
-enum EDirection
+enum class EDirection
 {
     Left = -1,
     Right = 1
@@ -18,32 +19,40 @@ enum class EPlaySide
 class UBar : public UDiagram, public IItemEffectReceiver
 {
 public:
-    FVector Location;           // 바의 위치
-    float Speed;                // 바의 이동속도
+    FVector Location;           
+    float Speed;               
     float Scale;
-    float XLength;               // 바의 가로 절반길이
-    float YLength;               // 바의 세로 절반길이
+    float XLength;               
+    float YLength;              
     int PlayerNo;
     int Direction;
     EPlaySide Side;
 
-    // 생성자 및 소멸자
+    int LoadedBulletCount;
+    float ShootInterval;
+    std::chrono::steady_clock::time_point LastFireTime;
+    std::vector<UBullet> FlyingBullet;
+    int FlyingBulletVecSize;
+    EDirection CurrentShootSide;
+    int ShootKey;
+
+    const float MinSpeed = 0.3f;
+    const float MaxSpeed = 5.0f;
+
+    const float MinScale = 0.05f;
+    const float MaxScale = 0.3f;
+
 public:
     UBar(const FVector& _Location, const float _Speed, const float _Scale, int _PlayerNo, EPlaySide _Side);
 
     virtual ~UBar() override;
 
-    // UPrimitive 인터페이스 구현
-    // 물리/이동 업데이트
     virtual void Update(float deltaTime);
 
-    // 렌더링 (상수 버퍼 업데이트)
     virtual void Render(URenderer& renderer);
 
-    // 벽 충돌 적용
     virtual void ApplyWallCollision();
 
-    // 충격량 적용
     virtual void ApplyGravity(float deltaTime, const FVector& gravity);
 
     virtual bool CheckCollision(const UDiagram* Other) override;
@@ -51,11 +60,21 @@ public:
     // void ResolveCollision(UBar* Other);
 
     void SetScale(const float _Scale);
+    void SetSpeed(const float _Speed);
 
-    // 아이템 관련
+    FVector GetLocation() const;
+    void SetLocation(const FVector& NewLoc);
+    void SetLocation(FVector&& NewLoc);
+
     virtual void AddLife() override;
     virtual void SpawnExtraBalls(int Count) override;
     virtual void AddScore(int Amount) override;
     virtual void ModifyPaddleSize(float DeltaSize) override;
+    virtual void ModifyPaddleSpeed(float Multiplier) override;
     virtual void ModifyBallSpeed(float Multiplier) override;
+    virtual void AddBullet(int BulletCount);
+
+    std::vector<UBullet>& GetFlyingBulletVec();
+
+    void Shoot();
 };

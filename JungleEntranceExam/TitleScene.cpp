@@ -2,6 +2,7 @@
 #include "USceneManager.h"
 #include "UsoundManager.h"
 #include "URenderer.h"
+#include "UGameObject.h"
 
 void UTitleScene::Init()
 {

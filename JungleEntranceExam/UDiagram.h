@@ -1,33 +1,29 @@
-#pragma once
+ï»¿#pragma once
 
 #include <cmath>
 #include <algorithm>
+#include <chrono>
 
 #include "UGameObject.h"
-#include "URenderer.h"
+
 #include "FVector.h"
 #include "FColor.h"
 
 inline const float Pi = 3.1415926535f;
 
-// µµÇü ±âº» Å¬·¡½º
+// ë„í˜• ê¸°ë³¸ í´ë˜ìŠ¤
 class UDiagram : public UGameObject
 {
 public:
     virtual ~UDiagram() {}
 
-    // ¹°¸®/ÀÌµ¿ ¾÷µ¥ÀÌÆ®
-    virtual void Update(float deltaTime) = 0;
 
-    // ·»´õ¸µ
-    virtual void Render(URenderer& renderer) = 0;
-
-    // º® Ãæµ¹ Àû¿ë
+    // ë²½ ì¶©ëŒ ì ìš©
     virtual void ApplyWallCollision() = 0;
 
-    // Áß·Â Àû¿ë
+    // ì¤‘ë ¥ ì ìš©
     virtual void ApplyGravity(float deltaTime, const FVector& gravity) = 0;
 
-    // ´Ù¸¥ µµÇü°ú Ãæµ¹ ÆÇÁ¤
+    // ë‹¤ë¥¸ ë„í˜•ê³¼ ì¶©ëŒ íŒì •
     virtual bool CheckCollision(const UDiagram* Other) = 0;
 };
