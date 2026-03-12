@@ -105,8 +105,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     //render에서 초기화
     // Renderer와 Shader 생성 이후, vertexBuffer 생성
-    renderer.NumVerticesSphere = sizeof(sphere_vertices) / sizeof(FVertexSimple);
-    renderer.vertexBufferSphere = renderer.CreateVertexBuffer(sphere_vertices, sizeof(sphere_vertices));
+    //renderer.NumVerticesSphere = sizeof(sphere_vertices) / sizeof(FVertexSimple);
+    //renderer.vertexBufferSphere = renderer.CreateVertexBuffer(sphere_vertices, sizeof(sphere_vertices));
     renderer.NumVerticesBar = sizeof(bar_vertices) / sizeof(FVertexSimple);
     renderer.vertexBufferBar = renderer.CreateVertexBuffer(bar_vertices, sizeof(bar_vertices));
     renderer.NumVerticesBullet = sizeof(bullet_vertices) / sizeof(FVertexSimple);

@@ -13,7 +13,10 @@ UBall::UBall() :
     Acceleration(0.0f),
     SpeedLimitMin(0.5f),
     SpeedLimitMax(5.0f), 
-    FlashTimer(0.0f)
+    FlashTimer(0.0f),
+    BallVertices(nullptr),
+    BallVertexCount(0),
+    BallVertexBuffer(nullptr)
 {
     ++TotalNumBalls;
     Mass = (4.0f / 3.0f) * Pi * std::powf(Radius, 3);
@@ -32,7 +35,7 @@ UBall::UBall() :
         1.0f,
 
         // 중심 색 (더 밝게)
-        0.8f, 0.8f, 0.8f, 1.0f,
+        0.85f, 0.85f, 0.90f, 1.0f,
 
         // 가장자리 색 (조금 더 어둡게)
         0.35f, 0.38f, 0.45f, 1.0f
@@ -497,7 +500,7 @@ UBall* UBall::CreateBallAtBar(const UBar& Bar)
     float maxRadiusX = (rightBorder - leftBorder) * 0.05f;
     float maxRadiusY = (topBorder - bottomBorder) * 0.05f;
     float maxAllowedRadius = (maxRadiusX < maxRadiusY) ? maxRadiusX : maxRadiusY;
-    float r = maxAllowedRadius / 4;
+    float r = maxAllowedRadius / 2;
     Ball->SetRadius(0.03f);
 
     Ball->Location.x = Bar.Location.x;

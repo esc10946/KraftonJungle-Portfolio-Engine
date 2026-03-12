@@ -1,8 +1,8 @@
-#include "ItemLibrary.h"
+﻿#include "ItemLibrary.h"
 
 FItemDesc ItemLibrary::MakeRandomItem()
 {
-    int r = rand() % 100;
+    int r = rand() % 110;
 
     // 목숨 추가 아이템 (확률 : --%)
     if (r < 5)
@@ -29,7 +29,10 @@ FItemDesc ItemLibrary::MakeRandomItem()
     if (r < 90)
         return MakeBallSpeedUp(1.5f);
     // 공 속도 감소 아이템 (확률 : --%)
-    return MakeBallSpeedDown(0.7f);
+    if (r < 100)
+        return MakeBallSpeedDown(0.7f);
+    else
+        return AddBullet(10);
 }
 
 FItemDesc ItemLibrary::MakeAddLife()
@@ -118,5 +121,15 @@ FItemDesc ItemLibrary::MakeBallSpeedDown(float Multiplier)
     Desc.ApplyType = EItemApplyType::Immediate;
     Desc.FloatValue = Multiplier;
     Desc.DebugName = "BallSpeedDown";
+    return Desc;
+}
+
+FItemDesc ItemLibrary::AddBullet(int BulletCount)
+{
+    FItemDesc Desc;
+    Desc.Type = EItemType::AddBullet;
+    Desc.ApplyType = EItemApplyType::Immediate;
+    Desc.IntValue = BulletCount;
+    Desc.DebugName = "MultiBall";
     return Desc;
 }

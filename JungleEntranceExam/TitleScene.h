@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "UScene.h"
 
 class UUIButton;
@@ -12,7 +12,6 @@ public:
     UTitleScene() = default;
     virtual ~UTitleScene() { Release(); }
 
-    // UScene을(를) 통해 상속됨
     void Init() override;
     void Update(float delta) override;
     void Render(URenderer render) override;
@@ -27,8 +26,6 @@ private:
     UUIButton* EndButton = nullptr;
     UUIButton* CreditButton = nullptr;
 
-
-    // UScene을(를) 통해 상속됨
     void UIRender() override;
 };
 

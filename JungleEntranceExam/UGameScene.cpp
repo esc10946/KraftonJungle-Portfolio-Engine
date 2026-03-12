@@ -44,10 +44,18 @@ void UGameScene::UIRender()
 
     ImGui::Begin("HUD", nullptr, hudFlags);
 
-    ImGui::SetWindowFontScale(4.0f);
-    ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "HIGH: %d", GetHightScore());
-    ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "SCORE: %d", gameManager->GetTotalScore());
-    ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "LIVES: %d", gameManager->GetCurLife());
+    ImGui::SetWindowFontScale(3.0f);
+    ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "HIGH:");
+
+    ImGui::SetWindowFontScale(3.0f);
+    ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "%d", GetHightScore());
+
+    ImGui::SetWindowFontScale(3.0f);
+    ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "SCORE:");
+
+    ImGui::SetWindowFontScale(3.0f);
+    ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "%d", gameManager->GetTotalScore());
+    //ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "LIVES: %d", gameManager->GetCurLife());
 
     if (ShowStageClearModal)
     {
@@ -94,7 +102,7 @@ void UGameScene::UIRender()
             if (ImGui::Button("TITLE MENU", ImVec2(100, 40)))
             {
                 ShowGameOverModal = false;
-                gameManager->SubHealth(1);
+                gameManager->Exit();
                 ImGui::CloseCurrentPopup();
             }
 
@@ -105,6 +113,31 @@ void UGameScene::UIRender()
 
     ImGui::Render();
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+}
+
+void UGameScene::RenderLifeUI(URenderer& renderer)
+{
+    const int maxLives = 3;
+    const int curLives = gameManager->GetCurLife();
+    const float uiRadius = 0.03f;   // UI용 작은 공 크기
+    const float spacing = 0.08f;    // 공 사이의 간격
+    FVector startPos(-0.9f, 0.9f, 0.0f); // 화면 왼쪽 상단 좌표
+
+    for (int i = 0; i < maxLives; ++i) {
+
+        FVector pos = startPos + FVector(i * spacing, 0, 0);
+
+        if (i < curLives)
+        {
+            renderer.UpdateConstant(pos, FVector(uiRadius, uiRadius, 0), FColor(1, 1, 1, 1));
+        }
+        else
+        {
+            renderer.UpdateConstant(pos, FVector(uiRadius, uiRadius, 0), FColor(1, 1, 1, 0.1));
+        }
+
+        renderer.RenderSphere();
+    }
 }
 
 //해당 게임에서 생성되는 모든 오브젝트여기서 생성
@@ -122,11 +155,13 @@ void UGameScene::Init()
     //2번 플레이어가 움직이는 바
     Bar_2 = new UBar(FVector(0.0f, 0.95f, 0.0f), 1.0f, 0.15f, 1, EPlaySide::Down);
 
+
+
     AddObject(UBall::CreateBallAtBar(*Bar_1));
     AddObject(Bar_1);
     AddObject(Bar_2);
 
-    CurrentStage = 3;
+    CurrentStage = 1;
     stageblocks = CreateStage(CurrentStage);
     for (auto& b : stageblocks)
     {
@@ -143,6 +178,7 @@ void UGameScene::Init()
     gameManager = UGameManager::GetInstance();
     gameManager->RessetGM();
 }
+
 void UGameScene::NextStage(int StageNo)
 {
     Bar_1->SetLocation(FVector(0.0f, -0.95f, 0.0f));
@@ -239,13 +275,6 @@ void UGameScene::Update(float delta)
         int CurCol = 0;
         for (auto* b : stageblocks)
         {
-
-            if (!b)
-                continue;
-
-            if (!b->IsActive())
-                continue;
-
             idx++;
             if (!b || !b->IsActive()) continue;
             if (b->CheckSkip())
@@ -329,7 +358,6 @@ void UGameScene::Update(float delta)
             {
                 continue;
             }
-
             for (int CurRow{ CurrentStageRow - 1 }; CurRow >= 0;CurRow--)
             {
                 
@@ -376,7 +404,6 @@ void UGameScene::Update(float delta)
             {
                 continue;
             }
-
             for (int CurRow{ 0 }; CurRow < CurrentStageRow;CurRow++)
             {
                 if (!stageblocks[CurRow * CurrentStageCol + CurCol])
@@ -425,6 +452,7 @@ void UGameScene::Update(float delta)
         }
         else
         {
+            gameManager->SubHealth(1);
             StopAllBall();
             ShowGameOverModal = true;
         }
@@ -552,6 +580,7 @@ void UGameScene::Render(URenderer render)
         }
     }
 
+
     // Item Objects Render
     UItemManager::Get().Render(render);
 
@@ -586,4 +615,6 @@ void UGameScene::Render(URenderer render)
     if (particlePool) {
         particlePool->Render(render);
     }
+
+    RenderLifeUI(render);
 }

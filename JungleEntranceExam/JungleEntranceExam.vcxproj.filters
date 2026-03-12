@@ -120,6 +120,9 @@
     <ClCompile Include="FileInfo.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="UBullet.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ImGui\imconfig.h">
@@ -227,12 +230,6 @@
     <ClInclude Include="ItemLibrary.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="ItemRect.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="ItemShapeData.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
     <ClInclude Include="UItem.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
@@ -247,6 +244,18 @@
     </ClInclude>
     <ClInclude Include="FileInfo.h">
       <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="UBullet.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="Bullet.h">
+      <Filter>리소스 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="ItemShapeData.h">
+      <Filter>리소스 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="ItemRect.h">
+      <Filter>리소스 파일</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -19,7 +19,7 @@ public:
     float   Radius;               // 공의 반지름
     float   Mass;                 // 공의 질량 (반지름과 비례하다고 가정)
     bool    IsMove;
-    UBar* BarPtr;
+    UBar*   BarPtr;
     float   Acceleration;
     float   SpeedLimitMin;
     float   SpeedLimitMax;
@@ -65,7 +65,7 @@ public:
     void SetSpeed(float inSpeed);
     void StopMove();
 
-    virtual bool CheckCollision(const UDiagram* Other) override;
+	virtual bool CheckCollision(const UDiagram* Other) override;
 
     EBlockCollision CheckBarCollision(const UBar& Bar, FVector& CollisionPos);
 

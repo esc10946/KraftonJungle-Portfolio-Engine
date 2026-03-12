@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "UDiagram.h"
 #include "ItemEffectReceiver.h"
@@ -19,11 +19,11 @@ enum class EPlaySide
 class UBar : public UDiagram, public IItemEffectReceiver
 {
 public:
-    FVector Location;           // 바의 위치
-    float Speed;                // 바의 이동속도
+    FVector Location;           
+    float Speed;               
     float Scale;
-    float XLength;               // 바의 가로 절반길이
-    float YLength;               // 바의 세로 절반길이
+    float XLength;               
+    float YLength;              
     int PlayerNo;
     int Direction;
     EPlaySide Side;
@@ -42,23 +42,17 @@ public:
     const float MinScale = 0.05f;
     const float MaxScale = 0.3f;
 
-    // 생성자 및 소멸자
 public:
     UBar(const FVector& _Location, const float _Speed, const float _Scale, int _PlayerNo, EPlaySide _Side);
 
     virtual ~UBar() override;
 
-    // UPrimitive 인터페이스 구현
-    // 물리/이동 업데이트
     virtual void Update(float deltaTime);
 
-    // 렌더링 (상수 버퍼 업데이트)
     virtual void Render(URenderer& renderer);
 
-    // 벽 충돌 적용
     virtual void ApplyWallCollision();
 
-    // 충격량 적용
     virtual void ApplyGravity(float deltaTime, const FVector& gravity);
 
     virtual bool CheckCollision(const UDiagram* Other) override;
@@ -72,13 +66,13 @@ public:
     void SetLocation(const FVector& NewLoc);
     void SetLocation(FVector&& NewLoc);
 
-    // 아이템 관련
     virtual void AddLife() override;
     virtual void SpawnExtraBalls(int Count) override;
     virtual void AddScore(int Amount) override;
     virtual void ModifyPaddleSize(float DeltaSize) override;
     virtual void ModifyPaddleSpeed(float Multiplier) override;
     virtual void ModifyBallSpeed(float Multiplier) override;
+    virtual void AddBullet(int BulletCount);
 
     std::vector<UBullet>& GetFlyingBulletVec();
 

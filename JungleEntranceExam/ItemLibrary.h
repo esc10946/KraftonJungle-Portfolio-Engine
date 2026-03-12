@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "UItem.h"
 
@@ -16,5 +16,6 @@ public:
     static FItemDesc MakePaddleSpeedDown(float Multiplier);
     static FItemDesc MakeBallSpeedUp(float Multiplier);
     static FItemDesc MakeBallSpeedDown(float Multiplier);
+    static FItemDesc AddBullet(int BulletCount = 10);
 };
 
