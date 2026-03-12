@@ -225,6 +225,12 @@ void UBar::AddBullet(int BulletCount)
 	LoadedBulletCount += BulletCount;
 }
 
+void UBar::InitBarItemEffect()
+{
+	SetSpeed(1.0f);
+	SetScale(0.15f);
+}
+
 std::vector<UBullet>& UBar::GetFlyingBulletVec()
 {
 	return FlyingBullet;
