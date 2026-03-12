@@ -275,13 +275,6 @@ void UGameScene::Update(float delta)
         int CurCol = 0;
         for (auto* b : stageblocks)
         {
-
-            if (!b)
-                continue;
-
-            if (!b->IsActive())
-                continue;
-
             idx++;
             if (!b || !b->IsActive()) continue;
             if (b->CheckSkip())
@@ -367,19 +360,20 @@ void UGameScene::Update(float delta)
             }
             for (int CurRow{ CurrentStageRow - 1 }; CurRow >= 0;CurRow--)
             {
-                
-                if (!stageblocks[CurRow * CurrentStageCol + CurCol])
+                UBlock* BlockPtr{ stageblocks[CurRow * CurrentStageCol + CurCol] };
+                if (!BlockPtr)
                 {
                     continue;
                 }
-                if (stageblocks[CurRow * CurrentStageCol + CurCol]->IsActive())
+                if (BlockPtr->IsActive())
                 {
-                    if (b.CheckBlockHit(*stageblocks[CurRow * CurrentStageCol + CurCol], delta))
+                    if (b.CheckBlockHit(*BlockPtr, delta))
                     {
                         b.SetIsHit(true);
                         FVector BulletDirection(0.0f, 1.0f, 0.0f);
-                        stageblocks[CurRow * CurrentStageCol + CurCol]->TakeDamage(BulletDirection);
-                        CurLocation.y = stageblocks[CurRow * CurrentStageCol + CurCol]->MinY;
+                        BlockPtr->TakeDamage(BulletDirection);
+                        gameManager->SetScore(BlockPtr->GetScore());
+                        CurLocation.y = BlockPtr->MinY;
                     }
                     else
                     {
@@ -413,18 +407,20 @@ void UGameScene::Update(float delta)
             }
             for (int CurRow{ 0 }; CurRow < CurrentStageRow;CurRow++)
             {
-                if (!stageblocks[CurRow * CurrentStageCol + CurCol])
+                UBlock* BlockPtr{ stageblocks[CurRow * CurrentStageCol + CurCol] };
+                if (!BlockPtr)
                 {
                     continue;
                 }
-                if (stageblocks[CurRow * CurrentStageCol + CurCol]->IsActive())
+                if (BlockPtr->IsActive())
                 {
-                    if (b.CheckBlockHit(*stageblocks[CurRow * CurrentStageCol + CurCol], delta))
+                    if (b.CheckBlockHit(*BlockPtr, delta))
                     {
                         b.SetIsHit(true);
                         FVector BulletDirection(0.0f, -1.0f, 0.0f);
-                        stageblocks[CurRow * CurrentStageCol + CurCol]->TakeDamage(BulletDirection);
-                        CurLocation.y = stageblocks[CurRow * CurrentStageCol + CurCol]->MaxY;
+                        BlockPtr->TakeDamage(BulletDirection);
+                        gameManager->SetScore(BlockPtr->GetScore());
+                        CurLocation.y = BlockPtr->MaxY;
                     }
                     else
                     {
