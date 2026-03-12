@@ -136,7 +136,7 @@ void UGameScene::RenderLifeUI(URenderer& renderer)
             renderer.UpdateConstant(pos, FVector(uiRadius, uiRadius, 0), FColor(1, 1, 1, 0.1));
         }
 
-        renderer.RenderSphere();
+        renderer.RenderNewSphere();
     }
 }
 

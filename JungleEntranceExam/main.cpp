@@ -112,6 +112,25 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     renderer.NumVerticesBullet = sizeof(bullet_vertices) / sizeof(FVertexSimple);
     renderer.vertexBufferBullet = renderer.CreateVertexBuffer(bullet_vertices, sizeof(bullet_vertices));
 
+
+    int SegmentCount = 24;
+    int BallVertexCount = SegmentCount * 3;
+    FVertexSimple* BallVertices = new FVertexSimple[BallVertexCount];
+     
+    UBall::CreateCircleVertices(
+        BallVertices,
+        SegmentCount,
+        1.0f,
+
+        // 중심 색 (더 밝게)
+        0.95f, 0.95f, 1.0f, 1.0f,
+
+        // 가장자리 색 (조금 더 어둡게)
+        0.65f, 0.68f, 0.75f, 1.0f
+    );
+    renderer.NumVerticesNewSphere = BallVertexCount; // 직접 72를 대입하거나 변수를 쓰세요.
+    renderer.vertexBufferNewSphere = renderer.CreateVertexBuffer(BallVertices, sizeof(FVertexSimple) * BallVertexCount);
+
     // ImGui를 사용하기 위한 초기화
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();

@@ -43,10 +43,12 @@ public:
 
     UINT NumVerticesBullet;
     UINT NumVerticesSphere=0;
+    UINT NumVerticesNewSphere=0;
     UINT NumVerticesBar=12;
     UINT NumVerticesRect = 12;
 
     ID3D11Buffer* vertexBufferSphere = nullptr;
+    ID3D11Buffer* vertexBufferNewSphere = nullptr;
     ID3D11Buffer* vertexBufferBar = nullptr;
     ID3D11Buffer* vertexBufferRect = nullptr;
     ID3D11Buffer* vertexBufferTriangle = nullptr;
@@ -68,6 +70,7 @@ public:
     void PrepareShader();
     void RenderPrimitive(ID3D11Buffer* pBuffer, UINT numVertices);
     void RenderSphere();
+    void RenderNewSphere();
     void RenderRectangle();
     void RenderTriangle();
     void RenderBullet();
