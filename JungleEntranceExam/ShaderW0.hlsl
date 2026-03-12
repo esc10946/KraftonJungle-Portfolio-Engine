@@ -57,7 +57,7 @@ float4 mainPS(PS_INPUT input) : SV_TARGET
     {
         float d = length(float2(input.localX, input.localY)); 
         float t = saturate(FlashTimer);
-        float glow = t * (1.0f / (d + 0.5f)) * 0.7f;
+        float glow = t * (1.0f / (d + 0.5f)) * 0.9f;
         baseColor = lerp(baseColor, float4(1, 1, 1, 1), saturate(glow));
     }
     return baseColor;

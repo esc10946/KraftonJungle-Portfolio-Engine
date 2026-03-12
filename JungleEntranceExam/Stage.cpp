@@ -133,7 +133,7 @@ static std::vector<UBlock*> BulidStage(int(&map)[ROWS][COLS], int round)
 				continue;
 			}
 			float cx = -1.0f + START_X + (c * STEP_X)+0.1f;
-			float cy = 1.0f - (START_Y + r * STEP_Y)-0.3f;
+			float cy = 1.0f - (START_Y + r * STEP_Y)-0.4f;
 			UBlock* b = MakeBlock(code, cx, cy, round);
 			if (b) {
 				b->Init(cx, cy, HALF_BW, HALF_BH);
