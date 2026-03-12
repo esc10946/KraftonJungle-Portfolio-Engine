@@ -37,6 +37,9 @@ public:
 	UParticlePool* GetParticlePool() const { return particlePool; }
     void StopAllBall();
 
+    // 아이템 효과 초기화
+    void InitItemEffect();
+
 private:
     UGameManager* gameManager = nullptr;
 	UParticlePool* particlePool = nullptr;

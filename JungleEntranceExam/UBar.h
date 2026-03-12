@@ -74,6 +74,8 @@ public:
     virtual void ModifyBallSpeed(float Multiplier) override;
     virtual void AddBullet(int BulletCount);
 
+    void InitBarItemEffect();
+
     std::vector<UBullet>& GetFlyingBulletVec();
 
     void Shoot();

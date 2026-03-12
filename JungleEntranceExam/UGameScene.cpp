@@ -68,6 +68,8 @@ void UGameScene::UIRender()
             if (ImGui::Button("Next Stage", ImVec2(100, 40)))
             {
                 this->NextStage(CurrentStage + 1);
+                Bar_1->InitBarItemEffect();
+                Bar_2->InitBarItemEffect();
                 ShowStageClearModal = false;
                 ImGui::CloseCurrentPopup();
             }
@@ -423,6 +425,9 @@ void UGameScene::Update(float delta)
         if (gameManager->GetCurLife() > 1)
         {
             gameManager->SubHealth(1);
+
+            Bar_1->InitBarItemEffect();
+            Bar_2->InitBarItemEffect();
         }
         else
         {
@@ -531,6 +536,13 @@ void UGameScene::StopAllBall()
             ball->StopMove();
         }
     }
+}
+
+void UGameScene::InitItemEffect()
+{
+    // 각 바의 아이템 효과 초기화
+    Bar_1->InitBarItemEffect();
+    Bar_2->InitBarItemEffect();
 }
 
 void UGameScene::Render(URenderer render)
