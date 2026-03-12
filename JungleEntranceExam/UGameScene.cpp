@@ -44,10 +44,16 @@ void UGameScene::UIRender()
 
     ImGui::Begin("HUD", nullptr, hudFlags);
 
-    ImGui::SetWindowFontScale(4.0f);
+    ImGui::SetWindowFontScale(3.0f);
     ImGui::TextColored(ImVec4(1.0f, 0.0f, 0.0f, 1.0f), "HIGH:");
+
+    ImGui::SetWindowFontScale(3.0f);
     ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "%d", GetHightScore());
+
+    ImGui::SetWindowFontScale(3.0f);
     ImGui::TextColored(ImVec4(0.0f, 1.0f, 0.0f, 1.0f), "SCORE:");
+
+    ImGui::SetWindowFontScale(3.0f);
     ImGui::TextColored(ImVec4(1.0f, 1.0f, 1.0f, 1.0f), "%d", gameManager->GetTotalScore());
     //ImGui::TextColored(ImVec4(1.0f, 0.2f, 0.2f, 1.0f), "LIVES: %d", gameManager->GetCurLife());
 
@@ -96,7 +102,7 @@ void UGameScene::UIRender()
             if (ImGui::Button("TITLE MENU", ImVec2(100, 40)))
             {
                 ShowGameOverModal = false;
-                gameManager->SubHealth(1);
+                gameManager->Exit();
                 ImGui::CloseCurrentPopup();
             }
 
@@ -155,7 +161,7 @@ void UGameScene::Init()
     AddObject(Bar_1);
     AddObject(Bar_2);
 
-    CurrentStage = 2;
+    CurrentStage = 1;
     stageblocks = CreateStage(CurrentStage);
     for (auto& b : stageblocks)
     {
@@ -453,6 +459,7 @@ void UGameScene::Update(float delta)
         }
         else
         {
+            gameManager->SubHealth(1);
             StopAllBall();
             ShowGameOverModal = true;
         }
