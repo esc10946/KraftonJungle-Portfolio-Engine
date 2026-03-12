@@ -122,10 +122,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         SegmentCount,
         1.0f,
 
-        // 중심 색 (더 밝게)
         0.95f, 0.95f, 1.0f, 1.0f,
 
-        // 가장자리 색 (조금 더 어둡게)
         0.65f, 0.68f, 0.75f, 1.0f
     );
     renderer.NumVerticesNewSphere = BallVertexCount; // 직접 72를 대입하거나 변수를 쓰세요.
@@ -226,6 +224,8 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     USceneManager::GetInstance().Release();
     UInputManager::GetInstance()->Release();
     UGameManager::GetInstance()->Release();
+
+    delete BallVertices;
 
     // vertexBuffer 릴리즈
     renderer.ReleaseVertexBuffer();
