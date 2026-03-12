@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Types.h"
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_dx11.h"
@@ -35,6 +35,6 @@ private:
 protected:
     //std::string SceneName;
     std::vector<UGameObject*> UGameObjectList;
-    bool bisActive;
-    ESceneType SceneType;
+    bool bisActive{ false };
+    ESceneType SceneType{ ESceneType ::None};
 };

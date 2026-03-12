@@ -329,7 +329,6 @@ void UGameScene::Update(float delta)
             {
                 continue;
             }
-
             for (int CurRow{ CurrentStageRow - 1 }; CurRow >= 0;CurRow--)
             {
                 
@@ -376,7 +375,6 @@ void UGameScene::Update(float delta)
             {
                 continue;
             }
-
             for (int CurRow{ 0 }; CurRow < CurrentStageRow;CurRow++)
             {
                 if (!stageblocks[CurRow * CurrentStageCol + CurCol])
