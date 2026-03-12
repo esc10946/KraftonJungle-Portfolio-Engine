@@ -71,7 +71,7 @@ void UGameManager::SubHealth(const unsigned int value)
 {
 	currentHealth = max(currentHealth - value, 0);
 	if (value >= currentHealth) {
-		HightScoreUpdate(currentScore);
+		
 		return;
 	}
 }
