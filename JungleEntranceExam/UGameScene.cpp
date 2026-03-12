@@ -239,13 +239,6 @@ void UGameScene::Update(float delta)
         int CurCol = 0;
         for (auto* b : stageblocks)
         {
-
-            if (!b)
-                continue;
-
-            if (!b->IsActive())
-                continue;
-
             idx++;
             if (!b || !b->IsActive()) continue;
             if (b->CheckSkip())
