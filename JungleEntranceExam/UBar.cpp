@@ -49,7 +49,7 @@ void UBar::Update(float deltaTime)
 
 	if (PlayerNo == 0)
 	{
-		if (input->GetKeyDown(VK_DOWN))
+		if (input->GetKeyDown(ShootKey))
 		{
 			Shoot();
 		}
@@ -57,14 +57,15 @@ void UBar::Update(float deltaTime)
 	else
 	{
 		bool bKeyboardShoot = false;
+		bool bGamepadShoot = false;
 	
 		if(input->getGamepadManager().IsConnected())
-			bool bGamepadShoot = input->getGamepadManager().IsPressed(ABI::Windows::Gaming::Input::GamepadButtons_A);
+			bGamepadShoot = input->getGamepadManager().IsPressed(ABI::Windows::Gaming::Input::GamepadButtons_A);
 		else
-			bool bKeyboardShoot = input->GetKeyDown('S');
+			bKeyboardShoot = input->GetKeyDown(ShootKey);
 
 
-		if (bKeyboardShoot)
+		if (bKeyboardShoot || bGamepadShoot)
 		{
 			Shoot();
 		}
