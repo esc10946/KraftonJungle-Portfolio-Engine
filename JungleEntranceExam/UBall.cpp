@@ -160,7 +160,7 @@ void UBall::Render(URenderer& renderer)
         renderer.RenderNewSphere();
     }
 
-    renderer.UpdateConstant(Location, FVector(Radius, Radius, 1.0f));
+    renderer.UpdateConstant(Location, FVector(Radius, Radius, 0), FColor(1, 1, 1, 1), -3.0f, FlashTimer);
     renderer.RenderNewSphere();
 }
 

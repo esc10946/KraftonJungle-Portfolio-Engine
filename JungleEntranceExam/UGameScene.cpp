@@ -457,6 +457,7 @@ void UGameScene::Update(float delta)
         {
             gameManager->SubHealth(1);
             StopAllBall();
+            HightScoreUpdate(gameManager->GetTotalScore());
             ShowGameOverModal = true;
         }
     }
