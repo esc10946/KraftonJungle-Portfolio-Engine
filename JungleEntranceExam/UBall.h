@@ -19,7 +19,7 @@ public:
     float   Radius;               // 공의 반지름
     float   Mass;                 // 공의 질량 (반지름과 비례하다고 가정)
     bool    IsMove;
-    UBar*   BarPtr;
+    UBar* BarPtr;
     float   Acceleration;
     float   SpeedLimitMin;
     float   SpeedLimitMax;
@@ -31,6 +31,10 @@ private:
     int maxTrailCount = 5;
     float trailTimer = 0.01f;
     float curTimer = 0.f;
+
+    ID3D11Buffer* BallVertexBuffer;
+    FVertexSimple* BallVertices;
+    int BallVertexCount;
 
     // 생성자 및 소멸자
 public:
@@ -61,7 +65,7 @@ public:
     void SetSpeed(float inSpeed);
     void StopMove();
 
-	virtual bool CheckCollision(const UDiagram* Other) override;
+    virtual bool CheckCollision(const UDiagram* Other) override;
 
     EBlockCollision CheckBarCollision(const UBar& Bar, FVector& CollisionPos);
 
@@ -82,4 +86,12 @@ public:
     static UBall** CreateMultiBalls(const UBall* sourceBall);
 
     // static void InitBall(UBall& input);
+
+private:
+    static void CreateCircleVertices(
+        FVertexSimple* outVertices,
+        int segmentCount,
+        float radius,
+        float centerR, float centerG, float centerB, float centerA,
+        float edgeR, float edgeG, float edgeB, float edgeA);
 };

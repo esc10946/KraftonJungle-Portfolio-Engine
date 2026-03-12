@@ -438,12 +438,13 @@ void URenderer::UpdateConstant(FVector Offset, FVector Scale, FColor Color, floa
     {
         D3D11_MAPPED_SUBRESOURCE constantbufferMSR;
         DeviceContext->Map(ConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &constantbufferMSR);
-        FConstants* constants = (FConstants*)constantbufferMSR.pData;
-        constants->Offset = Offset;
-        constants->WipeProgress = WipeProgress;
-        constants->Scale = Scale;
-        constants->FlashTimer = FlashTimer;
-        constants->BlockColor = Color;
+        FConstants* constants = (FConstants*)constantbufferMSR.pData; {
+            constants->Offset = Offset;
+            constants->WipeProgress = WipeProgress;
+            constants->Scale = Scale;
+            constants->FlashTimer = FlashTimer;
+            constants->BlockColor = Color;
+        }
         DeviceContext->Unmap(ConstantBuffer, 0);
     }
 }
