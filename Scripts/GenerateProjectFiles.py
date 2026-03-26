@@ -16,7 +16,7 @@ from pathlib import Path
 # ──────────────────────────────────────────────
 ROOT = Path(__file__).resolve().parent.parent
 
-PROJECT_NAME = "W3_Jungle_Team6"
+PROJECT_NAME = "W4_Jungle_Team4"
 PROJECT_DIR = ROOT / PROJECT_NAME
 PROJECT_GUID = "{55068e81-c0a0-49f9-ab7b-54aea968722b}"
 ROOT_NAMESPACE = "Week2"

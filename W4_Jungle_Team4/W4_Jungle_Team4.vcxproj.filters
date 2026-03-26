@@ -2,79 +2,79 @@
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Shaders">
-      <UniqueIdentifier>{3da004c4-ad32-403e-9a24-6dcfe0def283}</UniqueIdentifier>
+      <UniqueIdentifier>{3f1d8a71-77c2-db26-fb22-481dad8a2df2}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source">
-      <UniqueIdentifier>{5a12aca2-ae31-849b-12d1-4efd320c9da2}</UniqueIdentifier>
+      <UniqueIdentifier>{c6a4a150-8c4d-bb31-ac16-82437017747c}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Editor">
-      <UniqueIdentifier>{956d68db-8267-b6c9-ee17-de994a7dc814}</UniqueIdentifier>
+      <UniqueIdentifier>{1cdad32c-c0c1-4f19-7d29-01690ca039c7}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Editor\Selection">
-      <UniqueIdentifier>{b215b2fc-a010-f092-1965-ea1933ecf0f6}</UniqueIdentifier>
+      <UniqueIdentifier>{c6bba40b-07d8-7563-54a3-f5171447e5a6}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Editor\Settings">
-      <UniqueIdentifier>{d787f5b7-1afa-e269-d3f4-b58c3fbd3301}</UniqueIdentifier>
+      <UniqueIdentifier>{1bae6c57-0b83-e007-be9d-a197b86f7b56}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Editor\UI">
-      <UniqueIdentifier>{08046398-110a-9b75-d53d-049fd85f18ad}</UniqueIdentifier>
+      <UniqueIdentifier>{9ddf7328-2e93-56cc-4ab2-5fa4c014554d}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Editor\Viewport">
-      <UniqueIdentifier>{aa7b419e-d705-4028-e338-a7db01d95096}</UniqueIdentifier>
+      <UniqueIdentifier>{c0371052-ac2a-0c86-a9c2-38a3d1f493ac}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine">
-      <UniqueIdentifier>{eda94427-1edc-1dfb-bb28-625b966ad870}</UniqueIdentifier>
+      <UniqueIdentifier>{a9f32ff9-0f3f-5561-33a0-eec9868a312b}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Component">
-      <UniqueIdentifier>{3971b5d5-7bfd-7292-41a2-6060f8a5d107}</UniqueIdentifier>
+      <UniqueIdentifier>{519ab669-7945-a465-bd9e-a1e21e8a3a55}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Core">
-      <UniqueIdentifier>{55e3403d-6f17-df82-439d-f99e44708d70}</UniqueIdentifier>
+      <UniqueIdentifier>{86cbca18-a7ba-1c6f-89d0-5b0574428f0a}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\GameFramework">
-      <UniqueIdentifier>{66b0661a-8dc1-c042-0da0-eceab3dc855f}</UniqueIdentifier>
+      <UniqueIdentifier>{c4067a3f-9717-1e54-e98a-d71c6298f88a}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Math">
-      <UniqueIdentifier>{8fa52000-b619-dc76-0c59-088c9bdf1958}</UniqueIdentifier>
+      <UniqueIdentifier>{82fbff6f-430d-2711-9af6-0b59e776c96c}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Object">
-      <UniqueIdentifier>{b5a4e84d-14eb-06be-b35c-1bbcfdf0dd7b}</UniqueIdentifier>
+      <UniqueIdentifier>{6955480a-6888-fb92-bdec-b078b8246036}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Render">
-      <UniqueIdentifier>{28426556-46d8-9493-5d6f-90428af5b868}</UniqueIdentifier>
+      <UniqueIdentifier>{e670c704-f937-f763-daa9-f11cd7265d3a}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Render\Common">
-      <UniqueIdentifier>{e645f840-8dad-2554-f142-975e2a796206}</UniqueIdentifier>
+      <UniqueIdentifier>{03f6d6ef-3cd3-3abc-9fd9-32818fe1fbd2}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Render\Device">
-      <UniqueIdentifier>{f3a8ddc0-41e8-5dce-a96f-0e6e603a416b}</UniqueIdentifier>
+      <UniqueIdentifier>{d949cc76-166a-0d6b-4626-ab04df772372}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Render\Mesh">
-      <UniqueIdentifier>{334fd104-4324-649f-9188-4c0c5daff938}</UniqueIdentifier>
+      <UniqueIdentifier>{4948d2fa-fc42-7de8-2f5e-09f9067fb618}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Render\Renderer">
-      <UniqueIdentifier>{f9d79c72-b78a-d042-c1f3-e7512f12c171}</UniqueIdentifier>
+      <UniqueIdentifier>{36f52257-6276-3ba9-e9b7-e8d711e795e6}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Render\Resource">
-      <UniqueIdentifier>{45e82f12-e31c-a5f0-6927-2e9f3a320e20}</UniqueIdentifier>
+      <UniqueIdentifier>{b70a0d61-ab11-75fd-710b-f13cc2f6aaec}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Render\Scene">
-      <UniqueIdentifier>{e749d025-5a59-ba96-3e1e-a64abf081a96}</UniqueIdentifier>
+      <UniqueIdentifier>{a4896d06-2dd1-4186-1cee-d259abdd21c2}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Runtime">
-      <UniqueIdentifier>{ee46d74c-4164-40e5-e6d1-70e34545baa8}</UniqueIdentifier>
+      <UniqueIdentifier>{497c132a-7f4d-cdeb-3d0a-f795a21e2222}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Serialization">
-      <UniqueIdentifier>{334cd158-cd7e-f105-c4cf-a3909c6e1655}</UniqueIdentifier>
+      <UniqueIdentifier>{fc5db35e-a2b9-1455-c122-0ac0e5439e1d}</UniqueIdentifier>
     </Filter>
     <Filter Include="ThirdParty">
-      <UniqueIdentifier>{7fdab8d2-b376-c6b6-9ab6-6234fa5b26ea}</UniqueIdentifier>
+      <UniqueIdentifier>{39744999-2e52-830f-8afc-4883e16f7fcf}</UniqueIdentifier>
     </Filter>
     <Filter Include="ThirdParty\ImGui">
-      <UniqueIdentifier>{c34ce534-362b-52ae-b32b-3baa8f711324}</UniqueIdentifier>
+      <UniqueIdentifier>{bea6d8c5-00ef-438f-3cb9-8f5e10319564}</UniqueIdentifier>
     </Filter>
     <Filter Include="ThirdParty\SimpleJSON">
-      <UniqueIdentifier>{9bdf5fb0-66ed-2581-3909-d2da41698092}</UniqueIdentifier>
+      <UniqueIdentifier>{2a5417f8-fbca-b05c-d2e3-f61311941a70}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -131,6 +131,9 @@
     <ClCompile Include="Source\Editor\UI\EditorSceneWidget.cpp">
       <Filter>Source\Editor\UI</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Editor\UI\EditorStatWidget.cpp">
+      <Filter>Source\Editor\UI</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Editor\UI\EditorViewportOverlayWidget.cpp">
       <Filter>Source\Editor\UI</Filter>
     </ClCompile>
@@ -170,6 +173,9 @@
     <ClCompile Include="Source\Engine\Core\EngineTypes.cpp">
       <Filter>Source\Engine\Core</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Core\GPUProfiler.cpp">
+      <Filter>Source\Engine\Core</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\Core\InputSystem.cpp">
       <Filter>Source\Engine\Core</Filter>
     </ClCompile>
@@ -177,6 +183,9 @@
       <Filter>Source\Engine\Core</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Core\ResourceManager.cpp">
+      <Filter>Source\Engine\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Core\Stats.cpp">
       <Filter>Source\Engine\Core</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Core\Timer.cpp">
@@ -227,10 +236,10 @@
     <ClCompile Include="Source\Engine\Render\Mesh\MeshManager.cpp">
       <Filter>Source\Engine\Render\Mesh</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Render\Renderer\Renderer.cpp">
+    <ClCompile Include="Source\Engine\Render\Renderer\DefaultRenderPipeline.cpp">
       <Filter>Source\Engine\Render\Renderer</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Render\Renderer\DefaultRenderPipeline.cpp">
+    <ClCompile Include="Source\Engine\Render\Renderer\Renderer.cpp">
       <Filter>Source\Engine\Render\Renderer</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Render\Resource\Buffer.cpp">
@@ -262,15 +271,6 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Runtime\WindowsWindow.cpp">
       <Filter>Source\Engine\Runtime</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Core\Stats.cpp">
-      <Filter>Source\Engine\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Core\GPUProfiler.cpp">
-      <Filter>Source\Engine\Core</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Editor\UI\EditorStatWidget.cpp">
-      <Filter>Source\Editor\UI</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Serialization\SceneSaveManager.cpp">
       <Filter>Source\Engine\Serialization</Filter>
@@ -324,6 +324,9 @@
       <Filter>Source\Editor\UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\UI\EditorSceneWidget.h">
+      <Filter>Source\Editor\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\UI\EditorStatWidget.h">
       <Filter>Source\Editor\UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\UI\EditorViewportOverlayWidget.h">
@@ -383,6 +386,9 @@
     <ClInclude Include="Source\Engine\Core\EngineTypes.h">
       <Filter>Source\Engine\Core</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\Core\GPUProfiler.h">
+      <Filter>Source\Engine\Core</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Engine\Core\InputSystem.h">
       <Filter>Source\Engine\Core</Filter>
     </ClInclude>
@@ -406,12 +412,6 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Core\Stats.h">
       <Filter>Source\Engine\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Core\GPUProfiler.h">
-      <Filter>Source\Engine\Core</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Editor\UI\EditorStatWidget.h">
-      <Filter>Source\Editor\UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Core\Timer.h">
       <Filter>Source\Engine\Core</Filter>
@@ -473,13 +473,13 @@
     <ClInclude Include="Source\Engine\Render\Mesh\MeshManager.h">
       <Filter>Source\Engine\Render\Mesh</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Render\Renderer\Renderer.h">
+    <ClInclude Include="Source\Engine\Render\Renderer\DefaultRenderPipeline.h">
       <Filter>Source\Engine\Render\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Render\Renderer\IRenderPipeline.h">
       <Filter>Source\Engine\Render\Renderer</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Render\Renderer\DefaultRenderPipeline.h">
+    <ClInclude Include="Source\Engine\Render\Renderer\Renderer.h">
       <Filter>Source\Engine\Render\Renderer</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Render\Resource\Buffer.h">
