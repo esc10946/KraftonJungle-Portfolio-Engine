@@ -17,8 +17,8 @@ public:
 	virtual void TickInput(float DeltaTime) override;
 	*/
 
-	// OBJ 로드
-	void LoadOBJ(const std::string& FilePath);
+	// 뷰어에서 표시할 정적 메시 asset을 로드합니다.
+	void LoadStaticMeshAsset(const std::string& FilePath);
 
 private:
 	FStaticMeshAsset* CurrentMesh = nullptr;
