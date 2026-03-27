@@ -13,6 +13,8 @@
 #include "Object/Object.h"
 #include "Editor/Selection/SelectionManager.h"
 
+#include "Component/OrbitCameraComponent.h"
+
 void FEditorViewportClient::Initialize(FWindowsWindow* InWindow)
 {
 	Window = InWindow;
@@ -23,7 +25,8 @@ void FEditorViewportClient::Initialize(FWindowsWindow* InWindow)
 void FEditorViewportClient::CreateCamera()
 {
 	DestroyCamera();
-	Camera = UObjectManager::Get().CreateObject<UCameraComponent>();
+	//Camera = UObjectManager::Get().CreateObject<UCameraComponent>();
+	Camera = UObjectManager::Get().CreateObject<UOrbitCameraComponent>();
 }
 
 void FEditorViewportClient::DestroyCamera()

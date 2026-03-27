@@ -91,6 +91,9 @@
     <Filter Include="ThirdParty\SimpleJSON">
       <UniqueIdentifier>{2a5417f8-fbca-b05c-d2e3-f61311941a70}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Editor\Slate">
+      <UniqueIdentifier>{f8d68116-576b-4784-a55c-a101e0d15d5b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\Common.hlsl">
@@ -342,9 +345,16 @@
       <Filter>ThirdParty\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
-    <ClCompile Include="Source\Engine\Component\StaticMeshComponent.cpp" />
-    <ClCompile Include="OrbitCameraComponent.cpp">
+    <ClCompile Include="Source\Engine\Component\OrbitCameraComponent.cpp">
+      <Filter>Source\Engine\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Editor\Viewport\ViewerViewportClient.cpp">
+      <Filter>Source\Editor\Viewport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Component\MeshComponent.cpp">
+      <Filter>Source\Engine\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Component\StaticMeshComponent.cpp">
       <Filter>Source\Engine\Component</Filter>
     </ClCompile>
   </ItemGroup>
@@ -637,19 +647,44 @@
     <ClInclude Include="ThirdParty\SimpleJSON\json.hpp">
       <Filter>ThirdParty\SimpleJSON</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Editor\Slate\SlateApplication.h" />
-    <ClInclude Include="Source\Editor\Slate\SWidget.h" />
-    <ClInclude Include="Source\Editor\Slate\SWindow.h" />
-    <ClInclude Include="Source\Editor\Slate\SSplitter.h" />
-    <ClInclude Include="Source\Editor\Slate\SSplitterH.h" />
-    <ClInclude Include="Source\Editor\Slate\SSplitterV.h" />
-    <ClInclude Include="Source\Editor\Slate\SViewport.h" />
-    <ClInclude Include="Source\Editor\Viewport\FViewport.h" />
-    <ClInclude Include="Source\Editor\Viewport\FViewportClient.h" />
-    <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
-    <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
-    <ClInclude Include="OrbitCameraComponent.h">
+    <ClInclude Include="Source\Engine\Component\OrbitCameraComponent.h">
       <Filter>Source\Engine\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\Viewport\ViewerViewportClient.h">
+      <Filter>Source\Editor\Viewport</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\Viewport\FViewport.h">
+      <Filter>Source\Editor\Viewport</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\Viewport\FViewportClient.h">
+      <Filter>Source\Editor\Viewport</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Component\MeshComponent.h">
+      <Filter>Source\Engine\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h">
+      <Filter>Source\Engine\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\Slate\SlateApplication.h">
+      <Filter>Source\Editor\Slate</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\Slate\SSplitter.h">
+      <Filter>Source\Editor\Slate</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\Slate\SSplitterH.h">
+      <Filter>Source\Editor\Slate</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\Slate\SSplitterV.h">
+      <Filter>Source\Editor\Slate</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\Slate\SViewport.h">
+      <Filter>Source\Editor\Slate</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\Slate\SWidget.h">
+      <Filter>Source\Editor\Slate</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\Slate\SWindow.h">
+      <Filter>Source\Editor\Slate</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
