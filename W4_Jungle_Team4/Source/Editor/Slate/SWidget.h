@@ -1,38 +1,12 @@
 ﻿#pragma once
 
-#include "Math/Vector.h"
-
-struct FReply
-{
-public:
-	static FReply Handled() { return FReply(true); }
-	static FReply Unhandled() { return FReply(false); }
-
-	FReply& CaptureMouse(SWidget* InWidget)
-	{
-		MouseCaptor = InWidget;
-		return *this;
-	}
-
-	bool IsHandled() const { return bIsHandled; }
-	SWidget* GetMouseCaptor() const { return MouseCaptor; }
-
-private:
-	FReply(bool bInHandled) : bIsHandled(bInHandled), MouseCaptor(nullptr) {}
-
-	bool bIsHandled;
-	SWidget* MouseCaptor;
-};
+#include "Core/EngineTypes.h"
+#include "Reply.h"
 
 struct FRect
 {
-	FVector2 Position;
-	FVector2 Size;
-};
-
-struct FPoint
-{
-	FVector2 Position;
+	uint32 X, Y;
+	uint32 Width, Height;
 };
 
 class SWidget
@@ -42,18 +16,34 @@ public:
 	virtual ~SWidget() = default;
 
 public:
-	virtual void Tick(float DeltaTime) {}
+	virtual void Tick(float DeltaTime) { if (Child) Child->Tick(DeltaTime); }
 
 	virtual FReply OnMouseButtonDown(float X, float Y) { return FReply::Unhandled(); }
 	virtual FReply OnMouseButtonUp(float X, float Y) { return FReply::Unhandled(); }
 	virtual FReply OnMouseMove(float X, float Y) { return FReply::Unhandled(); }
 
-	bool IsHovered(FPoint Coord) const;
+	bool IsHovered(FVector2 Coord) const;
+
+	FRect GetRect() const { return Rect; }
+	void SetRect(const FRect& InRect) { Rect = InRect; }
+
+	void AddChild(SWidget* InChild)
+	{
+		if (Child)
+		{
+			Child->Parent = nullptr;
+		}
+		Child = InChild;
+		if (Child)
+		{
+			Child->Parent = this;
+		}
+	}
 
 protected:
 	FRect Rect;
 	bool bIsVisible = true;
 
-private:
 	SWidget* Parent = nullptr;
+	SWidget* Child = nullptr;
 };

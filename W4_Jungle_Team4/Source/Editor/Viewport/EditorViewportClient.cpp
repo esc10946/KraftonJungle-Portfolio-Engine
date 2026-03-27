@@ -6,18 +6,18 @@
 #include "Engine/Runtime/WindowsWindow.h"
 
 #include "Component/CameraComponent.h"
-#include "Editor/Viewport/FViewport.h"
+#include "Editor/Viewport/Viewport.h"
 #include "GameFramework/World.h"
 #include "Component/GizmoComponent.h"
 #include "Component/PrimitiveComponent.h"
 #include "Object/Object.h"
 #include "Editor/Selection/SelectionManager.h"
 
-void FEditorViewportClient::Initialize(FWindowsWindow* InWindow)
+void FEditorViewportClient::Initialize(FViewport* InViewport)
 {
-	Window = InWindow;
-
 	UE_LOG("Hello ZZup Engine! %d", 2026);
+
+	Viewport = InViewport;
 }
 
 void FEditorViewportClient::CreateCamera()
@@ -42,24 +42,6 @@ void FEditorViewportClient::ResetCamera()
 	Camera->LookAt(Settings->InitLookAt);
 }
 
-void FEditorViewportClient::SetViewportSize(float InWidth, float InHeight)
-{
-	if (InWidth > 0.0f)
-	{
-		WindowWidth = InWidth;
-	}
-
-	if (InHeight > 0.0f)
-	{
-		WindowHeight = InHeight;
-	}
-
-	if (Camera)
-	{
-		Camera->OnResize(static_cast<int32>(WindowWidth), static_cast<int32>(WindowHeight));
-	}
-}
-
 void FEditorViewportClient::Tick(float DeltaTime)
 {
 	TickInput(DeltaTime);
@@ -67,16 +49,15 @@ void FEditorViewportClient::Tick(float DeltaTime)
 	TickCursorOverlay(DeltaTime);
 }
 
-void FEditorViewportClient::Draw(FViewport* Viewport, ID3D11DeviceContext* DeviceContext)
+void FEditorViewportClient::OnViewportResized(uint32 InWidth, uint32 InHeight)
 {
-	(void)Viewport;
-	(void)DeviceContext;
-}
-
-void FEditorViewportClient::OnViewportResized(FViewport* Viewport, uint32 NewWidth, uint32 NewHeight)
-{
-	(void)Viewport;
-	SetViewportSize(static_cast<float>(NewWidth), static_cast<float>(NewHeight));
+	ViewportSize = { static_cast<float>(InWidth), static_cast<float>(InHeight) };
+	Viewport->Resize(0, 0, InWidth, InHeight);
+	
+	if (Camera)
+	{
+		Camera->OnResize(InWidth, InHeight);
+	}
 }
 
 void FEditorViewportClient::TickInput(float DeltaTime)
@@ -156,8 +137,6 @@ void FEditorViewportClient::TickInput(float DeltaTime)
 
 void FEditorViewportClient::TickInteraction(float DeltaTime)
 {
-	(void)DeltaTime;
-
 	if (!Camera || !Gizmo || !World)
 	{
 		return;
@@ -184,8 +163,8 @@ void FEditorViewportClient::TickInteraction(float DeltaTime)
 		}
 	}
 
-	POINT MousePoint = InputSystem::Get().GetMousePos();
-	MousePoint = Window->ScreenToClientPoint(MousePoint);
+	POINT MousePoint = InputSystem::Get().GetClientMousePos();
+	MousePoint = ScreenToViewportPoint(MousePoint);
 
 	//	Cursor
 	CursorOverlayState.ScreenX = static_cast<float>(MousePoint.x);
@@ -244,7 +223,7 @@ void FEditorViewportClient::TickInteraction(float DeltaTime)
 		}
 	}
 
-	FRay Ray = Camera->DeprojectScreenToWorld(static_cast<float>(MousePoint.x), static_cast<float>(MousePoint.y), WindowWidth, WindowHeight);
+	FRay Ray = Camera->DeprojectScreenToWorld(static_cast<float>(MousePoint.x), static_cast<float>(MousePoint.y), ViewportSize.X, ViewportSize.Y);
 	FHitResult HitResult;
 
 	//Gizmo Hover
@@ -336,7 +315,7 @@ void FEditorViewportClient::HandleDragStart(const FRay& Ray)
 
 void FEditorViewportClient::TickCursorOverlay(float DeltaTime)
 {
-	const float Alpha = std::min(1.0f, DeltaTime * CursorOverlayState.LerpSpeed);
+	const float Alpha = min(1.0f, DeltaTime * CursorOverlayState.LerpSpeed);
 	CursorOverlayState.CurrentRadius += (CursorOverlayState.TargetRadius - CursorOverlayState.CurrentRadius) * Alpha;
 
 	if (!CursorOverlayState.bPressed && CursorOverlayState.CurrentRadius < 0.01f)
@@ -344,4 +323,13 @@ void FEditorViewportClient::TickCursorOverlay(float DeltaTime)
 		CursorOverlayState.CurrentRadius = 0.0f;
 		CursorOverlayState.bVisible = false;
 	}
+}
+
+POINT FEditorViewportClient::ScreenToViewportPoint(POINT ScreenPoint) const
+{
+	POINT ViewportPoint;
+	ViewportPoint.x = ScreenPoint.x - static_cast<LONG>(ViewportPos.X);
+	ViewportPoint.y = ScreenPoint.y - static_cast<LONG>(ViewportPos.Y);
+
+	return ViewportPoint;
 }

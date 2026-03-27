@@ -9,11 +9,17 @@ public:
 	virtual ~SSplitter() = default;
 
 public:
-	virtual void Tick(float DeltaTime) override;
+	virtual void Tick(float DeltaTime) override {}
 
-	virtual FReply OnMouseButtonDown(float X, float Y) override;
-	virtual FReply OnMouseButtonUp(float X, float Y) override;
-	virtual FReply OnMouseMove(float X, float Y) override;
+	virtual FReply OnMouseButtonDown(float X, float Y) override { return FReply::Unhandled(); }
+	virtual FReply OnMouseButtonUp(float X, float Y) override { return FReply::Unhandled(); }
+	virtual FReply OnMouseMove(float X, float Y) override { return FReply::Unhandled(); }
+
+	SWidget* GetSideLT() const { return SideLT; }
+	void SetSideLT(SWidget* InWidget) { SideLT = InWidget; }
+
+	SWidget* GetSideRB() const { return SideRB; }
+	void SetSideRB(SWidget* InWidget) { SideRB = InWidget; }
 
 private:
 	SWidget* SideLT = nullptr;

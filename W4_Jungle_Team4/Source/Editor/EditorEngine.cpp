@@ -1,5 +1,9 @@
 ﻿#include "Editor/EditorEngine.h"
 
+#include "Editor/Slate/SlateApplication.h"
+#include "Editor/Slate/SViewport.h"
+#include "Editor/Slate/SSplitterH.h"
+#include "Editor/Viewport/Viewport.h"
 #include "Engine/Runtime/WindowsWindow.h"
 #include "Engine/Serialization/SceneSaveManager.h"
 #include "Component/GizmoComponent.h"
@@ -33,18 +37,45 @@ void UEditorEngine::Init(FWindowsWindow* InWindow)
 	// Selection & Gizmo
 	SelectionManager.Init();
 
-	// ViewportClient
-	ViewportClient.SetSettings(&FEditorSettings::Get());
-	ViewportClient.Initialize(Window);
-	ViewportClient.SetViewportSize(Window->GetWidth(), Window->GetHeight());
-	ViewportClient.SetWorld(GetWorld());
-	ViewportClient.SetGizmo(SelectionManager.GetGizmo());
-	ViewportClient.SetSelectionManager(&SelectionManager);
+	// Slate UI 초기화
+	FViewport* Viewport = new FViewport(&Renderer.GetFD3DDevice());
+	FViewport* Viewport2 = new FViewport(&Renderer.GetFD3DDevice());
 
-	// Camera
-	ViewportClient.CreateCamera();
-	ViewportClient.ResetCamera();
-	GetWorld()->SetActiveCamera(ViewportClient.GetCamera());
+	FEditorViewportClient* EditorViewportClient = new FEditorViewportClient();
+	EditorViewportClient->SetSettings(&FEditorSettings::Get());
+	EditorViewportClient->Initialize(Viewport);
+	EditorViewportClient->SetWorld(GetWorld());
+	EditorViewportClient->SetGizmo(SelectionManager.GetGizmo());
+	EditorViewportClient->SetSelectionManager(&SelectionManager);
+	EditorViewportClient->CreateCamera();
+	EditorViewportClient->ResetCamera();
+
+	Viewport->SetViewportClient(EditorViewportClient);
+	Viewport2->SetViewportClient(EditorViewportClient);
+	Viewports.push_back(Viewport);
+	Viewports.push_back(Viewport2);
+
+	SWindow* MainWindow = new SWindow();
+	SSplitterH* SplitterH = new SSplitterH();
+
+	SViewport* ViewportWidget = new SViewport();
+	ViewportWidget->SetViewport(Viewport);
+	SViewport* ViewportWidget2 = new SViewport();
+	ViewportWidget2->SetViewport(Viewport2);
+
+	FRect ViewportRect = { 0, 0, 800, 600 };
+	MainWindow->SetRect(ViewportRect);
+	SplitterH->SetRect(ViewportRect);
+
+	ViewportWidget->SetViewport(Viewport);
+	MainWindow->AddChild(SplitterH);
+
+	SplitterH->SetSideLT(ViewportWidget);
+	SplitterH->SetSideRB(ViewportWidget2);
+
+	FSlateApplication::Get().AddWindow(MainWindow);
+
+	GetWorld()->SetActiveCamera(EditorViewportClient->GetCamera());
 
 	// Editor render pipeline
 	SetRenderPipeline(std::make_unique<FEditorRenderPipeline>(this, Renderer));
@@ -65,12 +96,20 @@ void UEditorEngine::Shutdown()
 void UEditorEngine::OnWindowResized(uint32 Width, uint32 Height)
 {
 	UEngine::OnWindowResized(Width, Height);
-	ViewportClient.SetViewportSize(Window->GetWidth(), Window->GetHeight());
+	
+	for (FViewport* Viewport : Viewports)
+	{
+		FViewportClient* Client = Viewport->GetViewportClient();
+		if (Client)
+		{
+			Client->OnViewportResized(Width, Height);
+		}
+	}
 }
 
 void UEditorEngine::Tick(float DeltaTime)
 {
-	ViewportClient.Tick(DeltaTime);
+	FSlateApplication::Get().Tick(DeltaTime);
 	MainPanel.Update();
 	UEngine::Tick(DeltaTime);
 }
@@ -82,11 +121,11 @@ void UEditorEngine::RenderUI(float DeltaTime)
 
 void UEditorEngine::ResetViewport()
 {
-	ViewportClient.CreateCamera();
-	ViewportClient.SetWorld(GetWorld());
-	ViewportClient.SetViewportSize(Window->GetWidth(), Window->GetHeight());
-	ViewportClient.ResetCamera();
-	GetWorld()->SetActiveCamera(ViewportClient.GetCamera());
+	//ViewportClient.CreateCamera();
+	//ViewportClient.SetWorld(GetWorld());
+	//ViewportClient.SetViewportSize(Window->GetWidth(), Window->GetHeight());
+	//ViewportClient.ResetCamera();
+	GetWorld()->SetActiveCamera(GetWorld()->GetActiveCamera());
 }
 
 void UEditorEngine::CloseScene()
@@ -100,8 +139,8 @@ void UEditorEngine::CloseScene()
 	WorldList.clear();
 	ActiveWorldHandle = FName::None;
 
-	ViewportClient.DestroyCamera();
-	ViewportClient.SetWorld(nullptr);
+	//ViewportClient.DestroyCamera();
+	//ViewportClient.SetWorld(nullptr);
 }
 
 void UEditorEngine::NewScene()
@@ -126,6 +165,6 @@ void UEditorEngine::ClearScene()
 	WorldList.clear();
 	ActiveWorldHandle = FName::None;
 
-	ViewportClient.DestroyCamera();
-	ViewportClient.SetWorld(nullptr);
+	//ViewportClient.DestroyCamera();
+	//ViewportClient.SetWorld(nullptr);
 }

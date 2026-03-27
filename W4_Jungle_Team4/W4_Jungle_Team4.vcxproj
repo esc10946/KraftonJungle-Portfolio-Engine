@@ -153,6 +153,7 @@
       <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
       <LanguageStandard>stdcpp20</LanguageStandard>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -160,8 +161,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Editor\Slate\SlateApplication.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SSplitterH.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SViewport.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SWidget.cpp" />
+    <ClCompile Include="Source\Editor\Viewport\Viewport.cpp" />
+    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshAsset.cpp" />
+    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshBakeIO.cpp" />
+    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshManager.cpp" />
+    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshObject.cpp" />
     <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
-    <ClCompile Include="OrbitCameraComponent.cpp" />
     <ClCompile Include="Source\Editor\EditorEngine.cpp" />
     <ClCompile Include="Source\Editor\EditorRenderPipeline.cpp" />
     <ClCompile Include="Source\Editor\Selection\SelectionManager.cpp" />
@@ -175,16 +184,6 @@
     <ClCompile Include="Source\Editor\UI\EditorViewportOverlayWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\EditorWidget.cpp" />
     <ClCompile Include="Source\Editor\Viewport\EditorViewportClient.cpp" />
-    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshAsset.cpp" />
-    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshBakeIO.cpp" />
-    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshManager.cpp" />
-    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshObject.cpp" />
-    <ClCompile Include="Source\Engine\AssetPipeline\Obj\MtlParser.cpp" />
-    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjImporter.cpp" />
-    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjManager.cpp" />
-    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjParser.cpp" />
-    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjTypes.cpp" />
-    <ClCompile Include="Source\Editor\Viewport\ViewerViewportClient.cpp" />
     <ClCompile Include="Source\Engine\Component\ActorComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\BillboardComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\CameraComponent.cpp" />
@@ -213,6 +212,7 @@
     <ClCompile Include="Source\Engine\Object\Object.cpp" />
     <ClCompile Include="Source\Engine\Render\FontBatcher.cpp" />
     <ClCompile Include="Source\Engine\Render\LineBatcher.cpp" />
+    <ClCompile Include="Source\Engine\Render\Resource\RenderTarget.h" />
     <ClCompile Include="Source\Engine\Render\SubUVBatcher.cpp" />
     <ClCompile Include="Source\Engine\Render\Device\D3DDevice.cpp" />
     <ClCompile Include="Source\Engine\Render\Mesh\MeshManager.cpp" />
@@ -223,6 +223,8 @@
     <ClCompile Include="Source\Engine\Render\Resource\Shader.cpp" />
     <ClCompile Include="Source\Engine\Render\Scene\RenderBus.cpp" />
     <ClCompile Include="Source\Engine\Render\Scene\RenderCollector.cpp" />
+    <ClCompile Include="Source\Engine\Render\ViewportRenderer.cpp" />
+    <ClCompile Include="Source\Engine\Render\ViewportRenderer.h" />
     <ClCompile Include="Source\Engine\Runtime\Engine.cpp" />
     <ClCompile Include="Source\Engine\Runtime\EngineLoop.cpp" />
     <ClCompile Include="Source\Engine\Runtime\Launch.cpp" />
@@ -242,8 +244,14 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Editor\Slate\Reply.h" />
+    <ClInclude Include="Source\Editor\Viewport\Viewport.h" />
+    <ClInclude Include="Source\Editor\Viewport\ViewportClient.h" />
+    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshAsset.h" />
+    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshBakeIO.h" />
+    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshManager.h" />
+    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshObject.h" />
     <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
-    <ClInclude Include="OrbitCameraComponent.h" />
     <ClInclude Include="Source\Editor\EditorEngine.h" />
     <ClInclude Include="Source\Editor\EditorRenderPipeline.h" />
     <ClInclude Include="Source\Editor\Selection\SelectionManager.h" />
@@ -267,7 +275,6 @@
     <ClInclude Include="Source\Editor\Viewport\EditorViewportClient.h" />
     <ClInclude Include="Source\Editor\Viewport\FViewport.h" />
     <ClInclude Include="Source\Editor\Viewport\FViewportClient.h" />
-    <ClInclude Include="Source\Editor\Viewport\ViewerViewportClient.h" />
     <ClInclude Include="Source\Engine\Component\ActorComponent.h" />
     <ClInclude Include="Source\Engine\Component\BillboardComponent.h" />
     <ClInclude Include="Source\Engine\Component\CameraComponent.h" />
@@ -320,7 +327,6 @@
     <ClInclude Include="Source\Engine\Render\Resource\RenderResources.h" />
     <ClInclude Include="Source\Engine\Render\Resource\Shader.h" />
     <ClInclude Include="Source\Engine\Render\Resource\VertexTypes.h" />
-    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshObject.h" />
     <ClInclude Include="Source\Engine\Render\Scene\RenderBus.h" />
     <ClInclude Include="Source\Engine\Render\Scene\RenderCollector.h" />
     <ClInclude Include="Source\Engine\Render\Scene\RenderCollectorContext.h" />
@@ -371,6 +377,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="Shaders\ShaderLine.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Shaders\ShaderQuad.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>

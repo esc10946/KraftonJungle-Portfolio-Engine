@@ -88,7 +88,8 @@ void FEditorControlWidget::Render(float DeltaTime)
 	SEPARATOR();
 
 	// Camera
-	UCameraComponent* Camera = EditorEngine->GetCamera();
+	UCameraComponent* Camera = EditorEngine->GetWorld()->GetActiveCamera();
+	//UCameraComponent* Camera = EditorEngine->GetCamera();
 	bool bIsOrtho = Camera->IsOrthogonal();
 	if (ImGui::Checkbox("Orthographic", &bIsOrtho))
 	{

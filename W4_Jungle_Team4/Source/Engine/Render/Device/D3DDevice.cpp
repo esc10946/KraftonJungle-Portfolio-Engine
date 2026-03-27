@@ -30,7 +30,6 @@ void FD3DDevice::BeginFrame()
 {
 	DeviceContext->ClearRenderTargetView(FrameBufferRTV, ClearColor);
 	DeviceContext->ClearDepthStencilView(DepthStencilView, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	DeviceContext->RSSetViewports(1, &ViewportInfo);
 
@@ -39,6 +38,21 @@ void FD3DDevice::BeginFrame()
 	SetBlendState(EBlendState::Opaque);
 
 	DeviceContext->OMSetRenderTargets(1, &FrameBufferRTV, DepthStencilView);
+}
+
+void FD3DDevice::BeginFrame(FRenderTarget& RenderTarget)
+{
+	DeviceContext->ClearRenderTargetView(RenderTarget.RTV, ClearColor);
+	DeviceContext->ClearDepthStencilView(RenderTarget.DSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
+	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	DeviceContext->RSSetViewports(1, &ViewportInfo);
+
+	SetRasterizerState(ERasterizerState::SolidBackCull);
+	SetDepthStencilState(EDepthStencilState::Default);
+	SetBlendState(EBlendState::Opaque);
+
+	DeviceContext->OMSetRenderTargets(1, &RenderTarget.RTV, RenderTarget.DSV);
 }
 
 
@@ -459,4 +473,45 @@ void FD3DDevice::ReleaseBlendState()
 {
 	SAFE_RELEASE(BlendStateAlpha);
 	SAFE_RELEASE(BlendStateNoColorWrite);
+}
+
+FRenderTarget FD3DDevice::CreateRenderTarget(uint32 Width, uint32 Height) const
+{
+	FRenderTarget RenderTarget;
+
+	D3D11_TEXTURE2D_DESC textureDesc = {};
+	textureDesc.Width = Width;
+	textureDesc.Height = Height;
+	textureDesc.MipLevels = 1;
+	textureDesc.ArraySize = 1;
+	textureDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+	textureDesc.Usage = D3D11_USAGE_DEFAULT;
+	textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+	textureDesc.SampleDesc.Count = 1;
+	textureDesc.SampleDesc.Quality = 0;
+
+	Device->CreateTexture2D(&textureDesc, nullptr, &RenderTarget.Texture);
+
+	CD3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+	rtvDesc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+	rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+	Device->CreateRenderTargetView(RenderTarget.Texture, &rtvDesc, &RenderTarget.RTV);
+
+	Device->CreateShaderResourceView(RenderTarget.Texture, nullptr, &RenderTarget.SRV);
+
+	D3D11_TEXTURE2D_DESC depthStencilDesc = {};
+	depthStencilDesc.Width = Width;
+	depthStencilDesc.Height = Height;
+	depthStencilDesc.MipLevels = 1;
+	depthStencilDesc.ArraySize = 1;
+	depthStencilDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	depthStencilDesc.SampleDesc.Count = 1;
+	depthStencilDesc.Usage = D3D11_USAGE_DEFAULT;
+	depthStencilDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+		
+	Device->CreateTexture2D(&depthStencilDesc, nullptr, &RenderTarget.DepthStencilTexture);
+
+	Device->CreateDepthStencilView(RenderTarget.DepthStencilTexture, nullptr, &RenderTarget.DSV);
+
+	return RenderTarget;
 }

@@ -12,6 +12,7 @@
 #include "Render/LineBatcher.h"
 #include "Render/FontBatcher.h"
 #include "Render/SubUVBatcher.h"
+#include "Render/ViewportRenderer.h"
 
 #include <cstddef>
 #include <functional>
@@ -45,11 +46,15 @@ public:
 
 	void PrepareBatchers(const FRenderBus& InRenderBus);
 	void BeginFrame();
+	void BeginFrame(FRenderTarget& RenderTarget);
 	void Render(const FRenderBus& InRenderBus);
+	void EndViewportFrame(FRenderTarget& RenderTarget);
 	void EndFrame();
 
 	FD3DDevice& GetFD3DDevice() { return Device; }
 	FRenderResources& GetResources() { return Resources; }
+
+	FViewportRenderer ViewportRenderer;
 
 private:
 	void InitializePassRenderStates();

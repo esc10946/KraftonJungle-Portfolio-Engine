@@ -1,11 +1,13 @@
 ﻿#pragma once
 
+#include "Viewport/ViewportClient.h"
+#include "Viewport/Viewport.h"
+
 #include "Render/Common/RenderTypes.h"
 #include "Viewport/CursorOverlayState.h"
-#include "Viewport/FViewportClient.h"
-#include <string>
 #include "Core/RayTypes.h"
 #include "Core/CollisionTypes.h"
+
 class UWorld;
 class UCameraComponent;
 class UGizmoComponent;
@@ -16,13 +18,15 @@ class FSelectionManager;
 class FEditorViewportClient : public FViewportClient
 {
 public:
-	void Initialize(FWindowsWindow* InWindow);
+	void Tick(float DeltaTime) override;
+	void OnViewportResized(uint32 NewWidth, uint32 NewHeight) override;
+
+	void Initialize(FViewport* InViewport);
 	void SetWorld(UWorld* InWorld) { World = InWorld; }
 	void SetGizmo(UGizmoComponent* InGizmo) { Gizmo = InGizmo; }
 	void SetSettings(const FEditorSettings* InSettings) { Settings = InSettings; }
 	void SetSelectionManager(FSelectionManager* InSelectionManager) { SelectionManager = InSelectionManager; }
 	UGizmoComponent* GetGizmo() { return Gizmo; }
-	void SetViewportSize(float InWidth, float InHeight);
 
 	// Camera lifecycle
 	void CreateCamera();
@@ -30,11 +34,9 @@ public:
 	void ResetCamera();
 	UCameraComponent* GetCamera() const { return Camera; }
 
-	void Tick(float DeltaTime) override;
-	void Draw(FViewport* Viewport, struct ID3D11DeviceContext* DeviceContext) override;
-	void OnViewportResized(FViewport* Viewport, uint32 NewWidth, uint32 NewHeight) override;
-
 	const FCursorOverlayState& GetCursorOverlayState() const { return CursorOverlayState; }
+
+	POINT ScreenToViewportPoint(POINT ScreenPoint) const;
 
 private:
 	void TickInput(float DeltaTime);
@@ -44,15 +46,17 @@ private:
 	void HandleDragStart(const FRay& Ray);
 
 private:
-	FWindowsWindow* Window = nullptr;
+	FViewport* Viewport = nullptr;
+
 	UWorld* World = nullptr;
 	UCameraComponent* Camera = nullptr;
 	UGizmoComponent* Gizmo = nullptr;
 	const FEditorSettings* Settings = nullptr;
+
 	FSelectionManager* SelectionManager = nullptr;
 
-	float WindowWidth = 1920.f;
-	float WindowHeight = 1080.f;
+	FVector2 ViewportPos;
+	FVector2 ViewportSize;
 
 	bool bIsCursorVisible = true;
 

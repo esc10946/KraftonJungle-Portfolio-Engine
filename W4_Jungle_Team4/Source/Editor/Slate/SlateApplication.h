@@ -10,15 +10,15 @@ class FSlateApplication : public TSingleton<FSlateApplication>
 
 public:
 	void Tick(float DeltaTime);
-	void Draw();
 
 	SWindow* AddWindow(SWindow* InWindow);
 	void DestroyWindow(SWindow* InWindow);
+	TArray<SWindow*>& GetWindows() { return Windows; }
 
 	SWidget* GetMouseCaptor() const { return MouseCaptor; }
 
 private:
-	SWidget* FindWidgetAt(FVector2 ScreenPosition) const;
+	SWidget* FindWidgetAt(FVector2 ScreenPoint) const;
 
 	void ProcessInput();
 

@@ -12,19 +12,7 @@ public:
 	void SetTitle(const FString& InTitle) { Title = InTitle; }
 	const FString& GetTitle() const { return Title; }
 
-	void SetContent(SWidget* InContent) { Content = InContent; }
-	SWidget* GetContent() const { return Content; }
-
-	virtual void Tick(float DeltaTime) override
-	{
-		if (Content)
-		{
-			Content->Tick(DeltaTime);
-		}
-	}
-
 private:
 	FString Title;
-	SWidget* Content = nullptr;
 	bool bIsActive;
 };
