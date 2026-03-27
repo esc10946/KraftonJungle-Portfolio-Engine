@@ -25,6 +25,18 @@
     <Filter Include="Source\Engine">
       <UniqueIdentifier>{a9f32ff9-0f3f-5561-33a0-eec9868a312b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Engine\Asset">
+      <UniqueIdentifier>{12c43249-e602-45b6-9f22-c6f96295544d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Asset\StaticMesh">
+      <UniqueIdentifier>{8f0dd7c6-7ac6-4696-ab11-bd5e5d376f0e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\AssetPipeline">
+      <UniqueIdentifier>{1fbbfef9-d465-4db8-ae3e-64e09d6d3c88}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\AssetPipeline\Obj">
+      <UniqueIdentifier>{ccf8f885-9c9f-4f17-8e93-70380e14d48b}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source\Engine\Component">
       <UniqueIdentifier>{519ab669-7945-a465-bd9e-a1e21e8a3a55}</UniqueIdentifier>
     </Filter>
@@ -66,6 +78,9 @@
     </Filter>
     <Filter Include="Source\Engine\Serialization">
       <UniqueIdentifier>{fc5db35e-a2b9-1455-c122-0ac0e5439e1d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Serialization\Binary">
+      <UniqueIdentifier>{36add67e-7f2f-4b3e-8fd5-d2f4d77be217}</UniqueIdentifier>
     </Filter>
     <Filter Include="ThirdParty">
       <UniqueIdentifier>{39744999-2e52-830f-8afc-4883e16f7fcf}</UniqueIdentifier>
@@ -142,6 +157,30 @@
     </ClCompile>
     <ClCompile Include="Source\Editor\Viewport\EditorViewportClient.cpp">
       <Filter>Source\Editor\Viewport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshAsset.cpp">
+      <Filter>Source\Engine\Asset\StaticMesh</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshBakeIO.cpp">
+      <Filter>Source\Engine\Asset\StaticMesh</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshManager.cpp">
+      <Filter>Source\Engine\Asset\StaticMesh</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\AssetPipeline\Obj\MtlParser.cpp">
+      <Filter>Source\Engine\AssetPipeline\Obj</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjImporter.cpp">
+      <Filter>Source\Engine\AssetPipeline\Obj</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjManager.cpp">
+      <Filter>Source\Engine\AssetPipeline\Obj</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjParser.cpp">
+      <Filter>Source\Engine\AssetPipeline\Obj</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjTypes.cpp">
+      <Filter>Source\Engine\AssetPipeline\Obj</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Component\ActorComponent.cpp">
       <Filter>Source\Engine\Component</Filter>
@@ -272,6 +311,12 @@
     <ClCompile Include="Source\Engine\Runtime\WindowsWindow.cpp">
       <Filter>Source\Engine\Runtime</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Serialization\Binary\WindowsBinReader.cpp">
+      <Filter>Source\Engine\Serialization\Binary</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Serialization\Binary\WindowsBinWriter.cpp">
+      <Filter>Source\Engine\Serialization\Binary</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\Serialization\SceneSaveManager.cpp">
       <Filter>Source\Engine\Serialization</Filter>
     </ClCompile>
@@ -340,6 +385,30 @@
     </ClInclude>
     <ClInclude Include="Source\Editor\Viewport\EditorViewportClient.h">
       <Filter>Source\Editor\Viewport</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshAsset.h">
+      <Filter>Source\Engine\Asset\StaticMesh</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshBakeIO.h">
+      <Filter>Source\Engine\Asset\StaticMesh</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshManager.h">
+      <Filter>Source\Engine\Asset\StaticMesh</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\AssetPipeline\Obj\MtlParser.h">
+      <Filter>Source\Engine\AssetPipeline\Obj</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjImporter.h">
+      <Filter>Source\Engine\AssetPipeline\Obj</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjManager.h">
+      <Filter>Source\Engine\AssetPipeline\Obj</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjParser.h">
+      <Filter>Source\Engine\AssetPipeline\Obj</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjTypes.h">
+      <Filter>Source\Engine\AssetPipeline\Obj</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\ActorComponent.h">
       <Filter>Source\Engine\Component</Filter>
@@ -523,6 +592,15 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Runtime\WindowsWindow.h">
       <Filter>Source\Engine\Runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Serialization\Binary\Archive.h">
+      <Filter>Source\Engine\Serialization\Binary</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Serialization\Binary\WindowsBinReader.h">
+      <Filter>Source\Engine\Serialization\Binary</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Serialization\Binary\WindowsBinWriter.h">
+      <Filter>Source\Engine\Serialization\Binary</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Serialization\SceneSaveManager.h">
       <Filter>Source\Engine\Serialization</Filter>
