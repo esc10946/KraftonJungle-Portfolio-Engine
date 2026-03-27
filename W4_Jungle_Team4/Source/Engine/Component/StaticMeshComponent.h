@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "MeshComponent.h"
 #include "Render/Resource/VertexTypes.h"
@@ -12,7 +12,7 @@ class UStaticMeshComponent : public UMeshComponent
 public:
 	DECLARE_CLASS(UStaticMeshComponent, UMeshComponent)
 
-	UStaticMeshComponent() = default;
+	UStaticMeshComponent();
 	~UStaticMeshComponent() override = default;
 
 	void SetStaticMesh(UStaticMesh* InMesh);

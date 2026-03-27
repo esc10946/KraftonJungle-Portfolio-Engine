@@ -14,6 +14,7 @@
 
 #include "Math/Matrix.h"
 #include "Math/Vector.h"
+#include "Asset/StaticMesh/StaticMeshAsset.h"
 
 enum class ERenderCommandType
 {
@@ -26,6 +27,7 @@ enum class ERenderCommandType
 	Grid,		// Grid 패스 — LineBatcher 경유
 	Font,		// TextRenderComponent — FontBatcher 경유
 	SubUV,		// SubUVComponent     — SubUVBatcher 경유
+	StaticMesh,		// todo - StaticMeshBatcher를 만들것
 };
 
 //PerObject
@@ -100,6 +102,11 @@ struct FSubUVConstants
 	float Height = 1.0f;
 };
 
+struct FStaticMeshConstants
+{
+	const FStaticMesh* Mesh = nullptr;
+};
+
 struct FRenderCommand
 {
 	//	VB, IB 모두 담고 있는 MB
@@ -115,6 +122,7 @@ struct FRenderCommand
 		FGridConstants Grid;
 		FFontConstants Font;
 		FSubUVConstants SubUV;
+		FStaticMeshConstants StaticMesh;
 	} Constants;
 
 	EDepthStencilState DepthStencilState = static_cast<EDepthStencilState>(-1);
