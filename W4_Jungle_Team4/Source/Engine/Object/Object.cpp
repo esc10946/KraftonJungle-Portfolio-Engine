@@ -25,3 +25,13 @@ UObject::~UObject()
 }
 
 const FTypeInfo UObject::s_TypeInfo = { "UObject", nullptr, sizeof(UObject) };
+
+bool UObject::IsValidLowLevel() const
+{
+	if (InternalIndex >= GUObjectArray.size())
+	{
+		return false;
+	}
+
+	return GUObjectArray[InternalIndex] == this;
+}

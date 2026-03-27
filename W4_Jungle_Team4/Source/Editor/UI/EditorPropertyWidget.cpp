@@ -9,6 +9,7 @@
 #include "Core/PropertyTypes.h"
 #include "Core/ResourceManager.h"
 #include "Object/FName.h"
+#include "Object/Object.h"
 
 #define SEPARATOR(); ImGui::Spacing(); ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing(); ImGui::Spacing();
 
@@ -373,6 +374,66 @@ void FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 		{
 			*Val = Buf;
 			bChanged = true;
+		}
+		break;
+	}
+	case EPropertyType::Object:
+	{
+		UObject** Value = static_cast<UObject**>(Prop.ValuePtr);
+		UObject* CurrentObject = Value ? *Value : nullptr;
+		FString CurrentLabel = CurrentObject ? CurrentObject->GetFName().ToString() : FString("None");
+		if (CurrentLabel.empty() && CurrentObject)
+		{
+			CurrentLabel = CurrentObject->GetTypeInfo()->name;
+		}
+
+		if (ImGui::BeginCombo(Prop.Name, CurrentLabel.c_str()))
+		{
+			const bool bNoneSelected = (CurrentObject == nullptr);
+			if (ImGui::Selectable("None", bNoneSelected))
+			{
+				if (Value)
+				{
+					*Value = nullptr;
+					bChanged = true;
+				}
+			}
+			if (bNoneSelected)
+			{
+				ImGui::SetItemDefaultFocus();
+			}
+
+			for (FObjectIterator It(Prop.ObjectClass); It; ++It)
+			{
+				UObject* Candidate = *It;
+				if (!Candidate)
+				{
+					continue;
+				}
+
+				FString CandidateLabel = Candidate->GetFName().ToString();
+				if (CandidateLabel.empty())
+				{
+					CandidateLabel = Candidate->GetTypeInfo()->name;
+				}
+
+				const bool bSelected = (Candidate == CurrentObject);
+				if (ImGui::Selectable(CandidateLabel.c_str(), bSelected))
+				{
+					if (Value)
+					{
+						*Value = Candidate;
+						bChanged = true;
+					}
+				}
+
+				if (bSelected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+
+			ImGui::EndCombo();
 		}
 		break;
 	}

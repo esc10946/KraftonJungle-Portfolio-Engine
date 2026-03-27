@@ -1,8 +1,8 @@
 ﻿#pragma once
 
 #include "Render/Common/RenderTypes.h"
-
 #include "Viewport/CursorOverlayState.h"
+#include "Viewport/FViewportClient.h"
 #include <string>
 #include "Core/RayTypes.h"
 #include "Core/CollisionTypes.h"
@@ -13,7 +13,7 @@ class FEditorSettings;
 class FWindowsWindow;
 class FSelectionManager;
 
-class FEditorViewportClient
+class FEditorViewportClient : public FViewportClient
 {
 public:
 	void Initialize(FWindowsWindow* InWindow);
@@ -30,7 +30,9 @@ public:
 	void ResetCamera();
 	UCameraComponent* GetCamera() const { return Camera; }
 
-	void Tick(float DeltaTime);
+	void Tick(float DeltaTime) override;
+	void Draw(FViewport* Viewport, struct ID3D11DeviceContext* DeviceContext) override;
+	void OnViewportResized(FViewport* Viewport, uint32 NewWidth, uint32 NewHeight) override;
 
 	const FCursorOverlayState& GetCursorOverlayState() const { return CursorOverlayState; }
 
