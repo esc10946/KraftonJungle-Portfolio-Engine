@@ -1,4 +1,4 @@
-#include "Asset/StaticMesh/StaticMeshObject.h"
+﻿#include "Asset/StaticMesh/StaticMeshObject.h"
 
 #include "Asset/StaticMesh/StaticMeshAsset.h"
 
@@ -6,6 +6,14 @@
 
 DEFINE_CLASS(UStaticMesh, UObject)
 REGISTER_FACTORY(UStaticMesh)
+
+UStaticMesh::~UStaticMesh()
+{  
+	if (MeshBuffer)
+    {
+        MeshBuffer->Release();
+    }
+}
 
 void UStaticMesh::SetStaticMeshAsset(FStaticMeshAsset* InStaticMeshAsset)
 {
@@ -27,4 +35,19 @@ FString UStaticMesh::GetDisplayName() const
 	}
 
 	return std::filesystem::path(AssetPath).filename().string();
+}
+
+FMeshBuffer* UStaticMesh::GetOrCreateMeshBuffer(ID3D11Device* Device)
+{
+	StaticMeshAsset->BuildRenderMeshData(RenderMeshData);
+
+	MeshBuffer = std::make_unique<FMeshBuffer>();
+
+	MeshBuffer->Create(Device, RenderMeshData);
+	
+	return MeshBuffer.get();
+}
+
+void UStaticMesh::ReleaseMeshBuffer()
+{
 }

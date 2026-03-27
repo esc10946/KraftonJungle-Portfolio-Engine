@@ -14,8 +14,8 @@ REGISTER_FACTORY(UStaticMeshComponent)
 UStaticMeshComponent::UStaticMeshComponent()
 {
 	//todo: Fname얘기하기
-	//Default로 Cube설정
-	FString DefaultObjPath = "Data/Shapes/Cube.obj";
+	// 외부 파일 없이도 테스트할 수 있는 임시 생성 메시를 기본값으로 사용한다.
+	FString DefaultObjPath = FStaticMeshManager::Get().GetTestStaticMeshPath();
 	UStaticMesh* NewMesh = FStaticMeshManager::Get().LoadStaticMeshObject(DefaultObjPath);
 	SetStaticMesh(NewMesh);
 }

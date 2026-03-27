@@ -191,7 +191,10 @@ void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, cons
 		FRenderCommand Cmd = {};
 		Cmd.PerObjectConstants = FPerObjectConstants{ Primitive->GetWorldMatrix(), FColor::White().ToVector4() };
 		Cmd.Type = ERenderCommandType::StaticMesh;
-
+		
+		Cmd.MeshBuffer = &MeshBufferManager.GetMeshBuffer(EPrimitiveType::EPT_Cube);
+		Cmd.DepthStencilState = EDepthStencilState::Default;
+		RenderBus.AddCommand(ERenderPass::Mesh, Cmd);
 		break;
 	}
 	case EPrimitiveType::EPT_SubUV:

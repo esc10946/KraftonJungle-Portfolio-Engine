@@ -1,12 +1,24 @@
-#include "Asset/StaticMesh/StaticMeshManager.h"
+﻿#include "Asset/StaticMesh/StaticMeshManager.h"
 
 #include "Asset/StaticMesh/StaticMeshAsset.h"
 #include "Asset/StaticMesh/StaticMeshBakeIO.h"
 #include "Asset/StaticMesh/StaticMeshObject.h"
-#include "AssetPipeline/Obj/ObjImporter.h"
 #include "Object/Object.h"
 
 #include <filesystem>
+
+namespace
+{
+	FStaticMeshVertex MakeTestVertex(const FVector& Position, const FVector4& Color)
+	{
+		FStaticMeshVertex Vertex;
+		Vertex.Position = Position;
+		Vertex.Normal = FVector(Position.X, Position.Y, 0.5f).Normalized();
+		Vertex.Color = Color;
+		Vertex.TexCoord = FVector2(0.0f, 0.0f);
+		return Vertex;
+	}
+}
 
 FStaticMeshAsset* FStaticMeshManager::LoadStaticMeshAsset(const FString& InSourcePath)
 {
@@ -25,15 +37,15 @@ FStaticMeshAsset* FStaticMeshManager::LoadStaticMeshAsset(const FString& InSourc
 	Asset->SourcePath = NormalizedPath;
 	Asset->BakePath = FStaticMeshBakeIO::MakeBakePath(NormalizedPath);
 
-	bool bLoaded = false;
-	if (FStaticMeshBakeIO::IsBakeUpToDate(NormalizedPath, Asset->BakePath))
+	bool bLoaded = BuildTestStaticMeshAsset(NormalizedPath, *Asset);
+	if (!bLoaded && FStaticMeshBakeIO::IsBakeUpToDate(NormalizedPath, Asset->BakePath))
 	{
 		bLoaded = FStaticMeshBakeIO::LoadFromFile(Asset->BakePath, *Asset);
 	}
 
 	if (!bLoaded)
 	{
-		bLoaded = FObjImporter::ImportFromFile(NormalizedPath, *Asset);
+		bLoaded;// = FObjImporter::ImportFromFile(NormalizedPath, *Asset);
 		if (bLoaded)
 		{
 			Asset->BakePath = FStaticMeshBakeIO::MakeBakePath(NormalizedPath);
@@ -72,6 +84,10 @@ UStaticMesh* FStaticMeshManager::LoadStaticMeshObject(const FString& InSourcePat
 
 	UStaticMesh* MeshObject = ConstructObject<UStaticMesh>();
 	MeshObject->SetStaticMeshAsset(Asset);
+	if (NormalizedPath == GetTestStaticMeshPath())
+	{
+		MeshObject->SetFName(FName("SM_TestPyramid"));
+	}
 	StaticMeshObjectMap[NormalizedPath] = MeshObject;
 	return MeshObject;
 }
@@ -114,6 +130,11 @@ void FStaticMeshManager::Preload(const TArray<FString>& InSourcePaths)
 	}
 }
 
+FString FStaticMeshManager::GetTestStaticMeshPath() const
+{
+	return NormalizeSourcePath("Generated/TestPyramid.obj");
+}
+
 void FStaticMeshManager::Clear()
 {
 	for (auto& Pair : StaticMeshAssetMap)
@@ -135,4 +156,40 @@ FString FStaticMeshManager::NormalizeSourcePath(const FString& InSourcePath) con
 	std::filesystem::path Path(InSourcePath);
 	Path = Path.is_absolute() ? Path.lexically_normal() : std::filesystem::absolute(Path).lexically_normal();
 	return Path.generic_string();
+}
+
+bool FStaticMeshManager::BuildTestStaticMeshAsset(const FString& InSourcePath, FStaticMeshAsset& OutAsset) const
+{
+	if (InSourcePath != GetTestStaticMeshPath())
+	{
+		return false;
+	}
+
+	OutAsset.Reset();
+	OutAsset.SourcePath = InSourcePath;
+
+	OutAsset.Vertices = {
+		MakeTestVertex(FVector(-0.5f, -0.5f, 0.0f), FVector4(1.0f, 0.2f, 0.2f, 1.0f)),
+		MakeTestVertex(FVector( 0.5f, -0.5f, 0.0f), FVector4(0.2f, 1.0f, 0.2f, 1.0f)),
+		MakeTestVertex(FVector( 0.5f,  0.5f, 0.0f), FVector4(0.2f, 0.4f, 1.0f, 1.0f)),
+		MakeTestVertex(FVector(-0.5f,  0.5f, 0.0f), FVector4(1.0f, 0.9f, 0.2f, 1.0f)),
+		MakeTestVertex(FVector( 0.0f,  0.0f, 0.9f), FVector4(1.0f, 1.0f, 1.0f, 1.0f)),
+	};
+
+	OutAsset.Indices = {
+		0, 1, 4,
+		1, 2, 4,
+		2, 3, 4,
+		3, 0, 4,
+		0, 2, 1,
+		0, 3, 2,
+	};
+
+	FStaticMeshSection Section;
+	Section.FirstIndex = 0;
+	Section.IndexCount = static_cast<uint32>(OutAsset.Indices.size());
+	Section.MaterialName = "Generated/Test";
+	OutAsset.Sections.push_back(Section);
+	OutAsset.UpdateBounds();
+	return true;
 }

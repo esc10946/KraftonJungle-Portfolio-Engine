@@ -179,11 +179,6 @@
     <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshBakeIO.cpp" />
     <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshManager.cpp" />
     <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshObject.cpp" />
-    <ClCompile Include="Source\Engine\AssetPipeline\Obj\MtlParser.cpp" />
-    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjImporter.cpp" />
-    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjManager.cpp" />
-    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjParser.cpp" />
-    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjTypes.cpp" />
     <ClCompile Include="Source\Editor\Viewport\ViewerViewportClient.cpp" />
     <ClCompile Include="Source\Engine\Component\ActorComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\BillboardComponent.cpp" />
@@ -242,6 +237,9 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshAsset.h" />
+    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshBakeIO.h" />
+    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshManager.h" />
     <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
     <ClInclude Include="OrbitCameraComponent.h" />
     <ClInclude Include="Source\Editor\EditorEngine.h" />

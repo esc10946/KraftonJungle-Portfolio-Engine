@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Core/CoreTypes.h"
 #include "Core/Singleton.h"
@@ -38,6 +38,7 @@ public:
 	// 여러 OBJ 경로를 미리 준비합니다.
 	// 에디터 초기 자산 preload, 데모 메시 사전 준비 등에 사용 가능합니다.
 	void Preload(const TArray<FString>& InSourcePaths);
+	FString GetTestStaticMeshPath() const;
 
 	// manager가 소유한 cache를 비웁니다.
 	// 실제 해제 방식은 UObject 수명, bake 재사용 정책과 함께 정해야 하므로
@@ -50,6 +51,7 @@ private:
 	// 캐시 키로 쓰기 전에 경로 문자열을 정규화합니다.
 	// 상대/절대 경로, 슬래시 표기 차이로 같은 파일이 중복 로드되는 일을 줄이는 역할입니다.
 	FString NormalizeSourcePath(const FString& InSourcePath) const;
+	bool BuildTestStaticMeshAsset(const FString& InSourcePath, FStaticMeshAsset& OutAsset) const;
 
 private:
 	// cooked asset cache입니다.

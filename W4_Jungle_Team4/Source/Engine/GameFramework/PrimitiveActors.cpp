@@ -18,6 +18,9 @@ REGISTER_FACTORY(APlaneActor)
 DEFINE_CLASS(AAttachTestActor, AActor)
 REGISTER_FACTORY(AAttachTestActor)
 
+DEFINE_CLASS(AStaticMeshActor, AActor)
+REGISTER_FACTORY(AStaticMeshActor)
+
 void ACubeActor::InitDefaultComponents()
 {
 	auto* Cube = AddComponent<UCubeComponent>();
