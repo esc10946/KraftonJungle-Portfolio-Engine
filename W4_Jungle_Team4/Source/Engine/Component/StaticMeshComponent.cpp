@@ -1,7 +1,8 @@
-#include "StaticMeshComponent.h"
+﻿#include "StaticMeshComponent.h"
 
 #include "Asset/StaticMesh/StaticMeshAsset.h"
 #include "Asset/StaticMesh/StaticMeshObject.h"
+#include "Asset/StaticMesh/StaticMeshManager.h"
 #include "Math/Vector.h"
 
 #include <algorithm>
@@ -9,6 +10,15 @@
 
 DEFINE_CLASS(UStaticMeshComponent, UMeshComponent)
 REGISTER_FACTORY(UStaticMeshComponent)
+
+UStaticMeshComponent::UStaticMeshComponent()
+{
+	//todo: Fname얘기하기
+	//Default로 Cube설정
+	FString DefaultObjPath = "Data/Shapes/Cube.obj";
+	UStaticMesh* NewMesh = FStaticMeshManager::Get().LoadStaticMeshObject(DefaultObjPath);
+	SetStaticMesh(NewMesh);
+}
 
 void UStaticMeshComponent::SetStaticMesh(UStaticMesh* InMesh)
 {
@@ -47,6 +57,11 @@ UMaterial* UStaticMeshComponent::GetMaterial(int32 SlotIndex) const
 	{
 		return nullptr;
 	}
+
+	if (StaticMesh)
+    {
+        //return StaticMesh->GetStaticMeshAsset()->Sections[SlotIndex];
+    }
 
 	return OverrideMaterials[SlotIndex];
 }
