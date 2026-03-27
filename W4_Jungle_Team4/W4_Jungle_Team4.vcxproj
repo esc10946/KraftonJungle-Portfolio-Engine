@@ -159,7 +159,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Engine\AssetPipeline\Obj\MtlParser.cpp" />
     <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjImporter.cpp" />
+    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshBakeIO.cpp" />
     <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
     <ClCompile Include="OrbitCameraComponent.cpp" />
     <ClCompile Include="Source\Editor\EditorEngine.cpp" />
@@ -234,9 +236,11 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\AssetPipeline\Obj\MtlParser.h" />
     <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjImporter.h" />
     <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjParser.h" />
     <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjTypes.h" />
+    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshBakeIO.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshManager.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshAsset.h" />
     <ClInclude Include="Source\Engine\Component\MeshComponent.h" />

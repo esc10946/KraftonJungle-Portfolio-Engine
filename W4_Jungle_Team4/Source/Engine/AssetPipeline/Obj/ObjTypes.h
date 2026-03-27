@@ -14,16 +14,16 @@ struct FObjIndexTriplet
 // OBJ의 f 한 줄.
 struct FObjFace
 {
-	TArray<FObjIndexTriplet> Vertices;
-	FString MaterialName;
+	TArray<FObjIndexTriplet> Vertices; // face는 삼각형, 사각형, ..일 수 있음 -> 꼭짓점 배열로 관리 
+	FString MaterialName; // face 하나가 어떤 material을 쓸지
 };
 
 // .mtl에서 읽는 재질 1개 정보
 struct FObjMaterialInfo
 {
 	FString Name;
-	FVector DiffuseColor = FVector(1.0f, 1.0f, 1.0f);
-	FString DiffuseTexturePath;
+	FVector DiffuseColor = FVector(1.0f, 1.0f, 1.0f); // Kd r g b
+	FString DiffuseTexturePath; // map_Kd ###.png
 };
 
 // .obj 전체 읽은 raw 결과물.
@@ -35,8 +35,9 @@ struct FObjInfo
 	TArray<FVector> Positions; // v
 	TArray<FVector2> TexCoords; // vt
 	TArray<FVector> Normals; // vn
-	TArray<FObjFace> Faces;
+	TArray<FObjFace> Faces; // f
 
+	// key = material name
 	TMap<FString, FObjMaterialInfo> Materials;
 
 	void Reset()
@@ -48,6 +49,7 @@ struct FObjInfo
 		TexCoords.clear();
 		Normals.clear();
 		Faces.clear();
+		Materials.clear();
 	}
 };
 

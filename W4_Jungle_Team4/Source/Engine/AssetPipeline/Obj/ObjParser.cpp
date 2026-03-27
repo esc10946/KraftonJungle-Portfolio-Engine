@@ -37,12 +37,19 @@ bool FObjParser::ParseFile(const FString& InObjPath, FObjInfo& OutObjInfo)
 	// 어떤 파일에서 읽었는지 기록
 	OutObjInfo.SourcePath = InObjPath;
 
+	// usemtl은 '현재 상태'를 기억해두고, 이후 facae에 붙여주는 방식
+	FString CurrentMaterialName;
+
 	FString Line;
 	while (std::getline(File, Line))
 	{
+		if (!Line.empty() && Line.back() == '\r')
+		{
+			Line.pop_back();
+		}
 		// 각 줄을 개별 파싱 함수에 넘기기
 		// 파싱 실패 발생 -> 전체 실패 처리
-		if (!ParseLine(Line, OutObjInfo))
+		if (!ParseLine(Line, CurrentMaterialName, OutObjInfo))
 		{
 			return false;
 		}
@@ -50,7 +57,7 @@ bool FObjParser::ParseFile(const FString& InObjPath, FObjInfo& OutObjInfo)
 	return true;
 }
 
-bool FObjParser::ParseLine(const FString& InLine, FObjInfo& InOutObjInfo)
+bool FObjParser::ParseLine(const FString& InLine, FString& InOutCurrentMaterialName, FObjInfo& InOutObjInfo)
 {
 	if (InLine.empty()) // 빈 줄 무시
 	{
@@ -80,6 +87,18 @@ bool FObjParser::ParseLine(const FString& InLine, FObjInfo& InOutObjInfo)
 	if (Prefix == "vn") // "vn" 처리
 	{
 		return ParseNormal(Tokens, InOutObjInfo);
+	}
+	if (Prefix == "f")
+	{
+		return ParseFace(Tokens, InOutCurrentMaterialName, InOutObjInfo);
+	}
+	if (Prefix == "usemtl")
+	{
+		return ParseUseMaterial(Tokens, InOutCurrentMaterialName);
+	}
+	if (Prefix == "mtllib")
+	{
+		return ParseMaterialLibrary(Tokens, InOutObjInfo);
 	}
 
 	return true;
@@ -120,5 +139,94 @@ bool FObjParser::ParseNormal(const TArray<FString>& InTokens, FObjInfo& InOutObj
 	const float Z = std::stof(InTokens[3]);
 
 	InOutObjInfo.Normals.emplace_back(X, Y, Z);
+	return true;
+}
+
+bool FObjParser::ParseFace(const TArray<FString>& InTokens, const FString& InCurrentMaterialName, FObjInfo& InOutObjInfo)
+{
+	if (InTokens.size() < 4) return false;
+
+	FObjFace Face;
+	Face.MaterialName = InCurrentMaterialName;
+
+	// f 시작이므로 1부터 시작
+	for (size_t Index = 1; Index < InTokens.size(); ++Index)
+	{
+		if (!ParseIndexTriplet(InTokens[Index], Face))
+		{
+			return false;
+		}
+	}
+
+	InOutObjInfo.Faces.push_back(Face);
+	return true;
+}
+
+bool FObjParser::ParseIndexTriplet(const FString& InToken, FObjFace& InOutFace)
+{
+	FObjIndexTriplet Triplet;
+
+	// 3/7/2 
+	// 3//2
+	// 3/7 -> "/" 기준으로 최대 3개 읽기
+	size_t Start = 0;
+	size_t SlashIndex = InToken.find('/');
+	int ComponentIndex = 0; // 0 = position, 1 = uv, 2 = normal
+
+	while (Start != FString::npos && ComponentIndex < 3)
+	{
+		// ex) 3/7/2
+		// start 0, slashindex 1, part 3
+		// start 2, slashindex 3, part 7
+		// start 4, slashindex npos, part 2
+		const FString Part = (SlashIndex == FString::npos)
+			? InToken.substr(Start)
+			: InToken.substr(Start, SlashIndex - Start);
+
+		if (!Part.empty())
+		{
+			// (-1) : OBJ의 1 -> 배열의 0
+			const int32 Value = std::stoi(Part) - 1;
+
+			if (ComponentIndex == 0)
+			{
+				Triplet.PositionIndex = Value;
+			}
+			else if (ComponentIndex == 1)
+			{
+				Triplet.TexCoordIndex = Value;
+			}
+			else if (ComponentIndex == 2)
+			{
+				Triplet.NormalIndex = Value;
+			}
+		}
+
+		if (SlashIndex == FString::npos) break;
+	
+		Start = SlashIndex + 1;
+		SlashIndex = InToken.find('/', Start);
+		++ComponentIndex;
+	}
+
+	InOutFace.Vertices.push_back(Triplet);
+	return true;
+}
+
+bool FObjParser::ParseUseMaterial(const TArray<FString>& InTokens, FString& InOutCurrentMaterialName)
+{
+	// usemtl MaterialName
+	if (InTokens.size() < 2) return false;
+
+	InOutCurrentMaterialName = InTokens[1];
+	return true;
+}
+
+bool FObjParser::ParseMaterialLibrary(const TArray<FString>& InTokens, FObjInfo& InOutObjInfo)
+{
+	// mtllib ###.mtl
+	if (InTokens.size() < 2) return false;
+
+	InOutObjInfo.MaterialLibraryPath = InTokens[1];
 	return true;
 }
