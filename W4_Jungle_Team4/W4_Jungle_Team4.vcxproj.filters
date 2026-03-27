@@ -297,6 +297,8 @@
       <Filter>ThirdParty\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\StaticMeshComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\EditorEngine.h">
@@ -563,5 +565,7 @@
     <ClInclude Include="Source\Editor\Slate\SViewport.h" />
     <ClInclude Include="Source\Editor\Viewport\FViewport.h" />
     <ClInclude Include="Source\Editor\Viewport\FViewportClient.h" />
+    <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
+    <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
   </ItemGroup>
 </Project>
