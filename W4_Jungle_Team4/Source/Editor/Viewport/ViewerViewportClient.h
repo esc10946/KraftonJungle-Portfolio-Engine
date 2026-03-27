@@ -1,25 +1,26 @@
 ﻿#pragma once
-#include "Viewport/EditorViewportClient.h"
+#include "Viewport/FViewportClient.h"
 
 class UOrbitCameraComponent;
 struct FStaticMeshAsset;
 
-class FViewerViewportClient : public FEditorViewportClient
+class FViewerViewportClient : public FViewportClient
 {
 public:
 	FViewerViewportClient() = default;
 	~FViewerViewportClient() = default;
 
-	// FEditorViewportClient 오버라이드
-	/*
-	* virtual void CreateCamera() override;
-	virtual void ResetCamera()  override;
-	virtual void TickInput(float DeltaTime) override;
-	*/
+	void CreateCamera();
+	void DestroyCamera();
+	void ResetCamera();
 
-	// OBJ 로드
+	virtual void Tick(float DeltaTime) override;
+	virtual void Draw(FViewport* Viewport, struct ID3D11DeviceContext* DeviceContext) override;
+	virtual void OnViewportResized(FViewport* Viewport, uint32 NewWidth, uint32 NewHeight) override;
+
 	void LoadOBJ(const std::string& FilePath);
 
 private:
 	FStaticMeshAsset* CurrentMesh = nullptr;
+	UOrbitCameraComponent* ViewerCamera = nullptr;
 };
