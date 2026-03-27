@@ -6,7 +6,7 @@ struct VSInput
     float3 position : POSITION; // Input position from vertex buffer
     float3 normal : NORMAL;
     float4 color : COLOR; // Input color from vertex buffer
-    float2 texture : TEXTURE;
+    float2 texCoord : TEXTURE;
 };
 
 struct PSInput
@@ -29,7 +29,7 @@ SamplerState g_Sample : register(s0);
 
 float4 PS(PSInput input) : SV_TARGET
 {
-    float4 col = g_txColor.Sample(g_Sample);
+    float4 col = g_txColor.Sample(g_Sample, input.texCoord);
     if (bIsWireframe < 0.5f)
     {
         if (col.r < 0.1f)

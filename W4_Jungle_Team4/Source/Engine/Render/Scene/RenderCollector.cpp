@@ -5,7 +5,9 @@
 #include "Component/PrimitiveComponent.h"
 #include "Component/GizmoComponent.h"
 #include "Component/TextRenderComponent.h"
+#include "Component/StaticMeshComponent.h"
 #include "Component/SubUVComponent.h"
+#include "Asset/StaticMesh/StaticMeshObject.h"
 
 void FRenderCollector::CollectWorld(UWorld* World, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus)
 {
@@ -180,7 +182,18 @@ void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, cons
 		RenderBus.AddCommand(ERenderPass::Opaque, Cmd);
 		break;
 	}
+	case EPrimitiveType::EPT_StaticMesh:
+	{
+		UStaticMeshComponent* StaticComp = static_cast<UStaticMeshComponent*>(Primitive);
+		const UStaticMesh* StaticMesh = StaticComp->GetStaticMesh();
+		if (!StaticMesh || StaticMesh->GetStaticMeshAsset() == nullptr) return;
+		
+		FRenderCommand Cmd = {};
+		Cmd.PerObjectConstants = FPerObjectConstants{ Primitive->GetWorldMatrix(), FColor::White().ToVector4() };
+		Cmd.Type = ERenderCommandType::StaticMesh;
 
+		break;
+	}
 	case EPrimitiveType::EPT_SubUV:
 	{
 		USubUVComponent* SubUVComp = static_cast<USubUVComponent*>(Primitive);

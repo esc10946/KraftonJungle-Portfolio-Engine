@@ -20,6 +20,7 @@ UStaticMeshComponent::UStaticMeshComponent()
 	SetStaticMesh(NewMesh);
 }
 
+//에셋 교체 시
 void UStaticMeshComponent::SetStaticMesh(UStaticMesh* InMesh)
 {
 	StaticMesh = InMesh;
@@ -58,11 +59,6 @@ UMaterial* UStaticMeshComponent::GetMaterial(int32 SlotIndex) const
 		return nullptr;
 	}
 
-	if (StaticMesh)
-    {
-        //return StaticMesh->GetStaticMeshAsset()->Sections[SlotIndex];
-    }
-
 	return OverrideMaterials[SlotIndex];
 }
 
@@ -89,6 +85,7 @@ void UStaticMeshComponent::GetEditableProperties(TArray<FPropertyDescriptor>& Ou
 	OutProps.push_back(MeshProperty);
 }
 
+//에디터에서 Property 변경 시
 void UStaticMeshComponent::PostEditProperty(const char* PropertyName)
 {
 	if (std::strcmp(PropertyName, "StaticMesh") == 0)

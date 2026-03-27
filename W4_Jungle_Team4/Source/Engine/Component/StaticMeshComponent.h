@@ -20,8 +20,12 @@ public:
 	FStaticMeshAsset* GetStaticMeshAsset() const;
 	FString GetStaticMeshAssetPath() const;
 
+
+
 	virtual void SetMaterial(int32 SlotIndex, UMaterial* InMaterial) override;
 	virtual UMaterial* GetMaterial(int32 SlotIndex) const override;
+
+	// 에셋의 섹션 수(= 머티리얼 슬롯 수)를 반환한다.
 	virtual int32 GetNumMaterials() const override;
 
 	virtual void UpdateWorldAABB() const override;

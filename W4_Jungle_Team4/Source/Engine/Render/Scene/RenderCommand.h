@@ -104,7 +104,7 @@ struct FSubUVConstants
 
 struct FStaticMeshConstants
 {
-	const FStaticMesh* Mesh = nullptr;
+	const FStaticMeshResource* Mesh = nullptr;
 };
 
 struct FRenderCommand
