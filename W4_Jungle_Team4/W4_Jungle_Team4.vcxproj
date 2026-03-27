@@ -159,6 +159,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
     <ClCompile Include="Source\Editor\EditorEngine.cpp" />
     <ClCompile Include="Source\Editor\EditorRenderPipeline.cpp" />
     <ClCompile Include="Source\Editor\Selection\SelectionManager.cpp" />
@@ -226,6 +227,7 @@
     <ClCompile Include="Source\Engine\Serialization\Binary\WindowsBinReader.cpp" />
     <ClCompile Include="Source\Engine\Serialization\Binary\WindowsBinWriter.cpp" />
     <ClCompile Include="Source\Engine\Serialization\SceneSaveManager.cpp" />
+    <ClCompile Include="Source\Engine\Component\StaticMeshComponent.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui_demo.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui_draw.cpp" />
@@ -236,10 +238,18 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
     <ClInclude Include="Source\Editor\EditorEngine.h" />
     <ClInclude Include="Source\Editor\EditorRenderPipeline.h" />
     <ClInclude Include="Source\Editor\Selection\SelectionManager.h" />
     <ClInclude Include="Source\Editor\Settings\EditorSettings.h" />
+    <ClInclude Include="Source\Editor\Slate\SlateApplication.h" />
+    <ClInclude Include="Source\Editor\Slate\SSplitter.h" />
+    <ClInclude Include="Source\Editor\Slate\SSplitterH.h" />
+    <ClInclude Include="Source\Editor\Slate\SSplitterV.h" />
+    <ClInclude Include="Source\Editor\Slate\SViewport.h" />
+    <ClInclude Include="Source\Editor\Slate\SWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\SWindow.h" />
     <ClInclude Include="Source\Editor\UI\EditorConsoleWidget.h" />
     <ClInclude Include="Source\Editor\UI\EditorControlWidget.h" />
     <ClInclude Include="Source\Editor\UI\EditorMainPanel.h" />
@@ -258,6 +268,8 @@
     <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjManager.h" />
     <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjParser.h" />
     <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjTypes.h" />
+    <ClInclude Include="Source\Editor\Viewport\FViewport.h" />
+    <ClInclude Include="Source\Editor\Viewport\FViewportClient.h" />
     <ClInclude Include="Source\Engine\Component\ActorComponent.h" />
     <ClInclude Include="Source\Engine\Component\BillboardComponent.h" />
     <ClInclude Include="Source\Engine\Component\CameraComponent.h" />
@@ -323,6 +335,7 @@
     <ClInclude Include="Source\Engine\Serialization\Binary\WindowsBinReader.h" />
     <ClInclude Include="Source\Engine\Serialization\Binary\WindowsBinWriter.h" />
     <ClInclude Include="Source\Engine\Serialization\SceneSaveManager.h" />
+    <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
     <ClInclude Include="ThirdParty\ImGui\imconfig.h" />
     <ClInclude Include="ThirdParty\ImGui\imgui.h" />
     <ClInclude Include="ThirdParty\ImGui\imgui_impl_dx11.h" />
