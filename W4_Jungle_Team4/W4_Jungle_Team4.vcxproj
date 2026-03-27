@@ -230,6 +230,13 @@
     <ClInclude Include="Source\Editor\EditorRenderPipeline.h" />
     <ClInclude Include="Source\Editor\Selection\SelectionManager.h" />
     <ClInclude Include="Source\Editor\Settings\EditorSettings.h" />
+    <ClInclude Include="Source\Editor\Slate\SlateApplication.h" />
+    <ClInclude Include="Source\Editor\Slate\SSplitter.h" />
+    <ClInclude Include="Source\Editor\Slate\SSplitterH.h" />
+    <ClInclude Include="Source\Editor\Slate\SSplitterV.h" />
+    <ClInclude Include="Source\Editor\Slate\SViewport.h" />
+    <ClInclude Include="Source\Editor\Slate\SWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\SWindow.h" />
     <ClInclude Include="Source\Editor\UI\EditorConsoleWidget.h" />
     <ClInclude Include="Source\Editor\UI\EditorControlWidget.h" />
     <ClInclude Include="Source\Editor\UI\EditorMainPanel.h" />
@@ -240,6 +247,8 @@
     <ClInclude Include="Source\Editor\UI\EditorWidget.h" />
     <ClInclude Include="Source\Editor\Viewport\CursorOverlayState.h" />
     <ClInclude Include="Source\Editor\Viewport\EditorViewportClient.h" />
+    <ClInclude Include="Source\Editor\Viewport\FViewport.h" />
+    <ClInclude Include="Source\Editor\Viewport\FViewportClient.h" />
     <ClInclude Include="Source\Engine\Component\ActorComponent.h" />
     <ClInclude Include="Source\Engine\Component\BillboardComponent.h" />
     <ClInclude Include="Source\Engine\Component\CameraComponent.h" />
