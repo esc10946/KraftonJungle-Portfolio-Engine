@@ -82,6 +82,7 @@ public:
 
 	// RTTI stuffs
 	virtual const FTypeInfo* GetTypeInfo() const { return &s_TypeInfo; }
+	bool IsA(const FTypeInfo* InType) const { return InType && GetTypeInfo()->IsA(InType); }
 
 	template<typename T>
 	bool IsA() const { return GetTypeInfo()->IsA(&T::s_TypeInfo); }
@@ -93,6 +94,7 @@ public:
 	const T* Cast() const { return IsA<T>() ? static_cast<const T*>(this) : nullptr; }
 
 	static const FTypeInfo s_TypeInfo;
+	bool IsValidLowLevel() const;
 
 protected:
 	FName ObjectName;
@@ -103,6 +105,76 @@ private:
 };
 
 extern TArray<UObject*> GUObjectArray;
+
+class FObjectIterator
+{
+public:
+	explicit FObjectIterator(const FTypeInfo* InRequiredType = nullptr)
+		: RequiredType(InRequiredType)
+	{
+		AdvanceToNextValid();
+	}
+
+	explicit operator bool() const
+	{
+		return CurrentIndex < GUObjectArray.size();
+	}
+
+	FObjectIterator& operator++()
+	{
+		++CurrentIndex;
+		AdvanceToNextValid();
+		return *this;
+	}
+
+	UObject* operator*() const
+	{
+		return (CurrentIndex < GUObjectArray.size()) ? GUObjectArray[CurrentIndex] : nullptr;
+	}
+
+	UObject* operator->() const
+	{
+		return operator*();
+	}
+
+protected:
+	void AdvanceToNextValid()
+	{
+		while (CurrentIndex < GUObjectArray.size())
+		{
+			UObject* Candidate = GUObjectArray[CurrentIndex];
+			if (Candidate && (!RequiredType || Candidate->IsA(RequiredType)))
+			{
+				break;
+			}
+			++CurrentIndex;
+		}
+	}
+
+private:
+	size_t CurrentIndex = 0;
+	const FTypeInfo* RequiredType = nullptr;
+};
+
+template<typename TObjectType>
+class TObjectIterator : public FObjectIterator
+{
+public:
+	TObjectIterator()
+		: FObjectIterator(&TObjectType::s_TypeInfo)
+	{
+	}
+
+	TObjectType* operator*() const
+	{
+		return static_cast<TObjectType*>(FObjectIterator::operator*());
+	}
+
+	TObjectType* operator->() const
+	{
+		return operator*();
+	}
+};
 
 class UObjectManager : public TSingleton<UObjectManager>
 {
@@ -150,3 +222,9 @@ public:
 		return GUObjectArray[Index];
 	}
 };
+
+template<typename T>
+T* ConstructObject()
+{
+	return UObjectManager::Get().CreateObject<T>();
+}

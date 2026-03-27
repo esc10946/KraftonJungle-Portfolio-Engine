@@ -6,6 +6,7 @@
 #include "Engine/Runtime/WindowsWindow.h"
 
 #include "Component/CameraComponent.h"
+#include "Editor/Viewport/FViewport.h"
 #include "GameFramework/World.h"
 #include "Component/GizmoComponent.h"
 #include "Component/PrimitiveComponent.h"
@@ -64,6 +65,18 @@ void FEditorViewportClient::Tick(float DeltaTime)
 	TickInput(DeltaTime);
 	TickInteraction(DeltaTime);
 	TickCursorOverlay(DeltaTime);
+}
+
+void FEditorViewportClient::Draw(FViewport* Viewport, ID3D11DeviceContext* DeviceContext)
+{
+	(void)Viewport;
+	(void)DeviceContext;
+}
+
+void FEditorViewportClient::OnViewportResized(FViewport* Viewport, uint32 NewWidth, uint32 NewHeight)
+{
+	(void)Viewport;
+	SetViewportSize(static_cast<float>(NewWidth), static_cast<float>(NewHeight));
 }
 
 void FEditorViewportClient::TickInput(float DeltaTime)

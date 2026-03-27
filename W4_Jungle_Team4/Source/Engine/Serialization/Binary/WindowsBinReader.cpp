@@ -1,6 +1,40 @@
 #include "Serialization/Binary/WindowsBinReader.h"
 
-// 구현 메모:
-// - 생성자에서 std::ios::binary | std::ios::in 으로 열기
-// - Serialize()는 read 호출
-// - IsLoading()은 true, IsSaving()은 false
+FWindowsBinReader::FWindowsBinReader(const char* InPath)
+	: Stream(InPath, std::ios::binary | std::ios::in)
+{
+}
+
+bool FWindowsBinReader::IsLoading() const
+{
+	return true;
+}
+
+bool FWindowsBinReader::IsSaving() const
+{
+	return false;
+}
+
+bool FWindowsBinReader::IsValid() const
+{
+	return Stream.good();
+}
+
+bool FWindowsBinReader::Serialize(void* InOutData, size_t InSize)
+{
+	if (!IsValid())
+	{
+		return false;
+	}
+
+	Stream.read(static_cast<char*>(InOutData), static_cast<std::streamsize>(InSize));
+	return Stream.good();
+}
+
+void FWindowsBinReader::Close()
+{
+	if (Stream.is_open())
+	{
+		Stream.close();
+	}
+}

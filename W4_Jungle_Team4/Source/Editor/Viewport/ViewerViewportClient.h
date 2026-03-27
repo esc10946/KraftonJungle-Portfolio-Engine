@@ -2,7 +2,7 @@
 #include "Viewport/EditorViewportClient.h"
 
 class UOrbitCameraComponent;
-class FStaticMesh;
+struct FStaticMeshAsset;
 
 class FViewerViewportClient : public FEditorViewportClient
 {
@@ -21,5 +21,5 @@ public:
 	void LoadOBJ(const std::string& FilePath);
 
 private:
-	FStaticMesh* CurrentMesh = nullptr;
+	FStaticMeshAsset* CurrentMesh = nullptr;
 };

@@ -175,6 +175,7 @@
     <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshAsset.cpp" />
     <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshBakeIO.cpp" />
     <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshManager.cpp" />
+    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshObject.cpp" />
     <ClCompile Include="Source\Engine\AssetPipeline\Obj\MtlParser.cpp" />
     <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjImporter.cpp" />
     <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjManager.cpp" />
@@ -235,7 +236,6 @@
     <ClCompile Include="ThirdParty\ImGui\imgui_tables.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="ViewerViewportClient.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\EditorEngine.h" />
@@ -307,6 +307,7 @@
     <ClInclude Include="Source\Engine\Render\Resource\RenderResources.h" />
     <ClInclude Include="Source\Engine\Render\Resource\Shader.h" />
     <ClInclude Include="Source\Engine\Render\Resource\VertexTypes.h" />
+    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshObject.h" />
     <ClInclude Include="Source\Engine\Render\Scene\RenderBus.h" />
     <ClInclude Include="Source\Engine\Render\Scene\RenderCollector.h" />
     <ClInclude Include="Source\Engine\Render\Scene\RenderCollectorContext.h" />
@@ -329,7 +330,6 @@
     <ClInclude Include="ThirdParty\ImGui\imstb_textedit.h" />
     <ClInclude Include="ThirdParty\ImGui\imstb_truetype.h" />
     <ClInclude Include="ThirdParty\SimpleJSON\json.hpp" />
-    <ClInclude Include="ViewerViewportClient.h" />
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\Common.hlsl">
