@@ -344,6 +344,9 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\StaticMeshComponent.cpp" />
+    <ClCompile Include="OrbitCameraComponent.cpp">
+      <Filter>Source\Engine\Component</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\EditorEngine.h">
@@ -645,5 +648,8 @@
     <ClInclude Include="Source\Editor\Viewport\FViewportClient.h" />
     <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
     <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
+    <ClInclude Include="OrbitCameraComponent.h">
+      <Filter>Source\Engine\Component</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
