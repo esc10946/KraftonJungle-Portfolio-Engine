@@ -40,6 +40,28 @@ void FMeshBuffer::Release()
 	IndexBuffer.Release();
 }
 
+void FTextureMeshBuffer::Create(ID3D11Device* InDevice, const FTexturedMeshData& InMeshData)
+{
+	if (InMeshData.Vertices.empty())
+	{
+		VertexBuffer.Release();
+		IndexBuffer.Release();
+		return;
+	}
+
+	VertexBuffer.Create(InDevice, InMeshData.Vertices, static_cast<uint32>(sizeof(FTextureVertex) * InMeshData.Vertices.size()), sizeof(FTextureVertex));
+	if (!InMeshData.Indices.empty())
+	{
+		IndexBuffer.Create(InDevice, InMeshData.Indices, static_cast<uint32>(sizeof(uint32) * InMeshData.Indices.size()));
+	}
+}
+
+void FTextureMeshBuffer::Release()
+{
+	VertexBuffer.Release();
+	IndexBuffer.Release();
+}
+
 #pragma endregion
 
 #pragma region __FVERTEXBUFFER__
@@ -76,6 +98,36 @@ void FVertexBuffer::Create(ID3D11Device* InDevice, const void* InData, uint32 In
 
 		VertexCount = InElementCount;
 		Stride = InStride;
+}
+
+void FVertexBuffer::Create(ID3D11Device* InDevice, const TArray<FTextureVertex>& InData, uint32 InByteWidth, uint32 InStride)
+{
+	if (InData.empty() || InByteWidth == 0)
+	{
+		Release();
+		VertexCount = 0;
+		Stride = InStride;
+		return;
+	}
+
+	D3D11_BUFFER_DESC vertexBufferDesc = {};
+	vertexBufferDesc.ByteWidth = InByteWidth;
+	vertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+	D3D11_SUBRESOURCE_DATA vertexBufferSRD = { InData.data() };
+
+	HRESULT hr = InDevice->CreateBuffer(&vertexBufferDesc, &vertexBufferSRD, &Buffer);
+	if (FAILED(hr))
+	{
+		Release();
+		VertexCount = 0;
+		Stride = InStride;
+		return;
+	}
+
+	VertexCount = static_cast<uint32>(InData.size());
+	Stride = InStride;
 }
 
 void FVertexBuffer::Release()

@@ -2,14 +2,13 @@
 
 #include <iostream>
 #include <algorithm>
+#include "Asset/Material/MaterialObject.h"
 #include "Core/Paths.h"
 #include "Core/ResourceManager.h"
 #include "Render/Common/RenderTypes.h"
 #include "Render/Mesh/MeshManager.h"
-#include "Render/Resource/MeshBufferManager.h"
 #include "Core/Stats.h"
 #include "Core/GPUProfiler.h"
-#include "Viewport/Viewport.h"
 
 
 void FRenderer::Create(HWND hWindow)
@@ -20,13 +19,13 @@ void FRenderer::Create(HWND hWindow)
 	{
 		std::cout << "Failed to create D3D Device." << std::endl;
 	}
-	
-	Resources.BasePassShader.Create(Device.GetDevice(), L"Shaders/StaticMeshShader.hlsl",
-		"VS", "PS", StaticMeshInputLayout, ARRAYSIZE(StaticMeshInputLayout));
 
 	// 1. 일반 메쉬 (Primitive.hlsl)
 	Resources.PrimitiveShader.Create(Device.GetDevice(), L"Shaders/Primitive.hlsl",
 		"VS", "PS", PrimitiveInputLayout, ARRAYSIZE(PrimitiveInputLayout));
+
+	Resources.StaticMeshShader.Create(Device.GetDevice(), L"Shaders/StaticMeshTextured.hlsl",
+		"VS", "PS", TexturedMeshInputLayout, ARRAYSIZE(TexturedMeshInputLayout));
 
 	// 2. 기즈모 (Gizmo.hlsl)
 	Resources.GizmoShader.Create(Device.GetDevice(), L"Shaders/Gizmo.hlsl",
@@ -45,6 +44,7 @@ void FRenderer::Create(HWND hWindow)
 	Resources.GizmoPerObjectConstantBuffer.Create(Device.GetDevice(), sizeof(FGizmoConstants));
 	Resources.EditorConstantBuffer.Create(Device.GetDevice(), sizeof(FEditorConstants));
 	Resources.OutlineConstantBuffer.Create(Device.GetDevice(), sizeof(FOutlineConstants));
+	Resources.StaticMeshConstantBuffer.Create(Device.GetDevice(), sizeof(FStaticMeshConstants));
 
 	//	MeshManager init
 	FMeshManager::Initialize();
@@ -56,7 +56,12 @@ void FRenderer::Create(HWND hWindow)
 	FontBatcher.Create(Device.GetDevice());
 	SubUVBatcher.Create(Device.GetDevice());
 
-	ViewportRenderer.Create(Device.GetDevice());
+	D3D11_SAMPLER_DESC StaticMeshSamplerDesc = {};
+	StaticMeshSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	StaticMeshSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	StaticMeshSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	StaticMeshSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	Device.GetDevice()->CreateSamplerState(&StaticMeshSamplerDesc, &StaticMeshSamplerState);
 
 	InitializePassRenderStates();
 	InitializePassBatchers();
@@ -68,16 +73,17 @@ void FRenderer::Create(HWND hWindow)
 void FRenderer::Release()
 {
 	Resources.PrimitiveShader.Release();
+	Resources.StaticMeshShader.Release();
 	Resources.GizmoShader.Release();
 	Resources.EditorShader.Release();
 	Resources.OutlineShader.Release();
-	Resources.BasePassShader.Release();
 
 	Resources.PerObjectConstantBuffer.Release();
 	Resources.FrameBuffer.Release();
 	Resources.GizmoPerObjectConstantBuffer.Release();
 	Resources.EditorConstantBuffer.Release();
 	Resources.OutlineConstantBuffer.Release();
+	Resources.StaticMeshConstantBuffer.Release();
 
 	FGPUProfiler::Get().Shutdown();
 
@@ -85,7 +91,7 @@ void FRenderer::Release()
 	GridLineBatcher.Release();
 	FontBatcher.Release();
 	SubUVBatcher.Release();
-	ViewportRenderer.Release();
+	if (StaticMeshSamplerState) { StaticMeshSamplerState->Release(); StaticMeshSamplerState = nullptr; }
 
 	Device.Release();
 }
@@ -121,24 +127,39 @@ const TArray<FRenderCommand>& FRenderer::GetAlignedCommands(ERenderPass Pass, co
 		return SortedCommandBuffer;
 	}
 
+	if (Pass == ERenderPass::Opaque && Commands.size() > 1)
+	{
+		SortedCommandBuffer.assign(Commands.begin(), Commands.end());
+		std::sort(SortedCommandBuffer.begin(), SortedCommandBuffer.end(),
+			[](const FRenderCommand& A, const FRenderCommand& B) {
+				if (A.Type != B.Type)
+				{
+					return A.Type < B.Type;
+				}
+
+				if (A.Type == ERenderCommandType::StaticMesh && B.Type == ERenderCommandType::StaticMesh)
+				{
+					if (A.Constants.StaticMesh.Material != B.Constants.StaticMesh.Material)
+					{
+						return A.Constants.StaticMesh.Material < B.Constants.StaticMesh.Material;
+					}
+
+					return A.Constants.StaticMesh.DiffuseSRV < B.Constants.StaticMesh.DiffuseSRV;
+				}
+
+				return A.MeshBuffer < B.MeshBuffer;
+			});
+
+		return SortedCommandBuffer;
+	}
+
 	return Commands;
 }
 
-
-
+//	GPU 프레임 시작. 반드시 Render 이전에 호출되어야 함.
 void FRenderer::BeginFrame()
 {
 	Device.BeginFrame();
-
-#if STATS
-	FGPUProfiler::Get().BeginFrame();
-#endif
-}
-
-//	GPU 프레임 시작. 반드시 Render 이전에 호출되어야 함.
-void FRenderer::BeginFrame(FRenderTarget& RenderTarget)
-{
-	Device.BeginFrame(RenderTarget);
 
 #if STATS
 	FGPUProfiler::Get().BeginFrame();
@@ -177,11 +198,8 @@ void FRenderer::InitializePassRenderStates()
 	using E = ERenderPass;
 	auto& S = PassRenderStates;
 
-	//TODO Opaque, PrimitiveShader => Primitive관련된거 나중에 다 지워야하ㅣㅁ
-
 	//                              DepthStencil                   Blend                Rasterizer                  Topology                                Shader                   WireframeAware
 	S[(uint32)E::Opaque] = { EDepthStencilState::Default,      EBlendState::Opaque,     ERasterizerState::SolidBackCull,  D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, &Resources.PrimitiveShader, true };
-	S[(uint32)E::Mesh] = { EDepthStencilState::Default,      EBlendState::Opaque,     ERasterizerState::SolidBackCull,  D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, &Resources.BasePassShader, true };
 	S[(uint32)E::Translucent] = { EDepthStencilState::Default,      EBlendState::AlphaBlend, ERasterizerState::SolidBackCull,  D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, &Resources.PrimitiveShader, false };
 	S[(uint32)E::StencilMask] = { EDepthStencilState::StencilWrite,  EBlendState::Opaque,     ERasterizerState::SolidNoCull,    D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, &Resources.PrimitiveShader, false };
 	S[(uint32)E::Outline] = { EDepthStencilState::StencilOutline,EBlendState::Opaque,    ERasterizerState::SolidNoCull, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, &Resources.OutlineShader,   false };
@@ -369,6 +387,24 @@ void FRenderer::BindShaderByType(const FRenderCommand& InCmd, ID3D11DeviceContex
 
 	switch (InCmd.Type)
 	{
+	case ERenderCommandType::StaticMesh:
+	{
+		Resources.StaticMeshShader.Bind(Context);
+		Resources.StaticMeshConstantBuffer.Update(Context, &InCmd.Constants.StaticMesh, sizeof(FStaticMeshConstants));
+
+		ID3D11Buffer* cb = Resources.PerObjectConstantBuffer.GetBuffer();
+		Context->VSSetConstantBuffers(1, 1, &cb);
+		Context->PSSetConstantBuffers(1, 1, &cb);
+
+		cb = Resources.StaticMeshConstantBuffer.GetBuffer();
+		Context->PSSetConstantBuffers(6, 1, &cb);
+
+		ID3D11ShaderResourceView* ShaderResourceView = InCmd.Constants.StaticMesh.DiffuseSRV;
+		Context->PSSetShaderResources(0, 1, &ShaderResourceView);
+		Context->PSSetSamplers(0, 1, &StaticMeshSamplerState);
+		break;
+	}
+
 	case ERenderCommandType::Gizmo:
 		Resources.GizmoShader.Bind(Context);
 		Resources.GizmoPerObjectConstantBuffer.Update(Context, &InCmd.Constants.Gizmo, sizeof(FGizmoConstants));
@@ -408,6 +444,34 @@ void FRenderer::BindShaderByType(const FRenderCommand& InCmd, ID3D11DeviceContex
 
 void FRenderer::DrawCommand(ID3D11DeviceContext* InDeviceContext, const FRenderCommand& InCommand)
 {
+	if (InCommand.Type == ERenderCommandType::StaticMesh)
+	{
+		if (InCommand.TextureMeshBuffer == nullptr || !InCommand.TextureMeshBuffer->IsValid())
+		{
+			return;
+		}
+
+		uint32 offset = 0;
+		ID3D11Buffer* vertexBuffer = InCommand.TextureMeshBuffer->GetVertexBuffer().GetBuffer();
+		if (vertexBuffer == nullptr)
+		{
+			return;
+		}
+
+		const uint32 stride = InCommand.TextureMeshBuffer->GetVertexBuffer().GetStride();
+		InDeviceContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+
+		ID3D11Buffer* indexBuffer = InCommand.TextureMeshBuffer->GetIndexBuffer().GetBuffer();
+		if (indexBuffer == nullptr)
+		{
+			return;
+		}
+
+		InDeviceContext->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+		InDeviceContext->DrawIndexed(InCommand.Constants.StaticMesh.IndexCount, InCommand.Constants.StaticMesh.FirstIndex, 0);
+		return;
+	}
+
 	if (InCommand.MeshBuffer == nullptr || !InCommand.MeshBuffer->IsValid())
 	{
 		return;
@@ -440,11 +504,6 @@ void FRenderer::DrawCommand(ID3D11DeviceContext* InDeviceContext, const FRenderC
 	{
 		InDeviceContext->Draw(vertexCount, 0);
 	}
-}
-
-void FRenderer::EndViewportFrame(FRenderTarget& RenderTarget)
-{
-	ID3D11DeviceContext* Context = Device.GetDeviceContext();
 }
 
 //	Present the rendered frame to the screen. 반드시 Render 이후에 호출되어야 함.

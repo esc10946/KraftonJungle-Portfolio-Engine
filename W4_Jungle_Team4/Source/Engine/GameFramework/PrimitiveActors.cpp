@@ -1,10 +1,13 @@
 ﻿#include "GameFramework/PrimitiveActors.h"
 
 #include "Component/PrimitiveComponent.h"
-#include "Component/TextRenderComponent.h"
 #include "Component/StaticMeshComponent.h"
-#include <format>
+#include "Component/TextRenderComponent.h"
 #include <Component/SubUVComponent.h>
+#include "Engine/Asset/StaticMesh/StaticMeshManager.h"
+#include "Engine/Core/Paths.h"
+
+#include <format>
 
 DEFINE_CLASS(ACubeActor, AActor)
 REGISTER_FACTORY(ACubeActor)
@@ -15,11 +18,11 @@ REGISTER_FACTORY(ASphereActor)
 DEFINE_CLASS(APlaneActor, AActor)
 REGISTER_FACTORY(APlaneActor)
 
-DEFINE_CLASS(AAttachTestActor, AActor)
-REGISTER_FACTORY(AAttachTestActor)
-
 DEFINE_CLASS(AStaticMeshActor, AActor)
 REGISTER_FACTORY(AStaticMeshActor)
+
+DEFINE_CLASS(AAttachTestActor, AActor)
+REGISTER_FACTORY(AAttachTestActor)
 
 void ACubeActor::InitDefaultComponents()
 {
@@ -82,6 +85,15 @@ void APlaneActor::InitDefaultComponents()
 	SubUV->SetRelativeLocation(FVector(0.0f, 0.0f, 2.3f));
 }
 
+void AStaticMeshActor::InitDefaultComponents()
+{
+	UStaticMeshComponent* StaticMesh = AddComponent<UStaticMeshComponent>();
+	SetRootComponent(StaticMesh);
+
+	const FString StaticMeshPath = FPaths::ToUtf8(FPaths::RootDir()) + "Data/cube-tex.obj";
+	StaticMesh->SetStaticMesh(FStaticMeshManager::Get().LoadStaticMeshObject(StaticMeshPath));
+}
+
 void AAttachTestActor::InitDefaultComponents()
 {
 	// Root: Cube
@@ -112,17 +124,4 @@ void AAttachTestActor::InitDefaultComponents()
 	Text->AttachToComponent(Cube);
 	Text->SetText("UUID : " + std::to_string(GetUUID()));
 	Text->SetRelativeLocation(FVector(0.0f, 0.0f, 1.5f));
-}
-
-void AStaticMeshActor::InitDefaultComponents()
-{
-	// Root: Cube
-	auto* Mesh = AddComponent<UStaticMeshComponent>();
-	SetRootComponent(Mesh);
-
-	UTextRenderComponent* Text = AddComponent<UTextRenderComponent>();
-	Text->SetFont(FName("Default"));
-	Text->SetText(std::format("UUID: {}", GetUUID()));
-	Text->AttachToComponent(Mesh);
-	Text->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
 }

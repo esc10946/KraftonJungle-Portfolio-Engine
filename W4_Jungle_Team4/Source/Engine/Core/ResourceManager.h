@@ -4,13 +4,13 @@
 #include "Core/Singleton.h"
 #include "Core/ResourceTypes.h"
 #include "Object/FName.h"
-#include <Render/Resource/Texture.h>
 
 // 리소스를 관리하는 싱글턴.
 // Resource.ini에서 리소스 경로/그리드 정보를 읽고, GPU 리소스를 로드/캐싱합니다.
 // 컴포넌트는 소유하지 않고 포인터로 공유 데이터를 참조합니다.
 
 struct ID3D11Device;
+struct ID3D11ShaderResourceView;
 
 class FResourceManager : public TSingleton<FResourceManager>
 {
@@ -42,13 +42,19 @@ public:
 	// --- Particle names ---
 	TArray<FString> GetParticleNames() const;
 
-	UTexture* LoadTexture(const FName& InFilePath);
+	// --- Texture ---
+	void RegisterTexture(const FString& InTexturePath);
+	FTextureResource* FindTexture(const FString& InTexturePath);
+	const FTextureResource* FindTexture(const FString& InTexturePath) const;
+	bool LoadTextureResource(FTextureResource& Resource, ID3D11Device* InDevice);
+	ID3D11ShaderResourceView* GetOrCreateTextureSRV(const FString& InTexturePath, ID3D11Device* InDevice);
+	void ReleaseTextureResources();
+
 private:
 	FResourceManager() = default;
 	~FResourceManager() { ReleaseGPUResources(); }
 
 	TMap<FString, FFontResource>     FontResources;
 	TMap<FString, FParticleResource> ParticleResources;
-
-	void* device;
+	TMap<FString, FTextureResource>  TextureResources;
 };

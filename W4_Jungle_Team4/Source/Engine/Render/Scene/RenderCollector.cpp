@@ -4,9 +4,26 @@
 #include "GameFramework/AActor.h"
 #include "Component/PrimitiveComponent.h"
 #include "Component/GizmoComponent.h"
+#include "Component/StaticMeshComponent.h"
 #include "Component/TextRenderComponent.h"
 #include "Component/SubUVComponent.h"
-#include "Viewport/Viewport.h"
+#include "Asset/StaticMesh/StaticMeshAsset.h"
+#include "Asset/Material/MaterialObject.h"
+#include "Asset/Texture/TextureObject.h"
+#include "Core/ResourceManager.h"
+
+void FRenderCollector::Release()
+{
+	for (auto& Pair : StaticMeshBufferMap)
+	{
+		Pair.second.Release();
+	}
+
+	StaticMeshBufferMap.clear();
+	StaticMeshAssetMap.clear();
+	MeshBufferManager.Release();
+	Device = nullptr;
+}
 
 void FRenderCollector::CollectWorld(UWorld* World, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus)
 {
@@ -201,6 +218,48 @@ void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, cons
 		break;
 	}
 
+	case EPrimitiveType::EPT_StaticMesh:
+	{
+		if (!ShowFlags.bPrimitives) return;
+
+		UStaticMeshComponent* StaticMeshComponent = static_cast<UStaticMeshComponent*>(Primitive);
+		FStaticMeshAsset* StaticMeshAsset = StaticMeshComponent->GetStaticMeshAsset();
+		FTextureMeshBuffer* StaticMeshBuffer = GetOrCreateStaticMeshBuffer(StaticMeshComponent);
+		if (!StaticMeshAsset || !StaticMeshBuffer || !StaticMeshBuffer->IsValid())
+		{
+			return;
+		}
+
+		for (const FStaticMeshSection& Section : StaticMeshAsset->Sections)
+		{
+			FRenderCommand Cmd = {};
+			Cmd.Type = ERenderCommandType::StaticMesh;
+			Cmd.TextureMeshBuffer = StaticMeshBuffer;
+			Cmd.PerObjectConstants = FPerObjectConstants{ Primitive->GetWorldMatrix(), FVector4(1.0f, 1.0f, 1.0f, 1.0f) };
+			Cmd.DepthStencilState = EDepthStencilState::Default;
+			Cmd.BlendState = EBlendState::Opaque;
+			Cmd.Constants.StaticMesh.FirstIndex = Section.FirstIndex;
+			Cmd.Constants.StaticMesh.IndexCount = Section.IndexCount;
+
+			UMaterial* Material = StaticMeshComponent->GetMaterial(static_cast<int32>(Section.MaterialSlotIndex));
+			Cmd.Constants.StaticMesh.Material = Material;
+			if (Material)
+			{
+				Cmd.PerObjectConstants.Color = Material->GetBaseColor();
+				if (UTexture2D* Texture = Material->GetDiffuseTexture())
+				{
+					Cmd.Constants.StaticMesh.DiffuseSRV =
+						FResourceManager::Get().GetOrCreateTextureSRV(Texture->GetSourcePath(), Device);
+				}
+				Cmd.Constants.StaticMesh.bUseTexture = (Cmd.Constants.StaticMesh.DiffuseSRV != nullptr) ? 1u : 0u;
+			}
+
+			RenderBus.AddCommand(ERenderPass::Opaque, Cmd);
+		}
+
+		break;
+	}
+
 	default:
 		return;
 	}
@@ -222,4 +281,31 @@ void FRenderCollector::CollectAABBCommand(UPrimitiveComponent* PrimitiveComponen
 
 	// 렌더러가 마지막에 몰아서 그릴 수 있게 특정 패스(예: Editor/Overlay)에 푸시합니다.
 	RenderBus.AddCommand(ERenderPass::Editor, AABBCmd);
+}
+
+FTextureMeshBuffer* FRenderCollector::GetOrCreateStaticMeshBuffer(UStaticMeshComponent* StaticMeshComponent)
+{
+	if (!StaticMeshComponent || !Device)
+	{
+		return nullptr;
+	}
+
+	FStaticMeshAsset* StaticMeshAsset = StaticMeshComponent->GetStaticMeshAsset();
+	const FTexturedMeshData* TexturedMeshData = StaticMeshComponent->GetTexturedMeshData();
+	if (!StaticMeshAsset || !TexturedMeshData)
+	{
+		return nullptr;
+	}
+
+	FTextureMeshBuffer& MeshBuffer = StaticMeshBufferMap[StaticMeshComponent];
+	const auto It = StaticMeshAssetMap.find(StaticMeshComponent);
+	const bool bNeedsRebuild = (It == StaticMeshAssetMap.end()) || (It->second != StaticMeshAsset) || !MeshBuffer.IsValid();
+	if (bNeedsRebuild)
+	{
+		MeshBuffer.Release();
+		MeshBuffer.Create(Device, *TexturedMeshData);
+		StaticMeshAssetMap[StaticMeshComponent] = StaticMeshAsset;
+	}
+
+	return MeshBuffer.IsValid() ? &MeshBuffer : nullptr;
 }
