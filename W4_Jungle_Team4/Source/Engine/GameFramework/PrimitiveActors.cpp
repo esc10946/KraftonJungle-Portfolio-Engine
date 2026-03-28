@@ -1,9 +1,13 @@
 ﻿#include "GameFramework/PrimitiveActors.h"
 
 #include "Component/PrimitiveComponent.h"
+#include "Component/StaticMeshComponent.h"
 #include "Component/TextRenderComponent.h"
-#include <format>
 #include <Component/SubUVComponent.h>
+#include "Engine/Asset/StaticMesh/StaticMeshManager.h"
+#include "Engine/Core/Paths.h"
+
+#include <format>
 
 DEFINE_CLASS(ACubeActor, AActor)
 REGISTER_FACTORY(ACubeActor)
@@ -13,6 +17,9 @@ REGISTER_FACTORY(ASphereActor)
 
 DEFINE_CLASS(APlaneActor, AActor)
 REGISTER_FACTORY(APlaneActor)
+
+DEFINE_CLASS(AStaticMeshActor, AActor)
+REGISTER_FACTORY(AStaticMeshActor)
 
 DEFINE_CLASS(AAttachTestActor, AActor)
 REGISTER_FACTORY(AAttachTestActor)
@@ -76,6 +83,15 @@ void APlaneActor::InitDefaultComponents()
 	SubUV->SetSpriteSize(2.0f, 2.0f);
 	SubUV->SetFrameRate(30.f);
 	SubUV->SetRelativeLocation(FVector(0.0f, 0.0f, 2.3f));
+}
+
+void AStaticMeshActor::InitDefaultComponents()
+{
+	UStaticMeshComponent* StaticMesh = AddComponent<UStaticMeshComponent>();
+	SetRootComponent(StaticMesh);
+
+	const FString StaticMeshPath = FPaths::ToUtf8(FPaths::RootDir()) + "Data/cube-tex.obj";
+	StaticMesh->SetStaticMesh(FStaticMeshManager::Get().LoadStaticMeshObject(StaticMeshPath));
 }
 
 void AAttachTestActor::InitDefaultComponents()

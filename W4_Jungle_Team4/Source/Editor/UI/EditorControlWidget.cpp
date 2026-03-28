@@ -79,6 +79,13 @@ void FEditorControlWidget::Render(float DeltaTime)
 				SubUV->SetFrameRate(30.f);
 				break;
 			}
+			case 4: // StaticMesh
+			{
+				AStaticMeshActor* Actor = World->SpawnActor<AStaticMeshActor>();
+				Actor->InitDefaultComponents();
+				Actor->SetActorLocation(CurSpawnPoint);
+				break;
+			}
 			}
 		}
 		NumberOfSpawnedActors = 1;
