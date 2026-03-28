@@ -11,6 +11,17 @@ void SWidget::Tick(float DeltaTime)
 	}
 }
 
+void SWidget::OnPaint()
+{
+	for (SWidget* Child : GetChildren())
+	{
+		if (Child->bIsVisible)
+		{
+			Child->OnPaint();
+		}
+	}
+}
+
 bool SWidget::IsHovered(FVector2 Coord) const
 {
 	if (!bIsVisible) return false;

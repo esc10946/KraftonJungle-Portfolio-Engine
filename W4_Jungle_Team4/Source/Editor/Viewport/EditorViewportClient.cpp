@@ -51,7 +51,12 @@ void FEditorViewportClient::Tick(float DeltaTime)
 
 void FEditorViewportClient::OnViewportResized(uint32 NewTopLeftX, uint32 NewTopLeftY, uint32 InWidth, uint32 InHeight)
 {
-	Viewport->Resize(NewTopLeftX, NewTopLeftY, InWidth, InHeight);
+	if (InWidth == 0 || InHeight == 0) return;
+
+	if (Viewport)
+	{
+		Viewport->Resize(NewTopLeftX, NewTopLeftY, InWidth, InHeight);
+	}
 	
 	if (Camera)
 	{

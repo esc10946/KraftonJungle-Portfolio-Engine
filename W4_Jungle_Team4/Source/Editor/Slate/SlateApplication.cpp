@@ -11,6 +11,14 @@ void FSlateApplication::Tick(float DeltaTime)
 	}
 }
 
+void FSlateApplication::OnPaint()
+{
+	for (SWindow* Window : Windows)
+	{
+		Window->OnPaint();
+	}
+}
+
 SWindow* FSlateApplication::AddWindow(SWindow* InWindow)
 {
 	Windows.push_back(InWindow);

@@ -161,6 +161,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Editor\Slate\SImGuiConsoleWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SImGuiControlWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SImGuiPropertyWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SImGuiPropertyWidget.h" />
+    <ClCompile Include="Source\Editor\Slate\SImGuiSceneWidget.cpp" />
     <ClCompile Include="Source\Editor\Slate\SlateApplication.cpp" />
     <ClCompile Include="Source\Editor\Slate\SSplitterH.cpp" />
     <ClCompile Include="Source\Editor\Slate\SSplitterV.cpp" />
@@ -246,6 +251,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\Slate\Reply.h" />
+    <ClInclude Include="Source\Editor\Slate\SImGuiConsoleWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\SImGuiControlWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\SImGuiSceneWidget.h" />
     <ClInclude Include="Source\Editor\Viewport\Viewport.h" />
     <ClInclude Include="Source\Editor\Viewport\ViewportClient.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshAsset.h" />

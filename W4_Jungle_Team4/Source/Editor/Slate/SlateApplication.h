@@ -10,6 +10,7 @@ class FSlateApplication : public TSingleton<FSlateApplication>
 
 public:
 	void Tick(float DeltaTime);
+	void OnPaint();
 
 	SWindow* AddWindow(SWindow* InWindow);
 	void DestroyWindow(SWindow* InWindow);

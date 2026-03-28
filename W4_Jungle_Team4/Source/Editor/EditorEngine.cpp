@@ -4,6 +4,10 @@
 #include "Editor/Slate/SViewport.h"
 #include "Editor/Slate/SSplitterH.h"
 #include "Editor/Slate/SSplitterV.h"
+#include "Editor/Slate/SImGuiConsoleWidget.h"
+#include "Editor/Slate/SImGuiControlWidget.h"
+#include "Editor/Slate/SImGuiSceneWidget.h"
+#include "Editor/Slate/SImGuiPropertyWidget.h"
 #include "Editor/Viewport/Viewport.h"
 #include "Engine/Runtime/WindowsWindow.h"
 #include "Engine/Serialization/SceneSaveManager.h"
@@ -85,14 +89,16 @@ void UEditorEngine::Init(FWindowsWindow* InWindow)
 	Viewport3->SetViewportClient(EditorViewportClient3);
 	Viewport4->SetViewportClient(EditorViewportClient4);
 	Viewports.push_back(Viewport);
-	Viewports.push_back(Viewport2);
-	Viewports.push_back(Viewport3);
-	Viewports.push_back(Viewport4);
+	//Viewports.push_back(Viewport2);
+	//Viewports.push_back(Viewport3);
+	//Viewports.push_back(Viewport4);
 
 	SWindow* MainWindow = new SWindow();
 	SSplitterH* SplitterH = new SSplitterH();
+	SSplitterH* SplitterH2 = new SSplitterH();
 	SSplitterV* SplitterV = new SSplitterV();
 	SSplitterV* SplitterV2 = new SSplitterV();
+	SSplitterV* SplitterV3 = new SSplitterV();
 
 	SViewport* ViewportWidget = new SViewport();
 	ViewportWidget->SetViewport(Viewport);
@@ -103,18 +109,27 @@ void UEditorEngine::Init(FWindowsWindow* InWindow)
 	SViewport* ViewportWidget4 = new SViewport();
 	ViewportWidget4->SetViewport(Viewport4);
 
-	FRect ViewportRect = { 100, 100, 1500, 800 };
+	SImGuiConsoleWidget* ConsoleWidget = new SImGuiConsoleWidget();
+	SImGuiControlWidget* ControlWidget = new SImGuiControlWidget(this);
+	SImGuiSceneWidget* SceneWidget = new SImGuiSceneWidget(this);
+	SImGuiPropertyWidget* PropertyWidget = new SImGuiPropertyWidget(this);
+
+	FRect ViewportRect = { 0, 0, 1920, 1080 };
 	MainWindow->SetRect(ViewportRect);
-	SplitterH->SetRect(ViewportRect);
+	SplitterV->SetRect(ViewportRect);
 
-	MainWindow->AddChild(SplitterH);
-	SplitterH->SetSideLT(SplitterV);
-	SplitterH->SetSideRB(SplitterV2);
+	MainWindow->AddChild(SplitterV);
+	SplitterV->SetSideLT(SplitterH);
+	SplitterV->SetSideRB(SplitterH2);
 
-	SplitterV->SetSideLT(ViewportWidget);
-	SplitterV->SetSideRB(ViewportWidget2);
-	SplitterV2->SetSideLT(ViewportWidget3);
-	SplitterV2->SetSideRB(ViewportWidget4);
+	SplitterH->SetSideLT(SplitterV2);
+	SplitterH->SetSideRB(ConsoleWidget);
+
+	SplitterV2->SetSideLT(ControlWidget);
+	SplitterV2->SetSideRB(ViewportWidget);
+
+	SplitterH2->SetSideLT(SceneWidget);
+	SplitterH2->SetSideRB(PropertyWidget);
 
 	FSlateApplication::Get().AddWindow(MainWindow);
 
@@ -150,6 +165,7 @@ void UEditorEngine::Tick(float DeltaTime)
 
 void UEditorEngine::RenderUI(float DeltaTime)
 {
+	MainPanel.BeginFrame();
 	MainPanel.Render(DeltaTime);
 }
 
