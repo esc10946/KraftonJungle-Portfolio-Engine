@@ -255,7 +255,7 @@
     <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshBakeIO.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshManager.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshAsset.h" />
-    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshObjcet.h" />
+    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshObject.h" />
     <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
     <ClInclude Include="OrbitCameraComponent.h" />
     <ClInclude Include="Source\Editor\EditorEngine.h" />
