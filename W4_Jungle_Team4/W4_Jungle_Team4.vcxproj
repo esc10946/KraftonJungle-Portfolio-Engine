@@ -102,7 +102,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;WITH_EDITOR=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
     </ClCompile>
     <Link>
@@ -118,7 +118,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;WITH_EDITOR=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
     </ClCompile>
     <Link>
@@ -132,10 +132,9 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;WITH_EDITOR=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -150,7 +149,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;WITH_EDITOR=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
       <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
@@ -160,6 +159,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjImporter.cpp" />
     <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
     <ClCompile Include="OrbitCameraComponent.cpp" />
     <ClCompile Include="Source\Editor\EditorEngine.cpp" />
@@ -175,10 +175,8 @@
     <ClCompile Include="Source\Editor\UI\EditorViewportOverlayWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\EditorWidget.cpp" />
     <ClCompile Include="Source\Editor\Viewport\EditorViewportClient.cpp" />
-    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshAsset.cpp" />
-    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshBakeIO.cpp" />
     <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshManager.cpp" />
-    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshObject.cpp" />
+    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjParser.cpp" />
     <ClCompile Include="Source\Editor\Viewport\ViewerViewportClient.cpp" />
     <ClCompile Include="Source\Engine\Component\ActorComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\BillboardComponent.cpp" />
@@ -226,7 +224,6 @@
     <ClCompile Include="Source\Engine\Serialization\Binary\WindowsBinReader.cpp" />
     <ClCompile Include="Source\Engine\Serialization\Binary\WindowsBinWriter.cpp" />
     <ClCompile Include="Source\Engine\Serialization\SceneSaveManager.cpp" />
-    <ClCompile Include="Source\Engine\Component\StaticMeshComponent.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui_demo.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui_draw.cpp" />
@@ -237,9 +234,11 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshAsset.h" />
-    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshBakeIO.h" />
+    <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjImporter.h" />
+    <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjParser.h" />
+    <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjTypes.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshManager.h" />
+    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshAsset.h" />
     <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
     <ClInclude Include="OrbitCameraComponent.h" />
     <ClInclude Include="Source\Editor\EditorEngine.h" />

@@ -47,6 +47,8 @@ obj/x86/
 [Aa][Rr][Mm]64[Ee][Cc]/
 bld/
 [Oo]bj/
+!W4_Jungle_Team4/Source/Engine/AssetPipeline/Obj/
+!W4_Jungle_Team4/Source/Engine/AssetPipeline/Obj/**
 [Oo]ut/
 [Ll]og/
 [Ll]ogs/
