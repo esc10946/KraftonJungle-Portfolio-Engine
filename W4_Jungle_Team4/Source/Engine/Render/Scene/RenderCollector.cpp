@@ -7,7 +7,7 @@
 #include "Component/TextRenderComponent.h"
 #include "Component/StaticMeshComponent.h"
 #include "Component/SubUVComponent.h"
-#include "Asset/StaticMesh/StaticMeshObject.h"
+#include "Asset/StaticMesh/StaticMesh.h"
 
 void FRenderCollector::CollectWorld(UWorld* World, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus)
 {
@@ -102,6 +102,17 @@ void FRenderCollector::CollectFromSelectedActor(AActor* Actor, const FShowFlags&
 		BaseCmd.PerObjectConstants = FPerObjectConstants{ primitiveComponent->GetWorldMatrix() };
 		FVector WorldScale = primitiveComponent->GetWorldScale();
 
+		if (primitiveComponent->GetPrimitiveType() == EPrimitiveType::EPT_StaticMesh){
+
+			UStaticMeshComponent* StaticComp = static_cast<UStaticMeshComponent*>(primitiveComponent);
+			const UStaticMesh* StaticMesh = StaticComp->GetStaticMesh();
+			if (!StaticMesh || !StaticMesh->IsValid())
+			{
+				continue;
+			}
+
+			//BaseCmd.MeshBuffer = &MeshBufferManager.GetStaticMeshBuffer(StaticMesh);
+		}
 		if (primitiveComponent->GetPrimitiveType() == EPrimitiveType::EPT_Text)
 		{
 			UTextRenderComponent* TextComp = static_cast<UTextRenderComponent*>(primitiveComponent);
@@ -186,13 +197,13 @@ void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, cons
 	{
 		UStaticMeshComponent* StaticComp = static_cast<UStaticMeshComponent*>(Primitive);
 		const UStaticMesh* StaticMesh = StaticComp->GetStaticMesh();
-		if (!StaticMesh || StaticMesh->GetStaticMeshAsset() == nullptr) return;
+		if (!StaticMesh || StaticMesh->IsValid()) return;
 		
 		FRenderCommand Cmd = {};
 		Cmd.PerObjectConstants = FPerObjectConstants{ Primitive->GetWorldMatrix(), FColor::White().ToVector4() };
 		Cmd.Type = ERenderCommandType::StaticMesh;
-		
-		Cmd.MeshBuffer = &MeshBufferManager.GetMeshBuffer(EPrimitiveType::EPT_Cube);
+		Cmd.Constants.StaticMesh.Mesh = StaticMesh;
+		Cmd.Constants.StaticMesh.Material = StaticComp->GetMaterial(0);
 		Cmd.DepthStencilState = EDepthStencilState::Default;
 		RenderBus.AddCommand(ERenderPass::Mesh, Cmd);
 		break;

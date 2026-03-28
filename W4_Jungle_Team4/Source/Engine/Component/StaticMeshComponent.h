@@ -13,14 +13,10 @@ public:
 	DECLARE_CLASS(UStaticMeshComponent, UMeshComponent)
 
 	UStaticMeshComponent();
-	~UStaticMeshComponent() override = default;
+	~UStaticMeshComponent() override ;
 
 	void SetStaticMesh(UStaticMesh* InMesh);
 	UStaticMesh* GetStaticMesh() const { return StaticMesh; }
-	FStaticMeshAsset* GetStaticMeshAsset() const;
-	FString GetStaticMeshAssetPath() const;
-
-
 
 	virtual void SetMaterial(int32 SlotIndex, UMaterial* InMaterial) override;
 	virtual UMaterial* GetMaterial(int32 SlotIndex) const override;
@@ -36,9 +32,10 @@ public:
 	virtual EPrimitiveType GetPrimitiveType() const override { return EPrimitiveType::EPT_StaticMesh; }
 
 private:
-	void RefreshMeshData();
+	
+	//mesh의 vertices와 indices를 업데이트하는 함수
+	//void RefreshMeshData();
 
 private:
-	UStaticMesh* StaticMesh = nullptr;
-	FMeshData StaticMeshRenderData;
+	UStaticMesh* StaticMesh;
 };

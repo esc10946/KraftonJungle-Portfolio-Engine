@@ -8,13 +8,14 @@
 
 #include "Render/Common/RenderTypes.h"
 #include "Render/Resource/Buffer.h"
+#include "Render/Resource/Material.h"
 #include "Render/Device/D3DDevice.h"
 #include "Core/EngineTypes.h"
 #include "Core/ResourceTypes.h"
 
 #include "Math/Matrix.h"
 #include "Math/Vector.h"
-#include "Asset/StaticMesh/StaticMeshAsset.h"
+#include "Asset/StaticMesh/StaticMesh.h"
 
 enum class ERenderCommandType
 {
@@ -104,7 +105,8 @@ struct FSubUVConstants
 
 struct FStaticMeshConstants
 {
-	const FStaticMeshResource* Mesh = nullptr;
+	const UStaticMesh* Mesh = nullptr;
+	const UMaterial* Material = nullptr;
 };
 
 struct FRenderCommand

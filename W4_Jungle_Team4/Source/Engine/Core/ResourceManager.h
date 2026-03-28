@@ -4,6 +4,7 @@
 #include "Core/Singleton.h"
 #include "Core/ResourceTypes.h"
 #include "Object/FName.h"
+#include <Render/Resource/Texture.h>
 
 // 리소스를 관리하는 싱글턴.
 // Resource.ini에서 리소스 경로/그리드 정보를 읽고, GPU 리소스를 로드/캐싱합니다.
@@ -41,10 +42,13 @@ public:
 	// --- Particle names ---
 	TArray<FString> GetParticleNames() const;
 
+	UTexture* LoadTexture(const FName& InFilePath);
 private:
 	FResourceManager() = default;
 	~FResourceManager() { ReleaseGPUResources(); }
 
 	TMap<FString, FFontResource>     FontResources;
 	TMap<FString, FParticleResource> ParticleResources;
+
+	void* device;
 };

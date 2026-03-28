@@ -20,7 +20,7 @@ void FRenderer::Create(HWND hWindow)
 	}
 	
 	Resources.BasePassShader.Create(Device.GetDevice(), L"Shaders/StaticMeshShader.hlsl",
-		"VS", "PS", PrimitiveInputLayout, ARRAYSIZE(PrimitiveInputLayout));
+		"VS", "PS", StaticMeshInputLayout, ARRAYSIZE(StaticMeshInputLayout));
 
 	// 1. 일반 메쉬 (Primitive.hlsl)
 	Resources.PrimitiveShader.Create(Device.GetDevice(), L"Shaders/Primitive.hlsl",

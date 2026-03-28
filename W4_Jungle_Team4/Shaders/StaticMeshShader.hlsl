@@ -5,7 +5,6 @@ struct VSInput
 {
     float3 position : POSITION; // Input position from vertex buffer
     float3 normal : NORMAL;
-    float4 color : COLOR; // Input color from vertex buffer
     float2 texCoord : TEXTURE;
 };
 
@@ -18,14 +17,13 @@ struct PSInput
 PSInput VS(VSInput input)
 {
     PSInput output;
-    output.position = mul(mul(float4(input.position, 1.0f), View), Projection);
+    output.position = ApplyMVP(input.position);
     output.texCoord = input.texCoord;
     return output;
 }
 
 Texture2D g_txColor : register(t0);
 SamplerState g_Sample : register(s0);
-
 
 float4 PS(PSInput input) : SV_TARGET
 {
