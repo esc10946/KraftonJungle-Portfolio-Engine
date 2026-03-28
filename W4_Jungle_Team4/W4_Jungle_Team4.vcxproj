@@ -160,6 +160,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Editor\Slate\SImGuiConsoleWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SImGuiControlWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SImGuiPropertyWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SImGuiSceneWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SlateApplication.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SlateWidgetFactory.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SSplitterH.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SSplitterV.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SViewport.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SWidget.cpp" />
+    <ClCompile Include="Source\Editor\Viewport\Viewport.cpp" />
+    <ClCompile Include="Source\Editor\Viewport\ViewportManager.cpp" />
     <ClCompile Include="Source\Engine\AssetPipeline\Obj\MtlParser.cpp" />
     <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjImporter.cpp" />
     <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshBakeIO.cpp" />
@@ -221,6 +233,7 @@
     <ClCompile Include="Source\Engine\Render\Resource\Shader.cpp" />
     <ClCompile Include="Source\Engine\Render\Scene\RenderBus.cpp" />
     <ClCompile Include="Source\Engine\Render\Scene\RenderCollector.cpp" />
+    <ClCompile Include="Source\Engine\Render\ViewportRenderer.cpp" />
     <ClCompile Include="Source\Engine\Runtime\Engine.cpp" />
     <ClCompile Include="Source\Engine\Runtime\EngineLoop.cpp" />
     <ClCompile Include="Source\Engine\Runtime\Launch.cpp" />
@@ -241,6 +254,18 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Editor\Slate\Reply.h" />
+    <ClInclude Include="Source\Editor\Slate\SImGuiConsoleWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\SImGuiControlWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\SImGuiPropertyWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\SImGuiSceneWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\SlateWidgetFactory.h" />
+    <ClInclude Include="Source\Editor\Slate\SSplitterH.h" />
+    <ClInclude Include="Source\Editor\Slate\SSplitterV.h" />
+    <ClInclude Include="Source\Editor\Slate\SViewport.h" />
+    <ClInclude Include="Source\Editor\Viewport\Viewport.h" />
+    <ClInclude Include="Source\Editor\Viewport\ViewportClient.h" />
+    <ClInclude Include="Source\Editor\Viewport\ViewportManager.h" />
     <ClInclude Include="Source\Engine\AssetPipeline\Obj\MtlParser.h" />
     <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjImporter.h" />
     <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjParser.h" />
@@ -256,9 +281,6 @@
     <ClInclude Include="Source\Editor\Settings\EditorSettings.h" />
     <ClInclude Include="Source\Editor\Slate\SlateApplication.h" />
     <ClInclude Include="Source\Editor\Slate\SSplitter.h" />
-    <ClInclude Include="Source\Editor\Slate\SSplitterH.h" />
-    <ClInclude Include="Source\Editor\Slate\SSplitterV.h" />
-    <ClInclude Include="Source\Editor\Slate\SViewport.h" />
     <ClInclude Include="Source\Editor\Slate\SWidget.h" />
     <ClInclude Include="Source\Editor\Slate\SWindow.h" />
     <ClInclude Include="Source\Editor\UI\EditorConsoleWidget.h" />
@@ -331,6 +353,7 @@
     <ClInclude Include="Source\Engine\Render\Scene\RenderCollector.h" />
     <ClInclude Include="Source\Engine\Render\Scene\RenderCollectorContext.h" />
     <ClInclude Include="Source\Engine\Render\Scene\RenderCommand.h" />
+    <ClInclude Include="Source\Engine\Render\ViewportRenderer.h" />
     <ClInclude Include="Source\Engine\Runtime\Engine.h" />
     <ClInclude Include="Source\Engine\Runtime\EngineLoop.h" />
     <ClInclude Include="Source\Engine\Runtime\Launch.h" />
