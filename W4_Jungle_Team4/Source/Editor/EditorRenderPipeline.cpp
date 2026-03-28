@@ -39,8 +39,8 @@ void FEditorRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
 		if (Camera)
 		{
 			const auto& Settings = Editor->GetSettings();
-			const FShowFlags& ShowFlags = Settings.ShowFlags;
-			EViewMode ViewMode = Settings.ViewMode;
+			const FShowFlags& ShowFlags = ViewportClient->GetShowFlags();
+			EViewMode ViewMode = ViewportClient->GetViewMode();
 
 			Bus.SetViewProjection(Camera->GetViewMatrix(), Camera->GetProjectionMatrix(),
 				Camera->GetRightVector(), Camera->GetUpVector());

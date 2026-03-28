@@ -4,6 +4,7 @@
 #include "Viewport/Viewport.h"
 
 #include "Render/Common/RenderTypes.h"
+#include "Render/Common/ViewTypes.h"
 #include "Viewport/CursorOverlayState.h"
 #include "Core/RayTypes.h"
 #include "Core/CollisionTypes.h"
@@ -42,6 +43,12 @@ public:
 	void ResetCamera();
 	UCameraComponent* GetCamera() const { return Camera; }
 
+	EViewMode GetViewMode() const { return ViewMode; }
+	void SetViewMode(EViewMode NewViewMode) { ViewMode = NewViewMode; }
+
+	FShowFlags GetShowFlags() const { return ShowFlags; }
+	void SetShowFlags(const FShowFlags& NewShowFlags) { ShowFlags = NewShowFlags; }
+
 private:
 	void Move(float DeltaTime);
 	void Rotate(float DeltaTime);
@@ -50,8 +57,6 @@ private:
 	void TickInteraction(float DeltaTime);
 
 	void HandleDragStart(const FRay& Ray);
-
-
 
 private:
 	FViewport* Viewport = nullptr;
@@ -62,6 +67,9 @@ private:
 	const FEditorSettings* Settings = nullptr;
 
 	FSelectionManager* SelectionManager = nullptr;
+
+	EViewMode ViewMode = EViewMode::Lit;
+	FShowFlags ShowFlags;
 
 	FVector2 ViewportPos;
 	FVector2 ViewportSize;
