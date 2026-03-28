@@ -10,6 +10,7 @@
 // 컴포넌트는 소유하지 않고 포인터로 공유 데이터를 참조합니다.
 
 struct ID3D11Device;
+struct ID3D11ShaderResourceView;
 
 class FResourceManager : public TSingleton<FResourceManager>
 {
@@ -41,10 +42,19 @@ public:
 	// --- Particle names ---
 	TArray<FString> GetParticleNames() const;
 
+	// --- Texture ---
+	void RegisterTexture(const FString& InTexturePath);
+	FTextureResource* FindTexture(const FString& InTexturePath);
+	const FTextureResource* FindTexture(const FString& InTexturePath) const;
+	bool LoadTextureResource(FTextureResource& Resource, ID3D11Device* InDevice);
+	ID3D11ShaderResourceView* GetOrCreateTextureSRV(const FString& InTexturePath, ID3D11Device* InDevice);
+	void ReleaseTextureResources();
+
 private:
 	FResourceManager() = default;
 	~FResourceManager() { ReleaseGPUResources(); }
 
 	TMap<FString, FFontResource>     FontResources;
 	TMap<FString, FParticleResource> ParticleResources;
+	TMap<FString, FTextureResource>  TextureResources;
 };

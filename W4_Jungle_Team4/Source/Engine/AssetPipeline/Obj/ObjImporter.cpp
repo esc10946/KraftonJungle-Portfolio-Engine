@@ -77,9 +77,13 @@ bool FObjImporter::BuildStaticMeshAsset(const FObjInfo& InObjInfo, FStaticMeshAs
 	OutAsset.BakePath.clear();
 	OutAsset.Vertices.clear();
 	OutAsset.Indices.clear();
+	OutAsset.MaterialSlots.clear();
 	OutAsset.Sections.clear();
+	OutAsset.BoundsMin = FVector();
+	OutAsset.BoundsMax = FVector();
 
 	if (!BuildGeometry(InObjInfo, OutAsset)) return false;
+	OutAsset.UpdateBounds();
 	
 	BuildSections(InObjInfo, OutAsset);
 
@@ -161,13 +165,45 @@ bool FObjImporter::BuildGeometry(const FObjInfo& InObjInfo, FStaticMeshAsset& In
 	return !InOutAsset.Vertices.empty();
 }
 
+uint32 FObjImporter::FindOrAddMaterialSlot(
+	const FString& InMaterialName,
+	const FObjInfo& InObjInfo,
+	FStaticMeshAsset& InOutAsset,
+	TMap<FString, uint32>& InOutSlotLookup)
+{
+	const auto FoundIt = InOutSlotLookup.find(InMaterialName);
+	if (FoundIt != InOutSlotLookup.end())
+	{
+		return FoundIt->second;
+	}
+
+	FStaticMaterialSlot Slot;
+	Slot.SlotName = InMaterialName.empty()
+		? FString("DefaultSlot") + std::to_string(InOutAsset.MaterialSlots.size())
+		: InMaterialName;
+	Slot.SourceMaterialName = InMaterialName;
+
+	const auto MaterialIt = InObjInfo.Materials.find(InMaterialName);
+	if (MaterialIt != InObjInfo.Materials.end())
+	{
+		Slot.DiffuseTexturePath = MaterialIt->second.DiffuseTexturePath;
+	}
+
+	const uint32 NewSlotIndex = static_cast<uint32>(InOutAsset.MaterialSlots.size());
+	InOutAsset.MaterialSlots.push_back(Slot);
+	InOutSlotLookup[InMaterialName] = NewSlotIndex;
+	return NewSlotIndex;
+}
+
 void FObjImporter::BuildSections(const FObjInfo& InObjInfo, FStaticMeshAsset& InOutAsset)
 {
+	InOutAsset.MaterialSlots.clear();
 	InOutAsset.Sections.clear();
 
 	FString CurrentMaterialName;
 	FStaticMeshSection* CurrentSection = nullptr;
 	uint32 RunningIndex = 0;
+	TMap<FString, uint32> MaterialSlotLookup;
 
 	for (const FObjFace& Face : InObjInfo.Faces)
 	{
@@ -186,13 +222,11 @@ void FObjImporter::BuildSections(const FObjInfo& InObjInfo, FStaticMeshAsset& In
 		{
 			FStaticMeshSection Section;
 			Section.FirstIndex = RunningIndex;
-			Section.MaterialName = Face.MaterialName;
-
-			const auto MaterialIt = InObjInfo.Materials.find(Face.MaterialName);
-			if (MaterialIt != InObjInfo.Materials.end())
-			{
-				Section.DiffuseTexturePath = MaterialIt->second.DiffuseTexturePath;
-			}
+			Section.MaterialSlotIndex = FindOrAddMaterialSlot(
+				Face.MaterialName,
+				InObjInfo,
+				InOutAsset,
+				MaterialSlotLookup);
 
 			InOutAsset.Sections.push_back(Section);
 			CurrentSection = &InOutAsset.Sections.back();
@@ -206,12 +240,16 @@ void FObjImporter::BuildSections(const FObjInfo& InObjInfo, FStaticMeshAsset& In
 	// opt) test
 	for (const FStaticMeshSection& Section : InOutAsset.Sections)
 	{
+		const FStaticMaterialSlot* Slot = Section.MaterialSlotIndex < InOutAsset.MaterialSlots.size()
+			? &InOutAsset.MaterialSlots[Section.MaterialSlotIndex]
+			: nullptr;
 		std::cout
 			<< "[ObjImporter] section"
 			<< " firstIndex=" << Section.FirstIndex
 			<< ", indexCount=" << Section.IndexCount
-			<< ", material=" << Section.MaterialName
-			<< ", texture=" << Section.DiffuseTexturePath
+			<< ", slot=" << Section.MaterialSlotIndex
+			<< ", material=" << (Slot ? Slot->SourceMaterialName : FString())
+			<< ", texture=" << (Slot ? Slot->DiffuseTexturePath : FString())
 			<< '\n';
 	}
 }

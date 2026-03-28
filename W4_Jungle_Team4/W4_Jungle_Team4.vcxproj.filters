@@ -191,9 +191,6 @@
     <ClCompile Include="Source\Engine\Component\SceneComponent.cpp">
       <Filter>Source\Engine\Component</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Component\StaticMeshComponent.cpp">
-      <Filter>Source\Engine\Component</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Engine\Component\SubUVComponent.cpp">
       <Filter>Source\Engine\Component</Filter>
     </ClCompile>
@@ -336,6 +333,11 @@
       <Filter>ThirdParty\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Source\Engine\AssetPipeline\Obj\MtlParser.cpp" />
+    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjImporter.cpp" />
+    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshBakeIO.cpp" />
+    <ClCompile Include="OrbitCameraComponent.cpp" />
+    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshObject.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\EditorEngine.h">
@@ -650,5 +652,10 @@
     <ClInclude Include="ThirdParty\SimpleJSON\json.hpp">
       <Filter>ThirdParty\SimpleJSON</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\AssetPipeline\Obj\MtlParser.h" />
+    <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjImporter.h" />
+    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshBakeIO.h" />
+    <ClInclude Include="OrbitCameraComponent.h" />
+    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshObject.h" />
   </ItemGroup>
 </Project>

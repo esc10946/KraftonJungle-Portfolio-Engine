@@ -5,6 +5,7 @@
 #include <fstream>
 #include <filesystem>
 #include "DDSTextureLoader.h"
+#include "WICTextureLoader.h"
 #include "UI/EditorConsoleWidget.h"
 
 namespace ResourceKey
@@ -112,6 +113,110 @@ bool FResourceManager::LoadGPUResources(ID3D11Device* Device)
 	return true;
 }
 
+void FResourceManager::RegisterTexture(const FString& InTexturePath)
+{
+	if (InTexturePath.empty())
+	{
+		return;
+	}
+
+	if (TextureResources.find(InTexturePath) != TextureResources.end())
+	{
+		return;
+	}
+
+	FTextureResource Resource;
+	Resource.Path = InTexturePath;
+	Resource.SRV = nullptr;
+	TextureResources[InTexturePath] = Resource;
+}
+
+FTextureResource* FResourceManager::FindTexture(const FString& InTexturePath)
+{
+	auto It = TextureResources.find(InTexturePath);
+	return (It != TextureResources.end()) ? &It->second : nullptr;
+}
+
+const FTextureResource* FResourceManager::FindTexture(const FString& InTexturePath) const
+{
+	auto It = TextureResources.find(InTexturePath);
+	return (It != TextureResources.end()) ? &It->second : nullptr;
+}
+
+bool FResourceManager::LoadTextureResource(FTextureResource& Resource, ID3D11Device* InDevice)
+{
+	if (!InDevice || Resource.Path.empty())
+	{
+		return false;
+	}
+
+	if (Resource.IsLoaded())
+	{
+		return true;
+	}
+
+	std::filesystem::path TexturePath(Resource.Path);
+	if (!TexturePath.is_absolute())
+	{
+		TexturePath = std::filesystem::path(FPaths::RootDir()) / TexturePath;
+	}
+
+	TexturePath = TexturePath.lexically_normal();
+
+	HRESULT Hr = E_FAIL;
+	if (TexturePath.extension() == ".dds")
+	{
+		Hr = DirectX::CreateDDSTextureFromFileEx(
+			InDevice,
+			TexturePath.wstring().c_str(),
+			0,
+			D3D11_USAGE_IMMUTABLE,
+			D3D11_BIND_SHADER_RESOURCE,
+			0, 0,
+			DirectX::DDS_LOADER_DEFAULT,
+			nullptr,
+			&Resource.SRV
+		);
+	}
+	else
+	{
+		Hr = DirectX::CreateWICTextureFromFile(
+			InDevice,
+			TexturePath.wstring().c_str(),
+			nullptr,
+			&Resource.SRV
+		);
+	}
+
+	return SUCCEEDED(Hr);
+}
+
+ID3D11ShaderResourceView* FResourceManager::GetOrCreateTextureSRV(const FString& InTexturePath, ID3D11Device* InDevice)
+{
+	if (InTexturePath.empty() || !InDevice)
+	{
+		return nullptr;
+	}
+
+	RegisterTexture(InTexturePath);
+
+	FTextureResource* TextureResource = FindTexture(InTexturePath);
+	if (!TextureResource)
+	{
+		return nullptr;
+	}
+
+	if (!TextureResource->IsLoaded())
+	{
+		if (!LoadTextureResource(*TextureResource, InDevice))
+		{
+			return nullptr;
+		}
+	}
+
+	return TextureResource->SRV;
+}
+
 void FResourceManager::ReleaseGPUResources()
 {
 	for (auto& [Key, Resource] : FontResources)
@@ -121,6 +226,20 @@ void FResourceManager::ReleaseGPUResources()
 	for (auto& [Key, Resource] : ParticleResources)
 	{
 		if (Resource.SRV) { Resource.SRV->Release(); Resource.SRV = nullptr; }
+	}
+
+	ReleaseTextureResources();
+}
+
+void FResourceManager::ReleaseTextureResources()
+{
+	for (auto& [Key, Resource] : TextureResources)
+	{
+		if (Resource.SRV)
+		{
+			Resource.SRV->Release();
+			Resource.SRV = nullptr;
+		}
 	}
 }
 

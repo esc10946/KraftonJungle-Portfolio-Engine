@@ -15,9 +15,12 @@
 #include "Math/Matrix.h"
 #include "Math/Vector.h"
 
+class UMaterial;
+
 enum class ERenderCommandType
 {
 	Primitive,
+	StaticMesh,
 	Gizmo,
 	StencilMask,
 	SelectionOutline,
@@ -100,10 +103,21 @@ struct FSubUVConstants
 	float Height = 1.0f;
 };
 
+struct FStaticMeshConstants
+{
+	UMaterial* Material = nullptr;
+	ID3D11ShaderResourceView* DiffuseSRV = nullptr;
+	uint32 FirstIndex = 0;
+	uint32 IndexCount = 0;
+	uint32 bUseTexture = 0;
+	float Padding0[3];
+};
+
 struct FRenderCommand
 {
 	//	VB, IB 모두 담고 있는 MB
 	FMeshBuffer* MeshBuffer = nullptr;
+	FTextureMeshBuffer* TextureMeshBuffer = nullptr;
 	FPerObjectConstants PerObjectConstants = {};
 
 	union
@@ -115,6 +129,7 @@ struct FRenderCommand
 		FGridConstants Grid;
 		FFontConstants Font;
 		FSubUVConstants SubUV;
+		FStaticMeshConstants StaticMesh;
 	} Constants;
 
 	EDepthStencilState DepthStencilState = static_cast<EDepthStencilState>(-1);

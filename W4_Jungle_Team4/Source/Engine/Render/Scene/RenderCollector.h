@@ -6,13 +6,18 @@ class UWorld;
 class AActor;
 class UPrimitiveComponent;
 class UGizmoComponent;
+class UStaticMeshComponent;
+struct FStaticMeshAsset;
 
 class FRenderCollector {
 private:
 	FMeshBufferManager MeshBufferManager;
+	ID3D11Device* Device = nullptr;
+	TMap<const UStaticMeshComponent*, FTextureMeshBuffer> StaticMeshBufferMap;
+	TMap<const UStaticMeshComponent*, const FStaticMeshAsset*> StaticMeshAssetMap;
 public:
-	void Initialize(ID3D11Device* InDevice) { MeshBufferManager.Create(InDevice); }
-	void Release() { MeshBufferManager.Release(); }
+	void Initialize(ID3D11Device* InDevice) { Device = InDevice; MeshBufferManager.Create(InDevice); }
+	void Release();
 
 	void CollectWorld(UWorld* World, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus);
 	void CollectSelection(const TArray<AActor*>& SelectedActors, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus);
@@ -24,4 +29,5 @@ private:
 	void CollectFromSelectedActor(AActor* Actor, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus);
 	void CollectFromComponent(UPrimitiveComponent* Primitive, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus);
 	void CollectAABBCommand(UPrimitiveComponent* PrimitiveComponent, const FShowFlags& ShowFlags, FRenderBus& RenderBus);
+	FTextureMeshBuffer* GetOrCreateStaticMeshBuffer(UStaticMeshComponent* StaticMeshComponent);
 };

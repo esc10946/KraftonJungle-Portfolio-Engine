@@ -19,6 +19,7 @@ public:
 	UStaticMesh* GetStaticMesh() const { return StaticMesh; }
 	FStaticMeshAsset* GetStaticMeshAsset() const;
 	FString GetStaticMeshAssetPath() const;
+	const FTexturedMeshData* GetTexturedMeshData() const;
 
 	virtual void SetMaterial(int32 SlotIndex, UMaterial* InMaterial) override;
 	virtual UMaterial* GetMaterial(int32 SlotIndex) const override;
@@ -30,6 +31,7 @@ public:
 	virtual void PostEditProperty(const char* PropertyName) override;
 
 	virtual EPrimitiveType GetPrimitiveType() const override { return EPrimitiveType::EPT_StaticMesh; }
+	virtual bool SupportsOutline() const override { return false; }
 
 private:
 	void RefreshMeshData();
@@ -37,4 +39,5 @@ private:
 private:
 	UStaticMesh* StaticMesh = nullptr;
 	FMeshData StaticMeshRenderData;
+	FTexturedMeshData StaticMeshTexturedRenderData;
 };

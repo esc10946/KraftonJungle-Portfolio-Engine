@@ -25,3 +25,11 @@ struct FTextureAtlasResource
 // 의미론적 별칭 — 타입은 동일하지만 용도를 명시합니다.
 using FFontResource     = FTextureAtlasResource;
 using FParticleResource = FTextureAtlasResource;
+
+struct FTextureResource
+{
+	FString Path;
+	ID3D11ShaderResourceView* SRV = nullptr;
+
+	bool IsLoaded() const { return SRV != nullptr; }
+};

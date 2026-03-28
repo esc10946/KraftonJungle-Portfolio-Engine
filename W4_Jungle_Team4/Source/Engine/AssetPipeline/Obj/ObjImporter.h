@@ -21,6 +21,11 @@ private:
 	static bool TriangulateFace(const FObjFace& InFace, TArray<FObjFace>& OutTriangles);
 	// raw face들 바탕으로 vertex/index 버퍼 생성
 	static bool BuildGeometry(const FObjInfo& InObjInfo, FStaticMeshAsset& InOutAsset);
+	static uint32 FindOrAddMaterialSlot(
+		const FString& InMaterialName,
+		const FObjInfo& InObjInfo,
+		FStaticMeshAsset& InOutAsset,
+		TMap<FString, uint32>& InOutSlotLookup);
 	// usemtl 경계 기준으로 section 생성
 	static void BuildSections(const FObjInfo& InObjInfo, FStaticMeshAsset& InOutAsset);
 

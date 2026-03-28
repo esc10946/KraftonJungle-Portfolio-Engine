@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <algorithm>
+#include "Asset/Material/MaterialObject.h"
 #include "Core/Paths.h"
 #include "Core/ResourceManager.h"
 #include "Render/Common/RenderTypes.h"
@@ -23,6 +24,9 @@ void FRenderer::Create(HWND hWindow)
 	Resources.PrimitiveShader.Create(Device.GetDevice(), L"Shaders/Primitive.hlsl",
 		"VS", "PS", PrimitiveInputLayout, ARRAYSIZE(PrimitiveInputLayout));
 
+	Resources.StaticMeshShader.Create(Device.GetDevice(), L"Shaders/StaticMeshTextured.hlsl",
+		"VS", "PS", TexturedMeshInputLayout, ARRAYSIZE(TexturedMeshInputLayout));
+
 	// 2. 기즈모 (Gizmo.hlsl)
 	Resources.GizmoShader.Create(Device.GetDevice(), L"Shaders/Gizmo.hlsl",
 		"VS", "PS", PrimitiveInputLayout, ARRAYSIZE(PrimitiveInputLayout));
@@ -40,6 +44,7 @@ void FRenderer::Create(HWND hWindow)
 	Resources.GizmoPerObjectConstantBuffer.Create(Device.GetDevice(), sizeof(FGizmoConstants));
 	Resources.EditorConstantBuffer.Create(Device.GetDevice(), sizeof(FEditorConstants));
 	Resources.OutlineConstantBuffer.Create(Device.GetDevice(), sizeof(FOutlineConstants));
+	Resources.StaticMeshConstantBuffer.Create(Device.GetDevice(), sizeof(FStaticMeshConstants));
 
 	//	MeshManager init
 	FMeshManager::Initialize();
@@ -51,6 +56,13 @@ void FRenderer::Create(HWND hWindow)
 	FontBatcher.Create(Device.GetDevice());
 	SubUVBatcher.Create(Device.GetDevice());
 
+	D3D11_SAMPLER_DESC StaticMeshSamplerDesc = {};
+	StaticMeshSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+	StaticMeshSamplerDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+	StaticMeshSamplerDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	StaticMeshSamplerDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	Device.GetDevice()->CreateSamplerState(&StaticMeshSamplerDesc, &StaticMeshSamplerState);
+
 	InitializePassRenderStates();
 	InitializePassBatchers();
 
@@ -61,6 +73,7 @@ void FRenderer::Create(HWND hWindow)
 void FRenderer::Release()
 {
 	Resources.PrimitiveShader.Release();
+	Resources.StaticMeshShader.Release();
 	Resources.GizmoShader.Release();
 	Resources.EditorShader.Release();
 	Resources.OutlineShader.Release();
@@ -70,6 +83,7 @@ void FRenderer::Release()
 	Resources.GizmoPerObjectConstantBuffer.Release();
 	Resources.EditorConstantBuffer.Release();
 	Resources.OutlineConstantBuffer.Release();
+	Resources.StaticMeshConstantBuffer.Release();
 
 	FGPUProfiler::Get().Shutdown();
 
@@ -77,6 +91,7 @@ void FRenderer::Release()
 	GridLineBatcher.Release();
 	FontBatcher.Release();
 	SubUVBatcher.Release();
+	if (StaticMeshSamplerState) { StaticMeshSamplerState->Release(); StaticMeshSamplerState = nullptr; }
 
 	Device.Release();
 }
@@ -107,6 +122,32 @@ const TArray<FRenderCommand>& FRenderer::GetAlignedCommands(ERenderPass Pass, co
 		std::sort(SortedCommandBuffer.begin(), SortedCommandBuffer.end(),
 			[](const FRenderCommand& A, const FRenderCommand& B) {
 				return A.Constants.SubUV.Particle < B.Constants.SubUV.Particle;
+			});
+
+		return SortedCommandBuffer;
+	}
+
+	if (Pass == ERenderPass::Opaque && Commands.size() > 1)
+	{
+		SortedCommandBuffer.assign(Commands.begin(), Commands.end());
+		std::sort(SortedCommandBuffer.begin(), SortedCommandBuffer.end(),
+			[](const FRenderCommand& A, const FRenderCommand& B) {
+				if (A.Type != B.Type)
+				{
+					return A.Type < B.Type;
+				}
+
+				if (A.Type == ERenderCommandType::StaticMesh && B.Type == ERenderCommandType::StaticMesh)
+				{
+					if (A.Constants.StaticMesh.Material != B.Constants.StaticMesh.Material)
+					{
+						return A.Constants.StaticMesh.Material < B.Constants.StaticMesh.Material;
+					}
+
+					return A.Constants.StaticMesh.DiffuseSRV < B.Constants.StaticMesh.DiffuseSRV;
+				}
+
+				return A.MeshBuffer < B.MeshBuffer;
 			});
 
 		return SortedCommandBuffer;
@@ -346,6 +387,24 @@ void FRenderer::BindShaderByType(const FRenderCommand& InCmd, ID3D11DeviceContex
 
 	switch (InCmd.Type)
 	{
+	case ERenderCommandType::StaticMesh:
+	{
+		Resources.StaticMeshShader.Bind(Context);
+		Resources.StaticMeshConstantBuffer.Update(Context, &InCmd.Constants.StaticMesh, sizeof(FStaticMeshConstants));
+
+		ID3D11Buffer* cb = Resources.PerObjectConstantBuffer.GetBuffer();
+		Context->VSSetConstantBuffers(1, 1, &cb);
+		Context->PSSetConstantBuffers(1, 1, &cb);
+
+		cb = Resources.StaticMeshConstantBuffer.GetBuffer();
+		Context->PSSetConstantBuffers(6, 1, &cb);
+
+		ID3D11ShaderResourceView* ShaderResourceView = InCmd.Constants.StaticMesh.DiffuseSRV;
+		Context->PSSetShaderResources(0, 1, &ShaderResourceView);
+		Context->PSSetSamplers(0, 1, &StaticMeshSamplerState);
+		break;
+	}
+
 	case ERenderCommandType::Gizmo:
 		Resources.GizmoShader.Bind(Context);
 		Resources.GizmoPerObjectConstantBuffer.Update(Context, &InCmd.Constants.Gizmo, sizeof(FGizmoConstants));
@@ -385,6 +444,34 @@ void FRenderer::BindShaderByType(const FRenderCommand& InCmd, ID3D11DeviceContex
 
 void FRenderer::DrawCommand(ID3D11DeviceContext* InDeviceContext, const FRenderCommand& InCommand)
 {
+	if (InCommand.Type == ERenderCommandType::StaticMesh)
+	{
+		if (InCommand.TextureMeshBuffer == nullptr || !InCommand.TextureMeshBuffer->IsValid())
+		{
+			return;
+		}
+
+		uint32 offset = 0;
+		ID3D11Buffer* vertexBuffer = InCommand.TextureMeshBuffer->GetVertexBuffer().GetBuffer();
+		if (vertexBuffer == nullptr)
+		{
+			return;
+		}
+
+		const uint32 stride = InCommand.TextureMeshBuffer->GetVertexBuffer().GetStride();
+		InDeviceContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+
+		ID3D11Buffer* indexBuffer = InCommand.TextureMeshBuffer->GetIndexBuffer().GetBuffer();
+		if (indexBuffer == nullptr)
+		{
+			return;
+		}
+
+		InDeviceContext->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
+		InDeviceContext->DrawIndexed(InCommand.Constants.StaticMesh.IndexCount, InCommand.Constants.StaticMesh.FirstIndex, 0);
+		return;
+	}
+
 	if (InCommand.MeshBuffer == nullptr || !InCommand.MeshBuffer->IsValid())
 	{
 		return;

@@ -13,6 +13,8 @@
 #include "Object/ObjectFactory.h"
 #include "Core/PropertyTypes.h"
 #include "Object/FName.h"
+#include "Asset/StaticMesh/StaticMeshManager.h"
+#include "Asset/StaticMesh/StaticMeshObject.h"
 
 namespace SceneKeys
 {
@@ -44,6 +46,54 @@ static EWorldType StringToWorldType(const string& Str)
 	if (Str == "Game") return EWorldType::Game;
 	if (Str == "PIE")  return EWorldType::PIE;
 	return EWorldType::Editor;
+}
+
+namespace ObjectPropertyKeys
+{
+	static constexpr const char* ClassName = "ClassName";
+	static constexpr const char* ObjectName = "ObjectName";
+	static constexpr const char* AssetPath = "AssetPath";
+}
+
+static json::JSON SerializeObjectReference(UObject* Object)
+{
+	using namespace json;
+
+	if (!Object)
+	{
+		return JSON();
+	}
+
+	JSON SerializedObject = json::Object();
+	SerializedObject[ObjectPropertyKeys::ClassName] = Object->GetTypeInfo()->name;
+	SerializedObject[ObjectPropertyKeys::ObjectName] = Object->GetFName().ToString();
+
+	if (Object->IsA<UStaticMesh>())
+	{
+		UStaticMesh* StaticMesh = static_cast<UStaticMesh*>(Object);
+		SerializedObject[ObjectPropertyKeys::AssetPath] = StaticMesh->GetAssetPathFileName();
+	}
+
+	return SerializedObject;
+}
+
+static UObject* FindObjectReferenceByName(const FString& ObjectName, const FTypeInfo* RequiredType)
+{
+	if (ObjectName.empty())
+	{
+		return nullptr;
+	}
+
+	for (FObjectIterator It(RequiredType); It; ++It)
+	{
+		UObject* Candidate = *It;
+		if (Candidate && Candidate->GetFName().ToString() == ObjectName)
+		{
+			return Candidate;
+		}
+	}
+
+	return nullptr;
 }
 
 // ============================================================
@@ -186,6 +236,13 @@ json::JSON FSceneSaveManager::SerializePropertyValue(const FPropertyDescriptor& 
 	}
 	case EPropertyType::String:
 		return JSON(*static_cast<FString*>(Prop.ValuePtr));
+
+	case EPropertyType::Object: {
+		UObject* ObjectValue = Prop.ValuePtr
+			? *reinterpret_cast<UObject* const*>(Prop.ValuePtr)
+			: nullptr;
+		return SerializeObjectReference(ObjectValue);
+	}
 
 	case EPropertyType::Name:
 		return JSON(static_cast<FName*>(Prop.ValuePtr)->ToString());
@@ -354,6 +411,39 @@ void FSceneSaveManager::DeserializePropertyValue(FPropertyDescriptor& Prop, json
 	case EPropertyType::String:
 		*static_cast<FString*>(Prop.ValuePtr) = Value.ToString();
 		break;
+
+	case EPropertyType::Object: {
+		UObject** ObjectValue = reinterpret_cast<UObject**>(Prop.ValuePtr);
+		if (!ObjectValue)
+		{
+			break;
+		}
+
+		*ObjectValue = nullptr;
+
+		if (Value.IsNull())
+		{
+			break;
+		}
+
+		if (Prop.ObjectClass == &UStaticMesh::s_TypeInfo &&
+			Value.hasKey(ObjectPropertyKeys::AssetPath))
+		{
+			const FString AssetPath = Value[ObjectPropertyKeys::AssetPath].ToString();
+			if (!AssetPath.empty())
+			{
+				*ObjectValue = FStaticMeshManager::Get().LoadStaticMeshObject(AssetPath);
+			}
+			break;
+		}
+
+		if (Value.hasKey(ObjectPropertyKeys::ObjectName))
+		{
+			const FString ObjectName = Value[ObjectPropertyKeys::ObjectName].ToString();
+			*ObjectValue = FindObjectReferenceByName(ObjectName, Prop.ObjectClass);
+		}
+		break;
+	}
 
 	case EPropertyType::Name:
 		*static_cast<FName*>(Prop.ValuePtr) = FName(Value.ToString());

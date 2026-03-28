@@ -52,6 +52,12 @@ cbuffer OutlineConstants : register(b5)
     float3 Padding4;
 };
 
+cbuffer StaticMeshBuffer : register(b6)
+{
+    uint StaticMeshUseTexture;
+    float3 Padding5;
+};
+
 
 float4 ApplyMVP(float3 pos)
 {

@@ -159,9 +159,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Engine\Asset\Material\MaterialManager.cpp" />
+    <ClCompile Include="Source\Engine\Asset\Material\MaterialObject.cpp" />
+    <ClCompile Include="Source\Engine\Asset\Texture\TextureManager.cpp" />
+    <ClCompile Include="Source\Engine\Asset\Texture\TextureObject.cpp" />
     <ClCompile Include="Source\Engine\AssetPipeline\Obj\MtlParser.cpp" />
     <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjImporter.cpp" />
+    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjManager.cpp" />
     <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshBakeIO.cpp" />
+    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshObject.cpp" />
     <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
     <ClCompile Include="OrbitCameraComponent.cpp" />
     <ClCompile Include="Source\Editor\EditorEngine.cpp" />
@@ -186,6 +192,7 @@
     <ClCompile Include="Source\Engine\Component\GizmoComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\PrimitiveComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\SceneComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\StaticMeshComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\SubUVComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\TextRenderComponent.cpp" />
     <ClCompile Include="Source\Engine\Core\CrashDump.cpp" />
@@ -236,13 +243,19 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\Asset\Material\MaterialManager.h" />
+    <ClInclude Include="Source\Engine\Asset\Material\MaterialObject.h" />
+    <ClInclude Include="Source\Engine\Asset\Texture\TextureManager.h" />
+    <ClInclude Include="Source\Engine\Asset\Texture\TextureObject.h" />
     <ClInclude Include="Source\Engine\AssetPipeline\Obj\MtlParser.h" />
     <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjImporter.h" />
+    <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjManager.h" />
     <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjParser.h" />
     <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjTypes.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshBakeIO.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshManager.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshAsset.h" />
+    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshObjcet.h" />
     <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
     <ClInclude Include="OrbitCameraComponent.h" />
     <ClInclude Include="Source\Editor\EditorEngine.h" />
@@ -321,7 +334,6 @@
     <ClInclude Include="Source\Engine\Render\Resource\RenderResources.h" />
     <ClInclude Include="Source\Engine\Render\Resource\Shader.h" />
     <ClInclude Include="Source\Engine\Render\Resource\VertexTypes.h" />
-    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshObject.h" />
     <ClInclude Include="Source\Engine\Render\Scene\RenderBus.h" />
     <ClInclude Include="Source\Engine\Render\Scene\RenderCollector.h" />
     <ClInclude Include="Source\Engine\Render\Scene\RenderCollectorContext.h" />
@@ -372,6 +384,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="Shaders\ShaderLine.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Shaders\StaticMeshTextured.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>

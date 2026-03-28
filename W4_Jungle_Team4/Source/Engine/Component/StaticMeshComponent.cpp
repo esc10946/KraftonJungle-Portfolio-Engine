@@ -26,6 +26,11 @@ FString UStaticMeshComponent::GetStaticMeshAssetPath() const
 	return StaticMesh ? StaticMesh->GetAssetPathFileName() : FString();
 }
 
+const FTexturedMeshData* UStaticMeshComponent::GetTexturedMeshData() const
+{
+	return StaticMeshTexturedRenderData.Vertices.empty() ? nullptr : &StaticMeshTexturedRenderData;
+}
+
 void UStaticMeshComponent::SetMaterial(int32 SlotIndex, UMaterial* InMaterial)
 {
 	if (SlotIndex < 0)
@@ -43,18 +48,27 @@ void UStaticMeshComponent::SetMaterial(int32 SlotIndex, UMaterial* InMaterial)
 
 UMaterial* UStaticMeshComponent::GetMaterial(int32 SlotIndex) const
 {
-	if (SlotIndex < 0 || SlotIndex >= static_cast<int32>(OverrideMaterials.size()))
+	if (SlotIndex < 0)
 	{
 		return nullptr;
 	}
 
-	return OverrideMaterials[SlotIndex];
+	if (SlotIndex < static_cast<int32>(OverrideMaterials.size()) && OverrideMaterials[SlotIndex])
+	{
+		return OverrideMaterials[SlotIndex];
+	}
+
+	if (!StaticMesh)
+	{
+		return nullptr;
+	}
+
+	return StaticMesh->GetDefaultMaterial(SlotIndex);
 }
 
 int32 UStaticMeshComponent::GetNumMaterials() const
 {
-	const FStaticMeshAsset* Asset = GetStaticMeshAsset();
-	return Asset ? static_cast<int32>(Asset->Sections.size()) : 0;
+	return StaticMesh ? StaticMesh->GetNumMaterialSlots() : 0;
 }
 
 void UStaticMeshComponent::UpdateWorldAABB() const
@@ -85,7 +99,9 @@ void UStaticMeshComponent::PostEditProperty(const char* PropertyName)
 void UStaticMeshComponent::RefreshMeshData()
 {
 	FStaticMeshAsset* Asset = GetStaticMeshAsset();
-	if (Asset && Asset->BuildRenderMeshData(StaticMeshRenderData))
+	if (Asset &&
+		Asset->BuildRenderMeshData(StaticMeshRenderData) &&
+		Asset->BuildTexturedRenderMeshData(StaticMeshTexturedRenderData))
 	{
 		LocalExtents = (Asset->BoundsMax - Asset->BoundsMin) * 0.5f;
 		MeshData = &StaticMeshRenderData;
@@ -95,5 +111,7 @@ void UStaticMeshComponent::RefreshMeshData()
 
 	StaticMeshRenderData.Vertices.clear();
 	StaticMeshRenderData.Indices.clear();
+	StaticMeshTexturedRenderData.Vertices.clear();
+	StaticMeshTexturedRenderData.Indices.clear();
 	MeshData = nullptr;
 }
