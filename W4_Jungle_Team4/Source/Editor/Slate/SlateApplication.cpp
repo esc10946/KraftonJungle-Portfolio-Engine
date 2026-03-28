@@ -1,6 +1,16 @@
 ﻿#include "SlateApplication.h"
 #include "Core/InputSystem.h"
 #include "SSplitter.h"
+#include <functional>
+
+FSlateApplication::~FSlateApplication()
+{
+	for (SWindow* Window : Windows)
+	{
+		delete Window;
+	}
+	Windows.clear();
+}
 
 void FSlateApplication::Tick(float DeltaTime)
 {
@@ -22,6 +32,7 @@ void FSlateApplication::OnPaint()
 SWindow* FSlateApplication::AddWindow(SWindow* InWindow)
 {
 	Windows.push_back(InWindow);
+
 	return InWindow;
 }
 
@@ -35,15 +46,15 @@ void FSlateApplication::DestroyWindow(SWindow* InWindow)
 	}
 }
 
+
+// 마우스 위치에 있는 최하단 위젯을 찾는 함수
 SWidget* FSlateApplication::FindWidgetAt(FVector2 ScreenPoint) const
 {
-	// 1. 최상단 윈도우부터 거꾸로(Z-order 역순) 탐색
 	for (auto It = Windows.rbegin(); It != Windows.rend(); ++It)
 	{
 		SWindow* Window = *It;
-		if (Window->IsHovered(ScreenPoint)) // 마우스가 윈도우 영역 안인가?
+		if (Window->IsHovered(ScreenPoint))
 		{
-			// 2. 윈도우를 찾았으면, 그 내부의 자식들 중 가장 깊은 놈을 찾음
 			return FindLeafWidgetAt(Window, ScreenPoint);
 		}
 	}
@@ -52,22 +63,21 @@ SWidget* FSlateApplication::FindWidgetAt(FVector2 ScreenPoint) const
 
 SWidget* FSlateApplication::FindLeafWidgetAt(SWidget* Parent, FVector2 ScreenPoint) const
 {
-	// SSplitter인 경우 자식들을 검사하기 전에 본인의 핸들을 먼저 검사
+	// SSplitter인 경우 자식들을 검사하기 전에 본인의 핸들을 먼저 검사 (예외 처리)
 	if (SSplitter* Splitter = dynamic_cast<SSplitter*>(Parent))
 	{
 		if (Splitter->IsOnHandle(ScreenPoint.X, ScreenPoint.Y))
 		{
 			return Splitter;
 		}
-	}
+	}	
 
-	// 자식들을 역순으로 순회 (나중에 그려진 자식이 위에 있으므로)
 	TArray<SWidget*> Children = Parent->GetChildren();
 	for (int32 i = Children.size() - 1; i >= 0; --i)
 	{
 		SWidget* Child = Children[i];
 
-		// 자식이 마우스를 무시하도록 설정되어 있다면 건너뜀 (HitTestInvisible)
+		// TODO: 현재는 모든 child를 순회하지만, 따로 pass flag를 둘 수 있음
 		if (Child->IsHovered(ScreenPoint))
 		{
 			// 더 깊은 자식이 있는지 또 파고듬 (재귀)
@@ -75,10 +85,11 @@ SWidget* FSlateApplication::FindLeafWidgetAt(SWidget* Parent, FVector2 ScreenPoi
 		}
 	}
 
-	// 더 이상 마우스에 걸리는 자식이 없다면, 자기 자신(Parent)이 최하단 위젯임
 	return Parent;
 }
 
+// 모든 입력을 처리하는 함수
+// 마우스 위치, 버튼 상태, 키보드 입력 등을 체크해서 적절한 위젯에 이벤트를 전달
 void FSlateApplication::ProcessInput()
 {
 	POINT MousePosition = InputSystem::Get().GetMousePos();
@@ -138,13 +149,11 @@ void FSlateApplication::ProcessInput()
 	}
 	
 	// Mouse Wheel
-	{
-		SWidget* Target = Captor ? Captor : WidgetUnderMouse;
+	SWidget* WheelTarget = Captor ? Captor : WidgetUnderMouse;
 
-		if (Target)
-		{
-			FReply Reply = Target->OnMouseWheel(InputSystem::Get().GetScrollNotches());
-		}
+	if (WheelTarget)
+	{
+		FReply Reply = WheelTarget->OnMouseWheel(InputSystem::Get().GetScrollNotches());
 	}
 
 	SWidget* KeyboardTarget = GetFocusedWidget();

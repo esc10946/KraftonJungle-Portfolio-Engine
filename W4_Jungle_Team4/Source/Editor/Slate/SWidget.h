@@ -33,18 +33,34 @@ public:
 	FRect GetRect() const { return Rect; }
 	void SetRect(const FRect& InRect) { Rect = InRect; }
 
+	const FString& GetName() const { return Name; }
+	void SetName(const FString& InName) { Name = InName; }
+
 	void AddChild(SWidget* InChild)
 	{
 		Children.push_back(InChild);
 		InChild->Parent = this;
 	}
 	virtual TArray<SWidget*> GetChildren() { return Children; }
+	void RemoveChildren()
+	{
+		for (SWidget* Child : Children)
+		{
+			Child->Parent = nullptr;
+		}
+		Children.clear();
+	}
+
+	SWidget* GetParent() const { return Parent; }
+	void SetParent(SWidget* InParent) { Parent = InParent; }
 
 	virtual FString GetWidgetType() const { return "SWidget"; }
 	virtual json::JSON Serialize() const;
 	virtual void Deserialize(json::JSON& Data);
 
 protected:
+	FString Name;
+
 	FRect Rect;
 	bool bIsVisible = true;
 

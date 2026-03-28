@@ -242,6 +242,7 @@
     <ClCompile Include="Source\Engine\Serialization\Binary\WindowsBinReader.cpp" />
     <ClCompile Include="Source\Engine\Serialization\Binary\WindowsBinWriter.cpp" />
     <ClCompile Include="Source\Engine\Serialization\SceneSaveManager.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SViewportRoot.cpp" />
     <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMesh.cpp" />
     <ClCompile Include="Source\Engine\Render\Resource\Texture.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui.cpp" />
@@ -364,6 +365,7 @@
     <ClInclude Include="Source\Engine\Serialization\Binary\WindowsBinWriter.h" />
     <ClInclude Include="Source\Engine\Serialization\SceneSaveManager.h" />
     <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
+    <ClInclude Include="Source\Editor\Slate\SViewportRoot.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMesh.h" />
     <ClInclude Include="Source\Engine\Render\Resource\Texture.h" />
     <ClInclude Include="ThirdParty\ImGui\imconfig.h" />
@@ -409,6 +411,12 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Settings\EditorLayout.json">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

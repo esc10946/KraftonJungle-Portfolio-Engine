@@ -8,6 +8,7 @@ class FViewport;
 class UWorld;
 class FSelectionManager;
 class FEditorViewportClient;
+class SWidget;
 
 class FViewportManager : public TSingleton<FViewportManager>
 {
@@ -31,4 +32,6 @@ private:
 	FSelectionManager* SelectionManager = nullptr;
 
 	TArray<FViewport*> Viewports;
+
+	SWidget* ViewportRootWidget = nullptr;
 };
