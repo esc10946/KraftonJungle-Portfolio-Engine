@@ -6,6 +6,8 @@ void FEngineLoop::CreateEngine()
 {
 #if WITH_EDITOR
 	GEngine = UObjectManager::Get().CreateObject<UEditorEngine>();
+#elif
+	GEngine = UObjectManager::Get().CreateObject<UViewerEngine>()
 #else
 	GEngine = UObjectManager::Get().CreateObject<UEngine>();
 #endif

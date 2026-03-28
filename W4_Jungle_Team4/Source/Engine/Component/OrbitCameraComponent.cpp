@@ -32,7 +32,7 @@ void UOrbitCameraComponent::OnZoom(float Delta)
 	if (Radius < 1.0f)
 		Radius = 1.0f;
 
-	UpdatePosition;
+	UpdatePosition();
 }
 
 void UOrbitCameraComponent::UpdatePosition()

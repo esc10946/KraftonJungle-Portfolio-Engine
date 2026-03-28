@@ -252,12 +252,6 @@
     <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshBakeIO.cpp" />
     <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshManager.cpp" />
     <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshObject.cpp" />
-    <ClCompile Include="Source\Engine\AssetPipeline\Obj\MtlParser.cpp" />
-    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjImporter.cpp" />
-    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjManager.cpp" />
-    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjParser.cpp" />
-    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjTypes.cpp" />
-    <ClCompile Include="Source\Editor\Viewport\ViewerViewportClient.cpp" />
     <ClCompile Include="Source\Engine\Component\ActorComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\BillboardComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\CameraComponent.cpp" />
@@ -308,6 +302,8 @@
     <ClCompile Include="Source\Engine\Serialization\Binary\WindowsBinWriter.cpp" />
     <ClCompile Include="Source\Engine\Serialization\SceneSaveManager.cpp" />
     <ClCompile Include="Source\Engine\Component\StaticMeshComponent.cpp" />
+    <ClCompile Include="Source\Viewer\ViewerEngine.cpp" />
+    <ClCompile Include="Source\Viewer\ViewerViewportClient.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui_demo.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui_draw.cpp" />
@@ -342,7 +338,6 @@
     <ClInclude Include="Source\Editor\Viewport\EditorViewportClient.h" />
     <ClInclude Include="Source\Editor\Viewport\FViewport.h" />
     <ClInclude Include="Source\Editor\Viewport\FViewportClient.h" />
-    <ClInclude Include="Source\Editor\Viewport\ViewerViewportClient.h" />
     <ClInclude Include="Source\Engine\Component\ActorComponent.h" />
     <ClInclude Include="Source\Engine\Component\BillboardComponent.h" />
     <ClInclude Include="Source\Engine\Component\CameraComponent.h" />
@@ -413,6 +408,8 @@
     <ClInclude Include="Source\Engine\Serialization\Binary\WindowsBinWriter.h" />
     <ClInclude Include="Source\Engine\Serialization\SceneSaveManager.h" />
     <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
+    <ClInclude Include="Source\Viewer\ViewerEngine.h" />
+    <ClInclude Include="Source\Viewer\ViewerViewportClient.h" />
     <ClInclude Include="ThirdParty\ImGui\imconfig.h" />
     <ClInclude Include="ThirdParty\ImGui\imgui.h" />
     <ClInclude Include="ThirdParty\ImGui\imgui_impl_dx11.h" />

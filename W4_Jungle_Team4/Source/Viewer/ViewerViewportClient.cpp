@@ -1,4 +1,4 @@
-﻿#include "Editor/Viewport/ViewerViewportClient.h"
+﻿#include "Viewer/ViewerViewportClient.h"
 #include "Engine/Core/InputSystem.h"
 #include "Engine/Component/OrbitCameraComponent.h"
 #include "Asset/StaticMesh/StaticMeshManager.h"
@@ -24,6 +24,24 @@ void FViewerViewportClient::ResetCamera()
 	if (!ViewerCamera) return;
 	ViewerCamera->SetWorldLocation(FVector(0, 5, 0));
 	ViewerCamera->LookAt(FVector(0,0,0));
+}
+
+void FViewerViewportClient::SetViewportSize(float InWidth, float InHeight)
+{
+	if (InWidth > 0.0f)
+	{
+		WindowWidth = InWidth;
+	}
+
+	if (InHeight > 0.0f)
+	{
+		WindowHeight = InHeight;
+	}
+
+	if (ViewerCamera)
+	{
+		ViewerCamera->OnResize(static_cast<int32>(WindowWidth), static_cast<int32>(WindowHeight));
+	}
 }
 
 void FViewerViewportClient::Tick(float DeltaTime)

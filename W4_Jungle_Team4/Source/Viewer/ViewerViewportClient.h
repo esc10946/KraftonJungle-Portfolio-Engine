@@ -13,6 +13,9 @@ public:
 	void CreateCamera();
 	void DestroyCamera();
 	void ResetCamera();
+	UOrbitCameraComponent* GetCamera() const { return ViewerCamera; }
+
+	void SetViewportSize(float InWidth, float InHeight);
 
 	virtual void Tick(float DeltaTime) override;
 	virtual void Draw(FViewport* Viewport, struct ID3D11DeviceContext* DeviceContext) override;
@@ -23,4 +26,7 @@ public:
 private:
 	FStaticMeshAsset* CurrentMesh = nullptr;
 	UOrbitCameraComponent* ViewerCamera = nullptr;
+	
+	float WindowWidth = 1920.f;
+	float WindowHeight = 1080.f;
 };

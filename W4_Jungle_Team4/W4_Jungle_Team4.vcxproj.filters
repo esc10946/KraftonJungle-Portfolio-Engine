@@ -31,12 +31,6 @@
     <Filter Include="Source\Engine\Asset\StaticMesh">
       <UniqueIdentifier>{8f0dd7c6-7ac6-4696-ab11-bd5e5d376f0e}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\Engine\AssetPipeline">
-      <UniqueIdentifier>{1fbbfef9-d465-4db8-ae3e-64e09d6d3c88}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Engine\AssetPipeline\Obj">
-      <UniqueIdentifier>{ccf8f885-9c9f-4f17-8e93-70380e14d48b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source\Engine\Component">
       <UniqueIdentifier>{519ab669-7945-a465-bd9e-a1e21e8a3a55}</UniqueIdentifier>
     </Filter>
@@ -93,6 +87,9 @@
     </Filter>
     <Filter Include="Source\Editor\Slate">
       <UniqueIdentifier>{f8d68116-576b-4784-a55c-a101e0d15d5b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Viewer">
+      <UniqueIdentifier>{90174761-befc-4a43-9b9b-c569452269ca}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -169,21 +166,6 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshManager.cpp">
       <Filter>Source\Engine\Asset\StaticMesh</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\AssetPipeline\Obj\MtlParser.cpp">
-      <Filter>Source\Engine\AssetPipeline\Obj</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjImporter.cpp">
-      <Filter>Source\Engine\AssetPipeline\Obj</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjManager.cpp">
-      <Filter>Source\Engine\AssetPipeline\Obj</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjParser.cpp">
-      <Filter>Source\Engine\AssetPipeline\Obj</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjTypes.cpp">
-      <Filter>Source\Engine\AssetPipeline\Obj</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Component\ActorComponent.cpp">
       <Filter>Source\Engine\Component</Filter>
@@ -348,9 +330,6 @@
     <ClCompile Include="Source\Engine\Component\OrbitCameraComponent.cpp">
       <Filter>Source\Engine\Component</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Editor\Viewport\ViewerViewportClient.cpp">
-      <Filter>Source\Editor\Viewport</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Engine\Component\MeshComponent.cpp">
       <Filter>Source\Engine\Component</Filter>
     </ClCompile>
@@ -360,6 +339,20 @@
     <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshObject.cpp" />
     <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\StaticMeshComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\StaticMeshComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\StaticMeshComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\StaticMeshComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\StaticMeshComponent.cpp" />
+    <ClCompile Include="Source\Viewer\ViewerEngine.cpp">
+      <Filter>Source\Viewer</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Viewer\ViewerViewportClient.cpp">
+      <Filter>Source\Viewer</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\EditorEngine.h">
@@ -629,9 +622,6 @@
     <ClInclude Include="Source\Engine\Component\OrbitCameraComponent.h">
       <Filter>Source\Engine\Component</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Editor\Viewport\ViewerViewportClient.h">
-      <Filter>Source\Editor\Viewport</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Editor\Viewport\FViewport.h">
       <Filter>Source\Editor\Viewport</Filter>
     </ClInclude>
@@ -668,5 +658,19 @@
     <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshObject.h" />
     <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
+    <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
+    <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
+    <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
+    <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
+    <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
+    <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
+    <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
+    <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
+    <ClInclude Include="Source\Viewer\ViewerEngine.h">
+      <Filter>Source\Viewer</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Viewer\ViewerViewportClient.h">
+      <Filter>Source\Viewer</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
