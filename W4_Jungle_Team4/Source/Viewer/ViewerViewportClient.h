@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "Viewport/FViewportClient.h"
+#include "Editor/Viewport/ViewportClient.h"
 
 class UOrbitCameraComponent;
 struct FStaticMeshAsset;
@@ -14,12 +14,18 @@ public:
 	void DestroyCamera();
 	void ResetCamera();
 	UOrbitCameraComponent* GetCamera() const { return ViewerCamera; }
-
-	void SetViewportSize(float InWidth, float InHeight);
+	const FStaticMeshAsset* GetCurrentMesh() const { return CurrentMesh; }
 
 	virtual void Tick(float DeltaTime) override;
-	virtual void Draw(FViewport* Viewport, struct ID3D11DeviceContext* DeviceContext) override;
-	virtual void OnViewportResized(FViewport* Viewport, uint32 NewWidth, uint32 NewHeight) override;
+	virtual void OnViewportResized(uint32 NewTopLeftX, uint32 NewTopLeftY, uint32 NewWidth, uint32 NewHeight) override;
+
+	virtual void OnMouseDown(float X, float Y, int32 Button){}
+	virtual void OnMouseUp(float X, float Y, int32 Button) {}
+	virtual void OnMouseMove(float X, float Y) {}
+	virtual void OnMouseWheel(float Delta) {}
+
+	virtual void OnKeyDown(int32 Key) {}
+	virtual void OnKeyUp(int32 Key) {}
 
 	void LoadOBJ(const std::string& FilePath);
 

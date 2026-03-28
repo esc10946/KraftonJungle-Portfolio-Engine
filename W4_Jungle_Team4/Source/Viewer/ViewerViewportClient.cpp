@@ -8,6 +8,7 @@ void FViewerViewportClient::CreateCamera()
 {
 	DestroyCamera();
 	ViewerCamera = UObjectManager::Get().CreateObject<UOrbitCameraComponent>();
+	ResetCamera();
 }
 
 void FViewerViewportClient::DestroyCamera()
@@ -24,24 +25,6 @@ void FViewerViewportClient::ResetCamera()
 	if (!ViewerCamera) return;
 	ViewerCamera->SetWorldLocation(FVector(0, 5, 0));
 	ViewerCamera->LookAt(FVector(0,0,0));
-}
-
-void FViewerViewportClient::SetViewportSize(float InWidth, float InHeight)
-{
-	if (InWidth > 0.0f)
-	{
-		WindowWidth = InWidth;
-	}
-
-	if (InHeight > 0.0f)
-	{
-		WindowHeight = InHeight;
-	}
-
-	if (ViewerCamera)
-	{
-		ViewerCamera->OnResize(static_cast<int32>(WindowWidth), static_cast<int32>(WindowHeight));
-	}
 }
 
 void FViewerViewportClient::Tick(float DeltaTime)
@@ -68,17 +51,16 @@ void FViewerViewportClient::Tick(float DeltaTime)
 		ViewerCamera->OnZoom(wheel);
 }
 
-void FViewerViewportClient::Draw(FViewport* Viewport, ID3D11DeviceContext* DeviceContext)
+void FViewerViewportClient::OnViewportResized(uint32 NewTopLeftX, uint32 NewTopLeftY, uint32 NewWidth, uint32 NewHeight)
 {
+	if (NewWidth > 0 && NewHeight > 0)
+	{
+		WindowWidth = (float)NewWidth;
+		WindowHeight = (float)NewHeight;
+	}
 
-}
-
-void FViewerViewportClient::OnViewportResized(FViewport* Viewport, uint32 NewWidth, uint32 NewHeight)
-{
-	(void)Viewport;
-
-	if (!ViewerCamera) return;
-	ViewerCamera->OnResize(NewWidth, NewHeight);
+	if (ViewerCamera)
+		ViewerCamera->OnResize(NewWidth, NewHeight);
 }
 
 void FViewerViewportClient::LoadOBJ(const std::string& FilePath)
