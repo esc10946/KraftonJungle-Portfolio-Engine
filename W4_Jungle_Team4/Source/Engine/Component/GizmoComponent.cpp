@@ -390,7 +390,7 @@ void UGizmoComponent::ApplyScreenSpaceScaling(const FVector& CameraLocation)
 
 	float NewScale = Distance * 0.1f;
 
-	if (NewScale < 0.01f) NewScale = 0.01f;
+	if (NewScale < 0.05f) NewScale = 0.05f;
 
 	SetRelativeScale(FVector(NewScale, NewScale, NewScale));
 }

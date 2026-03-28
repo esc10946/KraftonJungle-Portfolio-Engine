@@ -51,6 +51,7 @@ void FEditorViewportClient::Tick(float DeltaTime)
 	FRay Ray = Camera->DeprojectScreenToWorld(MouseX, MouseY, Viewport->GetSize().X, Viewport->GetSize().Y);
 	FHitResult HitResult;
 
+	Gizmo->ApplyScreenSpaceScaling(Camera->GetWorldLocation());
 	Gizmo->Raycast(Ray, HitResult);
 }
 
@@ -102,7 +103,6 @@ void FEditorViewportClient::OnMouseUp(float X, float Y, int32 Button)
 
 		if (Gizmo->IsHolding())
 		{
-			UE_LOG("Gizmo End");
 			Gizmo->DragEnd();
 		}
 	}
@@ -142,6 +142,11 @@ void FEditorViewportClient::OnKeyDown(int32 Key)
 
 	const FCameraState& CameraState = Camera->GetCameraState();
 	if (Key == 'O') Camera->SetOrthographic(!CameraState.bIsOrthogonal);
+
+	if (Key == VK_SPACE)
+	{
+		Gizmo->SetNextMode();
+	}
 }
 
 void FEditorViewportClient::OnKeyUp(int32 Key)
@@ -229,64 +234,10 @@ void FEditorViewportClient::Zoom(float DeltaTime)
 	}
 }
 
-void FEditorViewportClient::TickInteraction(float DeltaTime)
-{
-	if (!Camera || !Gizmo || !World)
-	{
-		return;
-	}
-
-	Gizmo->ApplyScreenSpaceScaling(Camera->GetWorldLocation());
-
-	if (InputSystem::Get().GetGuiInputState().bUsingMouse)
-	{
-		return;
-	}
-
-	const float ZoomSpeed = Settings ? Settings->CameraZoomSpeed : 300.f;
-
-	float ScrollNotches = InputSystem::Get().GetScrollNotches();
-	if (ScrollNotches != 0.0f) {
-		if (Camera->IsOrthogonal()) {
-			float NewWidth = Camera->GetOrthoWidth() - ScrollNotches * ZoomSpeed * DeltaTime;
-			Camera->SetOrthoWidth(Clamp(NewWidth, 0.1f, 1000.0f));
-		}
-		else {
-			float NewFOV = Camera->GetFOV() - ScrollNotches * ZoomSpeed * DeltaTime;
-			Camera->SetFOV(Clamp(NewFOV, 1.f * DEG_TO_RAD, 90.0f * DEG_TO_RAD));
-		}
-	}
-
-
-
-	////Gizmo Hover
-
-	//if (InputSystem::Get().GetKeyDown(VK_LBUTTON))
-	//{
-	//	HandleDragStart(Ray);
-	//}
-	//else if (InputSystem::Get().GetLeftDragging())
-	//{
-	//	//	눌려있고, Holding되지 않았다면 다음 Loop부터 드래그 업데이트 시작
-	//	if (Gizmo->IsPressedOnHandle() && !Gizmo->IsHolding())
-	//	{
-	//		Gizmo->SetHolding(true);
-	//	}
-
-	//	if (Gizmo->IsHolding())
-	//	{
-	//		Gizmo->UpdateDrag(Ray);
-	//	}
-	//}
-	//else if (InputSystem::Get().GetLeftDragEnd())
-	//{
-	//	Gizmo->DragEnd();
-	//}
-}
-
 void FEditorViewportClient::HandleDragStart(const FRay& Ray)
 {
 	FHitResult HitResult{};
+	Gizmo->ApplyScreenSpaceScaling(Camera->GetWorldLocation());
 	if (Gizmo->Raycast(Ray, HitResult))
 	{
 		Gizmo->SetPressedOnHandle(true);

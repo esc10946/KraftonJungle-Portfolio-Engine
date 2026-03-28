@@ -46,6 +46,10 @@ void FEditorRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
 				Camera->GetRightVector(), Camera->GetUpVector());
 			Bus.SetRenderSettings(ViewMode, ShowFlags);
 
+			// Gizmo는 렌더링 직전에 뷰포트 내 카메라를 이용해서 스케일링을 적용합니다.
+			// 이는 Gizmo를 picking할 경우에도 예외적으로 처리합니다.
+			Editor->GetGizmo()->ApplyScreenSpaceScaling(Camera->GetWorldLocation());
+
 			Collector.CollectWorld(World, ShowFlags, ViewMode, Bus);
 			Collector.CollectGrid(Settings.GridSpacing, Settings.GridHalfLineCount, Bus);
 			Collector.CollectGizmo(Editor->GetGizmo(), ShowFlags, Bus);
