@@ -5,6 +5,7 @@
 */
 
 #include "Render/Common/RenderTypes.h"
+#include "Render/Resource/RenderTarget.h"
 #include "Core/CoreTypes.h"
 
 enum class EDepthStencilState
@@ -77,7 +78,7 @@ private:
 	UINT SwapChainFlags = 0;
 
 public:
-
+	FRenderTarget CreateRenderTarget(uint32 TopLeftX, uint32 TopLeftY, uint32 width, uint32 height) const;
 
 private:
 	void CreateDeviceAndSwapChain(HWND InHWindow);
@@ -102,6 +103,7 @@ public:
 	void Release();
 
 	void BeginFrame();
+	void BeginFrame(FRenderTarget& RenderTarget);
 	void EndFrame();
 
 	void OnResizeViewport(int width, int height);

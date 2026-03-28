@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 /*
 	Vertex Buffer와 Constant Buffer를 관리하는 Class 입니다.

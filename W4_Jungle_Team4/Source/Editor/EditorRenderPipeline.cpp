@@ -1,6 +1,8 @@
 ﻿#include "EditorRenderPipeline.h"
 
 #include "Editor/EditorEngine.h"
+#include "Editor/Viewport/Viewport.h"
+#include "Editor/Viewport/ViewportManager.h"
 #include "Render/Renderer/Renderer.h"
 #include "Component/CameraComponent.h"
 #include "Component/GizmoComponent.h"
@@ -26,31 +28,47 @@ void FEditorRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
 	FGPUProfiler::Get().TakeSnapshot();
 #endif
 
-	Bus.Clear();
-
-	UWorld* World = Editor->GetWorld();
-	UCameraComponent* Camera = World ? World->GetActiveCamera() : nullptr;
-	if (Camera)
+	for (FViewport* Viewport : FViewportManager::Get().GetViewports())
 	{
-		const auto& Settings = Editor->GetSettings();
-		const FShowFlags& ShowFlags = Settings.ShowFlags;
-		EViewMode ViewMode = Settings.ViewMode;
+		Bus.Clear();
 
-		Bus.SetViewProjection(Camera->GetViewMatrix(), Camera->GetProjectionMatrix(),
-			Camera->GetRightVector(), Camera->GetUpVector());
-		Bus.SetRenderSettings(ViewMode, ShowFlags);
+		UWorld* World = Editor->GetWorld();
+		FEditorViewportClient* ViewportClient = static_cast<FEditorViewportClient*>(Viewport->GetViewportClient());
+		UCameraComponent* Camera = ViewportClient ? ViewportClient->GetCamera() : nullptr;
 
-		Collector.CollectWorld(World, ShowFlags, ViewMode, Bus);
-		Collector.CollectGrid(Settings.GridSpacing, Settings.GridHalfLineCount, Bus);
-		Collector.CollectGizmo(Editor->GetGizmo(), ShowFlags, Bus);
-		Collector.CollectSelection(
-			Editor->GetSelectionManager().GetSelectedActors(),
-			ShowFlags, ViewMode, Bus);
+		if (Camera)
+		{
+			const auto& Settings = Editor->GetSettings();
+			const FShowFlags& ShowFlags = Settings.ShowFlags;
+			EViewMode ViewMode = Settings.ViewMode;
+
+			Bus.SetViewProjection(Camera->GetViewMatrix(), Camera->GetProjectionMatrix(),
+				Camera->GetRightVector(), Camera->GetUpVector());
+			Bus.SetRenderSettings(ViewMode, ShowFlags);
+
+			Collector.CollectWorld(World, ShowFlags, ViewMode, Bus);
+			Collector.CollectGrid(Settings.GridSpacing, Settings.GridHalfLineCount, Bus);
+			Collector.CollectGizmo(Editor->GetGizmo(), ShowFlags, Bus);
+			Collector.CollectSelection(
+				Editor->GetSelectionManager().GetSelectedActors(),
+				ShowFlags, ViewMode, Bus);
+
+			Renderer.PrepareBatchers(Bus);
+			Renderer.BeginFrame(Viewport->GetRenderTarget());
+			Renderer.Render(Bus);
+			Renderer.EndViewportFrame(Viewport->GetRenderTarget());
+		}
 	}
 
-	Renderer.PrepareBatchers(Bus);
+	Bus.Clear();
+
 	Renderer.BeginFrame();
-	Renderer.Render(Bus);
+
+	for (FViewport* Viewport : FViewportManager::Get().GetViewports())
+	{
+		Renderer.ViewportRenderer.Render(Renderer.GetFD3DDevice().GetDeviceContext(), Viewport);
+	}
+
 	Editor->RenderUI(DeltaTime);
 	Renderer.EndFrame();
 }

@@ -33,11 +33,12 @@ FStaticMeshAsset* FStaticMeshManager::LoadStaticMeshAsset(const FString& InSourc
 	if (!bLoaded)
 	{
 		//bLoaded = FObjImporter::ImportFromFile(NormalizedPath, *Asset);
-		if (bLoaded)
-		{
-			Asset->BakePath = FStaticMeshBakeIO::MakeBakePath(NormalizedPath);
-			FStaticMeshBakeIO::SaveToFile(Asset->BakePath, *Asset);
-		}
+
+		//if (bLoaded)
+		//{
+		//	Asset->BakePath = FStaticMeshBakeIO::MakeBakePath(NormalizedPath);
+		//	FStaticMeshBakeIO::SaveToFile(Asset->BakePath, *Asset);
+		//}
 	}
 
 	if (!bLoaded)
