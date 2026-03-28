@@ -124,6 +124,8 @@ const TArray<FRenderCommand>& FRenderer::GetAlignedCommands(ERenderPass Pass, co
 	return Commands;
 }
 
+
+
 void FRenderer::BeginFrame()
 {
 	Device.BeginFrame();

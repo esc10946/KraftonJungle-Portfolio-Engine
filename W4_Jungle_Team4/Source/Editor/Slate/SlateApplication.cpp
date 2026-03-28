@@ -92,7 +92,7 @@ SWidget* FSlateApplication::FindLeafWidgetAt(SWidget* Parent, FVector2 ScreenPoi
 // 마우스 위치, 버튼 상태, 키보드 입력 등을 체크해서 적절한 위젯에 이벤트를 전달
 void FSlateApplication::ProcessInput()
 {
-	POINT MousePosition = InputSystem::Get().GetMousePos();
+	POINT MousePosition = InputSystem::Get().GetClientMousePos();
 	FVector2 MousePos = { static_cast<float>(MousePosition.x), static_cast<float>(MousePosition.y) };
 
 	SWidget* Captor = GetMouseCaptor();
@@ -105,15 +105,12 @@ void FSlateApplication::ProcessInput()
 		SWidget* HoveredWidget = FindWidgetAt(MousePos);
 		if (HoveredWidget != WidgetUnderMouse)
 		{
-			if (WidgetUnderMouse)
-			{
-				// Handle mouse leave for the previous widget if necessary.
-			}
-			if (HoveredWidget)
-			{
-				// Handle mouse enter for the new widget if necessary.
-			}
 			WidgetUnderMouse = HoveredWidget;
+		}
+
+		if (WidgetUnderMouse)
+		{
+			WidgetUnderMouse->OnMouseMove(MousePos.X, MousePos.Y);
 		}
 	}
 

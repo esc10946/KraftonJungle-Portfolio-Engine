@@ -47,6 +47,11 @@ void FEditorViewportClient::Tick(float DeltaTime)
 	Move(DeltaTime);
 	Rotate(DeltaTime);
 	Zoom(DeltaTime);
+
+	FRay Ray = Camera->DeprojectScreenToWorld(MouseX, MouseY, Viewport->GetSize().X, Viewport->GetSize().Y);
+	FHitResult HitResult;
+
+	Gizmo->Raycast(Ray, HitResult);
 }
 
 void FEditorViewportClient::OnViewportResized(uint32 NewTopLeftX, uint32 NewTopLeftY, uint32 InWidth, uint32 InHeight)
@@ -69,6 +74,19 @@ void FEditorViewportClient::OnMouseDown(float X, float Y, int32 Button)
 	if (Button == VK_LBUTTON)
 	{
 		bIsLeftMouseDown = true;
+
+		FRay Ray = Camera->DeprojectScreenToWorld(MouseX, MouseY, Viewport->GetSize().X, Viewport->GetSize().Y);
+		FHitResult HitResult;
+
+		if (!Gizmo->IsPressedOnHandle())
+		{
+			HandleDragStart(Ray);
+		}
+
+		if (Gizmo->IsPressedOnHandle() && !Gizmo->IsHolding())
+		{
+			Gizmo->SetHolding(true);
+		}
 	}
 	if (Button == VK_RBUTTON)
 	{
@@ -81,6 +99,12 @@ void FEditorViewportClient::OnMouseUp(float X, float Y, int32 Button)
 	if (Button == VK_LBUTTON)
 	{
 		bIsLeftMouseDown = false;
+
+		if (Gizmo->IsHolding())
+		{
+			UE_LOG("Gizmo End");
+			Gizmo->DragEnd();
+		}
 	}
 	if (Button == VK_RBUTTON)
 	{
@@ -90,6 +114,16 @@ void FEditorViewportClient::OnMouseUp(float X, float Y, int32 Button)
 
 void FEditorViewportClient::OnMouseMove(float X, float Y)
 {
+	MouseX = X;
+	MouseY = Y;
+
+	FRay Ray = Camera->DeprojectScreenToWorld(MouseX, MouseY, Viewport->GetSize().X, Viewport->GetSize().Y);
+	FHitResult HitResult;
+
+	if (Gizmo->IsHolding())
+	{
+		Gizmo->UpdateDrag(Ray);
+	}
 }
 
 void FEditorViewportClient::OnMouseWheel(float Delta)
@@ -223,11 +257,9 @@ void FEditorViewportClient::TickInteraction(float DeltaTime)
 		}
 	}
 
-	//FRay Ray = Camera->DeprojectScreenToWorld(static_cast<float>(MousePoint.x), static_cast<float>(MousePoint.y), ViewportSize.X, ViewportSize.Y);
-	//FHitResult HitResult;
+
 
 	////Gizmo Hover
-	//Gizmo->Raycast(Ray, HitResult);
 
 	//if (InputSystem::Get().GetKeyDown(VK_LBUTTON))
 	//{
@@ -258,7 +290,6 @@ void FEditorViewportClient::HandleDragStart(const FRay& Ray)
 	if (Gizmo->Raycast(Ray, HitResult))
 	{
 		Gizmo->SetPressedOnHandle(true);
-		UE_LOG("Gizmo is Holding");
 	}
 	else
 	{

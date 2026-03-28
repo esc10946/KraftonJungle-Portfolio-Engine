@@ -71,9 +71,6 @@ private:
 	EViewMode ViewMode = EViewMode::Lit;
 	FShowFlags ShowFlags;
 
-	FVector2 ViewportPos;
-	FVector2 ViewportSize;
-
 	bool bIsCursorVisible = true;
 
 	bool bIsLeftMouseDown = false;
@@ -83,4 +80,6 @@ private:
 	bool bIsQDown = false; bool bIsEDown = false;
 
 	float MouseWheelDelta = 0.0f;
+
+	float MouseX = 0.0f; float MouseY = 0.0f;
 };

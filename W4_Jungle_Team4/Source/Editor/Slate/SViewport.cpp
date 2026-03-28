@@ -27,7 +27,7 @@ void SViewport::Tick(float DeltaTime)
 void SViewport::OnPaint()
 {
 	ImGuiWindowFlags WindowFlags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize
-		| ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground;
+		| ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar;
 
 	// 구조 아쉬움
 	FEditorViewportClient* Client = dynamic_cast<FEditorViewportClient*>(Viewport->GetViewportClient());
@@ -96,9 +96,14 @@ FReply SViewport::OnMouseButtonDown(float X, float Y, int32 Button)
 	{
 		if (Viewport->GetViewportClient())
 		{
-			Viewport->GetViewportClient()->OnMouseDown(X, Y, Button);
+			float RelativeX = X - Rect.X;
+			float RelativeY = Y - Rect.Y;
+
+			UE_LOG("Mouse Button Down at (%f, %f) with button %d", RelativeX, RelativeY, Button);
+
+			Viewport->GetViewportClient()->OnMouseDown(RelativeX, RelativeY, Button);
+			return FReply::Handled().CaptureMouse(this);
 		}
-		return FReply::Handled().CaptureMouse(this);
 	}
 
 	return FReply::Unhandled();
@@ -116,7 +121,10 @@ FReply SViewport::OnMouseButtonUp(float X, float Y, int32 Button)
 	{
 		if (Viewport->GetViewportClient())
 		{
-			Viewport->GetViewportClient()->OnMouseUp(X, Y, Button);
+			float RelativeX = X - Rect.X;
+			float RelativeY = Y - Rect.Y;
+
+			Viewport->GetViewportClient()->OnMouseUp(RelativeX, RelativeY, Button);
 		}
 		return FReply::Handled().CaptureMouse(nullptr);
 	}
@@ -136,7 +144,10 @@ FReply SViewport::OnMouseMove(float X, float Y)
 	{
 		if (Viewport->GetViewportClient())
 		{
-			Viewport->GetViewportClient()->OnMouseMove(X, Y);
+			float RelativeX = X - Rect.X;
+			float RelativeY = Y - Rect.Y;
+
+			Viewport->GetViewportClient()->OnMouseMove(RelativeX, RelativeY);
 		}
 		return FReply::Handled();
 	}
