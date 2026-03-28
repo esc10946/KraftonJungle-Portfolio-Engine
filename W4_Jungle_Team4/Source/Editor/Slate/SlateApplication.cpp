@@ -1,5 +1,6 @@
 ﻿#include "SlateApplication.h"
 #include "Core/InputSystem.h"
+#include "SSplitter.h"
 
 void FSlateApplication::Tick(float DeltaTime)
 {
@@ -43,6 +44,15 @@ SWidget* FSlateApplication::FindWidgetAt(FVector2 ScreenPoint) const
 
 SWidget* FSlateApplication::FindLeafWidgetAt(SWidget* Parent, FVector2 ScreenPoint) const
 {
+	// SSplitter인 경우 자식들을 검사하기 전에 본인의 핸들을 먼저 검사
+	if (SSplitter* Splitter = dynamic_cast<SSplitter*>(Parent))
+	{
+		if (Splitter->IsOnHandle(ScreenPoint.X, ScreenPoint.Y))
+		{
+			return Splitter;
+		}
+	}
+
 	// 자식들을 역순으로 순회 (나중에 그려진 자식이 위에 있으므로)
 	TArray<SWidget*> Children = Parent->GetChildren();
 	for (int32 i = Children.size() - 1; i >= 0; --i)

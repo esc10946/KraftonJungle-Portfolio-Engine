@@ -1,4 +1,5 @@
 ﻿#include "SSplitterH.h"
+#include "Editor/UI/EditorConsoleWidget.h"
 
 void SSplitterH::Tick(float DeltaTime)
 {
@@ -21,7 +22,18 @@ bool SSplitterH::IsOnHandle(float X, float Y) const
 {
 	FRect widgetRect = GetRect();
 	float SplitY = widgetRect.Y + (widgetRect.Height * SplitRatio);
-	return (Y >= SplitY - HandleSize * 0.5f && Y <= SplitY + HandleSize * 0.5f);
+
+	bool isOn = Y >= SplitY - HandleSize * 0.5f && Y <= SplitY + HandleSize * 0.5f;
+	if (isOn)
+	{
+		SetCursor(LoadCursor(NULL, IDC_CROSS));
+	}
+	else
+	{
+		SetCursor(LoadCursor(NULL, IDC_ARROW));
+	}
+
+	return isOn;
 }
 
 void SSplitterH::UpdateSplit(float X, float Y)

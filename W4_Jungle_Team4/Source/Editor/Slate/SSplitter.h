@@ -56,7 +56,7 @@ public:
 		return Children;
 	}
 
-protected:
+public:
 	virtual bool IsOnHandle(float X, float Y) const { return false; }
 	virtual void UpdateSplit(float X, float Y) {}
 
@@ -66,5 +66,5 @@ protected:
 
 	float SplitRatio = 0.5f;
 	bool bIsDragging = false;
-	const float HandleSize = 6.0f;
+	const float HandleSize = 12.0f;
 };
