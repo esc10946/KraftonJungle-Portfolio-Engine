@@ -4,6 +4,9 @@
 #include "Selection/SelectionManager.h"
 #include "Settings/EditorSettings.h"
 #include "Render/Device/D3DDevice.h"
+#include "Slate/SlateApplication.h"
+#include "Slate/SlateWidgetFactory.h"
+#include "Slate/SViewport.h"
 
 void FViewportManager::Initialize(FD3DDevice* InDevice, UWorld* InWorld, FSelectionManager* InSelectionManager)
 {
@@ -21,6 +24,16 @@ FViewport* FViewportManager::CreateViewport()
 	return NewViewport;
 }
 
+void FViewportManager::DestroyViewport(FViewport* InViewport)
+{
+	auto it = std::find(Viewports.begin(), Viewports.end(), InViewport);
+	if (it != Viewports.end())
+	{
+		delete* it;
+		Viewports.erase(it);
+	}
+}
+
 FEditorViewportClient* FViewportManager::CreateEditorViewportClient() const
 {
 	FEditorViewportClient* NewClient = new FEditorViewportClient();
@@ -32,14 +45,4 @@ FEditorViewportClient* FViewportManager::CreateEditorViewportClient() const
 	NewClient->ResetCamera();
 
 	return NewClient;
-}
-
-void FViewportManager::DestroyViewport(FViewport* InViewport)
-{
-	auto it = std::find(Viewports.begin(), Viewports.end(), InViewport);
-	if (it != Viewports.end())
-	{
-		delete *it;
-		Viewports.erase(it);
-	}
 }

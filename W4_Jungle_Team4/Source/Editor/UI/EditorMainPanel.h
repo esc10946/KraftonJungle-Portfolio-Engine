@@ -25,4 +25,5 @@ private:
 	FWindowsWindow* Window;
 	FEditorViewportOverlayWidget ViewportOverlayWidget;
 	FEditorStatWidget StatWidget;
+	//TODO: 여기에 staticWidget 도 추가하기
 };

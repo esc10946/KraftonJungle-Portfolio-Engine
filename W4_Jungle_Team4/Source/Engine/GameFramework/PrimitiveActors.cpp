@@ -2,6 +2,7 @@
 
 #include "Component/PrimitiveComponent.h"
 #include "Component/TextRenderComponent.h"
+#include "Component/StaticMeshComponent.h"
 #include <format>
 #include <Component/SubUVComponent.h>
 
@@ -16,6 +17,9 @@ REGISTER_FACTORY(APlaneActor)
 
 DEFINE_CLASS(AAttachTestActor, AActor)
 REGISTER_FACTORY(AAttachTestActor)
+
+DEFINE_CLASS(AStaticMeshActor, AActor)
+REGISTER_FACTORY(AStaticMeshActor)
 
 void ACubeActor::InitDefaultComponents()
 {
@@ -108,4 +112,17 @@ void AAttachTestActor::InitDefaultComponents()
 	Text->AttachToComponent(Cube);
 	Text->SetText("UUID : " + std::to_string(GetUUID()));
 	Text->SetRelativeLocation(FVector(0.0f, 0.0f, 1.5f));
+}
+
+void AStaticMeshActor::InitDefaultComponents()
+{
+	// Root: Cube
+	auto* Mesh = AddComponent<UStaticMeshComponent>();
+	SetRootComponent(Mesh);
+
+	UTextRenderComponent* Text = AddComponent<UTextRenderComponent>();
+	Text->SetFont(FName("Default"));
+	Text->SetText(std::format("UUID: {}", GetUUID()));
+	Text->AttachToComponent(Mesh);
+	Text->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
 }

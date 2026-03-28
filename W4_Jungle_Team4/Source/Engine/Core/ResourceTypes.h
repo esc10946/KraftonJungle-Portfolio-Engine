@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Core/CoreTypes.h"
 #include "Object/FName.h"
@@ -19,6 +19,16 @@ struct FTextureAtlasResource
 	uint32 Columns = 1;						// 아틀라스 가로 프레임(셀) 수
 	uint32 Rows    = 1;						// 아틀라스 세로 프레임(셀) 수
 
+	bool IsLoaded() const { return SRV != nullptr; }
+};
+
+struct FStaticMeshResource
+{
+	FName   Name;
+	FString Path;							// Asset 상대 경로 (Resource.ini에서 로드)
+
+	//FMeshBuffer StaticeMeshBuffer;			//메시 출력에 필요한 버퍼 모음
+	ID3D11ShaderResourceView* SRV = nullptr; // GPU에 로드된 텍스처 SRV
 	bool IsLoaded() const { return SRV != nullptr; }
 };
 

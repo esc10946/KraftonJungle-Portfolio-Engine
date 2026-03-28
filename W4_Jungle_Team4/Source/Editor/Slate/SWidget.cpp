@@ -33,6 +33,7 @@ json::JSON SWidget::Serialize() const
 {
 	json::JSON Data;
 	Data["WidgetType"] = GetWidgetType();
+	Data["Name"] = Name;
 	Data["Rect"]["X"] = Rect.X;
 	Data["Rect"]["Y"] = Rect.Y;
 	Data["Rect"]["Width"] = Rect.Width;
@@ -57,5 +58,9 @@ void SWidget::Deserialize(json::JSON& Data)
 		Rect.Y = RectData["Y"].ToInt();
 		Rect.Width = RectData["Width"].ToInt();
 		Rect.Height = RectData["Height"].ToInt();
+	}
+	if (Data.hasKey("Name"))
+	{
+		Name = Data["Name"].ToString();
 	}
 }

@@ -5,7 +5,9 @@
 #include <fstream>
 #include <filesystem>
 #include "DDSTextureLoader.h"
+#include "WICTextureLoader.h"
 #include "UI/EditorConsoleWidget.h"
+using namespace std::filesystem;
 
 namespace ResourceKey
 {
@@ -19,6 +21,8 @@ namespace ResourceKey
 void FResourceManager::LoadFromFile(const FString& Path, ID3D11Device* InDevice)
 {
 	using namespace json;
+
+	device = InDevice;
 
 	std::ifstream File(std::filesystem::path(FPaths::ToWide(Path)));
 	if (!File.is_open())
@@ -192,4 +196,52 @@ TArray<FString> FResourceManager::GetParticleNames() const
 		Names.push_back(Key);
 	}
 	return Names;
+}
+
+UTexture* FResourceManager::LoadTexture(const FName& InFilePath)
+{
+    const FString PathStr = InFilePath.ToString();
+	
+	std::wstring WidePath(PathStr.begin(), PathStr.end());
+
+    // -------------------------------------------------------------------------
+    // 3. SRV 생성
+    // -------------------------------------------------------------------------
+    ComPtr<ID3D11ShaderResourceView> SRV;
+
+    HRESULT hr = DirectX::CreateWICTextureFromFileEx(
+		static_cast<ID3D11Device*>(device),
+		WidePath.c_str(),  // wchar_t*
+		0,
+		D3D11_USAGE_IMMUTABLE,
+		D3D11_BIND_SHADER_RESOURCE,
+		0, 0,
+		DirectX::WIC_LOADER_DEFAULT,
+		nullptr,
+		SRV.GetAddressOf()
+	);
+
+    if (FAILED(hr)) return nullptr;
+
+    // -------------------------------------------------------------------------
+    // 4. Sampler 생성
+    // -------------------------------------------------------------------------
+    ComPtr<ID3D11SamplerState> Sampler;
+    D3D11_SAMPLER_DESC SamplerDesc = {};
+    SamplerDesc.Filter         = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+    SamplerDesc.AddressU       = D3D11_TEXTURE_ADDRESS_WRAP;
+    SamplerDesc.AddressV       = D3D11_TEXTURE_ADDRESS_WRAP;
+    SamplerDesc.AddressW       = D3D11_TEXTURE_ADDRESS_WRAP;
+    SamplerDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+    SamplerDesc.MinLOD         = 0;
+    SamplerDesc.MaxLOD         = D3D11_FLOAT32_MAX;
+    static_cast<ID3D11Device*>(device)->CreateSamplerState(&SamplerDesc, Sampler.GetAddressOf());
+
+    // -------------------------------------------------------------------------
+    // 5. UTexture 생성 후 캐시 등록
+    // -------------------------------------------------------------------------
+    UTexture* NewTexture = new UTexture(SRV, Sampler, 1920, 1080);
+    NewTexture->TextureFilePath = InFilePath;
+
+    return NewTexture;
 }

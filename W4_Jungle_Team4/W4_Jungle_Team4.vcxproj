@@ -142,7 +142,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;WITH_EDITOR=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -175,7 +175,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;WITH_EDITOR=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -190,7 +190,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;WITH_EDITOR=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
       <LanguageStandard>stdcpp20</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
@@ -225,10 +225,9 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;WITH_EDITOR=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalOptions>/utf-8 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/utf-8 /FS %(AdditionalOptions)</AdditionalOptions>
       <ExceptionHandling>Async</ExceptionHandling>
       <LanguageStandard>stdcpp20</LanguageStandard>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -248,9 +247,11 @@
     <ClCompile Include="Source\Editor\Slate\SWidget.cpp" />
     <ClCompile Include="Source\Editor\Viewport\Viewport.cpp" />
     <ClCompile Include="Source\Editor\Viewport\ViewportManager.cpp" />
-    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshAsset.cpp" />
+    <ClCompile Include="Source\Engine\AssetPipeline\Obj\MtlParser.cpp" />
+    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjImporter.cpp" />
     <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshBakeIO.cpp" />
-    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshManager.cpp" />
+    <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
+    <ClCompile Include="OrbitCameraComponent.cpp" />
     <ClCompile Include="Source\Editor\EditorEngine.cpp" />
     <ClCompile Include="Source\Editor\EditorRenderPipeline.cpp" />
     <ClCompile Include="Source\Editor\Selection\SelectionManager.cpp" />
@@ -264,7 +265,8 @@
     <ClCompile Include="Source\Editor\UI\EditorViewportOverlayWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\EditorWidget.cpp" />
     <ClCompile Include="Source\Editor\Viewport\EditorViewportClient.cpp" />
-    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshObject.cpp" />
+    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshManager.cpp" />
+    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjParser.cpp" />
     <ClCompile Include="Source\Engine\Component\ActorComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\BillboardComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\CameraComponent.cpp" />
@@ -296,6 +298,7 @@
     <ClCompile Include="Source\Engine\Object\Object.cpp" />
     <ClCompile Include="Source\Engine\Render\FontBatcher.cpp" />
     <ClCompile Include="Source\Engine\Render\LineBatcher.cpp" />
+    <ClCompile Include="Source\Engine\Render\Resource\Material.cpp" />
     <ClCompile Include="Source\Engine\Render\SubUVBatcher.cpp" />
     <ClCompile Include="Source\Engine\Render\Device\D3DDevice.cpp" />
     <ClCompile Include="Source\Engine\Render\Mesh\MeshManager.cpp" />
@@ -317,6 +320,9 @@
     <ClCompile Include="Source\Engine\Serialization\SceneSaveManager.cpp" />
     <ClCompile Include="Source\Viewer\ViewerEngine.cpp" />
     <ClCompile Include="Source\Viewer\ViewerViewportClient.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SViewportRoot.cpp" />
+    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMesh.cpp" />
+    <ClCompile Include="Source\Engine\Render\Resource\Texture.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui_demo.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui_draw.cpp" />
@@ -334,21 +340,27 @@
     <ClInclude Include="Source\Editor\Slate\SImGuiPropertyWidget.h" />
     <ClInclude Include="Source\Editor\Slate\SImGuiSceneWidget.h" />
     <ClInclude Include="Source\Editor\Slate\SlateWidgetFactory.h" />
+    <ClInclude Include="Source\Editor\Slate\SSplitterH.h" />
+    <ClInclude Include="Source\Editor\Slate\SSplitterV.h" />
+    <ClInclude Include="Source\Editor\Slate\SViewport.h" />
     <ClInclude Include="Source\Editor\Viewport\Viewport.h" />
     <ClInclude Include="Source\Editor\Viewport\ViewportClient.h" />
     <ClInclude Include="Source\Editor\Viewport\ViewportManager.h" />
-    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshAsset.h" />
+    <ClInclude Include="Source\Engine\AssetPipeline\Obj\MtlParser.h" />
+    <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjImporter.h" />
+    <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjParser.h" />
+    <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjTypes.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshBakeIO.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshManager.h" />
+    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshAsset.h" />
+    <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
+    <ClInclude Include="OrbitCameraComponent.h" />
     <ClInclude Include="Source\Editor\EditorEngine.h" />
     <ClInclude Include="Source\Editor\EditorRenderPipeline.h" />
     <ClInclude Include="Source\Editor\Selection\SelectionManager.h" />
     <ClInclude Include="Source\Editor\Settings\EditorSettings.h" />
     <ClInclude Include="Source\Editor\Slate\SlateApplication.h" />
     <ClInclude Include="Source\Editor\Slate\SSplitter.h" />
-    <ClInclude Include="Source\Editor\Slate\SSplitterH.h" />
-    <ClInclude Include="Source\Editor\Slate\SSplitterV.h" />
-    <ClInclude Include="Source\Editor\Slate\SViewport.h" />
     <ClInclude Include="Source\Editor\Slate\SWidget.h" />
     <ClInclude Include="Source\Editor\Slate\SWindow.h" />
     <ClInclude Include="Source\Editor\UI\EditorConsoleWidget.h" />
@@ -361,7 +373,8 @@
     <ClInclude Include="Source\Editor\UI\EditorWidget.h" />
     <ClInclude Include="Source\Editor\Viewport\CursorOverlayState.h" />
     <ClInclude Include="Source\Editor\Viewport\EditorViewportClient.h" />
-    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshObject.h" />
+    <ClInclude Include="Source\Editor\Viewport\FViewport.h" />
+    <ClInclude Include="Source\Editor\Viewport\FViewportClient.h" />
     <ClInclude Include="Source\Engine\Component\ActorComponent.h" />
     <ClInclude Include="Source\Engine\Component\BillboardComponent.h" />
     <ClInclude Include="Source\Engine\Component\CameraComponent.h" />
@@ -404,6 +417,7 @@
     <ClInclude Include="Source\Engine\Object\ObjectFactory.h" />
     <ClInclude Include="Source\Engine\Render\FontBatcher.h" />
     <ClInclude Include="Source\Engine\Render\LineBatcher.h" />
+    <ClInclude Include="Source\Engine\Render\Resource\Material.h" />
     <ClInclude Include="Source\Engine\Render\SubUVBatcher.h" />
     <ClInclude Include="Source\Engine\Render\Common\RenderTypes.h" />
     <ClInclude Include="Source\Engine\Render\Common\ViewTypes.h" />
@@ -433,6 +447,10 @@
     <ClInclude Include="Source\Engine\Serialization\SceneSaveManager.h" />
     <ClInclude Include="Source\Viewer\ViewerEngine.h" />
     <ClInclude Include="Source\Viewer\ViewerViewportClient.h" />
+    <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
+    <ClInclude Include="Source\Editor\Slate\SViewportRoot.h" />
+    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMesh.h" />
+    <ClInclude Include="Source\Engine\Render\Resource\Texture.h" />
     <ClInclude Include="ThirdParty\ImGui\imconfig.h" />
     <ClInclude Include="ThirdParty\ImGui\imgui.h" />
     <ClInclude Include="ThirdParty\ImGui\imgui_impl_dx11.h" />
@@ -485,6 +503,12 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ObjViewerDebug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Settings\EditorLayout.json">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </None>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

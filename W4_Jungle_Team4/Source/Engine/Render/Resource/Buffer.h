@@ -10,12 +10,15 @@
 
 #include "Core/CoreTypes.h"
 #include "Render/Resource/VertexTypes.h"
+#include "Asset/StaticMesh/StaticMeshAsset.h"
 
 
 class FVertexBuffer
 {
 public:
 	void Create(ID3D11Device* InDevice, const TArray<FVertex>&, uint32 InByteWidth, uint32 InStride);
+	void Create(ID3D11Device* InDevice, const void* InData, uint32 InElementCount, uint32 InByteWidth, uint32 InStride);
+	
 	void Release();
 
 	void Update(ID3D11DeviceContext* InDeviceContext, const TArray<uint32>& InData, uint32 InByteWidth);
@@ -68,6 +71,8 @@ class FMeshBuffer
 {
 public:
 	void Create(ID3D11Device* InDevice, const FMeshData& InMeshData);
+	void Create(ID3D11Device* InDevice, const TArray<FStaticMeshVertex>& InVertices, const TArray<uint32>& InIndices);
+	
 	void Release();
 
 	FVertexBuffer& GetVertexBuffer() { return VertexBuffer; }

@@ -1,5 +1,6 @@
 ﻿#include "SlateWidgetFactory.h"
 #include "SViewport.h"
+#include "SViewportRoot.h"
 #include "SSplitterH.h"
 #include "SSplitterV.h"
 #include "SWindow.h"
@@ -12,7 +13,31 @@
 #include "Viewport/ViewportManager.h"
 #include "Viewport/EditorViewportClient.h"
 
+#include <fstream>
+#include <filesystem>
+
 UEditorEngine* FSlateWidgetFactory::EditorEngine = nullptr;
+
+TMap<FString, json::JSON> FSlateWidgetFactory::LoadedWidgetData;
+
+void FSlateWidgetFactory::LoadViewportLayouts(const FString& FilePath)
+{
+	std::ifstream File(std::filesystem::path(FPaths::ToWide(FilePath)));
+	if (!File.is_open())
+	{
+		return;
+	}
+
+	FString Content((std::istreambuf_iterator<char>(File)),
+		std::istreambuf_iterator<char>());
+
+	json::JSON Root = json::JSON::Load(Content);
+
+	for (auto& data : Root.ObjectRange())
+	{
+		LoadedWidgetData[data.first] = data.second;
+	}
+}
 
 SWidget* FSlateWidgetFactory::CreateWidget(const FString& WidgetType)
 {
@@ -43,6 +68,11 @@ SWidget* FSlateWidgetFactory::CreateWidget(const FString& WidgetType)
 		ViewportWidget->SetViewport(Viewport);
 
 		return ViewportWidget;
+	}
+	else if (WidgetType == "SViewportRoot")
+	{
+		SViewportRoot* ViewportRootWidget = new SViewportRoot();
+		return ViewportRootWidget;
 	}
 	else if (WidgetType == "SSplitterH")
 	{

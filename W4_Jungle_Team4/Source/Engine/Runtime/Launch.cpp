@@ -3,10 +3,14 @@
 #include "Engine/Runtime/EngineLoop.h"
 #include "Engine/Core/CrashDump.h"
 
+#include "Engine/Core/ConsoleHelper.h" // console용
+
 namespace
 {
 	int GuardedMain(HINSTANCE hInstance, int nShowCmd)
 	{
+		ConsoleHelper Console; // console용
+
 		FEngineLoop EngineLoop;
 		if (!EngineLoop.Init(hInstance, nShowCmd))
 		{

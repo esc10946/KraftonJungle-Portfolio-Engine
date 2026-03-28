@@ -43,10 +43,10 @@ public:
 	}
 
 	SWidget* GetSideLT() const { return SideLT; }
-	void SetSideLT(SWidget* InWidget) { SideLT = InWidget; }
+	void SetSideLT(SWidget* InWidget) { SideLT = InWidget; InWidget->SetParent(this); }
 
 	SWidget* GetSideRB() const { return SideRB; }
-	void SetSideRB(SWidget* InWidget) { SideRB = InWidget; }
+	void SetSideRB(SWidget* InWidget) { SideRB = InWidget; InWidget->SetParent(this); }
 
 	virtual TArray<SWidget*> GetChildren() override
 	{
@@ -54,6 +54,18 @@ public:
 		if (SideLT) Children.push_back(SideLT);
 		if (SideRB) Children.push_back(SideRB);
 		return Children;
+	}
+
+	void ReplaceChild(SWidget* OldChild, SWidget* NewChild)
+	{
+		if (SideLT == OldChild)
+		{
+			SetSideLT(NewChild);
+		}
+		else if (SideRB == OldChild)
+		{
+			SetSideRB(NewChild);
+		}
 	}
 
 public:

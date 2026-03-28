@@ -3,6 +3,7 @@
 #include "Core/EngineTypes.h"
 #include "Core/Singleton.h"
 #include "SWindow.h"
+#include <functional>
 
 class FSlateApplication : public TSingleton<FSlateApplication>
 {
@@ -15,6 +16,32 @@ public:
 	SWindow* AddWindow(SWindow* InWindow);
 	void DestroyWindow(SWindow* InWindow);
 	TArray<SWindow*>& GetWindows() { return Windows; }
+
+	template <typename T>
+	TArray<T> GetWidgetsByType(SWidget* Root) const
+	{
+		TArray<T> Result;
+		std::function<void(SWidget*)> FindWidgets = [&](SWidget* Widget)
+			{
+				if (!Widget) return;
+
+				if (T TypedWidget = dynamic_cast<T>(Widget))
+				{
+					Result.push_back(TypedWidget);
+				}
+				for (SWidget* Child : Widget->GetChildren())
+				{
+					FindWidgets(Child);
+				}
+			};
+
+		if (Root)
+		{
+			FindWidgets(Root);
+		}
+
+		return Result;
+	}
 
 	SWidget* GetMouseCaptor() const { return MouseCaptor; }
 
@@ -29,7 +56,7 @@ private:
 
 private:
 	FSlateApplication() = default;
-	~FSlateApplication() = default;
+	~FSlateApplication();
 	
 	TArray<SWindow*> Windows;
 

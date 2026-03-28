@@ -20,6 +20,9 @@ void FRenderer::Create(HWND hWindow)
 	{
 		std::cout << "Failed to create D3D Device." << std::endl;
 	}
+	
+	Resources.BasePassShader.Create(Device.GetDevice(), L"Shaders/StaticMeshShader.hlsl",
+		"VS", "PS", StaticMeshInputLayout, ARRAYSIZE(StaticMeshInputLayout));
 
 	// 1. 일반 메쉬 (Primitive.hlsl)
 	Resources.PrimitiveShader.Create(Device.GetDevice(), L"Shaders/Primitive.hlsl",
@@ -68,6 +71,7 @@ void FRenderer::Release()
 	Resources.GizmoShader.Release();
 	Resources.EditorShader.Release();
 	Resources.OutlineShader.Release();
+	Resources.BasePassShader.Release();
 
 	Resources.PerObjectConstantBuffer.Release();
 	Resources.FrameBuffer.Release();
@@ -171,8 +175,11 @@ void FRenderer::InitializePassRenderStates()
 	using E = ERenderPass;
 	auto& S = PassRenderStates;
 
+	//TODO Opaque, PrimitiveShader => Primitive관련된거 나중에 다 지워야하ㅣㅁ
+
 	//                              DepthStencil                   Blend                Rasterizer                  Topology                                Shader                   WireframeAware
 	S[(uint32)E::Opaque] = { EDepthStencilState::Default,      EBlendState::Opaque,     ERasterizerState::SolidBackCull,  D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, &Resources.PrimitiveShader, true };
+	S[(uint32)E::Mesh] = { EDepthStencilState::Default,      EBlendState::Opaque,     ERasterizerState::SolidBackCull,  D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, &Resources.BasePassShader, true };
 	S[(uint32)E::Translucent] = { EDepthStencilState::Default,      EBlendState::AlphaBlend, ERasterizerState::SolidBackCull,  D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, &Resources.PrimitiveShader, false };
 	S[(uint32)E::StencilMask] = { EDepthStencilState::StencilWrite,  EBlendState::Opaque,     ERasterizerState::SolidNoCull,    D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, &Resources.PrimitiveShader, false };
 	S[(uint32)E::Outline] = { EDepthStencilState::StencilOutline,EBlendState::Opaque,    ERasterizerState::SolidNoCull, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, &Resources.OutlineShader,   false };

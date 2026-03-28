@@ -15,7 +15,8 @@ struct FRenderResources
     FConstantBuffer GizmoPerObjectConstantBuffer;   // b2
     FConstantBuffer EditorConstantBuffer;           // b4
 	FConstantBuffer OutlineConstantBuffer;          // b5
-
+	
+	FShader BasePassShader; //일반 메시 출력
     FShader PrimitiveShader;
     FShader GizmoShader;
     FShader EditorShader;
