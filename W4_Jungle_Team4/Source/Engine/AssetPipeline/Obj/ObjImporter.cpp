@@ -7,6 +7,35 @@
 
 #include <filesystem>
 
+#include <iostream> // test
+
+namespace
+{
+	void ResolveMaterialTexturePaths(const FString& InMtlPath, TMap<FString, FObjMaterialInfo>& InOutMaterials)
+	{
+		const std::filesystem::path MtlDirectory = std::filesystem::path(InMtlPath).parent_path();
+
+		for (auto& Pair : InOutMaterials)
+		{
+			FObjMaterialInfo& MaterialInfo = Pair.second;
+			if (MaterialInfo.DiffuseTexturePath.empty())
+			{
+				continue;
+			}
+
+			std::filesystem::path TexturePath(MaterialInfo.DiffuseTexturePath);
+
+			// 이미 절대 경로면 그대로 사용
+			if (!TexturePath.is_absolute())
+			{
+				TexturePath = MtlDirectory / TexturePath;
+			}
+
+			MaterialInfo.DiffuseTexturePath = TexturePath.lexically_normal().generic_string();
+		}
+	}
+}
+
 bool FObjImporter::ImportFromFile(const FString& InObjPath, FStaticMeshAsset& OutAsset)
 {
 	// OBJ 텍스트 읽고 raw 데이터 만들기
@@ -16,6 +45,16 @@ bool FObjImporter::ImportFromFile(const FString& InObjPath, FStaticMeshAsset& Ou
 		return false;
 	}
 
+	// opt) test ParseFile 성공
+	std::cout
+		<< "[ObjImporter] parsed raw data"
+		<< " positions=" << ObjInfo.Positions.size()
+		<< ", texcoords=" << ObjInfo.TexCoords.size()
+		<< ", normals=" << ObjInfo.Normals.size()
+		<< ", faces=" << ObjInfo.Faces.size()
+		<< ", mtllib=" << ObjInfo.MaterialLibraryPath
+		<< '\n';
+
 	// mtllib 있으면 mtl 파일 읽어서 Materials 채우기
 	const FString MaterialLibraryPath = ResolveMaterialLibraryPath(ObjInfo);
 	if (!MaterialLibraryPath.empty())
@@ -23,6 +62,9 @@ bool FObjImporter::ImportFromFile(const FString& InObjPath, FStaticMeshAsset& Ou
 		FMtlParser::ParseFile(MaterialLibraryPath, ObjInfo.Materials);
 		// 여기서는 mtl parse 실패를 치명적 에러로 보지 않아도 된다.
 		// 필요하면 나중에 정책을 바꿀 수 있다.
+
+		// map_Kd 상대 경로를 실제 파일 경로로 보정
+		ResolveMaterialTexturePaths(MaterialLibraryPath, ObjInfo.Materials);
 	}
 
 	// raw 데이터 -> cooked 데이터
@@ -40,6 +82,14 @@ bool FObjImporter::BuildStaticMeshAsset(const FObjInfo& InObjInfo, FStaticMeshAs
 	if (!BuildGeometry(InObjInfo, OutAsset)) return false;
 	
 	BuildSections(InObjInfo, OutAsset);
+
+	// opt) test
+	std::cout
+		<< "[ObjImporter] cooked asset"
+		<< " vertices=" << OutAsset.Vertices.size()
+		<< ", indices=" << OutAsset.Indices.size()
+		<< ", sections=" << OutAsset.Sections.size()
+		<< '\n';
 
 	return !OutAsset.Vertices.empty();
 }
@@ -138,6 +188,12 @@ void FObjImporter::BuildSections(const FObjInfo& InObjInfo, FStaticMeshAsset& In
 			Section.FirstIndex = RunningIndex;
 			Section.MaterialName = Face.MaterialName;
 
+			const auto MaterialIt = InObjInfo.Materials.find(Face.MaterialName);
+			if (MaterialIt != InObjInfo.Materials.end())
+			{
+				Section.DiffuseTexturePath = MaterialIt->second.DiffuseTexturePath;
+			}
+
 			InOutAsset.Sections.push_back(Section);
 			CurrentSection = &InOutAsset.Sections.back();
 			CurrentMaterialName = Face.MaterialName;
@@ -145,6 +201,18 @@ void FObjImporter::BuildSections(const FObjInfo& InObjInfo, FStaticMeshAsset& In
 
 		CurrentSection->IndexCount += FaceIndexCount;
 		RunningIndex += FaceIndexCount;
+	}
+
+	// opt) test
+	for (const FStaticMeshSection& Section : InOutAsset.Sections)
+	{
+		std::cout
+			<< "[ObjImporter] section"
+			<< " firstIndex=" << Section.FirstIndex
+			<< ", indexCount=" << Section.IndexCount
+			<< ", material=" << Section.MaterialName
+			<< ", texture=" << Section.DiffuseTexturePath
+			<< '\n';
 	}
 }
 

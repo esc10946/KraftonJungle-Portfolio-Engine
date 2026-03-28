@@ -21,6 +21,7 @@ struct FStaticMeshSection
 	uint32 FirstIndex = 0;
 	uint32 IndexCount = 0;
 	FString MaterialName;
+	FString DiffuseTexturePath;
 };
 
 
