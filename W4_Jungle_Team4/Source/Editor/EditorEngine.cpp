@@ -103,6 +103,24 @@ void UEditorEngine::RenderUI(float DeltaTime)
 	MainPanel.Render(DeltaTime);
 }
 
+UCameraComponent* UEditorEngine::GetCamera() const
+{
+	for (FViewport* Viewport : FViewportManager::Get().GetViewports())
+	{
+		if (!Viewport)
+		{
+			continue;
+		}
+
+		if (FEditorViewportClient* ViewportClient = dynamic_cast<FEditorViewportClient*>(Viewport->GetViewportClient()))
+		{
+			return ViewportClient->GetCamera();
+		}
+	}
+
+	return nullptr;
+}
+
 void UEditorEngine::ResetViewport()
 {
 	//ViewportClient.CreateCamera();

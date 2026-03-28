@@ -48,12 +48,3 @@ public:
 
 	void InitDefaultComponents();
 };
-
-class AStaticMeshActor : public AActor
-{
-public:
-	DECLARE_CLASS(AStaticMeshActor, AActor)
-	AStaticMeshActor() = default;
-
-	void InitDefaultComponents();
-};

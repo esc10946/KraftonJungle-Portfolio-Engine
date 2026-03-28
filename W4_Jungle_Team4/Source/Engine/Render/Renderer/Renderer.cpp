@@ -55,6 +55,7 @@ void FRenderer::Create(HWND hWindow)
 	// 텍스처는 ResourceManager가 소유 — Batcher는 셰이더/버퍼만 초기화
 	FontBatcher.Create(Device.GetDevice());
 	SubUVBatcher.Create(Device.GetDevice());
+	ViewportRenderer.Create(Device.GetDevice());
 
 	D3D11_SAMPLER_DESC StaticMeshSamplerDesc = {};
 	StaticMeshSamplerDesc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
@@ -91,6 +92,7 @@ void FRenderer::Release()
 	GridLineBatcher.Release();
 	FontBatcher.Release();
 	SubUVBatcher.Release();
+	ViewportRenderer.Release();
 	if (StaticMeshSamplerState) { StaticMeshSamplerState->Release(); StaticMeshSamplerState = nullptr; }
 
 	Device.Release();
@@ -164,6 +166,11 @@ void FRenderer::BeginFrame()
 #if STATS
 	FGPUProfiler::Get().BeginFrame();
 #endif
+}
+
+void FRenderer::BeginFrame(FRenderTarget& RenderTarget)
+{
+	Device.BeginFrame(RenderTarget);
 }
 
 //	RenderBus에 담긴 모든 RenderCommand에 대해서 Draw Call 수행 (GPU)
@@ -513,6 +520,14 @@ void FRenderer::EndFrame()
 	FGPUProfiler::Get().EndFrame();
 #endif
 	Device.EndFrame();
+}
+
+void FRenderer::EndViewportFrame(FRenderTarget& RenderTarget)
+{
+	(void)RenderTarget;
+
+	ID3D11DeviceContext* Context = Device.GetDeviceContext();
+	Context->OMSetRenderTargets(0, nullptr, nullptr);
 }
 
 void FRenderer::UpdateFrameBuffer(ID3D11DeviceContext* Context, const FRenderBus& InRenderBus)

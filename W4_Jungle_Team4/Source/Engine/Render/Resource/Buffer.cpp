@@ -1,4 +1,4 @@
-﻿#include "Buffer.h"
+#include "Buffer.h"
 
 #pragma region __FMESHBUFFER__
 
@@ -15,22 +15,6 @@ void FMeshBuffer::Create(ID3D11Device* InDevice, const FMeshData& InMeshData)
 	if (!InMeshData.Indices.empty())
 	{
 		IndexBuffer.Create(InDevice, InMeshData.Indices, static_cast<uint32>(sizeof(uint32) * InMeshData.Indices.size()));
-	}
-}
-
-void FMeshBuffer::Create(ID3D11Device* InDevice, const TArray<FStaticMeshVertex>& InVertices, const TArray<uint32>& InIndices)
-{
-	if (InVertices.empty())
-	{
-		VertexBuffer.Release();
-		IndexBuffer.Release();
-		return;
-	}
-
-	VertexBuffer.Create(InDevice, InVertices.data(),static_cast<uint32>(InVertices.size()), static_cast<uint32>(sizeof(FVertex) * InVertices.size()), sizeof(FVertex));
-	if (!InIndices.empty())
-	{
-		IndexBuffer.Create(InDevice, InIndices, static_cast<uint32>(sizeof(uint32) * InIndices.size()));
 	}
 }
 
@@ -68,36 +52,32 @@ void FTextureMeshBuffer::Release()
 
 void FVertexBuffer::Create(ID3D11Device* InDevice, const TArray<FVertex>& InData, uint32 InByteWidth, uint32 InStride)
 {
-	Create(InDevice, InData.data(), static_cast<uint32>(InData.size()), InByteWidth, InStride);
-}
-
-void FVertexBuffer::Create(ID3D11Device* InDevice, const void* InData, uint32 InElementCount, uint32 InByteWidth, uint32 InStride) {
-	
-	if (InData == nullptr || InElementCount == 0 || InByteWidth == 0) {
+	if (InData.empty() || InByteWidth == 0)
+	{
 		Release();
-			VertexCount = 0;
-			Stride = InStride;
-			return;
-		}
-
-		D3D11_BUFFER_DESC vertexBufferDesc = {};
-		vertexBufferDesc.ByteWidth = InByteWidth;
-		vertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-		vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-
-		D3D11_SUBRESOURCE_DATA vertexBufferSRD = { InData };
-	
-		HRESULT hr = InDevice->CreateBuffer(&vertexBufferDesc, &vertexBufferSRD, &Buffer);
-		if (FAILED(hr))
-		{
-			Release();
-			VertexCount = 0;
-			Stride = InStride;
-			return;
-		}
-
-		VertexCount = InElementCount;
+		VertexCount = 0;
 		Stride = InStride;
+		return;
+	}
+
+	D3D11_BUFFER_DESC VertexBufferDesc = {};
+	VertexBufferDesc.ByteWidth = InByteWidth;
+	VertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	VertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+	D3D11_SUBRESOURCE_DATA VertexBufferSRD = { InData.data() };
+
+	HRESULT Hr = InDevice->CreateBuffer(&VertexBufferDesc, &VertexBufferSRD, &Buffer);
+	if (FAILED(Hr))
+	{
+		Release();
+		VertexCount = 0;
+		Stride = InStride;
+		return;
+	}
+
+	VertexCount = static_cast<uint32>(InData.size());
+	Stride = InStride;
 }
 
 void FVertexBuffer::Create(ID3D11Device* InDevice, const TArray<FTextureVertex>& InData, uint32 InByteWidth, uint32 InStride)
@@ -110,15 +90,15 @@ void FVertexBuffer::Create(ID3D11Device* InDevice, const TArray<FTextureVertex>&
 		return;
 	}
 
-	D3D11_BUFFER_DESC vertexBufferDesc = {};
-	vertexBufferDesc.ByteWidth = InByteWidth;
-	vertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	vertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	D3D11_BUFFER_DESC VertexBufferDesc = {};
+	VertexBufferDesc.ByteWidth = InByteWidth;
+	VertexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	VertexBufferDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 
-	D3D11_SUBRESOURCE_DATA vertexBufferSRD = { InData.data() };
+	D3D11_SUBRESOURCE_DATA VertexBufferSRD = { InData.data() };
 
-	HRESULT hr = InDevice->CreateBuffer(&vertexBufferDesc, &vertexBufferSRD, &Buffer);
-	if (FAILED(hr))
+	HRESULT Hr = InDevice->CreateBuffer(&VertexBufferDesc, &VertexBufferSRD, &Buffer);
+	if (FAILED(Hr))
 	{
 		Release();
 		VertexCount = 0;
@@ -139,10 +119,11 @@ void FVertexBuffer::Release()
 	}
 }
 
-//	 Vertex buffer는 Immutable로 생성했으므로 업데이트가 불가. 업데이트가 필요하다면 Dynamic으로 생성
 void FVertexBuffer::Update(ID3D11DeviceContext* InDeviceContext, const TArray<uint32>& InData, uint32 InByteWidth)
 {
-	//	 Do nothing
+	(void)InDeviceContext;
+	(void)InData;
+	(void)InByteWidth;
 }
 
 ID3D11Buffer* FVertexBuffer::GetBuffer() const
@@ -154,45 +135,41 @@ ID3D11Buffer* FVertexBuffer::GetBuffer() const
 
 #pragma region __FCONSTANTBUFFER__
 
-//	 Constant buffer는 Dynamic으로 생성하여 업데이트가 가능하도록 구현
 void FConstantBuffer::Create(ID3D11Device* InDevice, uint32 InByteWidth)
 {
-	D3D11_BUFFER_DESC constantBufferDesc = {};
+	D3D11_BUFFER_DESC ConstantBufferDesc = {};
 
-	constantBufferDesc.ByteWidth = (InByteWidth + 0xf) & 0xfffffff0;
-	constantBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
-	constantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;	
-	constantBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	ConstantBufferDesc.ByteWidth = (InByteWidth + 0xf) & 0xfffffff0;
+	ConstantBufferDesc.Usage = D3D11_USAGE_DYNAMIC;
+	ConstantBufferDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	ConstantBufferDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
-	InDevice->CreateBuffer(&constantBufferDesc, nullptr, &Buffer);
+	InDevice->CreateBuffer(&ConstantBufferDesc, nullptr, &Buffer);
 }
 
 void FConstantBuffer::Release()
 {
-	if(Buffer)
+	if (Buffer)
 	{
 		Buffer->Release();
 		Buffer = nullptr;
 	}
 }
 
-//	Constant buffer는 Dynamic으로 생성했으므로 업데이트가 가능. 업데이트가 필요하다면 Map/Unmap을 이용하여 업데이트
-//	InData는 Constant buffer에 업데이트할 데이터의 포인터입니다. InByteWidth는 업데이트할 데이터의 총 byte 크기입니다.
-//	즉, InData는 FPerObjectConstants 구조체의 포인터입니다.
-void FConstantBuffer::Update(ID3D11DeviceContext* InDeviceContext, const void * InData, uint32 InByteWidth)
+void FConstantBuffer::Update(ID3D11DeviceContext* InDeviceContext, const void* InData, uint32 InByteWidth)
 {
 	if (Buffer)
 	{
-		D3D11_MAPPED_SUBRESOURCE constantbufferMSR;
-		InDeviceContext->Map(Buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &constantbufferMSR);
+		D3D11_MAPPED_SUBRESOURCE ConstantBufferMSR;
+		InDeviceContext->Map(Buffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &ConstantBufferMSR);
 
-		std::memcpy(constantbufferMSR.pData, InData, InByteWidth);
+		std::memcpy(ConstantBufferMSR.pData, InData, InByteWidth);
 
 		InDeviceContext->Unmap(Buffer, 0);
 	}
 }
 
-ID3D11Buffer* FConstantBuffer::GetBuffer() 
+ID3D11Buffer* FConstantBuffer::GetBuffer()
 {
 	return Buffer;
 }
@@ -210,16 +187,15 @@ void FIndexBuffer::Create(ID3D11Device* InDevice, const TArray<uint32>& InData, 
 		return;
 	}
 
-	D3D11_BUFFER_DESC indexBufferDesc = {};
+	D3D11_BUFFER_DESC IndexBufferDesc = {};
+	IndexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
+	IndexBufferDesc.ByteWidth = InByteWidth;
+	IndexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
 
-	indexBufferDesc.Usage = D3D11_USAGE_IMMUTABLE;
-	indexBufferDesc.ByteWidth = InByteWidth;	//	NOTE : Total byte width of the buffer, not the count of indices
-	indexBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+	D3D11_SUBRESOURCE_DATA IndexBufferSRD = { InData.data() };
 
-	D3D11_SUBRESOURCE_DATA indexBufferSRD = { InData.data() };
-
-	HRESULT hr = InDevice->CreateBuffer(&indexBufferDesc, &indexBufferSRD, &Buffer);
-	if (FAILED(hr))
+	HRESULT Hr = InDevice->CreateBuffer(&IndexBufferDesc, &IndexBufferSRD, &Buffer);
+	if (FAILED(Hr))
 	{
 		Release();
 		IndexCount = 0;
@@ -240,10 +216,12 @@ void FIndexBuffer::Release()
 
 void FIndexBuffer::Update(ID3D11DeviceContext* InDeviceContext, const TArray<uint32>& InData, uint32 InByteWidth)
 {
-	//	 Do nothing
+	(void)InDeviceContext;
+	(void)InData;
+	(void)InByteWidth;
 }
 
-ID3D11Buffer * FIndexBuffer::GetBuffer() const
+ID3D11Buffer* FIndexBuffer::GetBuffer() const
 {
 	return Buffer;
 }

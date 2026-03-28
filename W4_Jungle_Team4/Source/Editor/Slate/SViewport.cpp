@@ -6,7 +6,7 @@
 #include "SlateApplication.h"
 #include "Viewport/Viewport.h"
 #include "Viewport/EditorViewportClient.h"
-#include "Viewport/ViewportManager.h";
+#include "Viewport/ViewportManager.h"
 #include "SlateWidgetFactory.h"
 #include "ImGui/imgui.h"
 #include "UI/EditorConsoleWidget.h"

@@ -70,7 +70,7 @@ void FEditorRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
 
 	for (FViewport* Viewport : FViewportManager::Get().GetViewports())
 	{
-		Renderer.ViewportRenderer.Render(Renderer.GetFD3DDevice().GetDeviceContext(), Viewport);
+		Renderer.GetViewportRenderer().Render(Renderer.GetFD3DDevice().GetDeviceContext(), Viewport);
 	}
 
 	Editor->RenderUI(DeltaTime);
