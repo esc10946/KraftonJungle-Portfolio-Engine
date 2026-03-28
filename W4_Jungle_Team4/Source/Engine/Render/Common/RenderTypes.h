@@ -46,5 +46,6 @@ enum class ERenderPass : uint32
 	Editor,
 	Grid,
 	DepthLess,
+	Viewport,
 	MAX
 };

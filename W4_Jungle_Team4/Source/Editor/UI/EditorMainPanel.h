@@ -16,15 +16,13 @@ class FEditorMainPanel
 public:
 	void Create(FWindowsWindow* InWindow, FRenderer& InRenderer, UEditorEngine* InEditorEngine);
 	void Release();
+
+	void BeginFrame();
 	void Render(float DeltaTime);
 	void Update();
 
 private:
 	FWindowsWindow* Window;
-	FEditorConsoleWidget ConsoleWidget;
-	FEditorControlWidget ControlWidget;
-	FEditorPropertyWidget PropertyWidget;
-	FEditorSceneWidget SceneWidget;
 	FEditorViewportOverlayWidget ViewportOverlayWidget;
 	FEditorStatWidget StatWidget;
 	//TODO: 여기에 staticWidget 도 추가하기
