@@ -117,6 +117,7 @@
     <FxCompile Include="Shaders\ShaderSubUV.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\ShaderQuad.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Editor\EditorEngine.cpp">
@@ -166,21 +167,6 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshManager.cpp">
       <Filter>Source\Engine\Asset\StaticMesh</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\AssetPipeline\Obj\MtlParser.cpp">
-      <Filter>Source\Engine\AssetPipeline\Obj</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjImporter.cpp">
-      <Filter>Source\Engine\AssetPipeline\Obj</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjManager.cpp">
-      <Filter>Source\Engine\AssetPipeline\Obj</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjParser.cpp">
-      <Filter>Source\Engine\AssetPipeline\Obj</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjTypes.cpp">
-      <Filter>Source\Engine\AssetPipeline\Obj</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Component\ActorComponent.cpp">
       <Filter>Source\Engine\Component</Filter>
@@ -344,9 +330,16 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\StaticMeshComponent.cpp" />
-    <ClCompile Include="OrbitCameraComponent.cpp">
-      <Filter>Source\Engine\Component</Filter>
-    </ClCompile>
+    <ClCompile Include="Source\Editor\Slate\SlateApplication.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SSplitterH.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SViewport.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SWidget.cpp" />
+    <ClCompile Include="Source\Editor\Viewport\Viewport.cpp" />
+    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshObject.cpp" />
+    <ClCompile Include="Source\Engine\Render\Resource\RenderTarget.h" />
+    <ClCompile Include="Source\Engine\Render\ViewportRenderer.cpp" />
+    <ClCompile Include="Source\Engine\Render\ViewportRenderer.h" />
+    <ClCompile Include="Source\Editor\Slate\SSplitterV.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\EditorEngine.h">
@@ -399,21 +392,6 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshManager.h">
       <Filter>Source\Engine\Asset\StaticMesh</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\AssetPipeline\Obj\MtlParser.h">
-      <Filter>Source\Engine\AssetPipeline\Obj</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjImporter.h">
-      <Filter>Source\Engine\AssetPipeline\Obj</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjManager.h">
-      <Filter>Source\Engine\AssetPipeline\Obj</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjParser.h">
-      <Filter>Source\Engine\AssetPipeline\Obj</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjTypes.h">
-      <Filter>Source\Engine\AssetPipeline\Obj</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\ActorComponent.h">
       <Filter>Source\Engine\Component</Filter>
@@ -648,8 +626,9 @@
     <ClInclude Include="Source\Editor\Viewport\FViewportClient.h" />
     <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
     <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
-    <ClInclude Include="OrbitCameraComponent.h">
-      <Filter>Source\Engine\Component</Filter>
-    </ClInclude>
+    <ClInclude Include="Source\Editor\Slate\Reply.h" />
+    <ClInclude Include="Source\Editor\Viewport\Viewport.h" />
+    <ClInclude Include="Source\Editor\Viewport\ViewportClient.h" />
+    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshObject.h" />
   </ItemGroup>
 </Project>

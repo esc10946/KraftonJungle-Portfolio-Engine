@@ -163,6 +163,7 @@
   <ItemGroup>
     <ClCompile Include="Source\Editor\Slate\SlateApplication.cpp" />
     <ClCompile Include="Source\Editor\Slate\SSplitterH.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SSplitterV.cpp" />
     <ClCompile Include="Source\Editor\Slate\SViewport.cpp" />
     <ClCompile Include="Source\Editor\Slate\SWidget.cpp" />
     <ClCompile Include="Source\Editor\Viewport\Viewport.cpp" />

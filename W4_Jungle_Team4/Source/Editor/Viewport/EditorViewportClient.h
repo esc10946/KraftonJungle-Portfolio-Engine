@@ -19,7 +19,15 @@ class FEditorViewportClient : public FViewportClient
 {
 public:
 	void Tick(float DeltaTime) override;
-	void OnViewportResized(uint32 NewWidth, uint32 NewHeight) override;
+	void OnViewportResized(uint32 NewTopLeftX, uint32 NewTopLeftY, uint32 NewWidth, uint32 NewHeight) override;
+
+	void OnMouseDown(float X, float Y, int32 Button) override;
+	void OnMouseUp(float X, float Y, int32 Button) override;
+	void OnMouseMove(float X, float Y) override;
+	void OnMouseWheel(float Delta) override;
+
+	void OnKeyDown(int32 Key) override;
+	void OnKeyUp(int32 Key) override;
 
 	void Initialize(FViewport* InViewport);
 	void SetWorld(UWorld* InWorld) { World = InWorld; }
@@ -34,16 +42,16 @@ public:
 	void ResetCamera();
 	UCameraComponent* GetCamera() const { return Camera; }
 
-	const FCursorOverlayState& GetCursorOverlayState() const { return CursorOverlayState; }
-
-	POINT ScreenToViewportPoint(POINT ScreenPoint) const;
-
 private:
-	void TickInput(float DeltaTime);
+	void Move(float DeltaTime);
+	void Rotate(float DeltaTime);
+	void Zoom(float DeltaTime);
+
 	void TickInteraction(float DeltaTime);
-	void TickCursorOverlay(float DeltaTime);
 
 	void HandleDragStart(const FRay& Ray);
+
+
 
 private:
 	FViewport* Viewport = nullptr;
@@ -60,5 +68,11 @@ private:
 
 	bool bIsCursorVisible = true;
 
-	FCursorOverlayState CursorOverlayState;
+	bool bIsLeftMouseDown = false;
+	bool bIsRightMouseDown = false;
+
+	bool bIsWDown = false; bool bIsADown = false; bool bIsSDown = false; bool bIsDDown = false;
+	bool bIsQDown = false; bool bIsEDown = false;
+
+	float MouseWheelDelta = 0.0f;
 };

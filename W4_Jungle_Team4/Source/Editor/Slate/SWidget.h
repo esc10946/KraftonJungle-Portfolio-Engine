@@ -16,11 +16,15 @@ public:
 	virtual ~SWidget() = default;
 
 public:
-	virtual void Tick(float DeltaTime) { if (Child) Child->Tick(DeltaTime); }
+	virtual void Tick(float DeltaTime);
 
-	virtual FReply OnMouseButtonDown(float X, float Y) { return FReply::Unhandled(); }
-	virtual FReply OnMouseButtonUp(float X, float Y) { return FReply::Unhandled(); }
+	virtual FReply OnMouseButtonDown(float X, float Y, int32 Button) { return FReply::Unhandled(); }
+	virtual FReply OnMouseButtonUp(float X, float Y, int32 Button) { return FReply::Unhandled(); }
 	virtual FReply OnMouseMove(float X, float Y) { return FReply::Unhandled(); }
+	virtual FReply OnMouseWheel(float Delta) { return FReply::Unhandled(); }
+
+	virtual void OnKeyDown(int32 Key) {}
+	virtual void OnKeyUp(int32 Key) {}
 
 	bool IsHovered(FVector2 Coord) const;
 
@@ -29,21 +33,15 @@ public:
 
 	void AddChild(SWidget* InChild)
 	{
-		if (Child)
-		{
-			Child->Parent = nullptr;
-		}
-		Child = InChild;
-		if (Child)
-		{
-			Child->Parent = this;
-		}
+		Children.push_back(InChild);
+		InChild->Parent = this;
 	}
+	virtual TArray<SWidget*> GetChildren() { return Children; }
 
 protected:
 	FRect Rect;
 	bool bIsVisible = true;
 
 	SWidget* Parent = nullptr;
-	SWidget* Child = nullptr;
+	TArray<SWidget*> Children;
 };

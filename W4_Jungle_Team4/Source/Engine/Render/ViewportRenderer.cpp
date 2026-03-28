@@ -14,8 +14,8 @@ void FViewportRenderer::Render(ID3D11DeviceContext* Context, FViewport* Viewport
 	Context->PSSetShaderResources(0, 1, &Viewport->GetRenderTarget().SRV);
 
 	D3D11_VIEWPORT vp = {};
-	vp.TopLeftX = 0.0f;
-	vp.TopLeftY = 0.0f;
+	vp.TopLeftX = Viewport->GetPos().X;
+	vp.TopLeftY = Viewport->GetPos().Y;
 	vp.Width = static_cast<float>(Viewport->GetSize().X);
 	vp.Height = static_cast<float>(Viewport->GetSize().Y);
 	vp.MinDepth = 0.0f;

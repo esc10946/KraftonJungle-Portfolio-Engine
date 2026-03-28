@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "SWidget.h"
+#include <windows.h>
 
 class SSplitter : public SWidget
 {
@@ -11,9 +12,35 @@ public:
 public:
 	virtual void Tick(float DeltaTime) override {}
 
-	virtual FReply OnMouseButtonDown(float X, float Y) override { return FReply::Unhandled(); }
-	virtual FReply OnMouseButtonUp(float X, float Y) override { return FReply::Unhandled(); }
-	virtual FReply OnMouseMove(float X, float Y) override { return FReply::Unhandled(); }
+	virtual FReply OnMouseButtonDown(float X, float Y, int32 Button) override
+	{
+		if (Button == VK_LBUTTON && IsOnHandle(X, Y))
+		{
+			bIsDragging = true;
+			return FReply::Handled().CaptureMouse(this);
+		}
+		return FReply::Unhandled();
+	}
+
+	virtual FReply OnMouseButtonUp(float X, float Y, int32 Button) override
+	{
+		if (Button == VK_LBUTTON && bIsDragging)
+		{
+			bIsDragging = false;
+			return FReply::Handled().CaptureMouse(nullptr);
+		}
+		return FReply::Unhandled();
+	}
+
+	virtual FReply OnMouseMove(float X, float Y) override
+	{
+		if (bIsDragging)
+		{
+			UpdateSplit(X, Y);
+			return FReply::Handled();
+		}
+		return FReply::Unhandled();
+	}
 
 	SWidget* GetSideLT() const { return SideLT; }
 	void SetSideLT(SWidget* InWidget) { SideLT = InWidget; }
@@ -21,7 +48,23 @@ public:
 	SWidget* GetSideRB() const { return SideRB; }
 	void SetSideRB(SWidget* InWidget) { SideRB = InWidget; }
 
-private:
+	virtual TArray<SWidget*> GetChildren() override
+	{
+		TArray<SWidget*> Children;
+		if (SideLT) Children.push_back(SideLT);
+		if (SideRB) Children.push_back(SideRB);
+		return Children;
+	}
+
+protected:
+	virtual bool IsOnHandle(float X, float Y) const { return false; }
+	virtual void UpdateSplit(float X, float Y) {}
+
+protected:
 	SWidget* SideLT = nullptr;
 	SWidget* SideRB = nullptr;
+
+	float SplitRatio = 0.5f;
+	bool bIsDragging = false;
+	const float HandleSize = 6.0f;
 };

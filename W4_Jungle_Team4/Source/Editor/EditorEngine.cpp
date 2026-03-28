@@ -3,6 +3,7 @@
 #include "Editor/Slate/SlateApplication.h"
 #include "Editor/Slate/SViewport.h"
 #include "Editor/Slate/SSplitterH.h"
+#include "Editor/Slate/SSplitterV.h"
 #include "Editor/Viewport/Viewport.h"
 #include "Engine/Runtime/WindowsWindow.h"
 #include "Engine/Serialization/SceneSaveManager.h"
@@ -40,6 +41,8 @@ void UEditorEngine::Init(FWindowsWindow* InWindow)
 	// Slate UI 초기화
 	FViewport* Viewport = new FViewport(&Renderer.GetFD3DDevice());
 	FViewport* Viewport2 = new FViewport(&Renderer.GetFD3DDevice());
+	FViewport* Viewport3 = new FViewport(&Renderer.GetFD3DDevice());
+	FViewport* Viewport4 = new FViewport(&Renderer.GetFD3DDevice());
 
 	FEditorViewportClient* EditorViewportClient = new FEditorViewportClient();
 	EditorViewportClient->SetSettings(&FEditorSettings::Get());
@@ -50,28 +53,68 @@ void UEditorEngine::Init(FWindowsWindow* InWindow)
 	EditorViewportClient->CreateCamera();
 	EditorViewportClient->ResetCamera();
 
+	FEditorViewportClient* EditorViewportClient2 = new FEditorViewportClient();
+	EditorViewportClient2->SetSettings(&FEditorSettings::Get());
+	EditorViewportClient2->Initialize(Viewport2);
+	EditorViewportClient2->SetWorld(GetWorld());
+	EditorViewportClient2->SetGizmo(SelectionManager.GetGizmo());
+	EditorViewportClient2->SetSelectionManager(&SelectionManager);
+	EditorViewportClient2->CreateCamera();
+	EditorViewportClient2->ResetCamera();
+
+	FEditorViewportClient* EditorViewportClient3 = new FEditorViewportClient();
+	EditorViewportClient3->SetSettings(&FEditorSettings::Get());
+	EditorViewportClient3->Initialize(Viewport3);
+	EditorViewportClient3->SetWorld(GetWorld());
+	EditorViewportClient3->SetGizmo(SelectionManager.GetGizmo());
+	EditorViewportClient3->SetSelectionManager(&SelectionManager);
+	EditorViewportClient3->CreateCamera();
+	EditorViewportClient3->ResetCamera();
+
+	FEditorViewportClient* EditorViewportClient4 = new FEditorViewportClient();
+	EditorViewportClient4->SetSettings(&FEditorSettings::Get());
+	EditorViewportClient4->Initialize(Viewport4);
+	EditorViewportClient4->SetWorld(GetWorld());
+	EditorViewportClient4->SetGizmo(SelectionManager.GetGizmo());
+	EditorViewportClient4->SetSelectionManager(&SelectionManager);
+	EditorViewportClient4->CreateCamera();
+	EditorViewportClient4->ResetCamera();
+
 	Viewport->SetViewportClient(EditorViewportClient);
-	Viewport2->SetViewportClient(EditorViewportClient);
+	Viewport2->SetViewportClient(EditorViewportClient2);
+	Viewport3->SetViewportClient(EditorViewportClient3);
+	Viewport4->SetViewportClient(EditorViewportClient4);
 	Viewports.push_back(Viewport);
 	Viewports.push_back(Viewport2);
+	Viewports.push_back(Viewport3);
+	Viewports.push_back(Viewport4);
 
 	SWindow* MainWindow = new SWindow();
 	SSplitterH* SplitterH = new SSplitterH();
+	SSplitterV* SplitterV = new SSplitterV();
+	SSplitterV* SplitterV2 = new SSplitterV();
 
 	SViewport* ViewportWidget = new SViewport();
 	ViewportWidget->SetViewport(Viewport);
 	SViewport* ViewportWidget2 = new SViewport();
 	ViewportWidget2->SetViewport(Viewport2);
+	SViewport* ViewportWidget3 = new SViewport();
+	ViewportWidget3->SetViewport(Viewport3);
+	SViewport* ViewportWidget4 = new SViewport();
+	ViewportWidget4->SetViewport(Viewport4);
 
-	FRect ViewportRect = { 0, 0, 800, 600 };
+	FRect ViewportRect = { 100, 100, 1500, 800 };
 	MainWindow->SetRect(ViewportRect);
 	SplitterH->SetRect(ViewportRect);
 
-	ViewportWidget->SetViewport(Viewport);
 	MainWindow->AddChild(SplitterH);
+	SplitterH->SetSideLT(SplitterV);
+	SplitterH->SetSideRB(SplitterV2);
 
-	SplitterH->SetSideLT(ViewportWidget);
-	SplitterH->SetSideRB(ViewportWidget2);
+	SplitterV->SetSideLT(ViewportWidget);
+	SplitterV->SetSideRB(ViewportWidget2);
+	SplitterV2->SetSideLT(ViewportWidget3);
+	SplitterV2->SetSideRB(ViewportWidget4);
 
 	FSlateApplication::Get().AddWindow(MainWindow);
 
@@ -96,15 +139,6 @@ void UEditorEngine::Shutdown()
 void UEditorEngine::OnWindowResized(uint32 Width, uint32 Height)
 {
 	UEngine::OnWindowResized(Width, Height);
-	
-	for (FViewport* Viewport : Viewports)
-	{
-		FViewportClient* Client = Viewport->GetViewportClient();
-		if (Client)
-		{
-			Client->OnViewportResized(Width, Height);
-		}
-	}
 }
 
 void UEditorEngine::Tick(float DeltaTime)

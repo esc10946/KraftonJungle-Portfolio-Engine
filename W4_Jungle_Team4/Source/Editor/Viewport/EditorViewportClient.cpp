@@ -44,15 +44,14 @@ void FEditorViewportClient::ResetCamera()
 
 void FEditorViewportClient::Tick(float DeltaTime)
 {
-	TickInput(DeltaTime);
-	TickInteraction(DeltaTime);
-	TickCursorOverlay(DeltaTime);
+	Move(DeltaTime);
+	Rotate(DeltaTime);
+	Zoom(DeltaTime);
 }
 
-void FEditorViewportClient::OnViewportResized(uint32 InWidth, uint32 InHeight)
+void FEditorViewportClient::OnViewportResized(uint32 NewTopLeftX, uint32 NewTopLeftY, uint32 InWidth, uint32 InHeight)
 {
-	ViewportSize = { static_cast<float>(InWidth), static_cast<float>(InHeight) };
-	Viewport->Resize(0, 0, InWidth, InHeight);
+	Viewport->Resize(NewTopLeftX, NewTopLeftY, InWidth, InHeight);
 	
 	if (Camera)
 	{
@@ -60,41 +59,88 @@ void FEditorViewportClient::OnViewportResized(uint32 InWidth, uint32 InHeight)
 	}
 }
 
-void FEditorViewportClient::TickInput(float DeltaTime)
+void FEditorViewportClient::OnMouseDown(float X, float Y, int32 Button)
 {
-	if (!Camera)
+	if (Button == VK_LBUTTON)
 	{
-		return;
+		bIsLeftMouseDown = true;
 	}
+	if (Button == VK_RBUTTON)
+	{
+		bIsRightMouseDown = true;
+	}
+}
 
-	if (InputSystem::Get().GetGuiInputState().bUsingKeyboard == true)
+void FEditorViewportClient::OnMouseUp(float X, float Y, int32 Button)
+{
+	if (Button == VK_LBUTTON)
 	{
-		return;
+		bIsLeftMouseDown = false;
 	}
+	if (Button == VK_RBUTTON)
+	{
+		bIsRightMouseDown = false;
+	}
+}
+
+void FEditorViewportClient::OnMouseMove(float X, float Y)
+{
+}
+
+void FEditorViewportClient::OnMouseWheel(float Delta)
+{
+	MouseWheelDelta = Delta;
+}
+
+void FEditorViewportClient::OnKeyDown(int32 Key)
+{
+	if (Key == 'W') bIsWDown = true;
+	if (Key == 'A') bIsADown = true;
+	if (Key == 'S') bIsSDown = true;
+	if (Key == 'D') bIsDDown = true;
+	if (Key == 'Q') bIsQDown = true;
+	if (Key == 'E') bIsEDown = true;
 
 	const FCameraState& CameraState = Camera->GetCameraState();
+	if (Key == 'O') Camera->SetOrthographic(!CameraState.bIsOrthogonal);
+}
+
+void FEditorViewportClient::OnKeyUp(int32 Key)
+{
+	if (Key == 'W') bIsWDown = false;
+	if (Key == 'A') bIsADown = false;
+	if (Key == 'S') bIsSDown = false;
+	if (Key == 'D') bIsDDown = false;
+	if (Key == 'Q') bIsQDown = false;
+	if (Key == 'E') bIsEDown = false;
+}
+
+void FEditorViewportClient::Move(float DeltaTime)
+{
+	const FCameraState& CameraState = Camera->GetCameraState();
+
+	FVector Direction = FVector(0, 0, 0);
+
+	if (bIsWDown && !CameraState.bIsOrthogonal) Direction.X += 1;
+	if (bIsADown) Direction.Y -= 1;
+	if (bIsSDown && !CameraState.bIsOrthogonal) Direction.X -= 1;
+	if (bIsDDown) Direction.Y += 1;
+	if (bIsQDown) Direction.Z -= 1;
+	if (bIsEDown) Direction.Z += 1;
+
+	if (Direction.Length() < EPSILON) return;
+
+	Direction.Normalize();
 
 	const float MoveSensitivity = Settings ? Settings->CameraMoveSensitivity : 1.f;
 	const float CameraSpeed = (Settings ? Settings->CameraSpeed : 10.f) * MoveSensitivity;
 
-	FVector Move = FVector(0, 0, 0);
+	FVector FinalMove = Direction * CameraSpeed * DeltaTime;
+	Camera->MoveLocal(FinalMove);
+}
 
-	if (InputSystem::Get().GetKey('W') && !CameraState.bIsOrthogonal)
-		Move.X += CameraSpeed;
-	if (InputSystem::Get().GetKey('A'))
-		Move.Y -= CameraSpeed;
-	if (InputSystem::Get().GetKey('S') && !CameraState.bIsOrthogonal)
-		Move.X -= CameraSpeed;
-	if (InputSystem::Get().GetKey('D'))
-		Move.Y += CameraSpeed;
-	if (InputSystem::Get().GetKey('Q'))
-		Move.Z -= CameraSpeed;
-	if (InputSystem::Get().GetKey('E'))
-		Move.Z += CameraSpeed;
-
-	Move *= DeltaTime;
-	Camera->MoveLocal(Move);
-
+void FEditorViewportClient::Rotate(float DeltaTime)
+{
 	FVector Rotation = FVector(0, 0, 0);
 	FVector MouseRotation = FVector(0, 0, 0);
 
@@ -109,10 +155,9 @@ void FEditorViewportClient::TickInput(float DeltaTime)
 	if (InputSystem::Get().GetKey(VK_RIGHT))
 		Rotation.Y += AngleVelocity;
 
-	// Mouse sensitivity is degrees per pixel (do not multiply by DeltaTime)
 	float MouseRotationSpeed = 0.15f * RotateSensitivity;
 
-	if (InputSystem::Get().GetKey(VK_RBUTTON))
+	if (bIsRightMouseDown)
 	{
 		float DeltaX = static_cast<float>(InputSystem::Get().MouseDeltaX());
 		float DeltaY = static_cast<float>(InputSystem::Get().MouseDeltaY());
@@ -122,16 +167,26 @@ void FEditorViewportClient::TickInput(float DeltaTime)
 
 		MouseRotation.Y = Clamp(MouseRotation.Y, -89.0f, 89.0f);
 		MouseRotation.Z = Clamp(MouseRotation.Z, -89.0f, 89.0f);
+
+		Rotation *= DeltaTime;
+		Camera->Rotate(Rotation.Y + MouseRotation.Y, Rotation.Z + MouseRotation.Z);
 	}
+}
 
-	if (InputSystem::Get().GetKeyUp(VK_SPACE))
-		Gizmo->SetNextMode();
+void FEditorViewportClient::Zoom(float DeltaTime)
+{
+	const float ZoomSpeed = Settings ? Settings->CameraZoomSpeed : 300.f;
 
-	Rotation *= DeltaTime;
-	Camera->Rotate(Rotation.Y + MouseRotation.Y, Rotation.Z + MouseRotation.Z);
-
-	if (InputSystem::Get().GetKeyDown('O')) {
-		Camera->SetOrthographic(!CameraState.bIsOrthogonal);
+	float ScrollNotches = MouseWheelDelta;
+	if (ScrollNotches != 0.0f) {
+		if (Camera->IsOrthogonal()) {
+			float NewWidth = Camera->GetOrthoWidth() - ScrollNotches * ZoomSpeed * DeltaTime;
+			Camera->SetOrthoWidth(Clamp(NewWidth, 0.1f, 1000.0f));
+		}
+		else {
+			float NewFOV = Camera->GetFOV() - ScrollNotches * ZoomSpeed * DeltaTime;
+			Camera->SetFOV(Clamp(NewFOV, 1.f * DEG_TO_RAD, 90.0f * DEG_TO_RAD));
+		}
 	}
 }
 
@@ -163,93 +218,33 @@ void FEditorViewportClient::TickInteraction(float DeltaTime)
 		}
 	}
 
-	POINT MousePoint = InputSystem::Get().GetClientMousePos();
-	MousePoint = ScreenToViewportPoint(MousePoint);
+	//FRay Ray = Camera->DeprojectScreenToWorld(static_cast<float>(MousePoint.x), static_cast<float>(MousePoint.y), ViewportSize.X, ViewportSize.Y);
+	//FHitResult HitResult;
 
-	//	Cursor
-	CursorOverlayState.ScreenX = static_cast<float>(MousePoint.x);
-	CursorOverlayState.ScreenY = static_cast<float>(MousePoint.y);
+	////Gizmo Hover
+	//Gizmo->Raycast(Ray, HitResult);
 
-	if (InputSystem::Get().GetKeyDown(VK_LBUTTON))
-	{
-		CursorOverlayState.bPressed = true;
-		CursorOverlayState.bVisible = true;
-		CursorOverlayState.TargetRadius = CursorOverlayState.MaxRadius;
-		CursorOverlayState.Color = FVector4(1.0f, 1.0f, 0.0f, 1.0f);  // Yellow for left-click
+	//if (InputSystem::Get().GetKeyDown(VK_LBUTTON))
+	//{
+	//	HandleDragStart(Ray);
+	//}
+	//else if (InputSystem::Get().GetLeftDragging())
+	//{
+	//	//	눌려있고, Holding되지 않았다면 다음 Loop부터 드래그 업데이트 시작
+	//	if (Gizmo->IsPressedOnHandle() && !Gizmo->IsHolding())
+	//	{
+	//		Gizmo->SetHolding(true);
+	//	}
 
-		if (bIsCursorVisible)
-		{
-			while (ShowCursor(FALSE) >= 0);
-			bIsCursorVisible = false;
-		}
-
-	}
-
-	if (InputSystem::Get().GetKeyUp(VK_LBUTTON))
-	{
-		CursorOverlayState.bPressed = false;
-		CursorOverlayState.TargetRadius = 0.0f;
-
-		if (!bIsCursorVisible)
-		{
-			while (ShowCursor(TRUE) < 0);
-			bIsCursorVisible = true;
-		}
-	}
-
-	if (InputSystem::Get().GetKeyDown(VK_RBUTTON))
-	{
-		CursorOverlayState.bPressed = true;
-		CursorOverlayState.bVisible = true;
-		CursorOverlayState.TargetRadius = CursorOverlayState.MaxRadius;
-		CursorOverlayState.Color = FVector4(0.0f, 0.0f, 1.0f, 1.0f);  // Blue for right-click
-
-		if (bIsCursorVisible)
-		{
-			while (ShowCursor(FALSE) >= 0);
-			bIsCursorVisible = false;
-		}
-	}
-
-	if (InputSystem::Get().GetKeyUp(VK_RBUTTON))
-	{
-		CursorOverlayState.bPressed = false;
-		CursorOverlayState.TargetRadius = 0.0f;
-
-		if (!bIsCursorVisible)
-		{
-			while (ShowCursor(TRUE) < 0);
-			bIsCursorVisible = true;
-		}
-	}
-
-	FRay Ray = Camera->DeprojectScreenToWorld(static_cast<float>(MousePoint.x), static_cast<float>(MousePoint.y), ViewportSize.X, ViewportSize.Y);
-	FHitResult HitResult;
-
-	//Gizmo Hover
-	Gizmo->Raycast(Ray, HitResult);
-
-	if (InputSystem::Get().GetKeyDown(VK_LBUTTON))
-	{
-		HandleDragStart(Ray);
-	}
-	else if (InputSystem::Get().GetLeftDragging())
-	{
-		//	눌려있고, Holding되지 않았다면 다음 Loop부터 드래그 업데이트 시작
-		if (Gizmo->IsPressedOnHandle() && !Gizmo->IsHolding())
-		{
-			Gizmo->SetHolding(true);
-		}
-
-		if (Gizmo->IsHolding())
-		{
-			Gizmo->UpdateDrag(Ray);
-		}
-	}
-	else if (InputSystem::Get().GetLeftDragEnd())
-	{
-		Gizmo->DragEnd();
-	}
+	//	if (Gizmo->IsHolding())
+	//	{
+	//		Gizmo->UpdateDrag(Ray);
+	//	}
+	//}
+	//else if (InputSystem::Get().GetLeftDragEnd())
+	//{
+	//	Gizmo->DragEnd();
+	//}
 }
 
 void FEditorViewportClient::HandleDragStart(const FRay& Ray)
@@ -311,25 +306,4 @@ void FEditorViewportClient::HandleDragStart(const FRay& Ray)
 			}
 		}
 	}
-}
-
-void FEditorViewportClient::TickCursorOverlay(float DeltaTime)
-{
-	const float Alpha = min(1.0f, DeltaTime * CursorOverlayState.LerpSpeed);
-	CursorOverlayState.CurrentRadius += (CursorOverlayState.TargetRadius - CursorOverlayState.CurrentRadius) * Alpha;
-
-	if (!CursorOverlayState.bPressed && CursorOverlayState.CurrentRadius < 0.01f)
-	{
-		CursorOverlayState.CurrentRadius = 0.0f;
-		CursorOverlayState.bVisible = false;
-	}
-}
-
-POINT FEditorViewportClient::ScreenToViewportPoint(POINT ScreenPoint) const
-{
-	POINT ViewportPoint;
-	ViewportPoint.x = ScreenPoint.x - static_cast<LONG>(ViewportPos.X);
-	ViewportPoint.y = ScreenPoint.y - static_cast<LONG>(ViewportPos.Y);
-
-	return ViewportPoint;
 }

@@ -10,38 +10,49 @@ void SViewport::Tick(float DeltaTime)
 		if (Client)
 		{
 			Client->Tick(DeltaTime);
+			Client->OnViewportResized(Rect.X, Rect.Y, Rect.Width, Rect.Height);
 		}
-
-		ResizeViewport();
 	}
 }
 
-FReply SViewport::OnMouseButtonDown(float X, float Y)
+FReply SViewport::OnMouseButtonDown(float X, float Y, int32 Button)
 {
-	FReply Reply = SWidget::OnMouseButtonDown(X, Y);
+	FReply Reply = SWidget::OnMouseButtonUp(X, Y, Button);
 	if (Reply.IsHandled())
 	{
 		return Reply;
 	}
+
 	if (Viewport)
 	{
-		// Viewport의 마우스 입력 처리 로직을 여기에 추가
+		if (Viewport->GetViewportClient())
+		{
+			Viewport->GetViewportClient()->OnMouseDown(X, Y, Button);
+		}
+		return FReply::Handled().CaptureMouse(this);
 	}
-	return FReply::Handled().CaptureMouse(this);
+
+	return FReply::Unhandled();
 }
 
-FReply SViewport::OnMouseButtonUp(float X, float Y)
+FReply SViewport::OnMouseButtonUp(float X, float Y, int32 Button)
 {
-	FReply Reply = SWidget::OnMouseButtonUp(X, Y);
+	FReply Reply = SWidget::OnMouseButtonUp(X, Y, Button);
 	if (Reply.IsHandled())
 	{
 		return Reply;
 	}
+
 	if (Viewport)
 	{
-		// Viewport의 마우스 입력 처리 로직을 여기에 추가
+		if (Viewport->GetViewportClient())
+		{
+			Viewport->GetViewportClient()->OnMouseUp(X, Y, Button);
+		}
+		return FReply::Handled().CaptureMouse(nullptr);
 	}
-	return FReply::Handled();
+
+	return FReply::Unhandled();
 }
 
 FReply SViewport::OnMouseMove(float X, float Y)
@@ -51,21 +62,51 @@ FReply SViewport::OnMouseMove(float X, float Y)
 	{
 		return Reply;
 	}
+
 	if (Viewport)
 	{
-		// Viewport의 마우스 입력 처리 로직을 여기에 추가
+		if (Viewport->GetViewportClient())
+		{
+			Viewport->GetViewportClient()->OnMouseMove(X, Y);
+		}
+		return FReply::Handled();
 	}
-	return FReply::Handled();
+	
+	return FReply::Unhandled();
 }
 
-void SViewport::ResizeViewport()
+FReply SViewport::OnMouseWheel(float Delta)
 {
+	FReply Reply = SWidget::OnMouseWheel(Delta);
+	if (Reply.IsHandled())
+	{
+		return Reply;
+	}
 	if (Viewport)
 	{
-		FViewportClient* Client = Viewport->GetViewportClient();
-		if (Client)
+		if (Viewport->GetViewportClient())
 		{
-			Client->OnViewportResized(Rect.Width, Rect.Height);
+			Viewport->GetViewportClient()->OnMouseWheel(Delta);
 		}
+		return FReply::Handled();
+	}
+	return FReply::Unhandled();
+}
+
+void SViewport::OnKeyDown(int32 Key)
+{
+	SWidget::OnKeyDown(Key);
+	if (Viewport && Viewport->GetViewportClient())
+	{
+		Viewport->GetViewportClient()->OnKeyDown(Key);
+	}
+}
+
+void SViewport::OnKeyUp(int32 Key)
+{
+	SWidget::OnKeyUp(Key);
+	if (Viewport && Viewport->GetViewportClient())
+	{
+		Viewport->GetViewportClient()->OnKeyUp(Key);
 	}
 }

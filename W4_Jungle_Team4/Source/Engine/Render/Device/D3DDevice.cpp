@@ -44,9 +44,15 @@ void FD3DDevice::BeginFrame(FRenderTarget& RenderTarget)
 {
 	DeviceContext->ClearRenderTargetView(RenderTarget.RTV, ClearColor);
 	DeviceContext->ClearDepthStencilView(RenderTarget.DSV, D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
-	DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-	DeviceContext->RSSetViewports(1, &ViewportInfo);
+	D3D11_VIEWPORT Viewport = {};
+	Viewport.TopLeftX = 0.0f;
+	Viewport.TopLeftY = 0.0f;
+	Viewport.Width = static_cast<float>(RenderTarget.Width);
+	Viewport.Height = static_cast<float>(RenderTarget.Height);
+	Viewport.MinDepth = 0.0f;
+	Viewport.MaxDepth = 1.0f;
+	DeviceContext->RSSetViewports(1, &Viewport);
 
 	SetRasterizerState(ERasterizerState::SolidBackCull);
 	SetDepthStencilState(EDepthStencilState::Default);
@@ -475,7 +481,7 @@ void FD3DDevice::ReleaseBlendState()
 	SAFE_RELEASE(BlendStateNoColorWrite);
 }
 
-FRenderTarget FD3DDevice::CreateRenderTarget(uint32 Width, uint32 Height) const
+FRenderTarget FD3DDevice::CreateRenderTarget(uint32 TopLeftX, uint32 TopLeftY, uint32 Width, uint32 Height) const
 {
 	FRenderTarget RenderTarget;
 
@@ -512,6 +518,11 @@ FRenderTarget FD3DDevice::CreateRenderTarget(uint32 Width, uint32 Height) const
 	Device->CreateTexture2D(&depthStencilDesc, nullptr, &RenderTarget.DepthStencilTexture);
 
 	Device->CreateDepthStencilView(RenderTarget.DepthStencilTexture, nullptr, &RenderTarget.DSV);
+
+	RenderTarget.TopLeftX = TopLeftX;
+	RenderTarget.TopLeftY = TopLeftY;
+	RenderTarget.Width = Width;
+	RenderTarget.Height = Height;
 
 	return RenderTarget;
 }

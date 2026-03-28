@@ -1,5 +1,16 @@
 ﻿#include "SWidget.h"
 
+void SWidget::Tick(float DeltaTime)
+{
+	for (SWidget* Child : Children)
+	{
+		if (Child->bIsVisible)
+		{
+			Child->Tick(DeltaTime);
+		}
+	}
+}
+
 bool SWidget::IsHovered(FVector2 Coord) const
 {
 	if (!bIsVisible) return false;

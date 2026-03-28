@@ -78,7 +78,7 @@ private:
 	UINT SwapChainFlags = 0;
 
 public:
-	FRenderTarget CreateRenderTarget(uint32 width, uint32 height) const;
+	FRenderTarget CreateRenderTarget(uint32 TopLeftX, uint32 TopLeftY, uint32 width, uint32 height) const;
 
 private:
 	void CreateDeviceAndSwapChain(HWND InHWindow);

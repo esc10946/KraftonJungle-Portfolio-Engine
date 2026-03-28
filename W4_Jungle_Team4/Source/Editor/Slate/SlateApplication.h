@@ -17,8 +17,12 @@ public:
 
 	SWidget* GetMouseCaptor() const { return MouseCaptor; }
 
+	SWidget* GetFocusedWidget() const { return FocusedWidget; }
+	void SetFocusedWidget(SWidget* InWidget) { FocusedWidget = InWidget; }
+
 private:
 	SWidget* FindWidgetAt(FVector2 ScreenPoint) const;
+	SWidget* FindLeafWidgetAt(SWidget* Parent, FVector2 ScreenPoint) const;
 
 	void ProcessInput();
 
@@ -30,4 +34,5 @@ private:
 
 	SWidget* MouseCaptor = nullptr;
 	SWidget* WidgetUnderMouse = nullptr;
+	SWidget* FocusedWidget = nullptr;
 };
