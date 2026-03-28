@@ -107,6 +107,11 @@ struct FStaticMeshConstants
 	const FStaticMesh* Mesh = nullptr;
 };
 
+struct FViewportConstants
+{
+	FRenderTarget* RenderTarget = nullptr;
+};
+
 struct FRenderCommand
 {
 	//	VB, IB 모두 담고 있는 MB
@@ -122,7 +127,7 @@ struct FRenderCommand
 		FGridConstants Grid;
 		FFontConstants Font;
 		FSubUVConstants SubUV;
-		FStaticMeshConstants StaticMesh;
+		FViewportConstants Viewport;
 	} Constants;
 
 	EDepthStencilState DepthStencilState = static_cast<EDepthStencilState>(-1);

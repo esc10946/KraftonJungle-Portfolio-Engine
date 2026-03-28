@@ -6,8 +6,10 @@
 #include "Core/ResourceManager.h"
 #include "Render/Common/RenderTypes.h"
 #include "Render/Mesh/MeshManager.h"
+#include "Render/Resource/MeshBufferManager.h"
 #include "Core/Stats.h"
 #include "Core/GPUProfiler.h"
+#include "Viewport/Viewport.h"
 
 
 void FRenderer::Create(HWND hWindow)
@@ -51,6 +53,8 @@ void FRenderer::Create(HWND hWindow)
 	FontBatcher.Create(Device.GetDevice());
 	SubUVBatcher.Create(Device.GetDevice());
 
+	ViewportRenderer.Create(Device.GetDevice());
+
 	InitializePassRenderStates();
 	InitializePassBatchers();
 
@@ -77,6 +81,7 @@ void FRenderer::Release()
 	GridLineBatcher.Release();
 	FontBatcher.Release();
 	SubUVBatcher.Release();
+	ViewportRenderer.Release();
 
 	Device.Release();
 }
@@ -115,10 +120,19 @@ const TArray<FRenderCommand>& FRenderer::GetAlignedCommands(ERenderPass Pass, co
 	return Commands;
 }
 
-//	GPU 프레임 시작. 반드시 Render 이전에 호출되어야 함.
 void FRenderer::BeginFrame()
 {
 	Device.BeginFrame();
+
+#if STATS
+	FGPUProfiler::Get().BeginFrame();
+#endif
+}
+
+//	GPU 프레임 시작. 반드시 Render 이전에 호출되어야 함.
+void FRenderer::BeginFrame(FRenderTarget& RenderTarget)
+{
+	Device.BeginFrame(RenderTarget);
 
 #if STATS
 	FGPUProfiler::Get().BeginFrame();
@@ -417,6 +431,11 @@ void FRenderer::DrawCommand(ID3D11DeviceContext* InDeviceContext, const FRenderC
 	{
 		InDeviceContext->Draw(vertexCount, 0);
 	}
+}
+
+void FRenderer::EndViewportFrame(FRenderTarget& RenderTarget)
+{
+	ID3D11DeviceContext* Context = Device.GetDeviceContext();
 }
 
 //	Present the rendered frame to the screen. 반드시 Render 이후에 호출되어야 함.

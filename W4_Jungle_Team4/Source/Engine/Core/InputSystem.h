@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <windows.h>
 #include "Singleton.h"
 
@@ -22,6 +22,16 @@ public:
 
     // Mouse position
     POINT GetMousePos() const { return MousePos; }
+	POINT GetClientMousePos() const
+	{
+		if (OwnerHWnd)
+		{
+			POINT ClientPos = MousePos;
+			ScreenToClient(OwnerHWnd, &ClientPos);
+			return ClientPos;
+		}
+		return MousePos;
+	}
     int MouseDeltaX() const { return MousePos.x - PrevMousePos.x; }
     int MouseDeltaY() const { return MousePos.y - PrevMousePos.y; }
     bool MouseMoved() const { return MouseDeltaX() != 0 || MouseDeltaY() != 0; }

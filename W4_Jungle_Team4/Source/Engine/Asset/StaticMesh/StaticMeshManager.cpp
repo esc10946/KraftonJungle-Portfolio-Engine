@@ -1,9 +1,8 @@
-#include "Asset/StaticMesh/StaticMeshManager.h"
+﻿#include "Asset/StaticMesh/StaticMeshManager.h"
 
 #include "Asset/StaticMesh/StaticMeshAsset.h"
 #include "Asset/StaticMesh/StaticMeshBakeIO.h"
 #include "Asset/StaticMesh/StaticMeshObject.h"
-#include "AssetPipeline/Obj/ObjImporter.h"
 #include "Object/Object.h"
 
 #include <filesystem>
@@ -33,12 +32,12 @@ FStaticMeshAsset* FStaticMeshManager::LoadStaticMeshAsset(const FString& InSourc
 
 	if (!bLoaded)
 	{
-		bLoaded = FObjImporter::ImportFromFile(NormalizedPath, *Asset);
-		if (bLoaded)
-		{
-			Asset->BakePath = FStaticMeshBakeIO::MakeBakePath(NormalizedPath);
-			FStaticMeshBakeIO::SaveToFile(Asset->BakePath, *Asset);
-		}
+		//bLoaded = FObjImporter::ImportFromFile(NormalizedPath, *Asset);
+		//if (bLoaded)
+		//{
+		//	Asset->BakePath = FStaticMeshBakeIO::MakeBakePath(NormalizedPath);
+		//	FStaticMeshBakeIO::SaveToFile(Asset->BakePath, *Asset);
+		//}
 	}
 
 	if (!bLoaded)

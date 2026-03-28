@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Core/CoreTypes.h"
 #include <cstdarg>
 #include <functional>
@@ -9,6 +9,7 @@
 #include "ImGui/imgui_impl_win32.h"
 
 #include "Editor/UI/EditorWidget.h"
+#include "Slate/SImGuiConsoleWidget.h"
 
 class FEditorConsoleWidget : public FEditorWidget
 {
@@ -47,4 +48,4 @@ private:
 };
 
 #define UE_LOG(Format, ...) \
-    FEditorConsoleWidget::AddLog(Format, ##__VA_ARGS__)
+    SImGuiConsoleWidget::AddLog(Format, ##__VA_ARGS__)

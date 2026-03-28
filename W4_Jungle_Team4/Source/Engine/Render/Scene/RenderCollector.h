@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "RenderBus.h"
 #include "Render/Resource/MeshBufferManager.h"
 
@@ -6,6 +6,7 @@ class UWorld;
 class AActor;
 class UPrimitiveComponent;
 class UGizmoComponent;
+class FViewport;
 
 class FRenderCollector {
 private:
@@ -18,6 +19,7 @@ public:
 	void CollectSelection(const TArray<AActor*>& SelectedActors, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus);
 	void CollectGizmo(UGizmoComponent* Gizmo, const FShowFlags& ShowFlags, FRenderBus& RenderBus);
 	void CollectGrid(float GridSpacing, int32 GridHalfLineCount, FRenderBus& RenderBus);
+	void CollectViewport(const TArray<FViewport*>& Viewports, FRenderBus& RenderBus);
 
 private:
 	void CollectFromActor(AActor* Actor, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus);
