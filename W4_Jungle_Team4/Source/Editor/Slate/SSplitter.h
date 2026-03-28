@@ -60,6 +60,26 @@ public:
 	virtual bool IsOnHandle(float X, float Y) const { return false; }
 	virtual void UpdateSplit(float X, float Y) {}
 
+	virtual json::JSON Serialize() const override
+	{
+		json::JSON Data = SWidget::Serialize();
+		Data["SplitRatio"] = SplitRatio;
+
+		if (SideLT) Data["SideLT"] = SideLT->Serialize();
+		if (SideRB) Data["SideRB"] = SideRB->Serialize();
+
+		return Data;
+	}
+
+	virtual void Deserialize(json::JSON& Data) override
+	{
+		SWidget::Deserialize(Data);
+		if (Data.hasKey("SplitRatio"))
+		{
+			SplitRatio = Data["SplitRatio"].ToFloat();
+		}
+	}
+
 protected:
 	SWidget* SideLT = nullptr;
 	SWidget* SideRB = nullptr;

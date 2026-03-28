@@ -47,7 +47,9 @@ void SImGuiSceneWidget::OnPaint()
 	ImGui::SetNextWindowPos(ImVec2((float)Rect.X, (float)Rect.Y));
 	ImGui::SetNextWindowSize(ImVec2((float)Rect.Width, (float)Rect.Height));
 
-	ImGui::Begin("Jungle Scene Manager");
+	ImGuiWindowFlags WindowFlags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar;
+
+	ImGui::Begin("Jungle Scene Manager", nullptr, WindowFlags);
 
 	// New Scene
 	if (ImGui::Button("New Scene"))

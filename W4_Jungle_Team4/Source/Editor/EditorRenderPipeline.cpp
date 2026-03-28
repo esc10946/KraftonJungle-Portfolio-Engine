@@ -2,6 +2,7 @@
 
 #include "Editor/EditorEngine.h"
 #include "Editor/Viewport/Viewport.h"
+#include "Editor/Viewport/ViewportManager.h"
 #include "Render/Renderer/Renderer.h"
 #include "Component/CameraComponent.h"
 #include "Component/GizmoComponent.h"
@@ -27,7 +28,7 @@ void FEditorRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
 	FGPUProfiler::Get().TakeSnapshot();
 #endif
 
-	for (FViewport* Viewport : Editor->GetViewports())
+	for (FViewport* Viewport : FViewportManager::Get().GetViewports())
 	{
 		Bus.Clear();
 
@@ -63,7 +64,7 @@ void FEditorRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
 
 	Renderer.BeginFrame();
 
-	for (FViewport* Viewport : Editor->GetViewports())
+	for (FViewport* Viewport : FViewportManager::Get().GetViewports())
 	{
 		Renderer.ViewportRenderer.Render(Renderer.GetFD3DDevice().GetDeviceContext(), Viewport);
 	}

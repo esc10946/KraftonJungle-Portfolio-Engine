@@ -16,6 +16,8 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void OnPaint() override;
 
+	virtual FString GetWidgetType() const { return "SImGuiPropertyWidget"; }
+
 private:
 	void RenderComponentTree(AActor* Actor);
 	void RenderSceneComponentNode(class USceneComponent* Comp);

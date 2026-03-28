@@ -12,6 +12,8 @@ public:
 	void SetTitle(const FString& InTitle) { Title = InTitle; }
 	const FString& GetTitle() const { return Title; }
 
+	virtual FString GetWidgetType() const { return "SWindow"; }
+
 private:
 	FString Title;
 	bool bIsActive;

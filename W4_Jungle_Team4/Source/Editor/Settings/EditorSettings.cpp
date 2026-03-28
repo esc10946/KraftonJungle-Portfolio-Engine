@@ -1,5 +1,7 @@
 ﻿#include "Editor/Settings/EditorSettings.h"
 #include "SimpleJSON/json.hpp"
+#include "Slate/SlateWidgetFactory.h"
+#include "Slate/SlateApplication.h"
 
 #include <fstream>
 #include <filesystem>
@@ -32,6 +34,9 @@ namespace Key
 	constexpr const char* Grid = "Grid";
 	constexpr const char* GridSpacing = "GridSpacing";
 	constexpr const char* GridHalfLineCount = "GridHalfLineCount";
+
+	// Slate
+	constexpr const char* Slate = "Slate";
 
 	// Paths
 	constexpr const char* DefaultSavePath = "DefaultSavePath";
@@ -79,6 +84,10 @@ void FEditorSettings::SaveToFile(const FString& Path) const
 	JSON PathsObj = Object();
 	PathsObj[Key::DefaultSavePath] = DefaultSavePath;
 	Root[Key::Paths] = PathsObj;
+
+	// Slate
+	JSON slateObj = Object();
+	Root[Key::Slate] = FSlateApplication::Get().GetWindows()[0]->Serialize();
 
 	// Ensure directory exists
 	std::filesystem::path FilePath(FPaths::ToWide(Path));
@@ -176,6 +185,17 @@ void FEditorSettings::LoadFromFile(const FString& Path)
 			GridSpacing = static_cast<float>(GridObj[Key::GridSpacing].ToFloat());
 		if (GridObj.hasKey(Key::GridHalfLineCount))
 			GridHalfLineCount = GridObj[Key::GridHalfLineCount].ToInt();
+	}
+
+	// Slate
+	if (Root.hasKey(Key::Slate))
+	{
+		SWidget* RootWidget = FSlateWidgetFactory::LoadRecursive(Root[Key::Slate]);
+
+		if (SWindow* Window = dynamic_cast<SWindow*>(RootWidget))
+		{
+			FSlateApplication::Get().AddWindow(Window);
+		}
 	}
 
 	// Paths

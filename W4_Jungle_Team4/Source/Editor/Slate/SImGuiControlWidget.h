@@ -14,6 +14,8 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void OnPaint() override;
 
+	virtual FString GetWidgetType() const { return "SImGuiControlWidget"; }
+
 private:
 	UEditorEngine* EditorEngine;
 

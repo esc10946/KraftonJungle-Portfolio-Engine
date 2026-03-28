@@ -2,6 +2,7 @@
 
 #include "Core/EngineTypes.h"
 #include "Reply.h"
+#include "ThirdParty/SimpleJSON/json.hpp"
 
 struct FRect
 {
@@ -38,6 +39,10 @@ public:
 		InChild->Parent = this;
 	}
 	virtual TArray<SWidget*> GetChildren() { return Children; }
+
+	virtual FString GetWidgetType() const { return "SWidget"; }
+	virtual json::JSON Serialize() const;
+	virtual void Deserialize(json::JSON& Data);
 
 protected:
 	FRect Rect;

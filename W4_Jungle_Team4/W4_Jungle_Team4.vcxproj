@@ -167,11 +167,14 @@
     <ClCompile Include="Source\Editor\Slate\SImGuiPropertyWidget.h" />
     <ClCompile Include="Source\Editor\Slate\SImGuiSceneWidget.cpp" />
     <ClCompile Include="Source\Editor\Slate\SlateApplication.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SlateWidgetFactory.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SlateWidgetFactory.h" />
     <ClCompile Include="Source\Editor\Slate\SSplitterH.cpp" />
     <ClCompile Include="Source\Editor\Slate\SSplitterV.cpp" />
     <ClCompile Include="Source\Editor\Slate\SViewport.cpp" />
     <ClCompile Include="Source\Editor\Slate\SWidget.cpp" />
     <ClCompile Include="Source\Editor\Viewport\Viewport.cpp" />
+    <ClCompile Include="Source\Editor\Viewport\ViewportManager.cpp" />
     <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshAsset.cpp" />
     <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshBakeIO.cpp" />
     <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshManager.cpp" />
@@ -256,6 +259,7 @@
     <ClInclude Include="Source\Editor\Slate\SImGuiSceneWidget.h" />
     <ClInclude Include="Source\Editor\Viewport\Viewport.h" />
     <ClInclude Include="Source\Editor\Viewport\ViewportClient.h" />
+    <ClInclude Include="Source\Editor\Viewport\ViewportManager.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshAsset.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshBakeIO.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshManager.h" />

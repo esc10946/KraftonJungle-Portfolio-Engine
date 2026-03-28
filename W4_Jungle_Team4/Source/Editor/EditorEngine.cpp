@@ -16,6 +16,7 @@
 #include "Component/PrimitiveComponent.h"
 #include "GameFramework/World.h"
 #include "Editor/EditorRenderPipeline.h"
+#include "Editor/Viewport/ViewportManager.h"
 #include "Core/Stats.h"
 
 DEFINE_CLASS(UEditorEngine, UEngine)
@@ -25,11 +26,6 @@ void UEditorEngine::Init(FWindowsWindow* InWindow)
 {
 	// 엔진 공통 초기화 (Renderer, D3D, 싱글턴 등)
 	UEngine::Init(InWindow);
-
-	// 에디터 전용 초기화
-	FEditorSettings::Get().LoadFromFile(FEditorSettings::GetDefaultSettingsPath());
-
-	MainPanel.Create(Window, Renderer, this);
 
 	// World
 	if (WorldList.empty())
@@ -42,98 +38,67 @@ void UEditorEngine::Init(FWindowsWindow* InWindow)
 	// Selection & Gizmo
 	SelectionManager.Init();
 
-	// Slate UI 초기화
-	FViewport* Viewport = new FViewport(&Renderer.GetFD3DDevice());
-	FViewport* Viewport2 = new FViewport(&Renderer.GetFD3DDevice());
-	FViewport* Viewport3 = new FViewport(&Renderer.GetFD3DDevice());
-	FViewport* Viewport4 = new FViewport(&Renderer.GetFD3DDevice());
+	// Viewport Manager
+	FViewportManager::Get().Initialize(&Renderer.GetFD3DDevice(), GetWorld(), &SelectionManager);
 
-	FEditorViewportClient* EditorViewportClient = new FEditorViewportClient();
-	EditorViewportClient->SetSettings(&FEditorSettings::Get());
-	EditorViewportClient->Initialize(Viewport);
-	EditorViewportClient->SetWorld(GetWorld());
-	EditorViewportClient->SetGizmo(SelectionManager.GetGizmo());
-	EditorViewportClient->SetSelectionManager(&SelectionManager);
-	EditorViewportClient->CreateCamera();
-	EditorViewportClient->ResetCamera();
+	// 에디터 전용 초기화
+	FEditorSettings::Get().LoadFromFile(FEditorSettings::GetDefaultSettingsPath());
 
-	FEditorViewportClient* EditorViewportClient2 = new FEditorViewportClient();
-	EditorViewportClient2->SetSettings(&FEditorSettings::Get());
-	EditorViewportClient2->Initialize(Viewport2);
-	EditorViewportClient2->SetWorld(GetWorld());
-	EditorViewportClient2->SetGizmo(SelectionManager.GetGizmo());
-	EditorViewportClient2->SetSelectionManager(&SelectionManager);
-	EditorViewportClient2->CreateCamera();
-	EditorViewportClient2->ResetCamera();
+	MainPanel.Create(Window, Renderer, this);
 
-	FEditorViewportClient* EditorViewportClient3 = new FEditorViewportClient();
-	EditorViewportClient3->SetSettings(&FEditorSettings::Get());
-	EditorViewportClient3->Initialize(Viewport3);
-	EditorViewportClient3->SetWorld(GetWorld());
-	EditorViewportClient3->SetGizmo(SelectionManager.GetGizmo());
-	EditorViewportClient3->SetSelectionManager(&SelectionManager);
-	EditorViewportClient3->CreateCamera();
-	EditorViewportClient3->ResetCamera();
+	// TODO: Default Slate UI 생성 메서드 분리 필요
+	if (FSlateApplication::Get().GetWindows().empty())
+	{
+		FViewport* Viewport = FViewportManager::Get().CreateViewport();
+		FEditorViewportClient* ViewportClient = FViewportManager::Get().CreateEditorViewportClient();
+		ViewportClient->Initialize(Viewport);
+		Viewport->SetViewportClient(ViewportClient);
 
-	FEditorViewportClient* EditorViewportClient4 = new FEditorViewportClient();
-	EditorViewportClient4->SetSettings(&FEditorSettings::Get());
-	EditorViewportClient4->Initialize(Viewport4);
-	EditorViewportClient4->SetWorld(GetWorld());
-	EditorViewportClient4->SetGizmo(SelectionManager.GetGizmo());
-	EditorViewportClient4->SetSelectionManager(&SelectionManager);
-	EditorViewportClient4->CreateCamera();
-	EditorViewportClient4->ResetCamera();
+		SWindow* MainWindow = new SWindow();
+		SSplitterH* SplitterH = new SSplitterH();
+		SSplitterH* SplitterH2 = new SSplitterH();
+		SSplitterV* SplitterV = new SSplitterV();
+		SSplitterV* SplitterV2 = new SSplitterV();
+		SSplitterV* SplitterV3 = new SSplitterV();
 
-	Viewport->SetViewportClient(EditorViewportClient);
-	Viewport2->SetViewportClient(EditorViewportClient2);
-	Viewport3->SetViewportClient(EditorViewportClient3);
-	Viewport4->SetViewportClient(EditorViewportClient4);
-	Viewports.push_back(Viewport);
-	//Viewports.push_back(Viewport2);
-	//Viewports.push_back(Viewport3);
-	//Viewports.push_back(Viewport4);
+		SViewport* ViewportWidget = new SViewport();
+		ViewportWidget->SetViewport(Viewport);
 
-	SWindow* MainWindow = new SWindow();
-	SSplitterH* SplitterH = new SSplitterH();
-	SSplitterH* SplitterH2 = new SSplitterH();
-	SSplitterV* SplitterV = new SSplitterV();
-	SSplitterV* SplitterV2 = new SSplitterV();
-	SSplitterV* SplitterV3 = new SSplitterV();
+		SImGuiConsoleWidget* ConsoleWidget = new SImGuiConsoleWidget();
+		SImGuiControlWidget* ControlWidget = new SImGuiControlWidget(this);
+		SImGuiSceneWidget* SceneWidget = new SImGuiSceneWidget(this);
+		SImGuiPropertyWidget* PropertyWidget = new SImGuiPropertyWidget(this);
 
-	SViewport* ViewportWidget = new SViewport();
-	ViewportWidget->SetViewport(Viewport);
-	SViewport* ViewportWidget2 = new SViewport();
-	ViewportWidget2->SetViewport(Viewport2);
-	SViewport* ViewportWidget3 = new SViewport();
-	ViewportWidget3->SetViewport(Viewport3);
-	SViewport* ViewportWidget4 = new SViewport();
-	ViewportWidget4->SetViewport(Viewport4);
+		FRect ViewportRect = { 0, 0, InWindow->GetWidth(), InWindow->GetHeight() };
+		MainWindow->SetRect(ViewportRect);
+		SplitterV->SetRect(ViewportRect);
 
-	SImGuiConsoleWidget* ConsoleWidget = new SImGuiConsoleWidget();
-	SImGuiControlWidget* ControlWidget = new SImGuiControlWidget(this);
-	SImGuiSceneWidget* SceneWidget = new SImGuiSceneWidget(this);
-	SImGuiPropertyWidget* PropertyWidget = new SImGuiPropertyWidget(this);
+		MainWindow->AddChild(SplitterV);
+		SplitterV->SetSideLT(SplitterH);
+		SplitterV->SetSideRB(SplitterH2);
 
-	FRect ViewportRect = { 0, 0, 1920, 1080 };
-	MainWindow->SetRect(ViewportRect);
-	SplitterV->SetRect(ViewportRect);
+		SplitterH->SetSideLT(SplitterV2);
+		SplitterH->SetSideRB(ConsoleWidget);
 
-	MainWindow->AddChild(SplitterV);
-	SplitterV->SetSideLT(SplitterH);
-	SplitterV->SetSideRB(SplitterH2);
+		SplitterV2->SetSideLT(ControlWidget);
+		SplitterV2->SetSideRB(ViewportWidget);
 
-	SplitterH->SetSideLT(SplitterV2);
-	SplitterH->SetSideRB(ConsoleWidget);
+		SplitterH2->SetSideLT(SceneWidget);
+		SplitterH2->SetSideRB(PropertyWidget);
 
-	SplitterV2->SetSideLT(ControlWidget);
-	SplitterV2->SetSideRB(ViewportWidget);
+		FSlateApplication::Get().AddWindow(MainWindow);
+	}
 
-	SplitterH2->SetSideLT(SceneWidget);
-	SplitterH2->SetSideRB(PropertyWidget);
+	// Main Camera는 어떤걸로?
+	if (!FViewportManager::Get().GetViewports().empty())
+	{
+		FViewportClient* EditorViewportClient = FViewportManager::Get().GetViewports()[0]->GetViewportClient();
 
-	FSlateApplication::Get().AddWindow(MainWindow);
-
-	GetWorld()->SetActiveCamera(EditorViewportClient->GetCamera());
+		if (FEditorViewportClient* EVC = dynamic_cast<FEditorViewportClient*>(EditorViewportClient))
+		{
+			GetWorld()->SetActiveCamera(EVC->GetCamera());
+		}
+	}
 
 	// Editor render pipeline
 	SetRenderPipeline(std::make_unique<FEditorRenderPipeline>(this, Renderer));

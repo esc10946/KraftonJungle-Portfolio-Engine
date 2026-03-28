@@ -24,6 +24,8 @@ public:
 	FViewport* GetViewport() const { return Viewport; }
 	void SetViewport(FViewport* InViewport) { Viewport = InViewport; }
 
+	virtual FString GetWidgetType() const { return "SViewport"; }
+
 private:
 	FViewport* Viewport = nullptr;
 };

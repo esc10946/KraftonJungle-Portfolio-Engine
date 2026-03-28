@@ -27,11 +27,12 @@ void SImGuiControlWidget::OnPaint()
 	{
 		return;
 	}
+	ImGuiWindowFlags WindowFlags = ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoTitleBar;
 
 	ImGui::SetNextWindowPos(ImVec2((float)Rect.X, (float)Rect.Y));
 	ImGui::SetNextWindowSize(ImVec2((float)Rect.Width, (float)Rect.Height));
 
-	ImGui::Begin("Jungle Control Panel");
+	ImGui::Begin("Jungle Control Panel", nullptr, WindowFlags);
 
 	// Stats
 	ImGui::Text("FPS : %.1f", EditorEngine->GetTimer()->GetDisplayFPS());
