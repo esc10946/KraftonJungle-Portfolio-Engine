@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Engine/Runtime/Engine.h"
 
@@ -25,7 +25,7 @@ public:
 
 	// Editor-specific API
 	UGizmoComponent* GetGizmo() const { return SelectionManager.GetGizmo(); }
-	UCameraComponent* GetCamera() const { return ViewportClient.GetCamera(); }
+	UCameraComponent* GetCamera() const;
 
 	void ClearScene();
 	void ResetViewport();
@@ -39,8 +39,12 @@ public:
 
 	void RenderUI(float DeltaTime);
 
+	TArray<FViewport*>& GetViewports() { return Viewports; }
+
 private:
 	FSelectionManager SelectionManager;
 	FEditorMainPanel MainPanel;
-	FEditorViewportClient ViewportClient;
+	//FEditorViewportClient ViewportClient;
+
+	TArray<FViewport*> Viewports;
 };

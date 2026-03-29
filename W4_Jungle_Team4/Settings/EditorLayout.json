@@ -1,0 +1,63 @@
+{
+  "Default": {
+    "WidgetType": "SSplitterV",
+    "SideLT": {
+      "WidgetType": "SSplitterH",
+      "SideLT": {
+        "WidgetType": "SSplitterV",
+        "SideLT": {
+          "WidgetType": "SImGuiControlWidget"
+        },
+        "SideRB": {
+          "Name":  "ViewportRoot",
+          "WidgetType": "SViewportRoot"
+        }
+      },
+      "SideRB": {
+        "WidgetType": "SImGuiConsoleWidget"
+      }
+    },
+    "SideRB": {
+      "WidgetType": "SSplitterH",
+      "SideLT": {
+        "WidgetType": "SImGuiSceneWidget"
+      },
+      "SideRB": {
+        "WidgetType": "SImGuiPropertyWidget"
+      }
+    }
+  },
+  "Single": {
+    "WidgetType": "SViewport"
+  },
+  "Horizontal-Two-Side": {
+    "WidgetType": "SSplitterV",
+    "SideLT": {
+      "WidgetType": "SViewport"
+    },
+    "SideRB": {
+      "WidgetType": "SViewport"
+    }
+  },
+  "Four-Way": {
+    "WidgetType": "SSplitterH",
+    "SideLT": {
+      "WidgetType": "SSplitterV",
+      "SideLT": {
+        "WidgetType": "SViewport"
+      },
+      "SideRB": {
+        "WidgetType": "SViewport"
+      }
+    },
+    "SideRB": {
+      "WidgetType": "SSplitterV",
+      "SideLT": {
+        "WidgetType": "SViewport"
+      },
+      "SideRB": {
+        "WidgetType": "SViewport"
+      }
+    }
+  }
+}

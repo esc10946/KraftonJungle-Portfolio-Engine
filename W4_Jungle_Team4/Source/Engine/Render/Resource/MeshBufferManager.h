@@ -1,10 +1,8 @@
-﻿#pragma once
+#pragma once
 
 #include "Core/CoreTypes.h"
 #include "Render/Common/RenderTypes.h"
-
 #include "Render/Resource/Buffer.h"
-
 #include "Render/Mesh/MeshManager.h"
 
 /*
@@ -17,13 +15,8 @@ private:
 	TMap<EPrimitiveType, FMeshBuffer> MeshBufferMap;
 
 public:
-
-private:
-
-public:
 	void Create(ID3D11Device* InDevice);
 	void Release();
 
 	FMeshBuffer& GetMeshBuffer(EPrimitiveType InPrimitiveType);
-
 };

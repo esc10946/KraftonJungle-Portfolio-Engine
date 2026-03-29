@@ -7,6 +7,7 @@
 #include "DDSTextureLoader.h"
 #include "WICTextureLoader.h"
 #include "UI/EditorConsoleWidget.h"
+using namespace std::filesystem;
 
 namespace ResourceKey
 {

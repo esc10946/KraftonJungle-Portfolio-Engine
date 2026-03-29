@@ -1,4 +1,5 @@
 ﻿#include "Editor/UI/EditorMainPanel.h"
+#include "Editor/Slate/SlateApplication.h"
 
 #include "Editor/EditorEngine.h"
 #include "Engine/Runtime/WindowsWindow.h"
@@ -26,10 +27,6 @@ void FEditorMainPanel::Create(FWindowsWindow* InWindow, FRenderer& InRenderer, U
 	ImGui_ImplWin32_Init((void*)InWindow->GetHWND());
 	ImGui_ImplDX11_Init(InRenderer.GetFD3DDevice().GetDevice(), InRenderer.GetFD3DDevice().GetDeviceContext());
 
-	ConsoleWidget.Initialize(InEditorEngine);
-	ControlWidget.Initialize(InEditorEngine);
-	PropertyWidget.Initialize(InEditorEngine);
-	SceneWidget.Initialize(InEditorEngine);
 	ViewportOverlayWidget.Initialize(InEditorEngine);
 	StatWidget.Initialize(InEditorEngine);
 }
@@ -41,18 +38,17 @@ void FEditorMainPanel::Release()
 	ImGui::DestroyContext();
 }
 
-void FEditorMainPanel::Render(float DeltaTime)
+void FEditorMainPanel::BeginFrame()
 {
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
+}
 
-	ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
+void FEditorMainPanel::Render(float DeltaTime)
+{
+	FSlateApplication::Get().OnPaint();
 
-	ConsoleWidget.Render(DeltaTime);
-	ControlWidget.Render(DeltaTime);
-	PropertyWidget.Render(DeltaTime);
-	SceneWidget.Render(DeltaTime);
 	ViewportOverlayWidget.Render(DeltaTime);
 	StatWidget.Render(DeltaTime);
 

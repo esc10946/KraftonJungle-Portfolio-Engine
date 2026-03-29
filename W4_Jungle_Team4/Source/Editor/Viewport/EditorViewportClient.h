@@ -1,11 +1,14 @@
 ﻿#pragma once
 
+#include "Viewport/ViewportClient.h"
+#include "Viewport/Viewport.h"
+
 #include "Render/Common/RenderTypes.h"
+#include "Render/Common/ViewTypes.h"
 #include "Viewport/CursorOverlayState.h"
-#include "Viewport/FViewportClient.h"
-#include <string>
 #include "Core/RayTypes.h"
 #include "Core/CollisionTypes.h"
+
 class UWorld;
 class UCameraComponent;
 class UGizmoComponent;
@@ -16,13 +19,23 @@ class FSelectionManager;
 class FEditorViewportClient : public FViewportClient
 {
 public:
-	void Initialize(FWindowsWindow* InWindow);
+	void Tick(float DeltaTime) override;
+	void OnViewportResized(uint32 NewTopLeftX, uint32 NewTopLeftY, uint32 NewWidth, uint32 NewHeight) override;
+
+	void OnMouseDown(float X, float Y, int32 Button) override;
+	void OnMouseUp(float X, float Y, int32 Button) override;
+	void OnMouseMove(float X, float Y) override;
+	void OnMouseWheel(float Delta) override;
+
+	void OnKeyDown(int32 Key) override;
+	void OnKeyUp(int32 Key) override;
+
+	void Initialize(FViewport* InViewport);
 	void SetWorld(UWorld* InWorld) { World = InWorld; }
 	void SetGizmo(UGizmoComponent* InGizmo) { Gizmo = InGizmo; }
 	void SetSettings(const FEditorSettings* InSettings) { Settings = InSettings; }
 	void SetSelectionManager(FSelectionManager* InSelectionManager) { SelectionManager = InSelectionManager; }
 	UGizmoComponent* GetGizmo() { return Gizmo; }
-	void SetViewportSize(float InWidth, float InHeight);
 
 	// Camera lifecycle
 	void CreateCamera();
@@ -30,31 +43,43 @@ public:
 	void ResetCamera();
 	UCameraComponent* GetCamera() const { return Camera; }
 
-	void Tick(float DeltaTime) override;
-	void Draw(FViewport* Viewport, struct ID3D11DeviceContext* DeviceContext) override;
-	void OnViewportResized(FViewport* Viewport, uint32 NewWidth, uint32 NewHeight) override;
+	EViewMode GetViewMode() const { return ViewMode; }
+	void SetViewMode(EViewMode NewViewMode) { ViewMode = NewViewMode; }
 
-	const FCursorOverlayState& GetCursorOverlayState() const { return CursorOverlayState; }
+	FShowFlags GetShowFlags() const { return ShowFlags; }
+	void SetShowFlags(const FShowFlags& NewShowFlags) { ShowFlags = NewShowFlags; }
 
 private:
-	void TickInput(float DeltaTime);
+	void Move(float DeltaTime);
+	void Rotate(float DeltaTime);
+	void Zoom(float DeltaTime);
+
 	void TickInteraction(float DeltaTime);
-	void TickCursorOverlay(float DeltaTime);
 
 	void HandleDragStart(const FRay& Ray);
 
 private:
-	FWindowsWindow* Window = nullptr;
+	FViewport* Viewport = nullptr;
+
 	UWorld* World = nullptr;
 	UCameraComponent* Camera = nullptr;
 	UGizmoComponent* Gizmo = nullptr;
 	const FEditorSettings* Settings = nullptr;
+
 	FSelectionManager* SelectionManager = nullptr;
 
-	float WindowWidth = 1920.f;
-	float WindowHeight = 1080.f;
+	EViewMode ViewMode = EViewMode::Lit;
+	FShowFlags ShowFlags;
 
 	bool bIsCursorVisible = true;
 
-	FCursorOverlayState CursorOverlayState;
+	bool bIsLeftMouseDown = false;
+	bool bIsRightMouseDown = false;
+
+	bool bIsWDown = false; bool bIsADown = false; bool bIsSDown = false; bool bIsDDown = false;
+	bool bIsQDown = false; bool bIsEDown = false;
+
+	float MouseWheelDelta = 0.0f;
+
+	float MouseX = 0.0f; float MouseY = 0.0f;
 };

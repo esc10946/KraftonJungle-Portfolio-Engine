@@ -2,8 +2,8 @@
 
 struct VSInput
 {
-    float3 position : POSITION;
-    float4 color : COLOR;
+    float3 position : POSITION; // Input position from vertex buffer
+    float4 color : COLOR; // Input color from vertex buffer
 };
 
 struct PSInput
