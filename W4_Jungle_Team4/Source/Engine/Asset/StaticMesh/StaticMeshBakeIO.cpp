@@ -10,7 +10,7 @@
 namespace
 {
 	constexpr uint32 BakeMagic = 0x534D424B;   // 'SMBK'
-	constexpr uint32 BakeVersion = 2;
+	constexpr uint32 BakeVersion = 3;
 
 	bool SerializeUInt32(FArchive& Ar, uint32& Value)
 	{

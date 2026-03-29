@@ -50,7 +50,8 @@ bool FEngineLoop::Init(HINSTANCE hInstance, int nShowCmd)
 	[ObjImporter] cooked asset vertices = 36, indices = 36, sections = 1
 	[StaticMeshManager] imported from obj and saved bake
 	[StaticMeshManager] done : vertices = 36, indices = 36, sections = 1*/
-	const FString TestObjPath = FPaths::ToUtf8(FPaths::RootDir()) + "Data/cube-tex.obj";
+	// const FString TestObjPath = FPaths::ToUtf8(FPaths::RootDir()) + "Data/cube-tex.obj";
+	const FString TestObjPath = FPaths::ToUtf8(FPaths::RootDir()) + "Data/Minecraft_Grass_block.obj";
 	FStaticMeshAsset* TestMesh = FStaticMeshManager::Get().LoadStaticMeshAsset(TestObjPath);
 	(void)TestMesh;
 	// opt) test 재로드
