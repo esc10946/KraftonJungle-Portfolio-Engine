@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Engine/Core/RayTypes.h"
 #include "Object/ObjectFactory.h"
 #include "Component/SceneComponent.h"

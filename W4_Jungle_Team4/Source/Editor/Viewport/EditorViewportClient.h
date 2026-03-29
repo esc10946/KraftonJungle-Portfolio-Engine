@@ -42,6 +42,7 @@ public:
 	void DestroyCamera();
 	void ResetCamera();
 	UCameraComponent* GetCamera() const { return Camera; }
+	void SetCamera(UCameraComponent* InCamera) { Camera = InCamera; }
 
 	EViewMode GetViewMode() const { return ViewMode; }
 	void SetViewMode(EViewMode NewViewMode) { ViewMode = NewViewMode; }
