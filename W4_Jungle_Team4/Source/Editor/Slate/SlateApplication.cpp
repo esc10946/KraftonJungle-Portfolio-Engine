@@ -1,6 +1,7 @@
 ﻿#include "SlateApplication.h"
 #include "Core/InputSystem.h"
 #include "SSplitter.h"
+#include "ImGui/imgui.h"
 #include <functional>
 
 FSlateApplication::~FSlateApplication()
@@ -95,6 +96,8 @@ void FSlateApplication::ProcessInput()
 	POINT MousePosition = InputSystem::Get().GetClientMousePos();
 	FVector2 MousePos = { static_cast<float>(MousePosition.x), static_cast<float>(MousePosition.y) };
 
+	ImGuiIO& io = ImGui::GetIO();
+
 	SWidget* Captor = GetMouseCaptor();
 	if (Captor)
 	{
@@ -161,14 +164,14 @@ void FSlateApplication::ProcessInput()
 
 	for (int32 Key = 0; Key < 256; ++Key)
 	{
-		if (InputSystem::Get().GetKeyDown(Key))
+		if (InputSystem::Get().GetKeyDown(Key) && !io.WantCaptureKeyboard)
 		{
 			if (KeyboardTarget)
 			{
 				KeyboardTarget->OnKeyDown(Key);
 			}
 		}
-		if (InputSystem::Get().GetKeyUp(Key))
+		if (InputSystem::Get().GetKeyUp(Key) && !io.WantCaptureKeyboard)
 		{
 			if (KeyboardTarget)
 			{

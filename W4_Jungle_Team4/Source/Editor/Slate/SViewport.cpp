@@ -99,8 +99,6 @@ FReply SViewport::OnMouseButtonDown(float X, float Y, int32 Button)
 			float RelativeX = X - Rect.X;
 			float RelativeY = Y - Rect.Y;
 
-			UE_LOG("Mouse Button Down at (%f, %f) with button %d", RelativeX, RelativeY, Button);
-
 			Viewport->GetViewportClient()->OnMouseDown(RelativeX, RelativeY, Button);
 			return FReply::Handled().CaptureMouse(this);
 		}
