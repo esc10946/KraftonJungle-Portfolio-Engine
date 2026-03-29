@@ -239,21 +239,31 @@ void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, cons
 			Cmd.PerObjectConstants = FPerObjectConstants{ Primitive->GetWorldMatrix(), FVector4(1.0f, 1.0f, 1.0f, 1.0f) };
 			Cmd.DepthStencilState = EDepthStencilState::Default;
 			Cmd.BlendState = EBlendState::Opaque;
-			Cmd.Constants.StaticMesh.FirstIndex = Section.FirstIndex;
-			Cmd.Constants.StaticMesh.IndexCount = Section.IndexCount;
+
+			Cmd.MeshRenderData.FirstIndex = Section.FirstIndex;
+			Cmd.MeshRenderData.IndexCount = Section.IndexCount;
 
 			UMaterial* Material = StaticMeshComponent->GetMaterial(static_cast<int32>(Section.MaterialSlotIndex));
-			Cmd.Constants.StaticMesh.Material = Material;
+			Cmd.MeshRenderData.Material = Material;
 			if (Material)
 			{
 				Cmd.PerObjectConstants.Color = Material->GetBaseColor();
 				if (UTexture2D* Texture = Material->GetDiffuseTexture())
 				{
-					Cmd.Constants.StaticMesh.DiffuseSRV =
+					Cmd.MeshRenderData.DiffuseSRV =
 						FResourceManager::Get().GetOrCreateTextureSRV(Texture->GetSourcePath(), Device);
 				}
-				Cmd.Constants.StaticMesh.bUseTexture = (Cmd.Constants.StaticMesh.DiffuseSRV != nullptr) ? 1u : 0u;
+				Cmd.Constants.StaticMesh.StaticMeshUseTexture = (Cmd.MeshRenderData.DiffuseSRV != nullptr) ? 1u : 0u;
 			}
+
+			if (StaticMeshComponent->bUseUVScroll) {
+				Cmd.Constants.StaticMesh.UVScrollSpeed[0] = StaticMeshComponent->UVScrollSpeed.X;
+				Cmd.Constants.StaticMesh.UVScrollSpeed[1] = StaticMeshComponent->UVScrollSpeed.Y;
+			}
+			Cmd.Constants.StaticMesh.UVTiling[0] = 1.0f;
+			Cmd.Constants.StaticMesh.UVTiling[1] = 1.0f;
+			Cmd.Constants.StaticMesh.UVOffset[0] = 0.0f;
+			Cmd.Constants.StaticMesh.UVOffset[1] = 0.0f;
 
 			RenderBus.AddCommand(ERenderPass::Opaque, Cmd);
 		}

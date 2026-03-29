@@ -28,6 +28,8 @@ PSInput VS(VSInput input)
 float4 PS(PSInput input) : SV_TARGET
 {
     float4 baseColor = input.color;
+    input.texCoord = input.texCoord * UVTiling + UVOffset + UVScrollSpeed * GlobalTime;
+    
     if (StaticMeshUseTexture != 0)
     {
         baseColor *= DiffuseTexture.Sample(DiffuseSampler, input.texCoord);

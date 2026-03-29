@@ -9,6 +9,8 @@
 #include "Render/Mesh/MeshManager.h"
 #include "Core/Stats.h"
 #include "Core/GPUProfiler.h"
+#include "Runtime/Engine.h"
+#include "Core/Timer.h"
 
 
 void FRenderer::Create(HWND hWindow)
@@ -141,12 +143,12 @@ const TArray<FRenderCommand>& FRenderer::GetAlignedCommands(ERenderPass Pass, co
 
 				if (A.Type == ERenderCommandType::StaticMesh && B.Type == ERenderCommandType::StaticMesh)
 				{
-					if (A.Constants.StaticMesh.Material != B.Constants.StaticMesh.Material)
+					if (A.MeshRenderData.Material != B.MeshRenderData.Material)
 					{
-						return A.Constants.StaticMesh.Material < B.Constants.StaticMesh.Material;
+						return A.MeshRenderData.Material < B.MeshRenderData.Material;
 					}
 
-					return A.Constants.StaticMesh.DiffuseSRV < B.Constants.StaticMesh.DiffuseSRV;
+					return A.MeshRenderData.DiffuseSRV < B.MeshRenderData.DiffuseSRV;
 				}
 
 				return A.MeshBuffer < B.MeshBuffer;
@@ -406,7 +408,7 @@ void FRenderer::BindShaderByType(const FRenderCommand& InCmd, ID3D11DeviceContex
 		cb = Resources.StaticMeshConstantBuffer.GetBuffer();
 		Context->PSSetConstantBuffers(6, 1, &cb);
 
-		ID3D11ShaderResourceView* ShaderResourceView = InCmd.Constants.StaticMesh.DiffuseSRV;
+		ID3D11ShaderResourceView* ShaderResourceView = InCmd.MeshRenderData.DiffuseSRV;
 		Context->PSSetShaderResources(0, 1, &ShaderResourceView);
 		Context->PSSetSamplers(0, 1, &StaticMeshSamplerState);
 		break;
@@ -475,7 +477,7 @@ void FRenderer::DrawCommand(ID3D11DeviceContext* InDeviceContext, const FRenderC
 		}
 
 		InDeviceContext->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
-		InDeviceContext->DrawIndexed(InCommand.Constants.StaticMesh.IndexCount, InCommand.Constants.StaticMesh.FirstIndex, 0);
+		InDeviceContext->DrawIndexed(InCommand.MeshRenderData.IndexCount, InCommand.MeshRenderData.FirstIndex, 0);
 		return;
 	}
 
@@ -537,6 +539,9 @@ void FRenderer::UpdateFrameBuffer(ID3D11DeviceContext* Context, const FRenderBus
 	frameConstantData.Projection = InRenderBus.GetProj();
 	frameConstantData.bIsWireframe = (InRenderBus.GetViewMode() == EViewMode::Wireframe);
 	frameConstantData.WireframeColor = InRenderBus.GetWireframeColor();
+	frameConstantData.GlobalTime = (GEngine && GEngine->GetTimer())
+    ? static_cast<float>(GEngine->GetTimer()->GetTotalTime())
+    : 0.0f;
 
 	Resources.FrameBuffer.Update(Context, &frameConstantData, sizeof(FFrameConstants));
 	ID3D11Buffer* b0 = Resources.FrameBuffer.GetBuffer();
