@@ -76,7 +76,7 @@ public:
 	inline void SetRotateMode() { UpdateGizmoMode(EGizmoMode::Rotate); }
 	inline void SetScaleMode() { UpdateGizmoMode(EGizmoMode::Scale); }
 	void UpdateGizmoTransform();
-	void ApplyScreenSpaceScaling(const FVector& CameraLocation);
+	void ApplyScreenSpaceScaling(const FVector& CameraLocation, bool bIsOrthoGraphic);
 	void SetWorldSpace(bool bWorldSpace);
 
 

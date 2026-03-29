@@ -2,6 +2,7 @@
 
 #include "Viewport/ViewportClient.h"
 #include "Viewport/Viewport.h"
+#include "Viewport/ViewOption.h"
 
 #include "Render/Common/RenderTypes.h"
 #include "Render/Common/ViewTypes.h"
@@ -43,18 +44,21 @@ public:
 	void ResetCamera();
 	UCameraComponent* GetCamera() const { return Camera; }
 
-	EViewMode GetViewMode() const { return ViewMode; }
-	void SetViewMode(EViewMode NewViewMode) { ViewMode = NewViewMode; }
+	// View Options (similar to UE)
+	FViewOption GetViewOption(EViewOption Option) const { return ViewOptions[static_cast<uint32>(Option)]; }
+	void SetViewOption(EViewOption Option, const FViewOption& ViewOption) { ViewOptions[static_cast<uint32>(Option)] = ViewOption; }
 
-	FShowFlags GetShowFlags() const { return ShowFlags; }
-	void SetShowFlags(const FShowFlags& NewShowFlags) { ShowFlags = NewShowFlags; }
+	FViewOption GetCurrentViewOption() const { return ViewOptions[static_cast<uint32>(CurrentViewOption)]; }
+	void SetCurrentViewOption(EViewOption NewOption);
+
+	void CreateDefaultViewOptions();
+	void ApplyCurrentViewOption();
 
 private:
-	void Move(float DeltaTime);
-	void Rotate(float DeltaTime);
+	void MovePerspective(float DeltaTime);
+	void RotatePerspective(float DeltaTime);
+	void MoveOrthographic(float DeltaTime);
 	void Zoom(float DeltaTime);
-
-	void TickInteraction(float DeltaTime);
 
 	void HandleDragStart(const FRay& Ray);
 
@@ -68,8 +72,8 @@ private:
 
 	FSelectionManager* SelectionManager = nullptr;
 
-	EViewMode ViewMode = EViewMode::Lit;
-	FShowFlags ShowFlags;
+	FViewOption ViewOptions[static_cast<uint32>(EViewOption::Max)] = {};
+	EViewOption CurrentViewOption = EViewOption::Perspective;
 
 	bool bIsCursorVisible = true;
 
@@ -79,7 +83,6 @@ private:
 	bool bIsWDown = false; bool bIsADown = false; bool bIsSDown = false; bool bIsDDown = false;
 	bool bIsQDown = false; bool bIsEDown = false;
 
-	float MouseWheelDelta = 0.0f;
-
 	float MouseX = 0.0f; float MouseY = 0.0f;
+	float MouseWheelDelta = 0.0f;
 };
