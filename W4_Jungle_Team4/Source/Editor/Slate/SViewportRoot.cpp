@@ -22,6 +22,14 @@ SViewportRoot::SViewportRoot()
 
 		ViewportWidget->SetName("Viewport" + std::to_string(i));
 	}
+
+	// 미리 viewport들의 option을 지정합니다.
+	EViewOption DefaultOptions[] = { EViewOption::Perspective, EViewOption::Top, EViewOption::Left, EViewOption::Front };
+	for (int i = 0; i < 4; ++i)
+	{
+		FEditorViewportClient* Client = static_cast<FEditorViewportClient*>(Viewports[i]->GetViewport()->GetViewportClient());
+		Client->SetCurrentViewOption(DefaultOptions[i]);
+	}
 }
 
 SViewportRoot::~SViewportRoot()
