@@ -264,6 +264,8 @@ FString FStaticMeshBakeIO::MakeBakePath(const FString& InSourcePath)
 
 bool FStaticMeshBakeIO::IsBakeUpToDate(const FString& InSourcePath, const FString& InBakePath)
 {
+	// bake >= obj : obj가 마지막으로 수정된 뒤에 bake가 만들어졌거나 다시 저장됨.
+	// bake < obj : bake가 만들어진 뒤에 obj 수정됨 -> bake는 stale 상태.
 	if (InSourcePath.empty() || InBakePath.empty())
 	{
 		return false;
@@ -337,7 +339,7 @@ bool FStaticMeshBakeIO::LoadFromFile(const FString& InBakePath, FStaticMeshAsset
 		return false;
 	}
 
-	FWindowsBinReader Reader(InBakePath.c_str());
+	FWindowsBinReader Reader(InBakePath.c_str()); // 바이너리 파일 읽기 전용 reader 객체
 	if (!Reader.IsValid())
 	{
 		Reader.Close();
@@ -363,11 +365,12 @@ bool FStaticMeshBakeIO::LoadFromFile(const FString& InBakePath, FStaticMeshAsset
 	OutAsset.MaterialSlots.clear();
 	OutAsset.Sections.clear();
 
+	// 메타데이터를 OutAsset에 기록
 	bSuccess =
-		SerializeString(Reader, OutAsset.SourcePath) &&
+		SerializeString(Reader, OutAsset.SourcePath) && // 원본 obj 경로 문자열 읽기
 		LoadVertices(Reader, OutAsset.Vertices) &&
-		LoadIndices(Reader, OutAsset.Indices) &&
-		LoadMaterialSlots(Reader, OutAsset.MaterialSlots) &&
+		LoadIndices(Reader, OutAsset.Indices) && 
+		LoadMaterialSlots(Reader, OutAsset.MaterialSlots) && //  
 		LoadSections(Reader, OutAsset.Sections);
 
 	if (bSuccess)
