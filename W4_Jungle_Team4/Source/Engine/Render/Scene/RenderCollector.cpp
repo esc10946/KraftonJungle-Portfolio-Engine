@@ -21,6 +21,7 @@ void FRenderCollector::Release()
 
 	StaticMeshBufferMap.clear();
 	StaticMeshAssetMap.clear();
+	StaticMeshRevisionMap.clear();
 	MeshBufferManager.Release();
 	Device = nullptr;
 }
@@ -299,12 +300,20 @@ FTextureMeshBuffer* FRenderCollector::GetOrCreateStaticMeshBuffer(UStaticMeshCom
 
 	FTextureMeshBuffer& MeshBuffer = StaticMeshBufferMap[StaticMeshComponent];
 	const auto It = StaticMeshAssetMap.find(StaticMeshComponent);
-	const bool bNeedsRebuild = (It == StaticMeshAssetMap.end()) || (It->second != StaticMeshAsset) || !MeshBuffer.IsValid();
+	const uint32 CurrentRevision = StaticMeshComponent->GetTexturedMeshRevision();
+	const auto RevisionIt = StaticMeshRevisionMap.find(StaticMeshComponent);
+	const bool bRevisionChanged = (RevisionIt == StaticMeshRevisionMap.end()) || (RevisionIt->second != CurrentRevision);
+	const bool bNeedsRebuild =
+		(It == StaticMeshAssetMap.end()) ||
+		(It->second != StaticMeshAsset) ||
+		!MeshBuffer.IsValid() ||
+		bRevisionChanged;
 	if (bNeedsRebuild)
 	{
 		MeshBuffer.Release();
 		MeshBuffer.Create(Device, *TexturedMeshData);
 		StaticMeshAssetMap[StaticMeshComponent] = StaticMeshAsset;
+		StaticMeshRevisionMap[StaticMeshComponent] = CurrentRevision;
 	}
 
 	return MeshBuffer.IsValid() ? &MeshBuffer : nullptr;

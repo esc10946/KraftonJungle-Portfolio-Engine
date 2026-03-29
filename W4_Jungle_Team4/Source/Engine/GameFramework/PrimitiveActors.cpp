@@ -90,7 +90,8 @@ void AStaticMeshActor::InitDefaultComponents()
 	UStaticMeshComponent* StaticMesh = AddComponent<UStaticMeshComponent>();
 	SetRootComponent(StaticMesh);
 
-	const FString StaticMeshPath = FPaths::ToUtf8(FPaths::RootDir()) + "Data/cube-tex.obj";
+	// const FString StaticMeshPath = FPaths::ToUtf8(FPaths::RootDir()) + "Data/cube-tex.obj";
+	const FString StaticMeshPath = FPaths::ToUtf8(FPaths::RootDir()) + "Data/Minecraft_Grass_block.obj";
 	StaticMesh->SetStaticMesh(FStaticMeshManager::Get().LoadStaticMeshObject(StaticMeshPath));
 }
 
