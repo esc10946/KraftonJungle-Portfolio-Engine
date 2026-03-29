@@ -43,6 +43,7 @@ public:
 	void DestroyCamera();
 	void ResetCamera();
 	UCameraComponent* GetCamera() const { return Camera; }
+	void SetCamera(UCameraComponent* InCamera) { Camera = InCamera; }
 
 	// View Options (similar to UE)
 	FViewOption GetViewOption(EViewOption Option) const { return ViewOptions[static_cast<uint32>(Option)]; }
