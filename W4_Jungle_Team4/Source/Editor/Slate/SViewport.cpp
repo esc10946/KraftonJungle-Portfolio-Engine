@@ -33,30 +33,91 @@ void SViewport::OnPaint()
 	FEditorViewportClient* Client = dynamic_cast<FEditorViewportClient*>(Viewport->GetViewportClient());
 	if (Client == nullptr) return;
 
+	FViewOption ViewOption = Client->GetCurrentViewOption();
+	bool bIsViewOptionChanged = false;
+
 	ImGui::SetNextWindowPos(ImVec2((float)Rect.X, (float)Rect.Y));
 	ImGui::SetNextWindowSize(ImVec2((float)Rect.Width, (float)Rect.Height));
 
 	ImGui::Begin(GetName().c_str(), nullptr, WindowFlags);
 
+	ImGui::PushItemWidth(120.0f);
+
+	int32 CurrentCameraType = static_cast<int32>(ViewOption.Type);
+	const char* CameraTypeNames[] = { "Perspective", "Top", "Bottom", "Left", "Right", "Front", "Back" };
+	const EViewOption CameraTypeValues[] = { EViewOption::Perspective, EViewOption::Top, EViewOption::Bottom, EViewOption::Left, EViewOption::Right, EViewOption::Front, EViewOption::Back };
+
+	ImGui::Text("Camera View");
+	ImGui::SameLine();
+	if (ImGui::BeginCombo("##Camera View", CameraTypeNames[CurrentCameraType]))
+	{
+		for (uint32 i = 0; i < static_cast<uint32>(EViewOption::Max); ++i)
+		{
+			const bool bIsSelected = (CurrentCameraType == i);
+			if (ImGui::Selectable(CameraTypeNames[i], bIsSelected))
+			{
+				CurrentCameraType = i;
+			}
+			if (bIsSelected)
+			{
+				ImGui::SetItemDefaultFocus();
+			}
+		}
+		ImGui::EndCombo();
+		
+		if (ViewOption.Type != static_cast<EViewOption>(CurrentCameraType))
+		{
+			bIsViewOptionChanged = true;
+		}
+	}
+
+	int32 CurrentMode = static_cast<int32>(ViewOption.ViewMode);
+	const char* ViewModeNames[] = { "Lit", "Unlit", "Wireframe" };
+	const EViewMode ViewModeValues[] = { EViewMode::Lit, EViewMode::Unlit, EViewMode::Wireframe };
+
 	ImGui::Text("View Mode");
-	int CurrentMode = static_cast<int32>(Client->GetViewMode());
-	ImGui::RadioButton("Lit", &CurrentMode, static_cast<int32>(EViewMode::Lit));
 	ImGui::SameLine();
-	ImGui::RadioButton("Unlit", &CurrentMode, static_cast<int32>(EViewMode::Unlit));
+	if (ImGui::BeginCombo("##View Mode", ViewModeNames[CurrentMode]))
+	{
+		for (uint32 i = 0; i < static_cast<uint32>(EViewMode::Count); ++i)
+		{
+			const bool bIsSelected = (CurrentMode == i);
+			if (ImGui::Selectable(ViewModeNames[i], bIsSelected))
+			{
+				CurrentMode = i;
+			}
+
+			if (bIsSelected)
+			{
+				ImGui::SetItemDefaultFocus();
+			}
+		}
+		ImGui::EndCombo();
+		
+		ViewOption.ViewMode = static_cast<EViewMode>(CurrentMode);
+		bIsViewOptionChanged = true;
+	}
+
 	ImGui::SameLine();
-	ImGui::RadioButton("Wireframe", &CurrentMode, static_cast<int32>(EViewMode::Wireframe));
-	Client->SetViewMode(static_cast<EViewMode>(CurrentMode));
 
-	FShowFlags ShowFlags = Client->GetShowFlags();
+	FShowFlags ShowFlags = ViewOption.ShowFlags;
 
-	ImGui::Text("Show");
-	ImGui::Checkbox("Primitives", &ShowFlags.bPrimitives);
-	ImGui::Checkbox("BillboardText", &ShowFlags.bBillboardText);
-	ImGui::Checkbox("Grid", &ShowFlags.bGrid);
-	ImGui::Checkbox("Gizmo", &ShowFlags.bGizmo);
-	ImGui::Checkbox("Bounding Volume", &ShowFlags.bBoundingVolume);
+	ImGui::Text("Show Flags");
+	ImGui::SameLine();
+	if (ImGui::BeginCombo("##Show Flags", "Select Flags..."))
+	{
+		ImGui::Checkbox("Primitives", &ShowFlags.bPrimitives);
+		ImGui::Checkbox("BillboardText", &ShowFlags.bBillboardText);
+		ImGui::Checkbox("Grid", &ShowFlags.bGrid);
+		ImGui::Checkbox("Gizmo", &ShowFlags.bGizmo);
+		ImGui::Checkbox("Bounding Volume", &ShowFlags.bBoundingVolume);
 
-	Client->SetShowFlags(ShowFlags);
+		ImGui::EndCombo();
+
+		ViewOption.ShowFlags = ShowFlags;
+	}
+
+	ImGui::PopItemWidth();
 
 	ImGui::Text("Change Viewport Layout");
 
@@ -82,6 +143,13 @@ void SViewport::OnPaint()
 	}
 
 	ImGui::End();
+
+	Client->SetViewOption(ViewOption.Type, ViewOption);
+
+	if (bIsViewOptionChanged)
+	{
+		Client->SetCurrentViewOption(static_cast<EViewOption>(CurrentCameraType));
+	}
 }
 
 FReply SViewport::OnMouseButtonDown(float X, float Y, int32 Button)

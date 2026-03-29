@@ -18,6 +18,7 @@ void FEditorViewportClient::Initialize(FViewport* InViewport)
 	UE_LOG("Hello ZZup Engine! %d", 2026);
 
 	Viewport = InViewport;
+	CreateDefaultViewOptions();
 }
 
 void FEditorViewportClient::CreateCamera()
@@ -38,20 +39,27 @@ void FEditorViewportClient::DestroyCamera()
 void FEditorViewportClient::ResetCamera()
 {
 	if (!Camera || !Settings) return;
-	Camera->SetWorldLocation(Settings->InitViewPos);
-	Camera->LookAt(Settings->InitLookAt);
+	ApplyCurrentViewOption();
 }
 
 void FEditorViewportClient::Tick(float DeltaTime)
 {
-	Move(DeltaTime);
-	Rotate(DeltaTime);
+	FViewOption CurrentOption = GetCurrentViewOption();
+	if (CurrentOption.bIsOrthographic)
+	{
+		MoveOrthographic(DeltaTime);
+	}
+	else
+	{
+		MovePerspective(DeltaTime);
+		RotatePerspective(DeltaTime);
+	}
 	Zoom(DeltaTime);
 
 	FRay Ray = Camera->DeprojectScreenToWorld(MouseX, MouseY, Viewport->GetSize().X, Viewport->GetSize().Y);
 	FHitResult HitResult;
 
-	Gizmo->ApplyScreenSpaceScaling(Camera->GetWorldLocation());
+	Gizmo->ApplyScreenSpaceScaling(Camera->GetWorldLocation(), Camera->IsOrthogonal());
 	Gizmo->Raycast(Ray, HitResult);
 }
 
@@ -156,7 +164,113 @@ void FEditorViewportClient::OnKeyUp(int32 Key)
 	if (Key == 'E') bIsEDown = false;
 }
 
-void FEditorViewportClient::Move(float DeltaTime)
+void FEditorViewportClient::SetCurrentViewOption(EViewOption NewOption)
+{
+	FViewOption OldViewOption = GetCurrentViewOption();
+	OldViewOption.CameraLocation = Camera->GetRelativeLocation();
+	OldViewOption.CameraRotation = Camera->GetRelativeRotation();
+	OldViewOption.OrthoSize = Camera->GetOrthoWidth();
+	SetViewOption(CurrentViewOption, OldViewOption);
+
+	CurrentViewOption = NewOption;
+
+	ApplyCurrentViewOption();
+}
+
+void FEditorViewportClient::CreateDefaultViewOptions()
+{
+	// Perspective
+	FViewOption PerspectiveOption;
+	PerspectiveOption.Type = EViewOption::Perspective;
+	PerspectiveOption.ViewMode = EViewMode::Lit;
+	PerspectiveOption.ShowFlags = FShowFlags(true, true, true, true);
+	PerspectiveOption.bIsOrthographic = false;
+	PerspectiveOption.CameraLocation = FVector(10, 0, 5);
+	PerspectiveOption.CameraRotation = FVector(0, 26, 180);
+	SetViewOption(EViewOption::Perspective, PerspectiveOption);
+	// Top
+	FViewOption TopOption;
+	TopOption.Type = EViewOption::Top;
+	TopOption.ViewMode = EViewMode::Wireframe;
+	TopOption.ShowFlags = FShowFlags(true, true, true, true);
+	TopOption.bIsOrthographic = true;
+	TopOption.OrthoSize = 20.0f;
+	TopOption.CameraLocation = FVector(0, 0, 100);
+	TopOption.CameraRotation = FVector(0, 90, 0);
+	SetViewOption(EViewOption::Top, TopOption);
+	// Bottom
+	FViewOption BottomOption;
+	BottomOption.Type = EViewOption::Bottom;
+	BottomOption.ViewMode = EViewMode::Wireframe;
+	BottomOption.ShowFlags = FShowFlags(true, true, true, true);
+	BottomOption.bIsOrthographic = true;
+	BottomOption.OrthoSize = 20.0f;
+	BottomOption.CameraLocation = FVector(0, 0, -100);
+	BottomOption.CameraRotation = FVector(0, -90, 0);
+	SetViewOption(EViewOption::Bottom, BottomOption);
+	// Front
+	FViewOption FrontOption;
+	FrontOption.Type = EViewOption::Front;
+	FrontOption.ViewMode = EViewMode::Wireframe;
+	FrontOption.ShowFlags = FShowFlags(true, true, true, true);
+	FrontOption.bIsOrthographic = true;
+	FrontOption.OrthoSize = 20.0f;
+	FrontOption.CameraLocation = FVector(-100, 0, 0);
+	FrontOption.CameraRotation = FVector(0, 0, 0);
+	SetViewOption(EViewOption::Front, FrontOption);
+	// Left
+	FViewOption LeftOption;
+	LeftOption.Type = EViewOption::Left;
+	LeftOption.ViewMode = EViewMode::Wireframe;
+	LeftOption.ShowFlags = FShowFlags(true, true, true, true);
+	LeftOption.bIsOrthographic = true;
+	LeftOption.OrthoSize = 20.0f;
+	LeftOption.CameraLocation = FVector(0, -100, 0);
+	LeftOption.CameraRotation = FVector(0, 0, 90);
+	SetViewOption(EViewOption::Left, LeftOption);
+	// Right
+	FViewOption RightOption;
+	RightOption.Type = EViewOption::Right;
+	RightOption.ViewMode = EViewMode::Wireframe;
+	RightOption.ShowFlags = FShowFlags(true, true, true, true);
+	RightOption.bIsOrthographic = true;
+	RightOption.OrthoSize = 20.0f;
+	RightOption.CameraLocation = FVector(0, 100, 0);
+	RightOption.CameraRotation = FVector(0, 0, -90);
+	SetViewOption(EViewOption::Right, RightOption);
+	// Back
+	FViewOption BackOption;
+	BackOption.Type = EViewOption::Back;
+	BackOption.ViewMode = EViewMode::Wireframe;
+	BackOption.ShowFlags = FShowFlags(true, true, true, true);
+	BackOption.bIsOrthographic = true;
+	BackOption.OrthoSize = 20.0f;
+	BackOption.CameraLocation = FVector(100, 0, 0);
+	BackOption.CameraRotation = FVector(0, 0, 180);
+	SetViewOption(EViewOption::Back, BackOption);
+}
+
+void FEditorViewportClient::ApplyCurrentViewOption()
+{
+	if (!Camera) return;
+
+	const FViewOption& ViewOption = GetCurrentViewOption();
+
+	Camera->SetRelativeLocation(ViewOption.CameraLocation);
+	Camera->SetRelativeRotation(ViewOption.CameraRotation);
+
+	if (ViewOption.bIsOrthographic)
+	{
+		Camera->SetOrthographic(true);
+		Camera->SetOrthoWidth(ViewOption.OrthoSize);
+	}
+	else
+	{
+		Camera->SetOrthographic(false);
+	}
+}
+
+void FEditorViewportClient::MovePerspective(float DeltaTime)
 {
 	const FCameraState& CameraState = Camera->GetCameraState();
 
@@ -180,7 +294,7 @@ void FEditorViewportClient::Move(float DeltaTime)
 	Camera->MoveLocal(FinalMove);
 }
 
-void FEditorViewportClient::Rotate(float DeltaTime)
+void FEditorViewportClient::RotatePerspective(float DeltaTime)
 {
 	FVector Rotation = FVector(0, 0, 0);
 	FVector MouseRotation = FVector(0, 0, 0);
@@ -214,6 +328,24 @@ void FEditorViewportClient::Rotate(float DeltaTime)
 	}
 }
 
+void FEditorViewportClient::MoveOrthographic(float DeltaTime)
+{
+	const FCameraState& CameraState = Camera->GetCameraState();
+
+	if (CameraState.bIsOrthogonal && bIsRightMouseDown)
+	{
+		float DeltaX = static_cast<float>(InputSystem::Get().MouseDeltaX());
+		float DeltaY = static_cast<float>(InputSystem::Get().MouseDeltaY());
+
+		FVector2 ViewportSize = Viewport->GetSize();
+
+		float WorldDeltaX = (Camera->GetOrthoWidth() / ViewportSize.X);
+		float WorldDeltaY = (Camera->GetOrthoWidth() / ViewportSize.Y);
+
+		Camera->MoveLocal(FVector(0, -DeltaX * WorldDeltaX, DeltaY * WorldDeltaY));
+	}
+}
+
 void FEditorViewportClient::Zoom(float DeltaTime)
 {
 	const float ZoomSpeed = Settings ? Settings->CameraZoomSpeed : 300.f;
@@ -234,7 +366,7 @@ void FEditorViewportClient::Zoom(float DeltaTime)
 void FEditorViewportClient::HandleDragStart(const FRay& Ray)
 {
 	FHitResult HitResult{};
-	Gizmo->ApplyScreenSpaceScaling(Camera->GetWorldLocation());
+	Gizmo->ApplyScreenSpaceScaling(Camera->GetWorldLocation(), Camera->IsOrthogonal());
 	if (Gizmo->Raycast(Ray, HitResult))
 	{
 		Gizmo->SetPressedOnHandle(true);
