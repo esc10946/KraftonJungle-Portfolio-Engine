@@ -17,7 +17,7 @@ void FEditorMainPanel::Create(FWindowsWindow* InWindow, FRenderer& InRenderer, U
 	ImGui::CreateContext();
 
 	ImGuiIO& IO = ImGui::GetIO();
-	IO.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+	//IO.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
 	Window = InWindow;
 
@@ -28,7 +28,7 @@ void FEditorMainPanel::Create(FWindowsWindow* InWindow, FRenderer& InRenderer, U
 	ImGui_ImplDX11_Init(InRenderer.GetFD3DDevice().GetDevice(), InRenderer.GetFD3DDevice().GetDeviceContext());
 
 	ViewportOverlayWidget.Initialize(InEditorEngine);
-	StatWidget.Initialize(InEditorEngine);
+	//StatWidget.Initialize(InEditorEngine);
 }
 
 void FEditorMainPanel::Release()
@@ -50,7 +50,7 @@ void FEditorMainPanel::Render(float DeltaTime)
 	FSlateApplication::Get().OnPaint();
 
 	ViewportOverlayWidget.Render(DeltaTime);
-	StatWidget.Render(DeltaTime);
+	//StatWidget.Render(DeltaTime);
 
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());

@@ -79,10 +79,7 @@ void FEditorViewportClient::OnMouseDown(float X, float Y, int32 Button)
 		FRay Ray = Camera->DeprojectScreenToWorld(MouseX, MouseY, Viewport->GetSize().X, Viewport->GetSize().Y);
 		FHitResult HitResult;
 
-		if (!Gizmo->IsPressedOnHandle())
-		{
-			HandleDragStart(Ray);
-		}
+		HandleDragStart(Ray);
 
 		if (Gizmo->IsPressedOnHandle() && !Gizmo->IsHolding())
 		{
