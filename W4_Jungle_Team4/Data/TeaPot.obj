@@ -1,0 +1,44 @@
+# Placeholder low-poly mesh kept under the assignment-friendly file name.
+# Uses two materials so section splitting can be tested.
+mtllib TeaPot.mtl
+o TeaPot
+
+v -0.6 -0.3  0.6
+v  0.6 -0.3  0.6
+v  0.6  0.3  0.6
+v -0.6  0.3  0.6
+v -0.6 -0.3 -0.6
+v  0.6 -0.3 -0.6
+v  0.6  0.3 -0.6
+v -0.6  0.3 -0.6
+v  0.0  0.8  0.0
+v  1.0  0.0  0.0
+v -1.0  0.0  0.0
+
+vt 0.0 0.0
+vt 1.0 0.0
+vt 1.0 1.0
+vt 0.0 1.0
+vt 0.5 1.0
+
+vn  0.0  0.0  1.0
+vn  0.0  0.0 -1.0
+vn  0.0  1.0  0.0
+vn  0.0 -1.0  0.0
+vn  1.0  0.0  0.0
+vn -1.0  0.0  0.0
+vn  0.7  0.7  0.0
+vn -0.7  0.7  0.0
+
+usemtl Body
+f 1/1/1 2/2/1 3/3/1 4/4/1
+f 6/1/2 5/2/2 8/3/2 7/4/2
+f 4/1/8 3/2/7 9/5/3
+f 8/1/8 4/2/8 9/5/3
+f 3/1/7 7/2/7 9/5/3
+f 7/1/7 8/2/8 9/5/3
+f 5/1/4 6/2/4 2/3/4 1/4/4
+
+usemtl Accent
+f 2/1/5 10/5/5 3/3/5
+f 11/1/6 1/2/6 4/3/6

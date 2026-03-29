@@ -450,3 +450,7 @@ FodyWeavers.xsd
 
 #Rider CMake Project for Showing Dependency diagram
 CMakeLists.txt
+
+# Exclude Data Folder
+!Data/
+@Data/**/*.obj
