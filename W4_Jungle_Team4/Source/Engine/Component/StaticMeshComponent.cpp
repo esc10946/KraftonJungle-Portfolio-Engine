@@ -125,6 +125,12 @@ void UStaticMeshComponent::GetEditableProperties(TArray<FPropertyDescriptor>& Ou
 		MaterialProperty.ObjectClass = &UMaterial::s_TypeInfo;
 		OutProps.push_back(MaterialProperty);
 	}
+
+	OutProps.push_back({ "UseScroll", EPropertyType::Bool, &bUseUVScroll});
+	if (bUseUVScroll) {
+		OutProps.push_back({ "ScrollSpeedX", EPropertyType::Float, &UVScrollSpeed.X, 0.0f, 1.0f, 0.01f });
+		OutProps.push_back({ "ScrollSpeedY", EPropertyType::Float, &UVScrollSpeed.Y, 0.0f, 1.0f, 0.01f });
+	}
 }
 
 void UStaticMeshComponent::PostEditProperty(const char* PropertyName)
