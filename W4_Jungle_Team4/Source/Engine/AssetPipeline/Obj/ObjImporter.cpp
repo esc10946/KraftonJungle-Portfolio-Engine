@@ -34,6 +34,11 @@ namespace
 			MaterialInfo.DiffuseTexturePath = TexturePath.lexically_normal().generic_string();
 		}
 	}
+
+	FVector ConvertYUpToZUp(const FVector& V)
+	{
+		return FVector(V.X, -V.Z, V.Y);
+	}
 }
 
 bool FObjImporter::ImportFromFile(const FString& InObjPath, FStaticMeshAsset& OutAsset)
@@ -122,6 +127,8 @@ bool FObjImporter::TriangulateFace(const FObjFace& InFace, TArray<FObjFace>& Out
 
 bool FObjImporter::BuildGeometry(const FObjInfo& InObjInfo, FStaticMeshAsset& InOutAsset)
 {
+	const bool bConvertYUpToZUp = InObjInfo.SourcePath.find("Minecraft_") != FString::npos;
+
 	for (const FObjFace& Face : InObjInfo.Faces)
 	{
 		TArray<FObjFace> Triangles;
@@ -140,13 +147,22 @@ bool FObjImporter::BuildGeometry(const FObjInfo& InObjInfo, FStaticMeshAsset& In
 				
 				FStaticMeshVertex Vertex;
 
-				Vertex.Position = InObjInfo.Positions[IndexTriplet.PositionIndex];
-			
-				// Normal은 있으면 채우고, 없으면 기본값 유지
+				FVector Position = InObjInfo.Positions[IndexTriplet.PositionIndex];
+				if (bConvertYUpToZUp)
+				{
+					Position = ConvertYUpToZUp(Position);
+				}
+				Vertex.Position = Position;
+
 				if (IndexTriplet.NormalIndex >= 0 &&
 					IndexTriplet.NormalIndex < static_cast<int32>(InObjInfo.Normals.size()))
 				{
-					Vertex.Normal = InObjInfo.Normals[IndexTriplet.NormalIndex];
+					FVector Normal = InObjInfo.Normals[IndexTriplet.NormalIndex];
+					if (bConvertYUpToZUp)
+					{
+						Normal = ConvertYUpToZUp(Normal);
+					}
+					Vertex.Normal = Normal;
 				}
 
 				// UV도 있으면 채우고, 없으면 기본값 유지

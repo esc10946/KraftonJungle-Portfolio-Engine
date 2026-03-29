@@ -20,6 +20,7 @@ public:
 	FStaticMeshAsset* GetStaticMeshAsset() const;
 	FString GetStaticMeshAssetPath() const;
 	const FTexturedMeshData* GetTexturedMeshData() const;
+	uint32 GetTexturedMeshRevision() const { return TexturedMeshRevision; }
 
 	virtual void SetMaterial(int32 SlotIndex, UMaterial* InMaterial) override;
 	virtual UMaterial* GetMaterial(int32 SlotIndex) const override;
@@ -35,9 +36,11 @@ public:
 
 private:
 	void RefreshMeshData();
+	void ApplyAtlasMaterialToTexturedMeshData();
 
 private:
 	UStaticMesh* StaticMesh = nullptr;
 	FMeshData StaticMeshRenderData;
 	FTexturedMeshData StaticMeshTexturedRenderData;
+	uint32 TexturedMeshRevision = 0;
 };

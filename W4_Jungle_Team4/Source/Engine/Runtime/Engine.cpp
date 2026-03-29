@@ -2,6 +2,7 @@
 
 #include "Core/Paths.h"
 #include "Core/Stats.h"
+#include "Asset/Material/MaterialManager.h"
 #include "Engine/Core/InputSystem.h"
 #include "Engine/Runtime/WindowsWindow.h"
 #include "Core/ResourceManager.h"
@@ -24,6 +25,8 @@ void UEngine::Init(FWindowsWindow* InWindow)
 	Renderer.Create(Window->GetHWND());
 	FResourceManager::Get().LoadFromFile(
 		FPaths::ToUtf8(FPaths::ResourceFilePath()), Renderer.GetFD3DDevice().GetDevice());
+	// 일단은 여기에 했는데..수정하겠습니다ㅠ,ㅠ
+	FMaterialManager::Get().RegisterDefaultBlockAtlasMaterials();
 
 	SetRenderPipeline(std::make_unique<FDefaultRenderPipeline>(this, Renderer));
 }
