@@ -19,7 +19,7 @@ public:
 private:
 	UEditorEngine* EditorEngine;
 
-	const char* PrimitiveTypes[4] = { "Cube", "Sphere", "Plane", "Explosion" };
+	const char* PrimitiveTypes[5] = { "Cube", "Sphere", "Plane", "Explosion", "StaticMesh" };
 	int32 SelectedPrimitiveType = 0;
 	int32 NumberOfSpawnedActors = 1;
 	FVector CurSpawnPoint = { 0.f, 0.f, 0.f };
