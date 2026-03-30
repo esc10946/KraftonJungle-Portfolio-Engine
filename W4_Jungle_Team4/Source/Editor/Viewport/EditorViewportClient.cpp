@@ -390,8 +390,8 @@ void FEditorViewportClient::HandleDragStart(const FRay& Ray)
 			if (!Actor || !Actor->GetRootComponent()) {
 				continue;
 			}
-			//USceneComponent* RootComp = Actor->GetRootComponent();
-			//if (!RootComp->IsA<UPrimitiveComponent>()) continue;
+			USceneComponent* RootComp = Actor->GetRootComponent();
+			if (!RootComp->IsA<UPrimitiveComponent>()) continue;
 
 			for (auto* primitive : Actor->GetPrimitiveComponents())
 			{

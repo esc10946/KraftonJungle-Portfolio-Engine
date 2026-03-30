@@ -8,6 +8,10 @@
 DEFINE_CLASS(UStaticMeshComponent, UMeshComponent)
 REGISTER_FACTORY(UStaticMeshComponent)
 
+UStaticMeshComponent::UStaticMeshComponent()
+{
+}
+
 void UStaticMeshComponent::SetStaticMesh(UStaticMesh* InMesh)
 {
 	StaticMesh = InMesh;
@@ -64,7 +68,17 @@ int32 UStaticMeshComponent::GetNumMaterials() const
 
 void UStaticMeshComponent::UpdateWorldAABB() const
 {
-	UPrimitiveComponent::UpdateWorldAABB();
+	FVector LExt = LocalExtents;
+
+	FMatrix worldMatrix = GetWorldMatrix();
+
+	float NewEx = std::abs(worldMatrix.M[0][0]) * LExt.X + std::abs(worldMatrix.M[1][0]) * LExt.Y + std::abs(worldMatrix.M[2][0]) * LExt.Z;
+	float NewEy = std::abs(worldMatrix.M[0][1]) * LExt.X + std::abs(worldMatrix.M[1][1]) * LExt.Y + std::abs(worldMatrix.M[2][1]) * LExt.Z;
+	float NewEz = std::abs(worldMatrix.M[0][2]) * LExt.X + std::abs(worldMatrix.M[1][2]) * LExt.Y + std::abs(worldMatrix.M[2][2]) * LExt.Z;
+
+	FVector WorldCenter = GetWorldLocation();
+	WorldAABBMinLocation = WorldCenter - FVector(NewEx, NewEy, NewEz);
+	WorldAABBMaxLocation = WorldCenter + FVector(NewEx, NewEy, NewEz);
 }
 
 void UStaticMeshComponent::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
@@ -153,8 +167,9 @@ void UStaticMeshComponent::RefreshMeshData()
 		StaticMesh->BuildTexturedRenderMeshData(StaticMeshTexturedRenderData))
 	{
 		++TexturedMeshRevision;
-		LocalExtents = (StaticMesh->GetBoundsMax() - StaticMesh->GetBoundsMin()) * 0.5f;
+		//LocalExtents = (StaticMesh->GetBoundsMax() - StaticMesh->GetBoundsMin()) * 0.5f;
 		MeshData = &StaticMeshRenderData;
+		LocalExtents = StaticMesh->GetBoundsMax() - StaticMesh->GetBoundsMin();
 		UpdateWorldAABB();
 		return;
 	}

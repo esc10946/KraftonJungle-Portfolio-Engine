@@ -66,6 +66,7 @@ float4 PS(PSInput input) : SV_TARGET
         }
 
         baseColor *= DiffuseTexture.Sample(DiffuseSampler, sampleUV);
+        baseColor.a = PrimitiveColor.a;
     }
     
     return lerp(baseColor, float4(WireframeRGB, 1.0f), bIsWireframe);

@@ -251,7 +251,7 @@ void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, cons
 			FRenderCommand Cmd = {};
 			Cmd.Type = ERenderCommandType::StaticMesh;
 			Cmd.TextureMeshBuffer = StaticMeshBuffer;
-			Cmd.PerObjectConstants = FPerObjectConstants{ Primitive->GetWorldMatrix(), FVector4(1.0f, 1.0f, 1.0f, 1.0f) };
+			Cmd.PerObjectConstants = FPerObjectConstants{ Primitive->GetWorldMatrix(), Primitive->GetMaterialColor() };
 			Cmd.DepthStencilState = EDepthStencilState::Default;
 			Cmd.BlendState = EBlendState::Opaque;
 
@@ -265,7 +265,7 @@ void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, cons
 			{
 				Material->ResolveParameters(MaterialParameters);
 				Cmd.MeshRenderData.Shader = MaterialParameters.Shader;
-				Cmd.PerObjectConstants.Color = MaterialParameters.BaseColor;
+				Cmd.PerObjectConstants.Color = Primitive->GetMaterialColor();
 				Cmd.Constants.StaticMesh.bUseAtlas = MaterialParameters.bUseAtlas ? 1u : 0u;
 				Cmd.Constants.StaticMesh.bSourceUVsUseAtlasTiles =
 					(MaterialParameters.bUseAtlas && StaticMesh->SectionUsesEmbeddedAtlasUVs(static_cast<int32>(SectionIndex))) ? 1u : 0u;
