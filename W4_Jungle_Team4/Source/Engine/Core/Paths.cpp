@@ -36,6 +36,9 @@ std::wstring FPaths::SettingsFilePath() { return RootDir() + L"Settings\\Editor.
 std::wstring FPaths::ResourceFilePath() { return RootDir() + L"Settings\\Resource.ini"; }
 std::wstring FPaths::EditorLayoutFilePath() { return RootDir() + L"Settings\\EditorLayout.json"; }
 
+std::wstring FPaths::MeshPath()		{ return RootDir() + L"Asset\\Mesh\\"; }
+std::wstring FPaths::TexturePath()	{ return RootDir() + L"Asset\\Texture\\"; }
+
 std::wstring FPaths::Combine(const std::wstring& Base, const std::wstring& Child)
 {
 	std::filesystem::path Result(Base);

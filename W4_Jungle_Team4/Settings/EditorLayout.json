@@ -30,7 +30,7 @@
   "Single": {
     "WidgetType": "SViewport"
   },
-  "Horizontal-Two-Side": {
+  "Two-Horizontal": {
     "WidgetType": "SSplitterV",
     "SideLT": {
       "WidgetType": "SViewport"
@@ -39,7 +39,16 @@
       "WidgetType": "SViewport"
     }
   },
-  "Four-Way": {
+  "Two-Vertical": {
+    "WidgetType": "SSplitterH",
+    "SideLT": {
+      "WidgetType": "SViewport"
+    },
+    "SideRB": {
+      "WidgetType": "SViewport"
+    }
+  },
+  "Four": {
     "WidgetType": "SSplitterH",
     "SideLT": {
       "WidgetType": "SSplitterV",

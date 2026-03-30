@@ -156,7 +156,7 @@ UMaterial* FMaterialManager::RegisterAtlasMaterial(
 
 void FMaterialManager::RegisterDefaultBlockAtlasMaterials()
 {
-	const FString AtlasPath = FPaths::ToUtf8(FPaths::RootDir()) + "Data/Minecraft_All_block.png";
+	const FString AtlasPath = FPaths::ToUtf8(FPaths::TexturePath()) + "Minecraft_All_block.png";
 
 	UMaterial* AtlasMaster = RegisterAtlasMaterial("Atlas_BlockMaster", AtlasPath, 1, 1, 0, 0, 0, 0, 0, 0);
 
@@ -182,10 +182,9 @@ void FMaterialManager::RegisterDefaultBlockAtlasMaterials()
 
 void FMaterialManager::RegisterDefaultPreviewMaterials()
 {
-	const FString RootDir = FPaths::ToUtf8(FPaths::RootDir());
-	const FString CheckerPath = RootDir + "Data/textures/texture.png";
-	const FString CubePath = RootDir + "Data/cube-tex.png";
-	const FString AtlasPath = RootDir + "Data/Minecraft_All_block.png";
+	const FString CheckerPath = FPaths::ToUtf8(FPaths::TexturePath()) + "grass.jpg";
+	const FString CubePath = FPaths::ToUtf8(FPaths::TexturePath()) + "cube-tex.png";
+	const FString AtlasPath = FPaths::ToUtf8(FPaths::TexturePath()) + "Minecraft_All_block.png";
 
 	auto RegisterSimpleMaterial = [this](const FString& Key, const FString& Name, const FString& TexturePath)
 	{

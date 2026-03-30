@@ -18,6 +18,7 @@
 #include "Asset/StaticMesh/StaticMeshObject.h"
 #include "Editor/Viewport/ViewportManager.h"
 #include <Viewport/EditorViewportClient.h>
+#include <Component/StaticMeshComponent.h>
 
 namespace SceneKeys
 {
@@ -405,19 +406,58 @@ USceneComponent* FSceneSaveManager::DeserializeSceneComponentTree(json::JSON& No
 
 	return Comp;
 }
-
 void FSceneSaveManager::DeserializeProperties(UActorComponent* Comp, json::JSON& PropsJSON)
 {
-	TArray<FPropertyDescriptor> Descriptors;
-	Comp->GetEditableProperties(Descriptors);
+    auto ApplyPropertyByName = [&](const char* TargetName)
+    {
+        TArray<FPropertyDescriptor> Descriptors;
+        Comp->GetEditableProperties(Descriptors);
 
-	for (auto& Prop : Descriptors) {
-		if (!PropsJSON.hasKey(Prop.Name)) continue;
-		auto Value = PropsJSON[Prop.Name];
-		DeserializePropertyValue(Prop, Value);
-		Comp->PostEditProperty(Prop.Name);
-	}
+        for (auto& Prop : Descriptors)
+        {
+            if (std::strcmp(Prop.Name, TargetName) != 0)
+            {
+                continue;
+            }
+
+            if (!PropsJSON.hasKey(Prop.Name))
+            {
+                return;
+            }
+
+            auto Value = PropsJSON[Prop.Name];
+            DeserializePropertyValue(Prop, Value);
+            Comp->PostEditProperty(Prop.Name);
+            return;
+        }
+    };
+
+    if (Comp->IsA<UStaticMeshComponent>())
+    {
+        ApplyPropertyByName("StaticMesh");
+    }
+
+    TArray<FPropertyDescriptor> Descriptors;
+    Comp->GetEditableProperties(Descriptors);
+
+    for (auto& Prop : Descriptors)
+    {
+        if (std::strcmp(Prop.Name, "StaticMesh") == 0)
+        {
+            continue;
+        }
+
+        if (!PropsJSON.hasKey(Prop.Name))
+        {
+            continue;
+        }
+
+        auto Value = PropsJSON[Prop.Name];
+        DeserializePropertyValue(Prop, Value);
+        Comp->PostEditProperty(Prop.Name);
+    }
 }
+
 
 void FSceneSaveManager::DeserializePropertyValue(FPropertyDescriptor& Prop, json::JSON& Value)
 {

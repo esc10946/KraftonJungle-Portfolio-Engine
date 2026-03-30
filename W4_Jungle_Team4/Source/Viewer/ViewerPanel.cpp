@@ -4,16 +4,19 @@
 #include "Engine/Runtime/WindowsWindow.h"
 #include "Engine/Core/InputSystem.h"
 #include "ViewerViewportClient.h"
+#include "ViewerEngine.h"
+#include "Engine/Component/OrbitCameraComponent.h"
 
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_dx11.h"
 #include "ImGui/imgui_impl_win32.h"
 
-void FViewerPanel::Create(FWindowsWindow* InWindow, FRenderer& InRenderer)
+void FViewerPanel::Create(FWindowsWindow* InWindow, FRenderer& InRenderer, UViewerEngine* InEngine)
 {
 	ImGui::CreateContext();
 
 	Window = InWindow;
+	OwnerEngine = InEngine;
 
 	ImGui_ImplWin32_Init((void*)InWindow->GetHWND());
 	ImGui_ImplDX11_Init(InRenderer.GetFD3DDevice().GetDevice(), InRenderer.GetFD3DDevice().GetDeviceContext());
@@ -48,6 +51,26 @@ void FViewerPanel::Render(float DeltaTime)
 
 	ImGui::Separator();
 
+	if (ViewportClient && ViewportClient->GetCamera())
+	{
+		auto* Camera = ViewportClient->GetCamera();
+
+		ImGui::Text("Camera Sensitivity");
+
+		ImGui::SliderFloat("Orbit Speed", &Camera->RotateSensitivity, 0.01f, 1.0f, "%.2f");
+		ImGui::SliderFloat("Pan Speed", &Camera->PanSensitivity, 0.01f, 0.1f, "%.1f");
+		ImGui::SliderFloat("Zoom Speed", &Camera->ZoomSensitivity, 0.05f, 1.0f, "%.2f");
+
+		if (ImGui::Button("Reset Sensitivity"))
+		{
+			Camera->RotateSensitivity = 0.1f;
+			Camera->PanSensitivity = 0.01f;
+			Camera->ZoomSensitivity = 0.5f;
+		}
+	}
+
+	ImGui::Separator();
+
 	if (ImGui::Button("Open OBJ File"))
 	{
 		OPENFILENAMEA ofn = {};
@@ -58,9 +81,9 @@ void FViewerPanel::Render(float DeltaTime)
 		ofn.nMaxFile = sizeof(filePath);
 		ofn.Flags = OFN_FILEMUSTEXIST;
 
-		if (GetOpenFileNameA(&ofn))
+		if (GetOpenFileNameA(&ofn) && ViewportClient)
 		{
-			ViewportClient->LoadOBJ(filePath);
+			OwnerEngine->LoadModel(filePath);
 		}
 	}
 

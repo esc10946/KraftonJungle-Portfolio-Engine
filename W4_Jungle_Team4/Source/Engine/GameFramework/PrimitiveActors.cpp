@@ -92,7 +92,7 @@ void AStaticMeshActor::InitDefaultComponents()
 	UStaticMeshComponent* StaticMesh = AddComponent<UStaticMeshComponent>();
 	SetRootComponent(StaticMesh);
 
-	const FString StaticMeshPath = FPaths::ToUtf8(FPaths::RootDir()) + "Data/cube_green_rust.obj";
+	const FString StaticMeshPath = FPaths::ToUtf8(FPaths::MeshPath()) + "cube-tex.obj";
 	StaticMesh->SetStaticMesh(FStaticMeshManager::Get().LoadStaticMeshObject(StaticMeshPath));
 }
 

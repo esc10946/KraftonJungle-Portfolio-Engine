@@ -8,6 +8,7 @@
 #include <filesystem>
 
 #include <iostream> // test
+#include <Core/Paths.h>
 
 namespace
 {
@@ -28,7 +29,7 @@ namespace
 			// 이미 절대 경로면 그대로 사용
 			if (!TexturePath.is_absolute())
 			{
-				TexturePath = MtlDirectory / TexturePath;
+				TexturePath = std::filesystem::path(FPaths::TexturePath()) / TexturePath.filename();
 			}
 
 			MaterialInfo.DiffuseTexturePath = TexturePath.lexically_normal().generic_string();

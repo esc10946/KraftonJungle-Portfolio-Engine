@@ -1,48 +1,33 @@
 {
   "Actors" : [{
-      "ClassName" : "ACubeActor",
+      "ClassName" : "AStaticMeshActor",
       "NonSceneComponents" : [],
       "RootComponent" : {
-        "Children" : [{
-            "Children" : [],
-            "ClassName" : "UTextRenderComponent",
-            "Properties" : {
-              "Font" : "Default",
-              "Font Size" : 1.000000,
-              "Location" : [0.000000, 0.000000, 1.000000],
-              "Rotation" : [0.000000, 0.000000, 0.000000],
-              "Scale" : [1.000000, 1.000000, 1.000000],
-              "Text" : "UUID : 4007",
-              "Visible" : true
-            }
-          }, {
-            "Children" : [],
-            "ClassName" : "USubUVComponent",
-            "Properties" : {
-              "Height" : 2.000000,
-              "Location" : [0.000000, 0.000000, 2.300000],
-              "Particle" : "Explosion",
-              "Play Rate" : 30.000000,
-              "Rotation" : [0.000000, 0.000000, 0.000000],
-              "Scale" : [1.000000, 1.000000, 1.000000],
-              "Visible" : true,
-              "Width" : 2.000000,
-              "bLoop" : false
-            }
-          }],
-        "ClassName" : "UCubeComponent",
+        "Children" : [],
+        "ClassName" : "UStaticMeshComponent",
         "Properties" : {
+          "Element 0 Material [texture]" : {
+            "ClassName" : "UMaterialInstance",
+            "ObjectName" : "Atlas_Grass"
+          },
           "Location" : [0.000000, 0.000000, 0.000000],
+          "MaterialColor" : [1.000000, 1.000000, 1.000000, 1.000000],
           "Rotation" : [0.000000, 0.000000, 0.000000],
           "Scale" : [1.000000, 1.000000, 1.000000],
+          "StaticMesh" : {
+            "AssetPath" : "C:/Users/jungle/GitHub/W4_Jungle_Team4/W4_Jungle_Team4/Asset/Mesh/cube-tex.obj",
+            "ClassName" : "UStaticMesh",
+            "ObjectName" : "UStaticMesh_0"
+          },
+          "UseScroll" : false,
           "Visible" : true
         }
       },
       "bVisible" : true
     }],
   "ClassName" : "UWorld",
-  "ContextHandle" : "NewScene",
-  "ContextName" : "New Scene",
+  "ContextHandle" : "Default",
+  "ContextName" : "Default",
   "Name" : "Default",
   "Version" : 2,
   "WorldType" : "Editor"

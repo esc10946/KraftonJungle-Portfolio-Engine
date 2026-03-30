@@ -44,25 +44,6 @@ bool FEngineLoop::Init(HINSTANCE hInstance, int nShowCmd)
 	GEngine->SetTimer(&Timer);
 	GEngine->BeginPlay();
 
-	// opt) test
-	/*[StaticMeshManager] request load : C:\Users\jungle\HB\source\repos\W4\W4_Jungle_Team4\Data / cube - tex.obj
-	[StaticMeshManager] normalized path : C: / Users / jungle / HB / source / repos / W4 / W4_Jungle_Team4 / Data / cube - tex.obj
-	[StaticMeshManager] bake path : C:\Users\jungle\HB\source\repos\W4\W4_Jungle_Team4\Data\cube - tex.smbin
-	[ObjImporter] parsed raw data positions = 8, texcoords = 14, normals = 6, faces = 12, mtllib = cube - tex.mtl
-	[ObjImporter] section firstIndex = 0, indexCount = 36, material = texture, texture = C: / Users / jungle / HB / source / repos / W4 / W4_Jungle_Team4 / Data / cube - tex.png
-	[ObjImporter] cooked asset vertices = 36, indices = 36, sections = 1
-	[StaticMeshManager] imported from obj and saved bake
-	[StaticMeshManager] done : vertices = 36, indices = 36, sections = 1*/
-	// const FString TestObjPath = FPaths::ToUtf8(FPaths::RootDir()) + "Data/cube-tex.obj";
-	const FString TestObjPath = FPaths::ToUtf8(FPaths::RootDir()) + "Data/Minecraft_Grass_block.obj";
-	FStaticMeshAsset* TestMesh = FStaticMeshManager::Get().LoadStaticMeshAsset(TestObjPath);
-	(void)TestMesh;
-	// opt) test 재로드
-	/*[StaticMeshManager] request load : C:\Users\jungle\HB\source\repos\W4\W4_Jungle_Team4\Data / cube - tex.obj
-	[StaticMeshManager] already loaded, reuse cached asset : C: / Users / jungle / HB / source / repos / W4 / W4_Jungle_Team4 / Data / cube - tex.obj(vertices = 36, indices = 36, sections = 1)*/
-	FStaticMeshAsset* TestMeshAgain = FStaticMeshManager::Get().LoadStaticMeshAsset(TestObjPath);
-	(void)TestMeshAgain;
-
 	Timer.Initialize();
 
 	return true;
