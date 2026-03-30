@@ -64,4 +64,5 @@ private:
 	SWidget* MouseCaptor = nullptr;
 	SWidget* WidgetUnderMouse = nullptr;
 	SWidget* FocusedWidget = nullptr;
+	SWidget* LastKeyboardTarget = nullptr;
 };

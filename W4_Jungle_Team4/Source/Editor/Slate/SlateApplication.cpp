@@ -168,8 +168,21 @@ void FSlateApplication::ProcessInput()
 	SWidget* KeyboardTarget = GetFocusedWidget();
 	if (KeyboardTarget == nullptr)
 	{
-		KeyboardTarget = WidgetUnderMouse;
+		KeyboardTarget = Captor ? Captor : WidgetUnderMouse;
 	}
+
+	// KeyboardTarget이 바뀌었다면, 이전 타켓에게 눌려있던 키들의 Up 이벤트를 보내줌
+	if (LastKeyboardTarget && LastKeyboardTarget != KeyboardTarget)
+	{
+		for (int32 Key = 0; Key < 256; ++Key)
+		{
+			if (InputSystem::Get().GetKey(Key))
+			{
+				LastKeyboardTarget->OnKeyUp(Key);
+			}
+		}
+	}
+	LastKeyboardTarget = KeyboardTarget;
 
 	for (int32 Key = 0; Key < 256; ++Key)
 	{

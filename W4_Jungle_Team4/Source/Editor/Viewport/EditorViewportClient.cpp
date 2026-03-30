@@ -284,13 +284,15 @@ void FEditorViewportClient::ApplyCurrentViewOption()
 
 void FEditorViewportClient::MovePerspective(float DeltaTime)
 {
+	if (!bIsRightMouseDown) return;
+
 	const FCameraState& CameraState = Camera->GetCameraState();
 
 	FVector Direction = FVector(0, 0, 0);
 
-	if (bIsWDown && !CameraState.bIsOrthogonal) Direction.X += 1;
+	if (bIsWDown) Direction.X += 1;
 	if (bIsADown) Direction.Y -= 1;
-	if (bIsSDown && !CameraState.bIsOrthogonal) Direction.X -= 1;
+	if (bIsSDown) Direction.X -= 1;
 	if (bIsDDown) Direction.Y += 1;
 	if (bIsQDown) Direction.Z -= 1;
 	if (bIsEDown) Direction.Z += 1;
@@ -313,14 +315,6 @@ void FEditorViewportClient::RotatePerspective(float DeltaTime)
 
 	const float RotateSensitivity = Settings ? Settings->CameraRotateSensitivity : 1.f;
 	const float AngleVelocity = (Settings ? Settings->CameraRotationSpeed : 60.f) * RotateSensitivity;
-	if (InputSystem::Get().GetKey(VK_UP))
-		Rotation.Z -= AngleVelocity;
-	if (InputSystem::Get().GetKey(VK_LEFT))
-		Rotation.Y -= AngleVelocity;
-	if (InputSystem::Get().GetKey(VK_DOWN))
-		Rotation.Z += AngleVelocity;
-	if (InputSystem::Get().GetKey(VK_RIGHT))
-		Rotation.Y += AngleVelocity;
 
 	float MouseRotationSpeed = 0.15f * RotateSensitivity;
 
