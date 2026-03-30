@@ -4,6 +4,14 @@
 
 class SViewport;
 
+enum class EViewportLayout : int32
+{
+	Single = 0,
+	TwoHorizontal,
+	TwoVertical,
+	Four
+};
+
 class SViewportRoot : public SWidget
 {
 public:
@@ -14,11 +22,16 @@ public:
 	void Tick(float DeltaTime) override;
 
 	void Construct();
-	void SetVisibleCount(int32 Count)
+	void SetLayout(EViewportLayout NewLayout)
 	{
-		VisibleCount = Count;
-		bDirty = true;
+		if (CurrentLayout != NewLayout)
+		{
+			CurrentLayout = NewLayout;
+			bDirty = true;
+		}
 	}
+
+	static FString LayoutToName(EViewportLayout Layout);
 
 	FString GetWidgetType() const override { return "SViewportRoot"; }
 
@@ -29,6 +42,6 @@ private:
 	TArray<SViewport*> Viewports;
 
 	bool bDirty = true;
-	int32 VisibleCount = 1;
+	EViewportLayout CurrentLayout = EViewportLayout::Single;
 };
 

@@ -8,6 +8,7 @@ class FSlateWidgetFactory
 {
 public:
 	static void LoadViewportLayouts(const FString& FilePath = FPaths::ToUtf8(FPaths::EditorLayoutFilePath()));
+	static SWidget* GetViewportLayout(const FString& LayoutName);
 
 	static SWidget* CreateWidget(const FString& WidgetType);
 

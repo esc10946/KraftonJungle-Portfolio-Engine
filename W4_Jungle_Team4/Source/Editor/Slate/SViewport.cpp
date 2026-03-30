@@ -121,28 +121,23 @@ void SViewport::OnPaint()
 
 	ImGui::PopItemWidth();
 
+	SWidget* Root = FSlateApplication::Get().GetWindows()[0];
+	SViewportRoot* ViewportRoot = FSlateApplication::Get().GetWidgetsByType<SViewportRoot*>(Root)[0];
+
 	ImGui::Text("Change Viewport Layout");
 
-	if (ImGui::Button("Single"))
+	ImGui::BeginGroup();
 	{
-		SWidget* Root = FSlateApplication::Get().GetWindows()[0];
-		SViewportRoot* ViewportRoot = FSlateApplication::Get().GetWidgetsByType<SViewportRoot*>(Root)[0];
-
-		if (ViewportRoot)
-		{
-			ViewportRoot->SetVisibleCount(1);
-		}
+		// 스타일 살짝 입히기 (선택된 상태면 색상 변경 등 가능)
+		if (ImGui::Button("[ | ]", ImVec2(40, 40))) { ViewportRoot->SetLayout(EViewportLayout::Single); }
+		ImGui::SameLine();
+		if (ImGui::Button("[ || ]", ImVec2(40, 40))) { ViewportRoot->SetLayout(EViewportLayout::TwoHorizontal); }
+		ImGui::SameLine();
+		if (ImGui::Button("[ = ]", ImVec2(40, 40))) { ViewportRoot->SetLayout(EViewportLayout::TwoVertical); }
+		ImGui::SameLine();
+		if (ImGui::Button("[ + ]", ImVec2(40, 40))) { ViewportRoot->SetLayout(EViewportLayout::Four); }
 	}
-	if (ImGui::Button("Multiple"))
-	{
-		SWidget* Root = FSlateApplication::Get().GetWindows()[0];
-		SViewportRoot* ViewportRoot = FSlateApplication::Get().GetWidgetsByType<SViewportRoot*>(Root)[0];
-
-		if (ViewportRoot)
-		{
-			ViewportRoot->SetVisibleCount(4);
-		}
-	}
+	ImGui::EndGroup();
 
 	if (bShowFPS) DrawFPSStats();
 	if (bShowMemory) DrawMemoryStats();
