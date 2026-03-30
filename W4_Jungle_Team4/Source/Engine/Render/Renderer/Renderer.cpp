@@ -58,6 +58,7 @@ void FRenderer::Create(HWND hWindow)
 	// 텍스처는 ResourceManager가 소유 — Batcher는 셰이더/버퍼만 초기화
 	FontBatcher.Create(Device.GetDevice());
 	SubUVBatcher.Create(Device.GetDevice());
+	SlateBatcher.Create(Device.GetDevice());
 	ViewportRenderer.Create(Device.GetDevice());
 
 	D3D11_SAMPLER_DESC StaticMeshSamplerDesc = {};
@@ -95,6 +96,7 @@ void FRenderer::Release()
 	GridLineBatcher.Release();
 	FontBatcher.Release();
 	SubUVBatcher.Release();
+	SlateBatcher.Release();
 	ViewportRenderer.Release();
 	if (StaticMeshSamplerState) { StaticMeshSamplerState->Release(); StaticMeshSamplerState = nullptr; }
 
@@ -250,6 +252,7 @@ void FRenderer::InitializePassRenderStates()
 	S[(uint32)E::DepthLess] = { EDepthStencilState::DepthReadOnly,EBlendState::AlphaBlend, ERasterizerState::SolidBackCull,  D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, &Resources.GizmoShader,     false };
 	S[(uint32)E::Font] = { EDepthStencilState::Default,      EBlendState::AlphaBlend, ERasterizerState::SolidBackCull,  D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, nullptr,                    true };
 	S[(uint32)E::SubUV] = { EDepthStencilState::Default,      EBlendState::AlphaBlend, ERasterizerState::SolidBackCull,  D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, nullptr,                    true };
+	S[(uint32)E::Slate] = { EDepthStencilState::None,      EBlendState::AlphaBlend, ERasterizerState::SolidNoCull,  D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, nullptr,                    false };
 }
 
 // ============================================================
@@ -347,6 +350,26 @@ void FRenderer::InitializePassBatchers()
 		},
 		/*.Flush   =*/ [this](ERenderPass, const FRenderBus&, ID3D11DeviceContext* Ctx) {
 			SubUVBatcher.Flush(Ctx);
+		}
+	};
+
+	// --- Slate 패스: ---
+	PassBatchers[(uint32)ERenderPass::Slate] = {
+		/*.Clear   =*/ [this]() { SlateBatcher.Clear(); },
+		/*.Collect =*/ [this](const FRenderCommand& Cmd, const FRenderBus&) {
+			if (Cmd.Type == ERenderCommandType::Slate)
+			{
+				FRect ScreenRect = { 
+					static_cast<uint32>(Cmd.Constants.Slate.ScreenPosition.X), 
+					static_cast<uint32>(Cmd.Constants.Slate.ScreenPosition.Y), 
+					static_cast<uint32>(Cmd.Constants.Slate.ScreenSize.X), 
+					static_cast<uint32>(Cmd.Constants.Slate.ScreenSize.Y) 
+				};
+				SlateBatcher.AddRect(ScreenRect, Cmd.PerObjectConstants.Color);
+			}
+		},
+		/*.Flush   =*/ [this](ERenderPass, const FRenderBus&, ID3D11DeviceContext* Ctx) {
+			SlateBatcher.Flush(Ctx);
 		}
 	};
 }
@@ -583,6 +606,11 @@ void FRenderer::EndViewportFrame(FRenderTarget& RenderTarget)
 
 	ID3D11DeviceContext* Context = Device.GetDeviceContext();
 	Context->OMSetRenderTargets(0, nullptr, nullptr);
+}
+
+void FRenderer::SetDefaultViewport()
+{
+	Device.SetDefaultViewport();
 }
 
 void FRenderer::UpdateFrameBuffer(ID3D11DeviceContext* Context, const FRenderBus& InRenderBus)

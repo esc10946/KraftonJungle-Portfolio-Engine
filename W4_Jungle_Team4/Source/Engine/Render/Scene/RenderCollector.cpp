@@ -11,6 +11,7 @@
 #include "Asset/StaticMesh/StaticMeshObject.h"
 #include "Asset/Texture/TextureObject.h"
 #include "Core/ResourceManager.h"
+#include "Slate/SlateApplication.h"
 
 void FRenderCollector::Release()
 {
@@ -93,6 +94,18 @@ void FRenderCollector::CollectGizmo(UGizmoComponent* Gizmo, const FShowFlags& Sh
 	if (!bHolding)
 	{
 		RenderBus.AddCommand(ERenderPass::DepthLess, CreateGizmoCmd(true));
+	}
+}
+
+void FRenderCollector::CollectFromSlate(FRenderBus& RenderBus)
+{
+	TArray<SWindow*> Windows = FSlateApplication::Get().GetWindows();
+
+	for (SWindow* Window : Windows)
+	{
+		if (!Window) continue;
+
+		CollectFromSlateWidget(Window, RenderBus);
 	}
 }
 
@@ -303,6 +316,29 @@ void FRenderCollector::CollectAABBCommand(UPrimitiveComponent* PrimitiveComponen
 
 	// 렌더러가 마지막에 몰아서 그릴 수 있게 특정 패스(예: Editor/Overlay)에 푸시합니다.
 	RenderBus.AddCommand(ERenderPass::Editor, AABBCmd);
+}
+
+void FRenderCollector::CollectFromSlateWidget(SWidget* Widget, FRenderBus& RenderBus)
+{
+	for (SWidget* Widget : Widget->GetChildren())
+	{
+		if (Widget->IsRenderable())
+		{
+			FRect RenderRect = Widget->GetRenderRect();
+
+			FRenderCommand Cmd = {};
+			Cmd.Type = ERenderCommandType::Slate;
+			Cmd.MeshBuffer = &MeshBufferManager.GetMeshBuffer(EPrimitiveType::EPT_Quad2D);
+			Cmd.PerObjectConstants.Color = Widget->GetColor().ToVector4();
+			Cmd.Constants.Slate.ScreenPosition = { (float)RenderRect.X, (float)RenderRect.Y };
+			Cmd.Constants.Slate.ScreenSize = { (float)RenderRect.Width, (float)RenderRect.Height };
+			Cmd.DepthStencilState = EDepthStencilState::Default;
+
+			RenderBus.AddCommand(ERenderPass::Slate, Cmd);
+		}
+
+		CollectFromSlateWidget(static_cast<SWindow*>(Widget), RenderBus);
+	}
 }
 
 FTextureMeshBuffer* FRenderCollector::GetOrCreateStaticMeshBuffer(UStaticMeshComponent* StaticMeshComponent)

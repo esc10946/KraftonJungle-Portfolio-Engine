@@ -6,6 +6,7 @@
 #include "ViewerEngine.h"
 #include "Engine/Core/ResourceManager.h"
 #include "Asset/Material/MaterialManager.h"
+#include "Engine/Runtime/WindowsWindow.h"
 
 void FViewerViewportClient::CreateCamera()
 {
@@ -45,36 +46,13 @@ void FViewerViewportClient::Draw()
 
 void FViewerViewportClient::Tick(float DeltaTime)
 {
-	if (!ViewerCamera)
+	if (!ViewerCamera || IgnoreInput())
 		return;
 
-	static FStaticMeshAsset* LastAsset = nullptr;
-	FStaticMeshAsset* CurrentAsset = OwnerEngine->GetCurrentMesh();
+	CheckAssetSystem();
 
-	if (CurrentAsset != LastAsset)
-	{
-		if (CurrentAsset)
-		{
-			FVector NewCenter = OwnerEngine->GetCenter();
-			float NewRadius = OwnerEngine->GetRadius();
-
-			ViewerCamera->SetTarget(NewCenter);
-			ViewerCamera->SetRadius(NewRadius * 2.5f);
-
-			ViewerCamera->UpdatePosition();
-		}
-
-		LastAsset = CurrentAsset;
-	}
-
-	if (InputSystem::Get().GetGuiInputState().bUsingKeyboard == true)
-		return;
-
-	if (InputSystem::Get().GetGuiInputState().bUsingMouse == true)
-		return;
-
-	float dx = InputSystem::Get().MouseDeltaX();
-	float dy = InputSystem::Get().MouseDeltaY();
+	float dx, dy;
+	GetSafeMouseDelta(dx, dy);
 
 	if (InputSystem::Get().GetKey(VK_LBUTTON))
 		ViewerCamera->OnOrbit(dx, dy);
@@ -134,6 +112,61 @@ void FViewerViewportClient::GenerateStaticMeshCommands(FStaticMeshAsset* Asset)
 		FRenderCommand Cmd = CreateCommand(Section, Asset);
 		Bus.AddCommand(ERenderPass::Opaque, Cmd);
 	}
+}
+
+void FViewerViewportClient::CheckAssetSystem()
+{
+	static FStaticMeshAsset* LastAsset = nullptr;
+	FStaticMeshAsset* CurrentAsset = OwnerEngine->GetCurrentMesh();
+
+	if (CurrentAsset != LastAsset)
+	{
+		if (CurrentAsset)
+		{
+			FVector NewCenter = OwnerEngine->GetCenter();
+			float NewRadius = OwnerEngine->GetRadius();
+
+			ViewerCamera->SetTarget(NewCenter);
+			ViewerCamera->SetRadius(NewRadius * 2.5f);
+
+			ViewerCamera->UpdatePosition();
+		}
+
+		LastAsset = CurrentAsset;
+	}
+}
+
+bool FViewerViewportClient::IgnoreInput()
+{
+	if (InputSystem::Get().GetGuiInputState().bUsingKeyboard
+		|| InputSystem::Get().GetGuiInputState().bUsingMouse)
+		return true;
+
+	return false;
+}
+
+void FViewerViewportClient::GetSafeMouseDelta(float& outX, float& outY)
+{
+	outX = 0;
+	outY = 0;
+
+	if (IsMouseInsideWindow())
+	{
+		outX = InputSystem::Get().MouseDeltaX();
+		outY = InputSystem::Get().MouseDeltaY();
+	}
+}
+
+bool FViewerViewportClient::IsMouseInsideWindow()
+{
+	POINT pt;
+	GetCursorPos(&pt);
+	ScreenToClient((HWND)OwnerEngine->GetWindow()->GetHWND(), &pt);
+
+	RECT rc;
+	GetClientRect((HWND)OwnerEngine->GetWindow()->GetHWND(), &rc);
+
+	return (pt.x >= 0 && pt.x <= rc.right && pt.y >= 0 && pt.y <= rc.bottom);
 }
 
 FRenderCommand FViewerViewportClient::CreateCommand(const FStaticMeshSection& Section, FStaticMeshAsset* Asset)

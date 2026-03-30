@@ -5,7 +5,7 @@
 class SSplitterV : public SSplitter
 {
 public:
-	SSplitterV() = default;
+	SSplitterV() : SSplitter() { Color = FColor(30, 30, 30, 150); }
 	virtual ~SSplitterV() = default;
 
 public:
@@ -18,7 +18,9 @@ public:
 
 	virtual FString GetWidgetType() const { return "SSplitterV"; }
 
+	virtual FRect GetRenderRect() override;
+
 protected:
-	virtual bool IsOnHandle(float X, float Y) const override;
+	virtual bool IsOnHandle(float X, float Y) override;
 	virtual void UpdateSplit(float X, float Y) override;
 };

@@ -25,7 +25,7 @@ public:
 	void UpdatePosition();
 
 	float RotateSensitivity = 0.1f;
-	float PanSensitivity = 0.01f;
+	float PanSensitivity = 0.001f;
 	float ZoomSensitivity = 0.5f;
 
 private:

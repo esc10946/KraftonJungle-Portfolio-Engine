@@ -42,6 +42,11 @@ public:
 	void EnsureGpuResources(FStaticMeshAsset* Asset);
 	void GenerateStaticMeshCommands(FStaticMeshAsset* Asset);
 
+	void CheckAssetSystem();
+	bool IgnoreInput();
+	void GetSafeMouseDelta(float& outX, float& outY);
+	bool IsMouseInsideWindow();
+
 private:
 	FRenderCommand CreateCommand(const FStaticMeshSection& Section, FStaticMeshAsset* Asset);
 
