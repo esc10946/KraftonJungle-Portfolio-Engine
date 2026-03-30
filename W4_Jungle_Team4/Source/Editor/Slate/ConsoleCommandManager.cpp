@@ -3,7 +3,7 @@
 #include "Slate/SImGuiConsoleWidget.h"
 #include <sstream>
 
-void ConsoleCommandManager::Initialize(SImGuiConsoleWidget* InConsoleWidget)
+void FConsoleCommandManager::Initialize(SImGuiConsoleWidget* InConsoleWidget)
 {
 	ConsoleWidget = InConsoleWidget;
 
@@ -12,12 +12,12 @@ void ConsoleCommandManager::Initialize(SImGuiConsoleWidget* InConsoleWidget)
 		});
 }
 
-void ConsoleCommandManager::RegisterCommand(const FString& Name, FCommandCallback Fn)
+void FConsoleCommandManager::RegisterCommand(const FString& Name, FCommandCallback Fn)
 {
 	Commands[Name] = Fn;
 }
 
-void ConsoleCommandManager::ExecCommand(const FString& FullCommandLine)
+void FConsoleCommandManager::ExecCommand(const FString& FullCommandLine)
 {
 	TArray<FString> Tokens;
 	std::istringstream Iss(FullCommandLine);

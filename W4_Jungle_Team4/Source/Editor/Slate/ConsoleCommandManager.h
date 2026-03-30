@@ -6,7 +6,7 @@
 
 class SImGuiConsoleWidget;
 
-class ConsoleCommandManager : public TSingleton<ConsoleCommandManager>
+class FConsoleCommandManager : public TSingleton<FConsoleCommandManager>
 {
 	using FCommandCallback = std::function<void(const TArray<FString>& args)>;
 public:

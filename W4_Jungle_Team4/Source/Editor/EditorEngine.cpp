@@ -2,6 +2,8 @@
 
 #include "Editor/Slate/SlateApplication.h"
 #include "Editor/Slate/SlateWidgetFactory.h"
+#include "Editor/Slate/SViewport.h"
+#include "Editor/Slate/ConsoleCommandManager.h"
 #include "Editor/Viewport/Viewport.h"
 #include "Engine/Runtime/WindowsWindow.h"
 #include "Engine/Serialization/SceneSaveManager.h"
@@ -74,6 +76,36 @@ void UEditorEngine::Init(FWindowsWindow* InWindow)
 
 	// 1회 resizing
 	OnWindowResized(InWindow->GetWidth(), InWindow->GetHeight());
+
+	// Console Command 등록 (어디서 해야할지 애매해서 일단 여기)
+	FConsoleCommandManager::Get().RegisterCommand("stat", [this](const TArray<FString>& Args) {
+		if (Args.size() < 2) return;
+
+		SViewport* FocusedViewport = FViewportManager::Get().GetFocusedViewportWidget();
+		if (FocusedViewport == nullptr)
+		{
+			SImGuiConsoleWidget::AddLog("[ERROR] No focused viewport to apply stat command.\n");
+			return;
+		}
+
+		if (Args[1] == "fps")
+		{
+			FocusedViewport->SetShowFPS(true);
+		}
+		else if (Args[1] == "memory")
+		{
+			FocusedViewport->SetShowMemory(true);
+		}
+		else if (Args[1] == "none")
+		{
+			FocusedViewport->SetShowFPS(false);
+			FocusedViewport->SetShowMemory(false);
+		}
+		else
+		{
+			SImGuiConsoleWidget::AddLog("[ERROR] Unknown command: '%s'\n", Args[0].c_str());
+		}
+		});
 }
 
 void UEditorEngine::Shutdown()
