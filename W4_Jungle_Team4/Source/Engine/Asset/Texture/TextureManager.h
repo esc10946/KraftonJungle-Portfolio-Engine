@@ -12,6 +12,7 @@ class FTextureManager : public TSingleton<FTextureManager>
 public:
 	UTexture2D* GetOrCreateTexture(const FString& InTexturePath);
 	UTexture2D* FindTexture(const FString& InTexturePath) const;
+	void InvalidateAllTextureViews();
 	void Clear();
 
 private:

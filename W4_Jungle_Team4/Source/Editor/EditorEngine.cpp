@@ -159,7 +159,15 @@ UCameraComponent* UEditorEngine::GetCamera() const
 
 void UEditorEngine::ResetViewport()
 {
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
 	TArray<FViewport*>& Viewports = FViewportManager::Get().GetViewports();
+	FEditorViewportClient* FirstViewportClient = nullptr;
+
 	for (FViewport* Viewport : Viewports)
 	{
 		if (!Viewport)
@@ -169,14 +177,20 @@ void UEditorEngine::ResetViewport()
 		if (FEditorViewportClient* ViewportClient = dynamic_cast<FEditorViewportClient*>(Viewport->GetViewportClient()))
 		{
 			ViewportClient->CreateCamera();
-			ViewportClient->SetWorld(GetWorld());
+			ViewportClient->SetWorld(World);
 			ViewportClient->ResetCamera();
+
+			if (FirstViewportClient == nullptr)
+			{
+				FirstViewportClient = ViewportClient;
+			}
 		}
 	}
 
-	// TODO: World의 ActiveCamera를 첫 번째 ViewportClient로 설정 개선 필요
-	FEditorViewportClient* FirstViewportClient = dynamic_cast<FEditorViewportClient*>(Viewports[0]->GetViewportClient());
-	GetWorld()->SetActiveCamera(FirstViewportClient->GetCamera());
+	if (FirstViewportClient && FirstViewportClient->GetCamera())
+	{
+		World->SetActiveCamera(FirstViewportClient->GetCamera());
+	}
 }
 
 void UEditorEngine::CloseScene()
@@ -199,6 +213,8 @@ void UEditorEngine::NewScene()
 	ClearScene();
 	FWorldContext& Ctx = CreateWorldContext(EWorldType::Editor, FName("NewScene"), "New Scene");
 	SetActiveWorld(Ctx.ContextHandle);
+	Ctx.World->InitWorld();
+	FViewportManager::Get().SetWorld(Ctx.World);
 
 	ResetViewport();
 }
@@ -206,6 +222,7 @@ void UEditorEngine::NewScene()
 void UEditorEngine::ClearScene()
 {
 	SelectionManager.ClearSelection();
+	FViewportManager::Get().SetWorld(nullptr);
 
 	for (FWorldContext& Ctx : WorldList)
 	{

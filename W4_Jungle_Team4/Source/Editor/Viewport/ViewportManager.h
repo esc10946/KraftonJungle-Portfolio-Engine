@@ -16,6 +16,7 @@ class FViewportManager : public TSingleton<FViewportManager>
 	friend class TSingleton<FViewportManager>;
 public:
 	void Initialize(FD3DDevice* InDevice, UWorld* InWorld, FSelectionManager* InSelectionManager);
+	void SetWorld(UWorld* InWorld);
 
 	FViewport* CreateViewport();
 	void DestroyViewport(FViewport* InViewport);

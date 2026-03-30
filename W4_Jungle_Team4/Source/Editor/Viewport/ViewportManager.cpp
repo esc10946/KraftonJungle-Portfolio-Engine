@@ -7,12 +7,39 @@
 #include "Slate/SlateApplication.h"
 #include "Slate/SlateWidgetFactory.h"
 #include "Slate/SViewport.h"
+#include "GameFramework/World.h"
 
 void FViewportManager::Initialize(FD3DDevice* InDevice, UWorld* InWorld, FSelectionManager* InSelectionManager)
 {
 	Device = InDevice;
 	World = InWorld;
 	SelectionManager = InSelectionManager;
+}
+
+void FViewportManager::SetWorld(UWorld* InWorld)
+{
+	World = InWorld;
+
+	for (FViewport* Viewport : Viewports)
+	{
+		if (!Viewport)
+		{
+			continue;
+		}
+
+		FEditorViewportClient* EditorClient = dynamic_cast<FEditorViewportClient*>(Viewport->GetViewportClient());
+		if (!EditorClient)
+		{
+			continue;
+		}
+
+		EditorClient->SetWorld(World);
+
+		if (World)
+		{
+			World->SetActiveCamera(EditorClient->GetCamera());
+		}
+	}
 }
 
 FViewport* FViewportManager::CreateViewport()

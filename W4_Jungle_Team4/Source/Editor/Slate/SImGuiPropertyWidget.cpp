@@ -6,12 +6,229 @@
 #include "Component/GizmoComponent.h"
 #include "Component/PrimitiveComponent.h"
 #include "Component/SceneComponent.h"
+#include "Component/StaticMeshComponent.h"
+#include "Asset/Material/MaterialObject.h"
+#include "Asset/StaticMesh/StaticMeshManager.h"
+#include "Asset/StaticMesh/StaticMeshObject.h"
+#include "Asset/Texture/TextureObject.h"
 #include "Core/PropertyTypes.h"
 #include "Core/ResourceManager.h"
+#include "Core/Paths.h"
 #include "Object/FName.h"
 #include "Object/Object.h"
 
+#include <filesystem>
+#include <cstring>
+
 #define SEPARATOR(); ImGui::Spacing(); ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing(); ImGui::Spacing();
+
+namespace
+{
+	TArray<FString> ScanStaticMeshAssetOptions()
+	{
+		TArray<FString> AssetPaths;
+		const std::filesystem::path DataDir =
+			std::filesystem::path(FPaths::ToUtf8(FPaths::RootDir())) / "Data";
+
+		std::error_code ErrorCode;
+		if (!std::filesystem::exists(DataDir, ErrorCode))
+		{
+			return AssetPaths;
+		}
+
+		for (const auto& Entry : std::filesystem::recursive_directory_iterator(DataDir, ErrorCode))
+		{
+			if (ErrorCode)
+			{
+				break;
+			}
+
+			if (!Entry.is_regular_file())
+			{
+				continue;
+			}
+
+			if (Entry.path().extension() == ".obj")
+			{
+				AssetPaths.push_back(Entry.path().lexically_normal().generic_string());
+			}
+		}
+
+		return AssetPaths;
+	}
+
+	const TArray<FString>& GetStaticMeshAssetOptions()
+	{
+		static TArray<FString> CachedAssetPaths = ScanStaticMeshAssetOptions();
+		return CachedAssetPaths;
+	}
+
+	FString GetStaticMeshAssetDisplayName(const FString& AssetPath)
+	{
+		const std::filesystem::path Path(AssetPath);
+		return Path.filename().generic_string();
+	}
+
+	bool ContainsString(const TArray<FString>& Values, const FString& Target)
+	{
+		for (const FString& Value : Values)
+		{
+			if (Value == Target)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	bool ContainsMaterial(const TArray<UMaterialInterface*>& Values, UMaterialInterface* Target)
+	{
+		for (UMaterialInterface* Value : Values)
+		{
+			if (Value == Target)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	FString ResolveMaterialTexturePath(UMaterialInterface* Material)
+	{
+		if (!Material)
+		{
+			return FString();
+		}
+
+		FResolvedMaterialParameters Parameters;
+		Material->ResolveParameters(Parameters);
+		if (Parameters.DiffuseTexture)
+		{
+			return Parameters.DiffuseTexture->GetSourcePath();
+		}
+
+		return Material->GetDiffuseTexturePath();
+	}
+
+	bool IsPreviewMaterial(const UMaterialInterface* Material)
+	{
+		if (!Material)
+		{
+			return false;
+		}
+
+		const FString Name = Material->GetFName().ToString();
+		const FString SlotName = Material->GetSlotName();
+		const FString SourceName = Material->GetSourceMaterialName();
+		return Name.rfind("Preview_", 0) == 0 ||
+			SlotName.rfind("Preview_", 0) == 0 ||
+			SourceName.rfind("Preview_", 0) == 0;
+	}
+
+	bool IsAtlasMaterial(const UMaterialInterface* Material)
+	{
+		if (!Material)
+		{
+			return false;
+		}
+
+		const FString Name = Material->GetFName().ToString();
+		const FString SlotName = Material->GetSlotName();
+		const FString SourceName = Material->GetSourceMaterialName();
+		return Name.rfind("Atlas_", 0) == 0 ||
+			SlotName.rfind("Atlas_", 0) == 0 ||
+			SourceName.rfind("Atlas_", 0) == 0 ||
+			Name == "Atlas_BlockMaster" ||
+			SlotName == "Atlas_BlockMaster" ||
+			SourceName == "Atlas_BlockMaster";
+	}
+
+	int32 ParseElementIndex(const char* PropertyName)
+	{
+		if (!PropertyName || std::strncmp(PropertyName, "Element ", 8) != 0)
+		{
+			return -1;
+		}
+
+		int32 ElementIndex = 0;
+		const char* Cursor = PropertyName + 8;
+		bool bHasDigit = false;
+		while (*Cursor >= '0' && *Cursor <= '9')
+		{
+			bHasDigit = true;
+			ElementIndex = (ElementIndex * 10) + (*Cursor - '0');
+			++Cursor;
+		}
+
+		return bHasDigit ? ElementIndex : -1;
+	}
+
+	TArray<UMaterialInterface*> GetRelevantMaterialOptions(UStaticMeshComponent* StaticMeshComponent, int32 ElementIndex, UMaterialInterface* CurrentMaterial)
+	{
+		TArray<UMaterialInterface*> CandidateMaterials;
+
+		if (CurrentMaterial)
+		{
+			CandidateMaterials.push_back(CurrentMaterial);
+		}
+
+		if (!StaticMeshComponent || ElementIndex < 0)
+		{
+			return CandidateMaterials;
+		}
+
+		UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
+		if (!StaticMesh)
+		{
+			return CandidateMaterials;
+		}
+
+		TArray<FString> RelevantTexturePaths;
+		const TArray<FStaticMeshSection>& Sections = StaticMesh->GetSections();
+		for (size_t SectionIndex = 0; SectionIndex < Sections.size(); ++SectionIndex)
+		{
+			if (UMaterialInterface* Material = StaticMesh->GetDefaultMaterialForSection(static_cast<int32>(SectionIndex)))
+			{
+				const FString TexturePath = ResolveMaterialTexturePath(Material);
+				if (!TexturePath.empty() && !ContainsString(RelevantTexturePaths, TexturePath))
+				{
+					RelevantTexturePaths.push_back(TexturePath);
+				}
+			}
+		}
+
+		const FString CurrentTexturePath = ResolveMaterialTexturePath(CurrentMaterial);
+		if (!CurrentTexturePath.empty() && !ContainsString(RelevantTexturePaths, CurrentTexturePath))
+		{
+			RelevantTexturePaths.push_back(CurrentTexturePath);
+		}
+
+		for (FObjectIterator It(&UMaterialInterface::s_TypeInfo); It; ++It)
+		{
+			UMaterialInterface* Candidate = static_cast<UMaterialInterface*>(*It);
+			if (!Candidate || ContainsMaterial(CandidateMaterials, Candidate))
+			{
+				continue;
+			}
+
+			if (IsPreviewMaterial(Candidate))
+			{
+				continue;
+			}
+
+			const FString TexturePath = ResolveMaterialTexturePath(Candidate);
+			const bool bTextureMatches = !TexturePath.empty() && ContainsString(RelevantTexturePaths, TexturePath);
+			if (bTextureMatches || IsAtlasMaterial(Candidate))
+			{
+				CandidateMaterials.push_back(Candidate);
+			}
+		}
+
+		return CandidateMaterials;
+	}
+}
 
 SImGuiPropertyWidget::SImGuiPropertyWidget(UEditorEngine* InEditorEngine)
 	: EditorEngine(InEditorEngine)
@@ -392,16 +609,93 @@ void SImGuiPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 	{
 		UObject** Value = static_cast<UObject**>(Prop.ValuePtr);
 		UObject* CurrentObject = Value ? *Value : nullptr;
+
+		if (Prop.ObjectClass == &UStaticMesh::s_TypeInfo)
+		{
+			UStaticMesh* CurrentMesh = CurrentObject ? CurrentObject->Cast<UStaticMesh>() : nullptr;
+			FString CurrentLabel = CurrentMesh ? CurrentMesh->GetDisplayName() : FString("None");
+
+			ImGui::PushID(Prop.Name);
+			if (ImGui::BeginCombo("##StaticMeshPicker", CurrentLabel.c_str()))
+			{
+				const TArray<FString>& AssetPaths = GetStaticMeshAssetOptions();
+				const bool bNoneSelected = (CurrentMesh == nullptr);
+				if (ImGui::Selectable("None##NullStaticMesh", bNoneSelected))
+				{
+					if (Value)
+					{
+						*Value = nullptr;
+						bChanged = true;
+					}
+				}
+				if (bNoneSelected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+
+				for (const FString& AssetPath : AssetPaths)
+				{
+					const bool bSelected =
+						CurrentMesh &&
+						CurrentMesh->GetAssetPathFileName() == AssetPath;
+
+					FString CandidateLabel = GetStaticMeshAssetDisplayName(AssetPath);
+					if (CandidateLabel.empty())
+					{
+						CandidateLabel = AssetPath;
+					}
+
+					FString CandidateIdLabel = CandidateLabel + "##" + AssetPath;
+					if (ImGui::Selectable(CandidateIdLabel.c_str(), bSelected))
+					{
+						if (Value)
+						{
+							if (UStaticMesh* Candidate = FStaticMeshManager::Get().LoadStaticMeshObject(AssetPath))
+							{
+								*Value = Candidate;
+								bChanged = true;
+							}
+						}
+					}
+
+					if (bSelected)
+					{
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+
+				ImGui::EndCombo();
+			}
+			ImGui::SameLine();
+			ImGui::TextUnformatted(Prop.Name);
+			ImGui::PopID();
+			break;
+		}
+
 		FString CurrentLabel = CurrentObject ? CurrentObject->GetFName().ToString() : FString("None");
 		if (CurrentLabel.empty() && CurrentObject)
 		{
 			CurrentLabel = CurrentObject->GetTypeInfo()->name;
 		}
 
-		if (ImGui::BeginCombo(Prop.Name, CurrentLabel.c_str()))
+		TArray<UMaterialInterface*> MaterialCandidates;
+		if (SelectedComponent && SelectedComponent->IsA<UStaticMeshComponent>())
+		{
+			const int32 ElementIndex = ParseElementIndex(Prop.Name);
+			if (ElementIndex >= 0)
+			{
+				MaterialCandidates = GetRelevantMaterialOptions(
+					static_cast<UStaticMeshComponent*>(SelectedComponent),
+					ElementIndex,
+					CurrentObject ? CurrentObject->Cast<UMaterialInterface>() : nullptr);
+			}
+		}
+
+		ImGui::PushID(Prop.Name);
+		if (ImGui::BeginCombo("##ObjectPicker", CurrentLabel.c_str()))
 		{
 			const bool bNoneSelected = (CurrentObject == nullptr);
-			if (ImGui::Selectable("None", bNoneSelected))
+			if (ImGui::Selectable("None##NullObject", bNoneSelected))
 			{
 				if (Value)
 				{
@@ -414,7 +708,42 @@ void SImGuiPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 				ImGui::SetItemDefaultFocus();
 			}
 
-			for (FObjectIterator It(Prop.ObjectClass); It; ++It)
+			const bool bUseFilteredMaterialList =
+				Prop.ObjectClass == &UMaterialInterface::s_TypeInfo && !MaterialCandidates.empty();
+
+			if (bUseFilteredMaterialList)
+			{
+				for (UMaterialInterface* Candidate : MaterialCandidates)
+				{
+					if (!Candidate)
+					{
+						continue;
+					}
+
+					FString CandidateLabel = Candidate->GetFName().ToString();
+					if (CandidateLabel.empty())
+					{
+						CandidateLabel = Candidate->GetTypeInfo()->name;
+					}
+
+					const bool bSelected = (Candidate == CurrentObject);
+					FString CandidateIdLabel = CandidateLabel + "##" + std::to_string(reinterpret_cast<uintptr_t>(Candidate));
+					if (ImGui::Selectable(CandidateIdLabel.c_str(), bSelected))
+					{
+						if (Value)
+						{
+							*Value = Candidate;
+							bChanged = true;
+						}
+					}
+
+					if (bSelected)
+					{
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+			}
+			else for (FObjectIterator It(Prop.ObjectClass); It; ++It)
 			{
 				UObject* Candidate = *It;
 				if (!Candidate)
@@ -429,7 +758,8 @@ void SImGuiPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 				}
 
 				const bool bSelected = (Candidate == CurrentObject);
-				if (ImGui::Selectable(CandidateLabel.c_str(), bSelected))
+				FString CandidateIdLabel = CandidateLabel + "##" + std::to_string(reinterpret_cast<uintptr_t>(Candidate));
+				if (ImGui::Selectable(CandidateIdLabel.c_str(), bSelected))
 				{
 					if (Value)
 					{
@@ -446,6 +776,9 @@ void SImGuiPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 
 			ImGui::EndCombo();
 		}
+		ImGui::SameLine();
+		ImGui::TextUnformatted(Prop.Name);
+		ImGui::PopID();
 		break;
 	}
 	case EPropertyType::Name:

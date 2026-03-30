@@ -24,7 +24,19 @@ struct FOverlayVertex
 struct FTextureVertex
 {
 	FVector  Position;
+	FVector  Normal = FVector(0.0f, 0.0f, 1.0f);
 	FVector2 TexCoord;
+
+	FTextureVertex() = default;
+	FTextureVertex(const FVector& InPosition, const FVector2& InTexCoord)
+		: Position(InPosition), TexCoord(InTexCoord)
+	{
+	}
+
+	FTextureVertex(const FVector& InPosition, const FVector& InNormal, const FVector2& InTexCoord)
+		: Position(InPosition), Normal(InNormal), TexCoord(InTexCoord)
+	{
+	}
 };
 
 struct FMeshData

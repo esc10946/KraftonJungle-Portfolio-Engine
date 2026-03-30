@@ -1,4 +1,5 @@
 ﻿#include "Core/ResourceManager.h"
+#include "Asset/Texture/TextureManager.h"
 #include "Core/Paths.h"
 #include "SimpleJSON/json.hpp"
 
@@ -242,6 +243,8 @@ void FResourceManager::ReleaseTextureResources()
 			Resource.SRV = nullptr;
 		}
 	}
+
+	FTextureManager::Get().InvalidateAllTextureViews();
 }
 
 // --- Font ---

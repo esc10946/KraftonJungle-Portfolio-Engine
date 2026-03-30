@@ -343,6 +343,7 @@ void UGizmoComponent::DragEnd()
 {
 	bIsFirstFrameOfDrag = true;
 	SetHolding(false);
+	SetPressedOnHandle(false);
 }
 
 void UGizmoComponent::SetNextMode()
@@ -414,6 +415,9 @@ void UGizmoComponent::Deactivate()
 	AllSelectedActors = nullptr;
 	SetVisibility(false);
 	SelectedAxis = -1;
+	bIsHolding = false;
+	bPressedOnHandle = false;
+	bIsFirstFrameOfDrag = true;
 }
 
 EPrimitiveType UGizmoComponent::GetPrimitiveType() const

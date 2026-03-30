@@ -250,7 +250,9 @@
     <ClCompile Include="Source\Editor\Viewport\ViewportManager.cpp" />
     <ClCompile Include="Source\Engine\Asset\Material\MaterialManager.cpp" />
     <ClCompile Include="Source\Engine\Asset\Material\MaterialObject.cpp" />
-    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMesh.cpp" />
+    <ClCompile Include="Source\Engine\Asset\Mesh\MeshObject.cpp" />
+    <ClCompile Include="Source\Engine\Asset\Shader\ShaderManager.cpp" />
+    <ClCompile Include="Source\Engine\Asset\Shader\ShaderObject.cpp" />
     <ClCompile Include="Source\Engine\Asset\Texture\TextureManager.cpp" />
     <ClCompile Include="Source\Engine\Asset\Texture\TextureObject.cpp" />
     <ClCompile Include="Source\Engine\AssetPipeline\Obj\MtlParser.cpp" />
@@ -354,7 +356,9 @@
     <ClInclude Include="Source\Editor\Viewport\ViewportManager.h" />
     <ClInclude Include="Source\Engine\Asset\Material\MaterialManager.h" />
     <ClInclude Include="Source\Engine\Asset\Material\MaterialObject.h" />
-    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMesh.h" />
+    <ClInclude Include="Source\Engine\Asset\Mesh\MeshObject.h" />
+    <ClInclude Include="Source\Engine\Asset\Shader\ShaderManager.h" />
+    <ClInclude Include="Source\Engine\Asset\Shader\ShaderObject.h" />
     <ClInclude Include="Source\Engine\Asset\Texture\TextureManager.h" />
     <ClInclude Include="Source\Engine\Asset\Texture\TextureObject.h" />
     <ClInclude Include="Source\Engine\AssetPipeline\Obj\MtlParser.h" />
