@@ -4,13 +4,116 @@
 #include "Asset/StaticMesh/StaticMeshBakeIO.h"
 #include "AssetPipeline/Obj/ObjImporter.h"
 #include "Asset/StaticMesh/StaticMeshObject.h"
+#include "Core/Paths.h"
 
 #include <filesystem>
+#include <array>
 
 #include <iostream> // opt) test
 
 namespace
 {
+	FString NormalizePathString(const std::filesystem::path& InPath)
+	{
+		return InPath.lexically_normal().generic_string();
+	}
+
+	bool TryResolveExistingPath(
+		const std::filesystem::path& InPath,
+		std::filesystem::path& OutResolvedPath)
+	{
+		std::error_code ErrorCode;
+		const std::filesystem::path NormalizedPath = InPath.lexically_normal();
+		if (std::filesystem::exists(NormalizedPath, ErrorCode))
+		{
+			OutResolvedPath = NormalizedPath;
+			return true;
+		}
+
+		if (NormalizedPath.extension() != ".smbin")
+		{
+			std::filesystem::path BakePath = NormalizedPath;
+			BakePath.replace_extension(".smbin");
+			ErrorCode.clear();
+			if (std::filesystem::exists(BakePath, ErrorCode))
+			{
+				OutResolvedPath = BakePath.lexically_normal();
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	FString TryRemapToCurrentProject(const std::filesystem::path& InPath)
+	{
+		const std::filesystem::path ProjectRoot(FPaths::ToUtf8(FPaths::RootDir()));
+		static constexpr std::array<const char*, 2> SearchAnchors = { "Asset", "Data" };
+
+		for (const char* Anchor : SearchAnchors)
+		{
+			std::filesystem::path SuffixPath;
+			bool bFoundAnchor = false;
+			for (const auto& Part : InPath)
+			{
+				const FString PartString = Part.generic_string();
+				if (!bFoundAnchor)
+				{
+					bFoundAnchor = (PartString == Anchor);
+					if (!bFoundAnchor)
+					{
+						continue;
+					}
+				}
+
+				SuffixPath /= Part;
+			}
+
+			if (!bFoundAnchor)
+			{
+				continue;
+			}
+
+			std::filesystem::path ResolvedPath;
+			if (TryResolveExistingPath(ProjectRoot / SuffixPath, ResolvedPath))
+			{
+				return NormalizePathString(ResolvedPath);
+			}
+		}
+
+		return FString();
+	}
+
+	void RemapMaterialTexturePaths(FStaticMeshAsset& Asset)
+	{
+		for (FStaticMaterialSlot& Slot : Asset.MaterialSlots)
+		{
+			if (Slot.DiffuseTexturePath.empty())
+			{
+				continue;
+			}
+
+			std::filesystem::path RequestedPath(Slot.DiffuseTexturePath);
+			if (!RequestedPath.is_absolute())
+			{
+				RequestedPath = std::filesystem::absolute(RequestedPath).lexically_normal();
+			}
+
+			std::filesystem::path ResolvedPath;
+			if (TryResolveExistingPath(RequestedPath, ResolvedPath))
+			{
+				Slot.DiffuseTexturePath = NormalizePathString(ResolvedPath);
+				continue;
+			}
+
+			const FString RemappedPath = TryRemapToCurrentProject(RequestedPath);
+			if (!RemappedPath.empty())
+			{
+				Slot.DiffuseTexturePath = RemappedPath;
+			}
+		}
+	}
+
 	bool HasResolvableDiffuseTextures(const FStaticMeshAsset& Asset)
 	{
 		for (const FStaticMaterialSlot& Slot : Asset.MaterialSlots)
@@ -68,7 +171,9 @@ FStaticMeshAsset* FStaticMeshManager::LoadStaticMeshAsset(const FString& InSourc
 	Asset->SourcePath = NormalizedPath;
 
 	// 3. bake 경로 계산
-	Asset->BakePath = FStaticMeshBakeIO::MakeBakePath(NormalizedPath);
+	const std::filesystem::path SourcePath(NormalizedPath);
+	const bool bDirectBakeLoad = (SourcePath.extension() == ".smbin");
+	Asset->BakePath = bDirectBakeLoad ? NormalizedPath : FStaticMeshBakeIO::MakeBakePath(NormalizedPath);
 
 
 	// opt) test bake path 계산 직후
@@ -80,12 +185,16 @@ FStaticMeshAsset* FStaticMeshManager::LoadStaticMeshAsset(const FString& InSourc
 
 	// 4. bake가 원본 obj보다 최신이면 bake 먼저 시도
 	// bake 유효성 판단
-	if (FStaticMeshBakeIO::IsBakeUpToDate(NormalizedPath, Asset->BakePath))
+	if (bDirectBakeLoad || FStaticMeshBakeIO::IsBakeUpToDate(NormalizedPath, Asset->BakePath))
 	{
 		// .smbin 바이너리 파일에서 FStaticMeshAsset 복원 함수
 		bLoaded = FStaticMeshBakeIO::LoadFromFile(Asset->BakePath, *Asset);
 		if (bLoaded) // bake load 성공 시
 		{
+			Asset->SourcePath = NormalizedPath;
+			Asset->BakePath = bDirectBakeLoad ? NormalizedPath : Asset->BakePath;
+			RemapMaterialTexturePaths(*Asset);
+
 			if (!HasResolvableDiffuseTextures(*Asset))
 			{
 				bLoaded = false;
@@ -99,7 +208,7 @@ FStaticMeshAsset* FStaticMeshManager::LoadStaticMeshAsset(const FString& InSourc
 	}
 
 	// 5. bake 로드에 실패했거나 bake가 없으면 obj를 다시 import
-	if (!bLoaded)
+	if (!bLoaded && !bDirectBakeLoad)
 	{
 		bLoaded = FObjImporter::ImportFromFile(NormalizedPath, *Asset);
 
@@ -245,5 +354,20 @@ FString FStaticMeshManager::NormalizeSourcePath(const FString& InSourcePath) con
 		? Path.lexically_normal()
 		: std::filesystem::absolute(Path).lexically_normal();
 
-	return Path.generic_string();
+	std::filesystem::path ResolvedPath;
+	if (TryResolveExistingPath(Path, ResolvedPath))
+	{
+		return NormalizePathString(ResolvedPath);
+	}
+
+	if (Path.is_absolute())
+	{
+		const FString RemappedPath = TryRemapToCurrentProject(Path);
+		if (!RemappedPath.empty())
+		{
+			return RemappedPath;
+		}
+	}
+
+	return NormalizePathString(Path);
 }
