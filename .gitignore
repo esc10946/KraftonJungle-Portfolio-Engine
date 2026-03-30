@@ -452,7 +452,12 @@ FodyWeavers.xsd
 CMakeLists.txt
 
 # Exclude Data Folder
-!Data/
-@Data/**/*.obj
+!W4_Jungle_Team4/Asset/Mesh/
+!W4_Jungle_Team4/Asset/Mesh/**
+!W4_Jungle_Team4/Asset/Mesh/**/*.obj
+!W4_Jungle_Team4/Asset/Mesh/**/*.mtl
+!W4_Jungle_Team4/Asset/Mesh/**/*.smbin
+!W4_Jungle_Team4/Asset/Texture/
+!W4_Jungle_Team4/Asset/Texture/**
 W4_Jungle_Team4/imgui.ini
 W4_Jungle_Team4/Settings/Editor.ini

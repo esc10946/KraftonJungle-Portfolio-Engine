@@ -15,7 +15,7 @@
           "Rotation" : [0.000000, 0.000000, 0.000000],
           "Scale" : [1.000000, 1.000000, 1.000000],
           "StaticMesh" : {
-            "AssetPath" : "C:/Users/jungle/GitHub/W4_Jungle_Team4/W4_Jungle_Team4/Asset/Mesh/cube-tex.obj",
+            "AssetPath" : "Asset/Mesh/cube-tex.smbin",
             "ClassName" : "UStaticMesh",
             "ObjectName" : "UStaticMesh_0"
           },

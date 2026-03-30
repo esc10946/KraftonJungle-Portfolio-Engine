@@ -18,6 +18,7 @@
 #include "Object/Object.h"
 #include "Runtime/Engine.h"
 
+#include <algorithm>
 #include <filesystem>
 #include <cstring>
 
@@ -28,16 +29,16 @@ namespace
 	TArray<FString> ScanStaticMeshAssetOptions()
 	{
 		TArray<FString> AssetPaths;
-		const std::filesystem::path DataDir =
+		const std::filesystem::path MeshDir =
 			std::filesystem::path(FPaths::ToUtf8(FPaths::MeshPath()));
 
 		std::error_code ErrorCode;
-		if (!std::filesystem::exists(DataDir, ErrorCode))
+		if (!std::filesystem::exists(MeshDir, ErrorCode))
 		{
 			return AssetPaths;
 		}
 
-		for (const auto& Entry : std::filesystem::recursive_directory_iterator(DataDir, ErrorCode))
+		for (const auto& Entry : std::filesystem::recursive_directory_iterator(MeshDir, ErrorCode))
 		{
 			if (ErrorCode)
 			{
@@ -49,7 +50,8 @@ namespace
 				continue;
 			}
 
-			if (Entry.path().extension() == ".obj")
+			const FString Extension = Entry.path().extension().generic_string();
+			if (Extension == ".obj" || Extension == ".smbin")
 			{
 				AssetPaths.push_back(Entry.path().lexically_normal().generic_string());
 			}

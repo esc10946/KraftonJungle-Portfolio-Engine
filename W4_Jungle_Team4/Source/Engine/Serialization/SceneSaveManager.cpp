@@ -77,7 +77,15 @@ static json::JSON SerializeObjectReference(UObject* Object)
 	if (Object->IsA<UStaticMesh>())
 	{
 		UStaticMesh* StaticMesh = static_cast<UStaticMesh*>(Object);
-		SerializedObject[ObjectPropertyKeys::AssetPath] = StaticMesh->GetAssetPathFileName();
+		std::filesystem::path AssetPath(StaticMesh->GetAssetPathFileName());
+		const std::filesystem::path ProjectRoot(FPaths::ToUtf8(FPaths::RootDir()));
+		std::error_code ErrorCode;
+		std::filesystem::path RelativeAssetPath = std::filesystem::relative(AssetPath, ProjectRoot, ErrorCode);
+		const FString RelativeAssetPathString = RelativeAssetPath.generic_string();
+		SerializedObject[ObjectPropertyKeys::AssetPath] =
+			(!ErrorCode && !RelativeAssetPath.empty() && RelativeAssetPathString.rfind("..", 0) != 0)
+			? RelativeAssetPathString
+			: AssetPath.generic_string();
 	}
 
 	return SerializedObject;
