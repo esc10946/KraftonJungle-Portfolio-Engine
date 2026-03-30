@@ -93,3 +93,20 @@ void SViewportRoot::Construct()
 		SplitterV2->SetSideRB(Viewports[3]);
 	}
 }
+
+json::JSON SViewportRoot::Serialize() const
+{
+	json::JSON Data = SWidget::Serialize();
+	Data["VisibleCount"] = VisibleCount;
+	return Data;
+}
+
+void SViewportRoot::Deserialize(json::JSON& Data)
+{
+	SWidget::Deserialize(Data);
+	if (Data.hasKey("VisibleCount"))
+	{
+		VisibleCount = Data["VisibleCount"].ToInt();
+		bDirty = true;
+	}
+}

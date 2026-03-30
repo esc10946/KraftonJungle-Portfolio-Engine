@@ -71,6 +71,8 @@ void UEditorEngine::Init(FWindowsWindow* InWindow)
 
 	// Editor render pipeline
 	SetRenderPipeline(std::make_unique<FEditorRenderPipeline>(this, Renderer));
+
+	OnWindowResized(InWindow->GetWidth(), InWindow->GetHeight());
 }
 
 void UEditorEngine::Shutdown()

@@ -19,7 +19,6 @@ void SViewport::Tick(float DeltaTime)
 		if (Client)
 		{
 			Client->Tick(DeltaTime);
-			Client->OnViewportResized(Rect.X, Rect.Y, Rect.Width, Rect.Height);
 		}
 	}
 }
@@ -149,6 +148,19 @@ void SViewport::OnPaint()
 	if (bIsViewOptionChanged)
 	{
 		Client->SetCurrentViewOption(static_cast<EViewOption>(CurrentCameraType));
+	}
+}
+
+void SViewport::OnResize(const FRect& NewRect)
+{
+	SWidget::OnResize(NewRect);
+	if (Viewport)
+	{
+		FViewportClient* Client = Viewport->GetViewportClient();
+		if (Client)
+		{
+			Client->OnViewportResized(NewRect.X, NewRect.Y, NewRect.Width, NewRect.Height);
+		}
 	}
 }
 
