@@ -23,6 +23,9 @@ public:
 	static std::wstring ResourceFilePath();  // Settings/Resource.ini
 	static std::wstring EditorLayoutFilePath();
 
+	static std::wstring MeshPath();
+	static std::wstring TexturePath();
+
 	// 경로 결합: FPaths::Combine(L"Asset/Scene", L"Default.Scene")
 	static std::wstring Combine(const std::wstring& Base, const std::wstring& Child);
 

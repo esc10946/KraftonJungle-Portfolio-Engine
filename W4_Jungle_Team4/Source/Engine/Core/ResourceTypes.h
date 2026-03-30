@@ -38,6 +38,7 @@ using FParticleResource = FTextureAtlasResource;
 
 struct FTextureResource
 {
+	FName   Name;
 	FString Path;
 	ID3D11ShaderResourceView* SRV = nullptr;
 

@@ -8,14 +8,14 @@
         "Properties" : {
           "Element 0 Material [texture]" : {
             "ClassName" : "UMaterialInstance",
-            "ObjectName" : "Atlas_TNT"
+            "ObjectName" : "Atlas_Grass"
           },
           "Location" : [0.000000, 0.000000, 0.000000],
           "MaterialColor" : [1.000000, 1.000000, 1.000000, 1.000000],
           "Rotation" : [0.000000, 0.000000, 0.000000],
           "Scale" : [1.000000, 1.000000, 1.000000],
           "StaticMesh" : {
-            "AssetPath" : "C:/Users/jungle/GitHub/W4_Jungle_Team4/W4_Jungle_Team4/Data/cube-tex.obj",
+            "AssetPath" : "C:/Users/jungle/GitHub/W4_Jungle_Team4/W4_Jungle_Team4/Asset/Mesh/cube-tex.obj",
             "ClassName" : "UStaticMesh",
             "ObjectName" : "UStaticMesh_0"
           },
@@ -26,8 +26,8 @@
       "bVisible" : true
     }],
   "ClassName" : "UWorld",
-  "ContextHandle" : "NewScene",
-  "ContextName" : "New Scene",
+  "ContextHandle" : "Default",
+  "ContextName" : "Default",
   "Name" : "Default",
   "Version" : 2,
   "WorldType" : "Editor"

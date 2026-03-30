@@ -9,6 +9,34 @@
 
 #include <iostream> // opt) test
 
+namespace
+{
+	bool HasResolvableDiffuseTextures(const FStaticMeshAsset& Asset)
+	{
+		for (const FStaticMaterialSlot& Slot : Asset.MaterialSlots)
+		{
+			if (Slot.DiffuseTexturePath.empty())
+			{
+				continue;
+			}
+
+			std::filesystem::path TexturePath(Slot.DiffuseTexturePath);
+			if (!TexturePath.is_absolute())
+			{
+				TexturePath = std::filesystem::absolute(TexturePath);
+			}
+
+			std::error_code ErrorCode;
+			if (!std::filesystem::exists(TexturePath.lexically_normal(), ErrorCode))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+}
+
 FStaticMeshAsset* FStaticMeshManager::LoadStaticMeshAsset(const FString& InSourcePath)
 {
 	// opt) 함수 시작 부분
@@ -58,7 +86,15 @@ FStaticMeshAsset* FStaticMeshManager::LoadStaticMeshAsset(const FString& InSourc
 		bLoaded = FStaticMeshBakeIO::LoadFromFile(Asset->BakePath, *Asset);
 		if (bLoaded) // bake load 성공 시
 		{
-			std::cout << "[StaticMeshManager] loaded from bake\n";
+			if (!HasResolvableDiffuseTextures(*Asset))
+			{
+				bLoaded = false;
+				std::cout << "[StaticMeshManager] bake texture paths are stale, reimport from obj\n";
+			}
+			else
+			{
+				std::cout << "[StaticMeshManager] loaded from bake\n";
+			}
 		}
 	}
 
@@ -135,6 +171,7 @@ UStaticMesh* FStaticMeshManager::LoadStaticMeshObject(const FString& InSourcePat
 	// 3. UObject wrapper 생성
 	UStaticMesh* MeshObject = ConstructObject<UStaticMesh>();
 	MeshObject->SetStaticMeshAsset(Asset);
+	MeshObject->SetFName(FName(std::filesystem::path(NormalizedPath).stem().string()));
 
 	StaticMeshObjectMap[NormalizedPath] = MeshObject;
 	return MeshObject;

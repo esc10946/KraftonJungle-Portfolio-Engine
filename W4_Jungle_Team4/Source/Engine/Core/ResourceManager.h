@@ -50,6 +50,7 @@ public:
 	ID3D11ShaderResourceView* GetOrCreateTextureSRV(const FString& InTexturePath, ID3D11Device* InDevice);
 	void ReleaseTextureResources();
 
+	const TArray<FString>& GetStaticMeshPaths() const { return StaticMeshPaths; }
 private:
 	FResourceManager() = default;
 	~FResourceManager()  = default;
@@ -57,4 +58,6 @@ private:
 	TMap<FString, FFontResource>     FontResources;
 	TMap<FString, FParticleResource> ParticleResources;
 	TMap<FString, FTextureResource>  TextureResources;
+
+    TArray<FString> StaticMeshPaths;
 };

@@ -17,6 +17,7 @@ namespace ResourceKey
 	constexpr const char* Path     = "Path";
 	constexpr const char* Columns  = "Columns";
 	constexpr const char* Rows     = "Rows";
+	constexpr const char* StaticMesh = "StaticMesh";
 }
 
 void FResourceManager::LoadFromFile(const FString& Path, ID3D11Device* InDevice)
@@ -65,6 +66,16 @@ void FResourceManager::LoadFromFile(const FString& Path, ID3D11Device* InDevice)
 			Resource.Rows    = static_cast<uint32>(Entry[ResourceKey::Rows].ToInt());
 			Resource.SRV     = nullptr;
 			ParticleResources[Pair.first] = Resource;
+		}
+	}
+
+	if (Root.hasKey(ResourceKey::StaticMesh))
+	{
+		JSON StaticMeshSection = Root[ResourceKey::StaticMesh];
+		for (auto& Pair : StaticMeshSection.ObjectRange())
+		{
+			JSON Entry = Pair.second;
+			StaticMeshPaths.push_back(Entry[ResourceKey::Path].ToString());
 		}
 	}
 
