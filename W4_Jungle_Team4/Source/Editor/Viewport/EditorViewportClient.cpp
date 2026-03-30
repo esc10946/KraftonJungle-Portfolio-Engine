@@ -16,8 +16,6 @@
 
 void FEditorViewportClient::Initialize(FViewport* InViewport)
 {
-	UE_LOG("Hello ZZup Engine! %d", 2026);
-
 	Viewport = InViewport;
 	CreateDefaultViewOptions();
 }

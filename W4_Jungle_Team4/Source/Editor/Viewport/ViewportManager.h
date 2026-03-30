@@ -9,6 +9,7 @@ class UWorld;
 class FSelectionManager;
 class FEditorViewportClient;
 class SWidget;
+class SViewport;
 
 class FViewportManager : public TSingleton<FViewportManager>
 {
@@ -23,6 +24,9 @@ public:
 
 	TArray<FViewport*>& GetViewports() { return Viewports; }
 
+	SViewport* GetFocusedViewportWidget() const { return FocusedViewportWidget; }
+	void SetFocusedViewportWidget(SViewport* InViewportWidget) { FocusedViewportWidget = InViewportWidget; }
+
 private:
 	FViewportManager() = default;
 	~FViewportManager() = default;
@@ -34,4 +38,5 @@ private:
 	TArray<FViewport*> Viewports;
 
 	SWidget* ViewportRootWidget = nullptr;
+	SViewport* FocusedViewportWidget = nullptr;
 };

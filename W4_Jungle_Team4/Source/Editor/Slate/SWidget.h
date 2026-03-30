@@ -29,7 +29,7 @@ public:
 	virtual void OnKeyDown(int32 Key) {}
 	virtual void OnKeyUp(int32 Key) {}
 
-	bool IsHovered(FVector2 Coord) const;
+	bool IsHovered(float X, float Y) const;
 
 	FRect GetRect() const { return Rect; }
 	void SetRect(const FRect& InRect) { Rect = InRect; }

@@ -252,6 +252,8 @@ FReply SViewport::OnMouseButtonDown(float X, float Y, int32 Button)
 	{
 		if (Viewport->GetViewportClient())
 		{
+			FViewportManager::Get().SetFocusedViewportWidget(this);
+
 			float RelativeX = X - Rect.X;
 			float RelativeY = Y - Rect.Y;
 
