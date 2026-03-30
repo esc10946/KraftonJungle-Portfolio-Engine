@@ -46,10 +46,26 @@ void UViewerEngine::OnWindowResized(uint32 Width, uint32 Height)
 
 bool UViewerEngine::LoadModel(const FString& ObjPath)
 {
-	UnLoadModel();
+	FStaticMeshAsset* NewMesh = FStaticMeshManager::Get().LoadStaticMeshAsset(ObjPath);
 
-	CurrentMesh = FStaticMeshManager::Get().LoadStaticMeshAsset(ObjPath);
-	if (!CurrentMesh) return false;
+	if (!NewMesh) return false;
+
+	if (NewMesh->Vertices.empty()) return false;
+
+	NewMesh->UpdateBounds();
+
+	UnLoadModel();
+	CurrentMesh = NewMesh;
+	FVector Min = CurrentMesh->BoundsMin;
+	FVector Max = CurrentMesh->BoundsMax;
+	
+	Center.X = (Min.X + Max.X) * 0.5f;
+	Center.Y = (Min.Y + Max.Y) * 0.5f;
+	Center.Z = (Min.Z + Max.Z) * 0.5f;
+
+	FVector Diff = Max - Min;
+	ModelSize = Diff.Length();
+	ModelRadius = ModelSize * 0.5f;
 
 	return true;
 }
@@ -60,7 +76,6 @@ void UViewerEngine::UnLoadModel()
 
 	if (CurrentMesh)
 	{
-		delete CurrentMesh;
 		CurrentMesh = nullptr;
 	}
 }

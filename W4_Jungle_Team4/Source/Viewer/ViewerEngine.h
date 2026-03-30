@@ -24,6 +24,8 @@ public:
 
 	FStaticMeshAsset* GetCurrentMesh() const { return CurrentMesh; }
 	FTextureMeshBuffer* GetTextureMesh() { return &TextureMeshBuffer; }
+	FVector GetCenter() { return Center; }
+	float GetRadius() { return ModelRadius; }
 
 	void BuildGpuBuffer(ID3D11Device* Device);
 
@@ -33,4 +35,8 @@ private:
 
 	FStaticMeshAsset* CurrentMesh = nullptr;
 	FTextureMeshBuffer TextureMeshBuffer;
+
+	FVector Center;
+	float ModelSize;
+	float ModelRadius;
 };

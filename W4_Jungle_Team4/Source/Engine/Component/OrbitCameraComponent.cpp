@@ -13,7 +13,7 @@ void UOrbitCameraComponent::OnOrbit(float DeltaX, float DeltaY)
 	UpdatePosition();
 }
 
-void UOrbitCameraComponent::OnPan(float DeltaX, float DeltaY)
+void UOrbitCameraComponent::OnPan(float DeltaX, float DeltaY, float ModelRadius)
 {
 	FVector Right = GetRightVector();
 	FVector Up = GetUpVector();
@@ -21,6 +21,13 @@ void UOrbitCameraComponent::OnPan(float DeltaX, float DeltaY)
 	float PanSpeed = Radius * PanSensitivity;
 	Target -= Right * DeltaX * PanSpeed;
 	Target += Up * DeltaY * PanSensitivity;
+
+	float LimitRange = ModelRadius * 2.0f;
+
+	// 초기 중심점(InitialCenter)이 (0,0,0)이라고 가정할 때
+	Target.X = Clamp(Target.X, -LimitRange, LimitRange);
+	Target.Y = Clamp(Target.Y, -LimitRange, LimitRange);
+	Target.Z = Clamp(Target.Z, -LimitRange, LimitRange);
 
 	UpdatePosition();
 }
