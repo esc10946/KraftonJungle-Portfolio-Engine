@@ -236,7 +236,15 @@ void FLineBatcher::AddWorldHelpers(const FShowFlags& ShowFlags, float GridSpacin
 	const bool bShowXAxis = (MinY <= 0.0f) && (MaxY >= 0.0f);
 	const bool bShowYAxis = (MinX <= 0.0f) && (MaxX >= 0.0f);
 
-	if (ShowFlags.bGrid)
+	// 카메라의 direction이 grid plane과 평행한 경우에는 grid를 그리지 않도록 수정
+	bool bShouldDrawGrid = true;
+	float DotUp = std::abs(CameraForward.Dot(FVector(0.0f, 0.0f, 1.0f)));
+	if (DotUp < EPSILON)
+	{
+		bShouldDrawGrid = false;
+	}
+
+	if (ShowFlags.bGrid && bShouldDrawGrid)
 	{
 		const FVector4 GridColor = FColor::Gray().ToVector4();
 
