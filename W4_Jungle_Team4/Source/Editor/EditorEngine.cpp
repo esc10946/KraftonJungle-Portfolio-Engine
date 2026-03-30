@@ -2,7 +2,7 @@
 
 #include "Editor/Slate/SlateApplication.h"
 #include "Editor/Slate/SlateWidgetFactory.h"
-#include "Editor/Slate/SViewport.h"
+#include "Editor/Slate/Widget/SViewport.h"
 #include "Editor/Slate/ConsoleCommandManager.h"
 #include "Editor/Viewport/Viewport.h"
 #include "Engine/Runtime/WindowsWindow.h"

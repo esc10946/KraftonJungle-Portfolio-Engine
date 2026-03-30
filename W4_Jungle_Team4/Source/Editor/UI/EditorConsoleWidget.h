@@ -9,7 +9,7 @@
 #include "ImGui/imgui_impl_win32.h"
 
 #include "Editor/UI/EditorWidget.h"
-#include "Slate/SImGuiConsoleWidget.h"
+#include "Slate/Widget/SImGuiConsoleWidget.h"
 
 class FEditorConsoleWidget : public FEditorWidget
 {

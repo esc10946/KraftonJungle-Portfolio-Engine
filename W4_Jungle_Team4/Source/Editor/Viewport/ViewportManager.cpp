@@ -6,7 +6,7 @@
 #include "Render/Device/D3DDevice.h"
 #include "Slate/SlateApplication.h"
 #include "Slate/SlateWidgetFactory.h"
-#include "Slate/SViewport.h"
+#include "Slate/Widget/SViewport.h"
 #include "GameFramework/World.h"
 
 void FViewportManager::Initialize(FD3DDevice* InDevice, UWorld* InWorld, FSelectionManager* InSelectionManager)

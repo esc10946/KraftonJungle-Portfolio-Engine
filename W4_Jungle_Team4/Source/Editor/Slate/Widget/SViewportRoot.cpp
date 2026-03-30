@@ -2,8 +2,8 @@
 #include "SViewport.h"
 #include "SSplitterH.h"
 #include "SSplitterV.h"
-#include "SlateWidgetFactory.h"
-#include "SlateApplication.h"
+#include "Slate/SlateWidgetFactory.h"
+#include "Slate/SlateApplication.h"
 #include "Viewport/ViewportManager.h"
 #include "Viewport/EditorViewportClient.h"
 

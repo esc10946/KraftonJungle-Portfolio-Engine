@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Core/EngineTypes.h"
-#include "Reply.h"
+#include "Slate/Reply.h"
 #include "ThirdParty/SimpleJSON/json.hpp"
 
 struct FRect

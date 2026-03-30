@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Core/CoreTypes.h"
-#include "Slate/SWidget.h"
+#include "Slate/Widget/SWidget.h"
 #include "Render/Common/RenderTypes.h"
 #include "Render/Resource/Shader.h"
 

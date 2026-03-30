@@ -359,19 +359,18 @@
     <ClCompile Include="Source\Engine\Asset\Texture\TextureObject.cpp" />
     <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjManager.cpp" />
     <ClCompile Include="Source\Engine\Component\StaticMeshComponent.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SImGuiConsoleWidget.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SImGuiControlWidget.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SImGuiPropertyWidget.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SImGuiSceneWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SImGuiConsoleWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SImGuiControlWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SImGuiPropertyWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SImGuiSceneWidget.cpp" />
     <ClCompile Include="Source\Editor\Slate\SlateApplication.cpp" />
     <ClCompile Include="Source\Editor\Slate\SlateWidgetFactory.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SSplitterH.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SSplitterV.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SViewport.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SViewportRoot.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SSplitterH.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SSplitterV.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SViewport.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SViewportRoot.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SWidget.cpp" />
     <ClCompile Include="Source\Engine\Render\ViewportRenderer.cpp" />
-    <ClCompile Include="Source\Engine\Render\Resource\Material.cpp" />
     <ClCompile Include="Source\Engine\Render\Resource\Texture.cpp" />
     <ClCompile Include="Source\Editor\Viewport\ViewportManager.cpp" />
     <ClCompile Include="Source\Editor\Viewport\Viewport.cpp" />
@@ -394,6 +393,7 @@
     <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
     <ClCompile Include="Source\Engine\Render\SlateBatcher.cpp" />
     <ClCompile Include="Shaders\ScreenQuadSimple.hlsl" />
+    <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\EditorEngine.h">
@@ -408,22 +408,22 @@
     <ClInclude Include="Source\Editor\Settings\EditorSettings.h">
       <Filter>Source\Editor\Settings</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Editor\Slate\SSplitter.h">
+    <ClInclude Include="Source\Editor\Slate\Widget\SSplitter.h">
       <Filter>Source\Editor\Slate</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Editor\Slate\SSplitterH.h">
+    <ClInclude Include="Source\Editor\Slate\Widget\SSplitterH.h">
       <Filter>Source\Editor\Slate</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Editor\Slate\SSplitterV.h">
+    <ClInclude Include="Source\Editor\Slate\Widget\SSplitterV.h">
       <Filter>Source\Editor\Slate</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Editor\Slate\SViewport.h">
+    <ClInclude Include="Source\Editor\Slate\Widget\SViewport.h">
       <Filter>Source\Editor\Slate</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Editor\Slate\SWidget.h">
+    <ClInclude Include="Source\Editor\Slate\Widget\SWidget.h">
       <Filter>Source\Editor\Slate</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Editor\Slate\SWindow.h">
+    <ClInclude Include="Source\Editor\Slate\Widget\SWindow.h">
       <Filter>Source\Editor\Slate</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\Slate\SlateApplication.h">
@@ -724,14 +724,13 @@
     <ClInclude Include="Source\Engine\Asset\Texture\TextureObject.h" />
     <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjManager.h" />
     <ClInclude Include="Source\Editor\Slate\Reply.h" />
-    <ClInclude Include="Source\Editor\Slate\SImGuiConsoleWidget.h" />
-    <ClInclude Include="Source\Editor\Slate\SImGuiControlWidget.h" />
-    <ClInclude Include="Source\Editor\Slate\SImGuiPropertyWidget.h" />
-    <ClInclude Include="Source\Editor\Slate\SImGuiSceneWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SImGuiConsoleWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SImGuiControlWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SImGuiPropertyWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SImGuiSceneWidget.h" />
     <ClInclude Include="Source\Editor\Slate\SlateWidgetFactory.h" />
-    <ClInclude Include="Source\Editor\Slate\SViewportRoot.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SViewportRoot.h" />
     <ClInclude Include="Source\Engine\Render\ViewportRenderer.h" />
-    <ClInclude Include="Source\Engine\Render\Resource\Material.h" />
     <ClInclude Include="Source\Engine\Render\Resource\RenderTarget.h" />
     <ClInclude Include="Source\Engine\Render\Resource\Texture.h" />
     <ClInclude Include="Source\Editor\Viewport\ViewportManager.h" />
@@ -747,5 +746,7 @@
     <ClInclude Include="Source\Viewer\ViewerRenderPipeline.h" />
     <ClInclude Include="Source\Viewer\ViewerViewportClient.h" />
     <ClInclude Include="Source\Engine\Render\SlateBatcher.h" />
+    <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
+    <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
   </ItemGroup>
 </Project>
