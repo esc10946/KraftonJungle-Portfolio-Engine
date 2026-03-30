@@ -12,12 +12,16 @@ void UViewerEngine::Init(FWindowsWindow* InWindow)
 	ViewerClient.CreateCamera();
 	ViewerClient.OnViewportResized(0, 0, InWindow->GetWidth(), InWindow->GetHeight());
 
-	SetRenderPipeline(std::make_unique<FViewerRendererPipline>(&ViewerClient));
+	// ImGui 초기화
+	Panel.Create(Window, Renderer);
+
+	SetRenderPipeline(std::make_unique<FViewerRendererPipline>(&ViewerClient, this));
 }
 
 void UViewerEngine::Shutdown()
 {
 	ViewerClient.DestroyCamera();
+	Panel.Release();
 	UEngine::Shutdown();
 }
 
@@ -39,4 +43,10 @@ bool UViewerEngine::LoadModel(const FString& ObjPath)
 
 void UViewerEngine::UnLoadModel()
 {
+}
+
+void UViewerEngine::RenderUI(float DeltaTime)
+{
+	Panel.BeginFrame();
+	Panel.Render(DeltaTime);
 }

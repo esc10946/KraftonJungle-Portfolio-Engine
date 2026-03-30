@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "Engine/Runtime/Engine.h"
 #include "Viewer/ViewerViewportClient.h"
+#include "Viewer/ViewerPanel.h"
 
 
 class UViewerEngine : public UEngine
@@ -17,6 +18,9 @@ public:
 	bool LoadModel(const FString& ObjPath);
 	void UnLoadModel();
 
+	void RenderUI(float DeltaTime);
+
 private:
 	FViewerViewportClient ViewerClient;
+	FViewerPanel Panel;
 };

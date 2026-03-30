@@ -164,9 +164,6 @@
     <ClCompile Include="Source\Editor\Viewport\EditorViewportClient.cpp">
       <Filter>Source\Editor\Viewport</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Editor\Viewport\ViewerViewportClient.cpp">
-      <Filter>Source\Editor\Viewport</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshManager.cpp">
       <Filter>Source\Engine\Asset\StaticMesh</Filter>
     </ClCompile>
@@ -345,9 +342,6 @@
     <ClCompile Include="Source\Viewer\ViewerViewportClient.cpp">
       <Filter>Source\Viewer</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshObject.cpp">
-      <Filter>Source\Engine\Asset\StaticMesh</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Engine\Component\StaticMeshComponent.cpp">
       <Filter>Source\Engine\Component</Filter>
     </ClCompile>
@@ -397,6 +391,17 @@
       <Filter>Source\Editor\Viewport</Filter>
     </ClCompile>
     <ClCompile Include="Source\Editor\Slate\SViewportRoot.cpp" />
+    <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\OrbitCameraComponent.cpp" />
+    <ClCompile Include="Source\Viewer\ViewerPanel.cpp">
+      <Filter>Source\Viewer</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Viewer\ViewerRenderPipeline.cpp">
+      <Filter>Source\Viewer</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\OrbitCameraComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\EditorEngine.h">
@@ -457,9 +462,6 @@
       <Filter>Source\Editor\Viewport</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\Viewport\FViewportClient.h">
-      <Filter>Source\Editor\Viewport</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Editor\Viewport\ViewerViewportClient.h">
       <Filter>Source\Editor\Viewport</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshAsset.h">
@@ -744,9 +746,6 @@
     <ClInclude Include="Source\Editor\Viewport\ViewportManager.h">
       <Filter>Source\Editor\Viewport</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshObject.h">
-      <Filter>Source\Engine\Asset\StaticMesh</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Engine\Render\ViewportRenderer.h">
       <Filter>Source\Engine\Render</Filter>
     </ClInclude>
@@ -757,6 +756,22 @@
     <ClInclude Include="Source\Engine\Render\Resource\Material.h" />
     <ClInclude Include="Source\Engine\Render\Resource\Texture.h" />
     <ClInclude Include="Source\Editor\Slate\SViewportRoot.h" />
+    <ClInclude Include="OrbitCameraComponent.h" />
+    <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
+    <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
+    <ClInclude Include="Source\Viewer\ViewerViewportClient.h">
+      <Filter>Source\Viewer</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
+    <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
+    <ClInclude Include="Source\Viewer\ViewerPanel.h">
+      <Filter>Source\Viewer</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Viewer\ViewerRenderPipeline.h">
+      <Filter>Source\Viewer</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
+    <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Settings\EditorLayout.json" />

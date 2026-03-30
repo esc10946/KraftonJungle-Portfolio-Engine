@@ -2,13 +2,15 @@
 #include "Engine/Render/Renderer/IRenderPipeline.h"
 #include "Render/Scene/RenderBus.h"
 
+class UViewerEngine;
 class FViewerViewportClient;
 class FMeshBuffer;
 
 class FViewerRendererPipline : public IRenderPipeline
 {
 public:
-	FViewerRendererPipline(FViewerViewportClient* InViewportClient) : ViewportClient(InViewportClient) {}
+	FViewerRendererPipline(FViewerViewportClient* InViewportClient, UViewerEngine* InViewer) 
+		: ViewportClient(InViewportClient), Viewer(InViewer) {}
 	~FViewerRendererPipline() = default;
 
 	virtual void Execute(float DeltaTime, FRenderer& Renderer) override;
@@ -18,6 +20,7 @@ public:
 
 private:
 	FViewerViewportClient* ViewportClient = nullptr;
+	UViewerEngine* Viewer = nullptr;
 	FRenderBus Bus;
 
 	EViewMode  ViewMode = EViewMode::Lit;

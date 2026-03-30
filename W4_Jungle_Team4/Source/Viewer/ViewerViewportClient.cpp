@@ -33,9 +33,10 @@ void FViewerViewportClient::Tick(float DeltaTime)
 		return;
 
 	if (InputSystem::Get().GetGuiInputState().bUsingKeyboard == true)
-	{
 		return;
-	}
+
+	if (InputSystem::Get().GetGuiInputState().bUsingMouse == true)
+		return;
 
 	float dx = InputSystem::Get().MouseDeltaX();
 	float dy = InputSystem::Get().MouseDeltaY();
