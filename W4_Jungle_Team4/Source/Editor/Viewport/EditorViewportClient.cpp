@@ -114,6 +114,7 @@ void FEditorViewportClient::OnMouseUp(float X, float Y, int32 Button)
 	if (Button == VK_RBUTTON)
 	{
 		bIsRightMouseDown = false;
+		ClearMovementInput();
 	}
 }
 
@@ -162,6 +163,16 @@ void FEditorViewportClient::OnKeyUp(int32 Key)
 	if (Key == 'D') bIsDDown = false;
 	if (Key == 'Q') bIsQDown = false;
 	if (Key == 'E') bIsEDown = false;
+}
+
+void FEditorViewportClient::ClearMovementInput()
+{
+	bIsWDown = false;
+	bIsADown = false;
+	bIsSDown = false;
+	bIsDDown = false;
+	bIsQDown = false;
+	bIsEDown = false;
 }
 
 void FEditorViewportClient::SetCurrentViewOption(EViewOption NewOption)

@@ -362,6 +362,7 @@
     <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMesh.cpp" />
     <ClCompile Include="Source\Editor\Viewport\ViewportManager.cpp" />
     <ClCompile Include="Source\Editor\Viewport\Viewport.cpp" />
+    <ClCompile Include="Source\Editor\Slate\ConsoleCommandManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\EditorEngine.h">
@@ -702,5 +703,6 @@
     <ClInclude Include="Source\Editor\Viewport\Viewport.h" />
     <ClInclude Include="Source\Editor\Viewport\ViewportClient.h" />
     <ClInclude Include="Source\Editor\Viewport\ViewOption.h" />
+    <ClInclude Include="Source\Editor\Slate\ConsoleCommandManager.h" />
   </ItemGroup>
 </Project>

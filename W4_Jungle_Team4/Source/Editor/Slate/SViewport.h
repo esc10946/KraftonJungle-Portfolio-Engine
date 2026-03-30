@@ -29,5 +29,12 @@ public:
 	virtual FString GetWidgetType() const { return "SViewport"; }
 
 private:
+	void DrawFPSStats();
+	void DrawMemoryStats();
+
+private:
 	FViewport* Viewport = nullptr;
+
+	bool bShowFPS = false;
+	bool bShowMemory = false;
 };

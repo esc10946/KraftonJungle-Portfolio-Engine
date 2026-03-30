@@ -1,6 +1,12 @@
 ﻿#include "SImGuiConsoleWidget.h"
+#include "ConsoleCommandManager.h"
 #include <cstdarg>
 #include <sstream>
+
+SImGuiConsoleWidget::SImGuiConsoleWidget()
+{
+	ConsoleCommandManager::Get().Initialize(this);
+}
 
 void SImGuiConsoleWidget::Tick(float DeltaTime)
 {
@@ -122,7 +128,7 @@ void SImGuiConsoleWidget::ClearHistory()
 
 void SImGuiConsoleWidget::RegisterCommand(const FString& Name, CommandFn Fn)
 {
-	Commands[Name] = Fn;
+	ConsoleCommandManager::Get().RegisterCommand(Name, Fn);
 }
 
 void SImGuiConsoleWidget::ExecCommand(const char* CommandLine)
@@ -137,13 +143,7 @@ void SImGuiConsoleWidget::ExecCommand(const char* CommandLine)
 	while (Iss >> Token) Tokens.push_back(Token);
 	if (Tokens.empty()) return;
 
-	auto It = Commands.find(Tokens[0]);
-	if (It != Commands.end()) {
-		It->second(Tokens);
-	}
-	else {
-		AddLog("[ERROR] Unknown command: '%s'\n", Tokens[0].c_str());
-	}
+	ConsoleCommandManager::Get().ExecCommand(CommandLine);
 }
 
 int32 SImGuiConsoleWidget::TextEditCallback(ImGuiInputTextCallbackData* Data)
@@ -180,7 +180,7 @@ int32 SImGuiConsoleWidget::TextEditCallback(ImGuiInputTextCallbackData* Data)
 
 		// Collect matches from registered commands
 		ImVector<const char*> Candidates;
-		for (auto& Pair : Console->Commands) {
+		for (auto& Pair : ConsoleCommandManager::Get().GetCommands()) {
 			const FString& Name = Pair.first;
 			if (strncmp(Name.c_str(), WordStart, WordEnd - WordStart) == 0)
 				Candidates.push_back(Name.c_str());

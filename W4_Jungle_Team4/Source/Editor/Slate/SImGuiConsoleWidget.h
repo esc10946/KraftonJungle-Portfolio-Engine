@@ -7,7 +7,7 @@
 class SImGuiConsoleWidget : public SWidget
 {
 public:
-	SImGuiConsoleWidget() = default;
+	SImGuiConsoleWidget();
 	virtual ~SImGuiConsoleWidget() = default;
 
 public:
@@ -32,7 +32,6 @@ private:
 
 	//Command Dispatch System
 	using CommandFn = std::function<void(const TArray<FString>& args)>;
-	TMap<FString, CommandFn> Commands;
 
 	void RegisterCommand(const FString& Name, CommandFn Fn);
 	void ExecCommand(const char* CommandLine);
