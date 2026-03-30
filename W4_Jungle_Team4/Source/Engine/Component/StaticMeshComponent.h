@@ -30,7 +30,7 @@ public:
 	void PostEditProperty(const char* PropertyName) override;
 
 	EPrimitiveType GetPrimitiveType() const override { return EPrimitiveType::EPT_StaticMesh; }
-	bool SupportsOutline() const override { return false; }
+	bool SupportsOutline() const override { return true; }
 
 private:
 	void InitializeMaterialSlotsFromMesh();

@@ -33,5 +33,6 @@ private:
 	void CollectFromComponent(UPrimitiveComponent* Primitive, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus);
 	void CollectAABBCommand(UPrimitiveComponent* PrimitiveComponent, const FShowFlags& ShowFlags, FRenderBus& RenderBus);
 	void CollectFromSlateWidget(SWidget* Widget, FRenderBus& RenderBus);
+	bool ConfigureSelectionBaseCommand(UPrimitiveComponent* PrimitiveComponent, FRenderCommand& OutBaseCmd);
 	FTextureMeshBuffer* GetOrCreateStaticMeshBuffer(UStaticMeshComponent* StaticMeshComponent);
 };
