@@ -48,6 +48,25 @@ void FViewerViewportClient::Tick(float DeltaTime)
 	if (!ViewerCamera)
 		return;
 
+	static FStaticMeshAsset* LastAsset = nullptr;
+	FStaticMeshAsset* CurrentAsset = OwnerEngine->GetCurrentMesh();
+
+	if (CurrentAsset != LastAsset)
+	{
+		if (CurrentAsset)
+		{
+			FVector NewCenter = OwnerEngine->GetCenter();
+			float NewRadius = OwnerEngine->GetRadius();
+
+			ViewerCamera->SetTarget(NewCenter);
+			ViewerCamera->SetRadius(NewRadius * 2.5f);
+
+			ViewerCamera->UpdatePosition();
+		}
+
+		LastAsset = CurrentAsset;
+	}
+
 	if (InputSystem::Get().GetGuiInputState().bUsingKeyboard == true)
 		return;
 
@@ -61,7 +80,7 @@ void FViewerViewportClient::Tick(float DeltaTime)
 		ViewerCamera->OnOrbit(dx, dy);
 
 	if (InputSystem::Get().GetKey(VK_RBUTTON))
-		ViewerCamera->OnPan(dx, dy);
+		ViewerCamera->OnPan(dx, dy, OwnerEngine->GetRadius());
 
 	float wheel = InputSystem::Get().GetScrollNotches();
 	if (wheel != 0)
