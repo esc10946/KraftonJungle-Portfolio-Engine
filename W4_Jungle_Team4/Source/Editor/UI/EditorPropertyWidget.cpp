@@ -16,6 +16,7 @@
 #include "Core/Paths.h"
 #include "Object/FName.h"
 #include "Object/Object.h"
+#include "Runtime/Engine.h"
 
 #include <filesystem>
 #include <cstring>
@@ -110,6 +111,78 @@ namespace
 		}
 
 		return Material->GetDiffuseTexturePath();
+	}
+
+	FString GetTextureDisplayName(const FString& TexturePath)
+	{
+		if (TexturePath.empty())
+		{
+			return FString();
+		}
+
+		const std::filesystem::path Path(TexturePath);
+		const FString Filename = Path.filename().generic_string();
+		return Filename.empty() ? TexturePath : Filename;
+	}
+
+	UTexture2D* ResolveMaterialDiffuseTexture(UMaterialInterface* Material)
+	{
+		if (!Material)
+		{
+			return nullptr;
+		}
+
+		FResolvedMaterialParameters Parameters;
+		Material->ResolveParameters(Parameters);
+		return Parameters.DiffuseTexture ? Parameters.DiffuseTexture : Material->GetDiffuseTexture();
+	}
+
+	ID3D11ShaderResourceView* ResolveMaterialTextureSRV(UMaterialInterface* Material)
+	{
+		UTexture2D* Texture = ResolveMaterialDiffuseTexture(Material);
+		if (!Texture || !GEngine)
+		{
+			return nullptr;
+		}
+
+		return Texture->GetOrCreateShaderResourceView(GEngine->GetRenderer().GetFD3DDevice().GetDevice());
+	}
+
+	FString GetMaterialDisplayLabel(UMaterialInterface* Material)
+	{
+		if (!Material)
+		{
+			return FString("None");
+		}
+
+		FString Label = Material->GetFName().ToString();
+		if (Label.empty())
+		{
+			Label = Material->GetTypeInfo()->name;
+		}
+
+		const FString TextureLabel = GetTextureDisplayName(ResolveMaterialTexturePath(Material));
+		if (!TextureLabel.empty())
+		{
+			Label += " [";
+			Label += TextureLabel;
+			Label += "]";
+		}
+
+		return Label;
+	}
+
+	void RenderMaterialTexturePreview(UMaterialInterface* Material, const char* IdSuffix, float Size)
+	{
+		ID3D11ShaderResourceView* TextureSRV = ResolveMaterialTextureSRV(Material);
+		if (!TextureSRV)
+		{
+			return;
+		}
+
+		ImGui::PushID(IdSuffix);
+		ImGui::Image((ImTextureID)(intptr_t)TextureSRV, ImVec2(Size, Size));
+		ImGui::PopID();
 	}
 
 	bool IsPreviewMaterial(const UMaterialInterface* Material)
@@ -227,6 +300,27 @@ namespace
 		}
 
 		return CandidateMaterials;
+	}
+
+	UMaterialInterface* ResolveSectionPreviewMaterial(UStaticMeshComponent* StaticMeshComponent, int32 ElementIndex, UMaterialInterface* CurrentMaterial)
+	{
+		if (CurrentMaterial)
+		{
+			return CurrentMaterial;
+		}
+
+		if (!StaticMeshComponent || ElementIndex < 0)
+		{
+			return nullptr;
+		}
+
+		UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
+		if (!StaticMesh)
+		{
+			return nullptr;
+		}
+
+		return StaticMesh->GetDefaultMaterialForSection(ElementIndex);
 	}
 }
 
@@ -498,6 +592,7 @@ void FEditorPropertyWidget::RenderComponentProperties()
 	ImGui::Text("Component: %s", SelectedComponent->GetTypeInfo()->name);
 	ImGui::Text("Name: %s", SelectedComponent->GetFName().ToString().c_str());
 	ImGui::Separator();
+	bAbortPropertyRender = false;
 
 	// PropertyDescriptor 기반 자동 위젯 렌더링
 	TArray<FPropertyDescriptor> Props;
@@ -523,17 +618,30 @@ void FEditorPropertyWidget::RenderComponentProperties()
 		for (auto& Prop : Props)
 		{
 			if (IsTransformProp(Prop.Name))
+			{
 				RenderPropertyWidget(Prop);
+				if (bAbortPropertyRender)
+				{
+					break;
+				}
+			}
 		}
-		ImGui::Separator();
+		if (!bAbortPropertyRender)
+		{
+			ImGui::Separator();
+		}
 	}
 
 	// Pass 2: 나머지 프로퍼티
-	for (auto& Prop : Props)
+	if (!bAbortPropertyRender) for (auto& Prop : Props)
 	{
 		if (IsTransformProp(Prop.Name))
 			continue;
 		RenderPropertyWidget(Prop);
+		if (bAbortPropertyRender)
+		{
+			break;
+		}
 	}
 
 	// 프로퍼티 직접 편집 후 월드 행렬 갱신
@@ -661,23 +769,35 @@ void FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 			break;
 		}
 
-		FString CurrentLabel = CurrentObject ? CurrentObject->GetFName().ToString() : FString("None");
+		int32 ElementIndex = -1;
+		UStaticMeshComponent* StaticMeshComponent = nullptr;
+		TArray<UMaterialInterface*> MaterialCandidates;
+		UMaterialInterface* CurrentMaterial = CurrentObject ? CurrentObject->Cast<UMaterialInterface>() : nullptr;
+		if (SelectedComponent && SelectedComponent->IsA<UStaticMeshComponent>())
+		{
+			StaticMeshComponent = static_cast<UStaticMeshComponent*>(SelectedComponent);
+			ElementIndex = ParseElementIndex(Prop.Name);
+			if (ElementIndex >= 0)
+			{
+				MaterialCandidates = GetRelevantMaterialOptions(
+					StaticMeshComponent,
+					ElementIndex,
+					CurrentObject ? CurrentObject->Cast<UMaterialInterface>() : nullptr);
+			}
+		}
+
+		UMaterialInterface* PreviewMaterial = ResolveSectionPreviewMaterial(StaticMeshComponent, ElementIndex, CurrentMaterial);
+		const bool bUsingDefaultPreview = (CurrentMaterial == nullptr && PreviewMaterial != nullptr);
+		FString CurrentLabel = CurrentMaterial
+			? GetMaterialDisplayLabel(CurrentMaterial)
+			: (CurrentObject ? CurrentObject->GetFName().ToString() : FString("None"));
 		if (CurrentLabel.empty() && CurrentObject)
 		{
 			CurrentLabel = CurrentObject->GetTypeInfo()->name;
 		}
-
-		TArray<UMaterialInterface*> MaterialCandidates;
-		if (SelectedComponent && SelectedComponent->IsA<UStaticMeshComponent>())
+		if (bUsingDefaultPreview)
 		{
-			const int32 ElementIndex = ParseElementIndex(Prop.Name);
-			if (ElementIndex >= 0)
-			{
-				MaterialCandidates = GetRelevantMaterialOptions(
-					static_cast<UStaticMeshComponent*>(SelectedComponent),
-					ElementIndex,
-					CurrentObject ? CurrentObject->Cast<UMaterialInterface>() : nullptr);
-			}
+			CurrentLabel = GetMaterialDisplayLabel(PreviewMaterial) + " (default)";
 		}
 
 		ImGui::PushID(Prop.Name);
@@ -709,15 +829,19 @@ void FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 						continue;
 					}
 
-					FString CandidateLabel = Candidate->GetFName().ToString();
-					if (CandidateLabel.empty())
-					{
-						CandidateLabel = Candidate->GetTypeInfo()->name;
-					}
+					FString CandidateLabel = GetMaterialDisplayLabel(Candidate);
 
 					const bool bSelected = (Candidate == CurrentObject);
-					FString CandidateIdLabel = CandidateLabel + "##" + std::to_string(reinterpret_cast<uintptr_t>(Candidate));
-					if (ImGui::Selectable(CandidateIdLabel.c_str(), bSelected))
+					const FString CandidateUniqueId = std::to_string(reinterpret_cast<uintptr_t>(Candidate));
+					FString CandidateIdLabel = CandidateLabel + "##" + CandidateUniqueId;
+
+					ImGui::PushID(CandidateUniqueId.c_str());
+					RenderMaterialTexturePreview(Candidate, "Preview", 40.0f);
+					if (ResolveMaterialTextureSRV(Candidate))
+					{
+						ImGui::SameLine();
+					}
+					if (ImGui::Selectable(CandidateIdLabel.c_str(), bSelected, 0, ImVec2(0.0f, 40.0f)))
 					{
 						if (Value)
 						{
@@ -730,6 +854,7 @@ void FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 					{
 						ImGui::SetItemDefaultFocus();
 					}
+					ImGui::PopID();
 				}
 			}
 			else for (FObjectIterator It(Prop.ObjectClass); It; ++It)
@@ -740,7 +865,10 @@ void FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 					continue;
 				}
 
-				FString CandidateLabel = Candidate->GetFName().ToString();
+				UMaterialInterface* CandidateMaterial = Candidate->Cast<UMaterialInterface>();
+				FString CandidateLabel = CandidateMaterial
+					? GetMaterialDisplayLabel(CandidateMaterial)
+					: Candidate->GetFName().ToString();
 				if (CandidateLabel.empty())
 				{
 					CandidateLabel = Candidate->GetTypeInfo()->name;
@@ -767,6 +895,30 @@ void FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 		}
 		ImGui::SameLine();
 		ImGui::TextUnformatted(Prop.Name);
+
+		if (PreviewMaterial)
+		{
+			const FString PreviewTexturePath = ResolveMaterialTexturePath(PreviewMaterial);
+			const FString PreviewTextureLabel = GetTextureDisplayName(PreviewTexturePath);
+			if (!PreviewTextureLabel.empty())
+			{
+				if (bUsingDefaultPreview)
+				{
+					ImGui::TextDisabled("Texture: %s (default)", PreviewTextureLabel.c_str());
+				}
+				else
+				{
+					ImGui::TextDisabled("Texture: %s", PreviewTextureLabel.c_str());
+				}
+
+				if (ImGui::IsItemHovered())
+				{
+					ImGui::SetTooltip("%s", PreviewTexturePath.c_str());
+				}
+			}
+
+			RenderMaterialTexturePreview(PreviewMaterial, "CurrentTexturePreview", 72.0f);
+		}
 		ImGui::PopID();
 		break;
 	}
@@ -817,5 +969,9 @@ void FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 	if (bChanged && SelectedComponent)
 	{
 		SelectedComponent->PostEditProperty(Prop.Name);
+		if (std::strcmp(Prop.Name, "StaticMesh") == 0)
+		{
+			bAbortPropertyRender = true;
+		}
 	}
 }
