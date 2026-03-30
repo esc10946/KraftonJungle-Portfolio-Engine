@@ -234,6 +234,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Editor\Slate\ConsoleCommandManager.cpp" />
     <ClCompile Include="Source\Editor\Slate\SImGuiConsoleWidget.cpp" />
     <ClCompile Include="Source\Editor\Slate\SImGuiControlWidget.cpp" />
     <ClCompile Include="Source\Editor\Slate\SImGuiPropertyWidget.cpp" />
@@ -340,6 +341,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\Slate\Reply.h" />
+    <ClInclude Include="Source\Editor\Slate\ConsoleCommandManager.h" />
     <ClInclude Include="Source\Editor\Slate\SImGuiConsoleWidget.h" />
     <ClInclude Include="Source\Editor\Slate\SImGuiControlWidget.h" />
     <ClInclude Include="Source\Editor\Slate\SImGuiPropertyWidget.h" />

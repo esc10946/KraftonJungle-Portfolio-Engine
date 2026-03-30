@@ -361,6 +361,7 @@
     <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMesh.cpp" />
     <ClCompile Include="Source\Editor\Viewport\ViewportManager.cpp" />
     <ClCompile Include="Source\Editor\Viewport\Viewport.cpp" />
+    <ClCompile Include="Source\Editor\Slate\ConsoleCommandManager.cpp" />
     <ClCompile Include="Source\Engine\Component\OrbitCameraComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
     <ClCompile Include="Source\Viewer\ViewerEngine.cpp">
@@ -712,22 +713,5 @@
     <ClInclude Include="Source\Editor\Viewport\Viewport.h" />
     <ClInclude Include="Source\Editor\Viewport\ViewportClient.h" />
     <ClInclude Include="Source\Editor\Viewport\ViewOption.h" />
-    <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
-    <ClInclude Include="Source\Engine\Component\OrbitCameraComponent.h" />
-    <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
-    <ClInclude Include="Source\Viewer\ViewerEngine.h">
-      <Filter>Source\Viewer</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Viewer\ViewerPanel.h">
-      <Filter>Source\Viewer</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Viewer\ViewerRenderPipeline.h">
-      <Filter>Source\Viewer</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Viewer\ViewerViewportClient.h">
-      <Filter>Source\Viewer</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
-    <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
   </ItemGroup>
 </Project>
