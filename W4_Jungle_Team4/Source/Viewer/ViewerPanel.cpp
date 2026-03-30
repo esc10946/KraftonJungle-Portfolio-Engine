@@ -4,16 +4,18 @@
 #include "Engine/Runtime/WindowsWindow.h"
 #include "Engine/Core/InputSystem.h"
 #include "ViewerViewportClient.h"
+#include "ViewerEngine.h"
 
 #include "ImGui/imgui.h"
 #include "ImGui/imgui_impl_dx11.h"
 #include "ImGui/imgui_impl_win32.h"
 
-void FViewerPanel::Create(FWindowsWindow* InWindow, FRenderer& InRenderer)
+void FViewerPanel::Create(FWindowsWindow* InWindow, FRenderer& InRenderer, UViewerEngine* InEngine)
 {
 	ImGui::CreateContext();
 
 	Window = InWindow;
+	OwnerEngine = InEngine;
 
 	ImGui_ImplWin32_Init((void*)InWindow->GetHWND());
 	ImGui_ImplDX11_Init(InRenderer.GetFD3DDevice().GetDevice(), InRenderer.GetFD3DDevice().GetDeviceContext());
@@ -58,9 +60,9 @@ void FViewerPanel::Render(float DeltaTime)
 		ofn.nMaxFile = sizeof(filePath);
 		ofn.Flags = OFN_FILEMUSTEXIST;
 
-		if (GetOpenFileNameA(&ofn))
+		if (GetOpenFileNameA(&ofn) && ViewportClient)
 		{
-			ViewportClient->LoadOBJ(filePath);
+			OwnerEngine->LoadModel(filePath);
 		}
 	}
 

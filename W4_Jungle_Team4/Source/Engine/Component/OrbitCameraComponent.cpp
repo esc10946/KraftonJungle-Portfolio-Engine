@@ -5,7 +5,7 @@ REGISTER_FACTORY(UOrbitCameraComponent)
 
 void UOrbitCameraComponent::OnOrbit(float DeltaX, float DeltaY)
 {
-	Yaw += DeltaX * RotateSensitivity;
+	Yaw -= DeltaX * RotateSensitivity;
 	Pitch += DeltaY * RotateSensitivity;
 
 	Pitch = Clamp(Pitch, PitchMin, PitchMax);
@@ -19,8 +19,8 @@ void UOrbitCameraComponent::OnPan(float DeltaX, float DeltaY)
 	FVector Up = GetUpVector();
 
 	float PanSpeed = Radius * PanSensitivity;
-	Target += Right * DeltaX * PanSpeed;
-	Target -= Up * DeltaY * PanSensitivity;
+	Target -= Right * DeltaX * PanSpeed;
+	Target += Up * DeltaY * PanSensitivity;
 
 	UpdatePosition();
 }
@@ -37,10 +37,13 @@ void UOrbitCameraComponent::OnZoom(float Delta)
 
 void UOrbitCameraComponent::UpdatePosition()
 {
+	float PitchRad = Pitch * DEG_TO_RAD;
+	float YawRad = Yaw * DEG_TO_RAD;
+
 	FVector CameraPos;
-	CameraPos.X = Target.X + Radius * cos(Pitch) * sin(Yaw);
-	CameraPos.Y = Target.Y + Radius * cos(Pitch) * cos(Yaw);
-	CameraPos.Z = Target.Z + Radius * sin(Pitch);
+	CameraPos.X = Target.X + Radius * cos(PitchRad) * sin(YawRad);
+	CameraPos.Y = Target.Y + Radius * cos(PitchRad) * cos(YawRad);
+	CameraPos.Z = Target.Z + Radius * sin(PitchRad);
 
 	SetWorldLocation(CameraPos);
 
