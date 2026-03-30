@@ -19,6 +19,7 @@ public:
 public:
 	virtual void Tick(float DeltaTime);
 	virtual void OnPaint();
+	virtual void OnResize(const FRect& NewRect);
 
 	virtual FReply OnMouseButtonDown(float X, float Y, int32 Button) { return FReply::Unhandled(); }
 	virtual FReply OnMouseButtonUp(float X, float Y, int32 Button) { return FReply::Unhandled(); }
@@ -28,7 +29,7 @@ public:
 	virtual void OnKeyDown(int32 Key) {}
 	virtual void OnKeyUp(int32 Key) {}
 
-	bool IsHovered(FVector2 Coord) const;
+	bool IsHovered(float X, float Y) const;
 
 	FRect GetRect() const { return Rect; }
 	void SetRect(const FRect& InRect) { Rect = InRect; }

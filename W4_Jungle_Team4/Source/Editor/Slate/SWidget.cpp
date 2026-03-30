@@ -22,11 +22,20 @@ void SWidget::OnPaint()
 	}
 }
 
-bool SWidget::IsHovered(FVector2 Coord) const
+void SWidget::OnResize(const FRect& NewRect)
+{
+	Rect = NewRect;
+	for (SWidget* Child : GetChildren())
+	{
+		Child->OnResize(NewRect);
+	}
+}
+
+bool SWidget::IsHovered(float X, float Y) const
 {
 	if (!bIsVisible) return false;
-	return Coord.X >= Rect.X && Coord.X <= Rect.X + Rect.Width &&
-		   Coord.Y >= Rect.Y && Coord.Y <= Rect.Y + Rect.Height;
+	return X >= Rect.X && X <= Rect.X + Rect.Width &&
+		   Y >= Rect.Y && Y <= Rect.Y + Rect.Height;
 }
 
 json::JSON SWidget::Serialize() const

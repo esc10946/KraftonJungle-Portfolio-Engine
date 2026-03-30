@@ -57,7 +57,7 @@ float2 ApplyAtlasUV(float2 uv, float3 normal)
 float4 PS(PSInput input) : SV_TARGET
 {
     float4 baseColor = input.color;
-    float2 sampleUV = input.texCoord;
+    float2 sampleUV = input.texCoord * UVTiling + UVOffset + UVScrollSpeed * GlobalTime;
     if (StaticMeshUseTexture != 0)
     {
         if (StaticMeshUseAtlas != 0)

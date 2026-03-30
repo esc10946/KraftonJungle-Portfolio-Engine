@@ -5,8 +5,11 @@ cbuffer FrameBuffer : register(b0)
 {
     row_major float4x4 View;
     row_major float4x4 Projection;
+    
+    float GlobalTime;
     float bIsWireframe;
     float3 WireframeRGB;
+    float Padding;
 }
 
 cbuffer PerObjectBuffer : register(b1)
@@ -61,8 +64,11 @@ cbuffer StaticMeshBuffer : register(b6)
     float4 StaticMeshTopUVRect;
     float4 StaticMeshSideUVRect;
     float4 StaticMeshBottomUVRect;
+    float2 UVScrollSpeed;
+    float2 UVTiling;
+    float2 UVOffset;
+    float2 Padding1;
 };
-
 
 float4 ApplyMVP(float3 pos)
 {

@@ -13,6 +13,7 @@ public:
 public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void OnPaint() override;
+	virtual void OnResize(const FRect& NewRect) override;
 
 	virtual FReply OnMouseButtonDown(float X, float Y, int32 Button) override;
 	virtual FReply OnMouseButtonUp(float X, float Y, int32 Button) override;
@@ -27,6 +28,16 @@ public:
 
 	virtual FString GetWidgetType() const { return "SViewport"; }
 
+	void SetShowFPS(bool bInShowFPS) { bShowFPS = bInShowFPS; }
+	void SetShowMemory(bool bInShowMemory) { bShowMemory = bInShowMemory; }
+
+private:
+	void DrawFPSStats();
+	void DrawMemoryStats();
+
 private:
 	FViewport* Viewport = nullptr;
+
+	bool bShowFPS = false;
+	bool bShowMemory = false;
 };

@@ -12,6 +12,7 @@ class FSlateApplication : public TSingleton<FSlateApplication>
 public:
 	void Tick(float DeltaTime);
 	void OnPaint();
+	void OnWindowResized(uint32 Width, uint32 Height);
 
 	SWindow* AddWindow(SWindow* InWindow);
 	void DestroyWindow(SWindow* InWindow);
@@ -45,9 +46,6 @@ public:
 
 	SWidget* GetMouseCaptor() const { return MouseCaptor; }
 
-	SWidget* GetFocusedWidget() const { return FocusedWidget; }
-	void SetFocusedWidget(SWidget* InWidget) { FocusedWidget = InWidget; }
-
 private:
 	SWidget* FindWidgetAt(FVector2 ScreenPoint) const;
 	SWidget* FindLeafWidgetAt(SWidget* Parent, FVector2 ScreenPoint) const;
@@ -62,5 +60,5 @@ private:
 
 	SWidget* MouseCaptor = nullptr;
 	SWidget* WidgetUnderMouse = nullptr;
-	SWidget* FocusedWidget = nullptr;
+	SWidget* LastKeyboardTarget = nullptr;
 };

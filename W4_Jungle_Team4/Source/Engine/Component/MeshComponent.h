@@ -17,6 +17,9 @@ public:
     virtual int32      GetNumMaterials() const = 0;
 	
 	virtual void UpdateWorldAABB() const = 0;
+
+	bool bUseUVScroll = false;
+    FVector2 UVScrollSpeed = FVector2(0.f, 0.1f);
 protected:
     TArray<UMaterialInterface*> OverrideMaterials;
 };

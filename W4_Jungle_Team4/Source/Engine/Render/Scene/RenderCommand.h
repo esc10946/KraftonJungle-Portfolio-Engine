@@ -43,8 +43,10 @@ struct FFrameConstants
 {
 	FMatrix View;          
 	FMatrix Projection;    
+    float GlobalTime;     // 추가
 	float bIsWireframe;
 	FVector WireframeColor;
+    float Padding;        // 16바이트 정렬 맞추기
 };
 
 struct FGizmoConstants
@@ -104,21 +106,31 @@ struct FSubUVConstants
 	float Height = 1.0f;
 };
 
-struct FStaticMeshConstants
+struct FStaticMeshData
 {
-	uint32 bUseTexture = 0;
-	uint32 bUseAtlas = 0;
-	uint32 bSourceUVsUseAtlasTiles = 0;
-	float SourceAtlasTileScale = 1.0f;
-	FVector4 TopUVRect = FVector4(0.0f, 0.0f, 1.0f, 1.0f);
-	FVector4 SideUVRect = FVector4(0.0f, 0.0f, 1.0f, 1.0f);
-	FVector4 BottomUVRect = FVector4(0.0f, 0.0f, 1.0f, 1.0f);
-	uint32 FirstIndex = 0;
-	uint32 IndexCount = 0;
-	float Padding1[2] = {};
 	UShader* Shader = nullptr;
 	UMaterialInterface* Material = nullptr;
 	ID3D11ShaderResourceView* DiffuseSRV = nullptr;
+	uint32 FirstIndex = 0;
+	uint32 IndexCount = 0;
+};
+
+struct FStaticMeshConstants
+{
+    uint32 StaticMeshUseTexture = 0;
+    uint32 bUseAtlas = 0;
+    uint32 bSourceUVsUseAtlasTiles = 0;
+    float SourceAtlasTileScale = 1.0f;
+
+    FVector4 TopUVRect = FVector4(0.0f, 0.0f, 1.0f, 1.0f);
+    FVector4 SideUVRect = FVector4(0.0f, 0.0f, 1.0f, 1.0f);
+    FVector4 BottomUVRect = FVector4(0.0f, 0.0f, 1.0f, 1.0f);
+
+    float UVScrollSpeed[2] = { 0.0f, 0.0f };
+    float UVTiling[2]      = { 1.0f, 1.0f };
+
+    float UVOffset[2]      = { 0.0f, 0.0f };
+    float Padding1[2]      = { 0.0f, 0.0f };
 };
 
 struct FRenderCommand
@@ -127,6 +139,7 @@ struct FRenderCommand
 	FMeshBuffer* MeshBuffer = nullptr;
 	FTextureMeshBuffer* TextureMeshBuffer = nullptr;
 	FPerObjectConstants PerObjectConstants = {};
+	FStaticMeshData MeshRenderData;
 
 	union
 	{

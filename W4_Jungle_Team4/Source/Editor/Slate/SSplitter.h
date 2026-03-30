@@ -56,19 +56,6 @@ public:
 		return Children;
 	}
 
-	void ReplaceChild(SWidget* OldChild, SWidget* NewChild)
-	{
-		if (SideLT == OldChild)
-		{
-			SetSideLT(NewChild);
-		}
-		else if (SideRB == OldChild)
-		{
-			SetSideRB(NewChild);
-		}
-	}
-
-public:
 	virtual bool IsOnHandle(float X, float Y) const { return false; }
 	virtual void UpdateSplit(float X, float Y) {}
 

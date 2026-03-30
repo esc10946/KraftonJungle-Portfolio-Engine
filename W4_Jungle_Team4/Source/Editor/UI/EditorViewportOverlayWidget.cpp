@@ -39,28 +39,6 @@ void FEditorViewportOverlayWidget::Render(float DeltaTime)
 	{
 		ImGui::Separator();
 
-		// View Mode
-		ImGui::Text("View Mode");
-		int32 CurrentMode = static_cast<int32>(Settings.ViewMode);
-		ImGui::RadioButton("Lit", &CurrentMode, static_cast<int32>(EViewMode::Lit));
-		ImGui::SameLine();
-		ImGui::RadioButton("Unlit", &CurrentMode, static_cast<int32>(EViewMode::Unlit));
-		ImGui::SameLine();
-		ImGui::RadioButton("Wireframe", &CurrentMode, static_cast<int32>(EViewMode::Wireframe));
-		Settings.ViewMode = static_cast<EViewMode>(CurrentMode);
-
-		ImGui::Separator();
-
-		// Show Flags
-		ImGui::Text("Show");
-		ImGui::Checkbox("Primitives", &Settings.ShowFlags.bPrimitives);
-		ImGui::Checkbox("BillboardText", &Settings.ShowFlags.bBillboardText);
-		ImGui::Checkbox("Grid", &Settings.ShowFlags.bGrid);
-		ImGui::Checkbox("Gizmo", &Settings.ShowFlags.bGizmo);
-		ImGui::Checkbox("Bounding Volume", &Settings.ShowFlags.bBoundingVolume);
-
-		ImGui::Separator();
-
 		// Grid Settings
 		ImGui::Text("Grid");
 		ImGui::SliderFloat("Spacing", &Settings.GridSpacing, 0.1f, 10.0f, "%.1f");

@@ -22,6 +22,9 @@ public:
 
 	FString GetWidgetType() const override { return "SViewportRoot"; }
 
+	json::JSON Serialize() const override;
+	void Deserialize(json::JSON& Data) override;
+
 private:
 	TArray<SViewport*> Viewports;
 

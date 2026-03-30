@@ -1,6 +1,7 @@
 ﻿#include "SlateApplication.h"
 #include "Core/InputSystem.h"
 #include "SSplitter.h"
+#include "ImGui/imgui.h"
 #include <functional>
 
 FSlateApplication::~FSlateApplication()
@@ -29,6 +30,15 @@ void FSlateApplication::OnPaint()
 	}
 }
 
+void FSlateApplication::OnWindowResized(uint32 Width, uint32 Height)
+{
+	for (SWindow* Window : Windows)
+	{
+		FRect NewRect = { 0, 0, Width, Height };
+		Window->OnResize(NewRect);
+	}
+}
+
 SWindow* FSlateApplication::AddWindow(SWindow* InWindow)
 {
 	Windows.push_back(InWindow);
@@ -53,7 +63,7 @@ SWidget* FSlateApplication::FindWidgetAt(FVector2 ScreenPoint) const
 	for (auto It = Windows.rbegin(); It != Windows.rend(); ++It)
 	{
 		SWindow* Window = *It;
-		if (Window->IsHovered(ScreenPoint))
+		if (Window->IsHovered(ScreenPoint.X, ScreenPoint.Y))
 		{
 			return FindLeafWidgetAt(Window, ScreenPoint);
 		}
@@ -78,7 +88,7 @@ SWidget* FSlateApplication::FindLeafWidgetAt(SWidget* Parent, FVector2 ScreenPoi
 		SWidget* Child = Children[i];
 
 		// TODO: 현재는 모든 child를 순회하지만, 따로 pass flag를 둘 수 있음
-		if (Child->IsHovered(ScreenPoint))
+		if (Child->IsHovered(ScreenPoint.X, ScreenPoint.Y))
 		{
 			// 더 깊은 자식이 있는지 또 파고듬 (재귀)
 			return FindLeafWidgetAt(Child, ScreenPoint);
@@ -94,6 +104,8 @@ void FSlateApplication::ProcessInput()
 {
 	POINT MousePosition = InputSystem::Get().GetClientMousePos();
 	FVector2 MousePos = { static_cast<float>(MousePosition.x), static_cast<float>(MousePosition.y) };
+
+	ImGuiIO& io = ImGui::GetIO();
 
 	SWidget* Captor = GetMouseCaptor();
 	if (Captor)
@@ -153,22 +165,31 @@ void FSlateApplication::ProcessInput()
 		FReply Reply = WheelTarget->OnMouseWheel(InputSystem::Get().GetScrollNotches());
 	}
 
-	SWidget* KeyboardTarget = GetFocusedWidget();
-	if (KeyboardTarget == nullptr)
+	SWidget* KeyboardTarget = Captor ? Captor : WidgetUnderMouse;
+
+	// KeyboardTarget이 바뀌었다면, 이전 타켓에게 눌려있던 키들의 Up 이벤트를 보내줌
+	if (LastKeyboardTarget && LastKeyboardTarget != KeyboardTarget)
 	{
-		KeyboardTarget = WidgetUnderMouse;
+		for (int32 Key = 0; Key < 256; ++Key)
+		{
+			if (InputSystem::Get().GetKey(Key))
+			{
+				LastKeyboardTarget->OnKeyUp(Key);
+			}
+		}
 	}
+	LastKeyboardTarget = KeyboardTarget;
 
 	for (int32 Key = 0; Key < 256; ++Key)
 	{
-		if (InputSystem::Get().GetKeyDown(Key))
+		if (InputSystem::Get().GetKeyDown(Key) && !io.WantCaptureKeyboard)
 		{
 			if (KeyboardTarget)
 			{
 				KeyboardTarget->OnKeyDown(Key);
 			}
 		}
-		if (InputSystem::Get().GetKeyUp(Key))
+		if (InputSystem::Get().GetKeyUp(Key) && !io.WantCaptureKeyboard)
 		{
 			if (KeyboardTarget)
 			{
