@@ -59,15 +59,7 @@ SWidget* FSlateWidgetFactory::CreateWidget(const FString& WidgetType)
 	}
 	else if (WidgetType == "SViewport")
 	{
-		SViewport* ViewportWidget = new SViewport();
-		FViewport* Viewport = FViewportManager::Get().CreateViewport();
-		FEditorViewportClient* ViewportClient = FViewportManager::Get().CreateEditorViewportClient();
-		ViewportClient->Initialize(Viewport);
-		Viewport->SetViewportClient(ViewportClient);
-
-		ViewportWidget->SetViewport(Viewport);
-
-		return ViewportWidget;
+		return new SViewport();
 	}
 	else if (WidgetType == "SViewportRoot")
 	{

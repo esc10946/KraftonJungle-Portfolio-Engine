@@ -51,8 +51,10 @@ FStaticMeshAsset* FStaticMeshManager::LoadStaticMeshAsset(const FString& InSourc
 	bool bLoaded = false;
 
 	// 4. bake가 원본 obj보다 최신이면 bake 먼저 시도
+	// bake 유효성 판단
 	if (FStaticMeshBakeIO::IsBakeUpToDate(NormalizedPath, Asset->BakePath))
 	{
+		// .smbin 바이너리 파일에서 FStaticMeshAsset 복원 함수
 		bLoaded = FStaticMeshBakeIO::LoadFromFile(Asset->BakePath, *Asset);
 		if (bLoaded) // bake load 성공 시
 		{
@@ -138,15 +140,25 @@ UStaticMesh* FStaticMeshManager::LoadStaticMeshObject(const FString& InSourcePat
 	return MeshObject;
 }
 
+
 UStaticMesh* FStaticMeshManager::FindLoadedStaticMeshObject(const FString& InSourcePath)
-{
+{ // "이 경로의 UStaticMesh UObject를 이미 만들어둔 게 있으면 찾아서 재사용해라"
+	// key = NoramlizedSourcePath
 	const FString NormalizedPath = NormalizeSourcePath(InSourcePath);
 
+	// 두 단계에 걸친 캐시 찾기
+	// (1) 매니저가 기억하고 있는 빠른 캐시에서 찾기
+	// (2) 매니저 캐시는 비어있지만, UObject 자체는 이미 살아있을 수 있으니 전역 객체 목록에서 복구
+	// 매니저 Clear()는 StaticMeshObjectMap.Clear()만 하고, UStaticMesh 객체 자체를 destroy하지는 않음. 
+	// 그래서 "맵은 비었는지 UObject는 살아 있는 상태"가 가능. 그걸 다시 찾아 캐시에 넣으려는 것.
+	// QQQ. 근데 이거까지 굳이굳이 해야하는건가?
+	
 	// 1. object cache 확인
+	// map에서 NormalizedPath key 찾기. 
 	const auto CacheIt = StaticMeshObjectMap.find(NormalizedPath);
-	if (CacheIt != StaticMeshObjectMap.end())
+	if (CacheIt != StaticMeshObjectMap.end()) // 찾음.
 	{
-		return CacheIt->second;
+		return CacheIt->second; // Value
 	}
 
 	// 2. 이미 생성된 UObject 전체 순회

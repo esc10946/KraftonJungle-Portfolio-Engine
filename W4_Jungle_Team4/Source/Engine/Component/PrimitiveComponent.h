@@ -19,6 +19,7 @@ protected:
 	mutable FVector WorldAABBMinLocation;
 	mutable FVector WorldAABBMaxLocation;
 	bool bIsVisible = true;
+	FVector4 MaterialColor = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
 
 public:
 	DECLARE_CLASS(UPrimitiveComponent, USceneComponent)
@@ -26,6 +27,7 @@ public:
 	void GetEditableProperties(TArray<FPropertyDescriptor>& OutProps) override;
 
 	inline const FMeshData* GetMeshData() const { return MeshData; };
+	inline const FVector4& GetMaterialColor() const { return MaterialColor; }
 
 	inline void SetVisibility(bool bVisible) { bIsVisible = bVisible; }
 

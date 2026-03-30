@@ -15,8 +15,9 @@ struct PSInput
 PSInput VS(VSInput input)
 {
     PSInput output;
-    output.position = ApplyMVP(input.position);
-    output.color = input.color;
+    float4 worldPos = mul(float4(input.position, 1.0f), Model);
+    output.position = mul(mul(worldPos, View), Projection);
+    output.color = PrimitiveColor;
     return output;
 }
 

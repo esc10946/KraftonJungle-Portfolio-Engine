@@ -2,6 +2,8 @@
 
 #include "Editor/Slate/SlateApplication.h"
 #include "Editor/Slate/SlateWidgetFactory.h"
+#include "Editor/Slate/SViewport.h"
+#include "Editor/Slate/ConsoleCommandManager.h"
 #include "Editor/Viewport/Viewport.h"
 #include "Engine/Runtime/WindowsWindow.h"
 #include "Engine/Serialization/SceneSaveManager.h"
@@ -72,7 +74,38 @@ void UEditorEngine::Init(FWindowsWindow* InWindow)
 	// Editor render pipeline
 	SetRenderPipeline(std::make_unique<FEditorRenderPipeline>(this, Renderer));
 
+	// 1회 resizing
 	OnWindowResized(InWindow->GetWidth(), InWindow->GetHeight());
+
+	// Console Command 등록 (어디서 해야할지 애매해서 일단 여기)
+	FConsoleCommandManager::Get().RegisterCommand("stat", [this](const TArray<FString>& Args) {
+		if (Args.size() < 2) return;
+
+		SViewport* FocusedViewport = FViewportManager::Get().GetFocusedViewportWidget();
+		if (FocusedViewport == nullptr)
+		{
+			SImGuiConsoleWidget::AddLog("[ERROR] No focused viewport to apply stat command.\n");
+			return;
+		}
+
+		if (Args[1] == "fps")
+		{
+			FocusedViewport->SetShowFPS(true);
+		}
+		else if (Args[1] == "memory")
+		{
+			FocusedViewport->SetShowMemory(true);
+		}
+		else if (Args[1] == "none")
+		{
+			FocusedViewport->SetShowFPS(false);
+			FocusedViewport->SetShowMemory(false);
+		}
+		else
+		{
+			SImGuiConsoleWidget::AddLog("[ERROR] Unknown command: '%s'\n", Args[0].c_str());
+		}
+		});
 }
 
 void UEditorEngine::Shutdown()
@@ -126,7 +159,15 @@ UCameraComponent* UEditorEngine::GetCamera() const
 
 void UEditorEngine::ResetViewport()
 {
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
 	TArray<FViewport*>& Viewports = FViewportManager::Get().GetViewports();
+	FEditorViewportClient* FirstViewportClient = nullptr;
+
 	for (FViewport* Viewport : Viewports)
 	{
 		if (!Viewport)
@@ -136,14 +177,20 @@ void UEditorEngine::ResetViewport()
 		if (FEditorViewportClient* ViewportClient = dynamic_cast<FEditorViewportClient*>(Viewport->GetViewportClient()))
 		{
 			ViewportClient->CreateCamera();
-			ViewportClient->SetWorld(GetWorld());
+			ViewportClient->SetWorld(World);
 			ViewportClient->ResetCamera();
+
+			if (FirstViewportClient == nullptr)
+			{
+				FirstViewportClient = ViewportClient;
+			}
 		}
 	}
 
-	// TODO: World의 ActiveCamera를 첫 번째 ViewportClient로 설정 개선 필요
-	FEditorViewportClient* FirstViewportClient = dynamic_cast<FEditorViewportClient*>(Viewports[0]->GetViewportClient());
-	GetWorld()->SetActiveCamera(FirstViewportClient->GetCamera());
+	if (FirstViewportClient && FirstViewportClient->GetCamera())
+	{
+		World->SetActiveCamera(FirstViewportClient->GetCamera());
+	}
 }
 
 void UEditorEngine::CloseScene()
@@ -166,6 +213,8 @@ void UEditorEngine::NewScene()
 	ClearScene();
 	FWorldContext& Ctx = CreateWorldContext(EWorldType::Editor, FName("NewScene"), "New Scene");
 	SetActiveWorld(Ctx.ContextHandle);
+	Ctx.World->InitWorld();
+	FViewportManager::Get().SetWorld(Ctx.World);
 
 	ResetViewport();
 }
@@ -173,6 +222,7 @@ void UEditorEngine::NewScene()
 void UEditorEngine::ClearScene()
 {
 	SelectionManager.ClearSelection();
+	FViewportManager::Get().SetWorld(nullptr);
 
 	for (FWorldContext& Ctx : WorldList)
 	{

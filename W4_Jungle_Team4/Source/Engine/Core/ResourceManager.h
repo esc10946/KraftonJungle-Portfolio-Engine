@@ -52,7 +52,7 @@ public:
 
 private:
 	FResourceManager() = default;
-	~FResourceManager() { ReleaseGPUResources(); }
+	~FResourceManager()  = default;
 
 	TMap<FString, FFontResource>     FontResources;
 	TMap<FString, FParticleResource> ParticleResources;

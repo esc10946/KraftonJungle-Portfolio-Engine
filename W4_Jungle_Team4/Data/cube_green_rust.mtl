@@ -1,0 +1,7 @@
+newmtl Green
+Kd 1.0 1.0 1.0
+map_Kd green.png
+
+newmtl Rust
+Kd 1.0 1.0 1.0
+map_Kd rust.png

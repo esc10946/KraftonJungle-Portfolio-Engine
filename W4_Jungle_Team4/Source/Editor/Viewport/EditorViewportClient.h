@@ -31,6 +31,8 @@ public:
 	void OnKeyDown(int32 Key) override;
 	void OnKeyUp(int32 Key) override;
 
+	void ClearMovementInput();
+
 	void Initialize(FViewport* InViewport);
 	void SetWorld(UWorld* InWorld) { World = InWorld; }
 	void SetGizmo(UGizmoComponent* InGizmo) { Gizmo = InGizmo; }

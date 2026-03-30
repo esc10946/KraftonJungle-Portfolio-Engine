@@ -16,8 +16,6 @@
 
 void FEditorViewportClient::Initialize(FViewport* InViewport)
 {
-	UE_LOG("Hello ZZup Engine! %d", 2026);
-
 	Viewport = InViewport;
 	CreateDefaultViewOptions();
 }
@@ -84,6 +82,7 @@ void FEditorViewportClient::OnMouseDown(float X, float Y, int32 Button)
 	if (Button == VK_LBUTTON)
 	{
 		bIsLeftMouseDown = true;
+		Gizmo->SetPressedOnHandle(false);
 
 		FRay Ray = Camera->DeprojectScreenToWorld(MouseX, MouseY, Viewport->GetSize().X, Viewport->GetSize().Y);
 		FHitResult HitResult;
@@ -111,10 +110,13 @@ void FEditorViewportClient::OnMouseUp(float X, float Y, int32 Button)
 		{
 			Gizmo->DragEnd();
 		}
+
+		Gizmo->SetPressedOnHandle(false);
 	}
 	if (Button == VK_RBUTTON)
 	{
 		bIsRightMouseDown = false;
+		ClearMovementInput();
 	}
 }
 
@@ -163,6 +165,16 @@ void FEditorViewportClient::OnKeyUp(int32 Key)
 	if (Key == 'D') bIsDDown = false;
 	if (Key == 'Q') bIsQDown = false;
 	if (Key == 'E') bIsEDown = false;
+}
+
+void FEditorViewportClient::ClearMovementInput()
+{
+	bIsWDown = false;
+	bIsADown = false;
+	bIsSDown = false;
+	bIsDDown = false;
+	bIsQDown = false;
+	bIsEDown = false;
 }
 
 void FEditorViewportClient::SetCurrentViewOption(EViewOption NewOption)
@@ -273,13 +285,15 @@ void FEditorViewportClient::ApplyCurrentViewOption()
 
 void FEditorViewportClient::MovePerspective(float DeltaTime)
 {
+	if (!bIsRightMouseDown) return;
+
 	const FCameraState& CameraState = Camera->GetCameraState();
 
 	FVector Direction = FVector(0, 0, 0);
 
-	if (bIsWDown && !CameraState.bIsOrthogonal) Direction.X += 1;
+	if (bIsWDown) Direction.X += 1;
 	if (bIsADown) Direction.Y -= 1;
-	if (bIsSDown && !CameraState.bIsOrthogonal) Direction.X -= 1;
+	if (bIsSDown) Direction.X -= 1;
 	if (bIsDDown) Direction.Y += 1;
 	if (bIsQDown) Direction.Z -= 1;
 	if (bIsEDown) Direction.Z += 1;
@@ -302,14 +316,6 @@ void FEditorViewportClient::RotatePerspective(float DeltaTime)
 
 	const float RotateSensitivity = Settings ? Settings->CameraRotateSensitivity : 1.f;
 	const float AngleVelocity = (Settings ? Settings->CameraRotationSpeed : 60.f) * RotateSensitivity;
-	if (InputSystem::Get().GetKey(VK_UP))
-		Rotation.Z -= AngleVelocity;
-	if (InputSystem::Get().GetKey(VK_LEFT))
-		Rotation.Y -= AngleVelocity;
-	if (InputSystem::Get().GetKey(VK_DOWN))
-		Rotation.Z += AngleVelocity;
-	if (InputSystem::Get().GetKey(VK_RIGHT))
-		Rotation.Y += AngleVelocity;
 
 	float MouseRotationSpeed = 0.15f * RotateSensitivity;
 
@@ -374,6 +380,8 @@ void FEditorViewportClient::HandleDragStart(const FRay& Ray)
 	}
 	else
 	{
+		Gizmo->SetPressedOnHandle(false);
+
 		AActor* BestActor = nullptr;
 		float ClosestDistance = FLT_MAX;
 

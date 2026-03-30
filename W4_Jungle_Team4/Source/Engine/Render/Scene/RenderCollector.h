@@ -7,14 +7,14 @@ class AActor;
 class UPrimitiveComponent;
 class UGizmoComponent;
 class UStaticMeshComponent;
-struct FStaticMeshAsset;
+class UStaticMesh;
 
 class FRenderCollector {
 private:
 	FMeshBufferManager MeshBufferManager;
 	ID3D11Device* Device = nullptr;
 	TMap<const UStaticMeshComponent*, FTextureMeshBuffer> StaticMeshBufferMap;
-	TMap<const UStaticMeshComponent*, const FStaticMeshAsset*> StaticMeshAssetMap;
+	TMap<const UStaticMeshComponent*, const UStaticMesh*> StaticMeshMap;
 	TMap<const UStaticMeshComponent*, uint32> StaticMeshRevisionMap;
 public:
 	void Initialize(ID3D11Device* InDevice) { Device = InDevice; MeshBufferManager.Create(InDevice); }

@@ -9,12 +9,14 @@ class UWorld;
 class FSelectionManager;
 class FEditorViewportClient;
 class SWidget;
+class SViewport;
 
 class FViewportManager : public TSingleton<FViewportManager>
 {
 	friend class TSingleton<FViewportManager>;
 public:
 	void Initialize(FD3DDevice* InDevice, UWorld* InWorld, FSelectionManager* InSelectionManager);
+	void SetWorld(UWorld* InWorld);
 
 	FViewport* CreateViewport();
 	void DestroyViewport(FViewport* InViewport);
@@ -22,6 +24,9 @@ public:
 	FEditorViewportClient* CreateEditorViewportClient() const;
 
 	TArray<FViewport*>& GetViewports() { return Viewports; }
+
+	SViewport* GetFocusedViewportWidget() const { return FocusedViewportWidget; }
+	void SetFocusedViewportWidget(SViewport* InViewportWidget) { FocusedViewportWidget = InViewportWidget; }
 
 private:
 	FViewportManager() = default;
@@ -34,4 +39,5 @@ private:
 	TArray<FViewport*> Viewports;
 
 	SWidget* ViewportRootWidget = nullptr;
+	SViewport* FocusedViewportWidget = nullptr;
 };

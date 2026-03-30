@@ -4,6 +4,8 @@
 #include "Component/StaticMeshComponent.h"
 #include "Component/TextRenderComponent.h"
 #include <Component/SubUVComponent.h>
+#include "Engine/Asset/Material/MaterialManager.h"
+#include "Engine/Asset/Material/MaterialObject.h"
 #include "Engine/Asset/StaticMesh/StaticMeshManager.h"
 #include "Engine/Core/Paths.h"
 
@@ -90,8 +92,7 @@ void AStaticMeshActor::InitDefaultComponents()
 	UStaticMeshComponent* StaticMesh = AddComponent<UStaticMeshComponent>();
 	SetRootComponent(StaticMesh);
 
-	// const FString StaticMeshPath = FPaths::ToUtf8(FPaths::RootDir()) + "Data/cube-tex.obj";
-	const FString StaticMeshPath = FPaths::ToUtf8(FPaths::RootDir()) + "Data/Minecraft_Grass_block.obj";
+	const FString StaticMeshPath = FPaths::ToUtf8(FPaths::RootDir()) + "Data/cube_green_rust.obj";
 	StaticMesh->SetStaticMesh(FStaticMeshManager::Get().LoadStaticMeshObject(StaticMeshPath));
 }
 

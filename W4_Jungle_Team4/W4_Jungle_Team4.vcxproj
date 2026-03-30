@@ -234,6 +234,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Source\Editor\Slate\ConsoleCommandManager.cpp" />
     <ClCompile Include="Source\Editor\Slate\SImGuiConsoleWidget.cpp" />
     <ClCompile Include="Source\Editor\Slate\SImGuiControlWidget.cpp" />
     <ClCompile Include="Source\Editor\Slate\SImGuiPropertyWidget.cpp" />
@@ -249,7 +250,9 @@
     <ClCompile Include="Source\Editor\Viewport\ViewportManager.cpp" />
     <ClCompile Include="Source\Engine\Asset\Material\MaterialManager.cpp" />
     <ClCompile Include="Source\Engine\Asset\Material\MaterialObject.cpp" />
-    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMesh.cpp" />
+    <ClCompile Include="Source\Engine\Asset\Mesh\MeshObject.cpp" />
+    <ClCompile Include="Source\Engine\Asset\Shader\ShaderManager.cpp" />
+    <ClCompile Include="Source\Engine\Asset\Shader\ShaderObject.cpp" />
     <ClCompile Include="Source\Engine\Asset\Texture\TextureManager.cpp" />
     <ClCompile Include="Source\Engine\Asset\Texture\TextureObject.cpp" />
     <ClCompile Include="Source\Engine\AssetPipeline\Obj\MtlParser.cpp" />
@@ -340,6 +343,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\Slate\Reply.h" />
+    <ClInclude Include="Source\Editor\Slate\ConsoleCommandManager.h" />
     <ClInclude Include="Source\Editor\Slate\SImGuiConsoleWidget.h" />
     <ClInclude Include="Source\Editor\Slate\SImGuiControlWidget.h" />
     <ClInclude Include="Source\Editor\Slate\SImGuiPropertyWidget.h" />
@@ -352,7 +356,9 @@
     <ClInclude Include="Source\Editor\Viewport\ViewportManager.h" />
     <ClInclude Include="Source\Engine\Asset\Material\MaterialManager.h" />
     <ClInclude Include="Source\Engine\Asset\Material\MaterialObject.h" />
-    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMesh.h" />
+    <ClInclude Include="Source\Engine\Asset\Mesh\MeshObject.h" />
+    <ClInclude Include="Source\Engine\Asset\Shader\ShaderManager.h" />
+    <ClInclude Include="Source\Engine\Asset\Shader\ShaderObject.h" />
     <ClInclude Include="Source\Engine\Asset\Texture\TextureManager.h" />
     <ClInclude Include="Source\Engine\Asset\Texture\TextureObject.h" />
     <ClInclude Include="Source\Engine\AssetPipeline\Obj\MtlParser.h" />
