@@ -60,7 +60,6 @@ public:
 	static const FMeshData& GetRotationGizmo() { return Get().RotationGizmoMeshData; }
 	static const FMeshData& GetScaleGizmo() { return Get().ScaleGizmoMeshData; }
 	static const FMeshData& GetQuad() { return Get().QuadMeshData; }
-
 };
 
 

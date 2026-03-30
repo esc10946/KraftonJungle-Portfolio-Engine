@@ -91,6 +91,10 @@ void FD3DDevice::OnResizeViewport(int Width, int Height)
 	CurrentBlendState = static_cast<EBlendState>(-1);
 }
 
+void FD3DDevice::SetDefaultViewport()
+{
+	DeviceContext->RSSetViewports(1, &ViewportInfo);
+}
 
 ID3D11Device* FD3DDevice::GetDevice() const
 {
@@ -128,6 +132,9 @@ void FD3DDevice::SetDepthStencilState(EDepthStencilState InState)
 		break;
 	case EDepthStencilState::GizmoOutside:
 		DeviceContext->OMSetDepthStencilState(DepthStencilStateGizmoOutside, 1);
+		break;
+	case EDepthStencilState::None:
+		DeviceContext->OMSetDepthStencilState(DepthStencilStateNone, 0);
 		break;
 	}
 
@@ -390,6 +397,15 @@ void FD3DDevice::CreateDepthStencilBuffer()
 		Device->CreateDepthStencilState(&gizmoOutsideDesc, &DepthStencilStateGizmoOutside);
 	}
 
+	{
+		D3D11_DEPTH_STENCIL_DESC depthStencilStateNoneDesc = {};
+		depthStencilStateNoneDesc.DepthEnable = FALSE;
+		depthStencilStateNoneDesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+		depthStencilStateNoneDesc.DepthFunc = D3D11_COMPARISON_ALWAYS;
+		depthStencilStateNoneDesc.StencilEnable = FALSE;
+
+		Device->CreateDepthStencilState(&depthStencilStateNoneDesc, &DepthStencilStateNone);
+	}
 
 
 	//Stencil Mask Equal

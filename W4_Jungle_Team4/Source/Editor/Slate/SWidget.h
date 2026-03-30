@@ -59,6 +59,12 @@ public:
 	virtual json::JSON Serialize() const;
 	virtual void Deserialize(json::JSON& Data);
 
+	bool IsRenderable() const { return bRenderable; }
+	FColor GetColor() const { return Color; }
+	void SetColor(const FColor& InColor) { Color = InColor; }
+
+	virtual FRect GetRenderRect() { return Rect; }
+
 protected:
 	FString Name;
 
@@ -67,4 +73,7 @@ protected:
 
 	SWidget* Parent = nullptr;
 	TArray<SWidget*> Children;
+
+	bool bRenderable = false; // 렌더링 가능한 위젯인지 여부 (기본값 false, SImage, SText 등에서 true로 설정)
+	FColor Color = FColor::White(); // 위젯의 색상 (기본값 흰색)
 };

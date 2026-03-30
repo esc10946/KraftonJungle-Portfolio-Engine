@@ -69,12 +69,18 @@ void FEditorRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
 	Bus.Clear();
 
 	Renderer.BeginFrame();
-
 	for (FViewport* Viewport : FViewportManager::Get().GetViewports())
 	{
 		Renderer.GetViewportRenderer().Render(Renderer.GetFD3DDevice().GetDeviceContext(), Viewport);
 	}
 
+	Renderer.SetDefaultViewport(); // TODO: Render Pass 수정 필요
+
+	Collector.CollectFromSlate(Bus);
+	Renderer.PrepareBatchers(Bus);
+
+	Renderer.Render(Bus);
 	Editor->RenderUI(DeltaTime);
+
 	Renderer.EndFrame();
 }

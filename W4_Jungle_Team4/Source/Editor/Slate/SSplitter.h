@@ -6,7 +6,7 @@
 class SSplitter : public SWidget
 {
 public:
-	SSplitter() = default;
+	SSplitter() { bRenderable = true; }
 	virtual ~SSplitter() = default;
 
 public:
@@ -56,7 +56,7 @@ public:
 		return Children;
 	}
 
-	virtual bool IsOnHandle(float X, float Y) const { return false; }
+	virtual bool IsOnHandle(float X, float Y) { return false; }
 	virtual void UpdateSplit(float X, float Y) {}
 
 	virtual json::JSON Serialize() const override
@@ -85,5 +85,5 @@ protected:
 
 	float SplitRatio = 0.5f;
 	bool bIsDragging = false;
-	const float HandleSize = 12.0f;
+	const float HandleSize = 10.0f;
 };
