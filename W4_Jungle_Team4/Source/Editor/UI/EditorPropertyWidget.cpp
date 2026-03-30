@@ -28,7 +28,7 @@ namespace
 	{
 		TArray<FString> AssetPaths;
 		const std::filesystem::path DataDir =
-			std::filesystem::path(FPaths::ToUtf8(FPaths::RootDir())) / "Data";
+			std::filesystem::path(FPaths::ToUtf8(FPaths::MeshPath()));
 
 		std::error_code ErrorCode;
 		if (!std::filesystem::exists(DataDir, ErrorCode))
@@ -57,10 +57,9 @@ namespace
 		return AssetPaths;
 	}
 
-	const TArray<FString>& GetStaticMeshAssetOptions()
+	TArray<FString> GetStaticMeshAssetOptions()
 	{
-		static TArray<FString> CachedAssetPaths = ScanStaticMeshAssetOptions();
-		return CachedAssetPaths;
+		return ScanStaticMeshAssetOptions();
 	}
 
 	FString GetStaticMeshAssetDisplayName(const FString& AssetPath)
@@ -93,6 +92,23 @@ namespace
 		}
 
 		return false;
+	}
+
+	bool IsPreviewMaterial(const UMaterialInterface* Material);
+
+	void AppendMaterialCandidate(TArray<UMaterialInterface*>& InOutCandidates, UMaterialInterface* Candidate, bool bAllowPreview = false)
+	{
+		if (!Candidate || ContainsMaterial(InOutCandidates, Candidate))
+		{
+			return;
+		}
+
+		if (!bAllowPreview && IsPreviewMaterial(Candidate))
+		{
+			return;
+		}
+
+		InOutCandidates.push_back(Candidate);
 	}
 
 	FString ResolveMaterialTexturePath(UMaterialInterface* Material)
@@ -169,10 +185,7 @@ namespace
 	{
 		TArray<UMaterialInterface*> CandidateMaterials;
 
-		if (CurrentMaterial)
-		{
-			CandidateMaterials.push_back(CurrentMaterial);
-		}
+		AppendMaterialCandidate(CandidateMaterials, CurrentMaterial, true);
 
 		if (!StaticMeshComponent || ElementIndex < 0)
 		{
@@ -185,45 +198,21 @@ namespace
 			return CandidateMaterials;
 		}
 
-		TArray<FString> RelevantTexturePaths;
+		AppendMaterialCandidate(CandidateMaterials, StaticMeshComponent->GetMaterial(ElementIndex), true);
+
 		const TArray<FStaticMeshSection>& Sections = StaticMesh->GetSections();
 		for (size_t SectionIndex = 0; SectionIndex < Sections.size(); ++SectionIndex)
 		{
-			if (UMaterialInterface* Material = StaticMesh->GetDefaultMaterialForSection(static_cast<int32>(SectionIndex)))
-			{
-				const FString TexturePath = ResolveMaterialTexturePath(Material);
-				if (!TexturePath.empty() && !ContainsString(RelevantTexturePaths, TexturePath))
-				{
-					RelevantTexturePaths.push_back(TexturePath);
-				}
-			}
-		}
-
-		const FString CurrentTexturePath = ResolveMaterialTexturePath(CurrentMaterial);
-		if (!CurrentTexturePath.empty() && !ContainsString(RelevantTexturePaths, CurrentTexturePath))
-		{
-			RelevantTexturePaths.push_back(CurrentTexturePath);
+			AppendMaterialCandidate(
+				CandidateMaterials,
+				StaticMesh->GetDefaultMaterialForSection(static_cast<int32>(SectionIndex)),
+				true);
 		}
 
 		for (FObjectIterator It(&UMaterialInterface::s_TypeInfo); It; ++It)
 		{
 			UMaterialInterface* Candidate = static_cast<UMaterialInterface*>(*It);
-			if (!Candidate || ContainsMaterial(CandidateMaterials, Candidate))
-			{
-				continue;
-			}
-
-			if (IsPreviewMaterial(Candidate))
-			{
-				continue;
-			}
-
-			const FString TexturePath = ResolveMaterialTexturePath(Candidate);
-			const bool bTextureMatches = !TexturePath.empty() && ContainsString(RelevantTexturePaths, TexturePath);
-			if (bTextureMatches || IsAtlasMaterial(Candidate))
-			{
-				CandidateMaterials.push_back(Candidate);
-			}
+			AppendMaterialCandidate(CandidateMaterials, Candidate);
 		}
 
 		return CandidateMaterials;
@@ -607,7 +596,7 @@ void FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 			ImGui::PushID(Prop.Name);
 			if (ImGui::BeginCombo("##StaticMeshPicker", CurrentLabel.c_str()))
 			{
-				const TArray<FString>& AssetPaths = GetStaticMeshAssetOptions();
+				const TArray<FString> AssetPaths = GetStaticMeshAssetOptions();
 				const bool bNoneSelected = (CurrentMesh == nullptr);
 				if (ImGui::Selectable("None##NullStaticMesh", bNoneSelected))
 				{
