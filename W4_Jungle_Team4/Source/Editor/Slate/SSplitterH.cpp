@@ -1,5 +1,6 @@
 ﻿#include "SSplitterH.h"
 #include "Editor/UI/EditorConsoleWidget.h"
+#include "ThirdParty/ImGui/imgui.h"
 
 void SSplitterH::Tick(float DeltaTime)
 {
@@ -21,19 +22,21 @@ void SSplitterH::OnResize(const FRect& NewRect)
 	if (GetSideRB()) GetSideRB()->OnResize(bottomRect);
 }
 
-bool SSplitterH::IsOnHandle(float X, float Y) const
+bool SSplitterH::IsOnHandle(float X, float Y)
 {
 	FRect widgetRect = GetRect();
-	float SplitY = widgetRect.Y + (widgetRect.Height * SplitRatio);
+	uint32 SplitY = static_cast<uint32>(widgetRect.Height * SplitRatio);
+	float CenterY = static_cast<float>(widgetRect.Y + SplitY);
 
-	bool isOn = Y >= SplitY - HandleSize * 0.5f && Y <= SplitY + HandleSize * 0.5f;
+	bool isOn = Y >= CenterY - HandleSize * 0.5f && Y <= CenterY + HandleSize * 0.5f;
 	if (isOn)
 	{
-		SetCursor(LoadCursor(NULL, IDC_CROSS));
+		ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeNS);
+		Color = FColor(30, 30, 30, 255);
 	}
 	else
 	{
-		SetCursor(LoadCursor(NULL, IDC_ARROW));
+		Color = FColor(30, 30, 30, 150);
 	}
 
 	return isOn;
@@ -65,4 +68,15 @@ FReply SSplitterH::OnMouseButtonUp(float X, float Y, int32 Button)
 FReply SSplitterH::OnMouseMove(float X, float Y)
 {
 	return SSplitter::OnMouseMove(X, Y);
+}
+
+FRect SSplitterH::GetRenderRect()
+{
+	FRect RenderRect;
+	RenderRect.X = Rect.X;
+	RenderRect.Y = Rect.Y + static_cast<uint32>(Rect.Height * SplitRatio) - static_cast<uint32>(HandleSize * 0.5f);
+	RenderRect.Width = Rect.Width;
+	RenderRect.Height = static_cast<uint32>(HandleSize);
+
+	return RenderRect;
 }

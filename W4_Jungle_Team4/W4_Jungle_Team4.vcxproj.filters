@@ -391,6 +391,9 @@
       <Filter>Source\Viewer</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
+    <ClCompile Include="Source\Engine\Render\SlateBatcher.cpp" />
+    <ClCompile Include="Shaders\ScreenQuadSimple.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\EditorEngine.h">
@@ -735,5 +738,14 @@
     <ClInclude Include="Source\Editor\Viewport\Viewport.h" />
     <ClInclude Include="Source\Editor\Viewport\ViewportClient.h" />
     <ClInclude Include="Source\Editor\Viewport\ViewOption.h" />
+    <ClInclude Include="Source\Editor\Slate\ConsoleCommandManager.h" />
+    <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
+    <ClInclude Include="Source\Engine\Component\OrbitCameraComponent.h" />
+    <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
+    <ClInclude Include="Source\Viewer\ViewerEngine.h" />
+    <ClInclude Include="Source\Viewer\ViewerPanel.h" />
+    <ClInclude Include="Source\Viewer\ViewerRenderPipeline.h" />
+    <ClInclude Include="Source\Viewer\ViewerViewportClient.h" />
+    <ClInclude Include="Source\Engine\Render\SlateBatcher.h" />
   </ItemGroup>
 </Project>

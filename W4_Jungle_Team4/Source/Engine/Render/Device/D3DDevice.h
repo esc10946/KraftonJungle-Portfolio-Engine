@@ -18,7 +18,9 @@ enum class EDepthStencilState
 
 	// --- 기즈모 전용 ---
 	GizmoInside,         
-	GizmoOutside         
+	GizmoOutside,
+
+	None
 };
 
 enum class EBlendState
@@ -62,6 +64,8 @@ private:
 
 	ID3D11DepthStencilState* DepthStencilStateGizmoInside = nullptr;  
 	ID3D11DepthStencilState* DepthStencilStateGizmoOutside = nullptr; 
+
+	ID3D11DepthStencilState* DepthStencilStateNone = nullptr;
 
 	ID3D11BlendState* BlendStateAlpha = nullptr;
 	ID3D11BlendState* BlendStateNoColorWrite = nullptr;
@@ -107,6 +111,7 @@ public:
 	void EndFrame();
 
 	void OnResizeViewport(int width, int height);
+	void SetDefaultViewport();
 
 	ID3D11Device* GetDevice() const;
 	ID3D11DeviceContext* GetDeviceContext() const;
