@@ -242,8 +242,6 @@ namespace
 			{
 				return false;
 			}
-
-			OutMaterialSlots[Index].DefaultMaterial = nullptr;
 		}
 
 		return true;

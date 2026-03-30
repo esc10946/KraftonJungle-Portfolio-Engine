@@ -3,9 +3,8 @@
 #include "MeshComponent.h"
 #include "Render/Resource/VertexTypes.h"
 
-class UMaterial;
+class UMaterialInterface;
 class UStaticMesh;
-struct FStaticMeshAsset;
 
 class UStaticMeshComponent : public UMeshComponent
 {
@@ -17,30 +16,30 @@ public:
 
 	void SetStaticMesh(UStaticMesh* InMesh);
 	UStaticMesh* GetStaticMesh() const { return StaticMesh; }
-	FStaticMeshAsset* GetStaticMeshAsset() const;
 	FString GetStaticMeshAssetPath() const;
 	const FTexturedMeshData* GetTexturedMeshData() const;
 	uint32 GetTexturedMeshRevision() const { return TexturedMeshRevision; }
 
-	virtual void SetMaterial(int32 SlotIndex, UMaterial* InMaterial) override;
-	virtual UMaterial* GetMaterial(int32 SlotIndex) const override;
-	virtual int32 GetNumMaterials() const override;
+	void SetMaterial(int32 SlotIndex, UMaterialInterface* InMaterial) override;
+	UMaterialInterface* GetMaterial(int32 SlotIndex) const override;
+	int32 GetNumMaterials() const override;
 
-	virtual void UpdateWorldAABB() const override;
+	void UpdateWorldAABB() const override;
 
 	void GetEditableProperties(TArray<FPropertyDescriptor>& OutProps) override;
-	virtual void PostEditProperty(const char* PropertyName) override;
+	void PostEditProperty(const char* PropertyName) override;
 
-	virtual EPrimitiveType GetPrimitiveType() const override { return EPrimitiveType::EPT_StaticMesh; }
-	virtual bool SupportsOutline() const override { return false; }
+	EPrimitiveType GetPrimitiveType() const override { return EPrimitiveType::EPT_StaticMesh; }
+	bool SupportsOutline() const override { return false; }
 
 private:
+	void InitializeMaterialSlotsFromMesh();
 	void RefreshMeshData();
-	void ApplyAtlasMaterialToTexturedMeshData();
 
 private:
 	UStaticMesh* StaticMesh = nullptr;
 	FMeshData StaticMeshRenderData;
 	FTexturedMeshData StaticMeshTexturedRenderData;
 	uint32 TexturedMeshRevision = 0;
+	TArray<FString> EditableMaterialPropertyNames;
 };

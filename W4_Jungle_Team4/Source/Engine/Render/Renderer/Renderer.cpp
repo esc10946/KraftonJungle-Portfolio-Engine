@@ -3,6 +3,7 @@
 #include <iostream>
 #include <algorithm>
 #include "Asset/Material/MaterialObject.h"
+#include "Asset/Shader/ShaderObject.h"
 #include "Core/Paths.h"
 #include "Core/ResourceManager.h"
 #include "Render/Common/RenderTypes.h"
@@ -141,12 +142,20 @@ const TArray<FRenderCommand>& FRenderer::GetAlignedCommands(ERenderPass Pass, co
 
 				if (A.Type == ERenderCommandType::StaticMesh && B.Type == ERenderCommandType::StaticMesh)
 				{
+					if (A.Constants.StaticMesh.Shader != B.Constants.StaticMesh.Shader)
+					{
+						return A.Constants.StaticMesh.Shader < B.Constants.StaticMesh.Shader;
+					}
+
 					if (A.Constants.StaticMesh.Material != B.Constants.StaticMesh.Material)
 					{
 						return A.Constants.StaticMesh.Material < B.Constants.StaticMesh.Material;
 					}
 
-					return A.Constants.StaticMesh.DiffuseSRV < B.Constants.StaticMesh.DiffuseSRV;
+					if (A.Constants.StaticMesh.DiffuseSRV != B.Constants.StaticMesh.DiffuseSRV)
+					{
+						return A.Constants.StaticMesh.DiffuseSRV < B.Constants.StaticMesh.DiffuseSRV;
+					}
 				}
 
 				return A.MeshBuffer < B.MeshBuffer;
@@ -156,6 +165,30 @@ const TArray<FRenderCommand>& FRenderer::GetAlignedCommands(ERenderPass Pass, co
 	}
 
 	return Commands;
+}
+
+FShader* FRenderer::ResolveShaderAsset(const UShader* InShader)
+{
+	if (!InShader)
+	{
+		return nullptr;
+	}
+
+	switch (InShader->GetDomain())
+	{
+	case EShaderDomain::Primitive:
+		return &Resources.PrimitiveShader;
+	case EShaderDomain::StaticMesh:
+		return &Resources.StaticMeshShader;
+	case EShaderDomain::Gizmo:
+		return &Resources.GizmoShader;
+	case EShaderDomain::Editor:
+		return &Resources.EditorShader;
+	case EShaderDomain::Outline:
+		return &Resources.OutlineShader;
+	default:
+		return nullptr;
+	}
 }
 
 //	GPU 프레임 시작. 반드시 Render 이전에 호출되어야 함.
@@ -394,9 +427,29 @@ void FRenderer::BindShaderByType(const FRenderCommand& InCmd, ID3D11DeviceContex
 
 	switch (InCmd.Type)
 	{
+	case ERenderCommandType::Primitive:
+	{
+		Resources.PrimitiveShader.Bind(Context);
+
+		ID3D11Buffer* cb = Resources.PerObjectConstantBuffer.GetBuffer();
+		Context->VSSetConstantBuffers(1, 1, &cb);
+		Context->PSSetConstantBuffers(1, 1, &cb);
+
+		ID3D11ShaderResourceView* NullShaderResources[1] = { nullptr };
+		Context->PSSetShaderResources(0, 1, NullShaderResources);
+		break;
+	}
+
 	case ERenderCommandType::StaticMesh:
 	{
-		Resources.StaticMeshShader.Bind(Context);
+		if (FShader* MaterialShader = ResolveShaderAsset(InCmd.Constants.StaticMesh.Shader))
+		{
+			MaterialShader->Bind(Context);
+		}
+		else
+		{
+			Resources.StaticMeshShader.Bind(Context);
+		}
 		Resources.StaticMeshConstantBuffer.Update(Context, &InCmd.Constants.StaticMesh, sizeof(FStaticMeshConstants));
 
 		ID3D11Buffer* cb = Resources.PerObjectConstantBuffer.GetBuffer();
@@ -406,8 +459,11 @@ void FRenderer::BindShaderByType(const FRenderCommand& InCmd, ID3D11DeviceContex
 		cb = Resources.StaticMeshConstantBuffer.GetBuffer();
 		Context->PSSetConstantBuffers(6, 1, &cb);
 
-		ID3D11ShaderResourceView* ShaderResourceView = InCmd.Constants.StaticMesh.DiffuseSRV;
-		Context->PSSetShaderResources(0, 1, &ShaderResourceView);
+		ID3D11ShaderResourceView* ShaderResourceViews[1] =
+		{
+			InCmd.Constants.StaticMesh.DiffuseSRV
+		};
+		Context->PSSetShaderResources(0, 1, ShaderResourceViews);
 		Context->PSSetSamplers(0, 1, &StaticMeshSamplerState);
 		break;
 	}
@@ -542,4 +598,11 @@ void FRenderer::UpdateFrameBuffer(ID3D11DeviceContext* Context, const FRenderBus
 	ID3D11Buffer* b0 = Resources.FrameBuffer.GetBuffer();
 	Context->VSSetConstantBuffers(0, 1, &b0);
 	Context->PSSetConstantBuffers(0, 1, &b0);
+
+	FEditorConstants editorConstantData = {};
+	editorConstantData.CameraPosition = InRenderBus.GetView().GetInverseFast().GetLocation();
+	Resources.EditorConstantBuffer.Update(Context, &editorConstantData, sizeof(FEditorConstants));
+	ID3D11Buffer* b4 = Resources.EditorConstantBuffer.GetBuffer();
+	Context->VSSetConstantBuffers(4, 1, &b4);
+	Context->PSSetConstantBuffers(4, 1, &b4);
 }

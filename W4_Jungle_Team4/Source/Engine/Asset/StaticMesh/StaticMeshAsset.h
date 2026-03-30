@@ -1,8 +1,10 @@
-﻿#pragma once
+#pragma once
 
 #include "Core/CoreTypes.h"
 #include "Math/Vector.h"
 #include "Render/Resource/VertexTypes.h"
+
+class UMaterialInterface;
 
 /**
 @brief 최종 렌더링에 들어갈 정점 1개 데이터.
@@ -17,14 +19,12 @@ struct FStaticMeshVertex
 /**
 @brief 메시를 머티리얼 단위로 나눈 구간 정보
 */
-class UMaterial;
-
 struct FStaticMaterialSlot
 {
 	FString SlotName;
 	FString SourceMaterialName;
 	FString DiffuseTexturePath;
-	UMaterial* DefaultMaterial = nullptr;
+	UMaterialInterface* DefaultMaterial = nullptr;
 };
 
 struct FStaticMeshSection
@@ -135,6 +135,7 @@ struct FStaticMeshAsset
 		{
 			FTextureVertex RenderVertex;
 			RenderVertex.Position = Vertex.Position;
+			RenderVertex.Normal = Vertex.Normal;
 			RenderVertex.TexCoord = Vertex.TexCoord;
 			OutMeshData.Vertices.push_back(RenderVertex);
 		}

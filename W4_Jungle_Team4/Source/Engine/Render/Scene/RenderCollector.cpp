@@ -7,8 +7,8 @@
 #include "Component/StaticMeshComponent.h"
 #include "Component/TextRenderComponent.h"
 #include "Component/SubUVComponent.h"
-#include "Asset/StaticMesh/StaticMeshAsset.h"
 #include "Asset/Material/MaterialObject.h"
+#include "Asset/StaticMesh/StaticMeshObject.h"
 #include "Asset/Texture/TextureObject.h"
 #include "Core/ResourceManager.h"
 
@@ -20,7 +20,7 @@ void FRenderCollector::Release()
 	}
 
 	StaticMeshBufferMap.clear();
-	StaticMeshAssetMap.clear();
+	StaticMeshMap.clear();
 	StaticMeshRevisionMap.clear();
 	MeshBufferManager.Release();
 	Device = nullptr;
@@ -192,7 +192,7 @@ void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, cons
 	{
 		if (!ShowFlags.bPrimitives) return;
 		FRenderCommand Cmd = {};
-		Cmd.PerObjectConstants = FPerObjectConstants{ Primitive->GetWorldMatrix(), FColor::White().ToVector4() };
+		Cmd.PerObjectConstants = FPerObjectConstants{ Primitive->GetWorldMatrix(), Primitive->GetMaterialColor() };
 		Cmd.Type = ERenderCommandType::Primitive;
 		Cmd.MeshBuffer = &MeshBufferManager.GetMeshBuffer(PrimType);
 		Cmd.DepthStencilState = EDepthStencilState::Default;
@@ -224,15 +224,17 @@ void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, cons
 		if (!ShowFlags.bPrimitives) return;
 
 		UStaticMeshComponent* StaticMeshComponent = static_cast<UStaticMeshComponent*>(Primitive);
-		FStaticMeshAsset* StaticMeshAsset = StaticMeshComponent->GetStaticMeshAsset();
+		UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
 		FTextureMeshBuffer* StaticMeshBuffer = GetOrCreateStaticMeshBuffer(StaticMeshComponent);
-		if (!StaticMeshAsset || !StaticMeshBuffer || !StaticMeshBuffer->IsValid())
+		if (!StaticMesh || !StaticMeshBuffer || !StaticMeshBuffer->IsValid())
 		{
 			return;
 		}
 
-		for (const FStaticMeshSection& Section : StaticMeshAsset->Sections)
+		const TArray<FStaticMeshSection>& Sections = StaticMesh->GetSections();
+		for (size_t SectionIndex = 0; SectionIndex < Sections.size(); ++SectionIndex)
 		{
+			const FStaticMeshSection& Section = Sections[SectionIndex];
 			FRenderCommand Cmd = {};
 			Cmd.Type = ERenderCommandType::StaticMesh;
 			Cmd.TextureMeshBuffer = StaticMeshBuffer;
@@ -242,15 +244,24 @@ void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, cons
 			Cmd.Constants.StaticMesh.FirstIndex = Section.FirstIndex;
 			Cmd.Constants.StaticMesh.IndexCount = Section.IndexCount;
 
-			UMaterial* Material = StaticMeshComponent->GetMaterial(static_cast<int32>(Section.MaterialSlotIndex));
+			UMaterialInterface* Material = StaticMeshComponent->GetMaterial(static_cast<int32>(SectionIndex));
 			Cmd.Constants.StaticMesh.Material = Material;
+			FResolvedMaterialParameters MaterialParameters;
 			if (Material)
 			{
-				Cmd.PerObjectConstants.Color = Material->GetBaseColor();
-				if (UTexture2D* Texture = Material->GetDiffuseTexture())
+				Material->ResolveParameters(MaterialParameters);
+				Cmd.Constants.StaticMesh.Shader = MaterialParameters.Shader;
+				Cmd.PerObjectConstants.Color = MaterialParameters.BaseColor;
+				Cmd.Constants.StaticMesh.bUseAtlas = MaterialParameters.bUseAtlas ? 1u : 0u;
+				Cmd.Constants.StaticMesh.bSourceUVsUseAtlasTiles =
+					(MaterialParameters.bUseAtlas && StaticMesh->SectionUsesEmbeddedAtlasUVs(static_cast<int32>(SectionIndex))) ? 1u : 0u;
+				Cmd.Constants.StaticMesh.SourceAtlasTileScale = 64.0f;
+				Cmd.Constants.StaticMesh.TopUVRect = MaterialParameters.TopUVRect;
+				Cmd.Constants.StaticMesh.SideUVRect = MaterialParameters.SideUVRect;
+				Cmd.Constants.StaticMesh.BottomUVRect = MaterialParameters.BottomUVRect;
+				if (UTexture2D* Texture = MaterialParameters.DiffuseTexture)
 				{
-					Cmd.Constants.StaticMesh.DiffuseSRV =
-						FResourceManager::Get().GetOrCreateTextureSRV(Texture->GetSourcePath(), Device);
+					Cmd.Constants.StaticMesh.DiffuseSRV = Texture->GetOrCreateShaderResourceView(Device);
 				}
 				Cmd.Constants.StaticMesh.bUseTexture = (Cmd.Constants.StaticMesh.DiffuseSRV != nullptr) ? 1u : 0u;
 			}
@@ -291,28 +302,28 @@ FTextureMeshBuffer* FRenderCollector::GetOrCreateStaticMeshBuffer(UStaticMeshCom
 		return nullptr;
 	}
 
-	FStaticMeshAsset* StaticMeshAsset = StaticMeshComponent->GetStaticMeshAsset();
+	UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
 	const FTexturedMeshData* TexturedMeshData = StaticMeshComponent->GetTexturedMeshData();
-	if (!StaticMeshAsset || !TexturedMeshData)
+	if (!StaticMesh || !TexturedMeshData)
 	{
 		return nullptr;
 	}
 
 	FTextureMeshBuffer& MeshBuffer = StaticMeshBufferMap[StaticMeshComponent];
-	const auto It = StaticMeshAssetMap.find(StaticMeshComponent);
+	const auto It = StaticMeshMap.find(StaticMeshComponent);
 	const uint32 CurrentRevision = StaticMeshComponent->GetTexturedMeshRevision();
 	const auto RevisionIt = StaticMeshRevisionMap.find(StaticMeshComponent);
 	const bool bRevisionChanged = (RevisionIt == StaticMeshRevisionMap.end()) || (RevisionIt->second != CurrentRevision);
 	const bool bNeedsRebuild =
-		(It == StaticMeshAssetMap.end()) ||
-		(It->second != StaticMeshAsset) ||
+		(It == StaticMeshMap.end()) ||
+		(It->second != StaticMesh) ||
 		!MeshBuffer.IsValid() ||
 		bRevisionChanged;
 	if (bNeedsRebuild)
 	{
 		MeshBuffer.Release();
 		MeshBuffer.Create(Device, *TexturedMeshData);
-		StaticMeshAssetMap[StaticMeshComponent] = StaticMeshAsset;
+		StaticMeshMap[StaticMeshComponent] = StaticMesh;
 		StaticMeshRevisionMap[StaticMeshComponent] = CurrentRevision;
 	}
 

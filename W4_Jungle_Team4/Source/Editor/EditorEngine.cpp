@@ -123,11 +123,16 @@ UCameraComponent* UEditorEngine::GetCamera() const
 
 void UEditorEngine::ResetViewport()
 {
-	//ViewportClient.CreateCamera();
-	//ViewportClient.SetWorld(GetWorld());
-	//ViewportClient.SetViewportSize(Window->GetWidth(), Window->GetHeight());
-	//ViewportClient.ResetCamera();
-	GetWorld()->SetActiveCamera(GetWorld()->GetActiveCamera());
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	if (UCameraComponent* Camera = GetCamera())
+	{
+		World->SetActiveCamera(Camera);
+	}
 }
 
 void UEditorEngine::CloseScene()
@@ -150,6 +155,8 @@ void UEditorEngine::NewScene()
 	ClearScene();
 	FWorldContext& Ctx = CreateWorldContext(EWorldType::Editor, FName("NewScene"), "New Scene");
 	SetActiveWorld(Ctx.ContextHandle);
+	Ctx.World->InitWorld();
+	FViewportManager::Get().SetWorld(Ctx.World);
 
 	ResetViewport();
 }
@@ -157,6 +164,7 @@ void UEditorEngine::NewScene()
 void UEditorEngine::ClearScene()
 {
 	SelectionManager.ClearSelection();
+	FViewportManager::Get().SetWorld(nullptr);
 
 	for (FWorldContext& Ctx : WorldList)
 	{

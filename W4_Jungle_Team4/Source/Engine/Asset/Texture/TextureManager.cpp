@@ -32,6 +32,17 @@ UTexture2D* FTextureManager::FindTexture(const FString& InTexturePath) const
 	return (It != TextureMap.end()) ? It->second : nullptr;
 }
 
+void FTextureManager::InvalidateAllTextureViews()
+{
+	for (auto& Pair : TextureMap)
+	{
+		if (Pair.second)
+		{
+			Pair.second->InvalidateShaderResourceView();
+		}
+	}
+}
+
 void FTextureManager::Clear()
 {
 	TextureMap.clear();

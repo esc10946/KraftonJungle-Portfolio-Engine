@@ -27,6 +27,7 @@ void UEngine::Init(FWindowsWindow* InWindow)
 		FPaths::ToUtf8(FPaths::ResourceFilePath()), Renderer.GetFD3DDevice().GetDevice());
 	// 일단은 여기에 했는데..수정하겠습니다ㅠ,ㅠ
 	FMaterialManager::Get().RegisterDefaultBlockAtlasMaterials();
+	FMaterialManager::Get().RegisterDefaultPreviewMaterials();
 
 	SetRenderPipeline(std::make_unique<FDefaultRenderPipeline>(this, Renderer));
 }

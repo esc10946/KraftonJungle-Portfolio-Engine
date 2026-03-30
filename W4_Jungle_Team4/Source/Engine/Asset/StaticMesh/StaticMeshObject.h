@@ -1,31 +1,44 @@
 #pragma once
 
-#include "Object/ObjectFactory.h"
+#include "Asset/Mesh/MeshObject.h"
 #include "Asset/StaticMesh/StaticMeshAsset.h"
 
-// UStaticMesh는 "엔진의 UObject로 감싼 정적 메시"
-// 실제 vertex/index 데이터는 FStaticMeshAsset이 들고 있고,
-// UStaticMesh는 UObject 시스템에서 다루기 위한 wrapper 역할
-class UStaticMesh : public UObject
+class UMaterialInterface;
+
+class UStaticMesh : public UMesh
 {
 public:
-	DECLARE_CLASS(UStaticMesh, UObject)
+	DECLARE_CLASS(UStaticMesh, UMesh)
 
 	UStaticMesh() = default;
 	~UStaticMesh() override = default;
 
 	void SetStaticMeshAsset(FStaticMeshAsset* InStaticMeshAsset);
 
-	FStaticMeshAsset* GetStaticMeshAsset() const { return StaticMeshAsset; }
 	const FString& GetAssetPathFileName() const;
 	FString GetDisplayName() const;
-	bool HasStaticMeshAsset() const { return StaticMeshAsset != nullptr; }
-	const TArray<FStaticMaterialSlot>& GetMaterialSlots() const { return MaterialSlots; }
-	int32 GetNumMaterialSlots() const { return static_cast<int32>(MaterialSlots.size()); }
-	UMaterial* GetDefaultMaterial(int32 SlotIndex) const;
-	void SetDefaultMaterial(int32 SlotIndex, UMaterial* InMaterial);
+	bool HasGeometry() const { return !Vertices.empty() && !Indices.empty(); }
+	const TArray<FStaticMeshVertex>& GetVertices() const { return Vertices; }
+	const TArray<uint32>& GetIndices() const { return Indices; }
+	const TArray<FStaticMeshSection>& GetSections() const { return Sections; }
+	const TArray<FStaticMaterialSlot>& GetMaterialSlots() const;
+	UMaterialInterface* GetDefaultMaterial(int32 SlotIndex) const;
+	UMaterialInterface* GetDefaultMaterialForSection(int32 SectionIndex) const;
+	bool SectionUsesEmbeddedAtlasUVs(int32 SectionIndex) const;
+	int32 GetNumMaterialSlots() const override;
+	int32 GetNumSections() const { return static_cast<int32>(Sections.size()); }
+	const FVector& GetBoundsMin() const { return BoundsMin; }
+	const FVector& GetBoundsMax() const { return BoundsMax; }
+	bool BuildRenderMeshData(FMeshData& OutMeshData) const;
+	bool BuildTexturedRenderMeshData(FTexturedMeshData& OutMeshData) const;
 
 private:
-	FStaticMeshAsset* StaticMeshAsset = nullptr;
+	FString SourcePath;
+	FString BakePath;
+	TArray<FStaticMeshVertex> Vertices;
+	TArray<uint32> Indices;
 	TArray<FStaticMaterialSlot> MaterialSlots;
+	TArray<FStaticMeshSection> Sections;
+	FVector BoundsMin;
+	FVector BoundsMax;
 };

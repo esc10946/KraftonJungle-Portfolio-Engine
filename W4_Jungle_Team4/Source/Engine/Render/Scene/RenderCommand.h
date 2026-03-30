@@ -15,7 +15,8 @@
 #include "Math/Matrix.h"
 #include "Math/Vector.h"
 
-class UMaterial;
+class UMaterialInterface;
+class UShader;
 
 enum class ERenderCommandType
 {
@@ -35,7 +36,7 @@ enum class ERenderCommandType
 struct FPerObjectConstants
 {
 	FMatrix Model;
-	FVector4 Color;
+	FVector4 Color = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
 };
 
 struct FFrameConstants
@@ -105,12 +106,19 @@ struct FSubUVConstants
 
 struct FStaticMeshConstants
 {
-	UMaterial* Material = nullptr;
-	ID3D11ShaderResourceView* DiffuseSRV = nullptr;
+	uint32 bUseTexture = 0;
+	uint32 bUseAtlas = 0;
+	uint32 bSourceUVsUseAtlasTiles = 0;
+	float SourceAtlasTileScale = 1.0f;
+	FVector4 TopUVRect = FVector4(0.0f, 0.0f, 1.0f, 1.0f);
+	FVector4 SideUVRect = FVector4(0.0f, 0.0f, 1.0f, 1.0f);
+	FVector4 BottomUVRect = FVector4(0.0f, 0.0f, 1.0f, 1.0f);
 	uint32 FirstIndex = 0;
 	uint32 IndexCount = 0;
-	uint32 bUseTexture = 0;
-	float Padding0[3];
+	float Padding1[2] = {};
+	UShader* Shader = nullptr;
+	UMaterialInterface* Material = nullptr;
+	ID3D11ShaderResourceView* DiffuseSRV = nullptr;
 };
 
 struct FRenderCommand

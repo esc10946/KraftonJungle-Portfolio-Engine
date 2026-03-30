@@ -75,6 +75,7 @@ void FEditorViewportClient::OnMouseDown(float X, float Y, int32 Button)
 	if (Button == VK_LBUTTON)
 	{
 		bIsLeftMouseDown = true;
+		Gizmo->SetPressedOnHandle(false);
 
 		FRay Ray = Camera->DeprojectScreenToWorld(MouseX, MouseY, Viewport->GetSize().X, Viewport->GetSize().Y);
 		FHitResult HitResult;
@@ -105,6 +106,8 @@ void FEditorViewportClient::OnMouseUp(float X, float Y, int32 Button)
 		{
 			Gizmo->DragEnd();
 		}
+
+		Gizmo->SetPressedOnHandle(false);
 	}
 	if (Button == VK_RBUTTON)
 	{
@@ -244,6 +247,8 @@ void FEditorViewportClient::HandleDragStart(const FRay& Ray)
 	}
 	else
 	{
+		Gizmo->SetPressedOnHandle(false);
+
 		AActor* BestActor = nullptr;
 		float ClosestDistance = FLT_MAX;
 

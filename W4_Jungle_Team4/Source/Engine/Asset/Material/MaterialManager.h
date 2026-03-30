@@ -4,6 +4,8 @@
 #include "Core/Singleton.h"
 
 class UMaterial;
+class UMaterialInterface;
+class UMaterialInstance;
 struct FStaticMaterialSlot;
 
 class FMaterialManager : public TSingleton<FMaterialManager>
@@ -12,8 +14,9 @@ class FMaterialManager : public TSingleton<FMaterialManager>
 
 public:
 	UMaterial* GetOrCreateMaterial(const FStaticMaterialSlot& InSlot);
-	UMaterial* FindMaterial(const FString& InKey) const;
-	void PreloadMaterialResources(UMaterial* InMaterial);
+	UMaterialInterface* FindMaterial(const FString& InKey) const;
+	UMaterialInstance* CreateMaterialInstance(UMaterial* ParentMaterial, const FString& InstanceName);
+	void PreloadMaterialResources(UMaterialInterface* InMaterial);
 	void Clear();
 
 	UMaterial* RegisterAtlasMaterial(
@@ -25,11 +28,12 @@ public:
 		int32 SideTileX, int32 SideTileY,
 		int32 BottomTileX, int32 BottomTileY);
 	void RegisterDefaultBlockAtlasMaterials();
+	void RegisterDefaultPreviewMaterials();
 
 private:
 	FMaterialManager() = default;
 	FString MakeMaterialKey(const FStaticMaterialSlot& InSlot) const;
 
 private:
-	TMap<FString, UMaterial*> MaterialMap;
+	TMap<FString, UMaterialInterface*> MaterialMap;
 };
