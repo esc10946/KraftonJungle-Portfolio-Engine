@@ -1,73 +1,57 @@
 ﻿#include "StaticMeshComponent.h"
 
+#include "Asset/Material/MaterialObject.h"
 #include "Asset/StaticMesh/StaticMeshAsset.h"
-#include "Asset/StaticMesh/StaticMeshManager.h"
-#include "Asset/StaticMesh/StaticMesh.h"
-#include "Render/Resource/Material.h"
+#include "Asset/StaticMesh/StaticMeshObject.h"
 #include "Math/Vector.h"
 
 #include <algorithm>
 #include <cstring>
-#include <Core/ResourceManager.h>
+#include <cmath>
+#include <limits>
 
 DEFINE_CLASS(UStaticMeshComponent, UMeshComponent)
 REGISTER_FACTORY(UStaticMeshComponent)
 
-UStaticMeshComponent::UStaticMeshComponent()
+namespace
 {
-    const FString ObjPath = "Data/cube-tex.obj";
+	struct FFaceGroup
+	{
+		FVector Normal;
+		TArray<int32> VertexIndices;
+		float MinU = std::numeric_limits<float>::max();
+		float MaxU = std::numeric_limits<float>::lowest();
+		float MinV = std::numeric_limits<float>::max();
+		float MaxV = std::numeric_limits<float>::lowest();
+	};
 
-    // 1. FStaticMeshAsset 로드
-    FStaticMeshAsset* LoadedAsset = FStaticMeshManager::Get().LoadStaticMeshAsset(ObjPath);
-    if (!LoadedAsset) return;
-
-    // 2. UStaticMesh 생성
-    UStaticMesh* NewMesh = UObjectManager::Get().CreateObject<UStaticMesh>();
-    NewMesh->SetMeshAsset(*LoadedAsset);
-    NewMesh->MarkGPUDirty();
-    SetStaticMesh(NewMesh);
-
-    // 3. cube-tex.mtl 내용 그대로 하드코딩
-    // newmtl texture
-    // Ka 0.0 0.0 0.0
-    // Kd 0.5 0.5 0.5
-    // Ks 0.0 0.0 0.0
-    // Ns 10.0
-    // map_Kd cube-tex.png
-    FMaterial MatData;
-    MatData.MaterialName       = "texture";
-    MatData.Ka                 = FVector(0.0f, 0.0f, 0.0f);
-    MatData.Kd                 = FVector(0.5f, 0.5f, 0.5f);
-    MatData.Ks                 = FVector(0.0f, 0.0f, 0.0f);
-    MatData.Ns                 = 10.0f;
-    MatData.map_Kd = "Data/cube-tex.png";
-
-    // 4. UMaterial 생성
-    UMaterial* Material = UObjectManager::Get().CreateObject<UMaterial>();
-    Material->SetFName(MatData.MaterialName);
-    Material->SetMaterialData(MatData);
-
-    // 5. UTexture 로드 후 연결
-    UTexture* DiffuseTex = FResourceManager::Get().LoadTexture(MatData.map_Kd);
-    if (DiffuseTex)
-        Material->SetDiffuseTexture(DiffuseTex);
-
-	//버퍼초기화 샤갈...
-
-    // 6. 슬롯 0번에 등록 (cube-tex.obj는 섹션 1개)
-    SetMaterial(0, Material);
+	bool SameNormal(const FVector& A, const FVector& B)
+	{
+		return std::fabs(A.X - B.X) < 0.001f &&
+			std::fabs(A.Y - B.Y) < 0.001f &&
+			std::fabs(A.Z - B.Z) < 0.001f;
+	}
 }
 
-UStaticMeshComponent::~UStaticMeshComponent()
-{
-	
-}
-
-//에셋 교체 시
 void UStaticMeshComponent::SetStaticMesh(UStaticMesh* InMesh)
 {
 	StaticMesh = InMesh;
-	//RefreshMeshData();
+	RefreshMeshData();
+}
+
+FStaticMeshAsset* UStaticMeshComponent::GetStaticMeshAsset() const
+{
+	return StaticMesh ? StaticMesh->GetStaticMeshAsset() : nullptr;
+}
+
+FString UStaticMeshComponent::GetStaticMeshAssetPath() const
+{
+	return StaticMesh ? StaticMesh->GetAssetPathFileName() : FString();
+}
+
+const FTexturedMeshData* UStaticMeshComponent::GetTexturedMeshData() const
+{
+	return StaticMeshTexturedRenderData.Vertices.empty() ? nullptr : &StaticMeshTexturedRenderData;
 }
 
 void UStaticMeshComponent::SetMaterial(int32 SlotIndex, UMaterial* InMaterial)
@@ -83,21 +67,32 @@ void UStaticMeshComponent::SetMaterial(int32 SlotIndex, UMaterial* InMaterial)
 	}
 
 	OverrideMaterials[SlotIndex] = InMaterial;
+	RefreshMeshData();
 }
 
 UMaterial* UStaticMeshComponent::GetMaterial(int32 SlotIndex) const
 {
-	if (SlotIndex < 0 || SlotIndex >= static_cast<int32>(OverrideMaterials.size()))
+	if (SlotIndex < 0)
 	{
 		return nullptr;
 	}
 
-	return OverrideMaterials[SlotIndex];
+	if (SlotIndex < static_cast<int32>(OverrideMaterials.size()) && OverrideMaterials[SlotIndex])
+	{
+		return OverrideMaterials[SlotIndex];
+	}
+
+	if (!StaticMesh)
+	{
+		return nullptr;
+	}
+
+	return StaticMesh->GetDefaultMaterial(SlotIndex);
 }
 
 int32 UStaticMeshComponent::GetNumMaterials() const
 {
-	return StaticMesh->IsValid() ? static_cast<int32>(StaticMesh->GetMeshAsset().Sections.size()) : 0;
+	return StaticMesh ? StaticMesh->GetNumMaterialSlots() : 0;
 }
 
 void UStaticMeshComponent::UpdateWorldAABB() const
@@ -115,14 +110,135 @@ void UStaticMeshComponent::GetEditableProperties(TArray<FPropertyDescriptor>& Ou
 	MeshProperty.ValuePtr = &StaticMesh;
 	MeshProperty.ObjectClass = &UStaticMesh::s_TypeInfo;
 	OutProps.push_back(MeshProperty);
-}
 
-//에디터에서 Property 변경 시
-void UStaticMeshComponent::PostEditProperty(const char* PropertyName)
-{
-	if (std::strcmp(PropertyName, "StaticMesh") == 0)
+	if (StaticMesh)
 	{
-		//RefreshMeshData();
+		if (OverrideMaterials.size() < 1)
+		{
+			OverrideMaterials.resize(1, nullptr);
+		}
+
+		FPropertyDescriptor MaterialProperty;
+		MaterialProperty.Name = "Material";
+		MaterialProperty.Type = EPropertyType::Object;
+		MaterialProperty.ValuePtr = &OverrideMaterials[0];
+		MaterialProperty.ObjectClass = &UMaterial::s_TypeInfo;
+		OutProps.push_back(MaterialProperty);
+	}
+
+	OutProps.push_back({ "UseScroll", EPropertyType::Bool, &bUseUVScroll});
+	if (bUseUVScroll) {
+		OutProps.push_back({ "ScrollSpeedX", EPropertyType::Float, &UVScrollSpeed.X, 0.0f, 1.0f, 0.01f });
+		OutProps.push_back({ "ScrollSpeedY", EPropertyType::Float, &UVScrollSpeed.Y, 0.0f, 1.0f, 0.01f });
 	}
 }
 
+void UStaticMeshComponent::PostEditProperty(const char* PropertyName)
+{
+	if (std::strcmp(PropertyName, "StaticMesh") == 0 ||
+		std::strcmp(PropertyName, "Material") == 0)
+	{
+		RefreshMeshData();
+	}
+}
+
+void UStaticMeshComponent::RefreshMeshData()
+{
+	FStaticMeshAsset* Asset = GetStaticMeshAsset();
+	if (Asset &&
+		Asset->BuildRenderMeshData(StaticMeshRenderData) &&
+		Asset->BuildTexturedRenderMeshData(StaticMeshTexturedRenderData))
+	{
+		ApplyAtlasMaterialToTexturedMeshData();
+		++TexturedMeshRevision;
+		LocalExtents = (Asset->BoundsMax - Asset->BoundsMin) * 0.5f;
+		MeshData = &StaticMeshRenderData;
+		UpdateWorldAABB();
+		return;
+	}
+
+	StaticMeshRenderData.Vertices.clear();
+	StaticMeshRenderData.Indices.clear();
+	StaticMeshTexturedRenderData.Vertices.clear();
+	StaticMeshTexturedRenderData.Indices.clear();
+	MeshData = nullptr;
+}
+
+void UStaticMeshComponent::ApplyAtlasMaterialToTexturedMeshData()
+{
+	FStaticMeshAsset* Asset = GetStaticMeshAsset();
+	UMaterial* Material = GetMaterial(0);
+
+	if (!Asset || !Material || !Material->UsesAtlas())
+	{
+		return;
+	}
+
+	TArray<FFaceGroup> Groups;
+	Groups.reserve(6);
+
+	for (int32 VertexIndex = 0; VertexIndex < static_cast<int32>(Asset->Vertices.size()); ++VertexIndex)
+	{
+		const FStaticMeshVertex& SourceVertex = Asset->Vertices[VertexIndex];
+
+		int32 GroupIndex = -1;
+		for (int32 Index = 0; Index < static_cast<int32>(Groups.size()); ++Index)
+		{
+			if (SameNormal(Groups[Index].Normal, SourceVertex.Normal))
+			{
+				GroupIndex = Index;
+				break;
+			}
+		}
+
+		if (GroupIndex == -1)
+		{
+			FFaceGroup NewGroup;
+			NewGroup.Normal = SourceVertex.Normal;
+			Groups.push_back(NewGroup);
+			GroupIndex = static_cast<int32>(Groups.size()) - 1;
+		}
+
+		FFaceGroup& Group = Groups[GroupIndex];
+		Group.VertexIndices.push_back(VertexIndex);
+		Group.MinU = std::min(Group.MinU, SourceVertex.TexCoord.X);
+		Group.MaxU = std::max(Group.MaxU, SourceVertex.TexCoord.X);
+		Group.MinV = std::min(Group.MinV, SourceVertex.TexCoord.Y);
+		Group.MaxV = std::max(Group.MaxV, SourceVertex.TexCoord.Y);
+	}
+
+	for (const FFaceGroup& Group : Groups)
+	{
+		FVector4 TargetRect = Material->GetSideUVRect();
+		/*if (Group.Normal.Y > 0.5f)
+		{
+			TargetRect = Material->GetTopUVRect();
+		}
+		else if (Group.Normal.Y < -0.5f)
+		{
+			TargetRect = Material->GetBottomUVRect();
+		}*/
+		if (Group.Normal.Z > 0.5f)
+		{
+			TargetRect = Material->GetTopUVRect();
+		}
+		else if (Group.Normal.Z < -0.5f)
+		{
+			TargetRect = Material->GetBottomUVRect();
+		}
+
+		const float RangeU = std::max(Group.MaxU - Group.MinU, 0.0001f);
+		const float RangeV = std::max(Group.MaxV - Group.MinV, 0.0001f);
+
+		for (int32 VertexIndex : Group.VertexIndices)
+		{
+			const FVector2& SourceUV = Asset->Vertices[VertexIndex].TexCoord;
+			const float LocalU = (SourceUV.X - Group.MinU) / RangeU;
+			const float LocalV = (SourceUV.Y - Group.MinV) / RangeV;
+
+			StaticMeshTexturedRenderData.Vertices[VertexIndex].TexCoord = FVector2(
+				TargetRect.X + LocalU * (TargetRect.Z - TargetRect.X),
+				TargetRect.Y + LocalV * (TargetRect.W - TargetRect.Y));
+		}
+	}
+}

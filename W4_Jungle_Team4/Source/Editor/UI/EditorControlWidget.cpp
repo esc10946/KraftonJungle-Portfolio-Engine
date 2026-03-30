@@ -7,7 +7,6 @@
 #include "Component/CameraComponent.h"
 #include "Component/GizmoComponent.h"
 #include "Component/SubUVComponent.h"
-#include "Component/StaticMeshComponent.h"
 #include "GameFramework/PrimitiveActors.h"
 
 #define SEPARATOR(); ImGui::Spacing(); ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing(); ImGui::Spacing();
@@ -80,11 +79,11 @@ void FEditorControlWidget::Render(float DeltaTime)
 				SubUV->SetFrameRate(30.f);
 				break;
 			}
-			case 4: // Static
+			case 4: // StaticMesh
 			{
 				AStaticMeshActor* Actor = World->SpawnActor<AStaticMeshActor>();
-				Actor->SetActorLocation(CurSpawnPoint);
 				Actor->InitDefaultComponents();
+				Actor->SetActorLocation(CurSpawnPoint);
 				break;
 			}
 			}
@@ -96,8 +95,7 @@ void FEditorControlWidget::Render(float DeltaTime)
 	SEPARATOR();
 
 	// Camera
-	UCameraComponent* Camera = EditorEngine->GetWorld()->GetActiveCamera();
-	//UCameraComponent* Camera = EditorEngine->GetCamera();
+	UCameraComponent* Camera = EditorEngine->GetCamera();
 	bool bIsOrtho = Camera->IsOrthogonal();
 	if (ImGui::Checkbox("Orthographic", &bIsOrtho))
 	{

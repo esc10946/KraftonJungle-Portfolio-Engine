@@ -94,9 +94,6 @@
     <Filter Include="ThirdParty\SimpleJSON">
       <UniqueIdentifier>{2a5417f8-fbca-b05c-d2e3-f61311941a70}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\Viewer">
-      <UniqueIdentifier>{90174761-befc-4a43-9b9b-c569452269ca}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\Common.hlsl">
@@ -123,6 +120,7 @@
     <FxCompile Include="Shaders\ShaderSubUV.hlsl">
       <Filter>Shaders</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\StaticMeshTextured.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\Editor\EditorEngine.cpp">
@@ -162,6 +160,9 @@
       <Filter>Source\Editor\UI</Filter>
     </ClCompile>
     <ClCompile Include="Source\Editor\Viewport\EditorViewportClient.cpp">
+      <Filter>Source\Editor\Viewport</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Editor\Viewport\ViewerViewportClient.cpp">
       <Filter>Source\Editor\Viewport</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshManager.cpp">
@@ -333,75 +334,34 @@
       <Filter>ThirdParty\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Source\Engine\Component\OrbitCameraComponent.cpp">
-      <Filter>Source\Engine\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Viewer\ViewerEngine.cpp">
-      <Filter>Source\Viewer</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Viewer\ViewerViewportClient.cpp">
-      <Filter>Source\Viewer</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Component\StaticMeshComponent.cpp">
-      <Filter>Source\Engine\Component</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Render\ViewportRenderer.cpp">
-      <Filter>Source\Engine\Render</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Engine\AssetPipeline\Obj\MtlParser.cpp" />
     <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjImporter.cpp" />
     <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshBakeIO.cpp" />
-    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMesh.cpp" />
+    <ClCompile Include="OrbitCameraComponent.cpp" />
+    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMeshObject.cpp" />
+    <ClCompile Include="Source\Engine\Asset\Material\MaterialManager.cpp" />
+    <ClCompile Include="Source\Engine\Asset\Material\MaterialObject.cpp" />
+    <ClCompile Include="Source\Engine\Asset\Texture\TextureManager.cpp" />
+    <ClCompile Include="Source\Engine\Asset\Texture\TextureObject.cpp" />
+    <ClCompile Include="Source\Engine\AssetPipeline\Obj\ObjManager.cpp" />
+    <ClCompile Include="Source\Engine\Component\StaticMeshComponent.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SImGuiConsoleWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SImGuiControlWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SImGuiPropertyWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SImGuiSceneWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SlateApplication.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SlateWidgetFactory.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SSplitterH.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SSplitterV.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SViewport.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SViewportRoot.cpp" />
+    <ClCompile Include="Source\Editor\Slate\SWidget.cpp" />
+    <ClCompile Include="Source\Engine\Render\ViewportRenderer.cpp" />
     <ClCompile Include="Source\Engine\Render\Resource\Material.cpp" />
     <ClCompile Include="Source\Engine\Render\Resource\Texture.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SImGuiConsoleWidget.cpp">
-      <Filter>Source\Editor\Slate</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Editor\Slate\SImGuiControlWidget.cpp">
-      <Filter>Source\Editor\Slate</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Editor\Slate\SImGuiPropertyWidget.cpp">
-      <Filter>Source\Editor\Slate</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Editor\Slate\SImGuiSceneWidget.cpp">
-      <Filter>Source\Editor\Slate</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Editor\Slate\SlateApplication.cpp">
-      <Filter>Source\Editor\Slate</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Editor\Slate\SlateWidgetFactory.cpp">
-      <Filter>Source\Editor\Slate</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Editor\Slate\SSplitterH.cpp">
-      <Filter>Source\Editor\Slate</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Editor\Slate\SSplitterV.cpp">
-      <Filter>Source\Editor\Slate</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Editor\Slate\SViewport.cpp">
-      <Filter>Source\Editor\Slate</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Editor\Slate\SWidget.cpp">
-      <Filter>Source\Editor\Slate</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Editor\Viewport\Viewport.cpp">
-      <Filter>Source\Editor\Viewport</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Editor\Viewport\ViewportManager.cpp">
-      <Filter>Source\Editor\Viewport</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Editor\Slate\SViewportRoot.cpp" />
-    <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
-    <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
-    <ClCompile Include="Source\Engine\Component\OrbitCameraComponent.cpp" />
-    <ClCompile Include="Source\Viewer\ViewerPanel.cpp">
-      <Filter>Source\Viewer</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Viewer\ViewerRenderPipeline.cpp">
-      <Filter>Source\Viewer</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
-    <ClCompile Include="Source\Engine\Component\OrbitCameraComponent.cpp" />
+    <ClCompile Include="Source\Engine\Asset\StaticMesh\StaticMesh.cpp" />
+    <ClCompile Include="Source\Editor\Viewport\ViewportManager.cpp" />
+    <ClCompile Include="Source\Editor\Viewport\Viewport.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\EditorEngine.h">
@@ -417,6 +377,15 @@
       <Filter>Source\Editor\Settings</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\Slate\SSplitter.h">
+      <Filter>Source\Editor\Slate</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\Slate\SSplitterH.h">
+      <Filter>Source\Editor\Slate</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\Slate\SSplitterV.h">
+      <Filter>Source\Editor\Slate</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\Slate\SViewport.h">
       <Filter>Source\Editor\Slate</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\Slate\SWidget.h">
@@ -462,6 +431,9 @@
       <Filter>Source\Editor\Viewport</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\Viewport\FViewportClient.h">
+      <Filter>Source\Editor\Viewport</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\Viewport\ViewerViewportClient.h">
       <Filter>Source\Editor\Viewport</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshAsset.h">
@@ -704,76 +676,31 @@
     <ClInclude Include="ThirdParty\SimpleJSON\json.hpp">
       <Filter>ThirdParty\SimpleJSON</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Component\OrbitCameraComponent.h">
-      <Filter>Source\Engine\Component</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Viewer\ViewerEngine.h">
-      <Filter>Source\Viewer</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Editor\Slate\SSplitterH.h">
-      <Filter>Source\Editor\Slate</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Editor\Slate\SSplitterV.h">
-      <Filter>Source\Editor\Slate</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Editor\Slate\SViewport.h">
-      <Filter>Source\Editor\Slate</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Editor\Slate\Reply.h">
-      <Filter>Source\Editor\Slate</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Editor\Slate\SImGuiConsoleWidget.h">
-      <Filter>Source\Editor\Slate</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Editor\Slate\SImGuiControlWidget.h">
-      <Filter>Source\Editor\Slate</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Editor\Slate\SImGuiPropertyWidget.h">
-      <Filter>Source\Editor\Slate</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Editor\Slate\SImGuiSceneWidget.h">
-      <Filter>Source\Editor\Slate</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Editor\Slate\SlateWidgetFactory.h">
-      <Filter>Source\Editor\Slate</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Editor\Viewport\Viewport.h">
-      <Filter>Source\Editor\Viewport</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Editor\Viewport\ViewportClient.h">
-      <Filter>Source\Editor\Viewport</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Editor\Viewport\ViewportManager.h">
-      <Filter>Source\Editor\Viewport</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Render\ViewportRenderer.h">
-      <Filter>Source\Engine\Render</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Engine\AssetPipeline\Obj\MtlParser.h" />
     <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjImporter.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshBakeIO.h" />
-    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMesh.h" />
-    <ClInclude Include="Source\Engine\Render\Resource\Material.h" />
-    <ClInclude Include="Source\Engine\Render\Resource\Texture.h" />
-    <ClInclude Include="Source\Editor\Slate\SViewportRoot.h" />
     <ClInclude Include="OrbitCameraComponent.h" />
-    <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
-    <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
-    <ClInclude Include="Source\Viewer\ViewerViewportClient.h">
-      <Filter>Source\Viewer</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
-    <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
-    <ClInclude Include="Source\Viewer\ViewerPanel.h">
-      <Filter>Source\Viewer</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Viewer\ViewerRenderPipeline.h">
-      <Filter>Source\Viewer</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
-    <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Settings\EditorLayout.json" />
+    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMeshObject.h" />
+    <ClInclude Include="Source\Engine\Asset\Material\MaterialManager.h" />
+    <ClInclude Include="Source\Engine\Asset\Material\MaterialObject.h" />
+    <ClInclude Include="Source\Engine\Asset\Texture\TextureManager.h" />
+    <ClInclude Include="Source\Engine\Asset\Texture\TextureObject.h" />
+    <ClInclude Include="Source\Engine\AssetPipeline\Obj\ObjManager.h" />
+    <ClInclude Include="Source\Editor\Slate\Reply.h" />
+    <ClInclude Include="Source\Editor\Slate\SImGuiConsoleWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\SImGuiControlWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\SImGuiPropertyWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\SImGuiSceneWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\SlateWidgetFactory.h" />
+    <ClInclude Include="Source\Editor\Slate\SViewportRoot.h" />
+    <ClInclude Include="Source\Engine\Render\ViewportRenderer.h" />
+    <ClInclude Include="Source\Engine\Render\Resource\Material.h" />
+    <ClInclude Include="Source\Engine\Render\Resource\RenderTarget.h" />
+    <ClInclude Include="Source\Engine\Render\Resource\Texture.h" />
+    <ClInclude Include="Source\Engine\Asset\StaticMesh\StaticMesh.h" />
+    <ClInclude Include="Source\Editor\Viewport\ViewportManager.h" />
+    <ClInclude Include="Source\Editor\Viewport\Viewport.h" />
+    <ClInclude Include="Source\Editor\Viewport\ViewportClient.h" />
+    <ClInclude Include="Source\Editor\Viewport\ViewOption.h" />
   </ItemGroup>
 </Project>

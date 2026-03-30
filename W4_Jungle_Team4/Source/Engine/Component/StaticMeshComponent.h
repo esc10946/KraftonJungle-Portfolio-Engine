@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "MeshComponent.h"
 #include "Render/Resource/VertexTypes.h"
@@ -12,16 +12,18 @@ class UStaticMeshComponent : public UMeshComponent
 public:
 	DECLARE_CLASS(UStaticMeshComponent, UMeshComponent)
 
-	UStaticMeshComponent();
-	~UStaticMeshComponent() override ;
+	UStaticMeshComponent() = default;
+	~UStaticMeshComponent() override = default;
 
 	void SetStaticMesh(UStaticMesh* InMesh);
 	UStaticMesh* GetStaticMesh() const { return StaticMesh; }
+	FStaticMeshAsset* GetStaticMeshAsset() const;
+	FString GetStaticMeshAssetPath() const;
+	const FTexturedMeshData* GetTexturedMeshData() const;
+	uint32 GetTexturedMeshRevision() const { return TexturedMeshRevision; }
 
 	virtual void SetMaterial(int32 SlotIndex, UMaterial* InMaterial) override;
 	virtual UMaterial* GetMaterial(int32 SlotIndex) const override;
-
-	// 에셋의 섹션 수(= 머티리얼 슬롯 수)를 반환한다.
 	virtual int32 GetNumMaterials() const override;
 
 	virtual void UpdateWorldAABB() const override;
@@ -30,12 +32,15 @@ public:
 	virtual void PostEditProperty(const char* PropertyName) override;
 
 	virtual EPrimitiveType GetPrimitiveType() const override { return EPrimitiveType::EPT_StaticMesh; }
+	virtual bool SupportsOutline() const override { return false; }
 
 private:
-	
-	//mesh의 vertices와 indices를 업데이트하는 함수
-	//void RefreshMeshData();
+	void RefreshMeshData();
+	void ApplyAtlasMaterialToTexturedMeshData();
 
 private:
-	UStaticMesh* StaticMesh;
+	UStaticMesh* StaticMesh = nullptr;
+	FMeshData StaticMeshRenderData;
+	FTexturedMeshData StaticMeshTexturedRenderData;
+	uint32 TexturedMeshRevision = 0;
 };

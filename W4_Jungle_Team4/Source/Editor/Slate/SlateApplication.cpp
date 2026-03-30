@@ -1,6 +1,7 @@
 ﻿#include "SlateApplication.h"
 #include "Core/InputSystem.h"
 #include "SSplitter.h"
+#include "ImGui/imgui.h"
 #include <functional>
 
 FSlateApplication::~FSlateApplication()
@@ -26,6 +27,15 @@ void FSlateApplication::OnPaint()
 	for (SWindow* Window : Windows)
 	{
 		Window->OnPaint();
+	}
+}
+
+void FSlateApplication::OnWindowResized(uint32 Width, uint32 Height)
+{
+	for (SWindow* Window : Windows)
+	{
+		FRect NewRect = { 0, 0, Width, Height };
+		Window->OnResize(NewRect);
 	}
 }
 
@@ -92,8 +102,10 @@ SWidget* FSlateApplication::FindLeafWidgetAt(SWidget* Parent, FVector2 ScreenPoi
 // 마우스 위치, 버튼 상태, 키보드 입력 등을 체크해서 적절한 위젯에 이벤트를 전달
 void FSlateApplication::ProcessInput()
 {
-	POINT MousePosition = InputSystem::Get().GetMousePos();
+	POINT MousePosition = InputSystem::Get().GetClientMousePos();
 	FVector2 MousePos = { static_cast<float>(MousePosition.x), static_cast<float>(MousePosition.y) };
+
+	ImGuiIO& io = ImGui::GetIO();
 
 	SWidget* Captor = GetMouseCaptor();
 	if (Captor)
@@ -105,15 +117,12 @@ void FSlateApplication::ProcessInput()
 		SWidget* HoveredWidget = FindWidgetAt(MousePos);
 		if (HoveredWidget != WidgetUnderMouse)
 		{
-			if (WidgetUnderMouse)
-			{
-				// Handle mouse leave for the previous widget if necessary.
-			}
-			if (HoveredWidget)
-			{
-				// Handle mouse enter for the new widget if necessary.
-			}
 			WidgetUnderMouse = HoveredWidget;
+		}
+
+		if (WidgetUnderMouse)
+		{
+			WidgetUnderMouse->OnMouseMove(MousePos.X, MousePos.Y);
 		}
 	}
 
@@ -164,14 +173,14 @@ void FSlateApplication::ProcessInput()
 
 	for (int32 Key = 0; Key < 256; ++Key)
 	{
-		if (InputSystem::Get().GetKeyDown(Key))
+		if (InputSystem::Get().GetKeyDown(Key) && !io.WantCaptureKeyboard)
 		{
 			if (KeyboardTarget)
 			{
 				KeyboardTarget->OnKeyDown(Key);
 			}
 		}
-		if (InputSystem::Get().GetKeyUp(Key))
+		if (InputSystem::Get().GetKeyUp(Key) && !io.WantCaptureKeyboard)
 		{
 			if (KeyboardTarget)
 			{

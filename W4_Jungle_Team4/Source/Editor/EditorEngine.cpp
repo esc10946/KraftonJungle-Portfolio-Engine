@@ -71,6 +71,8 @@ void UEditorEngine::Init(FWindowsWindow* InWindow)
 
 	// Editor render pipeline
 	SetRenderPipeline(std::make_unique<FEditorRenderPipeline>(this, Renderer));
+
+	OnWindowResized(InWindow->GetWidth(), InWindow->GetHeight());
 }
 
 void UEditorEngine::Shutdown()
@@ -88,6 +90,7 @@ void UEditorEngine::Shutdown()
 void UEditorEngine::OnWindowResized(uint32 Width, uint32 Height)
 {
 	UEngine::OnWindowResized(Width, Height);
+	FSlateApplication::Get().OnWindowResized(Width, Height);
 }
 
 void UEditorEngine::Tick(float DeltaTime)
@@ -103,13 +106,44 @@ void UEditorEngine::RenderUI(float DeltaTime)
 	MainPanel.Render(DeltaTime);
 }
 
+UCameraComponent* UEditorEngine::GetCamera() const
+{
+	for (FViewport* Viewport : FViewportManager::Get().GetViewports())
+	{
+		if (!Viewport)
+		{
+			continue;
+		}
+
+		if (FEditorViewportClient* ViewportClient = dynamic_cast<FEditorViewportClient*>(Viewport->GetViewportClient()))
+		{
+			return ViewportClient->GetCamera();
+		}
+	}
+
+	return nullptr;
+}
+
 void UEditorEngine::ResetViewport()
 {
-	//ViewportClient.CreateCamera();
-	//ViewportClient.SetWorld(GetWorld());
-	//ViewportClient.SetViewportSize(Window->GetWidth(), Window->GetHeight());
-	//ViewportClient.ResetCamera();
-	GetWorld()->SetActiveCamera(GetWorld()->GetActiveCamera());
+	TArray<FViewport*>& Viewports = FViewportManager::Get().GetViewports();
+	for (FViewport* Viewport : Viewports)
+	{
+		if (!Viewport)
+		{
+			continue;
+		}
+		if (FEditorViewportClient* ViewportClient = dynamic_cast<FEditorViewportClient*>(Viewport->GetViewportClient()))
+		{
+			ViewportClient->CreateCamera();
+			ViewportClient->SetWorld(GetWorld());
+			ViewportClient->ResetCamera();
+		}
+	}
+
+	// TODO: World의 ActiveCamera를 첫 번째 ViewportClient로 설정 개선 필요
+	FEditorViewportClient* FirstViewportClient = dynamic_cast<FEditorViewportClient*>(Viewports[0]->GetViewportClient());
+	GetWorld()->SetActiveCamera(FirstViewportClient->GetCamera());
 }
 
 void UEditorEngine::CloseScene()

@@ -1,4 +1,4 @@
-#include "SceneSaveManager.h"
+﻿#include "SceneSaveManager.h"
 
 #include <iostream>
 #include <fstream>
@@ -9,10 +9,15 @@
 #include "GameFramework/AActor.h"
 #include "Component/SceneComponent.h"
 #include "Component/ActorComponent.h"
+#include "Component/CameraComponent.h"
 #include "Object/Object.h"
 #include "Object/ObjectFactory.h"
 #include "Core/PropertyTypes.h"
 #include "Object/FName.h"
+#include "Asset/StaticMesh/StaticMeshManager.h"
+#include "Asset/StaticMesh/StaticMeshObject.h"
+#include "Editor/Viewport/ViewportManager.h"
+#include <Viewport/EditorViewportClient.h>
 
 namespace SceneKeys
 {
@@ -28,6 +33,8 @@ namespace SceneKeys
 	static constexpr const char* NonSceneComponents = "NonSceneComponents";
 	static constexpr const char* Properties        = "Properties";
 	static constexpr const char* Children          = "Children";
+
+	static constexpr const char* PerspectiveCamera          = "PerspectiveCamera";
 }
 
 static const char* WorldTypeToString(EWorldType Type)
@@ -44,6 +51,54 @@ static EWorldType StringToWorldType(const string& Str)
 	if (Str == "Game") return EWorldType::Game;
 	if (Str == "PIE")  return EWorldType::PIE;
 	return EWorldType::Editor;
+}
+
+namespace ObjectPropertyKeys
+{
+	static constexpr const char* ClassName = "ClassName";
+	static constexpr const char* ObjectName = "ObjectName";
+	static constexpr const char* AssetPath = "AssetPath";
+}
+
+static json::JSON SerializeObjectReference(UObject* Object)
+{
+	using namespace json;
+
+	if (!Object)
+	{
+		return JSON();
+	}
+
+	JSON SerializedObject = json::Object();
+	SerializedObject[ObjectPropertyKeys::ClassName] = Object->GetTypeInfo()->name;
+	SerializedObject[ObjectPropertyKeys::ObjectName] = Object->GetFName().ToString();
+
+	if (Object->IsA<UStaticMesh>())
+	{
+		UStaticMesh* StaticMesh = static_cast<UStaticMesh*>(Object);
+		SerializedObject[ObjectPropertyKeys::AssetPath] = StaticMesh->GetAssetPathFileName();
+	}
+
+	return SerializedObject;
+}
+
+static UObject* FindObjectReferenceByName(const FString& ObjectName, const FTypeInfo* RequiredType)
+{
+	if (ObjectName.empty())
+	{
+		return nullptr;
+	}
+
+	for (FObjectIterator It(RequiredType); It; ++It)
+	{
+		UObject* Candidate = *It;
+		if (Candidate && Candidate->GetFName().ToString() == ObjectName)
+		{
+			return Candidate;
+		}
+	}
+
+	return nullptr;
 }
 
 // ============================================================
@@ -91,6 +146,18 @@ json::JSON FSceneSaveManager::SerializeWorld(UWorld* World, const FWorldContext&
 		Actors.append(SerializeActor(Actor));
 	}
 	w[SceneKeys::Actors] = Actors;
+
+	//카메라 state저장하는 코드
+
+	/*JSON CameraState =  json::Object();
+	UCameraComponent* Camera = World->GetActiveCamera();
+	
+	JSON c = json::Object();
+	c[SceneKeys::ClassName] = Camera->GetTypeInfo()->name;
+	c[SceneKeys::Properties] = SerializeProperties(Camera);
+
+	w[SceneKeys::PerspectiveCamera] = c;*/
+
 	return w;
 }
 
@@ -187,6 +254,13 @@ json::JSON FSceneSaveManager::SerializePropertyValue(const FPropertyDescriptor& 
 	case EPropertyType::String:
 		return JSON(*static_cast<FString*>(Prop.ValuePtr));
 
+	case EPropertyType::Object: {
+		UObject* ObjectValue = Prop.ValuePtr
+			? *reinterpret_cast<UObject* const*>(Prop.ValuePtr)
+			: nullptr;
+		return SerializeObjectReference(ObjectValue);
+	}
+
 	case EPropertyType::Name:
 		return JSON(static_cast<FName*>(Prop.ValuePtr)->ToString());
 
@@ -274,6 +348,33 @@ void FSceneSaveManager::LoadSceneFromJSON(const string& filepath, FWorldContext&
 	OutWorldContext.World = World;
 	OutWorldContext.ContextName = ContextName;
 	OutWorldContext.ContextHandle = FName(ContextHandle);
+
+	//카메라 state 교체하는 코드
+	//SetCamera() 
+	/*if (root.hasKey(SceneKeys::PerspectiveCamera)) {
+		auto& CameraJSON = root[SceneKeys::PerspectiveCamera];
+		string Class = CameraJSON[SceneKeys::ClassName].ToString();
+		UObject* CameraObj = FObjectFactory::Get().Create(Class);
+
+		if (CameraObj && CameraObj->IsA<UCameraComponent>()) {
+			UCameraComponent* Comp = CameraObj->Cast<UCameraComponent>();
+
+			if (CameraJSON.hasKey(SceneKeys::Properties)) {
+				auto PropsJSON = CameraJSON[SceneKeys::Properties];
+				DeserializeProperties(static_cast<UActorComponent*>(Comp), PropsJSON);
+				if(Comp->IsA<USceneComponent>())
+					Comp->MarkTransformDirty();
+			}	
+
+			FViewportClient* EditorViewportClient = FViewportManager::Get().GetViewports()[0]->GetViewportClient();
+
+			if (FEditorViewportClient* EVC = dynamic_cast<FEditorViewportClient*>(EditorViewportClient))
+			{
+				EVC->DestroyCamera();
+				EVC->SetCamera(Comp);
+			}	 
+		}
+	}*/
 }
 
 USceneComponent* FSceneSaveManager::DeserializeSceneComponentTree(json::JSON& Node, AActor* Owner)
@@ -354,6 +455,39 @@ void FSceneSaveManager::DeserializePropertyValue(FPropertyDescriptor& Prop, json
 	case EPropertyType::String:
 		*static_cast<FString*>(Prop.ValuePtr) = Value.ToString();
 		break;
+
+	case EPropertyType::Object: {
+		UObject** ObjectValue = reinterpret_cast<UObject**>(Prop.ValuePtr);
+		if (!ObjectValue)
+		{
+			break;
+		}
+
+		*ObjectValue = nullptr;
+
+		if (Value.IsNull())
+		{
+			break;
+		}
+
+		if (Prop.ObjectClass == &UStaticMesh::s_TypeInfo &&
+			Value.hasKey(ObjectPropertyKeys::AssetPath))
+		{
+			const FString AssetPath = Value[ObjectPropertyKeys::AssetPath].ToString();
+			if (!AssetPath.empty())
+			{
+				*ObjectValue = FStaticMeshManager::Get().LoadStaticMeshObject(AssetPath);
+			}
+			break;
+		}
+
+		if (Value.hasKey(ObjectPropertyKeys::ObjectName))
+		{
+			const FString ObjectName = Value[ObjectPropertyKeys::ObjectName].ToString();
+			*ObjectValue = FindObjectReferenceByName(ObjectName, Prop.ObjectClass);
+		}
+		break;
+	}
 
 	case EPropertyType::Name:
 		*static_cast<FName*>(Prop.ValuePtr) = FName(Value.ToString());

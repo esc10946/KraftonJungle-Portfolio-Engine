@@ -10,7 +10,7 @@
 namespace
 {
 	constexpr uint32 BakeMagic = 0x534D424B;   // 'SMBK'
-	constexpr uint32 BakeVersion = 1;
+	constexpr uint32 BakeVersion = 4;
 
 	bool SerializeUInt32(FArchive& Ar, uint32& Value)
 	{
@@ -168,7 +168,7 @@ namespace
 			FStaticMeshSection Section = SrcSection;
 			if (!SerializeUInt32(Ar, Section.FirstIndex) ||
 				!SerializeUInt32(Ar, Section.IndexCount) ||
-				!SerializeString(Ar, Section.MaterialName))
+				!SerializeUInt32(Ar, Section.MaterialSlotIndex))
 			{
 				return false;
 			}
@@ -192,10 +192,58 @@ namespace
 		{
 			if (!SerializeUInt32(Ar, OutSections[Index].FirstIndex) ||
 				!SerializeUInt32(Ar, OutSections[Index].IndexCount) ||
-				!SerializeString(Ar, OutSections[Index].MaterialName))
+				!SerializeUInt32(Ar, OutSections[Index].MaterialSlotIndex))
 			{
 				return false;
 			}
+		}
+
+		return true;
+	}
+
+	bool SaveMaterialSlots(FArchive& Ar, const TArray<FStaticMaterialSlot>& MaterialSlots)
+	{
+		uint32 Count = static_cast<uint32>(MaterialSlots.size());
+		if (!SerializeUInt32(Ar, Count))
+		{
+			return false;
+		}
+
+		for (const FStaticMaterialSlot& SrcSlot : MaterialSlots)
+		{
+			FStaticMaterialSlot Slot = SrcSlot;
+			if (!SerializeString(Ar, Slot.SlotName) ||
+				!SerializeString(Ar, Slot.SourceMaterialName) ||
+				!SerializeString(Ar, Slot.DiffuseTexturePath))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	bool LoadMaterialSlots(FArchive& Ar, TArray<FStaticMaterialSlot>& OutMaterialSlots)
+	{
+		uint32 Count = 0;
+		if (!SerializeUInt32(Ar, Count))
+		{
+			return false;
+		}
+
+		OutMaterialSlots.clear();
+		OutMaterialSlots.resize(Count);
+
+		for (uint32 Index = 0; Index < Count; ++Index)
+		{
+			if (!SerializeString(Ar, OutMaterialSlots[Index].SlotName) ||
+				!SerializeString(Ar, OutMaterialSlots[Index].SourceMaterialName) ||
+				!SerializeString(Ar, OutMaterialSlots[Index].DiffuseTexturePath))
+			{
+				return false;
+			}
+
+			OutMaterialSlots[Index].DefaultMaterial = nullptr;
 		}
 
 		return true;
@@ -275,6 +323,7 @@ bool FStaticMeshBakeIO::SaveToFile(const FString& InBakePath, const FStaticMeshA
 		SerializeString(Writer, SourcePath) &&
 		SaveVertices(Writer, InAsset.Vertices) &&
 		SaveIndices(Writer, InAsset.Indices) &&
+		SaveMaterialSlots(Writer, InAsset.MaterialSlots) &&
 		SaveSections(Writer, InAsset.Sections);
 
 	Writer.Close();
@@ -311,13 +360,20 @@ bool FStaticMeshBakeIO::LoadFromFile(const FString& InBakePath, FStaticMeshAsset
 	OutAsset.BakePath = InBakePath;
 	OutAsset.Vertices.clear();
 	OutAsset.Indices.clear();
+	OutAsset.MaterialSlots.clear();
 	OutAsset.Sections.clear();
 
 	bSuccess =
 		SerializeString(Reader, OutAsset.SourcePath) &&
 		LoadVertices(Reader, OutAsset.Vertices) &&
 		LoadIndices(Reader, OutAsset.Indices) &&
+		LoadMaterialSlots(Reader, OutAsset.MaterialSlots) &&
 		LoadSections(Reader, OutAsset.Sections);
+
+	if (bSuccess)
+	{
+		OutAsset.UpdateBounds();
+	}
 
 	Reader.Close();
 	return bSuccess;

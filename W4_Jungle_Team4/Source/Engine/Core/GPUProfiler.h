@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Core/CoreTypes.h"
 #include "Core/Singleton.h"
@@ -61,6 +61,7 @@ private:
 	ID3D11Device* Device = nullptr;
 	ID3D11DeviceContext* Context = nullptr;
 	bool bInitialized = false;
+	bool bHasBeganFrame = false;
 
 	void CollectPreviousFrame();
 

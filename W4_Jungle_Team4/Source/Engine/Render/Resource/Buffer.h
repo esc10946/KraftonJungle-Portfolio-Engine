@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 /*
 	Vertex Buffer와 Constant Buffer를 관리하는 Class 입니다.
@@ -10,15 +10,13 @@
 
 #include "Core/CoreTypes.h"
 #include "Render/Resource/VertexTypes.h"
-#include "Asset/StaticMesh/StaticMeshAsset.h"
 
 
 class FVertexBuffer
 {
 public:
 	void Create(ID3D11Device* InDevice, const TArray<FVertex>&, uint32 InByteWidth, uint32 InStride);
-	void Create(ID3D11Device* InDevice, const void* InData, uint32 InElementCount, uint32 InByteWidth, uint32 InStride);
-	
+	void Create(ID3D11Device* InDevice, const TArray<FTextureVertex>&, uint32 InByteWidth, uint32 InStride);
 	void Release();
 
 	void Update(ID3D11DeviceContext* InDeviceContext, const TArray<uint32>& InData, uint32 InByteWidth);
@@ -71,8 +69,23 @@ class FMeshBuffer
 {
 public:
 	void Create(ID3D11Device* InDevice, const FMeshData& InMeshData);
-	void Create(ID3D11Device* InDevice, const TArray<FStaticMeshVertex>& InVertices, const TArray<uint32>& InIndices);
-	
+	void Release();
+
+	FVertexBuffer& GetVertexBuffer() { return VertexBuffer; }
+	FIndexBuffer& GetIndexBuffer() { return IndexBuffer; }
+	const FVertexBuffer& GetVertexBuffer() const { return VertexBuffer; }
+	const FIndexBuffer& GetIndexBuffer() const { return IndexBuffer; }
+	bool IsValid() const { return VertexBuffer.GetBuffer() != nullptr && VertexBuffer.GetVertexCount() > 0; }
+
+private:
+	FVertexBuffer VertexBuffer;
+	FIndexBuffer IndexBuffer;
+};
+
+class FTextureMeshBuffer
+{
+public:
+	void Create(ID3D11Device* InDevice, const FTexturedMeshData& InMeshData);
 	void Release();
 
 	FVertexBuffer& GetVertexBuffer() { return VertexBuffer; }

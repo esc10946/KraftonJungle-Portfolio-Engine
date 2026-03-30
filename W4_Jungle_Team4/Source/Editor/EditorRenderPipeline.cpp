@@ -39,12 +39,18 @@ void FEditorRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
 		if (Camera)
 		{
 			const auto& Settings = Editor->GetSettings();
-			const FShowFlags& ShowFlags = ViewportClient->GetShowFlags();
-			EViewMode ViewMode = ViewportClient->GetViewMode();
+
+			FViewOption ViewOption = ViewportClient->GetCurrentViewOption();
+			const FShowFlags& ShowFlags = ViewOption.ShowFlags;
+			EViewMode ViewMode = ViewOption.ViewMode;
 
 			Bus.SetViewProjection(Camera->GetViewMatrix(), Camera->GetProjectionMatrix(),
 				Camera->GetRightVector(), Camera->GetUpVector());
 			Bus.SetRenderSettings(ViewMode, ShowFlags);
+
+			// Gizmo는 렌더링 직전에 뷰포트 내 카메라를 이용해서 스케일링을 적용합니다.
+			// 이는 Gizmo를 picking할 경우에도 예외적으로 처리합니다.
+			Editor->GetGizmo()->ApplyScreenSpaceScaling(Camera->GetWorldLocation(), Camera->IsOrthogonal());
 
 			Collector.CollectWorld(World, ShowFlags, ViewMode, Bus);
 			Collector.CollectGrid(Settings.GridSpacing, Settings.GridHalfLineCount, Bus);
@@ -66,7 +72,7 @@ void FEditorRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
 
 	for (FViewport* Viewport : FViewportManager::Get().GetViewports())
 	{
-		Renderer.ViewportRenderer.Render(Renderer.GetFD3DDevice().GetDeviceContext(), Viewport);
+		Renderer.GetViewportRenderer().Render(Renderer.GetFD3DDevice().GetDeviceContext(), Viewport);
 	}
 
 	Editor->RenderUI(DeltaTime);

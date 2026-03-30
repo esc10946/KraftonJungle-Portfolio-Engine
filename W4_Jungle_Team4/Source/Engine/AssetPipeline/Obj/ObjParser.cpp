@@ -124,7 +124,7 @@ bool FObjParser::ParseTexCoord(const TArray<FString>& InTokens, FObjInfo& InOutO
 	if (InTokens.size() < 3) return false;
 
 	const float U = std::stof(InTokens[1]);
-	const float V = std::stof(InTokens[2]);
+	const float V = 1.0f - std::stof(InTokens[2]);
 
 	InOutObjInfo.TexCoords.emplace_back(U, V);
 	return true; 

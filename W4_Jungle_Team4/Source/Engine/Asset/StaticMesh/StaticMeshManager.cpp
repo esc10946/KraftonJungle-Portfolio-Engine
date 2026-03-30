@@ -3,6 +3,7 @@
 #include "Asset/StaticMesh/StaticMeshAsset.h"
 #include "Asset/StaticMesh/StaticMeshBakeIO.h"
 #include "AssetPipeline/Obj/ObjImporter.h"
+#include "Asset/StaticMesh/StaticMeshObject.h"
 
 #include <filesystem>
 
@@ -108,6 +109,68 @@ FStaticMeshAsset* FStaticMeshManager::FindLoadedStaticMeshAsset(const FString& I
 	return nullptr;
 }
 
+UStaticMesh* FStaticMeshManager::LoadStaticMeshObject(const FString& InSourcePath)
+{
+	const FString NormalizedPath = NormalizeSourcePath(InSourcePath);
+	if (NormalizedPath.empty())
+	{
+		return nullptr;
+	}
+
+	// 1. object cache 우선 확인
+	if (UStaticMesh* FoundMesh = FindLoadedStaticMeshObject(NormalizedPath))
+	{
+		return FoundMesh;
+	}
+
+	// 2. asset 로드
+	FStaticMeshAsset* Asset = LoadStaticMeshAsset(NormalizedPath);
+	if (!Asset)
+	{
+		return nullptr;
+	}
+
+	// 3. UObject wrapper 생성
+	UStaticMesh* MeshObject = ConstructObject<UStaticMesh>();
+	MeshObject->SetStaticMeshAsset(Asset);
+
+	StaticMeshObjectMap[NormalizedPath] = MeshObject;
+	return MeshObject;
+}
+
+UStaticMesh* FStaticMeshManager::FindLoadedStaticMeshObject(const FString& InSourcePath)
+{
+	const FString NormalizedPath = NormalizeSourcePath(InSourcePath);
+
+	// 1. object cache 확인
+	const auto CacheIt = StaticMeshObjectMap.find(NormalizedPath);
+	if (CacheIt != StaticMeshObjectMap.end())
+	{
+		return CacheIt->second;
+	}
+
+	// 2. 이미 생성된 UObject 전체 순회
+	for (TObjectIterator<UStaticMesh> It; It; ++It)
+	{
+		UStaticMesh* Mesh = *It;
+		if (Mesh && Mesh->GetAssetPathFileName() == NormalizedPath)
+		{
+			StaticMeshObjectMap[NormalizedPath] = Mesh;
+			return Mesh;
+		}
+	}
+
+	return nullptr;
+}
+
+void FStaticMeshManager::Preload(const TArray<FString>& InSourcePaths)
+{
+	for (const FString& SourcePath : InSourcePaths)
+	{
+		LoadStaticMeshObject(SourcePath);
+	}
+}
+
 void FStaticMeshManager::Clear()
 {
 	for (auto& Pair : StaticMeshAssetMap)
@@ -116,6 +179,7 @@ void FStaticMeshManager::Clear()
 	}
 
 	StaticMeshAssetMap.clear();
+	StaticMeshObjectMap.clear();
 }
 
 FString FStaticMeshManager::NormalizeSourcePath(const FString& InSourcePath) const

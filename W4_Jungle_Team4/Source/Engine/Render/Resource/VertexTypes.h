@@ -32,3 +32,9 @@ struct FMeshData
 	TArray<FVertex> Vertices;
 	TArray<uint32> Indices;
 };
+
+struct FTexturedMeshData
+{
+	TArray<FTextureVertex> Vertices;
+	TArray<uint32> Indices;
+};

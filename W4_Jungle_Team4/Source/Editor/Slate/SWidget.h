@@ -19,6 +19,7 @@ public:
 public:
 	virtual void Tick(float DeltaTime);
 	virtual void OnPaint();
+	virtual void OnResize(const FRect& NewRect);
 
 	virtual FReply OnMouseButtonDown(float X, float Y, int32 Button) { return FReply::Unhandled(); }
 	virtual FReply OnMouseButtonUp(float X, float Y, int32 Button) { return FReply::Unhandled(); }

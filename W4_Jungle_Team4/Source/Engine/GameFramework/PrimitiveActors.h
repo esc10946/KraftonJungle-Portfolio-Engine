@@ -31,20 +31,20 @@ public:
 	void InitDefaultComponents();
 };
 
-class AAttachTestActor : public AActor
-{
-public:
-	DECLARE_CLASS(AAttachTestActor, AActor)
-	AAttachTestActor() = default;
-
-	void InitDefaultComponents();
-};
-
 class AStaticMeshActor : public AActor
 {
 public:
 	DECLARE_CLASS(AStaticMeshActor, AActor)
 	AStaticMeshActor() = default;
+
+	void InitDefaultComponents();
+};
+
+class AAttachTestActor : public AActor
+{
+public:
+	DECLARE_CLASS(AAttachTestActor, AActor)
+	AAttachTestActor() = default;
 
 	void InitDefaultComponents();
 };

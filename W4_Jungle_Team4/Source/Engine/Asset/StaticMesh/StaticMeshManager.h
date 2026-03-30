@@ -3,6 +3,7 @@
 #include "Core/CoreTypes.h"
 #include "Core/Singleton.h"
 
+class UStaticMesh;
 struct FStaticMeshAsset;
 
 class FStaticMeshManager : public TSingleton<FStaticMeshManager>
@@ -20,6 +21,13 @@ public:
 	// 이미 로드된 asset가 있으면 반환하고, 없으면 nullptr
 	FStaticMeshAsset* FindLoadedStaticMeshAsset(const FString& InSourcePath);
 
+	// asset 기반 UObject wrapper(UStaticMesh) 로드
+	UStaticMesh* LoadStaticMeshObject(const FString& InSourcePath);
+	UStaticMesh* FindLoadedStaticMeshObject(const FString& InSourcePath);
+
+	// 여러 경로 미리 로드
+	void Preload(const TArray<FString>& InSourcePaths);
+
 	// manager가 가진 asset cache 정리
 	void Clear();
 
@@ -31,4 +39,5 @@ private:
 
 private:
 	TMap<FString, FStaticMeshAsset*> StaticMeshAssetMap;
+	TMap<FString, UStaticMesh*> StaticMeshObjectMap;
 };

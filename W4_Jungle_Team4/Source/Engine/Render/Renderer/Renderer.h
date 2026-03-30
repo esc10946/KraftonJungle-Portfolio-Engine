@@ -53,8 +53,7 @@ public:
 
 	FD3DDevice& GetFD3DDevice() { return Device; }
 	FRenderResources& GetResources() { return Resources; }
-
-	FViewportRenderer ViewportRenderer;
+	FViewportRenderer& GetViewportRenderer() { return ViewportRenderer; }
 
 private:
 	void InitializePassRenderStates();
@@ -75,6 +74,7 @@ private:
 private:
 	FD3DDevice Device;
 	FRenderResources Resources;
+	FViewportRenderer ViewportRenderer;
 	FLineBatcher   EditorLineBatcher;
 	FLineBatcher   GridLineBatcher;
 	FFontBatcher   FontBatcher;
@@ -87,6 +87,7 @@ private:
 	FPassRenderState    PassRenderStates[(uint32)ERenderPass::MAX];
 	FPassBatcherBinding PassBatchers[(uint32)ERenderPass::MAX];
 	ID3D11ShaderResourceView* SubUVCachedSRV = nullptr;
+	ID3D11SamplerState* StaticMeshSamplerState = nullptr;
 
 	//	Primitive and Gizmo Input Layout
 	D3D11_INPUT_ELEMENT_DESC PrimitiveInputLayout[2] =
@@ -95,11 +96,11 @@ private:
 		{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, static_cast<uint32>(offsetof(FVertex, Color)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
 
-	D3D11_INPUT_ELEMENT_DESC StaticMeshInputLayout[3] =
+	D3D11_INPUT_ELEMENT_DESC TexturedMeshInputLayout[2] =
 	{
-		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, static_cast<uint32>(offsetof(FStaticMeshVertex, Position)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, static_cast<uint32>(offsetof(FStaticMeshVertex, Normal)),   D3D11_INPUT_PER_VERTEX_DATA, 0 },
-		{ "TEXTURE",  0, DXGI_FORMAT_R32G32_FLOAT,    0, static_cast<uint32>(offsetof(FStaticMeshVertex, TexCoord)), D3D11_INPUT_PER_VERTEX_DATA, 0 }
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, static_cast<uint32>(offsetof(FTextureVertex, Position)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, static_cast<uint32>(offsetof(FTextureVertex, TexCoord)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
+
 };
 

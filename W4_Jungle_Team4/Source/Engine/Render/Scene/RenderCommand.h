@@ -8,18 +8,19 @@
 
 #include "Render/Common/RenderTypes.h"
 #include "Render/Resource/Buffer.h"
-#include "Render/Resource/Material.h"
 #include "Render/Device/D3DDevice.h"
 #include "Core/EngineTypes.h"
 #include "Core/ResourceTypes.h"
 
 #include "Math/Matrix.h"
 #include "Math/Vector.h"
-#include "Asset/StaticMesh/StaticMesh.h"
+
+class UMaterial;
 
 enum class ERenderCommandType
 {
 	Primitive,
+	StaticMesh,
 	Gizmo,
 	StencilMask,
 	SelectionOutline,
@@ -28,7 +29,6 @@ enum class ERenderCommandType
 	Grid,		// Grid 패스 — LineBatcher 경유
 	Font,		// TextRenderComponent — FontBatcher 경유
 	SubUV,		// SubUVComponent     — SubUVBatcher 경유
-	StaticMesh,		// todo - StaticMeshBatcher를 만들것
 };
 
 //PerObject
@@ -42,8 +42,10 @@ struct FFrameConstants
 {
 	FMatrix View;          
 	FMatrix Projection;    
+    float GlobalTime;     // 추가
 	float bIsWireframe;
 	FVector WireframeColor;
+    float Padding;        // 16바이트 정렬 맞추기
 };
 
 struct FGizmoConstants
@@ -103,22 +105,36 @@ struct FSubUVConstants
 	float Height = 1.0f;
 };
 
-struct FStaticMeshConstants
+struct FStaticMeshData
 {
-	const UStaticMesh* Mesh = nullptr;
-	const UMaterial* Material = nullptr;
+	UMaterial* Material = nullptr;
+	ID3D11ShaderResourceView* DiffuseSRV = nullptr;
+	uint32 FirstIndex = 0;
+	uint32 IndexCount = 0;
+	uint32 bUseTexture = 0;
+	FVector2 UVScrollSpeed = {0, 0};
+	float Padding0[3];
 };
 
-struct FViewportConstants
+struct FStaticMeshConstants
 {
-	FRenderTarget* RenderTarget = nullptr;
+    uint32 StaticMeshUseTexture = 0;
+    float Padding5[3] = { 0.0f, 0.0f, 0.0f };
+
+    float UVScrollSpeed[2] = { 0.0f, 0.0f };
+    float UVTiling[2]      = { 1.0f, 1.0f };
+
+    float UVOffset[2]      = { 0.0f, 0.0f };
+    float Padding1[2]      = { 0.0f, 0.0f };
 };
 
 struct FRenderCommand
 {
 	//	VB, IB 모두 담고 있는 MB
 	FMeshBuffer* MeshBuffer = nullptr;
+	FTextureMeshBuffer* TextureMeshBuffer = nullptr;
 	FPerObjectConstants PerObjectConstants = {};
+	FStaticMeshData MeshRenderData;
 
 	union
 	{
@@ -129,7 +145,7 @@ struct FRenderCommand
 		FGridConstants Grid;
 		FFontConstants Font;
 		FSubUVConstants SubUV;
-		FViewportConstants Viewport;
+		FStaticMeshConstants StaticMesh;
 	} Constants;
 
 	EDepthStencilState DepthStencilState = static_cast<EDepthStencilState>(-1);

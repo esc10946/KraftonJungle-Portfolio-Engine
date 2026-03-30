@@ -22,6 +22,14 @@ SViewportRoot::SViewportRoot()
 
 		ViewportWidget->SetName("Viewport" + std::to_string(i));
 	}
+
+	// 미리 viewport들의 option을 지정합니다.
+	EViewOption DefaultOptions[] = { EViewOption::Perspective, EViewOption::Top, EViewOption::Left, EViewOption::Front };
+	for (int i = 0; i < 4; ++i)
+	{
+		FEditorViewportClient* Client = static_cast<FEditorViewportClient*>(Viewports[i]->GetViewport()->GetViewportClient());
+		Client->SetCurrentViewOption(DefaultOptions[i]);
+	}
 }
 
 SViewportRoot::~SViewportRoot()
@@ -41,14 +49,6 @@ SViewportRoot::~SViewportRoot()
 
 void SViewportRoot::Tick(float DeltaTime)
 {
-	//for (SViewport* Viewport : Viewports)
-	//{
-	//	if (Viewport)
-	//	{
-	//		Viewport->Tick(DeltaTime);
-	//	}
-	//}
-
 	SWidget::Tick(DeltaTime);
 
 	if (GetChildren().size() == 1)
@@ -59,6 +59,7 @@ void SViewportRoot::Tick(float DeltaTime)
 	if (bDirty)
 	{
 		Construct();
+		OnResize(Rect);
 		bDirty = false;
 	}
 }
@@ -90,5 +91,22 @@ void SViewportRoot::Construct()
 		SplitterV->SetSideRB(Viewports[1]);
 		SplitterV2->SetSideLT(Viewports[2]);
 		SplitterV2->SetSideRB(Viewports[3]);
+	}
+}
+
+json::JSON SViewportRoot::Serialize() const
+{
+	json::JSON Data = SWidget::Serialize();
+	Data["VisibleCount"] = VisibleCount;
+	return Data;
+}
+
+void SViewportRoot::Deserialize(json::JSON& Data)
+{
+	SWidget::Deserialize(Data);
+	if (Data.hasKey("VisibleCount"))
+	{
+		VisibleCount = Data["VisibleCount"].ToInt();
+		bDirty = true;
 	}
 }
