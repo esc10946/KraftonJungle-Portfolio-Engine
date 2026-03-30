@@ -8,7 +8,7 @@ class FViewerViewportClient;
 class FViewerPanel
 {
 public:
-	void Create(FWindowsWindow* InWindow, FRenderer& InRenderer);
+	void Create(FWindowsWindow* InWindow, FRenderer& InRenderer, UViewerEngine* InEngine);
 	void Release();
 
 	void BeginFrame();
@@ -19,4 +19,5 @@ public:
 private:
 	FWindowsWindow* Window;
 	FViewerViewportClient* ViewportClient = nullptr;
+	UViewerEngine* OwnerEngine = nullptr;
 };

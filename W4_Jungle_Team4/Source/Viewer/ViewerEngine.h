@@ -4,6 +4,8 @@
 #include "Viewer/ViewerPanel.h"
 
 
+class FMeshBuffer;
+
 class UViewerEngine : public UEngine
 {
 public:
@@ -20,7 +22,15 @@ public:
 
 	void RenderUI(float DeltaTime);
 
+	FStaticMeshAsset* GetCurrentMesh() const { return CurrentMesh; }
+	FTextureMeshBuffer* GetTextureMesh() { return &TextureMeshBuffer; }
+
+	void BuildGpuBuffer(ID3D11Device* Device);
+
 private:
 	FViewerViewportClient ViewerClient;
 	FViewerPanel Panel;
+
+	FStaticMeshAsset* CurrentMesh = nullptr;
+	FTextureMeshBuffer TextureMeshBuffer;
 };

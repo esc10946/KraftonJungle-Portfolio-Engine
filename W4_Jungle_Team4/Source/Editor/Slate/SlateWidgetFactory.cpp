@@ -39,6 +39,15 @@ void FSlateWidgetFactory::LoadViewportLayouts(const FString& FilePath)
 	}
 }
 
+SWidget* FSlateWidgetFactory::GetViewportLayout(const FString& LayoutName)
+{
+	if (LoadedWidgetData.find(LayoutName) != LoadedWidgetData.end())
+	{
+		return LoadRecursive(LoadedWidgetData[LayoutName]);
+	}
+	return nullptr;
+}
+
 SWidget* FSlateWidgetFactory::CreateWidget(const FString& WidgetType)
 {
 	if (EditorEngine == nullptr)
