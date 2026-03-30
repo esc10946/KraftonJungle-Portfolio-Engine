@@ -1,4 +1,4 @@
-#include "StaticMeshComponent.h"
+﻿#include "StaticMeshComponent.h"
 
 #include "Asset/Material/MaterialObject.h"
 #include "Asset/StaticMesh/StaticMeshObject.h"
@@ -83,7 +83,7 @@ void UStaticMeshComponent::GetEditableProperties(TArray<FPropertyDescriptor>& Ou
 		return;
 	}
 
-	InitializeMaterialSlotsFromMesh();
+	//InitializeMaterialSlotsFromMesh();
 
 	const TArray<FStaticMeshSection>& Sections = StaticMesh->GetSections();
 	const TArray<FStaticMaterialSlot>& MaterialSlots = StaticMesh->GetMaterialSlots();
@@ -139,8 +139,11 @@ void UStaticMeshComponent::InitializeMaterialSlotsFromMesh()
 		OverrideMaterials.clear();
 		return;
 	}
-
-	OverrideMaterials.resize(static_cast<size_t>(StaticMesh->GetNumSections()), nullptr);
+	int32 NumSlots = StaticMesh->GetNumMaterialSlots();
+	OverrideMaterials.resize(static_cast<size_t>(NumSlots), nullptr);
+		for (int32 i = 0 ; i < NumSlots; i++) {
+			OverrideMaterials[i] = StaticMesh->GetMaterialSlots()[i].DefaultMaterial;
+		}
 }
 
 void UStaticMeshComponent::RefreshMeshData()
