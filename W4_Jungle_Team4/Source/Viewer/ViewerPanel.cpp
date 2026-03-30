@@ -58,13 +58,13 @@ void FViewerPanel::Render(float DeltaTime)
 		ImGui::Text("Camera Sensitivity");
 
 		ImGui::SliderFloat("Orbit Speed", &Camera->RotateSensitivity, 0.01f, 1.0f, "%.2f");
-		ImGui::SliderFloat("Pan Speed", &Camera->PanSensitivity, 0.01f, 0.1f, "%.1f");
+		ImGui::SliderFloat("Pan Speed", &Camera->PanSensitivity, 0.001f, 0.1f, "%.3f");
 		ImGui::SliderFloat("Zoom Speed", &Camera->ZoomSensitivity, 0.05f, 1.0f, "%.2f");
 
 		if (ImGui::Button("Reset Sensitivity"))
 		{
 			Camera->RotateSensitivity = 0.1f;
-			Camera->PanSensitivity = 0.01f;
+			Camera->PanSensitivity = 0.001f;
 			Camera->ZoomSensitivity = 0.5f;
 		}
 	}
