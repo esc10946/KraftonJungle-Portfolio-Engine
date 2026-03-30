@@ -3,19 +3,22 @@
 
 void SSplitterV::Tick(float DeltaTime)
 {
-	FRect widgetRect = GetRect();
-	uint32 SplitX = static_cast<uint32>(widgetRect.Width * SplitRatio);
-
-	FRect leftRect = { widgetRect.X, widgetRect.Y, SplitX, widgetRect.Height };
-	FRect rightRect = { widgetRect.X + SplitX, widgetRect.Y, widgetRect.Width - SplitX, widgetRect.Height };
-
-	if (GetSideLT()) GetSideLT()->SetRect(leftRect);
-	if (GetSideRB()) GetSideRB()->SetRect(rightRect);
-
 	SSplitter::Tick(DeltaTime);
 
 	if (GetSideLT()) GetSideLT()->Tick(DeltaTime);
 	if (GetSideRB()) GetSideRB()->Tick(DeltaTime);
+}
+
+void SSplitterV::OnResize(const FRect& NewRect)
+{
+	Rect = NewRect;
+	uint32 SplitX = static_cast<uint32>(Rect.Width * SplitRatio);
+
+	FRect leftRect = { Rect.X, Rect.Y, SplitX, Rect.Height };
+	FRect rightRect = { Rect.X + SplitX, Rect.Y, Rect.Width - SplitX, Rect.Height };
+
+	if (GetSideLT()) GetSideLT()->OnResize(leftRect);
+	if (GetSideRB()) GetSideRB()->OnResize(rightRect);
 }
 
 bool SSplitterV::IsOnHandle(float X, float Y) const
@@ -44,6 +47,8 @@ void SSplitterV::UpdateSplit(float X, float Y)
 		SplitRatio = (X - widgetRect.X) / (float)widgetRect.Width;
 		if (SplitRatio < 0.05f) SplitRatio = 0.05f;
 		if (SplitRatio > 0.95f) SplitRatio = 0.95f;
+
+		OnResize(widgetRect);
 	}
 }
 

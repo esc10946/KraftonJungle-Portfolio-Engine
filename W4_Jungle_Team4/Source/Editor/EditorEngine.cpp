@@ -88,6 +88,7 @@ void UEditorEngine::Shutdown()
 void UEditorEngine::OnWindowResized(uint32 Width, uint32 Height)
 {
 	UEngine::OnWindowResized(Width, Height);
+	FSlateApplication::Get().OnWindowResized(Width, Height);
 }
 
 void UEditorEngine::Tick(float DeltaTime)

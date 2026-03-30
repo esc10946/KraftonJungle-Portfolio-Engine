@@ -22,6 +22,15 @@ void SWidget::OnPaint()
 	}
 }
 
+void SWidget::OnResize(const FRect& NewRect)
+{
+	Rect = NewRect;
+	for (SWidget* Child : GetChildren())
+	{
+		Child->OnResize(NewRect);
+	}
+}
+
 bool SWidget::IsHovered(FVector2 Coord) const
 {
 	if (!bIsVisible) return false;

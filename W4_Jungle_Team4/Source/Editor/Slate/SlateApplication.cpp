@@ -30,6 +30,15 @@ void FSlateApplication::OnPaint()
 	}
 }
 
+void FSlateApplication::OnWindowResized(uint32 Width, uint32 Height)
+{
+	for (SWindow* Window : Windows)
+	{
+		FRect NewRect = { 0, 0, Width, Height };
+		Window->OnResize(NewRect);
+	}
+}
+
 SWindow* FSlateApplication::AddWindow(SWindow* InWindow)
 {
 	Windows.push_back(InWindow);
