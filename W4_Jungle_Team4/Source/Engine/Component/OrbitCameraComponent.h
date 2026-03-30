@@ -30,7 +30,7 @@ private:
 	float   Pitch = 0.0f;
 	FVector Target = FVector(0, 0, 0);
 
-	float RotateSensitivity = 0.3f;
+	float RotateSensitivity = 0.1f;
 	float PanSensitivity = 0.001f;
 	float ZoomSensitivity = 0.5f;
 	float PitchMin = -89.0f;
