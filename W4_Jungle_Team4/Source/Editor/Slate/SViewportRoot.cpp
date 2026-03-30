@@ -49,14 +49,6 @@ SViewportRoot::~SViewportRoot()
 
 void SViewportRoot::Tick(float DeltaTime)
 {
-	//for (SViewport* Viewport : Viewports)
-	//{
-	//	if (Viewport)
-	//	{
-	//		Viewport->Tick(DeltaTime);
-	//	}
-	//}
-
 	SWidget::Tick(DeltaTime);
 
 	if (GetChildren().size() == 1)
@@ -67,6 +59,7 @@ void SViewportRoot::Tick(float DeltaTime)
 	if (bDirty)
 	{
 		Construct();
+		OnResize(Rect);
 		bDirty = false;
 	}
 }

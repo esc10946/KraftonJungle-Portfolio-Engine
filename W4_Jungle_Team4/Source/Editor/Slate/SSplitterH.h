@@ -10,6 +10,7 @@ public:
 
 public:
 	virtual void Tick(float DeltaTime) override;
+	virtual void OnResize(const FRect& NewRect) override;
 
 	virtual FReply OnMouseButtonDown(float X, float Y, int32 Button) override;
 	virtual FReply OnMouseButtonUp(float X, float Y, int32 Button) override;
