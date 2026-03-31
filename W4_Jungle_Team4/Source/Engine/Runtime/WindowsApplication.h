@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -10,6 +10,7 @@
 
 using FOnSizingCallback = std::function<void()>;
 using FOnResizedCallback = std::function<void(unsigned int, unsigned int)>;
+using FOnDropOBJViewerCallback = std::function<void(const char*)>;
 
 class FWindowsApplication
 {
@@ -29,7 +30,10 @@ public:
 
 	void SetOnSizingCallback(FOnSizingCallback InCallback) { OnSizingCallback = std::move(InCallback); }
 	void SetOnResizedCallback(FOnResizedCallback InCallback) { OnResizedCallback = std::move(InCallback); }
-
+	void SetOnDropOBJViewerCallback(FOnDropOBJViewerCallback InCallback)
+	{
+		OnDropOBJViewerCallback = std::move(InCallback);
+	}
 private:
 	static LRESULT CALLBACK StaticWndProc(HWND hWnd, unsigned int Msg, WPARAM wParam, LPARAM lParam);
 	LRESULT WndProc(HWND hWnd, unsigned int Msg, WPARAM wParam, LPARAM lParam);
@@ -43,4 +47,5 @@ private:
 
 	FOnSizingCallback OnSizingCallback;
 	FOnResizedCallback OnResizedCallback;
+	FOnDropOBJViewerCallback OnDropOBJViewerCallback;
 };

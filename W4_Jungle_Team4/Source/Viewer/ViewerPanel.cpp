@@ -79,7 +79,7 @@ void FViewerPanel::Render(float DeltaTime)
 		ofn.lpstrFilter = "OBJ Files\0*.obj\0All Files\0*.*\0";
 		ofn.lpstrFile = filePath;
 		ofn.nMaxFile = sizeof(filePath);
-		ofn.Flags = OFN_FILEMUSTEXIST;
+		ofn.Flags = OFN_FILEMUSTEXIST | OFN_NOCHANGEDIR;
 
 		if (GetOpenFileNameA(&ofn) && ViewportClient)
 		{

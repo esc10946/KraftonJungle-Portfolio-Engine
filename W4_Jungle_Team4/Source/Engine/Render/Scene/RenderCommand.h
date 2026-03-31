@@ -112,6 +112,7 @@ struct FStaticMeshData
 	UShader* Shader = nullptr;
 	UMaterialInterface* Material = nullptr;
 	ID3D11ShaderResourceView* DiffuseSRV = nullptr;
+	ID3D11ShaderResourceView* NormalSRV = nullptr;
 	uint32 FirstIndex = 0;
 	uint32 IndexCount = 0;
 };

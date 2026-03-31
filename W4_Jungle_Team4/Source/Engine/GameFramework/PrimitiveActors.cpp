@@ -12,13 +12,13 @@
 
 #include <format>
 
-DEFINE_CLASS(ACubeActor, AActor)
+DEFINE_CLASS(ACubeActor, AStaticMeshActor)
 REGISTER_FACTORY(ACubeActor)
 
-DEFINE_CLASS(ASphereActor, AActor)
+DEFINE_CLASS(ASphereActor, AStaticMeshActor)
 REGISTER_FACTORY(ASphereActor)
 
-DEFINE_CLASS(APlaneActor, AActor)
+DEFINE_CLASS(APlaneActor, AStaticMeshActor)
 REGISTER_FACTORY(APlaneActor)
 
 DEFINE_CLASS(AStaticMeshActor, AActor)
@@ -27,66 +27,6 @@ REGISTER_FACTORY(AStaticMeshActor)
 DEFINE_CLASS(AAttachTestActor, AActor)
 REGISTER_FACTORY(AAttachTestActor)
 
-void ACubeActor::InitDefaultComponents()
-{
-	auto* Cube = AddComponent<UCubeComponent>();
-	SetRootComponent(Cube);
-
-	// Text
-	UTextRenderComponent* Text = AddComponent<UTextRenderComponent>();
-	Text->SetFont(FName("Default"));
-	Text->AttachToComponent(Cube);
-	Text->SetText("UUID : " + std::to_string(GetUUID()));
-	Text->SetRelativeLocation(FVector(0.0f, 0.0f, 1.0f));
-
-	// SubUV
-	USubUVComponent* SubUV = AddComponent<USubUVComponent>();
-	SubUV->AttachToComponent(Cube);
-	SubUV->SetParticle(FName("Explosion"));
-	SubUV->SetSpriteSize(2.0f, 2.0f);
-	SubUV->SetFrameRate(30.f);
-	SubUV->SetRelativeLocation(FVector(0.0f, 0.0f, 2.3f));
-}
-
-void ASphereActor::InitDefaultComponents()
-{
-	auto* Sphere = AddComponent<USphereComponent>();
-	SetRootComponent(Sphere);
-
-	UTextRenderComponent* Text = AddComponent<UTextRenderComponent>();
-	Text->SetFont(FName("Default"));
-	Text->AttachToComponent(Sphere);
-	Text->SetText("UUID : " + std::to_string(GetUUID()));
-	Text->SetRelativeLocation(FVector(0.0f, 0.0f, 1.0f));
-
-	// SubUV
-	USubUVComponent* SubUV = AddComponent<USubUVComponent>();
-	SubUV->AttachToComponent(Sphere);
-	SubUV->SetParticle(FName("Explosion"));
-	SubUV->SetSpriteSize(2.0f, 2.0f);
-	SubUV->SetFrameRate(30.f);
-	SubUV->SetRelativeLocation(FVector(0.0f, 0.0f, 2.3f));
-}
-
-void APlaneActor::InitDefaultComponents()
-{
-	auto* Plane = AddComponent<UPlaneComponent>();
-	SetRootComponent(Plane);
-
-	UTextRenderComponent* Text = AddComponent<UTextRenderComponent>();
-	Text->SetFont(FName("Default"));
-	Text->SetText(std::format("UUID: {}", GetUUID()));
-	Text->AttachToComponent(Plane);
-	Text->SetRelativeLocation(FVector(0.0f, 0.0f, 1.0f));
-
-	// SubUV
-	USubUVComponent* SubUV = AddComponent<USubUVComponent>();
-	SubUV->AttachToComponent(Plane);
-	SubUV->SetParticle(FName("Explosion"));
-	SubUV->SetSpriteSize(2.0f, 2.0f);
-	SubUV->SetFrameRate(30.f);
-	SubUV->SetRelativeLocation(FVector(0.0f, 0.0f, 2.3f));
-}
 
 void AStaticMeshActor::InitDefaultComponents()
 {
@@ -141,6 +81,60 @@ void AStaticMeshActor::UpdateUUIDTextLocation()
 		(Min.X + Max.X) * 0.5f,
 		(Min.Y + Max.Y) * 0.5f,
 		Max.Z + Padding + TextHalfHeight));
+}
+
+void ACubeActor::InitDefaultComponents()
+{
+	UStaticMeshComponent* CubeMesh = AddComponent<UStaticMeshComponent>();
+	SetRootComponent(CubeMesh);
+	
+	const FString StaticMeshPath = FPaths::ToUtf8(FPaths::MeshPath()) + "cube.obj";
+	CubeMesh->SetStaticMesh(FStaticMeshManager::Get().LoadStaticMeshObject(StaticMeshPath));
+
+	// Text
+	UTextRenderComponent* Text = AddComponent<UTextRenderComponent>();
+	Text->SetFont(FName("Default"));
+	Text->AttachToComponent(CubeMesh);
+	Text->SetText("UUID : " + std::to_string(GetUUID()));
+	Text->SetRelativeLocation(FVector(0.0f, 0.0f, 1.0f));
+}
+
+void ASphereActor::InitDefaultComponents()
+{
+	UStaticMeshComponent* SphereMesh = AddComponent<UStaticMeshComponent>();
+	SetRootComponent(SphereMesh);
+
+	const FString StaticMeshPath = FPaths::ToUtf8(FPaths::MeshPath()) + "sphere.obj";
+	SphereMesh->SetStaticMesh(FStaticMeshManager::Get().LoadStaticMeshObject(StaticMeshPath));
+
+	UTextRenderComponent* Text = AddComponent<UTextRenderComponent>();
+	Text->SetFont(FName("Default"));
+	Text->AttachToComponent(SphereMesh);
+	Text->SetText("UUID : " + std::to_string(GetUUID()));
+	Text->SetRelativeLocation(FVector(0.0f, 0.0f, 1.0f));
+}
+
+void APlaneActor::InitDefaultComponents()
+{
+	UStaticMeshComponent* PlaneMesh = AddComponent<UStaticMeshComponent>();
+	SetRootComponent(PlaneMesh);
+
+	const FString StaticMeshPath = FPaths::ToUtf8(FPaths::MeshPath()) + "plane.obj";
+	PlaneMesh->SetStaticMesh(FStaticMeshManager::Get().LoadStaticMeshObject(StaticMeshPath));
+
+	UTextRenderComponent* Text = AddComponent<UTextRenderComponent>();
+	Text->SetFont(FName("Default"));
+	Text->SetText(std::format("UUID: {}", GetUUID()));
+	Text->AttachToComponent(PlaneMesh);
+	Text->SetRelativeLocation(FVector(0.0f, 0.0f, 1.0f));
+
+	// SubUV
+	USubUVComponent* SubUV = AddComponent<USubUVComponent>();
+	SubUV->AttachToComponent(PlaneMesh);
+	SubUV->SetParticle(FName("Explosion"));
+	SubUV->SetSpriteSize(2.0f, 2.0f);
+	SubUV->SetFrameRate(30.f);
+	SubUV->SetRelativeLocation(FVector(0.0f, 0.0f, 2.3f));
 }
 
 void AAttachTestActor::InitDefaultComponents()

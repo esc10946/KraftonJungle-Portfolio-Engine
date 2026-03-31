@@ -84,7 +84,14 @@ void UEditorEngine::Init(FWindowsWindow* InWindow)
 
 	// Console Command 등록 (어디서 해야할지 애매해서 일단 여기)
 	FConsoleCommandManager::Get().RegisterCommand("stat", [this](const TArray<FString>& Args) {
-		if (Args.size() < 2) return;
+		if (Args.size() < 2)
+		{
+			SImGuiConsoleWidget::AddLog("Usage:\n");
+			SImGuiConsoleWidget::AddLog("  stat fps     - Show FPS stats on the focused viewport.\n");
+			SImGuiConsoleWidget::AddLog("  stat memory  - Show memory stats on the focused viewport.\n");
+			SImGuiConsoleWidget::AddLog("  stat none    - Hide all stats on the focused viewport.\n");
+			return;
+		}
 
 		SViewport* FocusedViewport = FViewportManager::Get().GetFocusedViewportWidget();
 		if (FocusedViewport == nullptr)
@@ -108,7 +115,10 @@ void UEditorEngine::Init(FWindowsWindow* InWindow)
 		}
 		else
 		{
-			SImGuiConsoleWidget::AddLog("[ERROR] Unknown command: '%s'\n", Args[0].c_str());
+			SImGuiConsoleWidget::AddLog("Usage:\n");
+			SImGuiConsoleWidget::AddLog("  stat fps     - Show FPS stats on the focused viewport.\n");
+			SImGuiConsoleWidget::AddLog("  stat memory  - Show memory stats on the focused viewport.\n");
+			SImGuiConsoleWidget::AddLog("  stat none    - Hide all stats on the focused viewport.\n");
 		}
 		});
 }

@@ -43,6 +43,7 @@ LRESULT FWindowsApplication::WndProc(HWND hWnd, unsigned int Msg, WPARAM wParam,
 		PostQuitMessage(0);
 		return 0;
 	case WM_MOUSEWHEEL:
+		
 		InputSystem::Get().AddScrollDelta(GET_WHEEL_DELTA_WPARAM(wParam));
 		return 0;
 	case WM_SIZE:
@@ -71,32 +72,18 @@ LRESULT FWindowsApplication::WndProc(HWND hWnd, unsigned int Msg, WPARAM wParam,
 		return 0;
 	case WM_DROPFILES:
 	{
-		HDROP hDrop = reinterpret_cast<HDROP>(wParam);
-
-		char filePath[MAX_PATH] = {};
-		const UINT fileCount = DragQueryFileA(hDrop, 0xFFFFFFFF, nullptr, 0);
-
-		if (fileCount > 0)
-		{
-			DragQueryFileA(hDrop, 0, filePath, MAX_PATH);
-
-			FString DroppedPath = filePath;
-
-			// 확장자 체크
-			std::filesystem::path Path(filePath);
-			if (Path.extension() == ".obj")
-			{
-				if (GEngine)
-				{
-					if (UEditorEngine* Editor = dynamic_cast<UEditorEngine*>(GEngine))
-					{
-						Editor->HandleObjImported(DroppedPath);
-					}
-				}
-			}
-		}
-
+		HDROP hDrop = (HDROP)wParam;
+		wchar_t filePath[MAX_PATH];
+		DragQueryFileW(hDrop, 0, filePath, MAX_PATH);
 		DragFinish(hDrop);
+
+		char path[MAX_PATH];
+		WideCharToMultiByte(CP_ACP, 0, filePath, -1, path, MAX_PATH, NULL, NULL);
+
+		if (OnDropOBJViewerCallback)
+		{
+			OnDropOBJViewerCallback(path);
+		}
 		return 0;
 	}
 	default:

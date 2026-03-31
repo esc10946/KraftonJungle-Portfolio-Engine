@@ -298,7 +298,6 @@ void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, cons
 			{
 				Material->ResolveParameters(MaterialParameters);
 				Cmd.MeshRenderData.Shader = MaterialParameters.Shader;
-				Cmd.PerObjectConstants.Color = Primitive->GetMaterialColor();
 				Cmd.Constants.StaticMesh.bUseAtlas = MaterialParameters.bUseAtlas ? 1u : 0u;
 				Cmd.Constants.StaticMesh.bSourceUVsUseAtlasTiles =
 					(MaterialParameters.bUseAtlas && StaticMesh->SectionUsesEmbeddedAtlasUVs(static_cast<int32>(SectionIndex))) ? 1u : 0u;
@@ -311,6 +310,7 @@ void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, cons
 					Cmd.MeshRenderData.DiffuseSRV = Texture->GetOrCreateShaderResourceView(Device);
 				}
 				Cmd.Constants.StaticMesh.StaticMeshUseTexture = (Cmd.MeshRenderData.DiffuseSRV != nullptr) ? 1u : 0u;
+				Cmd.PerObjectConstants.Color = Cmd.MeshRenderData.DiffuseSRV != nullptr ? MaterialParameters.BaseColor : Primitive->GetMaterialColor();
 			}
 
 			if (StaticMeshComponent->bUseUVScroll) {

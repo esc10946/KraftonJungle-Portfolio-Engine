@@ -79,15 +79,71 @@ bool FMtlParser::ParseLine(
 		return ParseNewMaterial(Tokens, InOutCurrentMaterialName, InOutMaterials);
 	}
 
-	if (Prefix == "Kd")
-	{
-		return ParseDiffuseColor(Tokens, InOutCurrentMaterialName, InOutMaterials);
-	}
+	if (Prefix == "Ka")
+    {
+        return ParseVec3Property(Tokens, InOutCurrentMaterialName, InOutMaterials, &FObjMaterialInfo::Ka);
+    }
 
-	if (Prefix == "map_Kd")
-	{
-		return ParseDiffuseTexture(Tokens, InOutCurrentMaterialName, InOutMaterials);
-	}
+    if (Prefix == "Kd")
+    {
+        return ParseVec3Property(Tokens, InOutCurrentMaterialName, InOutMaterials, &FObjMaterialInfo::Kd);
+    }
+
+    if (Prefix == "Ks")
+    {
+        return ParseVec3Property(Tokens, InOutCurrentMaterialName, InOutMaterials, &FObjMaterialInfo::Ks);
+    }
+
+    if (Prefix == "Ke")
+    {
+        return ParseVec3Property(Tokens, InOutCurrentMaterialName, InOutMaterials, &FObjMaterialInfo::Ke);
+    }
+
+    if (Prefix == "Ns")
+    {
+        return ParseFloatProperty(Tokens, InOutCurrentMaterialName, InOutMaterials, &FObjMaterialInfo::Ns);
+    }
+
+    if (Prefix == "d")
+    {
+        return ParseFloatProperty(Tokens, InOutCurrentMaterialName, InOutMaterials, &FObjMaterialInfo::d);
+    }
+
+    if (Prefix == "illum")
+    {
+        return ParseIntProperty(Tokens, InOutCurrentMaterialName, InOutMaterials, &FObjMaterialInfo::illum);
+    }
+
+    if (Prefix == "map_Ka")
+    {
+        return ParseStringProperty(Tokens, InOutCurrentMaterialName, InOutMaterials, &FObjMaterialInfo::map_Ka);
+    }
+
+    if (Prefix == "map_Kd")
+    {
+        return ParseStringProperty(Tokens, InOutCurrentMaterialName, InOutMaterials, &FObjMaterialInfo::map_Kd);
+    }
+
+    if (Prefix == "map_Ks")
+    {
+        return ParseStringProperty(Tokens, InOutCurrentMaterialName, InOutMaterials, &FObjMaterialInfo::map_Ks);
+    }
+
+    if (Prefix == "map_Ns")
+    {
+        return ParseStringProperty(Tokens, InOutCurrentMaterialName, InOutMaterials, &FObjMaterialInfo::map_Ns);
+    }
+
+    if (Prefix == "map_d")
+    {
+        return ParseStringProperty(Tokens, InOutCurrentMaterialName, InOutMaterials, &FObjMaterialInfo::map_d);
+    }
+
+    if (Prefix == "map_Bump" || Prefix == "bump")
+    {
+        return ParseStringProperty(Tokens, InOutCurrentMaterialName, InOutMaterials, &FObjMaterialInfo::map_Bump);
+    }
+
 
 	// 나머지 mtl 속성은 아직 무시
 	return true;
@@ -113,51 +169,92 @@ bool FMtlParser::ParseNewMaterial(
 	return true;
 }
 
-bool FMtlParser::ParseDiffuseColor(
-	const TArray<FString>& InTokens,
-	const FString& InCurrentMaterialName,
-	TMap<FString, FObjMaterialInfo>& InOutMaterials)
+bool FMtlParser::ParseVec3Property(const TArray<FString>& InTokens, const FString& InCurrentMaterialName, TMap<FString, FObjMaterialInfo>& InOutMaterials, FVector FObjMaterialInfo::* Member)
 {
-	// current material이 없는데 Kd가 나오면 잘못된 mtl
-	if (InCurrentMaterialName.empty())
-	{
-		return false;
-	}
-
 	if (InTokens.size() < 4)
-	{
-		return false;
-	}
+    {
+        return false;
+    }
 
-	const float R = std::stof(InTokens[1]);
-	const float G = std::stof(InTokens[2]);
-	const float B = std::stof(InTokens[3]);
+    FObjMaterialInfo* Material = GetCurrentMaterial(InCurrentMaterialName, InOutMaterials);
+    if (Material == nullptr)
+    {
+        return false;
+    }
 
-	FObjMaterialInfo& MaterialInfo = InOutMaterials[InCurrentMaterialName];
-	MaterialInfo.Name = InCurrentMaterialName;
-	MaterialInfo.DiffuseColor = FVector(R, G, B);
+    const float X = std::stof(InTokens[1]);
+    const float Y = std::stof(InTokens[2]);
+    const float Z = std::stof(InTokens[3]);
 
-	return true;
+    Material->*Member = FVector(X, Y, Z);
+    return true;
 }
 
-bool FMtlParser::ParseDiffuseTexture(
-	const TArray<FString>& InTokens,
-	const FString& InCurrentMaterialName,
-	TMap<FString, FObjMaterialInfo>& InOutMaterials)
+bool FMtlParser::ParseFloatProperty(const TArray<FString>& InTokens, const FString& InCurrentMaterialName, TMap<FString, FObjMaterialInfo>& InOutMaterials, float FObjMaterialInfo::* Member)
 {
-	if (InCurrentMaterialName.empty())
-	{
-		return false;
-	}
+    if (InTokens.size() < 2)
+    {
+        return false;
+    }
 
-	if (InTokens.size() < 2)
-	{
-		return false;
-	}
+    FObjMaterialInfo* Material = GetCurrentMaterial(InCurrentMaterialName, InOutMaterials);
+    if (Material == nullptr)
+    {
+        return false;
+    }
 
-	FObjMaterialInfo& MaterialInfo = InOutMaterials[InCurrentMaterialName];
-	MaterialInfo.Name = InCurrentMaterialName;
-	MaterialInfo.DiffuseTexturePath = InTokens[1];
+    Material->*Member = std::stof(InTokens[1]);
+    return true;
+}
 
-	return true;
+bool FMtlParser::ParseIntProperty(const TArray<FString>& InTokens, const FString& InCurrentMaterialName, TMap<FString, FObjMaterialInfo>& InOutMaterials, int32 FObjMaterialInfo::* Member)
+{
+    if (InTokens.size() < 2)
+    {
+        return false;
+    }
+
+    FObjMaterialInfo* Material = GetCurrentMaterial(InCurrentMaterialName, InOutMaterials);
+    if (Material == nullptr)
+    {
+        return false;
+    }
+
+    Material->*Member = std::stoi(InTokens[1]);
+    return true;
+}
+
+bool FMtlParser::ParseStringProperty(const TArray<FString>& InTokens, const FString& InCurrentMaterialName, TMap<FString, FObjMaterialInfo>& InOutMaterials, FString FObjMaterialInfo::* Member)
+{
+    if (InTokens.size() < 2)
+    {
+        return false;
+    }
+
+    FObjMaterialInfo* Material = GetCurrentMaterial(InCurrentMaterialName, InOutMaterials);
+    if (Material == nullptr)
+    {
+        return false;
+    }
+
+    Material->*Member = InTokens[1];
+    return true;
+}
+
+FObjMaterialInfo* FMtlParser::GetCurrentMaterial(
+    const FString& InCurrentMaterialName,
+    TMap<FString, FObjMaterialInfo>& InOutMaterials)
+{
+    if (InCurrentMaterialName.empty())
+    {
+        return nullptr;
+    }
+
+    auto It = InOutMaterials.find(InCurrentMaterialName);
+    if (It == InOutMaterials.end())
+    {
+        return nullptr;
+    }
+
+    return &It->second;
 }
