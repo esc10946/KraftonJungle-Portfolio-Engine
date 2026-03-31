@@ -85,7 +85,9 @@ void SViewportRoot::Construct()
 			{
 				float TargetSplitRatio = LayoutInfos[static_cast<int32>(CurrentLayout)].SplitRatios[i];
 
-				FTweenSystem::Get().Create(0.05f, TargetSplitRatio, 0.2f).SetUpdateCallback([Splitter = Splitters[i]](float Value) {
+				FTweenSystem::Get().Create(0.05f, TargetSplitRatio, 0.2f)
+					.SetEasing(EEasingType::EaseInOut)
+					.SetUpdateCallback([Splitter = Splitters[i]](float Value) {
 					Splitter->SetSplitRatio(Value);
 					Splitter->OnResize(Splitter->GetRect());
 					});
