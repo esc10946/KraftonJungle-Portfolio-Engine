@@ -46,6 +46,7 @@ void FEditorRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
 
 			Bus.SetViewProjection(Camera->GetViewMatrix(), Camera->GetProjectionMatrix(),
 				Camera->GetRightVector(), Camera->GetUpVector());
+			Bus.SetOrthographic(Camera->IsOrthogonal());
 			Bus.SetRenderSettings(ViewMode, ShowFlags);
 
 			// Gizmo는 렌더링 직전에 뷰포트 내 카메라를 이용해서 스케일링을 적용합니다.

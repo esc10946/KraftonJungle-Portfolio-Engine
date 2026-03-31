@@ -189,7 +189,7 @@ void FLineBatcher::AddAABB(const FBoundingBox& Box, const FColor& InColor)
 	}
 }
 
-void FLineBatcher::AddWorldHelpers(const FShowFlags& ShowFlags, float GridSpacing, int32 GridHalfLineCount, const FVector& CameraPosition, const FVector& CameraForward)
+void FLineBatcher::AddWorldHelpers(const FShowFlags& ShowFlags, float GridSpacing, int32 GridHalfLineCount, const FVector& CameraPosition, const FVector& CameraForward, bool Orthographic)
 {
 	const float Spacing = GridSpacing;
 	const int32 BaseHalfCount = std::max(GridHalfLineCount, 1);
@@ -239,7 +239,7 @@ void FLineBatcher::AddWorldHelpers(const FShowFlags& ShowFlags, float GridSpacin
 	// 카메라의 direction이 grid plane과 평행한 경우에는 grid를 그리지 않도록 수정
 	bool bShouldDrawGrid = true;
 	float DotUp = std::abs(CameraForward.Dot(FVector(0.0f, 0.0f, 1.0f)));
-	if (DotUp < EPSILON)
+	if (DotUp < EPSILON && Orthographic)
 	{
 		bShouldDrawGrid = false;
 	}
