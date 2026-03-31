@@ -108,67 +108,47 @@ void FSlateApplication::ProcessInput()
 	ImGuiIO& io = ImGui::GetIO();
 
 	SWidget* Captor = GetMouseCaptor();
-	if (Captor)
-	{
-		Captor->OnMouseMove(MousePos.X, MousePos.Y);
-	}
-	else
+	if (!Captor)
 	{
 		SWidget* HoveredWidget = FindWidgetAt(MousePos);
-		if (HoveredWidget != WidgetUnderMouse)
-		{
-			WidgetUnderMouse = HoveredWidget;
-		}
-
-		if (WidgetUnderMouse)
-		{
-			WidgetUnderMouse->OnMouseMove(MousePos.X, MousePos.Y);
-		}
+		Captor = HoveredWidget;
+		WidgetUnderMouse = HoveredWidget;
 	}
+
+	if (Captor) Captor->OnMouseMove(MousePos.X, MousePos.Y);
 
 	int32 ButtonsToCheck[] = { VK_LBUTTON, VK_RBUTTON, VK_MBUTTON };
 	for (int32 Button : ButtonsToCheck)
 	{
 		if (InputSystem::Get().GetKeyDown(Button))
 		{
-			SWidget* Target = Captor ? Captor : WidgetUnderMouse;
-
-			if (Target)
+			
+			FReply Reply = FReply::Unhandled();
+				
+			if (Captor) Reply = Captor->OnMouseButtonDown(MousePos.X, MousePos.Y, Button);
+			if (Reply.IsHandled())
 			{
-				FReply Reply = Target->OnMouseButtonDown(MousePos.X, MousePos.Y, Button);
-				if (Reply.IsHandled())
-				{
-					MouseCaptor = Target;
-				}
+				MouseCaptor = Captor;
 			}
 		}
 
 		if (InputSystem::Get().GetKeyUp(Button))
 		{
-			SWidget* Target = Captor ? Captor : WidgetUnderMouse;
-			if (Target)
+			FReply Reply = FReply::Unhandled();
+
+			if (Captor) Reply = Captor->OnMouseButtonUp(MousePos.X, MousePos.Y, Button);
+			if (Reply.IsHandled())
 			{
-				FReply Reply = Target->OnMouseButtonUp(MousePos.X, MousePos.Y, Button);
-				if (Reply.IsHandled())
-				{
-					MouseCaptor = nullptr;
-				}
+				MouseCaptor = nullptr;
 			}
 		}
 	}
 	
-	// Mouse Wheel
-	SWidget* WheelTarget = Captor ? Captor : WidgetUnderMouse;
-
-	if (WheelTarget)
-	{
-		FReply Reply = WheelTarget->OnMouseWheel(InputSystem::Get().GetScrollNotches());
-	}
-
-	SWidget* KeyboardTarget = Captor ? Captor : WidgetUnderMouse;
+	FReply Reply = FReply::Unhandled();
+	if (Captor) Reply = Captor->OnMouseWheel(InputSystem::Get().GetScrollNotches());
 
 	// KeyboardTarget이 바뀌었다면, 이전 타켓에게 눌려있던 키들의 Up 이벤트를 보내줌
-	if (LastKeyboardTarget && LastKeyboardTarget != KeyboardTarget)
+	if (LastKeyboardTarget && LastKeyboardTarget != Captor)
 	{
 		for (int32 Key = 0; Key < 256; ++Key)
 		{
@@ -178,23 +158,17 @@ void FSlateApplication::ProcessInput()
 			}
 		}
 	}
-	LastKeyboardTarget = KeyboardTarget;
+	LastKeyboardTarget = Captor;
 
 	for (int32 Key = 0; Key < 256; ++Key)
 	{
 		if (InputSystem::Get().GetKeyDown(Key) && !io.WantCaptureKeyboard)
 		{
-			if (KeyboardTarget)
-			{
-				KeyboardTarget->OnKeyDown(Key);
-			}
+			if (Captor) Captor->OnKeyDown(Key);
 		}
 		if (InputSystem::Get().GetKeyUp(Key) && !io.WantCaptureKeyboard)
 		{
-			if (KeyboardTarget)
-			{
-				KeyboardTarget->OnKeyUp(Key);
-			}
+			if (Captor) Captor->OnKeyUp(Key);
 		}
 	}
 }
