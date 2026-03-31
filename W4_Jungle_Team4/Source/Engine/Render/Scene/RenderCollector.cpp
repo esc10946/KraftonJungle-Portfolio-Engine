@@ -298,7 +298,7 @@ void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, cons
 			{
 				Material->ResolveParameters(MaterialParameters);
 				Cmd.MeshRenderData.Shader = MaterialParameters.Shader;
-				Cmd.PerObjectConstants.Color = Primitive->GetMaterialColor();
+				Cmd.PerObjectConstants.Color = MaterialParameters.BaseColor;
 				Cmd.Constants.StaticMesh.bUseAtlas = MaterialParameters.bUseAtlas ? 1u : 0u;
 				Cmd.Constants.StaticMesh.bSourceUVsUseAtlasTiles =
 					(MaterialParameters.bUseAtlas && StaticMesh->SectionUsesEmbeddedAtlasUVs(static_cast<int32>(SectionIndex))) ? 1u : 0u;

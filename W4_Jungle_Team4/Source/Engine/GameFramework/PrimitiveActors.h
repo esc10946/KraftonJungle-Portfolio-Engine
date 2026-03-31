@@ -4,15 +4,6 @@
 
 class UTextRenderComponent;
 
-class ACubeActor : public AActor
-{
-public:
-	DECLARE_CLASS(ACubeActor, AActor)
-	ACubeActor() = default;
-
-	void InitDefaultComponents();
-};
-
 class ASphereActor : public AActor
 {
 public:
@@ -36,6 +27,15 @@ class AStaticMeshActor : public AActor
 public:
 	DECLARE_CLASS(AStaticMeshActor, AActor)
 	AStaticMeshActor() = default;
+
+	void InitDefaultComponents();
+};
+
+class ACubeActor : public AStaticMeshActor
+{
+public:
+	DECLARE_CLASS(ACubeActor, AStaticMeshActor)
+	ACubeActor() = default;
 
 	void InitDefaultComponents();
 };

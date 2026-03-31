@@ -11,7 +11,7 @@
 
 #include <format>
 
-DEFINE_CLASS(ACubeActor, AActor)
+DEFINE_CLASS(ACubeActor, AStaticMeshActor)
 REGISTER_FACTORY(ACubeActor)
 
 DEFINE_CLASS(ASphereActor, AActor)
@@ -25,27 +25,6 @@ REGISTER_FACTORY(AStaticMeshActor)
 
 DEFINE_CLASS(AAttachTestActor, AActor)
 REGISTER_FACTORY(AAttachTestActor)
-
-void ACubeActor::InitDefaultComponents()
-{
-	auto* Cube = AddComponent<UCubeComponent>();
-	SetRootComponent(Cube);
-
-	// Text
-	UTextRenderComponent* Text = AddComponent<UTextRenderComponent>();
-	Text->SetFont(FName("Default"));
-	Text->AttachToComponent(Cube);
-	Text->SetText("UUID : " + std::to_string(GetUUID()));
-	Text->SetRelativeLocation(FVector(0.0f, 0.0f, 1.0f));
-
-	// SubUV
-	USubUVComponent* SubUV = AddComponent<USubUVComponent>();
-	SubUV->AttachToComponent(Cube);
-	SubUV->SetParticle(FName("Explosion"));
-	SubUV->SetSpriteSize(2.0f, 2.0f);
-	SubUV->SetFrameRate(30.f);
-	SubUV->SetRelativeLocation(FVector(0.0f, 0.0f, 2.3f));
-}
 
 void ASphereActor::InitDefaultComponents()
 {
@@ -94,6 +73,30 @@ void AStaticMeshActor::InitDefaultComponents()
 
 	const FString StaticMeshPath = FPaths::ToUtf8(FPaths::MeshPath()) + "cube-tex.smbin";
 	StaticMesh->SetStaticMesh(FStaticMeshManager::Get().LoadStaticMeshObject(StaticMeshPath));
+}
+
+void ACubeActor::InitDefaultComponents()
+{
+	UStaticMeshComponent* CubeMesh = AddComponent<UStaticMeshComponent>();
+	SetRootComponent(CubeMesh);
+	
+	const FString StaticMeshPath = FPaths::ToUtf8(FPaths::MeshPath()) + "cube.obj";
+	CubeMesh->SetStaticMesh(FStaticMeshManager::Get().LoadStaticMeshObject(StaticMeshPath));
+
+	// Text
+	UTextRenderComponent* Text = AddComponent<UTextRenderComponent>();
+	Text->SetFont(FName("Default"));
+	Text->AttachToComponent(CubeMesh);
+	Text->SetText("UUID : " + std::to_string(GetUUID()));
+	Text->SetRelativeLocation(FVector(0.0f, 0.0f, 1.0f));
+
+	// SubUV
+	USubUVComponent* SubUV = AddComponent<USubUVComponent>();
+	SubUV->AttachToComponent(CubeMesh);
+	SubUV->SetParticle(FName("Explosion"));
+	SubUV->SetSpriteSize(2.0f, 2.0f);
+	SubUV->SetFrameRate(30.f);
+	SubUV->SetRelativeLocation(FVector(0.0f, 0.0f, 2.3f));
 }
 
 void AAttachTestActor::InitDefaultComponents()
