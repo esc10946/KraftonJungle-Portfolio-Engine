@@ -66,6 +66,22 @@ LRESULT FWindowsApplication::WndProc(HWND hWnd, unsigned int Msg, WPARAM wParam,
 			OnSizingCallback();
 		}
 		return 0;
+	case WM_DROPFILES:
+	{
+		HDROP hDrop = (HDROP)wParam;
+		wchar_t filePath[MAX_PATH];
+		DragQueryFileW(hDrop, 0, filePath, MAX_PATH);
+		DragFinish(hDrop);
+
+		char path[MAX_PATH];
+		WideCharToMultiByte(CP_ACP, 0, filePath, -1, path, MAX_PATH, NULL, NULL);
+
+		if (OnDropOBJViewerCallback)
+		{
+			OnDropOBJViewerCallback(path);
+		}
+		return 0;
+	}
 	default:
 		break;
 	}

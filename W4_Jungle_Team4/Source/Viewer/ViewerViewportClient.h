@@ -49,7 +49,6 @@ public:
 	void PrepareRenderBus();
 	void GenerateStaticMeshCommands();
 
-	void CheckAssetSystem();
 	bool IgnoreInput();
 	void GetSafeMouseDelta(float& outX, float& outY);
 	bool IsMouseInsideWindow();

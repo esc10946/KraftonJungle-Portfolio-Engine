@@ -4,6 +4,8 @@
 #include "Engine/Asset/StaticMesh/StaticMeshManager.h"
 #include "Engine/Asset/StaticMesh/StaticMeshAsset.h"
 
+DEFINE_CLASS(UViewerEngine, UEngine)
+REGISTER_FACTORY(UViewerEngine)
 
 void UViewerEngine::Init(FWindowsWindow* InWindow)
 {
@@ -11,6 +13,8 @@ void UViewerEngine::Init(FWindowsWindow* InWindow)
 	GetModuleFileNameW(NULL, exePath, MAX_PATH);
 	std::wstring dir = std::wstring(exePath).substr(0, std::wstring(exePath).find_last_of(L"\\/"));
 	_wchdir(dir.c_str());
+
+	DragAcceptFiles((HWND)InWindow->GetHWND(), TRUE);
 
 	// 엔진 공통 초기화
 	UEngine::Init(InWindow);
@@ -59,8 +63,6 @@ void UViewerEngine::OnWindowResized(uint32 Width, uint32 Height)
 bool UViewerEngine::LoadModel(const FString& ObjPath)
 {
 	ViewerClient.LoadOBJ(ObjPath);
-	ViewerClient.ResetCamera();
-
 	return true;
 }
 

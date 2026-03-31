@@ -35,9 +35,7 @@ void UOrbitCameraComponent::OnPan(float DeltaX, float DeltaY, float ModelRadius)
 void UOrbitCameraComponent::OnZoom(float Delta)
 {
 	Radius -= Delta * ZoomSensitivity;
-
-	if (Radius < 1.0f)
-		Radius = 1.0f;
+	Radius = Clamp(Radius, MinRadius, MaxRadius);
 
 	UpdatePosition();
 }

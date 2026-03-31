@@ -55,6 +55,12 @@ bool FViewerViewportClient::LoadOBJ(const FString& ObjPath)
 	ModelSize = Diff.Length();
 	ModelRadius = ModelSize * 0.5f;
 
+	ViewerCamera->SetTarget(Center);
+	ViewerCamera->SetRadius(ModelRadius * 2.5f);
+	ViewerCamera->UpdatePosition();
+	ViewerCamera->SetMinRadius(ModelRadius * 1.1f);
+	ViewerCamera->SetMaxRadius(ModelRadius * 10.0f);
+
 	return true;
 }
 
@@ -97,8 +103,6 @@ void FViewerViewportClient::Tick(float DeltaTime)
 {
 	if (!ViewerCamera || IgnoreInput())
 		return;
-
-	CheckAssetSystem();
 
 	float dx, dy;
 	GetSafeMouseDelta(dx, dy);
@@ -149,27 +153,6 @@ void FViewerViewportClient::GenerateStaticMeshCommands()
 	{
 		FRenderCommand Cmd = CreateCommand(Section);
 		Bus.AddCommand(ERenderPass::Opaque, Cmd);
-	}
-}
-
-void FViewerViewportClient::CheckAssetSystem()
-{
-	static FStaticMeshAsset* LastAsset = nullptr;
-
-	if (CurrentMesh != LastAsset)
-	{
-		if (CurrentMesh)
-		{
-			FVector NewCenter = Center;
-			float NewRadius = ModelRadius;
-
-			ViewerCamera->SetTarget(NewCenter);
-			ViewerCamera->SetRadius(NewRadius * 2.5f);
-
-			ViewerCamera->UpdatePosition();
-		}
-
-		LastAsset = CurrentMesh;
 	}
 }
 

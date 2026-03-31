@@ -9,8 +9,7 @@ class FMeshBuffer;
 class UViewerEngine : public UEngine
 {
 public:
-
-	// 생명주기
+	DECLARE_CLASS(UViewerEngine, UEngine)
 	virtual void Init(FWindowsWindow* InWindow) override; 
 	virtual void Shutdown() override; 
 	virtual void Tick(float DeltaTime) override; 

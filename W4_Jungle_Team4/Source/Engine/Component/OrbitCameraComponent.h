@@ -12,12 +12,14 @@ public:
 	UOrbitCameraComponent() = default;
 	virtual ~UOrbitCameraComponent() = default;
 
-	void OnOrbit(float DeltaX, float DeltaY); 
+	void OnOrbit(float DeltaX, float DeltaY);
 	void OnPan(float DeltaX, float DeltaY, float ModelRadius);
-	void OnZoom(float Delta);                 
+	void OnZoom(float Delta);
 
 	void SetTarget(const FVector& InTarget) { Target = InTarget; }
 	void SetRadius(float InRadius) { Radius = InRadius; }
+	void SetMinRadius(float InMin) { MinRadius = InMin; }
+	void SetMaxRadius(float InMax) { MaxRadius = InMax; }
 
 	float   GetRadius() const { return Radius; }
 	FVector GetTarget() const { return Target; }
@@ -36,4 +38,7 @@ private:
 
 	float PitchMin = -89.0f;
 	float PitchMax = 89.0f;
+
+	float MinRadius = 1.0f;
+	float MaxRadius = 5.0f;
 };
