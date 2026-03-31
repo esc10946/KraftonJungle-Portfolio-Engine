@@ -40,7 +40,7 @@ void FRenderer::Create(HWND hWindow)
 
 	// 5. 아웃라인 (Outline.hlsl)
 	Resources.OutlineShader.Create(Device.GetDevice(), L"Shaders/Outline.hlsl",
-		"VS", "PS", PrimitiveInputLayout, ARRAYSIZE(PrimitiveInputLayout));
+		"VS", "PS", PositionOnlyInputLayout, ARRAYSIZE(PositionOnlyInputLayout));
 
 	Resources.PerObjectConstantBuffer.Create(Device.GetDevice(), sizeof(FPerObjectConstants));
 	Resources.FrameBuffer.Create(Device.GetDevice(), sizeof(FFrameConstants));
@@ -245,7 +245,7 @@ void FRenderer::InitializePassRenderStates()
 	//                              DepthStencil                   Blend                Rasterizer                  Topology                                Shader                   WireframeAware
 	S[(uint32)E::Opaque] = { EDepthStencilState::Default,      EBlendState::Opaque,     ERasterizerState::SolidBackCull,  D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, &Resources.PrimitiveShader, true };
 	S[(uint32)E::Translucent] = { EDepthStencilState::Default,      EBlendState::AlphaBlend, ERasterizerState::SolidBackCull,  D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, &Resources.PrimitiveShader, false };
-	S[(uint32)E::StencilMask] = { EDepthStencilState::StencilWrite,  EBlendState::Opaque,     ERasterizerState::SolidNoCull,    D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, &Resources.PrimitiveShader, false };
+	S[(uint32)E::StencilMask] = { EDepthStencilState::StencilWrite,  EBlendState::Opaque,     ERasterizerState::SolidNoCull,    D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, &Resources.OutlineShader, false };
 	S[(uint32)E::Outline] = { EDepthStencilState::StencilOutline,EBlendState::Opaque,    ERasterizerState::SolidNoCull, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, &Resources.OutlineShader,   false };
 	S[(uint32)E::Editor] = { EDepthStencilState::Default,      EBlendState::AlphaBlend, ERasterizerState::SolidBackCull,  D3D11_PRIMITIVE_TOPOLOGY_LINELIST,     &Resources.EditorShader,    true };
 	S[(uint32)E::Grid] = { EDepthStencilState::Default,      EBlendState::AlphaBlend, ERasterizerState::SolidBackCull,  D3D11_PRIMITIVE_TOPOLOGY_LINELIST,     &Resources.EditorShader,    false };
@@ -529,7 +529,8 @@ void FRenderer::BindShaderByType(const FRenderCommand& InCmd, ID3D11DeviceContex
 
 void FRenderer::DrawCommand(ID3D11DeviceContext* InDeviceContext, const FRenderCommand& InCommand)
 {
-	if (InCommand.Type == ERenderCommandType::StaticMesh)
+	if (InCommand.Type == ERenderCommandType::StaticMesh ||
+		(InCommand.Type == ERenderCommandType::SelectionOutline && InCommand.TextureMeshBuffer != nullptr))
 	{
 		if (InCommand.TextureMeshBuffer == nullptr || !InCommand.TextureMeshBuffer->IsValid())
 		{
@@ -553,7 +554,10 @@ void FRenderer::DrawCommand(ID3D11DeviceContext* InDeviceContext, const FRenderC
 		}
 
 		InDeviceContext->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
-		InDeviceContext->DrawIndexed(InCommand.MeshRenderData.IndexCount, InCommand.MeshRenderData.FirstIndex, 0);
+		const uint32 IndexCount = (InCommand.MeshRenderData.IndexCount != 0)
+			? InCommand.MeshRenderData.IndexCount
+			: InCommand.TextureMeshBuffer->GetIndexBuffer().GetIndexCount();
+		InDeviceContext->DrawIndexed(IndexCount, InCommand.MeshRenderData.FirstIndex, 0);
 		return;
 	}
 
