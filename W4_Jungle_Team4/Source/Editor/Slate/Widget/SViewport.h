@@ -3,11 +3,12 @@
 #include "SWidget.h"
 
 class FViewport;
+class SViewportOverlayStat;
 
 class SViewport : public SWidget
 {
 public:
-	SViewport() = default;
+	SViewport();
 	virtual ~SViewport() = default;
 
 public:
@@ -32,11 +33,8 @@ public:
 	void SetShowMemory(bool bInShowMemory) { bShowMemory = bInShowMemory; }
 
 private:
-	void DrawFPSStats();
-	void DrawMemoryStats();
-
-private:
 	FViewport* Viewport = nullptr;
+	SViewportOverlayStat* OverlayStat = nullptr;
 
 	bool bShowFPS = false;
 	bool bShowMemory = false;

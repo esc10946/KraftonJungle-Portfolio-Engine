@@ -394,6 +394,8 @@
     <ClCompile Include="Source\Engine\Render\SlateBatcher.cpp" />
     <ClCompile Include="Shaders\ScreenQuadSimple.hlsl" />
     <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\MeshComponent.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SViewportOverlayStat.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\EditorEngine.h">
@@ -748,5 +750,8 @@
     <ClInclude Include="Source\Engine\Render\SlateBatcher.h" />
     <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
     <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
+    <ClInclude Include="Source\Engine\Component\MeshComponent.h" />
+    <ClInclude Include="Source\Engine\Component\StaticMeshComponent.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SViewportOverlayStat.h" />
   </ItemGroup>
 </Project>
