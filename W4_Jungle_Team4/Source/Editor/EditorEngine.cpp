@@ -176,9 +176,7 @@ void UEditorEngine::ResetViewport()
 		}
 		if (FEditorViewportClient* ViewportClient = dynamic_cast<FEditorViewportClient*>(Viewport->GetViewportClient()))
 		{
-			ViewportClient->CreateCamera();
 			ViewportClient->SetWorld(World);
-			ViewportClient->ResetCamera();
 
 			if (FirstViewportClient == nullptr)
 			{

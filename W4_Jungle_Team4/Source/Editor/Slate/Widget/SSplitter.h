@@ -48,6 +48,9 @@ public:
 	SWidget* GetSideRB() const { return SideRB; }
 	void SetSideRB(SWidget* InWidget) { SideRB = InWidget; InWidget->SetParent(this); }
 
+	float GetSplitRatio() const { return SplitRatio; }
+	void SetSplitRatio(float InRatio) { SplitRatio = InRatio; }
+
 	virtual TArray<SWidget*> GetChildren() override
 	{
 		TArray<SWidget*> Children;
@@ -59,7 +62,7 @@ public:
 	virtual bool IsOnHandle(float X, float Y) { return false; }
 	virtual void UpdateSplit(float X, float Y) {}
 
-	virtual json::JSON Serialize() const override
+	virtual json::JSON Serialize() override
 	{
 		json::JSON Data = SWidget::Serialize();
 		Data["SplitRatio"] = SplitRatio;

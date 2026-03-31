@@ -34,13 +34,6 @@ void SImGuiControlWidget::OnPaint()
 
 	ImGui::Begin("Jungle Control Panel", nullptr, WindowFlags);
 
-	// Stats
-	ImGui::Text("FPS : %.1f", EditorEngine->GetTimer()->GetDisplayFPS());
-	ImGui::Text("Memory Allocated : %d", EngineStatics::GetTotalAllocationBytes());
-	ImGui::Text("Times Allocated : %d", EngineStatics::GetTotalAllocationCount());
-
-	SEPARATOR();
-
 	// Spawn
 	ImGui::Combo("Primitive", &SelectedPrimitiveType, PrimitiveTypes, IM_ARRAYSIZE(PrimitiveTypes));
 

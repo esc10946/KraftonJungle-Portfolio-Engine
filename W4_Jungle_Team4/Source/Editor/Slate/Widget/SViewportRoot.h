@@ -9,7 +9,14 @@ enum class EViewportLayout : int32
 	Single = 0,
 	TwoHorizontal,
 	TwoVertical,
-	Four
+	Four,
+	All
+};
+
+struct FViewportLayoutInfo
+{
+	EViewportLayout Layout;
+	TArray<float> SplitRatios;
 };
 
 class SViewportRoot : public SWidget
@@ -26,16 +33,19 @@ public:
 	{
 		if (CurrentLayout != NewLayout)
 		{
+			SaveCurrentLayoutInfo();
+
 			CurrentLayout = NewLayout;
 			bDirty = true;
 		}
 	}
 
 	static FString LayoutToName(EViewportLayout Layout);
+	void SaveCurrentLayoutInfo();
 
 	FString GetWidgetType() const override { return "SViewportRoot"; }
 
-	json::JSON Serialize() const override;
+	json::JSON Serialize() override;
 	void Deserialize(json::JSON& Data) override;
 
 private:
@@ -43,5 +53,12 @@ private:
 
 	bool bDirty = true;
 	EViewportLayout CurrentLayout = EViewportLayout::Single;
+
+	FViewportLayoutInfo LayoutInfos[static_cast<int32>(EViewportLayout::All)] = {
+		{ EViewportLayout::Single, {} },
+		{ EViewportLayout::TwoHorizontal, {0.5f} },
+		{ EViewportLayout::TwoVertical, {0.5f} },
+		{ EViewportLayout::Four, {0.5f, 0.5f} }
+	};
 };
 

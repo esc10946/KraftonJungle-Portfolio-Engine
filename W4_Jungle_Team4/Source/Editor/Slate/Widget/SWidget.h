@@ -56,7 +56,7 @@ public:
 	void SetParent(SWidget* InParent) { Parent = InParent; }
 
 	virtual FString GetWidgetType() const { return "SWidget"; }
-	virtual json::JSON Serialize() const;
+	virtual json::JSON Serialize();
 	virtual void Deserialize(json::JSON& Data);
 
 	bool IsRenderable() const { return bRenderable; }

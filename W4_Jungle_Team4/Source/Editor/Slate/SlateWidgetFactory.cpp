@@ -132,12 +132,16 @@ SWidget* FSlateWidgetFactory::LoadRecursive(json::JSON& Data)
 		}
 		else
 		{
-			for (auto& ChildData : Data["Children"].ArrayRange())
+			SViewportRoot* ViewportRoot = dynamic_cast<SViewportRoot*>(Widget);
+			if (!ViewportRoot)
 			{
-				SWidget* ChildWidget = LoadRecursive(ChildData);
-				if (ChildWidget)
+				for (auto& ChildData : Data["Children"].ArrayRange())
 				{
-					Widget->AddChild(ChildWidget);
+					SWidget* ChildWidget = LoadRecursive(ChildData);
+					if (ChildWidget)
+					{
+						Widget->AddChild(ChildWidget);
+					}
 				}
 			}
 		}

@@ -6,6 +6,7 @@
 #include "Slate/SlateApplication.h"
 #include "Viewport/ViewportManager.h"
 #include "Viewport/EditorViewportClient.h"
+#include "Core/TweenSystem.h"
 
 SViewportRoot::SViewportRoot()
 {
@@ -67,6 +68,7 @@ void SViewportRoot::Construct()
 		AddChild(Root);
 
 		TArray<SViewport*> ViewportWidgets = FSlateApplication::Get().GetWidgetsByType<SViewport*>(Root);
+		TArray<SSplitter*> Splitters = FSlateApplication::Get().GetWidgetsByType<SSplitter*>(Root);
 
 		for (size_t i = 0; i < ViewportWidgets.size(); ++i)
 		{
@@ -76,6 +78,34 @@ void SViewportRoot::Construct()
 				ViewportWidgets[i]->SetName("Viewport " + std::to_string(i + 1));
 			}
 		}
+
+		for (size_t i = 0; i < Splitters.size(); ++i)
+		{
+			if (i < LayoutInfos[static_cast<int32>(CurrentLayout)].SplitRatios.size())
+			{
+				float TargetSplitRatio = LayoutInfos[static_cast<int32>(CurrentLayout)].SplitRatios[i];
+
+				FTweenSystem::Get().Create(0.05f, TargetSplitRatio, 0.2f)
+					.SetEasing(EEasingType::EaseInOut)
+					.SetUpdateCallback([Splitter = Splitters[i]](float Value) {
+					Splitter->SetSplitRatio(Value);
+					Splitter->OnResize(Splitter->GetRect());
+					});
+			}
+		}
+	}
+
+}
+
+void SViewportRoot::SaveCurrentLayoutInfo()
+{
+	FViewportLayoutInfo& Info = LayoutInfos[static_cast<int32>(CurrentLayout)];
+	Info.Layout = CurrentLayout;
+	TArray<SSplitter*> Splitters = FSlateApplication::Get().GetWidgetsByType<SSplitter*>(this);
+	Info.SplitRatios.clear();
+	for (SSplitter* Splitter : Splitters)
+	{
+		Info.SplitRatios.push_back(Splitter->GetSplitRatio());
 	}
 }
 
@@ -97,10 +127,27 @@ FString SViewportRoot::LayoutToName(EViewportLayout Layout)
 	return "Single";
 }
 
-json::JSON SViewportRoot::Serialize() const
+json::JSON SViewportRoot::Serialize()
 {
+	SaveCurrentLayoutInfo();
+
 	json::JSON Data = SWidget::Serialize();
 	Data["Layout"] = static_cast<int32>(CurrentLayout);
+
+	Data["LayoutInfos"] = json::Array();
+	for (const FViewportLayoutInfo& Info : LayoutInfos)
+	{
+		json::JSON InfoData = json::Object();
+		InfoData["Layout"] = static_cast<int32>(Info.Layout);
+		InfoData["SplitRatios"] = json::Array();
+		for (float Ratio : Info.SplitRatios)
+		{
+			InfoData["SplitRatios"].append(Ratio);
+		}
+
+		Data["LayoutInfos"].append(InfoData);
+	}
+
 	return Data;
 }
 
@@ -111,5 +158,23 @@ void SViewportRoot::Deserialize(json::JSON& Data)
 	{
 		CurrentLayout = static_cast<EViewportLayout>(Data["Layout"].ToInt());
 		bDirty = true;
+	}
+
+	if (Data.hasKey("LayoutInfos"))
+	{
+		for (json::JSON& InfoData : Data["LayoutInfos"].ArrayRange())
+		{
+			FViewportLayoutInfo Info;
+			Info.Layout = static_cast<EViewportLayout>(InfoData["Layout"].ToInt());
+			for (const json::JSON& Ratio : InfoData["SplitRatios"].ArrayRange())
+			{
+				Info.SplitRatios.push_back(static_cast<float>(Ratio.ToFloat()));
+			}
+			int32 LayoutIndex = static_cast<int32>(Info.Layout);
+			if (LayoutIndex >= 0 && LayoutIndex < static_cast<int32>(EViewportLayout::All))
+			{
+				LayoutInfos[LayoutIndex] = Info;
+			}
+		}
 	}
 }

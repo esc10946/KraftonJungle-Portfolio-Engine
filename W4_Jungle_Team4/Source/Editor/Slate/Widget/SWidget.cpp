@@ -38,7 +38,7 @@ bool SWidget::IsHovered(float X, float Y) const
 		   Y >= Rect.Y && Y <= Rect.Y + Rect.Height;
 }
 
-json::JSON SWidget::Serialize() const
+json::JSON SWidget::Serialize()
 {
 	json::JSON Data;
 	Data["WidgetType"] = GetWidgetType();
@@ -49,7 +49,7 @@ json::JSON SWidget::Serialize() const
 	Data["Rect"]["Height"] = Rect.Height;
 
 	json::JSON ChildrenData = json::Array();
-	for (const SWidget* Child : Children)
+	for (SWidget* Child : Children)
 	{
 		ChildrenData.append(Child->Serialize());
 	}
