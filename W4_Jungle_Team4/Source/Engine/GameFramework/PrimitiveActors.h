@@ -38,6 +38,7 @@ public:
 	AStaticMeshActor() = default;
 
 	void InitDefaultComponents();
+	void UpdateUUIDTextLocation();
 };
 
 class AAttachTestActor : public AActor

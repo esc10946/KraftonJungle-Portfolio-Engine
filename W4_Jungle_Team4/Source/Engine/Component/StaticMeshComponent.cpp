@@ -2,6 +2,7 @@
 
 #include "Asset/Material/MaterialObject.h"
 #include "Asset/StaticMesh/StaticMeshObject.h"
+#include "GameFramework/PrimitiveActors.h"
 
 #include <cstring>
 
@@ -18,6 +19,16 @@ void UStaticMeshComponent::SetStaticMesh(UStaticMesh* InMesh)
 	OverrideMaterials.clear();
 	InitializeMaterialSlotsFromMesh();
 	RefreshMeshData();
+
+	AActor* Owner = GetOwner();
+	if (Owner)
+	{
+		AStaticMeshActor* OwnerActor = AStaticMeshActor::Cast(Owner);
+		if (OwnerActor != nullptr)
+		{
+			OwnerActor->UpdateUUIDTextLocation();
+		}
+	}
 }
 
 FString UStaticMeshComponent::GetStaticMeshAssetPath() const
@@ -150,6 +161,16 @@ void UStaticMeshComponent::PostEditProperty(const char* PropertyName)
 		OverrideMaterials.clear();
 		InitializeMaterialSlotsFromMesh();
 		RefreshMeshData();
+
+		AActor* Owner = GetOwner();
+		if (Owner)
+		{
+			AStaticMeshActor* OwnerActor = AStaticMeshActor::Cast(Owner);
+			if (OwnerActor != nullptr)
+			{
+				OwnerActor->UpdateUUIDTextLocation();
+			}
+		}
 		return;
 	}
 
