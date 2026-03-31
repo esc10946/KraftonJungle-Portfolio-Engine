@@ -455,6 +455,7 @@ CMakeLists.txt
 !W4_Jungle_Team4/Asset/Mesh/
 !W4_Jungle_Team4/Asset/Mesh/**
 !W4_Jungle_Team4/Asset/Mesh/**/*.obj
+!W4_Jungle_Team4/Asset/*.obj
 !W4_Jungle_Team4/Asset/Mesh/**/*.mtl
 !W4_Jungle_Team4/Asset/Mesh/**/*.smbin
 !W4_Jungle_Team4/Asset/Texture/
