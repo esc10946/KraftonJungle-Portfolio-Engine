@@ -37,10 +37,17 @@ public:
 	void SetShowFlags(const FShowFlags& InShowFlags) { ShowFlags = InShowFlags; }
 
 	FRenderBus& GetBus() { return Bus; }
+	FStaticMeshAsset* GetCurrentMesh() const { return CurrentMesh; }
+	FTextureMeshBuffer* GetTextureMesh() { return &TextureMeshBuffer; }
+	FVector GetCenter() { return Center; }
+	float GetRadius() { return ModelRadius; }
+
+	bool LoadOBJ(const FString& ObjPath);
+	void UnLoadOBJ();
+	void BuildGpuBuffer();
 
 	void PrepareRenderBus();
-	void EnsureGpuResources(FStaticMeshAsset* Asset);
-	void GenerateStaticMeshCommands(FStaticMeshAsset* Asset);
+	void GenerateStaticMeshCommands();
 
 	void CheckAssetSystem();
 	bool IgnoreInput();
@@ -48,7 +55,7 @@ public:
 	bool IsMouseInsideWindow();
 
 private:
-	FRenderCommand CreateCommand(const FStaticMeshSection& Section, FStaticMeshAsset* Asset);
+	FRenderCommand CreateCommand(const FStaticMeshSection& Section);
 
 	UOrbitCameraComponent* ViewerCamera = nullptr;
 	UViewerEngine* OwnerEngine = nullptr;
@@ -60,4 +67,14 @@ private:
 	FRenderBus Bus;
 	EViewMode  ViewMode = EViewMode::Lit;
 	FShowFlags ShowFlags = {};
+
+	float SmoothedDeltaX = 0.5f;
+	float SmoothedDeltaY = 0.5f;
+
+	FStaticMeshAsset* CurrentMesh = nullptr;
+	FTextureMeshBuffer TextureMeshBuffer;
+
+	FVector Center;
+	float ModelSize;
+	float ModelRadius;
 };

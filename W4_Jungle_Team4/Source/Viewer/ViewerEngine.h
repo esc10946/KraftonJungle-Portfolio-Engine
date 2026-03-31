@@ -16,30 +16,14 @@ public:
 	virtual void Tick(float DeltaTime) override; 
 	virtual void OnWindowResized(uint32 Width, uint32 Height) override;
 
-	// 모델
 	bool LoadModel(const FString& ObjPath);
-	void UnLoadModel();
 
 	void RenderUI(float DeltaTime);
-
-	FStaticMeshAsset* GetCurrentMesh() const { return CurrentMesh; }
-	FTextureMeshBuffer* GetTextureMesh() { return &TextureMeshBuffer; }
-	FVector GetCenter() { return Center; }
-	float GetRadius() { return ModelRadius; }
-
-	void BuildGpuBuffer(ID3D11Device* Device);
 	void CheckExternalFile();
 
 private:
 	FViewerViewportClient ViewerClient;
 	FViewerPanel Panel;
-
-	FStaticMeshAsset* CurrentMesh = nullptr;
-	FTextureMeshBuffer TextureMeshBuffer;
-
-	FVector Center;
-	float ModelSize;
-	float ModelRadius;
 
 	bool bExternalFileChecked = false;
 };
