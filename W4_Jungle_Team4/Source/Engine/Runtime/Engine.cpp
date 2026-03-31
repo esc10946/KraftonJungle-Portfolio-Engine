@@ -7,6 +7,7 @@
 #include "Engine/Core/InputSystem.h"
 #include "Engine/Runtime/WindowsWindow.h"
 #include "Core/ResourceManager.h"
+#include "Core/TweenSystem.h"
 #include "Render/Renderer/DefaultRenderPipeline.h"
 #include "GameFramework/World.h"
 #include <iostream>
@@ -58,6 +59,7 @@ void UEngine::BeginPlay()
 void UEngine::Tick(float DeltaTime)
 {
 	InputSystem::Get().Tick();
+	FTweenSystem::Get().Tick(DeltaTime);
 	WorldTick(DeltaTime);
 	Render(DeltaTime);
 }

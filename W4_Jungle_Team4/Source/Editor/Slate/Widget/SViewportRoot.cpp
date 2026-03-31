@@ -6,6 +6,7 @@
 #include "Slate/SlateApplication.h"
 #include "Viewport/ViewportManager.h"
 #include "Viewport/EditorViewportClient.h"
+#include "Core/TweenSystem.h"
 
 SViewportRoot::SViewportRoot()
 {
@@ -82,10 +83,16 @@ void SViewportRoot::Construct()
 		{
 			if (i < LayoutInfos[static_cast<int32>(CurrentLayout)].SplitRatios.size())
 			{
-				Splitters[i]->SetSplitRatio(LayoutInfos[static_cast<int32>(CurrentLayout)].SplitRatios[i]);
+				float TargetSplitRatio = LayoutInfos[static_cast<int32>(CurrentLayout)].SplitRatios[i];
+
+				FTweenSystem::Get().Create(0.05f, TargetSplitRatio, 0.2f).SetUpdateCallback([Splitter = Splitters[i]](float Value) {
+					Splitter->SetSplitRatio(Value);
+					Splitter->OnResize(Splitter->GetRect());
+					});
 			}
 		}
 	}
+
 }
 
 void SViewportRoot::SaveCurrentLayoutInfo()
