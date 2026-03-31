@@ -21,9 +21,23 @@ struct FObjFace
 // .mtl에서 읽는 재질 1개 정보
 struct FObjMaterialInfo
 {
-	FString Name;
-	FVector DiffuseColor = FVector(1.0f, 1.0f, 1.0f); // Kd r g b
-	FString DiffuseTexturePath; // map_Kd ###.png
+    FString Name;
+
+    FVector Ka = FVector(0, 0, 0);
+    FVector Kd = FVector(1, 1, 1);
+    FVector Ks = FVector(0, 0, 0);
+    FVector Ke = FVector(0, 0, 0);
+
+    float Ns = 0.0f;
+    float d = 1.0f;
+    int32 illum = 0;
+
+    FString map_Ka;
+    FString map_Kd;
+    FString map_Ks;
+    FString map_Ns;
+    FString map_d;
+    FString map_Bump;
 };
 
 // .obj 전체 읽은 raw 결과물.

@@ -1,8 +1,8 @@
 ﻿#pragma once
 
 #include "Core/CoreTypes.h"
-
-struct FObjMaterialInfo;
+#include "Math/Vector.h"
+#include "AssetPipeline/Obj/ObjTypes.h"
 
 class FMtlParser
 {
@@ -14,8 +14,14 @@ private:
 	static bool ParseLine(const FString& InLine, FString& InOutCurrentMaterialName, TMap<FString, FObjMaterialInfo>& InOutMaterials);
 	// newmtl MaterialName
 	static bool ParseNewMaterial(const TArray<FString>& InTokens, FString& InOutCurrentMatrialName, TMap<FString, FObjMaterialInfo>& InOutMaterials);
-	// Kd r g b
-	static bool ParseDiffuseColor(const TArray<FString>& InTokens, const FString& InCurrentMaterialName, TMap<FString, FObjMaterialInfo>& InOutMaterials);
-	// map_Kd ###.png
-	static bool ParseDiffuseTexture(const TArray<FString>& InTokens, const FString& InCurrentMaterialName, TMap<FString, FObjMaterialInfo>& InOutMaterials);
+
+	static bool ParseVec3Property(const TArray<FString>& InTokens, const FString& InCurrentMaterialName, TMap<FString, FObjMaterialInfo>& InOutMaterials, FVector FObjMaterialInfo::*Member);
+	static bool ParseFloatProperty(const TArray<FString>& InTokens, const FString& InCurrentMaterialName, TMap<FString, FObjMaterialInfo>& InOutMaterials, float FObjMaterialInfo::*Member);
+	static bool ParseIntProperty(const TArray<FString>& InTokens, const FString& InCurrentMaterialName, TMap<FString, FObjMaterialInfo>& InOutMaterials, int32 FObjMaterialInfo::*Member);
+	static bool ParseStringProperty(const TArray<FString>& InTokens, const FString& InCurrentMaterialName, TMap<FString, FObjMaterialInfo>& InOutMaterials, FString FObjMaterialInfo::*Member);
+
+	//현재 material 가져오는 공통 함수
+	static FObjMaterialInfo* GetCurrentMaterial(
+		const FString& InCurrentMaterialName,
+		TMap<FString, FObjMaterialInfo>& InOutMaterials);
 };

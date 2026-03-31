@@ -10,6 +10,7 @@
 #include "Object/FName.h"
 #include "Object/Object.h"
 #include "Core/Paths.h"
+#include <AssetPipeline/Obj/ObjTypes.h>
 
 namespace
 {
@@ -35,6 +36,29 @@ namespace
 		}
 	}
 }
+
+UMaterial* FMaterialManager::CreateMaterial(const FObjMaterialInfo& InMaterialInfo)
+{
+    const FString MaterialKey = InMaterialInfo.Name + "|" + InMaterialInfo.map_Kd;
+
+    if (UMaterialInterface* FoundMaterial = FindMaterial(MaterialKey))
+    {
+        return static_cast<UMaterial*>(FoundMaterial);
+    }
+
+    UMaterial* NewMaterial = ConstructObject<UMaterial>();
+    NewMaterial->SetSlotName(InMaterialInfo.Name);
+    NewMaterial->SetSourceMaterialName(InMaterialInfo.Name);
+    NewMaterial->SetDiffuseTexturePath(InMaterialInfo.map_Kd);
+    NewMaterial->SetDiffuseTexture(FTextureManager::Get().GetOrCreateTexture(InMaterialInfo.map_Kd));
+    NewMaterial->SetShader(FShaderManager::Get().GetOrCreateStaticMeshShader());
+    NewMaterial->SetBaseColor(FVector4(InMaterialInfo.Kd, 1.0f));
+    NewMaterial->SetFName(FName(InMaterialInfo.Name));
+
+    MaterialMap[MaterialKey] = NewMaterial;
+    return NewMaterial;
+}
+
 
 UMaterial* FMaterialManager::GetOrCreateMaterial(const FStaticMaterialSlot& InSlot)
 {

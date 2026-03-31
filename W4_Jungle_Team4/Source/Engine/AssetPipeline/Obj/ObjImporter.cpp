@@ -4,6 +4,7 @@
 #include "AssetPipeline/Obj/ObjParser.h"
 #include "AssetPipeline/Obj/ObjTypes.h"
 #include "AssetPipeline/Obj/MtlParser.h"
+#include "Asset/Material/MaterialManager.h"
 
 #include <filesystem>
 
@@ -12,27 +13,38 @@
 
 namespace
 {
+	static void ResolveSingleTexturePath(FString& InOutPath, const std::filesystem::path& MtlDirectory)
+	{
+		if (InOutPath.empty())
+		{
+			return;
+		}
+
+		std::filesystem::path TexturePath(InOutPath);
+
+			// 이미 절대 경로면 그대로 사용
+		if (!TexturePath.is_absolute())
+		{
+			TexturePath = MtlDirectory / TexturePath;
+		}
+		InOutPath = TexturePath.lexically_normal().generic_string();
+	}
+
 	void ResolveMaterialTexturePaths(const FString& InMtlPath, TMap<FString, FObjMaterialInfo>& InOutMaterials)
 	{
-		const std::filesystem::path MtlDirectory = std::filesystem::path(InMtlPath).parent_path();
+		const std::filesystem::path MtlDirectory = 
+			std::filesystem::path(InMtlPath).parent_path();
 
 		for (auto& Pair : InOutMaterials)
 		{
 			FObjMaterialInfo& MaterialInfo = Pair.second;
-			if (MaterialInfo.DiffuseTexturePath.empty())
-			{
-				continue;
-			}
 
-			std::filesystem::path TexturePath(MaterialInfo.DiffuseTexturePath);
-
-			// 이미 절대 경로면 그대로 사용
-			if (!TexturePath.is_absolute())
-			{
-				TexturePath = std::filesystem::path(FPaths::TexturePath()) / TexturePath.filename();
-			}
-
-			MaterialInfo.DiffuseTexturePath = TexturePath.lexically_normal().generic_string();
+			ResolveSingleTexturePath(MaterialInfo.map_Ka, MtlDirectory);
+			ResolveSingleTexturePath(MaterialInfo.map_Kd, MtlDirectory);
+			ResolveSingleTexturePath(MaterialInfo.map_Ks, MtlDirectory);
+			ResolveSingleTexturePath(MaterialInfo.map_Ns, MtlDirectory);
+			ResolveSingleTexturePath(MaterialInfo.map_d, MtlDirectory);
+			ResolveSingleTexturePath(MaterialInfo.map_Bump, MtlDirectory);
 		}
 	}
 
@@ -71,6 +83,10 @@ bool FObjImporter::ImportFromFile(const FString& InObjPath, FStaticMeshAsset& Ou
 
 		// map_Kd 상대 경로를 실제 파일 경로로 보정
 		ResolveMaterialTexturePaths(MaterialLibraryPath, ObjInfo.Materials);
+	}
+
+	for (auto& pair : ObjInfo.Materials) {
+		FMaterialManager::Get().CreateMaterial(pair.second);
 	}
 
 	// raw 데이터 -> cooked 데이터
@@ -203,7 +219,7 @@ uint32 FObjImporter::FindOrAddMaterialSlot(
 	const auto MaterialIt = InObjInfo.Materials.find(InMaterialName);
 	if (MaterialIt != InObjInfo.Materials.end())
 	{
-		Slot.DiffuseTexturePath = MaterialIt->second.DiffuseTexturePath;
+		Slot.DiffuseTexturePath = MaterialIt->second.map_Kd;
 	}
 
 	const uint32 NewSlotIndex = static_cast<uint32>(InOutAsset.MaterialSlots.size());

@@ -6,6 +6,7 @@
 class UMaterial;
 class UMaterialInterface;
 class UMaterialInstance;
+struct FObjMaterialInfo;
 struct FStaticMaterialSlot;
 
 class FMaterialManager : public TSingleton<FMaterialManager>
@@ -13,6 +14,7 @@ class FMaterialManager : public TSingleton<FMaterialManager>
 	friend class TSingleton<FMaterialManager>;
 
 public:
+	UMaterial* CreateMaterial(const FObjMaterialInfo& InSlot);
 	UMaterial* GetOrCreateMaterial(const FStaticMaterialSlot& InSlot);
 	UMaterialInterface* FindMaterial(const FString& InKey) const;
 	UMaterialInstance* CreateMaterialInstance(UMaterial* ParentMaterial, const FString& InstanceName);
