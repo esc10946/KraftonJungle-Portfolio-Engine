@@ -22,6 +22,7 @@ struct FObjFace
 struct FObjMaterialInfo
 {
     FString Name;
+	FString DiffuseTexturePath; // map_Kd ###.png
 
     FVector Ka = FVector(0, 0, 0);
     FVector Kd = FVector(1, 1, 1);

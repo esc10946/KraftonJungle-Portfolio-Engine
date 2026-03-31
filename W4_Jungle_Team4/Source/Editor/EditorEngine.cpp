@@ -255,6 +255,7 @@ bool UEditorEngine::HandleObjImported(const FString& SourceObjPath)
 	FImportedObjPackage ImportedPackage;
 	if (!FAssetImportManager::ImportObjPackage(SourceObjPath, ImportedPackage))
 	{
+		std::cout << "[HandleObjImported] false1" << "\n";
 		return false;
 	}
 
@@ -263,18 +264,21 @@ bool UEditorEngine::HandleObjImported(const FString& SourceObjPath)
 
 	if (!MeshObj)
 	{
+		std::cout << "[HandleObjImported] false2" << "\n";
 		return false;
 	}
 
 	UWorld* World = GetWorld();
 	if (!World)
 	{
+		std::cout << "[HandleObjImported] false3" << "\n";
 		return false;
 	}
 
 	AStaticMeshActor* Actor = World->SpawnActor<AStaticMeshActor>();
 	if (!Actor)
 	{
+		std::cout << "[HandleObjImported] false4" << "\n";
 		return false;
 	}
 

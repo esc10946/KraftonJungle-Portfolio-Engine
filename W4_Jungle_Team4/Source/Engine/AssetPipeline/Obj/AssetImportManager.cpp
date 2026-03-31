@@ -9,6 +9,7 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <iostream>
 
 namespace
 {
@@ -64,6 +65,7 @@ bool FAssetImportManager::ImportObjPackage(const FString& InSourceObjPath, FImpo
 	OutPackage = FImportedObjPackage();
 
 	const std::filesystem::path SourceObjPath = std::filesystem::path(InSourceObjPath).lexically_normal();
+	std::cout << "[ImportObjPackage] SourceObjPath" << SourceObjPath.string() << "\n";
 	if (!std::filesystem::exists(SourceObjPath) || SourceObjPath.extension() != ".obj")
 	{
 		return false;
@@ -109,17 +111,24 @@ bool FAssetImportManager::ImportObjPackage(const FString& InSourceObjPath, FImpo
 	{
 		TArray<FString> TextureSourcePaths;
 		CollectTextureSourcePaths(SourceMtlPath, TextureSourcePaths);
-
+		std::cout << "[ImportObjPackage] SourceMtlPath" << SourceMtlPath.string() << "\n";
+		std::cout << "[ImportObjPackage] ***************************" << TextureSourcePaths.size() << "\n";
+		for (const auto& TextureSourcePathString : TextureSourcePaths) {
+			std::cout << "[ImportObjPackage] --------------------" << TextureSourcePathString << "\n";
+		}
 		// texture 복사
 		for (const FString& TextureSourcePathString : TextureSourcePaths)
 		{
 			const std::filesystem::path TextureSourcePath(TextureSourcePathString);
+			std::cout << "[ImportObjPackage] TextureSourcePath" << TextureSourcePath.string() << "\n";
 			if (!std::filesystem::exists(TextureSourcePath))
 			{
 				continue;
 			}
 
 			const std::filesystem::path ImportedTexturePath = TextureImportDir / TextureSourcePath.filename();
+			std::cout << "[ImportObjPackage] ImportedTexturePath" << ImportedTexturePath.string() << "\n";
+
 			if (CopyFileTo(TextureSourcePath, ImportedTexturePath))
 			{
 				OutPackage.ImportedTexturePaths.push_back(NormalizePathString(ImportedTexturePath));
@@ -145,6 +154,8 @@ bool FAssetImportManager::ImportObjPackage(const FString& InSourceObjPath, FImpo
 		}
 
 		OutPackage.ImportedMtlPath = NormalizePathString(ImportedMtlPath);
+		std::cout << "[ImportObjPackage] ImportedMtlPath" << OutPackage.ImportedMtlPath << "\n";
+
 	}
 
 	return true;
@@ -215,7 +226,7 @@ bool FAssetImportManager::EnsureDirectoryForFile(const std::filesystem::path& In
 	std::filesystem::create_directories(InFilePath.parent_path(), ErrorCode);
 	return !ErrorCode;
 }
-
+// #################### 무조건 여기 문제임 OutTextureSourcePaths size 0 찍힘
 void FAssetImportManager::CollectTextureSourcePaths(
 	const std::filesystem::path& InSourceMtlPath,
 	TArray<FString>& OutTextureSourcePaths)
@@ -223,8 +234,10 @@ void FAssetImportManager::CollectTextureSourcePaths(
 	OutTextureSourcePaths.clear();
 
 	TMap<FString, FObjMaterialInfo> Materials;
+	std::cout << "[@@@] InSourceMtlPath: " << InSourceMtlPath.string() << "\n";
 	if (!FMtlParser::ParseFile(InSourceMtlPath.string(), Materials))
 	{
+		std::cout << "[@@@] ParseFile X" << "\n";
 		return;
 	}
 

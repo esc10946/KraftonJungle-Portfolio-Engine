@@ -1,8 +1,9 @@
-#include "Asset/Texture/TextureObject.h"
+﻿#include "Asset/Texture/TextureObject.h"
 
 #include "Core/ResourceManager.h"
 
 #include <filesystem>
+#include <iostream>
 
 DEFINE_CLASS(UTexture2D, UObject)
 REGISTER_FACTORY(UTexture2D)
@@ -15,6 +16,9 @@ void UTexture2D::SetSourcePath(const FString& InSourcePath)
 
 ID3D11ShaderResourceView* UTexture2D::GetOrCreateShaderResourceView(ID3D11Device* InDevice)
 {
+	std::cout << "[TextureObject] InDevice: " << InDevice << "\n";
+	std::cout << "[TextureObject] SourcePath: " << SourcePath << "\n";
+
 	if (!ShaderResourceView && !SourcePath.empty())
 	{
 		FResourceManager::Get().RegisterTexture(SourcePath);
