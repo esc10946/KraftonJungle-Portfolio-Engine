@@ -247,6 +247,7 @@
     <ClCompile Include="Source\Editor\Slate\Widget\SSplitterH.cpp" />
     <ClCompile Include="Source\Editor\Slate\Widget\SSplitterV.cpp" />
     <ClCompile Include="Source\Editor\Slate\Widget\SViewport.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SViewportOverlayStat.cpp" />
     <ClCompile Include="Source\Editor\Slate\Widget\SViewportRoot.cpp" />
     <ClCompile Include="Source\Editor\Slate\Widget\SWidget.cpp" />
     <ClCompile Include="Source\Editor\Viewport\Viewport.cpp" />
@@ -352,6 +353,7 @@
     <ClInclude Include="Source\Editor\Slate\Widget\SImGuiPropertyWidget.h" />
     <ClInclude Include="Source\Editor\Slate\Widget\SImGuiSceneWidget.h" />
     <ClInclude Include="Source\Editor\Slate\SlateWidgetFactory.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SViewportOverlayStat.h" />
     <ClInclude Include="Source\Editor\Slate\Widget\SViewportRoot.h" />
     <ClInclude Include="Source\Editor\Viewport\Viewport.h" />
     <ClInclude Include="Source\Editor\Viewport\ViewOption.h" />
