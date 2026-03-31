@@ -306,18 +306,6 @@ void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, cons
 				Cmd.PerObjectConstants.Color = Cmd.MeshRenderData.DiffuseSRV != nullptr ? MaterialParameters.BaseColor : Primitive->GetMaterialColor();
 			}
 
-			std::cout << "----------------------\n";
-			std::cout << "Material ptr: " << Material << "\n";
-			std::cout << "DiffuseTexturePath: " << Material->GetDiffuseTexturePath() << "\n";
-			std::cout << "DiffuseTexture ptr: " << MaterialParameters.DiffuseTexture << "\n";
-			std::cout << "DiffuseSRV ptr: " << Cmd.MeshRenderData.DiffuseSRV << "\n";
-			std::cout << "UseTexture: " << Cmd.Constants.StaticMesh.StaticMeshUseTexture << "\n";
-			std::cout << "BaseColor: "
-				<< Cmd.PerObjectConstants.Color.X << ", "
-				<< Cmd.PerObjectConstants.Color.Y << ", "
-				<< Cmd.PerObjectConstants.Color.Z << ", "
-				<< Cmd.PerObjectConstants.Color.W << "\n";
-
 			if (UTexture2D* Texture = MaterialParameters.DiffuseTexture)
 			{
 				std::cout << "Texture SourcePath: " << Texture->GetSourcePath() << "\n";

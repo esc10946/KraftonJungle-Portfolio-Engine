@@ -16,9 +16,6 @@ void UTexture2D::SetSourcePath(const FString& InSourcePath)
 
 ID3D11ShaderResourceView* UTexture2D::GetOrCreateShaderResourceView(ID3D11Device* InDevice)
 {
-	std::cout << "[TextureObject] InDevice: " << InDevice << "\n";
-	std::cout << "[TextureObject] SourcePath: " << SourcePath << "\n";
-
 	if (!ShaderResourceView && !SourcePath.empty())
 	{
 		FResourceManager::Get().RegisterTexture(SourcePath);

@@ -207,7 +207,6 @@ bool FResourceManager::LoadTextureResource(FTextureResource& Resource, ID3D11Dev
 ID3D11ShaderResourceView* FResourceManager::GetOrCreateTextureSRV(const FString& InTexturePath, ID3D11Device* InDevice)
 {
 	std::filesystem::path P = InTexturePath;
-	std::cout << "[ResourceManager] exists: " << std::filesystem::exists(P) << "\n";
 	if (InTexturePath.empty() || !InDevice)
 	{
 		return nullptr;
@@ -228,8 +227,6 @@ ID3D11ShaderResourceView* FResourceManager::GetOrCreateTextureSRV(const FString&
 			return nullptr;
 		}
 	}
-	std::cout << "[ResourceManager] Path: " << InTexturePath << "\n";
-	std::cout << "[ResourceManager] Device: " << InDevice << "\n";
 
 	return TextureResource->SRV;
 }
