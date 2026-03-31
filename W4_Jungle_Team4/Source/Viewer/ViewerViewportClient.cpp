@@ -32,15 +32,70 @@ void FViewerViewportClient::ResetCamera()
 }
 
 
+bool FViewerViewportClient::LoadOBJ(const FString& ObjPath)
+{
+	FStaticMeshAsset* NewMesh = FStaticMeshManager::Get().LoadStaticMeshAsset(ObjPath);
+
+	if (!NewMesh) return false;
+
+	if (NewMesh->Vertices.empty()) return false;
+
+	NewMesh->UpdateBounds();
+
+	UnLoadOBJ();
+	CurrentMesh = NewMesh;
+	FVector Min = CurrentMesh->BoundsMin;
+	FVector Max = CurrentMesh->BoundsMax;
+
+	Center.X = (Min.X + Max.X) * 0.5f;
+	Center.Y = (Min.Y + Max.Y) * 0.5f;
+	Center.Z = (Min.Z + Max.Z) * 0.5f;
+
+	FVector Diff = Max - Min;
+	ModelSize = Diff.Length();
+	ModelRadius = ModelSize * 0.5f;
+
+	ViewerCamera->SetTarget(Center);
+	ViewerCamera->SetRadius(ModelRadius * 2.5f);
+	ViewerCamera->UpdatePosition();
+	ViewerCamera->SetMinRadius(ModelRadius * 1.1f);
+	ViewerCamera->SetMaxRadius(ModelRadius * 10.0f);
+
+	return true;
+}
+
+void FViewerViewportClient::UnLoadOBJ()
+{
+	if (TextureMeshBuffer.IsValid())
+		TextureMeshBuffer.Release();
+
+	if (CurrentMesh)
+	{
+		CurrentMesh = nullptr;
+	}
+}
+
+void FViewerViewportClient::BuildGpuBuffer()
+{
+	if (TextureMeshBuffer.IsValid() || !CurrentMesh) return;
+
+	if (!Renderer || Renderer->GetFD3DDevice().GetDevice() == nullptr) return;
+
+	FTexturedMeshData MeshData;
+	if (CurrentMesh->BuildTexturedRenderMeshData(MeshData))
+	{
+		TextureMeshBuffer.Create(Renderer->GetFD3DDevice().GetDevice(), MeshData);
+	}
+}
+
 void FViewerViewportClient::Draw()
 {
 	PrepareRenderBus();
-	FStaticMeshAsset* Asset = OwnerEngine->GetCurrentMesh();
 
-	if (Asset)
+	if (CurrentMesh)
 	{
-		EnsureGpuResources(Asset);
-		GenerateStaticMeshCommands(Asset);
+		BuildGpuBuffer();
+		GenerateStaticMeshCommands();
 	}
 }
 
@@ -49,8 +104,6 @@ void FViewerViewportClient::Tick(float DeltaTime)
 	if (!ViewerCamera || IgnoreInput())
 		return;
 
-	CheckAssetSystem();
-
 	float dx, dy;
 	GetSafeMouseDelta(dx, dy);
 
@@ -58,13 +111,11 @@ void FViewerViewportClient::Tick(float DeltaTime)
 		ViewerCamera->OnOrbit(dx, dy);
 
 	if (InputSystem::Get().GetKey(VK_RBUTTON))
-		ViewerCamera->OnPan(dx, dy, OwnerEngine->GetRadius());
+		ViewerCamera->OnPan(dx, dy, ModelRadius);
 
 	float wheel = InputSystem::Get().GetScrollNotches();
 	if (wheel != 0)
 		ViewerCamera->OnZoom(wheel);
-
-	Draw();
 }
 
 void FViewerViewportClient::OnViewportResized(uint32 NewTopLeftX, uint32 NewTopLeftY, uint32 NewWidth, uint32 NewHeight)
@@ -94,45 +145,14 @@ void FViewerViewportClient::PrepareRenderBus()
 	Bus.SetRenderSettings(ViewMode, ShowFlags);
 }
 
-void FViewerViewportClient::EnsureGpuResources(FStaticMeshAsset* Asset)
+void FViewerViewportClient::GenerateStaticMeshCommands()
 {
-	if (!Asset) return;
+	if (!TextureMeshBuffer.IsValid() || !CurrentMesh) return;
 
-	if (!Renderer || Renderer->GetFD3DDevice().GetDevice() == nullptr) return;
-
-	OwnerEngine->BuildGpuBuffer(Renderer->GetFD3DDevice().GetDevice());
-}
-
-void FViewerViewportClient::GenerateStaticMeshCommands(FStaticMeshAsset* Asset)
-{
-	if (!OwnerEngine->GetTextureMesh() || !Asset) return;
-
-	for (const FStaticMeshSection& Section : Asset->Sections)
+	for (const FStaticMeshSection& Section : CurrentMesh->Sections)
 	{
-		FRenderCommand Cmd = CreateCommand(Section, Asset);
+		FRenderCommand Cmd = CreateCommand(Section);
 		Bus.AddCommand(ERenderPass::Opaque, Cmd);
-	}
-}
-
-void FViewerViewportClient::CheckAssetSystem()
-{
-	static FStaticMeshAsset* LastAsset = nullptr;
-	FStaticMeshAsset* CurrentAsset = OwnerEngine->GetCurrentMesh();
-
-	if (CurrentAsset != LastAsset)
-	{
-		if (CurrentAsset)
-		{
-			FVector NewCenter = OwnerEngine->GetCenter();
-			float NewRadius = OwnerEngine->GetRadius();
-
-			ViewerCamera->SetTarget(NewCenter);
-			ViewerCamera->SetRadius(NewRadius * 2.5f);
-
-			ViewerCamera->UpdatePosition();
-		}
-
-		LastAsset = CurrentAsset;
 	}
 }
 
@@ -152,8 +172,14 @@ void FViewerViewportClient::GetSafeMouseDelta(float& outX, float& outY)
 
 	if (IsMouseInsideWindow())
 	{
-		outX = InputSystem::Get().MouseDeltaX();
-		outY = InputSystem::Get().MouseDeltaY();
+		float RawX = static_cast<float>(InputSystem::Get().MouseDeltaX());
+        float RawY = static_cast<float>(InputSystem::Get().MouseDeltaY());
+        
+        SmoothedDeltaX = SmoothedDeltaX * 0.3f + RawX * 0.3f;
+        SmoothedDeltaY = SmoothedDeltaY * 0.3f + RawY * 0.3f;
+        
+        outX = SmoothedDeltaX;
+        outY = SmoothedDeltaY;
 	}
 }
 
@@ -169,18 +195,18 @@ bool FViewerViewportClient::IsMouseInsideWindow()
 	return (pt.x >= 0 && pt.x <= rc.right && pt.y >= 0 && pt.y <= rc.bottom);
 }
 
-FRenderCommand FViewerViewportClient::CreateCommand(const FStaticMeshSection& Section, FStaticMeshAsset* Asset)
+FRenderCommand FViewerViewportClient::CreateCommand(const FStaticMeshSection& Section)
 {
 	FRenderCommand Cmd = {};
 	Cmd.Type = ERenderCommandType::StaticMesh;
-	Cmd.TextureMeshBuffer = OwnerEngine->GetTextureMesh();
+	Cmd.TextureMeshBuffer = &TextureMeshBuffer;
 	Cmd.PerObjectConstants.Model = FMatrix::Identity;
 	Cmd.MeshRenderData.FirstIndex = Section.FirstIndex;
 	Cmd.MeshRenderData.IndexCount = Section.IndexCount;
 
-	if (Section.MaterialSlotIndex < Asset->MaterialSlots.size())
+	if (Section.MaterialSlotIndex < CurrentMesh->MaterialSlots.size())
 	{
-		const FString& TexturePath = Asset->MaterialSlots[Section.MaterialSlotIndex].DiffuseTexturePath;
+		const FString& TexturePath = CurrentMesh->MaterialSlots[Section.MaterialSlotIndex].DiffuseTexturePath;
 		Cmd.MeshRenderData.DiffuseSRV = FResourceManager::Get().GetOrCreateTextureSRV(
 			TexturePath,
 			Renderer->GetFD3DDevice().GetDevice()

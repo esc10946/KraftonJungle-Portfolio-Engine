@@ -8,10 +8,9 @@
 
 void FViewerRendererPipline::Execute(float DeltaTime, FRenderer& Renderer)
 {
+	ViewportClient->Draw();
 	Renderer.BeginFrame();
-
-	FRenderBus Bus = ViewportClient->GetBus();
-	Renderer.Render(Bus);
+	Renderer.Render(ViewportClient->GetBus());
 	OwnerEngine->RenderUI(DeltaTime);
 	Renderer.EndFrame(); 
 }

@@ -39,6 +39,14 @@ bool FEngineLoop::Init(HINSTANCE hInstance, int nShowCmd)
 			}
 		});
 
+	Application.SetOnDropOBJViewerCallback([](const char* path)
+		{
+			if (GEngine && GEngine->IsA<UViewerEngine>())
+			{
+				static_cast<UViewerEngine*>(GEngine)->LoadModel(path);
+			}
+		});
+
 	CreateEngine();
 	GEngine->Init(&Application.GetWindow());
 	GEngine->SetTimer(&Timer);
