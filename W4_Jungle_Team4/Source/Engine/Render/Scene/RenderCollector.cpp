@@ -11,6 +11,7 @@
 #include "Asset/StaticMesh/StaticMeshObject.h"
 #include "Asset/Texture/TextureObject.h"
 #include "Core/ResourceManager.h"
+#include "Slate/SlateApplication.h"
 
 void FRenderCollector::Release()
 {
@@ -23,6 +24,7 @@ void FRenderCollector::Release()
 	StaticMeshMap.clear();
 	StaticMeshRevisionMap.clear();
 	MeshBufferManager.Release();
+
 	Device = nullptr;
 }
 
@@ -96,6 +98,18 @@ void FRenderCollector::CollectGizmo(UGizmoComponent* Gizmo, const FShowFlags& Sh
 	}
 }
 
+void FRenderCollector::CollectFromSlate(FRenderBus& RenderBus)
+{
+	TArray<SWindow*> Windows = FSlateApplication::Get().GetWindows();
+
+	for (SWindow* Window : Windows)
+	{
+		if (!Window) continue;
+
+		CollectFromSlateWidget(Window, RenderBus);
+	}
+}
+
 void FRenderCollector::CollectFromActor(AActor* Actor, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus)
 {
 	if (!Actor->IsVisible()) return;
@@ -112,11 +126,14 @@ void FRenderCollector::CollectFromSelectedActor(AActor* Actor, const FShowFlags&
 
 	for (UPrimitiveComponent* primitiveComponent : Actor->GetPrimitiveComponents())
 	{
-
 		if (!primitiveComponent->IsVisible()) continue;
+
+		// AABB는 선택 디버그 표시이므로 outline 지원 여부와 분리해 토글로만 제어한다.
+		CollectAABBCommand(primitiveComponent, ShowFlags, RenderBus);
+
 		FRenderCommand BaseCmd{};
-		BaseCmd.MeshBuffer = &MeshBufferManager.GetMeshBuffer(primitiveComponent->GetPrimitiveType());
-		BaseCmd.PerObjectConstants = FPerObjectConstants{ primitiveComponent->GetWorldMatrix() };
+		if (!ConfigureSelectionBaseCommand(primitiveComponent, BaseCmd)) continue;
+
 		FVector WorldScale = primitiveComponent->GetWorldScale();
 
 		if (primitiveComponent->GetPrimitiveType() == EPrimitiveType::EPT_Text)
@@ -155,6 +172,7 @@ void FRenderCollector::CollectFromSelectedActor(AActor* Actor, const FShowFlags&
 		MaskCmd.Type = ERenderCommandType::SelectionOutline;
 		MaskCmd.DepthStencilState = EDepthStencilState::StencilWrite; //스텐실 버퍼만 작성하는 타입
 		MaskCmd.BlendState = EBlendState::NoColor;
+		MaskCmd.Constants.Outline.OutlineOffset = 0.0f;
 		RenderBus.AddCommand(ERenderPass::StencilMask, MaskCmd);
 
 		// Outline
@@ -169,13 +187,41 @@ void FRenderCollector::CollectFromSelectedActor(AActor* Actor, const FShowFlags&
 		{
 			OutlineCmd.PerObjectConstants.Color = FColor(255, 153, 0, 255).ToVector4();
 		}
-		CollectAABBCommand(primitiveComponent, ShowFlags, RenderBus);
+
 		EPrimitiveType PrimType = primitiveComponent->GetPrimitiveType();
 		OutlineCmd.Constants.Outline.PrimitiveType = (PrimType == EPrimitiveType::EPT_Plane ||
 			PrimType == EPrimitiveType::EPT_SubUV ||
 			PrimType == EPrimitiveType::EPT_Text) ? 0u : 1u;
 		RenderBus.AddCommand(ERenderPass::Outline, OutlineCmd);
 	}
+}
+
+bool FRenderCollector::ConfigureSelectionBaseCommand(UPrimitiveComponent* PrimitiveComponent, FRenderCommand& OutBaseCmd)
+{
+	if (!PrimitiveComponent)
+	{
+		return false;
+	}
+
+	OutBaseCmd.PerObjectConstants = FPerObjectConstants{ PrimitiveComponent->GetWorldMatrix() };
+
+	if (PrimitiveComponent->GetPrimitiveType() == EPrimitiveType::EPT_StaticMesh)
+	{
+		UStaticMeshComponent* StaticMeshComponent = static_cast<UStaticMeshComponent*>(PrimitiveComponent);
+		UStaticMesh* StaticMesh = StaticMeshComponent->GetStaticMesh();
+		OutBaseCmd.TextureMeshBuffer = GetOrCreateStaticMeshBuffer(StaticMeshComponent);
+		if (!StaticMesh || !OutBaseCmd.TextureMeshBuffer || !OutBaseCmd.TextureMeshBuffer->IsValid())
+		{
+			return false;
+		}
+
+		OutBaseCmd.MeshRenderData.FirstIndex = 0;
+		OutBaseCmd.MeshRenderData.IndexCount = static_cast<uint32>(StaticMesh->GetIndices().size());
+		return true;
+	}
+
+	OutBaseCmd.MeshBuffer = &MeshBufferManager.GetMeshBuffer(PrimitiveComponent->GetPrimitiveType());
+	return OutBaseCmd.MeshBuffer && OutBaseCmd.MeshBuffer->IsValid();
 }
 
 void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus)
@@ -238,7 +284,7 @@ void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, cons
 			FRenderCommand Cmd = {};
 			Cmd.Type = ERenderCommandType::StaticMesh;
 			Cmd.TextureMeshBuffer = StaticMeshBuffer;
-			Cmd.PerObjectConstants = FPerObjectConstants{ Primitive->GetWorldMatrix(), FVector4(1.0f, 1.0f, 1.0f, 1.0f) };
+			Cmd.PerObjectConstants = FPerObjectConstants{ Primitive->GetWorldMatrix(), Primitive->GetMaterialColor() };
 			Cmd.DepthStencilState = EDepthStencilState::Default;
 			Cmd.BlendState = EBlendState::Opaque;
 
@@ -252,7 +298,7 @@ void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, cons
 			{
 				Material->ResolveParameters(MaterialParameters);
 				Cmd.MeshRenderData.Shader = MaterialParameters.Shader;
-				Cmd.PerObjectConstants.Color = MaterialParameters.BaseColor;
+				Cmd.PerObjectConstants.Color = Primitive->GetMaterialColor();
 				Cmd.Constants.StaticMesh.bUseAtlas = MaterialParameters.bUseAtlas ? 1u : 0u;
 				Cmd.Constants.StaticMesh.bSourceUVsUseAtlasTiles =
 					(MaterialParameters.bUseAtlas && StaticMesh->SectionUsesEmbeddedAtlasUVs(static_cast<int32>(SectionIndex))) ? 1u : 0u;
@@ -303,6 +349,29 @@ void FRenderCollector::CollectAABBCommand(UPrimitiveComponent* PrimitiveComponen
 
 	// 렌더러가 마지막에 몰아서 그릴 수 있게 특정 패스(예: Editor/Overlay)에 푸시합니다.
 	RenderBus.AddCommand(ERenderPass::Editor, AABBCmd);
+}
+
+void FRenderCollector::CollectFromSlateWidget(SWidget* Widget, FRenderBus& RenderBus)
+{
+	for (SWidget* Widget : Widget->GetChildren())
+	{
+		if (Widget->IsRenderable())
+		{
+			FRect RenderRect = Widget->GetRenderRect();
+
+			FRenderCommand Cmd = {};
+			Cmd.Type = ERenderCommandType::Slate;
+			Cmd.MeshBuffer = &MeshBufferManager.GetMeshBuffer(EPrimitiveType::EPT_Quad2D);
+			Cmd.PerObjectConstants.Color = Widget->GetColor().ToVector4();
+			Cmd.Constants.Slate.ScreenPosition = { (float)RenderRect.X, (float)RenderRect.Y };
+			Cmd.Constants.Slate.ScreenSize = { (float)RenderRect.Width, (float)RenderRect.Height };
+			Cmd.DepthStencilState = EDepthStencilState::Default;
+
+			RenderBus.AddCommand(ERenderPass::Slate, Cmd);
+		}
+
+		CollectFromSlateWidget(static_cast<SWindow*>(Widget), RenderBus);
+	}
 }
 
 FTextureMeshBuffer* FRenderCollector::GetOrCreateStaticMeshBuffer(UStaticMeshComponent* StaticMeshComponent)

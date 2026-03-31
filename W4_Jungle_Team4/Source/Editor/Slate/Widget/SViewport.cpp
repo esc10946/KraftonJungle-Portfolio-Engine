@@ -3,14 +3,19 @@
 #include "SSplitterH.h"
 #include "SSplitterV.h"
 #include "SViewportRoot.h"
-#include "SlateApplication.h"
+#include "SViewportOverlayStat.h"
+#include "Slate/SlateApplication.h"
+#include "Slate/SlateWidgetFactory.h"
 #include "Viewport/Viewport.h"
 #include "Viewport/EditorViewportClient.h"
 #include "Viewport/ViewportManager.h"
-#include "SlateWidgetFactory.h"
 #include "ImGui/imgui.h"
 #include "UI/EditorConsoleWidget.h"
-#include "Object/EngineStatics.h"
+
+SViewport::SViewport()
+{
+	OverlayStat = new SViewportOverlayStat(this);
+}
 
 void SViewport::Tick(float DeltaTime)
 {
@@ -139,8 +144,8 @@ void SViewport::OnPaint()
 	}
 	ImGui::EndGroup();
 
-	if (bShowFPS) DrawFPSStats();
-	if (bShowMemory) DrawMemoryStats();
+	if (bShowFPS) OverlayStat->DrawFPSStats();
+	if (bShowMemory) OverlayStat->DrawMemoryStats();
 
 	ImGui::End();
 
@@ -162,76 +167,6 @@ void SViewport::OnResize(const FRect& NewRect)
 		{
 			Client->OnViewportResized(NewRect.X, NewRect.Y, NewRect.Width, NewRect.Height);
 		}
-	}
-}
-
-void SViewport::DrawFPSStats()
-{
-	ImGuiIO& io = ImGui::GetIO();
-	ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking |
-		ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
-		ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav |
-		ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground;
-
-	float PAD = 10.0f;
-	ImVec2 window_pos = ImVec2((float)Rect.X + (float)Rect.Width - PAD, (float)Rect.Y + PAD);
-	ImVec2 window_pos_pivot = ImVec2(1.0f, 0.0f);
-
-	ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
-
-	if (ImGui::Begin(("##" + GetName()).c_str(), nullptr, window_flags))
-	{
-		ImGui::Text("%.2f FPS", io.Framerate);
-		ImGui::Text("%.2f ms", 1000.0f / io.Framerate);
-
-		ImGui::End();
-	}
-}
-
-void SViewport::DrawMemoryStats()
-{
-	ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking |
-		ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
-		ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav |
-		ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground;
-
-	ImVec2 window_pos = ImVec2((float)Rect.X + (float)Rect.Width * 0.5f, (float)Rect.Y + 60.0f);
-	ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, ImVec2(0.5f, 0.0f));
-	ImGui::SetNextWindowBgAlpha(0.4f);
-
-	if (ImGui::Begin(("##Memory Stats_" + GetName()).c_str(), nullptr, window_flags)) {
-		ImGui::TextColored(ImVec4(0, 1, 0, 1), "Memory Usage"); // 언리얼 특유의 초록색 글씨
-		ImGui::Separator();
-		ImGuiTableFlags flags = ImGuiTableFlags_Borders | ImGuiTableFlags_RowBg | ImGuiTableFlags_Resizable;
-
-		if (ImGui::BeginTable("MemoryCounters", 4, flags)) {
-			ImGui::TableSetupColumn("Memory Counters", ImGuiTableColumnFlags_WidthStretch);
-			ImGui::TableSetupColumn("UsedMax", ImGuiTableColumnFlags_WidthFixed, 100.0f);
-			ImGui::TableSetupColumn("Mem%", ImGuiTableColumnFlags_WidthFixed, 50.0f);
-			ImGui::TableSetupColumn("Pool", ImGuiTableColumnFlags_WidthFixed, 100.0f);
-			ImGui::TableHeadersRow();
-
-			const char* CategoryNames[] = { "Streaming Texture Pool", "StaticMesh Total Memory", "VertexShader Memory" };
-
-			for (int i = 0; i < 3; i++) {
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::TextColored(ImVec4(0, 1, 0, 1), CategoryNames[i]); // 언리얼 특유의 초록색 글씨
-
-				ImGui::TableSetColumnIndex(1);
-				float mb = EngineStatics::TotalAllocationBytes / (1024.0f * 1024.0f);
-				ImGui::TextColored(ImVec4(0, 1, 0, 1), "%.2f MB", mb);
-
-				ImGui::TableSetColumnIndex(2);
-				ImGui::TextColored(ImVec4(0, 1, 0, 1), "100%"); // 필요 시 계산
-
-				ImGui::TableSetColumnIndex(3);
-				ImGui::TextColored(ImVec4(0, 1, 0, 1), "Physical");
-			}
-			ImGui::EndTable();
-		}
-
-		ImGui::End();
 	}
 }
 

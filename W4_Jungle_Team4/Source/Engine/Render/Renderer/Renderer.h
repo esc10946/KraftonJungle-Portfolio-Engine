@@ -12,6 +12,7 @@
 #include "Render/LineBatcher.h"
 #include "Render/FontBatcher.h"
 #include "Render/SubUVBatcher.h"
+#include "Render/SlateBatcher.h"
 #include "Render/ViewportRenderer.h"
 
 #include <cstddef>
@@ -51,6 +52,8 @@ public:
 	void EndViewportFrame(FRenderTarget& RenderTarget);
 	void EndFrame();
 
+	void SetDefaultViewport();
+
 	FD3DDevice& GetFD3DDevice() { return Device; }
 	FRenderResources& GetResources() { return Resources; }
 	FViewportRenderer& GetViewportRenderer() { return ViewportRenderer; }
@@ -80,6 +83,7 @@ private:
 	FLineBatcher   GridLineBatcher;
 	FFontBatcher   FontBatcher;
 	FSubUVBatcher  SubUVBatcher;
+	FSlateBatcher  SlateBatcher;
 
 	// 패스별 커맨드 정렬이 필요한 경우 정렬된 복사본 반환, 아니면 원본 참조
 	const TArray<FRenderCommand>& GetAlignedCommands(ERenderPass Pass, const TArray<FRenderCommand>& Commands);
@@ -95,6 +99,11 @@ private:
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0,  static_cast<uint32>(offsetof(FVertex, Position)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, static_cast<uint32>(offsetof(FVertex, Color)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+
+	D3D11_INPUT_ELEMENT_DESC PositionOnlyInputLayout[1] =
+	{
+		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
 
 	D3D11_INPUT_ELEMENT_DESC TexturedMeshInputLayout[3] =

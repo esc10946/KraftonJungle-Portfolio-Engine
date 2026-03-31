@@ -10,7 +10,7 @@ cbuffer FrameBuffer : register(b0)
     float bIsWireframe;
     float3 WireframeRGB;
     float Padding;
-}
+};
 
 cbuffer PerObjectBuffer : register(b1)
 {

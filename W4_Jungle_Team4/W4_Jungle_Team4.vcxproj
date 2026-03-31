@@ -239,18 +239,22 @@ xcopy /E /I /Y "$(ProjectDir)Data" "$(OutDir)Data"</Command>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Shaders\ScreenQuadSimple.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="Source\Editor\Slate\ConsoleCommandManager.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SImGuiConsoleWidget.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SImGuiControlWidget.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SImGuiPropertyWidget.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SImGuiSceneWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SImGuiConsoleWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SImGuiControlWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SImGuiPropertyWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SImGuiSceneWidget.cpp" />
     <ClCompile Include="Source\Editor\Slate\SlateApplication.cpp" />
     <ClCompile Include="Source\Editor\Slate\SlateWidgetFactory.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SSplitterH.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SSplitterV.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SViewport.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SViewportRoot.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SSplitterH.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SSplitterV.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SViewport.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SViewportOverlayStat.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SViewportRoot.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SWidget.cpp" />
     <ClCompile Include="Source\Editor\Viewport\Viewport.cpp" />
     <ClCompile Include="Source\Editor\Viewport\ViewportManager.cpp" />
     <ClCompile Include="Source\Engine\Asset\Material\MaterialManager.cpp" />
@@ -300,6 +304,7 @@ xcopy /E /I /Y "$(ProjectDir)Data" "$(OutDir)Data"</Command>
     <ClCompile Include="Source\Engine\Core\ResourceManager.cpp" />
     <ClCompile Include="Source\Engine\Core\Stats.cpp" />
     <ClCompile Include="Source\Engine\Core\Timer.cpp" />
+    <ClCompile Include="Source\Engine\Core\TweenSystem.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\AActor.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\PrimitiveActors.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\World.cpp" />
@@ -312,8 +317,8 @@ xcopy /E /I /Y "$(ProjectDir)Data" "$(OutDir)Data"</Command>
     <ClCompile Include="Source\Engine\Object\Object.cpp" />
     <ClCompile Include="Source\Engine\Render\FontBatcher.cpp" />
     <ClCompile Include="Source\Engine\Render\LineBatcher.cpp" />
-    <ClCompile Include="Source\Engine\Render\Resource\Material.cpp" />
     <ClCompile Include="Source\Engine\Render\Resource\Texture.cpp" />
+    <ClCompile Include="Source\Engine\Render\SlateBatcher.cpp" />
     <ClCompile Include="Source\Engine\Render\SubUVBatcher.cpp" />
     <ClCompile Include="Source\Engine\Render\Device\D3DDevice.cpp" />
     <ClCompile Include="Source\Engine\Render\Mesh\MeshManager.cpp" />
@@ -349,12 +354,13 @@ xcopy /E /I /Y "$(ProjectDir)Data" "$(OutDir)Data"</Command>
   <ItemGroup>
     <ClInclude Include="Source\Editor\Slate\Reply.h" />
     <ClInclude Include="Source\Editor\Slate\ConsoleCommandManager.h" />
-    <ClInclude Include="Source\Editor\Slate\SImGuiConsoleWidget.h" />
-    <ClInclude Include="Source\Editor\Slate\SImGuiControlWidget.h" />
-    <ClInclude Include="Source\Editor\Slate\SImGuiPropertyWidget.h" />
-    <ClInclude Include="Source\Editor\Slate\SImGuiSceneWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SImGuiConsoleWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SImGuiControlWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SImGuiPropertyWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SImGuiSceneWidget.h" />
     <ClInclude Include="Source\Editor\Slate\SlateWidgetFactory.h" />
-    <ClInclude Include="Source\Editor\Slate\SViewportRoot.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SViewportOverlayStat.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SViewportRoot.h" />
     <ClInclude Include="Source\Editor\Viewport\Viewport.h" />
     <ClInclude Include="Source\Editor\Viewport\ViewOption.h" />
     <ClInclude Include="Source\Editor\Viewport\ViewportClient.h" />
@@ -381,12 +387,12 @@ xcopy /E /I /Y "$(ProjectDir)Data" "$(OutDir)Data"</Command>
     <ClInclude Include="Source\Editor\Selection\SelectionManager.h" />
     <ClInclude Include="Source\Editor\Settings\EditorSettings.h" />
     <ClInclude Include="Source\Editor\Slate\SlateApplication.h" />
-    <ClInclude Include="Source\Editor\Slate\SSplitter.h" />
-    <ClInclude Include="Source\Editor\Slate\SSplitterH.h" />
-    <ClInclude Include="Source\Editor\Slate\SSplitterV.h" />
-    <ClInclude Include="Source\Editor\Slate\SViewport.h" />
-    <ClInclude Include="Source\Editor\Slate\SWidget.h" />
-    <ClInclude Include="Source\Editor\Slate\SWindow.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SSplitter.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SSplitterH.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SSplitterV.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SViewport.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SWindow.h" />
     <ClInclude Include="Source\Editor\UI\EditorConsoleWidget.h" />
     <ClInclude Include="Source\Editor\UI\EditorControlWidget.h" />
     <ClInclude Include="Source\Editor\UI\EditorMainPanel.h" />
@@ -427,6 +433,8 @@ xcopy /E /I /Y "$(ProjectDir)Data" "$(OutDir)Data"</Command>
     <ClInclude Include="Source\Engine\Core\Singleton.h" />
     <ClInclude Include="Source\Engine\Core\Stats.h" />
     <ClInclude Include="Source\Engine\Core\Timer.h" />
+    <ClInclude Include="Source\Engine\Core\Tween.h" />
+    <ClInclude Include="Source\Engine\Core\TweenSystem.h" />
     <ClInclude Include="Source\Engine\GameFramework\AActor.h" />
     <ClInclude Include="Source\Engine\GameFramework\PrimitiveActors.h" />
     <ClInclude Include="Source\Engine\GameFramework\World.h" />
@@ -441,9 +449,9 @@ xcopy /E /I /Y "$(ProjectDir)Data" "$(OutDir)Data"</Command>
     <ClInclude Include="Source\Engine\Object\ObjectFactory.h" />
     <ClInclude Include="Source\Engine\Render\FontBatcher.h" />
     <ClInclude Include="Source\Engine\Render\LineBatcher.h" />
-    <ClInclude Include="Source\Engine\Render\Resource\Material.h" />
     <ClInclude Include="Source\Engine\Render\Resource\RenderTarget.h" />
     <ClInclude Include="Source\Engine\Render\Resource\Texture.h" />
+    <ClInclude Include="Source\Engine\Render\SlateBatcher.h" />
     <ClInclude Include="Source\Engine\Render\SubUVBatcher.h" />
     <ClInclude Include="Source\Engine\Render\Common\RenderTypes.h" />
     <ClInclude Include="Source\Engine\Render\Common\ViewTypes.h" />

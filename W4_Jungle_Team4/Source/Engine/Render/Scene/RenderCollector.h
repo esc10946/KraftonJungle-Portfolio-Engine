@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "RenderBus.h"
 #include "Render/Resource/MeshBufferManager.h"
 
@@ -8,6 +8,7 @@ class UPrimitiveComponent;
 class UGizmoComponent;
 class UStaticMeshComponent;
 class UStaticMesh;
+class SWidget;
 
 class FRenderCollector {
 private:
@@ -24,11 +25,14 @@ public:
 	void CollectSelection(const TArray<AActor*>& SelectedActors, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus);
 	void CollectGizmo(UGizmoComponent* Gizmo, const FShowFlags& ShowFlags, FRenderBus& RenderBus);
 	void CollectGrid(float GridSpacing, int32 GridHalfLineCount, FRenderBus& RenderBus);
+	void CollectFromSlate(FRenderBus& RenderBus);
 
 private:
 	void CollectFromActor(AActor* Actor, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus);
 	void CollectFromSelectedActor(AActor* Actor, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus);
 	void CollectFromComponent(UPrimitiveComponent* Primitive, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus);
 	void CollectAABBCommand(UPrimitiveComponent* PrimitiveComponent, const FShowFlags& ShowFlags, FRenderBus& RenderBus);
+	void CollectFromSlateWidget(SWidget* Widget, FRenderBus& RenderBus);
+	bool ConfigureSelectionBaseCommand(UPrimitiveComponent* PrimitiveComponent, FRenderCommand& OutBaseCmd);
 	FTextureMeshBuffer* GetOrCreateStaticMeshBuffer(UStaticMeshComponent* StaticMeshComponent);
 };

@@ -1,4 +1,4 @@
-﻿#include "SWidget.h"
+﻿#include "Widget/SWidget.h"
 #include "Core/EngineTypes.h"
 #include "Core/Paths.h"
 

@@ -32,6 +32,7 @@ enum class EPrimitiveType
 	EPT_Text,		// TextRenderComponent — MeshBuffer 없음, FontBatcher가 처리
 	EPT_SubUV,		// SubUVComponent     — MeshBuffer 없음, SubUVBatcher가 처리
 	EPT_StaticMesh,		// SubUVComponent     — MeshBuffer 없음, SubUVBatcher가 처리
+	EPT_Quad2D,		// 2D UI 등에서 사용되는 스크린 공간의 Quad
 };
 
 enum class ERenderPass : uint32
@@ -46,6 +47,6 @@ enum class ERenderPass : uint32
 	Editor,
 	Grid,
 	DepthLess,
-	Viewport,
+	Slate,
 	MAX
 };

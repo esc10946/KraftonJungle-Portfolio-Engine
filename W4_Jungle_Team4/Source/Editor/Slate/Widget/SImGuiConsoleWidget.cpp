@@ -1,5 +1,5 @@
 ﻿#include "SImGuiConsoleWidget.h"
-#include "ConsoleCommandManager.h"
+#include "Slate/ConsoleCommandManager.h"
 #include <cstdarg>
 #include <sstream>
 

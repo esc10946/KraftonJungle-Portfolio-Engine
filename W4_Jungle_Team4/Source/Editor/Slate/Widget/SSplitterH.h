@@ -2,11 +2,11 @@
 
 #include "SSplitter.h"
 
-class SSplitterV : public SSplitter
+class SSplitterH : public SSplitter
 {
 public:
-	SSplitterV() = default;
-	virtual ~SSplitterV() = default;
+	SSplitterH() : SSplitter() { Color = FColor(30, 30, 30, 150); }
+	virtual ~SSplitterH() = default;
 
 public:
 	virtual void Tick(float DeltaTime) override;
@@ -16,9 +16,11 @@ public:
 	virtual FReply OnMouseButtonUp(float X, float Y, int32 Button) override;
 	virtual FReply OnMouseMove(float X, float Y) override;
 
-	virtual FString GetWidgetType() const { return "SSplitterV"; }
+	virtual FString GetWidgetType() const { return "SSplitterH"; }
+
+	FRect GetRenderRect() override;
 
 protected:
-	virtual bool IsOnHandle(float X, float Y) const override;
+	virtual bool IsOnHandle(float X, float Y) override;
 	virtual void UpdateSplit(float X, float Y) override;
 };

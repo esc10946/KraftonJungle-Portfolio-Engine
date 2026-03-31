@@ -1,13 +1,13 @@
 ﻿#include "SlateWidgetFactory.h"
-#include "SViewport.h"
-#include "SViewportRoot.h"
-#include "SSplitterH.h"
-#include "SSplitterV.h"
-#include "SWindow.h"
-#include "SImGuiConsoleWidget.h"
-#include "SImGuiControlWidget.h"
-#include "SImGuiSceneWidget.h"
-#include "SImGuiPropertyWidget.h"
+#include "Widget/SViewport.h"
+#include "Widget/SViewportRoot.h"
+#include "Widget/SSplitterH.h"
+#include "Widget/SSplitterV.h"
+#include "Widget/SWindow.h"
+#include "Widget/SImGuiConsoleWidget.h"
+#include "Widget/SImGuiControlWidget.h"
+#include "Widget/SImGuiSceneWidget.h"
+#include "Widget/SImGuiPropertyWidget.h"
 #include "Editor/EditorEngine.h"
 #include "Object/Object.h"
 #include "Viewport/ViewportManager.h"
@@ -132,12 +132,16 @@ SWidget* FSlateWidgetFactory::LoadRecursive(json::JSON& Data)
 		}
 		else
 		{
-			for (auto& ChildData : Data["Children"].ArrayRange())
+			SViewportRoot* ViewportRoot = dynamic_cast<SViewportRoot*>(Widget);
+			if (!ViewportRoot)
 			{
-				SWidget* ChildWidget = LoadRecursive(ChildData);
-				if (ChildWidget)
+				for (auto& ChildData : Data["Children"].ArrayRange())
 				{
-					Widget->AddChild(ChildWidget);
+					SWidget* ChildWidget = LoadRecursive(ChildData);
+					if (ChildWidget)
+					{
+						Widget->AddChild(ChildWidget);
+					}
 				}
 			}
 		}

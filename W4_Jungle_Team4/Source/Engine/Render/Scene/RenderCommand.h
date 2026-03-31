@@ -30,6 +30,7 @@ enum class ERenderCommandType
 	Grid,		// Grid 패스 — LineBatcher 경유
 	Font,		// TextRenderComponent — FontBatcher 경유
 	SubUV,		// SubUVComponent     — SubUVBatcher 경유
+	Slate,		// Slate UI 요소     — SlateBatcher 경유 (나눠야 할까?)
 };
 
 //PerObject
@@ -133,6 +134,12 @@ struct FStaticMeshConstants
     float Padding1[2]      = { 0.0f, 0.0f };
 };
 
+struct FSlateConstants
+{
+	FVector2 ScreenPosition;
+	FVector2 ScreenSize;
+};
+
 struct FRenderCommand
 {
 	//	VB, IB 모두 담고 있는 MB
@@ -151,6 +158,7 @@ struct FRenderCommand
 		FFontConstants Font;
 		FSubUVConstants SubUV;
 		FStaticMeshConstants StaticMesh;
+		FSlateConstants Slate;
 	} Constants;
 
 	EDepthStencilState DepthStencilState = static_cast<EDepthStencilState>(-1);
