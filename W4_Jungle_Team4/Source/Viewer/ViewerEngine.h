@@ -28,6 +28,7 @@ public:
 	float GetRadius() { return ModelRadius; }
 
 	void BuildGpuBuffer(ID3D11Device* Device);
+	void CheckExternalFile();
 
 private:
 	FViewerViewportClient ViewerClient;
@@ -39,4 +40,6 @@ private:
 	FVector Center;
 	float ModelSize;
 	float ModelRadius;
+
+	bool bExternalFileChecked = false;
 };

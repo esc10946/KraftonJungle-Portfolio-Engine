@@ -20,7 +20,7 @@ void UOrbitCameraComponent::OnPan(float DeltaX, float DeltaY, float ModelRadius)
 
 	float PanSpeed = Radius * PanSensitivity;
 	Target -= Right * DeltaX * PanSpeed;
-	Target += Up * DeltaY * PanSensitivity;
+	Target += Up * DeltaY * PanSpeed;
 
 	float LimitRange = ModelRadius * 2.0f;
 
