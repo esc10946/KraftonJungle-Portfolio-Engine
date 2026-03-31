@@ -346,8 +346,13 @@ void FEditorViewportClient::MoveOrthographic(float DeltaTime)
 
 		FVector2 ViewportSize = Viewport->GetSize();
 
-		float WorldDeltaX = (Camera->GetOrthoWidth() / ViewportSize.X);
-		float WorldDeltaY = (Camera->GetOrthoWidth() / ViewportSize.Y);
+		float AspectRatio = ViewportSize.X / ViewportSize.Y;
+
+		float OrthoWidth = Camera->GetOrthoWidth();
+		float OrthoHeight = OrthoWidth / AspectRatio;
+
+		float WorldDeltaX = (OrthoWidth / ViewportSize.X);
+		float WorldDeltaY = (OrthoHeight / ViewportSize.Y);
 
 		Camera->MoveLocal(FVector(0, -DeltaX * WorldDeltaX, DeltaY * WorldDeltaY));
 	}
