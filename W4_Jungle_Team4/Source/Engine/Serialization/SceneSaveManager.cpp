@@ -158,14 +158,14 @@ json::JSON FSceneSaveManager::SerializeWorld(UWorld* World, const FWorldContext&
 
 	//카메라 state저장하는 코드
 
-	/*JSON CameraState =  json::Object();
+	JSON CameraState =  json::Object();
 	UCameraComponent* Camera = World->GetActiveCamera();
 	
 	JSON c = json::Object();
 	c[SceneKeys::ClassName] = Camera->GetTypeInfo()->name;
 	c[SceneKeys::Properties] = SerializeProperties(Camera);
 
-	w[SceneKeys::PerspectiveCamera] = c;*/
+	w[SceneKeys::PerspectiveCamera] = c;
 
 	return w;
 }
@@ -360,7 +360,7 @@ void FSceneSaveManager::LoadSceneFromJSON(const string& filepath, FWorldContext&
 
 	//카메라 state 교체하는 코드
 	//SetCamera() 
-	/*if (root.hasKey(SceneKeys::PerspectiveCamera)) {
+	if (root.hasKey(SceneKeys::PerspectiveCamera)) {
 		auto& CameraJSON = root[SceneKeys::PerspectiveCamera];
 		string Class = CameraJSON[SceneKeys::ClassName].ToString();
 		UObject* CameraObj = FObjectFactory::Get().Create(Class);
@@ -383,7 +383,7 @@ void FSceneSaveManager::LoadSceneFromJSON(const string& filepath, FWorldContext&
 				EVC->SetCamera(Comp);
 			}	 
 		}
-	}*/
+	}
 }
 
 USceneComponent* FSceneSaveManager::DeserializeSceneComponentTree(json::JSON& Node, AActor* Owner)
