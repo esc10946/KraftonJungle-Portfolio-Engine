@@ -124,25 +124,31 @@ void SViewport::OnPaint()
 		ViewOption.ShowFlags = ShowFlags;
 	}
 
-	ImGui::PopItemWidth();
-
 	SWidget* Root = FSlateApplication::Get().GetWindows()[0];
 	SViewportRoot* ViewportRoot = FSlateApplication::Get().GetWidgetsByType<SViewportRoot*>(Root)[0];
 
-	ImGui::Text("Change Viewport Layout");
+	ImGui::SameLine();
 
-	ImGui::BeginGroup();
+	if (ImGui::BeginCombo("##Layout", "Layout", ImGuiComboFlags_HeightSmall))
 	{
-		// 스타일 살짝 입히기 (선택된 상태면 색상 변경 등 가능)
-		if (ImGui::Button("[ | ]", ImVec2(40, 40))) { ViewportRoot->SetLayout(EViewportLayout::Single); }
-		ImGui::SameLine();
-		if (ImGui::Button("[ || ]", ImVec2(40, 40))) { ViewportRoot->SetLayout(EViewportLayout::TwoHorizontal); }
-		ImGui::SameLine();
-		if (ImGui::Button("[ = ]", ImVec2(40, 40))) { ViewportRoot->SetLayout(EViewportLayout::TwoVertical); }
-		ImGui::SameLine();
-		if (ImGui::Button("[ + ]", ImVec2(40, 40))) { ViewportRoot->SetLayout(EViewportLayout::Four); }
+		const char* LayoutNames[] = { "Single", "Two Horizontal", "Two Vertical", "Four" };
+		const EViewportLayout LayoutValues[] = { EViewportLayout::Single, EViewportLayout::TwoHorizontal, EViewportLayout::TwoVertical, EViewportLayout::Four };
+		for (uint32 i = 0; i < static_cast<uint32>(EViewportLayout::All); ++i)
+		{
+			const bool bIsSelected = (ViewportRoot->GetLayout() == LayoutValues[i]);
+			if (ImGui::Selectable(LayoutNames[i], bIsSelected))
+			{
+				ViewportRoot->SetLayout(LayoutValues[i]);
+			}
+			if (bIsSelected)
+			{
+				ImGui::SetItemDefaultFocus();
+			}
+		}
+		ImGui::EndCombo();
 	}
-	ImGui::EndGroup();
+
+	ImGui::PopItemWidth();
 
 	if (bShowFPS) OverlayStat->DrawFPSStats();
 	if (bShowMemory) OverlayStat->DrawMemoryStats();
