@@ -39,6 +39,7 @@ public:
 			bDirty = true;
 		}
 	}
+	EViewportLayout GetLayout() const { return CurrentLayout; }
 
 	static FString LayoutToName(EViewportLayout Layout);
 	void SaveCurrentLayoutInfo();

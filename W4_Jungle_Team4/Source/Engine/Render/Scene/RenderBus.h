@@ -24,11 +24,13 @@ public:
 	// Getter,Setter
 	void SetViewProjection(const FMatrix& InView, const FMatrix& InProj, const FVector& CameraRightVector, const FVector& CameraUpVector);
 	void SetRenderSettings(const EViewMode NewViewMode, const FShowFlags NewShowFlags);
+	void SetOrthographic(bool bInOrthographic) { bOrthographic = bInOrthographic; }
 
 	const FMatrix& GetView() const { return View; }
 	const FMatrix& GetProj() const { return Proj; }
 	const FVector& GetCameraUp() const { return CameraUp; }
 	const FVector& GetCameraRight() const { return CameraRight; }
+	bool GetIsOrthographic() const { return bOrthographic; }
 	EViewMode GetViewMode() const { return ViewMode; }
 	FShowFlags GetShowFlags() const { return ShowFlags; }
 	const FVector& GetWireframeColor() const { return WireframeColor; }
@@ -41,6 +43,7 @@ private:
 	FMatrix Proj;
 	FVector CameraRight;
 	FVector CameraUp;
+	bool bOrthographic;
 
 	//Editor Settings
 	EViewMode ViewMode;

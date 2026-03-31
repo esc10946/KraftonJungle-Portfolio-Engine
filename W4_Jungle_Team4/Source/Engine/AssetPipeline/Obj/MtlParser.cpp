@@ -139,7 +139,7 @@ bool FMtlParser::ParseLine(
         return ParseStringProperty(Tokens, InOutCurrentMaterialName, InOutMaterials, &FObjMaterialInfo::map_d);
     }
 
-    if (Prefix == "map_bump" || Prefix == "bump")
+    if (Prefix == "map_Bump" || Prefix == "bump")
     {
         return ParseStringProperty(Tokens, InOutCurrentMaterialName, InOutMaterials, &FObjMaterialInfo::map_Bump);
     }

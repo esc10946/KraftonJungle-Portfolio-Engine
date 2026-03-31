@@ -33,7 +33,7 @@ namespace
 	void ResolveMaterialTexturePaths(const FString& InMtlPath, TMap<FString, FObjMaterialInfo>& InOutMaterials)
 	{
 		const std::filesystem::path MtlDirectory = 
-			std::filesystem::path(InMtlPath).parent_path();
+			std::filesystem::path(InMtlPath).parent_path().parent_path();
 
 		for (auto& Pair : InOutMaterials)
 		{

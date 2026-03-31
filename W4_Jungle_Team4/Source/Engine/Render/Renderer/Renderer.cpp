@@ -288,7 +288,8 @@ void FRenderer::InitializePassBatchers()
 					Bus.GetShowFlags(),
 					Cmd.Constants.Grid.GridSpacing,
 					Cmd.Constants.Grid.GridHalfLineCount,
-					CameraPos, CameraFwd);
+					CameraPos, CameraFwd,
+					Bus.GetIsOrthographic());
 			}
 		},
 		/*.Flush   =*/ [this](ERenderPass Pass, const FRenderBus& Bus, ID3D11DeviceContext* Ctx) {
