@@ -2,7 +2,7 @@
 
 #include "Core/EngineTypes.h"
 #include "Core/Singleton.h"
-#include "SWindow.h"
+#include "Widget/SWindow.h"
 #include <functional>
 
 class FSlateApplication : public TSingleton<FSlateApplication>

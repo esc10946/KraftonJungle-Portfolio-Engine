@@ -1,6 +1,6 @@
 ﻿#include "ConsoleCommandManager.h"
 
-#include "Slate/SImGuiConsoleWidget.h"
+#include "Slate/Widget/SImGuiConsoleWidget.h"
 #include <sstream>
 
 void FConsoleCommandManager::Initialize(SImGuiConsoleWidget* InConsoleWidget)

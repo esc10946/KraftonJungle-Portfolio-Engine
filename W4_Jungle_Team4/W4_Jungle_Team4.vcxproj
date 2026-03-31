@@ -238,17 +238,17 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="Source\Editor\Slate\ConsoleCommandManager.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SImGuiConsoleWidget.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SImGuiControlWidget.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SImGuiPropertyWidget.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SImGuiSceneWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SImGuiConsoleWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SImGuiControlWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SImGuiPropertyWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SImGuiSceneWidget.cpp" />
     <ClCompile Include="Source\Editor\Slate\SlateApplication.cpp" />
     <ClCompile Include="Source\Editor\Slate\SlateWidgetFactory.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SSplitterH.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SSplitterV.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SViewport.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SViewportRoot.cpp" />
-    <ClCompile Include="Source\Editor\Slate\SWidget.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SSplitterH.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SSplitterV.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SViewport.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SViewportRoot.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SWidget.cpp" />
     <ClCompile Include="Source\Editor\Viewport\Viewport.cpp" />
     <ClCompile Include="Source\Editor\Viewport\ViewportManager.cpp" />
     <ClCompile Include="Source\Engine\Asset\Material\MaterialManager.cpp" />
@@ -347,12 +347,12 @@
   <ItemGroup>
     <ClInclude Include="Source\Editor\Slate\Reply.h" />
     <ClInclude Include="Source\Editor\Slate\ConsoleCommandManager.h" />
-    <ClInclude Include="Source\Editor\Slate\SImGuiConsoleWidget.h" />
-    <ClInclude Include="Source\Editor\Slate\SImGuiControlWidget.h" />
-    <ClInclude Include="Source\Editor\Slate\SImGuiPropertyWidget.h" />
-    <ClInclude Include="Source\Editor\Slate\SImGuiSceneWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SImGuiConsoleWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SImGuiControlWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SImGuiPropertyWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SImGuiSceneWidget.h" />
     <ClInclude Include="Source\Editor\Slate\SlateWidgetFactory.h" />
-    <ClInclude Include="Source\Editor\Slate\SViewportRoot.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SViewportRoot.h" />
     <ClInclude Include="Source\Editor\Viewport\Viewport.h" />
     <ClInclude Include="Source\Editor\Viewport\ViewOption.h" />
     <ClInclude Include="Source\Editor\Viewport\ViewportClient.h" />
@@ -379,12 +379,12 @@
     <ClInclude Include="Source\Editor\Selection\SelectionManager.h" />
     <ClInclude Include="Source\Editor\Settings\EditorSettings.h" />
     <ClInclude Include="Source\Editor\Slate\SlateApplication.h" />
-    <ClInclude Include="Source\Editor\Slate\SSplitter.h" />
-    <ClInclude Include="Source\Editor\Slate\SSplitterH.h" />
-    <ClInclude Include="Source\Editor\Slate\SSplitterV.h" />
-    <ClInclude Include="Source\Editor\Slate\SViewport.h" />
-    <ClInclude Include="Source\Editor\Slate\SWidget.h" />
-    <ClInclude Include="Source\Editor\Slate\SWindow.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SSplitter.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SSplitterH.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SSplitterV.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SViewport.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SWidget.h" />
+    <ClInclude Include="Source\Editor\Slate\Widget\SWindow.h" />
     <ClInclude Include="Source\Editor\UI\EditorConsoleWidget.h" />
     <ClInclude Include="Source\Editor\UI\EditorControlWidget.h" />
     <ClInclude Include="Source\Editor\UI\EditorMainPanel.h" />

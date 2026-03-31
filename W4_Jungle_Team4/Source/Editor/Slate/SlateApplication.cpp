@@ -1,6 +1,6 @@
 ﻿#include "SlateApplication.h"
 #include "Core/InputSystem.h"
-#include "SSplitter.h"
+#include "Widget/SSplitter.h"
 #include "ImGui/imgui.h"
 #include <functional>
 
