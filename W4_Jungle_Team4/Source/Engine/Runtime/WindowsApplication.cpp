@@ -1,8 +1,12 @@
-#include "Engine/Runtime/WindowsApplication.h"
+﻿#include "Engine/Runtime/WindowsApplication.h"
 
 #include <windowsx.h>
 
 #include "Engine/Core/InputSystem.h"
+#include <shellapi.h>
+#include "Core/CoreTypes.h"
+#include <filesystem>
+#include "Editor/EditorEngine.h"
 
 // ImGui Win32 메시지 핸들러
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, unsigned int Msg, WPARAM wParam, LPARAM lParam);
@@ -65,6 +69,36 @@ LRESULT FWindowsApplication::WndProc(HWND hWnd, unsigned int Msg, WPARAM wParam,
 			OnSizingCallback();
 		}
 		return 0;
+	case WM_DROPFILES:
+	{
+		HDROP hDrop = reinterpret_cast<HDROP>(wParam);
+
+		char filePath[MAX_PATH] = {};
+		const UINT fileCount = DragQueryFileA(hDrop, 0xFFFFFFFF, nullptr, 0);
+
+		if (fileCount > 0)
+		{
+			DragQueryFileA(hDrop, 0, filePath, MAX_PATH);
+
+			FString DroppedPath = filePath;
+
+			// 확장자 체크
+			std::filesystem::path Path(filePath);
+			if (Path.extension() == ".obj")
+			{
+				if (GEngine)
+				{
+					if (UEditorEngine* Editor = dynamic_cast<UEditorEngine*>(GEngine))
+					{
+						Editor->HandleObjImported(DroppedPath);
+					}
+				}
+			}
+		}
+
+		DragFinish(hDrop);
+		return 0;
+	}
 	default:
 		break;
 	}
@@ -90,6 +124,8 @@ bool FWindowsApplication::Init(HINSTANCE InHInstance)
 		CW_USEDEFAULT, CW_USEDEFAULT,
 		1920, 1080,
 		nullptr, nullptr, HInstance, this);
+
+	DragAcceptFiles(HWindow, TRUE);
 
 	if (!HWindow)
 	{

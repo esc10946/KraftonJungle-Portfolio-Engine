@@ -9,6 +9,12 @@
 #include "Component/SubUVComponent.h"
 #include "GameFramework/PrimitiveActors.h"
 
+#include "Component/StaticMeshComponent.h"
+#include "GameFramework/PrimitiveActors.h"
+
+#include "AssetPipeline/Obj/AssetImportManager.h"
+#include "Asset/StaticMesh/StaticMeshManager.h"
+
 #define SEPARATOR(); ImGui::Spacing(); ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing(); ImGui::Spacing();
 
 SImGuiControlWidget::SImGuiControlWidget(UEditorEngine* InEditorEngine)
@@ -147,7 +153,23 @@ void SImGuiControlWidget::OnPaint()
 	if (ImGui::Button("Rotate")) EditorEngine->GetGizmo()->SetRotateMode();
 	ImGui::SameLine();
 	if (ImGui::Button("Scale")) EditorEngine->GetGizmo()->SetScaleMode();
+	ImGui::SameLine();
+	if (ImGui::Button("Import"))
+	{
+		OPENFILENAMEA ofn = {};
+		char filePath[512] = {};
 
+		ofn.lStructSize = sizeof(ofn);
+		ofn.lpstrFilter = "OBJ Files\0*.obj\0All Files\0*.*\0";
+		ofn.lpstrFile = filePath;
+		ofn.nMaxFile = sizeof(filePath);
+		ofn.Flags = OFN_FILEMUSTEXIST;
+
+		if (GetOpenFileNameA(&ofn))
+		{
+			EditorEngine->HandleObjImported(filePath);
+		}
+	}
 	ImGui::End();
 
 }

@@ -15,6 +15,11 @@
 #include "Editor/Viewport/ViewportManager.h"
 #include "Core/Stats.h"
 
+#include "AssetPipeline/Obj/AssetImportManager.h"
+#include "Asset/StaticMesh/StaticMeshManager.h"
+#include "GameFramework/PrimitiveActors.h"
+#include "Component/StaticMeshComponent.h"
+
 DEFINE_CLASS(UEditorEngine, UEngine)
 REGISTER_FACTORY(UEditorEngine)
 
@@ -233,4 +238,44 @@ void UEditorEngine::ClearScene()
 
 	//ViewportClient.DestroyCamera();
 	//ViewportClient.SetWorld(nullptr);
+}
+
+bool UEditorEngine::HandleObjImported(const FString& SourceObjPath)
+{
+	FImportedObjPackage ImportedPackage;
+	if (!FAssetImportManager::ImportObjPackage(SourceObjPath, ImportedPackage))
+	{
+		return false;
+	}
+
+	UStaticMesh* MeshObj =
+		FStaticMeshManager::Get().LoadStaticMeshObject(ImportedPackage.ImportedObjPath);
+
+	if (!MeshObj)
+	{
+		return false;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return false;
+	}
+
+	AStaticMeshActor* Actor = World->SpawnActor<AStaticMeshActor>();
+	if (!Actor)
+	{
+		return false;
+	}
+
+	Actor->InitDefaultComponents();
+	Actor->SetActorLocation(FVector(0.0f, 0.0f, 0.0f)); // 필요하면 나중에 드롭 위치 기준으로 바꿔도 됨
+
+	if (UStaticMeshComponent* MeshComp = UStaticMeshComponent::Cast(Actor->GetRootComponent()))
+	{
+		MeshComp->SetStaticMesh(MeshObj);
+		return true;
+	}
+
+	return false;
 }

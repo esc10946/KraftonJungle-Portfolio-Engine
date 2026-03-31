@@ -29,7 +29,8 @@ namespace
 			// 이미 절대 경로면 그대로 사용
 			if (!TexturePath.is_absolute())
 			{
-				TexturePath = std::filesystem::path(FPaths::TexturePath()) / TexturePath.filename();
+				//TexturePath = std::filesystem::path(FPaths::TexturePath()) / TexturePath.filename();
+				TexturePath = MtlDirectory / TexturePath;
 			}
 
 			MaterialInfo.DiffuseTexturePath = TexturePath.lexically_normal().generic_string();
