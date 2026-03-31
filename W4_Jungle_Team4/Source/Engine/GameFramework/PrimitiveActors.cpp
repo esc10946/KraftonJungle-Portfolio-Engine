@@ -7,6 +7,7 @@
 #include "Engine/Asset/Material/MaterialManager.h"
 #include "Engine/Asset/Material/MaterialObject.h"
 #include "Engine/Asset/StaticMesh/StaticMeshManager.h"
+#include "Engine/Asset/StaticMesh/StaticMeshObject.h"
 #include "Engine/Core/Paths.h"
 
 #include <format>
@@ -29,11 +30,57 @@ REGISTER_FACTORY(AAttachTestActor)
 
 void AStaticMeshActor::InitDefaultComponents()
 {
-	UStaticMeshComponent* StaticMesh = AddComponent<UStaticMeshComponent>();
+	auto* StaticMesh = AddComponent<UStaticMeshComponent>();
 	SetRootComponent(StaticMesh);
 
 	const FString StaticMeshPath = FPaths::ToUtf8(FPaths::MeshPath()) + "cube-tex.smbin";
 	StaticMesh->SetStaticMesh(FStaticMeshManager::Get().LoadStaticMeshObject(StaticMeshPath));
+
+	auto* Text = AddComponent<UTextRenderComponent>();
+	Text->SetFont(FName("Default"));
+	Text->SetText(std::format("UUID: {}", GetUUID()));
+	Text->AttachToComponent(StaticMesh);
+	UpdateUUIDTextLocation();
+}
+
+void AStaticMeshActor::UpdateUUIDTextLocation()
+{
+	auto* StaticMeshComponent = UStaticMeshComponent::Cast(GetRootComponent());
+	if (!StaticMeshComponent)
+	{
+		return;
+	}
+
+	UTextRenderComponent* TextComponent = nullptr;
+	for (UActorComponent* Component : GetComponents())
+	{
+		TextComponent = UTextRenderComponent::Cast(Component);
+		if (TextComponent)
+		{
+			break;
+		}
+	}
+
+	if (!TextComponent)
+	{
+		return;
+	}
+
+	UStaticMesh* Mesh = StaticMeshComponent->GetStaticMesh();
+	if (!Mesh)
+	{
+		return;
+	}
+
+	const FVector Min = Mesh->GetBoundsMin();
+	const FVector Max = Mesh->GetBoundsMax();
+	const float Padding = 0.1f;
+	const float TextHalfHeight = 0.25f * TextComponent->GetFontSize() * TextComponent->GetRelativeScale().Z;
+
+	TextComponent->SetRelativeLocation(FVector(
+		(Min.X + Max.X) * 0.5f,
+		(Min.Y + Max.Y) * 0.5f,
+		Max.Z + Padding + TextHalfHeight));
 }
 
 void ACubeActor::InitDefaultComponents()

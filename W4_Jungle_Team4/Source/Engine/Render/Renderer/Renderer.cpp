@@ -245,7 +245,7 @@ void FRenderer::InitializePassRenderStates()
 	//                              DepthStencil                   Blend                Rasterizer                  Topology                                Shader                   WireframeAware
 	S[(uint32)E::Opaque] = { EDepthStencilState::Default,      EBlendState::Opaque,     ERasterizerState::SolidBackCull,  D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, &Resources.PrimitiveShader, true };
 	S[(uint32)E::Translucent] = { EDepthStencilState::Default,      EBlendState::AlphaBlend, ERasterizerState::SolidBackCull,  D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, &Resources.PrimitiveShader, false };
-	S[(uint32)E::StencilMask] = { EDepthStencilState::StencilWrite,  EBlendState::Opaque,     ERasterizerState::SolidNoCull,    D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, &Resources.OutlineShader, false };
+	S[(uint32)E::StencilMask] = { EDepthStencilState::Default, EBlendState::Opaque, ERasterizerState::SolidNoCull, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, &Resources.OutlineShader, false };
 	S[(uint32)E::Outline] = { EDepthStencilState::StencilOutline,EBlendState::Opaque,    ERasterizerState::SolidNoCull, D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST, &Resources.OutlineShader,   false };
 	S[(uint32)E::Editor] = { EDepthStencilState::Default,      EBlendState::AlphaBlend, ERasterizerState::SolidBackCull,  D3D11_PRIMITIVE_TOPOLOGY_LINELIST,     &Resources.EditorShader,    true };
 	S[(uint32)E::Grid] = { EDepthStencilState::Default,      EBlendState::AlphaBlend, ERasterizerState::SolidBackCull,  D3D11_PRIMITIVE_TOPOLOGY_LINELIST,     &Resources.EditorShader,    false };
@@ -593,6 +593,59 @@ void FRenderer::DrawCommand(ID3D11DeviceContext* InDeviceContext, const FRenderC
 	else
 	{
 		InDeviceContext->Draw(vertexCount, 0);
+	}
+}
+
+void FRenderer::RenderScene(const FRenderBus& InRenderBus)
+{
+	ID3D11DeviceContext* Context = Device.GetDeviceContext();
+	UpdateFrameBuffer(Context, InRenderBus);
+
+	for (uint32 i = 0; i < (uint32)ERenderPass::MAX; ++i)
+	{
+		ERenderPass CurPass = static_cast<ERenderPass>(i);
+
+		// selection mask / 기존 outline pass는 scene RT에 그리지 않음
+		if (CurPass == ERenderPass::StencilMask || CurPass == ERenderPass::Outline)
+		{
+			continue;
+		}
+
+		const auto& Commands = InRenderBus.GetCommands(CurPass);
+		if (Commands.empty()) continue;
+
+		if (PassBatchers[i])
+		{
+			ApplyPassRenderState(CurPass, Context, InRenderBus.GetViewMode());
+			PassBatchers[i].Flush(CurPass, InRenderBus, Context);
+		}
+		else
+		{
+			ExecuteDefaultPass(CurPass, Commands, InRenderBus, Context);
+		}
+	}
+}
+
+void FRenderer::RenderSinglePass(const FRenderBus& InRenderBus, ERenderPass InPass)
+{
+	ID3D11DeviceContext* Context = Device.GetDeviceContext();
+	UpdateFrameBuffer(Context, InRenderBus);
+
+	const auto& Commands = InRenderBus.GetCommands(InPass);
+	if (Commands.empty())
+	{
+		return;
+	}
+
+	const uint32 PassIndex = (uint32)InPass;
+	if (PassBatchers[PassIndex])
+	{
+		ApplyPassRenderState(InPass, Context, InRenderBus.GetViewMode());
+		PassBatchers[PassIndex].Flush(InPass, InRenderBus, Context);
+	}
+	else
+	{
+		ExecuteDefaultPass(InPass, Commands, InRenderBus, Context);
 	}
 }
 

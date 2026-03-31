@@ -41,6 +41,7 @@ public:
 
 	TArray<FViewport*>& GetViewports() { return Viewports; }
 
+	bool HandleObjImported(const FString& SourceObjPath);
 private:
 	FSelectionManager SelectionManager;
 	FEditorMainPanel MainPanel;

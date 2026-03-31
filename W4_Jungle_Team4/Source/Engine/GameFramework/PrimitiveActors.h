@@ -11,6 +11,7 @@ public:
 	AStaticMeshActor() = default;
 
 	void InitDefaultComponents();
+	void UpdateUUIDTextLocation();
 };
 
 class ACubeActor : public AStaticMeshActor

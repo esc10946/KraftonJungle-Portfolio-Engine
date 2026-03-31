@@ -33,7 +33,7 @@ namespace
 	void ResolveMaterialTexturePaths(const FString& InMtlPath, TMap<FString, FObjMaterialInfo>& InOutMaterials)
 	{
 		const std::filesystem::path MtlDirectory = 
-			std::filesystem::path(InMtlPath).parent_path().parent_path();
+			std::filesystem::path(InMtlPath).parent_path();
 
 		for (auto& Pair : InOutMaterials)
 		{
@@ -46,6 +46,9 @@ namespace
 			ResolveSingleTexturePath(MaterialInfo.map_d, MtlDirectory);
 			ResolveSingleTexturePath(MaterialInfo.map_Bump, MtlDirectory);
 		}
+
+		std::cout << "[Resolve] InMtlPath: " << InMtlPath << "\n";
+		std::cout << "[Resolve] MtlDirectory: " << MtlDirectory.string() << "\n";
 	}
 
 	FVector ConvertYUpToZUp(const FVector& V)

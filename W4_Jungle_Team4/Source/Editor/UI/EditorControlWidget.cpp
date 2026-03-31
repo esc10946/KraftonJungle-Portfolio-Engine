@@ -7,6 +7,11 @@
 #include "Component/CameraComponent.h"
 #include "Component/GizmoComponent.h"
 #include "Component/SubUVComponent.h"
+#include "Component/StaticMeshComponent.h"
+#include "GameFramework/PrimitiveActors.h"
+
+#include "AssetPipeline/Obj/AssetImportManager.h"
+#include "Asset/StaticMesh/StaticMeshManager.h"
 #include "GameFramework/PrimitiveActors.h"
 
 #define SEPARATOR(); ImGui::Spacing(); ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing(); ImGui::Spacing();
@@ -149,6 +154,9 @@ void FEditorControlWidget::Render(float DeltaTime)
 	if (ImGui::Button("Rotate")) EditorEngine->GetGizmo()->SetRotateMode();
 	ImGui::SameLine();
 	if (ImGui::Button("Scale")) EditorEngine->GetGizmo()->SetScaleMode();
+	
+
+	SEPARATOR();
 
 	ImGui::End();
 }

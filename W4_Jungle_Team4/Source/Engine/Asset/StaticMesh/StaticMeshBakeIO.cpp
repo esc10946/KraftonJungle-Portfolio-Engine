@@ -10,7 +10,7 @@
 namespace
 {
 	constexpr uint32 BakeMagic = 0x534D424B;   // 'SMBK'
-	constexpr uint32 BakeVersion = 4;
+	constexpr uint32 BakeVersion = 4; // @@@ 아직 버전 올리는 기능 없음. 만들어야 함.
 
 	bool SerializeUInt32(FArchive& Ar, uint32& Value)
 	{
@@ -313,10 +313,12 @@ bool FStaticMeshBakeIO::SaveToFile(const FString& InBakePath, const FStaticMeshA
 		return false;
 	}
 
-	uint32 Magic = BakeMagic;
-	uint32 Version = BakeVersion;
+	uint32 Magic = BakeMagic; // 이 파일이 우리가 만든 포맥인지 확인용. KBMS...? SMBK 말고...?
+	uint32 Version = BakeVersion; // 파일 포맷 버전 확인용
 	FString SourcePath = InAsset.SourcePath;
 
+	// 저장 순서
+	// Magic - Version - SourcePath - Vertices - Indices - MaterialSlots - Sections
 	bool bSuccess =
 		SerializeUInt32(Writer, Magic) &&
 		SerializeUInt32(Writer, Version) &&

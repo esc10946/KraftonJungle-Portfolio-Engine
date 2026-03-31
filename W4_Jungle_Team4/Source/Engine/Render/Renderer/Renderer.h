@@ -49,6 +49,8 @@ public:
 	void BeginFrame();
 	void BeginFrame(FRenderTarget& RenderTarget);
 	void Render(const FRenderBus& InRenderBus);
+	void RenderScene(const FRenderBus& InRenderBus);
+	void RenderSinglePass(const FRenderBus& InRenderBus, ERenderPass InPass);
 	void EndViewportFrame(FRenderTarget& RenderTarget);
 	void EndFrame();
 

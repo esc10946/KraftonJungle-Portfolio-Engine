@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <sstream>
+#include <iostream>
 
 namespace
 {
@@ -121,6 +122,7 @@ bool FMtlParser::ParseLine(
 
     if (Prefix == "map_Kd")
     {
+		std::cout << "[map_Kd] Let's Go" << "\n";
         return ParseStringProperty(Tokens, InOutCurrentMaterialName, InOutMaterials, &FObjMaterialInfo::map_Kd);
     }
 
@@ -232,12 +234,17 @@ bool FMtlParser::ParseStringProperty(const TArray<FString>& InTokens, const FStr
     }
 
     FObjMaterialInfo* Material = GetCurrentMaterial(InCurrentMaterialName, InOutMaterials);
+	std::cout << "[@@@] InCurrentMaterialName" << InCurrentMaterialName << "\n";
     if (Material == nullptr)
     {
         return false;
     }
 
+	std::cout << "[@@@] Material" << Material->DiffuseTexturePath << "\n";
+
     Material->*Member = InTokens[1];
+	//std::cout << "[@@@] Material" << Material->DiffuseTexturePath << "\n";
+	Material->DiffuseTexturePath = InTokens[1];
     return true;
 }
 

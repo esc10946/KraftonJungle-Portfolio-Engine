@@ -3,6 +3,10 @@
 #include <windowsx.h>
 
 #include "Engine/Core/InputSystem.h"
+#include <shellapi.h>
+#include "Core/CoreTypes.h"
+#include <filesystem>
+#include "Editor/EditorEngine.h"
 
 // ImGui Win32 메시지 핸들러
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, unsigned int Msg, WPARAM wParam, LPARAM lParam);
@@ -68,18 +72,36 @@ LRESULT FWindowsApplication::WndProc(HWND hWnd, unsigned int Msg, WPARAM wParam,
 		return 0;
 	case WM_DROPFILES:
 	{
-		HDROP hDrop = (HDROP)wParam;
-		wchar_t filePath[MAX_PATH];
-		DragQueryFileW(hDrop, 0, filePath, MAX_PATH);
-		DragFinish(hDrop);
+		HDROP hDrop = reinterpret_cast<HDROP>(wParam);
 
-		char path[MAX_PATH];
-		WideCharToMultiByte(CP_ACP, 0, filePath, -1, path, MAX_PATH, NULL, NULL);
-
-		if (OnDropOBJViewerCallback)
+		char filePath[MAX_PATH] = {};
+		const UINT fileCount = DragQueryFileA(hDrop, 0xFFFFFFFF, nullptr, 0);
+		if (fileCount > 0)
 		{
-			OnDropOBJViewerCallback(path);
+			DragQueryFileA(hDrop, 0, filePath, MAX_PATH);
+
+			std::filesystem::path Path(filePath);
+			std::cout << "[Dropdown] path: " << Path.string() << "\n";
+			// OBJ 처리
+			if (Path.extension() == ".obj")
+			{
+				if (GEngine)
+				{
+					if (UEditorEngine* Editor = dynamic_cast<UEditorEngine*>(GEngine))
+					{
+						Editor->HandleObjImported(filePath);
+					}
+				}
+			}
+
+			// Viewer 콜백
+			if (OnDropOBJViewerCallback)
+			{
+				OnDropOBJViewerCallback(filePath);
+			}
 		}
+
+		DragFinish(hDrop);
 		return 0;
 	}
 	default:
@@ -107,6 +129,8 @@ bool FWindowsApplication::Init(HINSTANCE InHInstance)
 		CW_USEDEFAULT, CW_USEDEFAULT,
 		1920, 1080,
 		nullptr, nullptr, HInstance, this);
+
+	DragAcceptFiles(HWindow, TRUE);
 
 	if (!HWindow)
 	{

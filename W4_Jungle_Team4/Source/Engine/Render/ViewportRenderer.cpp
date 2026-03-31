@@ -1,17 +1,38 @@
 ﻿#include "ViewportRenderer.h"
+#include <cstring>
 
 void FViewportRenderer::Render(ID3D11DeviceContext* Context, FViewport* Viewport)
 {
-	ViewportShader.Bind(Context);
+	ViewportCompositeShader.Bind(Context);
 	Context->PSSetSamplers(0, 1, &SamplerState);
+
+	FOutlineCompositeConstants Constants = {};
+	Constants.CompositeOutlineColor = FVector4(1.0f, 0.5f, 0.0f, 1.0f);
+	Constants.CompositeTexelSize = FVector2(
+		1.0f / static_cast<float>(Viewport->GetSize().X),
+		1.0f / static_cast<float>(Viewport->GetSize().Y));
+	Constants.CompositeOutlineThickness = 2.0f;
+	Constants.CompositePadding = 0.0f;
+
+	D3D11_MAPPED_SUBRESOURCE Mapped = {};
+	Context->Map(OutlineCompositeConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped);
+	std::memcpy(Mapped.pData, &Constants, sizeof(Constants));
+	Context->Unmap(OutlineCompositeConstantBuffer, 0);
+
+	Context->PSSetConstantBuffers(0, 1, &OutlineCompositeConstantBuffer);
 
 	UINT stride = sizeof(FTextureVertex);
 	UINT offset = 0;
 	Context->IASetVertexBuffers(0, 1, &VertexBuffer, &stride, &offset);
 	Context->IASetIndexBuffer(IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
 	Context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	// 뷰포트 텍스처 SRV는 Viewport가 소유하므로 전달받아서 사용
-	Context->PSSetShaderResources(0, 1, &Viewport->GetRenderTarget().SRV);
+
+	ID3D11ShaderResourceView* SRVs[2] =
+	{
+		Viewport->GetRenderTarget().SRV,
+		Viewport->GetSelectionMaskRenderTarget().SRV
+	};
+	Context->PSSetShaderResources(0, 2, SRVs);
 
 	D3D11_VIEWPORT vp = {};
 	vp.TopLeftX = Viewport->GetPos().X;
@@ -22,11 +43,10 @@ void FViewportRenderer::Render(ID3D11DeviceContext* Context, FViewport* Viewport
 	vp.MaxDepth = 1.0f;
 
 	Context->RSSetViewports(1, &vp);
-
 	Context->DrawIndexed(6, 0, 0);
 
-	ID3D11ShaderResourceView* nullSRV[1] = { nullptr };
-	Context->PSSetShaderResources(0, 1, nullSRV);
+	ID3D11ShaderResourceView* NullSRVs[2] = { nullptr, nullptr };
+	Context->PSSetShaderResources(0, 2, NullSRVs);
 }
 
 void FViewportRenderer::Create(ID3D11Device* InDevice)
@@ -42,13 +62,20 @@ void FViewportRenderer::Create(ID3D11Device* InDevice)
 	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
 	Device->CreateSamplerState(&sampDesc, &SamplerState);
 
-	// 셰이더 + Input Layout
+	D3D11_BUFFER_DESC cbDesc = {};
+	cbDesc.Usage = D3D11_USAGE_DYNAMIC;
+	cbDesc.ByteWidth = sizeof(FOutlineCompositeConstants);
+	cbDesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+	cbDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	Device->CreateBuffer(&cbDesc, nullptr, &OutlineCompositeConstantBuffer);
+
 	D3D11_INPUT_ELEMENT_DESC layout[] =
 	{
 		{ "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
 		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, static_cast<UINT>(offsetof(FTextureVertex, TexCoord)), D3D11_INPUT_PER_VERTEX_DATA, 0 },
 	};
-	ViewportShader.Create(Device, L"Shaders/ShaderQuad.hlsl",
+
+	ViewportCompositeShader.Create(Device, L"Shaders/ViewportOutlineComposite.hlsl",
 		"VS", "PS", layout, ARRAYSIZE(layout));
 }
 
@@ -84,6 +111,7 @@ void FViewportRenderer::Release()
 {
 	if (VertexBuffer) { VertexBuffer->Release(); VertexBuffer = nullptr; }
 	if (IndexBuffer) { IndexBuffer->Release();  IndexBuffer = nullptr; }
+	if (OutlineCompositeConstantBuffer) { OutlineCompositeConstantBuffer->Release(); OutlineCompositeConstantBuffer = nullptr; }
 	if (SamplerState) { SamplerState->Release(); SamplerState = nullptr; }
-	ViewportShader.Release();
+	ViewportCompositeShader.Release();
 }

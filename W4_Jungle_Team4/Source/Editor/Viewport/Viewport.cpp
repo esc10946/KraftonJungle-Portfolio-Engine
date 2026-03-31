@@ -4,10 +4,17 @@
 #include "ViewportClient.h"
 
 FViewport::FViewport(FD3DDevice* Device)
-	: Device(Device), RenderTarget()
+	: Device(Device), RenderTarget(), SelectionMaskRenderTarget()
 {
 	Size = { 400, 300 };
 	RenderTarget = Device->CreateRenderTarget(0, 0, Size.X, Size.Y);
+	SelectionMaskRenderTarget = Device->CreateRenderTarget(0, 0, Size.X, Size.Y);
+}
+
+FViewport::~FViewport()
+{
+	RenderTarget.Release();
+	SelectionMaskRenderTarget.Release();
 }
 
 void FViewport::Resize(uint32 InLeftTopX, uint32 InLeftTopY, uint32 InWidth, uint32 InHeight)
@@ -19,6 +26,8 @@ void FViewport::Resize(uint32 InLeftTopX, uint32 InLeftTopY, uint32 InWidth, uin
 	Size = FVector2(InWidth, InHeight);
 
 	RenderTarget.Release();
+	SelectionMaskRenderTarget.Release();
 
 	RenderTarget = Device->CreateRenderTarget(InLeftTopX, InLeftTopY, InWidth, InHeight);
+	SelectionMaskRenderTarget = Device->CreateRenderTarget(InLeftTopX, InLeftTopY, InWidth, InHeight);
 }

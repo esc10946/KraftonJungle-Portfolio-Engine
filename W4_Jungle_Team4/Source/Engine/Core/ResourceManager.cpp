@@ -206,6 +206,7 @@ bool FResourceManager::LoadTextureResource(FTextureResource& Resource, ID3D11Dev
 
 ID3D11ShaderResourceView* FResourceManager::GetOrCreateTextureSRV(const FString& InTexturePath, ID3D11Device* InDevice)
 {
+	std::filesystem::path P = InTexturePath;
 	if (InTexturePath.empty() || !InDevice)
 	{
 		return nullptr;
