@@ -7,6 +7,13 @@ void FConsoleCommandManager::Initialize(SImGuiConsoleWidget* InConsoleWidget)
 {
 	ConsoleWidget = InConsoleWidget;
 
+	RegisterCommand("help", [this](const TArray<FString>& Args) {
+		SImGuiConsoleWidget::AddLog("Available commands:");
+		for (const auto& Pair : Commands) {
+			SImGuiConsoleWidget::AddLog("- %s", Pair.first.c_str());
+		}
+		});
+
 	RegisterCommand("clear", [this](const TArray<FString>& Args) {
 		ConsoleWidget->Clear();
 		});
@@ -29,6 +36,6 @@ void FConsoleCommandManager::ExecCommand(const FString& FullCommandLine)
 		It->second(Tokens);
 	}
 	else {
-		SImGuiConsoleWidget::AddLog("[ERROR] Unknown command: '%s'\n", Tokens[0].c_str());
+		SImGuiConsoleWidget::AddLog("[ERROR] Unknown command: '%s'\nInput \'help\' to show commands.\n", Tokens[0].c_str());
 	}
 }
