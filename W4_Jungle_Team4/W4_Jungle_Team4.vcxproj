@@ -357,6 +357,9 @@ xcopy /E /I /Y "$(ProjectDir)Asset" "$(OutDir)Asset"</Command>
     <ClCompile Include="ThirdParty\ImGui\imgui_tables.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui_widgets.cpp" />
     <ClCompile Include="main.cpp" />
+    <None Include="Shaders\ViewportOutlineComposite.hlsl">
+      <FileType>Document</FileType>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\Slate\Reply.h" />

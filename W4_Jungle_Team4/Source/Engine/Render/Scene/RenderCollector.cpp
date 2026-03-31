@@ -167,32 +167,25 @@ void FRenderCollector::CollectFromSelectedActor(AActor* Actor, const FShowFlags&
 		if (!primitiveComponent->SupportsOutline()) continue;
 
 
-		// StencilBuffer Mask
+		// Selection Mask
 		FRenderCommand MaskCmd = BaseCmd;
 		MaskCmd.Type = ERenderCommandType::SelectionOutline;
-		MaskCmd.DepthStencilState = EDepthStencilState::StencilWrite; //스텐실 버퍼만 작성하는 타입
-		MaskCmd.BlendState = EBlendState::NoColor;
-		MaskCmd.Constants.Outline.OutlineOffset = 0.0f;
-		RenderBus.AddCommand(ERenderPass::StencilMask, MaskCmd);
 
-		// Outline
-		FRenderCommand OutlineCmd = BaseCmd;
-		OutlineCmd.Type = ERenderCommandType::SelectionOutline;
-		OutlineCmd.DepthStencilState = EDepthStencilState::StencilOutline;
-		OutlineCmd.Constants.Outline.OutlineColor = FVector4(1.0f, 0.5f, 0.0f, 1.0f); // RGBA
-		OutlineCmd.Constants.Outline.OutlineInvScale = FVector(1.0f / WorldScale.X,
-			1.0f / WorldScale.Y, 1.0f / WorldScale.Z);
-		OutlineCmd.Constants.Outline.OutlineOffset = 0.03f;
-		if (ViewMode == EViewMode::Wireframe)
-		{
-			OutlineCmd.PerObjectConstants.Color = FColor(255, 153, 0, 255).ToVector4();
-		}
+		// stencil이 아니라 별도 mask RT에 흰색으로 그림
+		MaskCmd.DepthStencilState = EDepthStencilState::Default;
+		MaskCmd.BlendState = EBlendState::Opaque;
+
+		MaskCmd.Constants.Outline.OutlineColor = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+		MaskCmd.Constants.Outline.OutlineInvScale = FVector(1.0f, 1.0f, 1.0f);
+		MaskCmd.Constants.Outline.OutlineOffset = 0.0f;
 
 		EPrimitiveType PrimType = primitiveComponent->GetPrimitiveType();
-		OutlineCmd.Constants.Outline.PrimitiveType = (PrimType == EPrimitiveType::EPT_Plane ||
-			PrimType == EPrimitiveType::EPT_SubUV ||
-			PrimType == EPrimitiveType::EPT_Text) ? 0u : 1u;
-		RenderBus.AddCommand(ERenderPass::Outline, OutlineCmd);
+		MaskCmd.Constants.Outline.PrimitiveType =
+			(PrimType == EPrimitiveType::EPT_Plane ||
+				PrimType == EPrimitiveType::EPT_SubUV ||
+				PrimType == EPrimitiveType::EPT_Text) ? 0u : 1u;
+
+		RenderBus.AddCommand(ERenderPass::StencilMask, MaskCmd);
 	}
 }
 

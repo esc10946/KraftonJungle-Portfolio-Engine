@@ -61,8 +61,14 @@ void FEditorRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
 				ShowFlags, ViewMode, Bus);
 
 			Renderer.PrepareBatchers(Bus);
+			// 1) Selection Mask RT에 선택된 오브젝트만 흰색으로 렌더
+			Renderer.BeginFrame(Viewport->GetSelectionMaskRenderTarget());
+			Renderer.RenderSinglePass(Bus, ERenderPass::StencilMask);
+			Renderer.EndViewportFrame(Viewport->GetSelectionMaskRenderTarget());
+
+			// 2) 일반 Scene RT 렌더
 			Renderer.BeginFrame(Viewport->GetRenderTarget());
-			Renderer.Render(Bus);
+			Renderer.RenderScene(Bus);
 			Renderer.EndViewportFrame(Viewport->GetRenderTarget());
 		}
 	}
