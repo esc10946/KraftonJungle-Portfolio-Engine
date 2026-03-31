@@ -7,19 +7,21 @@
         "ClassName" : "UStaticMeshComponent",
         "Properties" : {
           "Element 0 Material [texture]" : {
-            "ClassName" : "UMaterialInstance",
-            "ObjectName" : "Atlas_Grass"
+            "ClassName" : "UMaterial",
+            "ObjectName" : "DefaultMaterial"
           },
           "Location" : [0.000000, 0.000000, 0.000000],
           "MaterialColor" : [1.000000, 1.000000, 1.000000, 1.000000],
           "Rotation" : [0.000000, 0.000000, 0.000000],
           "Scale" : [1.000000, 1.000000, 1.000000],
+          "ScrollSpeedX" : 0.000000,
+          "ScrollSpeedY" : 0.100000,
           "StaticMesh" : {
-            "AssetPath" : "Asset/Mesh/cube-tex.smbin",
+            "AssetPath" : "Asset/Mesh/cube-tex.obj",
             "ClassName" : "UStaticMesh",
-            "ObjectName" : "UStaticMesh_0"
+            "ObjectName" : "cube-tex"
           },
-          "UseScroll" : false,
+          "UseScroll" : true,
           "Visible" : true
         }
       },
@@ -29,6 +31,19 @@
   "ContextHandle" : "Default",
   "ContextName" : "Default",
   "Name" : "Default",
+  "PerspectiveCamera" : {
+    "ClassName" : "UCameraComponent",
+    "Properties" : {
+      "FOV" : 1.047198,
+      "Far Z" : 1000.000000,
+      "Location" : [-0.343576, -3.079207, 1.012106],
+      "Near Z" : 0.100000,
+      "Ortho Width" : 10.000000,
+      "Orthographic" : false,
+      "Rotation" : [0.000000, 10.200050, 75.451569],
+      "Scale" : [1.000000, 1.000000, 1.000000]
+    }
+  },
   "Version" : 2,
   "WorldType" : "Editor"
 }
