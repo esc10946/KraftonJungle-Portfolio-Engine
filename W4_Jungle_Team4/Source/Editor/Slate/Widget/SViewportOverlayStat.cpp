@@ -14,7 +14,7 @@ void SViewportOverlayStat::DrawFPSStats()
 	ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking |
 		ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
 		ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav |
-		ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground;
+		ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs;
 
 	const FRect& Rect = Viewport->GetRect();
 
@@ -40,7 +40,7 @@ void SViewportOverlayStat::DrawMemoryStats()
 	ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking |
 		ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings |
 		ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav |
-		ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground;
+		ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoInputs;
 
 	const FRect& Rect = Viewport->GetRect();
 
