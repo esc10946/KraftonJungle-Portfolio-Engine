@@ -5,3 +5,5 @@
 #define EPSILON 1e-4
 
 float Clamp(float val, float lo, float hi);
+
+float Lerp(float a, float b, float t);

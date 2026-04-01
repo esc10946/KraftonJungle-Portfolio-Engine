@@ -10,10 +10,11 @@
 #include "GameFramework/PrimitiveActors.h"
 
 #include "Component/StaticMeshComponent.h"
-#include "GameFramework/PrimitiveActors.h"
 
 #include "AssetPipeline/Obj/AssetImportManager.h"
 #include "Asset/StaticMesh/StaticMeshManager.h"
+
+#include "Viewport/ViewportManager.h"
 
 #define SEPARATOR(); ImGui::Spacing(); ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing(); ImGui::Spacing();
 
@@ -98,7 +99,7 @@ void SImGuiControlWidget::OnPaint()
 	SEPARATOR();
 
 	// Camera
-	UCameraComponent* Camera = EditorEngine->GetWorld()->GetActiveCamera();
+	UCameraComponent* Camera = FViewportManager::Get().GetFocusedCamera();
 	//UCameraComponent* Camera = EditorEngine->GetCamera();
 	bool bIsOrtho = Camera->IsOrthogonal();
 	if (ImGui::Checkbox("Orthographic", &bIsOrtho))

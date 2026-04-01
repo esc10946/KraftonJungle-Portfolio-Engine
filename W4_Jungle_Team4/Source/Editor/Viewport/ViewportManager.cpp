@@ -73,3 +73,33 @@ FEditorViewportClient* FViewportManager::CreateEditorViewportClient() const
 
 	return NewClient;
 }
+
+UCameraComponent* FViewportManager::GetFocusedCamera()
+{
+	if (!FocusedCamera)
+	{
+		// FocusedViewportWidget가 nullptr이거나, 해당 위젯이 FEditorViewportClient과 연결된 SViewport가 아닐 경우, 첫 번째 뷰포트의 카메라를 반환
+		if (!FocusedViewportWidget)
+		{
+			if (!Viewports.empty())
+			{
+				FEditorViewportClient* FirstEditorClient = dynamic_cast<FEditorViewportClient*>(Viewports[0]->GetViewportClient());
+				if (FirstEditorClient)
+				{
+					FocusedCamera = FirstEditorClient->GetCamera();
+				}
+			}
+		}
+		else
+		{
+			FocusedCamera = World->GetActiveCamera();
+		}
+	}
+
+	return FocusedCamera;
+}
+
+void FViewportManager::SetFocusedCamera(UCameraComponent* InCamera)
+{
+	FocusedCamera = InCamera;
+}

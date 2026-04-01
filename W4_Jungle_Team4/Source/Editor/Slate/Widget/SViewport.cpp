@@ -11,6 +11,7 @@
 #include "Viewport/ViewportManager.h"
 #include "ImGui/imgui.h"
 #include "UI/EditorConsoleWidget.h"
+#include "Math/Utils.h"
 
 SViewport::SViewport()
 {
@@ -27,6 +28,112 @@ void SViewport::Tick(float DeltaTime)
 			Client->Tick(DeltaTime);
 		}
 	}
+}
+
+bool RenderLayoutButton(const char* label, EViewportLayout Layout, ImVec2 size, bool selected)
+{
+	ImGui::PushID(label);
+
+	ImVec2 p = ImGui::GetCursorScreenPos();
+	ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+	ImGui::InvisibleButton(label, size);
+	bool is_hovered = ImGui::IsItemHovered();
+	bool is_active = ImGui::IsItemActive();
+	bool is_clicked = ImGui::IsItemClicked();
+
+	ImU32 bg_col = selected ? IM_COL32(0, 120, 215, 255) :
+		(is_hovered ? IM_COL32(70, 70, 70, 255) : IM_COL32(50, 50, 50, 255));
+
+	draw_list->AddRectFilled(p, ImVec2(p.x + size.x, p.y + size.y), bg_col, 4.0f);
+
+	// 4. 레이아웃 선 그리기 (예: 2분할 세로)
+	float pad = 6.0f;
+	ImVec2 min = { p.x + pad, p.y + pad };
+	ImVec2 max = { p.x + size.x - pad, p.y + size.y - pad };
+	ImU32 line_col = IM_COL32(200, 200, 200, 255);
+
+	draw_list->AddRect(min, max, line_col); // 테두리
+	
+	switch (Layout)
+	{
+	case EViewportLayout::Single:
+		break;
+	case EViewportLayout::TwoVertical:
+		draw_list->AddLine(ImVec2((min.x + max.x) * 0.5f, min.y),
+			ImVec2((min.x + max.x) * 0.5f, max.y), line_col);
+		break;
+	case EViewportLayout::TwoHorizontal:
+		draw_list->AddLine(ImVec2(min.x, (min.y + max.y) * 0.5f),
+			ImVec2(max.x, (min.y + max.y) * 0.5f), line_col);
+		break;
+	case EViewportLayout::ThreeLeftMain:
+		draw_list->AddLine(ImVec2((min.x + max.x) * 0.5f, min.y),
+			ImVec2((min.x + max.x) * 0.5f, max.y), line_col);
+		draw_list->AddLine(ImVec2((min.x + max.x) * 0.5f, (min.y + max.y) * 0.5f),
+			ImVec2(max.x, (min.y + max.y) * 0.5f), line_col);
+		break;
+	case EViewportLayout::ThreeRightMain:
+		draw_list->AddLine(ImVec2((min.x + max.x) * 0.5f, min.y),
+			ImVec2((min.x + max.x) * 0.5f, max.y), line_col);
+		draw_list->AddLine(ImVec2(min.x, (min.y + max.y) * 0.5f),
+			ImVec2((min.x + max.x) * 0.5f, (min.y + max.y) * 0.5f), line_col);
+		break;
+	case EViewportLayout::ThreeTopMain:
+		draw_list->AddLine(ImVec2(min.x, (min.y + max.y) * 0.5f),
+			ImVec2(max.x, (min.y + max.y) * 0.5f), line_col);
+		draw_list->AddLine(ImVec2((min.x + max.x) * 0.5f, (min.y + max.y) * 0.5f),
+			ImVec2((min.x + max.x) * 0.5f, max.y), line_col);
+		break;
+	case EViewportLayout::ThreeBottomMain:
+		draw_list->AddLine(ImVec2(min.x, (min.y + max.y) * 0.5f),
+			ImVec2(max.x, (min.y + max.y) * 0.5f), line_col);
+		draw_list->AddLine(ImVec2((min.x + max.x) * 0.5f, min.y),
+			ImVec2((min.x + max.x) * 0.5f, (min.y + max.y) * 0.5f), line_col);
+		break;
+	case EViewportLayout::FourQuad:
+		draw_list->AddLine(ImVec2(min.x, (min.y + max.y) * 0.5f),
+			ImVec2(max.x, (min.y + max.y) * 0.5f), line_col);
+		draw_list->AddLine(ImVec2((min.x + max.x) * 0.5f, min.y),
+			ImVec2((min.x + max.x) * 0.5f, max.y), line_col);
+		break;
+	case EViewportLayout::FourLeftMain:
+		draw_list->AddLine(ImVec2(Lerp(min.x, max.x, 0.66f), min.y),
+			ImVec2(Lerp(min.x, max.x, 0.66f), max.y), line_col);
+		draw_list->AddLine(ImVec2(Lerp(min.x, max.x, 0.66f), Lerp(min.y, max.y, 0.33f)),
+			ImVec2(max.x, Lerp(min.y, max.y, 0.33f)), line_col);
+		draw_list->AddLine(ImVec2(Lerp(min.x, max.x, 0.66f), Lerp(min.y, max.y, 0.66f)),
+			ImVec2(max.x, Lerp(min.y, max.y, 0.66f)), line_col);
+		break;
+	case EViewportLayout::FourRightMain:
+		draw_list->AddLine(ImVec2(Lerp(min.x, max.x, 0.33f), min.y),
+			ImVec2(Lerp(min.x, max.x, 0.33f), max.y), line_col);
+		draw_list->AddLine(ImVec2(min.x, Lerp(min.y, max.y, 0.33f)),
+			ImVec2(Lerp(min.x, max.x, 0.33f), Lerp(min.y, max.y, 0.33f)), line_col);
+		draw_list->AddLine(ImVec2(min.x, Lerp(min.y, max.y, 0.66f)),
+			ImVec2(Lerp(min.x, max.x, 0.33f), Lerp(min.y, max.y, 0.66f)), line_col);
+		break;
+	case EViewportLayout::FourTopMain:
+		draw_list->AddLine(ImVec2(min.x, Lerp(min.y, max.y, 0.66f)),
+			ImVec2(max.x, Lerp(min.y, max.y, 0.66f)), line_col);
+		draw_list->AddLine(ImVec2(Lerp(min.x, max.x, 0.33f), Lerp(min.y, max.y, 0.66f)),
+			ImVec2(Lerp(min.x, max.x, 0.33f), max.y), line_col);
+		draw_list->AddLine(ImVec2(Lerp(min.x, max.x, 0.66f), Lerp(min.y, max.y, 0.66f)),
+			ImVec2(Lerp(min.x, max.x, 0.66f), max.y), line_col);
+		break;
+	case EViewportLayout::FourBottomMain:
+		draw_list->AddLine(ImVec2(min.x, Lerp(min.y, max.y, 0.33f)),
+			ImVec2(max.x, Lerp(min.y, max.y, 0.33f)), line_col);
+		draw_list->AddLine(ImVec2(Lerp(min.x, max.x, 0.33f), min.y),
+			ImVec2(Lerp(min.x, max.x, 0.33f), Lerp(min.y, max.y, 0.33f)), line_col);
+		draw_list->AddLine(ImVec2(Lerp(min.x, max.x, 0.66f), min.y),
+			ImVec2(Lerp(min.x, max.x, 0.66f), Lerp(min.y, max.y, 0.33f)), line_col);
+		break;
+	}
+
+	ImGui::PopID();
+
+	return is_clicked;
 }
 
 void SViewport::OnPaint()
@@ -129,22 +236,72 @@ void SViewport::OnPaint()
 
 	ImGui::SameLine();
 
-	if (ImGui::BeginCombo("##Layout", "Layout", ImGuiComboFlags_HeightSmall))
+	if (ImGui::BeginCombo("##Layout", "Layout"))
 	{
-		const char* LayoutNames[] = { "Single", "Two Horizontal", "Two Vertical", "Four" };
-		const EViewportLayout LayoutValues[] = { EViewportLayout::Single, EViewportLayout::TwoHorizontal, EViewportLayout::TwoVertical, EViewportLayout::Four };
-		for (uint32 i = 0; i < static_cast<uint32>(EViewportLayout::All); ++i)
+		ImGui::SeparatorText("1 Panel");
+		if (RenderLayoutButton("##LayoutSingle", EViewportLayout::Single, ImVec2(50, 50), ViewportRoot->GetLayout() == EViewportLayout::Single))
 		{
-			const bool bIsSelected = (ViewportRoot->GetLayout() == LayoutValues[i]);
-			if (ImGui::Selectable(LayoutNames[i], bIsSelected))
-			{
-				ViewportRoot->SetLayout(LayoutValues[i]);
-			}
-			if (bIsSelected)
-			{
-				ImGui::SetItemDefaultFocus();
-			}
+			ViewportRoot->SetLayout(EViewportLayout::Single);
 		}
+		
+		ImGui::SeparatorText("2 Panels");
+		if (RenderLayoutButton("##LayoutTwoH", EViewportLayout::TwoHorizontal, ImVec2(50, 50), ViewportRoot->GetLayout() == EViewportLayout::TwoHorizontal))
+		{
+			ViewportRoot->SetLayout(EViewportLayout::TwoHorizontal);
+		}
+		ImGui::SameLine();
+		if (RenderLayoutButton("##LayoutTwoV", EViewportLayout::TwoVertical, ImVec2(50, 50), ViewportRoot->GetLayout() == EViewportLayout::TwoVertical))
+		{
+			ViewportRoot->SetLayout(EViewportLayout::TwoVertical);
+		}
+
+		ImGui::SeparatorText("3 Panels");
+		if (RenderLayoutButton("##LayoutThreeTopMain", EViewportLayout::ThreeTopMain, ImVec2(50, 50), ViewportRoot->GetLayout() == EViewportLayout::ThreeTopMain))
+		{
+			ViewportRoot->SetLayout(EViewportLayout::ThreeTopMain);
+		}
+		ImGui::SameLine();
+		if (RenderLayoutButton("##LayoutThreeBottomMain", EViewportLayout::ThreeBottomMain, ImVec2(50, 50), ViewportRoot->GetLayout() == EViewportLayout::ThreeBottomMain))
+		{
+			ViewportRoot->SetLayout(EViewportLayout::ThreeBottomMain);
+		}
+		ImGui::SameLine();
+		if (RenderLayoutButton("##LayoutThreeLeftMain", EViewportLayout::ThreeLeftMain, ImVec2(50, 50), ViewportRoot->GetLayout() == EViewportLayout::ThreeLeftMain))
+		{
+			ViewportRoot->SetLayout(EViewportLayout::ThreeLeftMain);
+		}
+		ImGui::SameLine();
+		if (RenderLayoutButton("##LayoutThreeRightMain", EViewportLayout::ThreeRightMain, ImVec2(50, 50), ViewportRoot->GetLayout() == EViewportLayout::ThreeRightMain))
+		{
+			ViewportRoot->SetLayout(EViewportLayout::ThreeRightMain);
+		}
+
+		ImGui::SeparatorText("4 Panels");
+		if (RenderLayoutButton("##LayoutFourQuad", EViewportLayout::FourQuad, ImVec2(50, 50), ViewportRoot->GetLayout() == EViewportLayout::FourQuad))
+		{
+			ViewportRoot->SetLayout(EViewportLayout::FourQuad);
+		}
+		ImGui::SameLine();
+		if (RenderLayoutButton("##LayoutFourTopMain", EViewportLayout::FourTopMain, ImVec2(50, 50), ViewportRoot->GetLayout() == EViewportLayout::FourTopMain))
+		{
+			ViewportRoot->SetLayout(EViewportLayout::FourTopMain);
+		}
+		ImGui::SameLine();
+		if (RenderLayoutButton("##LayoutFourBottomMain", EViewportLayout::FourBottomMain, ImVec2(50, 50), ViewportRoot->GetLayout() == EViewportLayout::FourBottomMain))
+		{
+			ViewportRoot->SetLayout(EViewportLayout::FourBottomMain);
+		}
+		ImGui::SameLine();
+		if (RenderLayoutButton("##LayoutFourLeftMain", EViewportLayout::FourLeftMain, ImVec2(50, 50), ViewportRoot->GetLayout() == EViewportLayout::FourLeftMain))
+		{
+			ViewportRoot->SetLayout(EViewportLayout::FourLeftMain);
+		}
+		ImGui::SameLine();
+		if (RenderLayoutButton("##LayoutFourRightMain", EViewportLayout::FourRightMain, ImVec2(50, 50), ViewportRoot->GetLayout() == EViewportLayout::FourRightMain))
+		{
+			ViewportRoot->SetLayout(EViewportLayout::FourRightMain);
+		}
+
 		ImGui::EndCombo();
 	}
 

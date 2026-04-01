@@ -113,9 +113,17 @@ FString SViewportRoot::LayoutToName(EViewportLayout Layout)
 {
 	static const TMap<EViewportLayout, FString> LayoutMap = {
 		{ EViewportLayout::Single, "Single" },
-		{ EViewportLayout::TwoHorizontal, "Two-Horizontal" },
-		{ EViewportLayout::TwoVertical, "Two-Vertical" },
-		{ EViewportLayout::Four, "Four" }
+		{ EViewportLayout::TwoHorizontal, "TwoHorizontal" },
+		{ EViewportLayout::TwoVertical, "TwoVertical" },
+		{ EViewportLayout::ThreeTopMain, "ThreeTopMain" },
+		{ EViewportLayout::ThreeBottomMain, "ThreeBottomMain" },
+		{ EViewportLayout::ThreeLeftMain, "ThreeLeftMain" },
+		{ EViewportLayout::ThreeRightMain, "ThreeRightMain" },
+		{ EViewportLayout::FourQuad, "FourQuad" },
+		{ EViewportLayout::FourTopMain, "FourTopMain" },
+		{ EViewportLayout::FourBottomMain, "FourBottomMain" },
+		{ EViewportLayout::FourLeftMain, "FourLeftMain" },
+		{ EViewportLayout::FourRightMain, "FourRightMain" }
 	};
 
 	auto it = LayoutMap.find(Layout);
