@@ -1,7 +1,6 @@
 ﻿#include "SubUVBatcher.h"
 
 #include "Core/CoreTypes.h"
-#include <UI/EditorConsoleWidget.h>
 
 void FSubUVBatcher::Create(ID3D11Device* InDevice)
 {
