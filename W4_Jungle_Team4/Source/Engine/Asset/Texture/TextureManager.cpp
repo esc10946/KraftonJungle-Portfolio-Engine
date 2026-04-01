@@ -1,10 +1,15 @@
-#include "Asset/Texture/TextureManager.h"
+﻿#include "Asset/Texture/TextureManager.h"
 
 #include "Asset/Texture/TextureObject.h"
 #include "Object/FName.h"
 #include "Object/Object.h"
 
 #include <filesystem>
+
+FTextureManager::~FTextureManager()
+{
+	Clear();
+}
 
 UTexture2D* FTextureManager::GetOrCreateTexture(const FString& InTexturePath)
 {
@@ -45,5 +50,10 @@ void FTextureManager::InvalidateAllTextureViews()
 
 void FTextureManager::Clear()
 {
+	for (auto& Pair : TextureMap)
+	{
+		delete Pair.second; // 임의로 매니저에서 UTexture2D를 삭제하도록 관리
+	}
+
 	TextureMap.clear();
 }

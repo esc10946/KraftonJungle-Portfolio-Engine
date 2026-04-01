@@ -2,6 +2,7 @@
 
 #include "Core/Singleton.h"
 #include "Core/EngineTypes.h"
+#include "Widget/SImGuiConsoleWidget.h"
 #include <functional>
 
 class SImGuiConsoleWidget;

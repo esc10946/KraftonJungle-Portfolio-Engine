@@ -140,6 +140,11 @@ namespace
 	}
 }
 
+FStaticMeshManager::~FStaticMeshManager()
+{
+	Clear();
+}
+
 FStaticMeshAsset* FStaticMeshManager::LoadStaticMeshAsset(const FString& InSourcePath)
 {
 	// opt) 함수 시작 부분
@@ -334,6 +339,10 @@ void FStaticMeshManager::Clear()
 	for (auto& Pair : StaticMeshAssetMap)
 	{
 		delete Pair.second;
+	}
+	for (auto& Pair : StaticMeshObjectMap)
+	{
+		delete Pair.second; // 임의로 매니저에서 UMeshComponent를 삭제하도록 관리
 	}
 
 	StaticMeshAssetMap.clear();

@@ -34,6 +34,8 @@ public:
 
 private:
 	FMaterialManager() = default;
+	~FMaterialManager();
+
 	FString MakeMaterialKey(const FStaticMaterialSlot& InSlot) const;
 
 private:

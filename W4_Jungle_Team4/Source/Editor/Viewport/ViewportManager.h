@@ -34,7 +34,7 @@ public:
 
 private:
 	FViewportManager() = default;
-	~FViewportManager() = default;
+	~FViewportManager();
 
 	FD3DDevice* Device = nullptr;
 	UWorld* World = nullptr;

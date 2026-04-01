@@ -1,5 +1,14 @@
 ﻿#include "SWidget.h"
 
+SWidget::~SWidget()
+{
+	for (SWidget* Child : GetChildren())
+	{
+		delete Child;
+	}
+	Children.clear();
+}
+
 void SWidget::Tick(float DeltaTime)
 {
 	for (SWidget* Child : Children)

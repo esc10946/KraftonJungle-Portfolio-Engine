@@ -17,6 +17,11 @@ SViewport::SViewport()
 	OverlayStat = new SViewportOverlayStat(this);
 }
 
+SViewport::~SViewport()
+{
+	delete OverlayStat;
+}
+
 void SViewport::Tick(float DeltaTime)
 {
 	if (Viewport)

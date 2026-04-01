@@ -61,8 +61,6 @@ public:
 	void Deserialize(json::JSON& Data) override;
 
 private:
-	TArray<SViewport*> Viewports;
-
 	bool bDirty = true;
 	EViewportLayout CurrentLayout = EViewportLayout::Single;
 

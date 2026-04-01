@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Core/CoreTypes.h"
 #include "Core/Singleton.h"
@@ -21,6 +21,7 @@ public:
 
 private:
 	FShaderManager() = default;
+	~FShaderManager();
 
 private:
 	TMap<FString, UShader*> ShaderMap;

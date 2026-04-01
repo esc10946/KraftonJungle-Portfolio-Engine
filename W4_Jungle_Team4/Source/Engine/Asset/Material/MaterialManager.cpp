@@ -37,6 +37,11 @@ namespace
 	}
 }
 
+FMaterialManager::~FMaterialManager()
+{
+	Clear();
+}
+
 UMaterial* FMaterialManager::CreateMaterial(const FObjMaterialInfo& InMaterialInfo)
 {
     const FString MaterialKey = InMaterialInfo.Name + "|" + InMaterialInfo.map_Kd;
@@ -140,6 +145,11 @@ void FMaterialManager::PreloadMaterialResources(UMaterialInterface* InMaterial)
 
 void FMaterialManager::Clear()
 {
+	for (auto& Pair : MaterialMap)
+	{
+		delete Pair.second; // 임의로 Material도 매니저에서 해제하도록 관리
+	}
+
 	MaterialMap.clear();
 }
 

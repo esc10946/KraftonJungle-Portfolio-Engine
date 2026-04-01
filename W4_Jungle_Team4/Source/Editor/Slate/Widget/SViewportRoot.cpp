@@ -26,17 +26,6 @@ SViewportRoot::SViewportRoot()
 
 SViewportRoot::~SViewportRoot()
 {
-	for (SViewport* ViewportWidget : Viewports)
-	{
-		if (ViewportWidget)
-		{
-			FViewport* Viewport = ViewportWidget->GetViewport();
-			if (Viewport)
-			{
-				FViewportManager::Get().DestroyViewport(Viewport);
-			}
-		}
-	}
 }
 
 void SViewportRoot::Tick(float DeltaTime)

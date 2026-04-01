@@ -20,6 +20,10 @@ class FSelectionManager;
 class FEditorViewportClient : public FViewportClient
 {
 public:
+	FEditorViewportClient() = default;
+	~FEditorViewportClient();
+
+public:
 	void Tick(float DeltaTime) override;
 	void OnViewportResized(uint32 NewTopLeftX, uint32 NewTopLeftY, uint32 NewWidth, uint32 NewHeight) override;
 

@@ -8,7 +8,7 @@ class SImGuiConsoleWidget : public SWidget
 {
 public:
 	SImGuiConsoleWidget();
-	virtual ~SImGuiConsoleWidget() = default;
+	virtual ~SImGuiConsoleWidget() override;
 
 public:
 	virtual void Tick(float DeltaTime) override;

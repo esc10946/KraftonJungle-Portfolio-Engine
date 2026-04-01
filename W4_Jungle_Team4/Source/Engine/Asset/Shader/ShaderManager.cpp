@@ -1,7 +1,12 @@
-#include "Asset/Shader/ShaderManager.h"
+﻿#include "Asset/Shader/ShaderManager.h"
 
 #include "Object/FName.h"
 #include "Object/Object.h"
+
+FShaderManager::~FShaderManager()
+{
+	Clear();
+}
 
 UShader* FShaderManager::FindShader(const FString& InShaderKey) const
 {
@@ -49,5 +54,10 @@ UShader* FShaderManager::GetOrCreateStaticMeshShader()
 
 void FShaderManager::Clear()
 {
+	for (auto& Pair : ShaderMap)
+	{
+		delete Pair.second; // 임의로 매니저에서 UShader를 삭제하도록 관리
+	}
+
 	ShaderMap.clear();
 }

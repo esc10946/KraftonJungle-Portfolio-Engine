@@ -2,12 +2,13 @@
 #include "Asset/Texture/TextureManager.h"
 #include "Core/Paths.h"
 #include "SimpleJSON/json.hpp"
+#include "Slate/ConsoleCommandManager.h"
 
 #include <fstream>
 #include <filesystem>
 #include "DDSTextureLoader.h"
 #include "WICTextureLoader.h"
-#include "UI/EditorConsoleWidget.h"
+
 using namespace std::filesystem;
 
 namespace ResourceKey

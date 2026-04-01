@@ -14,7 +14,7 @@ class SWidget
 {
 public:
 	SWidget() = default;
-	virtual ~SWidget() = default;
+	virtual ~SWidget();
 
 public:
 	virtual void Tick(float DeltaTime);

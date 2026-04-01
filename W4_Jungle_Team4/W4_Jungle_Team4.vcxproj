@@ -255,6 +255,7 @@ xcopy /E /I /Y "$(ProjectDir)Asset" "$(OutDir)Asset"</Command>
     <ClCompile Include="Source\Editor\Slate\Widget\SImGuiSceneWidget.cpp" />
     <ClCompile Include="Source\Editor\Slate\SlateApplication.cpp" />
     <ClCompile Include="Source\Editor\Slate\SlateWidgetFactory.cpp" />
+    <ClCompile Include="Source\Editor\Slate\Widget\SSplitter.cpp" />
     <ClCompile Include="Source\Editor\Slate\Widget\SSplitterH.cpp" />
     <ClCompile Include="Source\Editor\Slate\Widget\SSplitterV.cpp" />
     <ClCompile Include="Source\Editor\Slate\Widget\SViewport.cpp" />

@@ -1,5 +1,4 @@
 ﻿#include "SSplitterV.h"
-#include "UI/EditorConsoleWidget.h"
 #include "ThirdParty/ImGui/imgui.h"
 
 void SSplitterV::Tick(float DeltaTime)

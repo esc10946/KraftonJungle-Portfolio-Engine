@@ -13,6 +13,11 @@ FViewport::FViewport(FD3DDevice* Device)
 
 FViewport::~FViewport()
 {
+	if (Client)
+	{
+		delete Client;
+	}
+
 	RenderTarget.Release();
 	SelectionMaskRenderTarget.Release();
 }

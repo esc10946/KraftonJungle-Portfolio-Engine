@@ -9,6 +9,15 @@
 #include "Slate/Widget/SViewport.h"
 #include "GameFramework/World.h"
 
+FViewportManager::~FViewportManager()
+{
+	for (FViewport* Viewport : Viewports)
+	{
+		delete Viewport;
+	}
+	Viewports.clear();
+}
+
 void FViewportManager::Initialize(FD3DDevice* InDevice, UWorld* InWorld, FSelectionManager* InSelectionManager)
 {
 	Device = InDevice;

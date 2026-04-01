@@ -1,6 +1,5 @@
 ﻿#include "Editor/Viewport/EditorViewportClient.h"
 
-#include "Editor/UI/EditorConsoleWidget.h"
 #include "Editor/Settings/EditorSettings.h"
 #include "Engine/Core/InputSystem.h"
 #include "Engine/Runtime/WindowsWindow.h"
@@ -14,6 +13,10 @@
 #include "Editor/Selection/SelectionManager.h"
 #include "Viewport/ViewportManager.h"
 
+FEditorViewportClient::~FEditorViewportClient()
+{
+	DestroyCamera();
+}
 
 void FEditorViewportClient::Initialize(FViewport* InViewport)
 {

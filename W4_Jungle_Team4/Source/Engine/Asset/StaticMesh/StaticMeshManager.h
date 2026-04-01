@@ -35,6 +35,7 @@ public:
 
 private:
 	FStaticMeshManager() = default;
+	~FStaticMeshManager();
 
 	// 경로 문자열을 캐시 key로 쓰기 전에 정규화
 	FString NormalizeSourcePath(const FString& InSourcePath) const;

@@ -9,7 +9,7 @@ class SViewport : public SWidget
 {
 public:
 	SViewport();
-	virtual ~SViewport() = default;
+	virtual ~SViewport() override;
 
 public:
 	virtual void Tick(float DeltaTime) override;

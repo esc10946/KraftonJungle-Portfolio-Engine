@@ -8,6 +8,12 @@ SImGuiConsoleWidget::SImGuiConsoleWidget()
 	FConsoleCommandManager::Get().Initialize(this);
 }
 
+SImGuiConsoleWidget::~SImGuiConsoleWidget()
+{
+	Clear();
+	ClearHistory();
+}
+
 void SImGuiConsoleWidget::Tick(float DeltaTime)
 {
 	SWidget::Tick(DeltaTime);

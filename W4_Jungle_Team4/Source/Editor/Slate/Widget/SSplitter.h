@@ -7,7 +7,7 @@ class SSplitter : public SWidget
 {
 public:
 	SSplitter() { bRenderable = true; }
-	virtual ~SSplitter() = default;
+	virtual ~SSplitter() override;
 
 public:
 	virtual void Tick(float DeltaTime) override {}
