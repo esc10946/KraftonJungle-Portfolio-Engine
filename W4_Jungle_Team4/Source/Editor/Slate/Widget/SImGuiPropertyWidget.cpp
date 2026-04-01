@@ -51,7 +51,7 @@ namespace
 			}
 
 			const FString Extension = Entry.path().extension().generic_string();
-			if (Extension == ".obj" || Extension == ".smbin")
+			if (Extension == ".smbin")
 			{
 				AssetPaths.push_back(Entry.path().lexically_normal().generic_string());
 			}
