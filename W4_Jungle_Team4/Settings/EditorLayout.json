@@ -9,7 +9,7 @@
           "WidgetType": "SImGuiControlWidget"
         },
         "SideRB": {
-          "Name":  "ViewportRoot",
+          "Name": "ViewportRoot",
           "WidgetType": "SViewportRoot"
         }
       },
@@ -30,7 +30,7 @@
   "Single": {
     "WidgetType": "SViewport"
   },
-  "Two-Horizontal": {
+  "TwoVertical": {
     "WidgetType": "SSplitterV",
     "SideLT": {
       "WidgetType": "SViewport"
@@ -39,7 +39,7 @@
       "WidgetType": "SViewport"
     }
   },
-  "Two-Vertical": {
+  "TwoHorizontal": {
     "WidgetType": "SSplitterH",
     "SideLT": {
       "WidgetType": "SViewport"
@@ -48,7 +48,67 @@
       "WidgetType": "SViewport"
     }
   },
-  "Four": {
+  "ThreeTopMain": {
+    "WidgetType": "SSplitterH",
+    "SideLT": {
+      "WidgetType": "SViewport"
+    },
+    "SideRB": {
+      "WidgetType": "SSplitterV",
+      "SideLT": {
+        "WidgetType": "SViewport"
+      },
+      "SideRB": {
+        "WidgetType": "SViewport"
+      }
+    }
+  },
+  "ThreeBottomMain": {
+    "WidgetType": "SSplitterH",
+    "SideLT": {
+      "WidgetType": "SSplitterV",
+      "SideLT": {
+        "WidgetType": "SViewport"
+      },
+      "SideRB": {
+        "WidgetType": "SViewport"
+      }
+    },
+    "SideRB": {
+      "WidgetType": "SViewport"
+    }
+  },
+  "ThreeLeftMain": {
+    "WidgetType": "SSplitterV",
+    "SideLT": {
+      "WidgetType": "SViewport"
+    },
+    "SideRB": {
+      "WidgetType": "SSplitterH",
+      "SideLT": {
+        "WidgetType": "SViewport"
+      },
+      "SideRB": {
+        "WidgetType": "SViewport"
+      }
+    }
+  },
+  "ThreeRightMain": {
+    "WidgetType": "SSplitterV",
+    "SideLT": {
+      "WidgetType": "SSplitterH",
+      "SideLT": {
+        "WidgetType": "SViewport"
+      },
+      "SideRB": {
+        "WidgetType": "SViewport"
+      }
+    },
+    "SideRB": {
+      "WidgetType": "SViewport"
+    }
+  },
+  "FourQuad": {
     "WidgetType": "SSplitterH",
     "SideLT": {
       "WidgetType": "SSplitterV",
@@ -67,6 +127,90 @@
       "SideRB": {
         "WidgetType": "SViewport"
       }
+    }
+  },
+  "FourTopMain": {
+    "WidgetType": "SSplitterH",
+    "SideLT": {
+      "WidgetType": "SViewport"
+    },
+    "SideRB": {
+      "WidgetType": "SSplitterV",
+      "SideLT": {
+        "WidgetType": "SViewport"
+      },
+      "SideRB": {
+        "WidgetType": "SSplitterV",
+        "SideLT": {
+          "WidgetType": "SViewport"
+        },
+        "SideRB": {
+          "WidgetType": "SViewport"
+        }
+      }
+    }
+  },
+  "FourBottomMain": {
+    "WidgetType": "SSplitterH",
+    "SideLT": {
+      "WidgetType": "SSplitterV",
+      "SideLT": {
+        "WidgetType": "SViewport"
+      },
+      "SideRB": {
+        "WidgetType": "SSplitterV",
+        "SideLT": {
+          "WidgetType": "SViewport"
+        },
+        "SideRB": {
+          "WidgetType": "SViewport"
+        }
+      }
+    },
+    "SideRB": {
+      "WidgetType": "SViewport"
+    }
+  },
+  "FourLeftMain": {
+    "WidgetType": "SSplitterV",
+    "SideLT": {
+      "WidgetType": "SViewport"
+    },
+    "SideRB": {
+      "WidgetType": "SSplitterH",
+      "SideLT": {
+        "WidgetType": "SViewport"
+      },
+      "SideRB": {
+        "WidgetType": "SSplitterH",
+        "SideLT": {
+          "WidgetType": "SViewport"
+        },
+        "SideRB": {
+          "WidgetType": "SViewport"
+        }
+      }
+    }
+  },
+  "FourRightMain": {
+    "WidgetType": "SSplitterV",
+    "SideLT": {
+      "WidgetType": "SSplitterH",
+      "SideLT": {
+        "WidgetType": "SViewport"
+      },
+      "SideRB": {
+        "WidgetType": "SSplitterH",
+        "SideLT": {
+          "WidgetType": "SViewport"
+        },
+        "SideRB": {
+          "WidgetType": "SViewport"
+        }
+      }
+    },
+    "SideRB": {
+      "WidgetType": "SViewport"
     }
   }
 }

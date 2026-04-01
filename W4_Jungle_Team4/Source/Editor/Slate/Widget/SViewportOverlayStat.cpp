@@ -56,7 +56,7 @@ void SViewportOverlayStat::DrawMemoryStats()
 
 		if (ImGui::BeginTable("MemoryCounters", 4, flags)) {
 			ImGui::TableSetupColumn("Memory Counters", ImGuiTableColumnFlags_WidthStretch);
-			ImGui::TableSetupColumn("UsedMax", ImGuiTableColumnFlags_WidthFixed, 100.0f);
+			ImGui::TableSetupColumn("Current Use", ImGuiTableColumnFlags_WidthFixed, 100.0f);
 			ImGui::TableSetupColumn("Mem%", ImGuiTableColumnFlags_WidthFixed, 50.0f);
 			ImGui::TableSetupColumn("Pool", ImGuiTableColumnFlags_WidthFixed, 100.0f);
 			ImGui::TableHeadersRow();

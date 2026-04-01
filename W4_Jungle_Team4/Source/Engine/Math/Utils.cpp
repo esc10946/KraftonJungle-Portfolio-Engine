@@ -8,3 +8,7 @@ float Clamp(float val, float lo, float hi) {
 	}
 	return val;
 }
+
+float Lerp(float a, float b, float t) {
+	return a + (b - a) * t;
+}

@@ -7,9 +7,20 @@ class SViewport;
 enum class EViewportLayout : int32
 {
 	Single = 0,
+
 	TwoHorizontal,
 	TwoVertical,
-	Four,
+
+	ThreeLeftMain,
+	ThreeRightMain,
+	ThreeTopMain,
+	ThreeBottomMain,
+
+	FourQuad,
+	FourLeftMain,
+	FourRightMain,
+	FourTopMain,
+	FourBottomMain,
 	All
 };
 
@@ -59,7 +70,15 @@ private:
 		{ EViewportLayout::Single, {} },
 		{ EViewportLayout::TwoHorizontal, {0.5f} },
 		{ EViewportLayout::TwoVertical, {0.5f} },
-		{ EViewportLayout::Four, {0.5f, 0.5f} }
+		{ EViewportLayout::ThreeTopMain, {0.5f, 0.5f} },
+		{ EViewportLayout::ThreeBottomMain, {0.5f, 0.5f} },
+		{ EViewportLayout::ThreeLeftMain, {0.5f, 0.5f} },
+		{ EViewportLayout::ThreeRightMain, {0.5f, 0.5f} },
+		{ EViewportLayout::FourQuad, {0.5f, 0.5f, 0.5f} },
+		{ EViewportLayout::FourLeftMain, {0.66f, 0.33f, 0.5f} },
+		{ EViewportLayout::FourRightMain, {0.33f, 0.33f, 0.5f} },
+		{ EViewportLayout::FourTopMain, {0.66f, 0.33f, 0.5f} },
+		{ EViewportLayout::FourBottomMain, {0.33f, 0.33f, 0.5f} }
 	};
 };
 
