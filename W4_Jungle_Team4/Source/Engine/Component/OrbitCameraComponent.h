@@ -20,6 +20,7 @@ public:
 	void SetRadius(float InRadius) { Radius = InRadius; }
 	void SetMinRadius(float InMin) { MinRadius = InMin; }
 	void SetMaxRadius(float InMax) { MaxRadius = InMax; }
+	void ResetRadius() { Yaw = 0.0f; Pitch = 0.0f; }
 
 	float   GetRadius() const { return Radius; }
 	FVector GetTarget() const { return Target; }

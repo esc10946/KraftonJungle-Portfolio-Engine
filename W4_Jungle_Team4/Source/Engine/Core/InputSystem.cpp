@@ -128,3 +128,14 @@ float InputSystem::GetRightDragDistance() const
     POINT V = GetRightDragVector();
     return std::sqrt((float)(V.x * V.x + V.y * V.y));
 }
+
+bool InputSystem::IsDoubleClick(int VKey, float Threshold)
+{
+	if (!GetKeyDown(VK_LBUTTON)) return false;
+
+	float Now = GetTickCount() * 0.001f;
+	float Elapsed = Now - LastClickTimes[VKey];
+	LastClickTimes[VKey] = Now;
+
+    return Elapsed < Threshold;
+}

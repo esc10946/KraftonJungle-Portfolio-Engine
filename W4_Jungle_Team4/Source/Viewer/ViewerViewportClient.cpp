@@ -29,6 +29,12 @@ void FViewerViewportClient::ResetCamera()
 	if (!ViewerCamera) return;
 	ViewerCamera->SetWorldLocation(FVector(0, 5, 0));
 	ViewerCamera->LookAt(FVector(0,0,0));
+	ViewerCamera->ResetRadius();
+	ViewerCamera->SetTarget(Center);
+	ViewerCamera->SetRadius(ModelRadius * 2.5f);
+	ViewerCamera->UpdatePosition();
+	ViewerCamera->SetMinRadius(ModelRadius * 1.1f);
+	ViewerCamera->SetMaxRadius(ModelRadius * 10.0f);
 }
 
 
@@ -43,6 +49,7 @@ bool FViewerViewportClient::LoadOBJ(const FString& ObjPath)
 	NewMesh->UpdateBounds();
 
 	UnLoadOBJ();
+
 	CurrentMesh = NewMesh;
 	FVector Min = CurrentMesh->BoundsMin;
 	FVector Max = CurrentMesh->BoundsMax;
@@ -55,11 +62,7 @@ bool FViewerViewportClient::LoadOBJ(const FString& ObjPath)
 	ModelSize = Diff.Length();
 	ModelRadius = ModelSize * 0.5f;
 
-	ViewerCamera->SetTarget(Center);
-	ViewerCamera->SetRadius(ModelRadius * 2.5f);
-	ViewerCamera->UpdatePosition();
-	ViewerCamera->SetMinRadius(ModelRadius * 1.1f);
-	ViewerCamera->SetMaxRadius(ModelRadius * 10.0f);
+	ResetCamera();
 
 	return true;
 }
@@ -112,6 +115,9 @@ void FViewerViewportClient::Tick(float DeltaTime)
 
 	if (InputSystem::Get().GetKey(VK_RBUTTON))
 		ViewerCamera->OnPan(dx, dy, ModelRadius);
+
+	if (InputSystem::Get().IsDoubleClick(VK_LBUTTON))
+		ResetCamera();
 
 	float wheel = InputSystem::Get().GetScrollNotches();
 	if (wheel != 0)

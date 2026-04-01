@@ -59,6 +59,9 @@ public:
     bool ScrolledDown() const { return PrevScrollDelta < 0; }
     float GetScrollNotches() const { return PrevScrollDelta / (float)WHEEL_DELTA; }
 
+	// Double Click
+	bool IsDoubleClick(int VKey, float Threshold = 0.2f);
+
     // Window focus
     void SetOwnerWindow(HWND InHWnd) { OwnerHWnd = InHWnd; }
 
@@ -93,6 +96,9 @@ private:
     // Scrolling
     int ScrollDelta = 0;
     int PrevScrollDelta = 0;
+
+	// Double Click
+	float LastClickTimes[256] = {};
 
     // Window handle for focus check
     HWND OwnerHWnd = nullptr;
