@@ -282,11 +282,7 @@ xcopy /E /I /Y "$(ProjectDir)Asset" "$(OutDir)Asset"</Command>
     <ClCompile Include="Source\Editor\EditorRenderPipeline.cpp" />
     <ClCompile Include="Source\Editor\Selection\SelectionManager.cpp" />
     <ClCompile Include="Source\Editor\Settings\EditorSettings.cpp" />
-    <ClCompile Include="Source\Editor\UI\EditorConsoleWidget.cpp" />
-    <ClCompile Include="Source\Editor\UI\EditorControlWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\EditorMainPanel.cpp" />
-    <ClCompile Include="Source\Editor\UI\EditorPropertyWidget.cpp" />
-    <ClCompile Include="Source\Editor\UI\EditorSceneWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\EditorStatWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\EditorViewportOverlayWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\EditorWidget.cpp" />
@@ -404,11 +400,7 @@ xcopy /E /I /Y "$(ProjectDir)Asset" "$(OutDir)Asset"</Command>
     <ClInclude Include="Source\Editor\Slate\Widget\SViewport.h" />
     <ClInclude Include="Source\Editor\Slate\Widget\SWidget.h" />
     <ClInclude Include="Source\Editor\Slate\Widget\SWindow.h" />
-    <ClInclude Include="Source\Editor\UI\EditorConsoleWidget.h" />
-    <ClInclude Include="Source\Editor\UI\EditorControlWidget.h" />
     <ClInclude Include="Source\Editor\UI\EditorMainPanel.h" />
-    <ClInclude Include="Source\Editor\UI\EditorPropertyWidget.h" />
-    <ClInclude Include="Source\Editor\UI\EditorSceneWidget.h" />
     <ClInclude Include="Source\Editor\UI\EditorStatWidget.h" />
     <ClInclude Include="Source\Editor\UI\EditorViewportOverlayWidget.h" />
     <ClInclude Include="Source\Editor\UI\EditorWidget.h" />

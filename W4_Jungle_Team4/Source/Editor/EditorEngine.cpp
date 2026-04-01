@@ -4,6 +4,7 @@
 #include "Editor/Slate/SlateWidgetFactory.h"
 #include "Editor/Slate/Widget/SViewport.h"
 #include "Editor/Slate/ConsoleCommandManager.h"
+#include "Editor/Slate/Widget/SImGuiConsoleWidget.h"
 #include "Editor/Viewport/Viewport.h"
 #include "Engine/Runtime/WindowsWindow.h"
 #include "Engine/Serialization/SceneSaveManager.h"

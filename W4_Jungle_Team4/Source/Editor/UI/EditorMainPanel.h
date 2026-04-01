@@ -1,9 +1,5 @@
 ﻿#pragma once
 
-#include "Editor/UI/EditorConsoleWidget.h"
-#include "Editor/UI/EditorControlWidget.h"
-#include "Editor/UI/EditorPropertyWidget.h"
-#include "Editor/UI/EditorSceneWidget.h"
 #include "Editor/UI/EditorViewportOverlayWidget.h"
 #include "Editor/UI/EditorStatWidget.h"
 

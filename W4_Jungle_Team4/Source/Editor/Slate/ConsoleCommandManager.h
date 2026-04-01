@@ -22,3 +22,6 @@ private:
 
 	SImGuiConsoleWidget* ConsoleWidget = nullptr;
 };
+
+#define UE_LOG(Format, ...) \
+    SImGuiConsoleWidget::AddLog(Format, ##__VA_ARGS__)

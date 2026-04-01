@@ -10,7 +10,6 @@
 #include "Viewport/EditorViewportClient.h"
 #include "Viewport/ViewportManager.h"
 #include "ImGui/imgui.h"
-#include "UI/EditorConsoleWidget.h"
 #include "Math/Utils.h"
 
 SViewport::SViewport()
