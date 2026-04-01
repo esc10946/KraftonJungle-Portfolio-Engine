@@ -24,6 +24,9 @@ public:
 	// - 복사된 mtl의 map_Kd 경로를 새 경로로 rewrite
 	// - 최종적으로 "프로젝트 내부 obj 경로"를 반환
 	static bool ImportObjPackage(const FString& InSourceObjPath, FImportedObjPackage& OutPackage);
+	static bool ImportStaticMeshBin(
+		const FString& InSourceBinPath, 
+		FString& OutImportedBinPath);
 
 private:
 	static FString MakeImportAssetName(const FString& InSourceObjPath);

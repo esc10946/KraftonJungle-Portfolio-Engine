@@ -19,6 +19,7 @@
 #include "Asset/StaticMesh/StaticMeshManager.h"
 #include "GameFramework/PrimitiveActors.h"
 #include "Component/StaticMeshComponent.h"
+#include "Engine/Asset/StaticMesh/StaticMeshBakeIO.h"
 
 DEFINE_CLASS(UEditorEngine, UEngine)
 REGISTER_FACTORY(UEditorEngine)
@@ -250,35 +251,67 @@ void UEditorEngine::ClearScene()
 	//ViewportClient.SetWorld(nullptr);
 }
 
-bool UEditorEngine::HandleObjImported(const FString& SourceObjPath)
+bool UEditorEngine::HandleImportedFile(const FString& SourcePath)
 {
-	FImportedObjPackage ImportedPackage;
-	if (!FAssetImportManager::ImportObjPackage(SourceObjPath, ImportedPackage))
+	std::filesystem::path Path = std::filesystem::path(SourcePath).lexically_normal();
+	std::string Ext = Path.extension().string();
+	std::transform(Ext.begin(), Ext.end(), Ext.begin(), ::tolower);
+
+	FString MeshPathToLoad;
+
+	if (Ext == ".obj")
 	{
-		std::cout << "[HandleObjImported] false1" << "\n";
+		FImportedObjPackage ImportedPackage;
+		if (!FAssetImportManager::ImportObjPackage(SourcePath, ImportedPackage))
+		{
+			std::cout << "[HandleImportedFile] obj import failed\n";
+			return false;
+		}
+
+		// 같은 이름 obj를 다시 드롭했을 때, 기존 캐시를 버려야
+		// LoadStaticMeshObject 내부에서 bake freshness 검사까지 다시 탄다.
+		FStaticMeshManager::Get().Invalidate(ImportedPackage.ImportedObjPath);
+
+		// 필요하면 smbin 경로도 같이 invalidate
+		const FString ImportedBakePath =
+			FStaticMeshBakeIO::MakeBakePath(ImportedPackage.ImportedObjPath);
+		FStaticMeshManager::Get().Invalidate(ImportedBakePath);
+
+		MeshPathToLoad = ImportedPackage.ImportedObjPath;
+	}
+	else if (Ext == ".smbin")
+	{
+		FString ImportedBinPath;
+		if (!FAssetImportManager::ImportStaticMeshBin(SourcePath, ImportedBinPath))
+		{
+			std::cout << "[HandleImportedFile] smbin import failed\n";
+			return false;
+		}
+
+		MeshPathToLoad = ImportedBinPath;
+	}
+	else
+	{
 		return false;
 	}
 
 	UStaticMesh* MeshObj =
-		FStaticMeshManager::Get().LoadStaticMeshObject(ImportedPackage.ImportedObjPath);
+		FStaticMeshManager::Get().LoadStaticMeshObject(MeshPathToLoad);
 
 	if (!MeshObj)
 	{
-		std::cout << "[HandleObjImported] false2" << "\n";
 		return false;
 	}
 
 	UWorld* World = GetWorld();
 	if (!World)
 	{
-		std::cout << "[HandleObjImported] false3" << "\n";
 		return false;
 	}
 
 	AStaticMeshActor* Actor = World->SpawnActor<AStaticMeshActor>();
 	if (!Actor)
 	{
-		std::cout << "[HandleObjImported] false4" << "\n";
 		return false;
 	}
 

@@ -371,3 +371,27 @@ FString FStaticMeshManager::NormalizeSourcePath(const FString& InSourcePath) con
 
 	return NormalizePathString(Path);
 }
+
+// 이 경로로 로드된 FStaticMeshAsset 캐시 삭제
+// 이 경로로 로드된 UStaticMesh 캐시 삭제
+void FStaticMeshManager::Invalidate(const FString& InSourcePath)
+{
+	const FString NormalizedPath = NormalizeSourcePath(InSourcePath);
+	if (NormalizedPath.empty())
+	{
+		return;
+	}
+
+	auto AssetIt = StaticMeshAssetMap.find(NormalizedPath);
+	if (AssetIt != StaticMeshAssetMap.end())
+	{
+		delete AssetIt->second;
+		StaticMeshAssetMap.erase(AssetIt);
+	}
+
+	auto ObjectIt = StaticMeshObjectMap.find(NormalizedPath);
+	if (ObjectIt != StaticMeshObjectMap.end())
+	{
+		StaticMeshObjectMap.erase(ObjectIt);
+	}
+}

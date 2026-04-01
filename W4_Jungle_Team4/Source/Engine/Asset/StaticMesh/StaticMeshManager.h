@@ -28,6 +28,8 @@ public:
 	// 여러 경로 미리 로드
 	void Preload(const TArray<FString>& InSourcePaths);
 
+	void Invalidate(const FString& InSourcePath);
+	
 	// manager가 가진 asset cache 정리
 	void Clear();
 

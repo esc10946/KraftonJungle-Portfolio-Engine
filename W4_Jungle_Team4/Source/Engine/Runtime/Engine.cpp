@@ -26,9 +26,7 @@ void UEngine::Init(FWindowsWindow* InWindow)
 
 	InputSystem::Get().SetOwnerWindow(Window->GetHWND());
 	Renderer.Create(Window->GetHWND());
-	FResourceManager::Get().LoadFromFile(
-		FPaths::ToUtf8(FPaths::ResourceFilePath()), Renderer.GetFD3DDevice().GetDevice());
-	// 일단은 여기에 했는데..수정하겠습니다ㅠ,ㅠ
+	FResourceManager::Get().LoadFromFile(FPaths::ToUtf8(FPaths::ResourceFilePath()), Renderer.GetFD3DDevice().GetDevice());
 	FStaticMeshManager::Get().Preload(FResourceManager::Get().GetStaticMeshPaths());
 
 	FMaterialManager::Get().RegisterDefaultBlockAtlasMaterials();

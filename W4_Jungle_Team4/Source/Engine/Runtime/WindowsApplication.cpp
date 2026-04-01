@@ -58,7 +58,7 @@ LRESULT FWindowsApplication::WndProc(HWND hWnd, unsigned int Msg, WPARAM wParam,
 			}
 		}
 		return 0;
-	case WM_ENTERSIZEMOVE:
+	case WM_ENTERSIZEMOVE:bool HandleImportedFile(const FString & SourceObjPath);
 		bIsResizing = true;
 		return 0;
 	case WM_EXITSIZEMOVE:
@@ -81,15 +81,17 @@ LRESULT FWindowsApplication::WndProc(HWND hWnd, unsigned int Msg, WPARAM wParam,
 			DragQueryFileA(hDrop, 0, filePath, MAX_PATH);
 
 			std::filesystem::path Path(filePath);
-			std::cout << "[Dropdown] path: " << Path.string() << "\n";
 			// OBJ 처리
-			if (Path.extension() == ".obj")
+			std::string Ext = Path.extension().string();
+			std::transform(Ext.begin(), Ext.end(), Ext.begin(), ::tolower);
+
+			if (Ext == ".obj" || Ext == ".smbin")
 			{
 				if (GEngine)
 				{
 					if (UEditorEngine* Editor = dynamic_cast<UEditorEngine*>(GEngine))
 					{
-						Editor->HandleObjImported(filePath);
+						Editor->HandleImportedFile(filePath);
 					}
 				}
 			}
