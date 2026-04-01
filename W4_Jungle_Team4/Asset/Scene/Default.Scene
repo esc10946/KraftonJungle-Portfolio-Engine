@@ -1,19 +1,19 @@
 {
   "Actors" : [],
   "ClassName" : "UWorld",
-  "ContextHandle" : "NewScene",
-  "ContextName" : "New Scene",
+  "ContextHandle" : "Default",
+  "ContextName" : "Default",
   "Name" : "Default",
   "PerspectiveCamera" : {
     "ClassName" : "UCameraComponent",
     "Properties" : {
       "FOV" : 1.047198,
       "Far Z" : 1000.000000,
-      "Location" : [-0.150779, -0.386883, 3.376167],
+      "Location" : [5.000000, 5.000000, 5.000000],
       "Near Z" : 0.100000,
       "Ortho Width" : 10.000000,
       "Orthographic" : false,
-      "Rotation" : [0.000000, 56.250031, -63.900040],
+      "Rotation" : [0.000000, 30.000000, -135.000000],
       "Scale" : [1.000000, 1.000000, 1.000000]
     }
   },

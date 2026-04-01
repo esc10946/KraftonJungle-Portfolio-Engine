@@ -29,9 +29,6 @@ public:
 		int32 TopTileX, int32 TopTileY,
 		int32 SideTileX, int32 SideTileY,
 		int32 BottomTileX, int32 BottomTileY);
-	void RegisterDefaultBlockAtlasMaterials();
-	void RegisterDefaultPreviewMaterials();
-
 private:
 	FMaterialManager() = default;
 	~FMaterialManager();
