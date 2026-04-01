@@ -9,7 +9,7 @@ Ks 0.500000 0.500000 0.500000
 Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
-map_Kd Pickachu_eyes_baked.png
+map_Kd Dropdown_Pickachu_eyes_baked.png
 illum 2
 
 newmtl Nose_material
@@ -20,7 +20,7 @@ Ks 0.500000 0.500000 0.500000
 Ke 0.000000 0.000000 0.000000
 Ni 1.450000
 d 1.000000
-map_Kd Pickachu_nose_baked.png
+map_Kd Dropdown_Pickachu_nose_baked.png
 illum 3
 
 newmtl Pikachu_Body
@@ -31,7 +31,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.500000
 d 1.000000
 illum 2
-map_Kd Pickachu_baked.png
+map_Kd Dropdown_Pickachu_baked.png
 
 newmtl Pikachu_tail
 Ns 250.000000
@@ -41,4 +41,4 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.500000
 d 1.000000
 illum 2
-map_Kd Pickachu_tail_baked.png
+map_Kd Dropdown_Pickachu_tail_baked.png

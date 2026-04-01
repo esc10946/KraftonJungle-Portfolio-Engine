@@ -766,6 +766,23 @@ void SImGuiPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 				ImGui::EndCombo();
 			}
 			ImGui::SameLine();
+			if (ImGui::Button("Import"))
+			{
+				OPENFILENAMEA ofn = {};
+				char filePath[512] = {};
+
+				ofn.lStructSize = sizeof(ofn);
+				ofn.lpstrFilter = "OBJ Files\0*.obj\0All Files\0*.*\0";
+				ofn.lpstrFile = filePath;
+				ofn.nMaxFile = sizeof(filePath);
+				ofn.Flags = OFN_FILEMUSTEXIST;
+
+				if (GetOpenFileNameA(&ofn))
+				{
+					EditorEngine->HandleImportedFile(filePath);
+				}
+			}
+			ImGui::SameLine();
 			ImGui::TextUnformatted(Prop.Name);
 			ImGui::PopID();
 			break;

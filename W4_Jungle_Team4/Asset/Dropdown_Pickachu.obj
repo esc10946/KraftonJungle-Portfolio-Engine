@@ -1,6 +1,6 @@
 # Blender 5.0.1
 # www.blender.org
-mtllib Pickachu.mtl
+mtllib Dropdown_Pickachu.mtl
 o Tail
 v 0.110361 -0.004921 0.057089
 v 0.103721 -0.004921 0.076043

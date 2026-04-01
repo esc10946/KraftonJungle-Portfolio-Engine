@@ -306,16 +306,6 @@ void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, cons
 				Cmd.PerObjectConstants.Color = Cmd.MeshRenderData.DiffuseSRV != nullptr ? MaterialParameters.BaseColor : Primitive->GetMaterialColor();
 			}
 
-			if (UTexture2D* Texture = MaterialParameters.DiffuseTexture)
-			{
-				std::cout << "Texture SourcePath: " << Texture->GetSourcePath() << "\n";
-			}
-			else
-			{
-				std::cout << "Texture SourcePath: <null texture>\n";
-			}
-			
-
 			if (StaticMeshComponent->bUseUVScroll) {
 				Cmd.Constants.StaticMesh.UVScrollSpeed[0] = StaticMeshComponent->UVScrollSpeed.X;
 				Cmd.Constants.StaticMesh.UVScrollSpeed[1] = StaticMeshComponent->UVScrollSpeed.Y;
