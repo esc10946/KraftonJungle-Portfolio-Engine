@@ -112,8 +112,13 @@ void UEditorEngine::Init(FWindowsWindow* InWindow)
 		}
 		else if (Args[1] == "none")
 		{
-			FocusedViewport->SetShowFPS(false);
-			FocusedViewport->SetShowMemory(false);
+			TArray<SViewport*> ViewportWidgets = FSlateApplication::Get().GetWidgetsByType<SViewport*>(FSlateApplication::Get().GetWindows()[0]);
+
+			for (SViewport* ViewportWidget : ViewportWidgets)
+			{
+				ViewportWidget->SetShowFPS(false);
+				ViewportWidget->SetShowMemory(false);
+			}
 		}
 		else
 		{

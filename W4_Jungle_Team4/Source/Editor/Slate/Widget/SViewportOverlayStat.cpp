@@ -3,6 +3,10 @@
 #include "SViewport.h"
 #include "ImGui/imgui.h"
 #include "Object/EngineStatics.h"
+#include "Runtime/Engine.h"
+#include "Core/Timer.h"
+
+extern UEngine* GEngine;
 
 void SViewportOverlayStat::DrawFPSStats()
 {
@@ -24,8 +28,8 @@ void SViewportOverlayStat::DrawFPSStats()
 
 	if (ImGui::Begin(("##" + Viewport->GetName()).c_str(), nullptr, window_flags))
 	{
-		ImGui::Text("%.2f FPS", io.Framerate);
-		ImGui::Text("%.2f ms", 1000.0f / io.Framerate);
+		ImGui::Text("%.2f FPS", GEngine->GetTimer()->GetDisplayFPS());
+		ImGui::Text("%.2f ms", GEngine->GetTimer()->GetDeltaTime() * 1000.0f);
 
 		ImGui::End();
 	}
