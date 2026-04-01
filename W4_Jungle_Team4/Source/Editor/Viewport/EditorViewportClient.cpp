@@ -12,6 +12,7 @@
 #include "Component/PrimitiveComponent.h"
 #include "Object/Object.h"
 #include "Editor/Selection/SelectionManager.h"
+#include "Viewport/ViewportManager.h"
 
 
 void FEditorViewportClient::Initialize(FViewport* InViewport)
@@ -93,10 +94,13 @@ void FEditorViewportClient::OnMouseDown(float X, float Y, int32 Button)
 		{
 			Gizmo->SetHolding(true);
 		}
+
+		FViewportManager::Get().SetFocusedCamera(Camera);
 	}
 	if (Button == VK_RBUTTON)
 	{
 		bIsRightMouseDown = true;
+		FViewportManager::Get().SetFocusedCamera(Camera);
 	}
 }
 

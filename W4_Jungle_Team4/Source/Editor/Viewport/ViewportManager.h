@@ -10,6 +10,7 @@ class FSelectionManager;
 class FEditorViewportClient;
 class SWidget;
 class SViewport;
+class UCameraComponent;
 
 class FViewportManager : public TSingleton<FViewportManager>
 {
@@ -28,6 +29,9 @@ public:
 	SViewport* GetFocusedViewportWidget() const { return FocusedViewportWidget; }
 	void SetFocusedViewportWidget(SViewport* InViewportWidget) { FocusedViewportWidget = InViewportWidget; }
 
+	UCameraComponent* GetFocusedCamera();
+	void SetFocusedCamera(UCameraComponent* InCamera);
+
 private:
 	FViewportManager() = default;
 	~FViewportManager() = default;
@@ -40,4 +44,6 @@ private:
 
 	SWidget* ViewportRootWidget = nullptr;
 	SViewport* FocusedViewportWidget = nullptr;
+
+	UCameraComponent* FocusedCamera = nullptr;
 };
