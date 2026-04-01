@@ -79,7 +79,7 @@ bool UPrimitiveComponent::IntersectTriangle(const FVector& RayOrigin, const FVec
 	FVector pvec = RayDir.Cross(edge2);
 	float det = edge1.Dot(pvec);
 
-	if (std::abs(det) < 0.0001f) return false;
+	if (fabs(det) < 1e-8f) return false;
 
 	float invDet = 1.0f / det;
 	FVector tvec = RayOrigin - V0;
@@ -117,7 +117,7 @@ bool UPrimitiveComponent::RaycastMesh(const FRay& Ray, FHitResult& OutHitResult)
 		FVector v1 = MeshData->Vertices[MeshData->Indices[i + 1]].Position;
 		FVector v2 = MeshData->Vertices[MeshData->Indices[i + 2]].Position;
 
-		float t = 0.0f;
+		float t = closestT;
 
 		if (IntersectTriangle(localOrigin, localDirection, v0, v1, v2, t))
 		{
