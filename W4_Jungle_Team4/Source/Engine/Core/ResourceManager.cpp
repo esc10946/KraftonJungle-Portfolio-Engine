@@ -1,9 +1,11 @@
-﻿#include "Core/ResourceManager.h"
+#include "Core/ResourceManager.h"
 #include "Asset/Texture/TextureManager.h"
 #include "Core/Paths.h"
 #include "SimpleJSON/json.hpp"
 #include "Slate/ConsoleCommandManager.h"
+#include "Object/EngineStatics.h"
 
+#include <d3d11.h>
 #include <fstream>
 #include <filesystem>
 #include "DDSTextureLoader.h"
@@ -19,6 +21,178 @@ namespace ResourceKey
 	constexpr const char* Columns  = "Columns";
 	constexpr const char* Rows     = "Rows";
 	constexpr const char* StaticMesh = "StaticMesh";
+}
+
+namespace
+{
+	uint32 GetBitsPerPixel(DXGI_FORMAT Format)
+	{
+		switch (Format)
+		{
+		case DXGI_FORMAT_R32G32B32A32_TYPELESS:
+		case DXGI_FORMAT_R32G32B32A32_FLOAT:
+		case DXGI_FORMAT_R32G32B32A32_UINT:
+		case DXGI_FORMAT_R32G32B32A32_SINT:
+			return 128;
+
+		case DXGI_FORMAT_R32G32B32_TYPELESS:
+		case DXGI_FORMAT_R32G32B32_FLOAT:
+		case DXGI_FORMAT_R32G32B32_UINT:
+		case DXGI_FORMAT_R32G32B32_SINT:
+			return 96;
+
+		case DXGI_FORMAT_R16G16B16A16_TYPELESS:
+		case DXGI_FORMAT_R16G16B16A16_FLOAT:
+		case DXGI_FORMAT_R16G16B16A16_UNORM:
+		case DXGI_FORMAT_R16G16B16A16_UINT:
+		case DXGI_FORMAT_R16G16B16A16_SNORM:
+		case DXGI_FORMAT_R16G16B16A16_SINT:
+		case DXGI_FORMAT_R32G32_TYPELESS:
+		case DXGI_FORMAT_R32G32_FLOAT:
+		case DXGI_FORMAT_R32G32_UINT:
+		case DXGI_FORMAT_R32G32_SINT:
+		case DXGI_FORMAT_R32G8X24_TYPELESS:
+		case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
+		case DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS:
+		case DXGI_FORMAT_X32_TYPELESS_G8X24_UINT:
+			return 64;
+
+		case DXGI_FORMAT_R10G10B10A2_TYPELESS:
+		case DXGI_FORMAT_R10G10B10A2_UNORM:
+		case DXGI_FORMAT_R10G10B10A2_UINT:
+		case DXGI_FORMAT_R11G11B10_FLOAT:
+		case DXGI_FORMAT_R8G8B8A8_TYPELESS:
+		case DXGI_FORMAT_R8G8B8A8_UNORM:
+		case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
+		case DXGI_FORMAT_R8G8B8A8_UINT:
+		case DXGI_FORMAT_R8G8B8A8_SNORM:
+		case DXGI_FORMAT_R8G8B8A8_SINT:
+		case DXGI_FORMAT_R16G16_TYPELESS:
+		case DXGI_FORMAT_R16G16_FLOAT:
+		case DXGI_FORMAT_R16G16_UNORM:
+		case DXGI_FORMAT_R16G16_UINT:
+		case DXGI_FORMAT_R16G16_SNORM:
+		case DXGI_FORMAT_R16G16_SINT:
+		case DXGI_FORMAT_R32_TYPELESS:
+		case DXGI_FORMAT_D32_FLOAT:
+		case DXGI_FORMAT_R32_FLOAT:
+		case DXGI_FORMAT_R32_UINT:
+		case DXGI_FORMAT_R32_SINT:
+		case DXGI_FORMAT_R24G8_TYPELESS:
+		case DXGI_FORMAT_D24_UNORM_S8_UINT:
+		case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
+		case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
+		case DXGI_FORMAT_B8G8R8A8_UNORM:
+		case DXGI_FORMAT_B8G8R8X8_UNORM:
+		case DXGI_FORMAT_B8G8R8A8_TYPELESS:
+		case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
+		case DXGI_FORMAT_B8G8R8X8_TYPELESS:
+		case DXGI_FORMAT_B8G8R8X8_UNORM_SRGB:
+			return 32;
+
+		case DXGI_FORMAT_R8G8_TYPELESS:
+		case DXGI_FORMAT_R8G8_UNORM:
+		case DXGI_FORMAT_R8G8_UINT:
+		case DXGI_FORMAT_R8G8_SNORM:
+		case DXGI_FORMAT_R8G8_SINT:
+		case DXGI_FORMAT_R16_TYPELESS:
+		case DXGI_FORMAT_R16_FLOAT:
+		case DXGI_FORMAT_D16_UNORM:
+		case DXGI_FORMAT_R16_UNORM:
+		case DXGI_FORMAT_R16_UINT:
+		case DXGI_FORMAT_R16_SNORM:
+		case DXGI_FORMAT_R16_SINT:
+		case DXGI_FORMAT_B5G6R5_UNORM:
+		case DXGI_FORMAT_B5G5R5A1_UNORM:
+			return 16;
+
+		case DXGI_FORMAT_R8_TYPELESS:
+		case DXGI_FORMAT_R8_UNORM:
+		case DXGI_FORMAT_R8_UINT:
+		case DXGI_FORMAT_R8_SNORM:
+		case DXGI_FORMAT_R8_SINT:
+		case DXGI_FORMAT_A8_UNORM:
+			return 8;
+
+		case DXGI_FORMAT_BC1_TYPELESS:
+		case DXGI_FORMAT_BC1_UNORM:
+		case DXGI_FORMAT_BC1_UNORM_SRGB:
+			return 4;
+
+		case DXGI_FORMAT_BC2_TYPELESS:
+		case DXGI_FORMAT_BC2_UNORM:
+		case DXGI_FORMAT_BC2_UNORM_SRGB:
+		case DXGI_FORMAT_BC3_TYPELESS:
+		case DXGI_FORMAT_BC3_UNORM:
+		case DXGI_FORMAT_BC3_UNORM_SRGB:
+		case DXGI_FORMAT_BC4_TYPELESS:
+		case DXGI_FORMAT_BC4_UNORM:
+		case DXGI_FORMAT_BC4_SNORM:
+		case DXGI_FORMAT_BC5_TYPELESS:
+		case DXGI_FORMAT_BC5_UNORM:
+		case DXGI_FORMAT_BC5_SNORM:
+		case DXGI_FORMAT_BC6H_TYPELESS:
+		case DXGI_FORMAT_BC6H_UF16:
+		case DXGI_FORMAT_BC6H_SF16:
+		case DXGI_FORMAT_BC7_TYPELESS:
+		case DXGI_FORMAT_BC7_UNORM:
+		case DXGI_FORMAT_BC7_UNORM_SRGB:
+			return 8;
+
+		default:
+			return 32; // Default to 32bpp
+		}
+	}
+
+	void UpdateTextureResourceMemory(ID3D11ShaderResourceView* SRV, uint32& OutMemorySize)
+	{
+		if (!SRV) return;
+
+		ID3D11Resource* Resource = nullptr;
+		SRV->GetResource(&Resource);
+		if (Resource)
+		{
+			ID3D11Texture2D* Texture2D = nullptr;
+			if (SUCCEEDED(Resource->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&Texture2D)))
+			{
+				D3D11_TEXTURE2D_DESC Desc;
+				Texture2D->GetDesc(&Desc);
+
+				uint32 BitsPerPixel = GetBitsPerPixel(Desc.Format);
+				
+				bool IsBC = (Desc.Format >= DXGI_FORMAT_BC1_TYPELESS && Desc.Format <= DXGI_FORMAT_BC5_SNORM) ||
+				            (Desc.Format >= DXGI_FORMAT_BC6H_TYPELESS && Desc.Format <= DXGI_FORMAT_BC7_UNORM_SRGB);
+
+				uint32 TotalSize = 0;
+				uint32 MipWidth = Desc.Width;
+				uint32 MipHeight = Desc.Height;
+				uint32 MipLevels = (Desc.MipLevels == 0) ? 1 : Desc.MipLevels;
+
+				for (uint32 i = 0; i < MipLevels; ++i)
+				{
+					if (IsBC)
+					{
+						uint32 NumBlocksWide = (MipWidth + 3) / 4;
+						uint32 NumBlocksHigh = (MipHeight + 3) / 4;
+						uint32 BytesPerBlock = (Desc.Format == DXGI_FORMAT_BC1_UNORM || Desc.Format == DXGI_FORMAT_BC1_UNORM_SRGB || Desc.Format == DXGI_FORMAT_BC1_TYPELESS) ? 8 : 16;
+						TotalSize += NumBlocksWide * NumBlocksHigh * BytesPerBlock;
+					}
+					else
+					{
+						TotalSize += (MipWidth * MipHeight * BitsPerPixel) / 8;
+					}
+
+					MipWidth = (MipWidth > 1) ? MipWidth >> 1 : 1;
+					MipHeight = (MipHeight > 1) ? MipHeight >> 1 : 1;
+				}
+
+				OutMemorySize = TotalSize * Desc.ArraySize;
+
+				Texture2D->Release();
+			}
+			Resource->Release();
+		}
+	}
 }
 
 void FResourceManager::LoadFromFile(const FString& Path, ID3D11Device* InDevice)
@@ -111,6 +285,13 @@ bool FResourceManager::LoadGPUResources(ID3D11Device* Device)
 			nullptr,
 			&Resource.SRV
 		);
+
+		if (SUCCEEDED(hr))
+		{
+			UpdateTextureResourceMemory(Resource.SRV, Resource.MemorySize);
+			EngineStatics::AddMemoryUsage(EMemoryCategory::Texture, Resource.MemorySize);
+		}
+
 		return SUCCEEDED(hr);
 	};
 
@@ -202,6 +383,12 @@ bool FResourceManager::LoadTextureResource(FTextureResource& Resource, ID3D11Dev
 		);
 	}
 
+	if (SUCCEEDED(Hr))
+	{
+		UpdateTextureResourceMemory(Resource.SRV, Resource.MemorySize);
+		EngineStatics::AddMemoryUsage(EMemoryCategory::Texture, Resource.MemorySize);
+	}
+
 	return SUCCEEDED(Hr);
 }
 
@@ -236,11 +423,23 @@ void FResourceManager::ReleaseGPUResources()
 {
 	for (auto& [Key, Resource] : FontResources)
 	{
-		if (Resource.SRV) { Resource.SRV->Release(); Resource.SRV = nullptr; }
+		if (Resource.SRV) 
+		{ 
+			EngineStatics::SubtractMemoryUsage(EMemoryCategory::Texture, Resource.MemorySize);
+			Resource.SRV->Release(); 
+			Resource.SRV = nullptr; 
+			Resource.MemorySize = 0;
+		}
 	}
 	for (auto& [Key, Resource] : ParticleResources)
 	{
-		if (Resource.SRV) { Resource.SRV->Release(); Resource.SRV = nullptr; }
+		if (Resource.SRV) 
+		{ 
+			EngineStatics::SubtractMemoryUsage(EMemoryCategory::Texture, Resource.MemorySize);
+			Resource.SRV->Release(); 
+			Resource.SRV = nullptr; 
+			Resource.MemorySize = 0;
+		}
 	}
 
 	ReleaseTextureResources();
@@ -252,8 +451,10 @@ void FResourceManager::ReleaseTextureResources()
 	{
 		if (Resource.SRV)
 		{
+			EngineStatics::SubtractMemoryUsage(EMemoryCategory::Texture, Resource.MemorySize);
 			Resource.SRV->Release();
 			Resource.SRV = nullptr;
+			Resource.MemorySize = 0;
 		}
 	}
 

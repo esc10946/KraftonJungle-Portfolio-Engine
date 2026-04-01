@@ -51,6 +51,16 @@ struct FStaticMeshAsset
 	FVector BoundsMin;
 	FVector BoundsMax;
 
+	uint32 GetResourceSize() const
+	{
+		uint32 Size = 0;
+		Size += static_cast<uint32>(Vertices.size() * sizeof(FStaticMeshVertex));
+		Size += static_cast<uint32>(Indices.size() * sizeof(uint32));
+		Size += static_cast<uint32>(MaterialSlots.size() * sizeof(FStaticMaterialSlot));
+		Size += static_cast<uint32>(Sections.size() * sizeof(FStaticMeshSection));
+		return Size;
+	}
+
 	void UpdateBounds()
 	{
 		if (Vertices.empty())
