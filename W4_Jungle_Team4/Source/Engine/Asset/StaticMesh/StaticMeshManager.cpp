@@ -5,6 +5,7 @@
 #include "AssetPipeline/Obj/ObjImporter.h"
 #include "Asset/StaticMesh/StaticMeshObject.h"
 #include "Core/Paths.h"
+#include "Object/EngineStatics.h"
 
 #include <filesystem>
 #include <array>
@@ -237,12 +238,14 @@ FStaticMeshAsset* FStaticMeshManager::LoadStaticMeshAsset(const FString& InSourc
 
 	// 7. 성공한 asset를 cache에 보관
 	StaticMeshAssetMap[NormalizedPath] = Asset;
+	EngineStatics::AddMemoryUsage(EMemoryCategory::StaticMesh, Asset->GetResourceSize());
 
 	// opt) 최종 반환 직전
 	std::cout
 		<< "[StaticMeshManager] done: vertices=" << Asset->Vertices.size()
 		<< ", indices=" << Asset->Indices.size()
 		<< ", sections=" << Asset->Sections.size()
+		<< ", memory=" << Asset->GetResourceSize() << " bytes"
 		<< '\n';
 
 	return Asset;
@@ -338,6 +341,7 @@ void FStaticMeshManager::Clear()
 {
 	for (auto& Pair : StaticMeshAssetMap)
 	{
+		EngineStatics::SubtractMemoryUsage(EMemoryCategory::StaticMesh, Pair.second->GetResourceSize());
 		delete Pair.second;
 	}
 	for (auto& Pair : StaticMeshObjectMap)
@@ -394,6 +398,7 @@ void FStaticMeshManager::Invalidate(const FString& InSourcePath)
 	auto AssetIt = StaticMeshAssetMap.find(NormalizedPath);
 	if (AssetIt != StaticMeshAssetMap.end())
 	{
+		EngineStatics::SubtractMemoryUsage(EMemoryCategory::StaticMesh, AssetIt->second->GetResourceSize());
 		delete AssetIt->second;
 		StaticMeshAssetMap.erase(AssetIt);
 	}

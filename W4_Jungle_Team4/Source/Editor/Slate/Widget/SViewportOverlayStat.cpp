@@ -48,6 +48,11 @@ void SViewportOverlayStat::DrawMemoryStats()
 
 	if (Rect.Width < 200.0f || Rect.Height < 200.0f) return;
 
+	MemoryStats[0].MemoryBytes = EngineStatics::GetMemoryUsage(EMemoryCategory::Heap) / (1024.0f * 1024.0f);
+	MemoryStats[1].MemoryBytes = (float)EngineStatics::GetMemoryUsage(EMemoryCategory::HeapCount);
+	MemoryStats[2].MemoryBytes = EngineStatics::GetMemoryUsage(EMemoryCategory::StaticMesh) / (1024.0f * 1024.0f);
+	MemoryStats[3].MemoryBytes = EngineStatics::GetMemoryUsage(EMemoryCategory::Texture) / (1024.0f * 1024.0f);
+
 	if (ImGui::Begin(("##Memory Stats_" + Viewport->GetName()).c_str(), nullptr, window_flags)) {
 		ImGui::TextColored(ImVec4(0, 1, 0, 1), "Memory Usage"); // 언리얼 특유의 초록색 글씨
 		ImGui::Separator();
@@ -63,28 +68,16 @@ void SViewportOverlayStat::DrawMemoryStats()
 
 			const char* CategoryNames[] = { "Total Allocation count" };
 
-			ImGui::TableNextRow();
-			ImGui::TableSetColumnIndex(0);
-			ImGui::TextColored(ImVec4(0, 1, 0, 1), "Total Allocation Memory");
-
-			ImGui::TableSetColumnIndex(1);
-			float kb = EngineStatics::TotalAllocationBytes / (1024.0f);
-			ImGui::TextColored(ImVec4(0, 1, 0, 1), "%.2f KB", kb);
-
-			ImGui::TableSetColumnIndex(2);
-
-			ImGui::TableSetColumnIndex(3);
-			ImGui::TextColored(ImVec4(0, 1, 0, 1), "Physical");
-
-			ImGui::TableNextRow();
-			ImGui::TableSetColumnIndex(0);
-			ImGui::TextColored(ImVec4(0, 1, 0, 1), "Total Allocation Count");
-
-			ImGui::TableSetColumnIndex(1);
-			ImGui::TextColored(ImVec4(0, 1, 0, 1), "%d", EngineStatics::TotalAllocationCount);
-
-			ImGui::TableSetColumnIndex(3);
-			ImGui::TextColored(ImVec4(0, 1, 0, 1), "Physical");
+			for (int i = 0; i < static_cast<uint32>(EMemoryCategory::All); ++i)
+			{
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::TextColored(ImVec4(0, 1, 0, 1), "%s", MemoryStats[i].Name.c_str());
+				ImGui::TableSetColumnIndex(1);
+				ImGui::TextColored(ImVec4(0, 1, 0, 1), MemoryStats[i].Format.c_str(), MemoryStats[i].MemoryBytes);
+				ImGui::TableSetColumnIndex(3);
+				ImGui::TextColored(ImVec4(0, 1, 0, 1), "%s", MemoryStats[i].PoolType.c_str());
+			}
 
 			ImGui::EndTable();
 		}

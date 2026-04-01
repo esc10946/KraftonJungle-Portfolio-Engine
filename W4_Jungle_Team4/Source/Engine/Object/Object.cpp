@@ -1,4 +1,4 @@
-#include "Object.h"
+﻿#include "Object.h"
 #include "EngineStatics.h"
 
 TArray<UObject*> GUObjectArray;
@@ -34,4 +34,42 @@ bool UObject::IsValidLowLevel() const
 	}
 
 	return GUObjectArray[InternalIndex] == this;
+}
+
+void* operator new(size_t Size)
+{
+	void* Ptr = std::malloc(Size);
+	if (Ptr)
+	{
+		EngineStatics::OnAllocated(static_cast<uint32>(Size));
+	}
+	return Ptr;
+}
+
+void* operator new[](size_t Size)
+{
+	void* Ptr = std::malloc(Size);
+	if (Ptr)
+	{
+		EngineStatics::OnAllocated(static_cast<uint32>(Size));
+	}
+	return Ptr;
+}
+
+void operator delete(void* Ptr, size_t Size)
+{
+	if (Ptr)
+	{
+		EngineStatics::OnDeallocated(static_cast<uint32>(Size));
+		std::free(Ptr);
+	}
+}
+
+void operator delete[](void* Ptr, size_t Size)
+{
+	if (Ptr)
+	{
+		EngineStatics::OnDeallocated(static_cast<uint32>(Size));
+		std::free(Ptr);
+	}
 }
