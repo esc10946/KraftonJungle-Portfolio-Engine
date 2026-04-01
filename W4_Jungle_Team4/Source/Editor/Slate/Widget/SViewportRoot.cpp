@@ -47,6 +47,7 @@ void SViewportRoot::Tick(float DeltaTime)
 
 void SViewportRoot::Construct()
 {
+	FSlateApplication::Get().ClearInputCaptor();
 	RemoveChildren();
 
 	FString LayoutName = LayoutToName(CurrentLayout);
@@ -83,7 +84,6 @@ void SViewportRoot::Construct()
 			}
 		}
 	}
-
 }
 
 void SViewportRoot::SaveCurrentLayoutInfo()

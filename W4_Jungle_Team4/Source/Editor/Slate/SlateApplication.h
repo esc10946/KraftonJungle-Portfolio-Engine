@@ -45,6 +45,13 @@ public:
 	}
 
 	SWidget* GetMouseCaptor() const { return MouseCaptor; }
+	
+	void ClearInputCaptor()
+	{
+		MouseCaptor = nullptr;
+		WidgetUnderMouse = nullptr;
+		LastKeyboardTarget = nullptr;
+	}
 
 private:
 	SWidget* FindWidgetAt(FVector2 ScreenPoint) const;

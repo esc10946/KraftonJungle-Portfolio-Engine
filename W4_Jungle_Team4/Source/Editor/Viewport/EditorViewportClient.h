@@ -20,7 +20,7 @@ class FSelectionManager;
 class FEditorViewportClient : public FViewportClient
 {
 public:
-	FEditorViewportClient() = default;
+	FEditorViewportClient();
 	~FEditorViewportClient();
 
 public:

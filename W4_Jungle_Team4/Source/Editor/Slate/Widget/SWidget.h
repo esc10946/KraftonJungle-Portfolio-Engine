@@ -48,6 +48,7 @@ public:
 		for (SWidget* Child : Children)
 		{
 			Child->Parent = nullptr;
+			delete Child;
 		}
 		Children.clear();
 	}

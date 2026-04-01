@@ -205,7 +205,10 @@ void UEditorEngine::ResetViewport()
 	if (FirstViewportClient && FirstViewportClient->GetCamera())
 	{
 		World->SetActiveCamera(FirstViewportClient->GetCamera());
+		FViewportManager::Get().SetFocusedCamera(FirstViewportClient->GetCamera());
 	}
+
+	OnWindowResized(Window->GetWidth(), Window->GetHeight());
 }
 
 void UEditorEngine::CloseScene()

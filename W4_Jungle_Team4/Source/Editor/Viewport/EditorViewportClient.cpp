@@ -13,6 +13,12 @@
 #include "Editor/Selection/SelectionManager.h"
 #include "Viewport/ViewportManager.h"
 
+FEditorViewportClient::FEditorViewportClient()
+{
+	ViewOptions[static_cast<uint32>(EViewOption::Perspective)].CameraLocation = FVector(5.0f, 5.0f, 5.0f);
+	ViewOptions[static_cast<uint32>(EViewOption::Perspective)].CameraRotation = FVector(0.0f, 30.0f, -135.0f);
+}
+
 FEditorViewportClient::~FEditorViewportClient()
 {
 	DestroyCamera();
