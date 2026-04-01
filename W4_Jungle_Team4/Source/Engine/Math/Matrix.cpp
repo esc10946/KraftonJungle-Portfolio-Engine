@@ -1,6 +1,6 @@
 ﻿#include "Matrix.h"
 #include "Utils.h"
-#include <iostream>
+#include <cstdio>
 
 const FMatrix FMatrix::Identity(1, 0, 0, 0,
 	0, 1, 0, 0,
@@ -339,13 +339,13 @@ void FMatrix::Print() const
 {
 	for (int i = 0; i < 4; i++)
 	{
-		std::cout << "[ ";
+		std::printf("[ ");
 		for (int j = 0; j < 4; j++)
 		{
-			std::cout << M[i][j];
-			if (j < 3) std::cout << ", ";
+			std::printf("%g", M[i][j]);
+			if (j < 3) std::printf(", ");
 		}
-		std::cout << " ]\n";
+		std::printf(" ]\n");
 	}
 }
 

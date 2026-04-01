@@ -4,6 +4,7 @@
 #include "Render/Resource/VertexTypes.h"
 
 class UMaterialInterface;
+class UMaterialInstance;
 class UStaticMesh;
 
 class UStaticMeshComponent : public UMeshComponent
@@ -12,8 +13,9 @@ public:
 	DECLARE_CLASS(UStaticMeshComponent, UMeshComponent)
 
 	UStaticMeshComponent();
-	~UStaticMeshComponent() override = default;
+	~UStaticMeshComponent() override;
 
+	void ReleaseOwnedMaterialInstances();
 	void SetStaticMesh(UStaticMesh* InMesh);
 	UStaticMesh* GetStaticMesh() const { return StaticMesh; }
 	FString GetStaticMeshAssetPath() const;
@@ -35,6 +37,9 @@ public:
 private:
 	void InitializeMaterialSlotsFromMesh();
 	void RefreshMeshData();
+	void ResizeMaterialState(int32 NumSections);
+
+	UMaterialInstance* EnsureMaterialInstance(int32 SectionIndex);
 
 private:
 	UStaticMesh* StaticMesh = nullptr;
@@ -42,4 +47,6 @@ private:
 	FTexturedMeshData StaticMeshTexturedRenderData;
 	uint32 TexturedMeshRevision = 0;
 	TArray<FString> EditableMaterialPropertyNames;
+	TArray<UMaterialInstance*> SectionMaterialInstances;
+	TArray<FVector4> EditableMaterialColors;
 };

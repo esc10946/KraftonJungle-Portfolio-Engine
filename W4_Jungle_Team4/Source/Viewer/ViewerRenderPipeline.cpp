@@ -1,6 +1,5 @@
 ﻿#include "ViewerRenderPipeline.h"
 
-#include <iostream>
 
 #include "Engine/Render/Renderer/Renderer.h"
 #include "Viewer/ViewerViewportClient.h"

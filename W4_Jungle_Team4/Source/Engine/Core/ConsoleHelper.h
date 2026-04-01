@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include <Windows.h>
-#include <iostream>
+#include <ios>
 #include <cstdio>
 
 class ConsoleHelper {
@@ -11,7 +11,7 @@ public:
             freopen_s(&m_fpOut, "CONOUT$", "w", stdout);
             freopen_s(&m_fpErr, "CONOUT$", "w", stderr);
 
-            std::ios::sync_with_stdio();
+            std::ios_base::sync_with_stdio();
         }
     }
 

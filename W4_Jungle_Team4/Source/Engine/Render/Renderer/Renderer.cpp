@@ -1,6 +1,5 @@
 ﻿#include "Renderer.h"
 
-#include <iostream>
 #include <algorithm>
 #include "Asset/Material/MaterialObject.h"
 #include "Asset/Shader/ShaderObject.h"
@@ -17,11 +16,6 @@
 void FRenderer::Create(HWND hWindow)
 {
 	Device.Create(hWindow);
-
-	if (Device.GetDevice() == nullptr)
-	{
-		std::cout << "Failed to create D3D Device." << std::endl;
-	}
 
 	// 1. 일반 메쉬 (Primitive.hlsl)
 	Resources.PrimitiveShader.Create(Device.GetDevice(), L"Shaders/Primitive.hlsl",

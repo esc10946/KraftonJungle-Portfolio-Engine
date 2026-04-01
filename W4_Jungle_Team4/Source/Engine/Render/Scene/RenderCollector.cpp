@@ -277,7 +277,8 @@ void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, cons
 			FRenderCommand Cmd = {};
 			Cmd.Type = ERenderCommandType::StaticMesh;
 			Cmd.TextureMeshBuffer = StaticMeshBuffer;
-			Cmd.PerObjectConstants = FPerObjectConstants{ Primitive->GetWorldMatrix(), Primitive->GetMaterialColor() };
+			Cmd.PerObjectConstants = FPerObjectConstants{ Primitive->GetWorldMatrix()};
+
 			Cmd.DepthStencilState = EDepthStencilState::Default;
 			Cmd.BlendState = EBlendState::Opaque;
 
@@ -303,7 +304,7 @@ void FRenderCollector::CollectFromComponent(UPrimitiveComponent* Primitive, cons
 					Cmd.MeshRenderData.DiffuseSRV = Texture->GetOrCreateShaderResourceView(Device);
 				}
 				Cmd.Constants.StaticMesh.StaticMeshUseTexture = (Cmd.MeshRenderData.DiffuseSRV != nullptr) ? 1u : 0u;
-				Cmd.PerObjectConstants.Color = Cmd.MeshRenderData.DiffuseSRV != nullptr ? MaterialParameters.BaseColor : Primitive->GetMaterialColor();
+				Cmd.PerObjectConstants.Color = MaterialParameters.BaseColor;
 			}
 
 			if (StaticMeshComponent->bUseUVScroll) {

@@ -1,10 +1,99 @@
 ﻿#include "StaticMeshComponent.h"
 
 #include "Asset/Material/MaterialObject.h"
+#include "Asset/Material/MaterialManager.h"
 #include "Asset/StaticMesh/StaticMeshObject.h"
 #include "GameFramework/PrimitiveActors.h"
 
 #include <cstring>
+
+namespace
+{
+	int32 ParseElementIndex(const char* PropertyName)
+	{
+		if (!PropertyName || std::strncmp(PropertyName, "Element ", 8) != 0)
+		{
+			return -1;
+		}
+
+		int32 ElementIndex = 0;
+		bool bHasDigit = false;
+		const char* Cursor = PropertyName + 8;
+		while (*Cursor >= '0' && *Cursor <= '9')
+		{
+			bHasDigit = true;
+			ElementIndex = (ElementIndex * 10) + (*Cursor - '0');
+			++Cursor;
+		}
+
+		return bHasDigit ? ElementIndex : -1;
+	}
+
+	FVector4 ResolveBaseColor(UMaterialInterface* Material)
+	{
+		return Material ? Material->GetBaseColor() : FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+	}
+
+	UMaterial* ResolveParentMaterial(UMaterialInterface* Material)
+	{
+		if (UMaterial* BaseMaterial = UMaterial::Cast(Material))
+		{
+			return BaseMaterial;
+		}
+
+		if (UMaterialInstance* MaterialInstance = UMaterialInstance::Cast(Material))
+		{
+			return MaterialInstance->GetParentMaterial();
+		}
+
+		return nullptr;
+	}
+
+	void CopyInstanceParameters(UMaterialInstance* TargetInstance, UMaterialInterface* SourceMaterial)
+	{
+		if (!TargetInstance || !UMaterialInstance::Cast(SourceMaterial))
+		{
+			return;
+		}
+
+		FResolvedMaterialParameters Parameters;
+		SourceMaterial->ResolveParameters(Parameters);
+
+		if (Parameters.DiffuseTexture)
+		{
+			TargetInstance->SetTextureParameter(Parameters.DiffuseTexture);
+		}
+		if (Parameters.NormalTexture)
+		{
+			TargetInstance->SetNormalTextureParameter(Parameters.NormalTexture);
+		}
+		if (Parameters.Shader)
+		{
+			TargetInstance->SetShaderParameter(Parameters.Shader);
+		}
+
+		TargetInstance->SetBaseColorParameter(Parameters.BaseColor);
+		TargetInstance->SetMetallicParameter(Parameters.Metallic);
+		TargetInstance->SetTopUVRectParameter(Parameters.TopUVRect);
+		TargetInstance->SetSideUVRectParameter(Parameters.SideUVRect);
+		TargetInstance->SetBottomUVRectParameter(Parameters.BottomUVRect);
+	}
+
+	void ResetInstanceOverrides(UMaterialInstance* MaterialInstance)
+	{
+		if (!MaterialInstance)
+		{
+			return;
+		}
+
+		MaterialInstance->ClearTextureParameter();
+		MaterialInstance->ClearNormalTextureParameter();
+		MaterialInstance->ClearShaderParameter();
+		MaterialInstance->ClearBaseColorParameter();
+		MaterialInstance->ClearMetallicParameter();
+		MaterialInstance->ClearUVRectParameters();
+	}
+}
 
 DEFINE_CLASS(UStaticMeshComponent, UMeshComponent)
 REGISTER_FACTORY(UStaticMeshComponent)
@@ -13,10 +102,37 @@ UStaticMeshComponent::UStaticMeshComponent()
 {
 }
 
+UStaticMeshComponent::~UStaticMeshComponent()
+{
+    ReleaseOwnedMaterialInstances();
+}
+
+void UStaticMeshComponent::ReleaseOwnedMaterialInstances()
+{
+	int32 StartIndex = 0;
+    
+	if (StartIndex < 0)
+    {
+        StartIndex = 0;
+    }
+
+    for (int32 i = StartIndex; i < static_cast<int32>(SectionMaterialInstances.size()); ++i)
+    {
+        if (SectionMaterialInstances[i])
+        {
+            UObjectManager::Get().DestroyObject(SectionMaterialInstances[i]);
+            SectionMaterialInstances[i] = nullptr;
+        }
+    }
+}
+
+
 void UStaticMeshComponent::SetStaticMesh(UStaticMesh* InMesh)
 {
 	StaticMesh = InMesh;
-	OverrideMaterials.clear();
+	AssignedMaterials.clear();
+	SectionMaterialInstances.clear();
+	EditableMaterialColors.clear();
 	InitializeMaterialSlotsFromMesh();
 	RefreshMeshData();
 
@@ -48,12 +164,39 @@ void UStaticMeshComponent::SetMaterial(int32 SlotIndex, UMaterialInterface* InMa
 		return;
 	}
 
-	if (SlotIndex >= static_cast<int32>(OverrideMaterials.size()))
+	const int32 NumSections = StaticMesh ? StaticMesh->GetNumSections() : (SlotIndex + 1);
+	ResizeMaterialState(NumSections);
+
+	if (SlotIndex >= static_cast<int32>(AssignedMaterials.size()))
 	{
-		OverrideMaterials.resize(SlotIndex + 1, nullptr);
+		return;
 	}
 
-	OverrideMaterials[SlotIndex] = InMaterial;
+	AssignedMaterials[SlotIndex] = InMaterial;
+
+	UMaterialInterface* EffectiveMaterial = InMaterial;
+	if (!EffectiveMaterial && StaticMesh)
+	{
+		EffectiveMaterial = StaticMesh->GetDefaultMaterialForSection(SlotIndex);
+	}
+	EditableMaterialColors[SlotIndex] = ResolveBaseColor(EffectiveMaterial);
+
+	if (UMaterialInstance* MaterialInstance = SectionMaterialInstances[SlotIndex])
+	{
+		UMaterial* ParentMaterial = ResolveParentMaterial(EffectiveMaterial);
+		if (!ParentMaterial)
+		{
+			SectionMaterialInstances[SlotIndex] = nullptr;
+		}
+		else
+		{
+			MaterialInstance->SetParentMaterial(ParentMaterial);
+			ResetInstanceOverrides(MaterialInstance);
+			CopyInstanceParameters(MaterialInstance, EffectiveMaterial);
+			MaterialInstance->SetBaseColorParameter(EditableMaterialColors[SlotIndex]);
+		}
+	}
+
 	RefreshMeshData();
 }
 
@@ -64,9 +207,14 @@ UMaterialInterface* UStaticMeshComponent::GetMaterial(int32 SlotIndex) const
 		return nullptr;
 	}
 
-	if (SlotIndex < static_cast<int32>(OverrideMaterials.size()) && OverrideMaterials[SlotIndex])
+	if (SlotIndex < static_cast<int32>(SectionMaterialInstances.size()) && SectionMaterialInstances[SlotIndex])
 	{
-		return OverrideMaterials[SlotIndex];
+		return SectionMaterialInstances[SlotIndex];
+	}
+
+	if (SlotIndex < static_cast<int32>(AssignedMaterials.size()) && AssignedMaterials[SlotIndex])
+	{
+		return AssignedMaterials[SlotIndex];
 	}
 
 	return StaticMesh ? StaticMesh->GetDefaultMaterialForSection(SlotIndex) : nullptr;
@@ -127,8 +275,9 @@ void UStaticMeshComponent::GetEditableProperties(TArray<FPropertyDescriptor>& Ou
 
 	const TArray<FStaticMeshSection>& Sections = StaticMesh->GetSections();
 	const TArray<FStaticMaterialSlot>& MaterialSlots = StaticMesh->GetMaterialSlots();
+	ResizeMaterialState(static_cast<int32>(Sections.size()));
 	EditableMaterialPropertyNames.clear();
-	EditableMaterialPropertyNames.reserve(Sections.size());
+	EditableMaterialPropertyNames.reserve(Sections.size() * 2);
 
 	for (size_t SectionIndex = 0; SectionIndex < Sections.size(); ++SectionIndex)
 	{
@@ -142,9 +291,18 @@ void UStaticMeshComponent::GetEditableProperties(TArray<FPropertyDescriptor>& Ou
 		FPropertyDescriptor MaterialProperty;
 		MaterialProperty.Name = EditableMaterialPropertyNames.back().c_str();
 		MaterialProperty.Type = EPropertyType::Object;
-		MaterialProperty.ValuePtr = &OverrideMaterials[SectionIndex];
+		MaterialProperty.ValuePtr = &AssignedMaterials[SectionIndex];
 		MaterialProperty.ObjectClass = &UMaterialInterface::s_TypeInfo;
 		OutProps.push_back(MaterialProperty);
+
+		EditableMaterialPropertyNames.push_back(
+			"Element " + std::to_string(SectionIndex) + " Color [" + SlotLabel + "]");
+
+		FPropertyDescriptor ColorProperty;
+		ColorProperty.Name = EditableMaterialPropertyNames.back().c_str();
+		ColorProperty.Type = EPropertyType::Vec4;
+		ColorProperty.ValuePtr = &EditableMaterialColors[SectionIndex].X;
+		OutProps.push_back(ColorProperty);
 	}
 
 	OutProps.push_back({ "UseScroll", EPropertyType::Bool, &bUseUVScroll});
@@ -158,7 +316,9 @@ void UStaticMeshComponent::PostEditProperty(const char* PropertyName)
 {
 	if (std::strcmp(PropertyName, "StaticMesh") == 0)
 	{
-		OverrideMaterials.clear();
+		AssignedMaterials.clear();
+		SectionMaterialInstances.clear();
+		EditableMaterialColors.clear();
 		InitializeMaterialSlotsFromMesh();
 		RefreshMeshData();
 
@@ -176,7 +336,51 @@ void UStaticMeshComponent::PostEditProperty(const char* PropertyName)
 
 	if (std::strstr(PropertyName, "Material [") != nullptr)
 	{
+		const int32 SectionIndex = ParseElementIndex(PropertyName);
+		if (StaticMesh &&
+			SectionIndex >= 0 &&
+			SectionIndex < static_cast<int32>(AssignedMaterials.size()) &&
+			SectionIndex < static_cast<int32>(SectionMaterialInstances.size()) &&
+			SectionIndex < static_cast<int32>(EditableMaterialColors.size()))
+		{
+			UMaterialInterface* EffectiveMaterial = AssignedMaterials[SectionIndex]
+				? AssignedMaterials[SectionIndex]
+				: StaticMesh->GetDefaultMaterialForSection(SectionIndex);
+			EditableMaterialColors[SectionIndex] = ResolveBaseColor(EffectiveMaterial);
+
+			if (UMaterialInstance* MaterialInstance = SectionMaterialInstances[SectionIndex])
+			{
+				UMaterial* ParentMaterial = ResolveParentMaterial(EffectiveMaterial);
+				if (!ParentMaterial)
+				{
+					SectionMaterialInstances[SectionIndex] = nullptr;
+				}
+				else
+				{
+					MaterialInstance->SetParentMaterial(ParentMaterial);
+					ResetInstanceOverrides(MaterialInstance);
+					CopyInstanceParameters(MaterialInstance, EffectiveMaterial);
+					MaterialInstance->SetBaseColorParameter(EditableMaterialColors[SectionIndex]);
+				}
+			}
+		}
 		RefreshMeshData();
+		return;
+	}
+
+	if (std::strstr(PropertyName, "Color [") != nullptr)
+	{
+		const int32 SectionIndex = ParseElementIndex(PropertyName);
+		if (SectionIndex >= 0 &&
+			SectionIndex < static_cast<int32>(EditableMaterialColors.size()))
+		{
+			if (UMaterialInstance* MaterialInstance = EnsureMaterialInstance(SectionIndex))
+			{
+				MaterialInstance->SetBaseColorParameter(EditableMaterialColors[SectionIndex]);
+			}
+		}
+		RefreshMeshData();
+		return;
 	}
 }
 
@@ -186,14 +390,32 @@ void UStaticMeshComponent::InitializeMaterialSlotsFromMesh()
 
 	if (!StaticMesh)
 	{
-		OverrideMaterials.clear();
+		AssignedMaterials.clear();
+		SectionMaterialInstances.clear();
+		EditableMaterialColors.clear();
 		return;
 	}
-	int32 NumSlots = StaticMesh->GetNumMaterialSlots();
-	OverrideMaterials.resize(static_cast<size_t>(NumSlots), nullptr);
-		for (int32 i = 0 ; i < NumSlots; i++) {
-			OverrideMaterials[i] = StaticMesh->GetMaterialSlots()[i].DefaultMaterial;
-		}
+
+	const int32 NumSections = StaticMesh->GetNumSections();
+	ResizeMaterialState(NumSections);
+
+	for (int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
+	{
+		EditableMaterialColors[SectionIndex] =
+			ResolveBaseColor(StaticMesh->GetDefaultMaterialForSection(SectionIndex));
+	}
+}
+
+void UStaticMeshComponent::ResizeMaterialState(int32 NumSections)
+{
+	if (NumSections < 0)
+	{
+		NumSections = 0;
+	}
+
+	AssignedMaterials.resize(static_cast<size_t>(NumSections), nullptr);
+	SectionMaterialInstances.resize(static_cast<size_t>(NumSections), nullptr);
+	EditableMaterialColors.resize(static_cast<size_t>(NumSections), FVector4(1.0f, 1.0f, 1.0f, 1.0f));
 }
 
 void UStaticMeshComponent::RefreshMeshData()
@@ -215,3 +437,35 @@ void UStaticMeshComponent::RefreshMeshData()
 	StaticMeshTexturedRenderData.Indices.clear();
 	MeshData = nullptr;
 }
+
+UMaterialInstance* UStaticMeshComponent::EnsureMaterialInstance(int32 SectionIndex)
+{
+	if (!StaticMesh || SectionIndex < 0 || SectionIndex >= StaticMesh->GetNumSections())
+	{
+		return nullptr;
+	}
+
+	ResizeMaterialState(StaticMesh->GetNumSections());
+
+	if (SectionMaterialInstances[SectionIndex])
+	{
+		return SectionMaterialInstances[SectionIndex];
+	}
+
+	UMaterialInterface* SourceMaterial = AssignedMaterials[SectionIndex]
+		? AssignedMaterials[SectionIndex]
+		: StaticMesh->GetDefaultMaterialForSection(SectionIndex);
+	UMaterial* ParentMaterial = ResolveParentMaterial(SourceMaterial);
+	if (!ParentMaterial)
+	{
+		return nullptr;
+	}
+
+	UMaterialInstance* MaterialInstance = FMaterialManager::Get().CreateMaterialInstance(ParentMaterial, FString());
+	MaterialInstance->SetHiddenInMaterialPicker(true);
+	CopyInstanceParameters(MaterialInstance, SourceMaterial);
+	MaterialInstance->SetBaseColorParameter(EditableMaterialColors[SectionIndex]);
+	SectionMaterialInstances[SectionIndex] = MaterialInstance;
+	return MaterialInstance;
+}
+

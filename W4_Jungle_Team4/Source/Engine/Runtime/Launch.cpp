@@ -9,8 +9,6 @@ namespace
 {
 	int GuardedMain(HINSTANCE hInstance, int nShowCmd)
 	{
-		ConsoleHelper Console; // console용
-
 		FEngineLoop EngineLoop;
 		if (!EngineLoop.Init(hInstance, nShowCmd))
 		{

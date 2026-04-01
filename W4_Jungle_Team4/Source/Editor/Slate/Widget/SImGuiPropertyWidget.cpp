@@ -111,6 +111,11 @@ namespace
 			return;
 		}
 
+		if (Candidate->IsHiddenInMaterialPicker())
+		{
+			return;
+		}
+
 		InOutCandidates.push_back(Candidate);
 	}
 

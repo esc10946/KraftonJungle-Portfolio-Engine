@@ -2,7 +2,6 @@
 #include "Math/Utils.h"
 
 #include <fstream>
-#include <iostream>
 #include <sstream>
 
 FMeshData FMeshManager::CubeMeshData;

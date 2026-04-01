@@ -10,7 +10,6 @@
 #include "Core/TweenSystem.h"
 #include "Render/Renderer/DefaultRenderPipeline.h"
 #include "GameFramework/World.h"
-#include <iostream>
 
 DEFINE_CLASS(UEngine, UObject)
 
@@ -147,7 +146,6 @@ const FWorldContext* UEngine::GetWorldContextFromHandle(const FName& Handle) con
 			return &Ctx;
 		}
 	}
-	std::cout << "asdf" << std::endl;
 	return nullptr;
 }
 

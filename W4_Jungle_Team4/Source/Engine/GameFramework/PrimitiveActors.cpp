@@ -96,7 +96,7 @@ void ACubeActor::InitDefaultComponents()
 	Text->SetFont(FName("Default"));
 	Text->AttachToComponent(CubeMesh);
 	Text->SetText("UUID : " + std::to_string(GetUUID()));
-	Text->SetRelativeLocation(FVector(0.0f, 0.0f, 1.0f));
+	UpdateUUIDTextLocation();
 }
 
 void ASphereActor::InitDefaultComponents()
@@ -111,7 +111,7 @@ void ASphereActor::InitDefaultComponents()
 	Text->SetFont(FName("Default"));
 	Text->AttachToComponent(SphereMesh);
 	Text->SetText("UUID : " + std::to_string(GetUUID()));
-	Text->SetRelativeLocation(FVector(0.0f, 0.0f, 1.0f));
+	UpdateUUIDTextLocation();
 }
 
 void APlaneActor::InitDefaultComponents()
@@ -126,7 +126,7 @@ void APlaneActor::InitDefaultComponents()
 	Text->SetFont(FName("Default"));
 	Text->SetText(std::format("UUID: {}", GetUUID()));
 	Text->AttachToComponent(PlaneMesh);
-	Text->SetRelativeLocation(FVector(0.0f, 0.0f, 1.0f));
+	UpdateUUIDTextLocation();
 
 	// SubUV
 	USubUVComponent* SubUV = AddComponent<USubUVComponent>();

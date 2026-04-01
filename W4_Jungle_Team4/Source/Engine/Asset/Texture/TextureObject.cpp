@@ -3,7 +3,6 @@
 #include "Core/ResourceManager.h"
 
 #include <filesystem>
-#include <iostream>
 
 DEFINE_CLASS(UTexture2D, UObject)
 REGISTER_FACTORY(UTexture2D)

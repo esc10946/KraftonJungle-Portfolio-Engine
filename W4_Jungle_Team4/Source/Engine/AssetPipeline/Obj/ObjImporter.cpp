@@ -8,7 +8,6 @@
 
 #include <filesystem>
 
-#include <iostream> // test
 #include <Core/Paths.h>
 
 namespace
@@ -48,8 +47,6 @@ namespace
 			ResolveSingleTexturePath(MaterialInfo.map_Bump, MtlDirectory);
 		}
 
-		std::cout << "[Resolve] InMtlPath: " << InMtlPath << "\n";
-		std::cout << "[Resolve] MtlDirectory: " << MtlDirectory.string() << "\n";
 	}
 
 	FVector ConvertYUpToZUp(const FVector& V)
@@ -66,16 +63,6 @@ bool FObjImporter::ImportFromFile(const FString& InObjPath, FStaticMeshAsset& Ou
 	{
 		return false;
 	}
-
-	// opt) test ParseFile 성공
-	std::cout
-		<< "[ObjImporter] parsed raw data"
-		<< " positions=" << ObjInfo.Positions.size()
-		<< ", texcoords=" << ObjInfo.TexCoords.size()
-		<< ", normals=" << ObjInfo.Normals.size()
-		<< ", faces=" << ObjInfo.Faces.size()
-		<< ", mtllib=" << ObjInfo.MaterialLibraryPath
-		<< '\n';
 
 	// mtllib 있으면 mtl 파일 읽어서 Materials 채우기
 	const FString MaterialLibraryPath = ResolveMaterialLibraryPath(ObjInfo);
@@ -112,14 +99,6 @@ bool FObjImporter::BuildStaticMeshAsset(const FObjInfo& InObjInfo, FStaticMeshAs
 	OutAsset.UpdateBounds();
 	
 	BuildSections(InObjInfo, OutAsset);
-
-	// opt) test
-	std::cout
-		<< "[ObjImporter] cooked asset"
-		<< " vertices=" << OutAsset.Vertices.size()
-		<< ", indices=" << OutAsset.Indices.size()
-		<< ", sections=" << OutAsset.Sections.size()
-		<< '\n';
 
 	return !OutAsset.Vertices.empty();
 }
@@ -274,21 +253,6 @@ void FObjImporter::BuildSections(const FObjInfo& InObjInfo, FStaticMeshAsset& In
 		RunningIndex += FaceIndexCount;
 	}
 
-	// opt) test
-	for (const FStaticMeshSection& Section : InOutAsset.Sections)
-	{
-		const FStaticMaterialSlot* Slot = Section.MaterialSlotIndex < InOutAsset.MaterialSlots.size()
-			? &InOutAsset.MaterialSlots[Section.MaterialSlotIndex]
-			: nullptr;
-		std::cout
-			<< "[ObjImporter] section"
-			<< " firstIndex=" << Section.FirstIndex
-			<< ", indexCount=" << Section.IndexCount
-			<< ", slot=" << Section.MaterialSlotIndex
-			<< ", material=" << (Slot ? Slot->SourceMaterialName : FString())
-			<< ", texture=" << (Slot ? Slot->DiffuseTexturePath : FString())
-			<< '\n';
-	}
 }
 
 FString FObjImporter::ResolveMaterialLibraryPath(const FObjInfo& InObjInfo)

@@ -1,6 +1,5 @@
 ﻿#include "Shader.h"
 
-#include <iostream>
 
 void FShader::Create(ID3D11Device* InDevice, const wchar_t* InFilePath, const char * InVSEntryPoint, const char * InPSEntryPoint,
 		const D3D11_INPUT_ELEMENT_DESC * InInputElements, UINT InInputElementCount)
@@ -38,7 +37,6 @@ void FShader::Create(ID3D11Device* InDevice, const wchar_t* InFilePath, const ch
 	hr = InDevice->CreateVertexShader(vertexShaderCSO->GetBufferPointer(), vertexShaderCSO->GetBufferSize(), nullptr, &VertexShader);
 	if (FAILED(hr))
 	{
-		std::cerr << "Failed to create Vertex Shader (HRESULT: " << hr << ")" << std::endl;
 		vertexShaderCSO->Release();
 		pixelShaderCSO->Release();
 		return;
@@ -48,7 +46,6 @@ void FShader::Create(ID3D11Device* InDevice, const wchar_t* InFilePath, const ch
 	hr = InDevice->CreatePixelShader(pixelShaderCSO->GetBufferPointer(), pixelShaderCSO->GetBufferSize(), nullptr, &PixelShader);
 	if (FAILED(hr))
 	{
-		std::cerr << "Failed to create Pixel Shader (HRESULT: " << hr << ")" << std::endl;
 		vertexShaderCSO->Release();
 		pixelShaderCSO->Release();
 		return;

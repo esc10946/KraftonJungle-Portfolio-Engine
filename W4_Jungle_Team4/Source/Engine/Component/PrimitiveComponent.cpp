@@ -15,7 +15,6 @@ void UPrimitiveComponent::GetEditableProperties(TArray<FPropertyDescriptor>& Out
 {
 	USceneComponent::GetEditableProperties(OutProps);
 	OutProps.push_back({ "Visible", EPropertyType::Bool, &bIsVisible });
-	OutProps.push_back({ "MaterialColor", EPropertyType::Vec4, &MaterialColor });
 }
 
 void UPrimitiveComponent::UpdateWorldAABB() const

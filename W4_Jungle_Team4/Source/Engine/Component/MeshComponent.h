@@ -21,6 +21,6 @@ public:
 	bool bUseUVScroll = false;
     FVector2 UVScrollSpeed = FVector2(0.f, 0.1f);
 protected:
-    TArray<UMaterialInterface*> OverrideMaterials;
+    TArray<UMaterialInterface*> AssignedMaterials;
 };
 

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Object/ObjectFactory.h"
 #include "Math/Vector.h"
@@ -41,6 +41,9 @@ public:
 	void SetSourceMaterialName(const FString& InSourceMaterialName) { SourceMaterialName = InSourceMaterialName; }
 	virtual const FString& GetSourceMaterialName() const { return SourceMaterialName; }
 
+	void SetHiddenInMaterialPicker(bool bInHidden) { bHiddenInMaterialPicker = bInHidden; }
+	bool IsHiddenInMaterialPicker() const { return bHiddenInMaterialPicker; }
+
 	virtual const FString& GetDiffuseTexturePath() const = 0;
 	virtual UTexture2D* GetDiffuseTexture() const = 0;
 	virtual const FString& GetNormalTexturePath() const = 0;
@@ -68,6 +71,7 @@ public:
 protected:
 	FString SlotName;
 	FString SourceMaterialName;
+	bool bHiddenInMaterialPicker = false;
 };
 
 class UMaterial : public UMaterialInterface
@@ -198,6 +202,15 @@ public:
 	const FVector4& GetSideUVRect() const override;
 	const FVector4& GetBottomUVRect() const override;
 	void ResolveParameters(FResolvedMaterialParameters& OutParameters) const override;
+
+	FVector4* GetEditableBaseColorPtr(){
+		if (!bOverrideBaseColor)
+		{
+			BaseColor = GetBaseColor();
+			bOverrideBaseColor = true;
+		}
+		return &BaseColor;
+	}
 
 private:
 	UMaterial* ParentMaterial = nullptr;
