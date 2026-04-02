@@ -1,22 +1,47 @@
 {
-  "Actors" : [],
-  "ClassName" : "UWorld",
-  "ContextHandle" : "Default",
-  "ContextName" : "Default",
-  "Name" : "Default",
+  "NextUUID" : 50003,
   "PerspectiveCamera" : {
-    "ClassName" : "UCameraComponent",
-    "Properties" : {
-      "FOV" : 1.047198,
-      "Far Z" : 1000.000000,
-      "Location" : [5.000000, 5.000000, 5.000000],
-      "Near Z" : 0.100000,
-      "Ortho Width" : 10.000000,
-      "Orthographic" : false,
-      "Rotation" : [0.000000, 30.000000, -135.000000],
-      "Scale" : [1.000000, 1.000000, 1.000000]
-    }
+    "FOV" : [60.000000],
+    "FarClip" : [100.000000],
+    "Location" : [-28.107929, -27.869390, 25.837776],
+    "NearClip" : [0.100000],
+    "Rotation" : [0.000000, 0.926283, 0.770000]
   },
-  "Version" : 2,
-  "WorldType" : "Editor"
+  "Primitives" : {
+    "10" : {
+      "Location" : [-25.000000, -18.000000, 0.000000],
+      "ObjStaticMeshAsset" : "Asset/Mesh/apple_mid.smbin",
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "Scale" : [1.000000, 1.000000, 1.000000],
+      "Type" : "StaticMeshComp"
+    },
+    "100" : {
+      "Location" : [-24.000000, 22.000000, 0.000000],
+      "ObjStaticMeshAsset" : "Asset/Mesh/apple_mid.smbin",
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "Scale" : [1.000000, 1.000000, 1.000000],
+      "Type" : "StaticMeshComp"
+    },
+    "1000" : {
+      "Location" : [-6.000000, 22.000000, 0.000000],
+      "ObjStaticMeshAsset" : "Asset/Mesh/apple_mid.smbin",
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "Scale" : [1.000000, 1.000000, 1.000000],
+      "Type" : "StaticMeshComp"
+    },
+    "10000" : {
+      "Location" : [24.000000, 22.000000, 3.000000],
+      "ObjStaticMeshAsset" : "Asset/Mesh/apple_mid.smbin",
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "Scale" : [1.000000, 1.000000, 1.000000],
+      "Type" : "StaticMeshComp"
+    },
+    "10001" : {
+      "Location" : [24.000000, 23.000000, 3.000000],
+      "ObjStaticMeshAsset" : "Asset/Mesh/bitten_apple_mid.smbin",
+      "Rotation" : [0.000000, 0.000000, 0.000000],
+      "Scale" : [1.000000, 1.000000, 1.000000],
+      "Type" : "StaticMeshComp"
+    },
+  }
 }

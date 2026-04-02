@@ -339,6 +339,8 @@ bool FStaticMeshBakeIO::LoadFromFile(const FString& InBakePath, FStaticMeshAsset
 		return false;
 	}
 
+	const std::wstring wPath = std::filesystem::path(InBakePath).wstring();
+
 	FWindowsBinReader Reader(InBakePath.c_str()); // 바이너리 파일 읽기 전용 reader 객체
 	if (!Reader.IsValid())
 	{

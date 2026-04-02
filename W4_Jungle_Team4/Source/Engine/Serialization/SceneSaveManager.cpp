@@ -16,6 +16,7 @@
 #include "Asset/StaticMesh/StaticMeshManager.h"
 #include "Asset/StaticMesh/StaticMeshObject.h"
 #include "Editor/Viewport/ViewportManager.h"
+#include "GameFramework/PrimitiveActors.h"
 #include <Viewport/EditorViewportClient.h>
 #include <Component/StaticMeshComponent.h>
 
@@ -296,7 +297,7 @@ void FSceneSaveManager::LoadSceneFromJSON(const string& filepath, FWorldContext&
 	JSON root = JSON::Load(FileContent);
 
 	string ClassName = root[SceneKeys::ClassName].ToString();
-	UObject* WorldObj = FObjectFactory::Get().Create(ClassName);
+	UObject* WorldObj = FObjectFactory::Get().Create("UWorld");
 	if (!WorldObj || !WorldObj->IsA<UWorld>()) return;
 
 	UWorld* World = static_cast<UWorld*>(WorldObj);
@@ -312,43 +313,69 @@ void FSceneSaveManager::LoadSceneFromJSON(const string& filepath, FWorldContext&
 		: ContextName;
 
 	// Deserialize Actors
-	for (auto& ActorJSON : root[SceneKeys::Actors].ArrayRange()) {
-		string ActorClass = ActorJSON[SceneKeys::ClassName].ToString();
-		UObject* ActorObj = FObjectFactory::Get().Create(ActorClass);
-		if (!ActorObj || !ActorObj->IsA<AActor>()) continue;
+	//for (auto& ActorJSON : root[SceneKeys::Actors].ArrayRange()) {
+	//	string ActorClass = ActorJSON[SceneKeys::ClassName].ToString();
+	//	UObject* ActorObj = FObjectFactory::Get().Create(ActorClass);
+	//	if (!ActorObj || !ActorObj->IsA<AActor>()) continue;
 
-		AActor* Actor = static_cast<AActor*>(ActorObj);
-		Actor->SetWorld(World);
-		World->AddActor(Actor);
+	//	AActor* Actor = static_cast<AActor*>(ActorObj);
+	//	Actor->SetWorld(World);
+	//	World->AddActor(Actor);
 
-		if (ActorJSON.hasKey(SceneKeys::Visible)) {
-			Actor->SetVisible(ActorJSON[SceneKeys::Visible].ToBool());
-		}
+	//	if (ActorJSON.hasKey(SceneKeys::Visible)) {
+	//		Actor->SetVisible(ActorJSON[SceneKeys::Visible].ToBool());
+	//	}
 
-		// RootComponent 트리 복원
-		if (ActorJSON.hasKey(SceneKeys::RootComponent)) {
-			auto RootJSON = ActorJSON[SceneKeys::RootComponent];
-			USceneComponent* Root = DeserializeSceneComponentTree(RootJSON, Actor);
-			if (Root) {
-				Actor->SetRootComponent(Root);
-			}
-		}
+	//	// RootComponent 트리 복원
+	//	if (ActorJSON.hasKey(SceneKeys::RootComponent)) {
+	//		auto RootJSON = ActorJSON[SceneKeys::RootComponent];
+	//		USceneComponent* Root = DeserializeSceneComponentTree(RootJSON, Actor);
+	//		if (Root) {
+	//			Actor->SetRootComponent(Root);
+	//		}
+	//	}
 
-		// Non-scene components 복원
-		if (ActorJSON.hasKey(SceneKeys::NonSceneComponents)) {
-			for (auto& CompJSON : ActorJSON[SceneKeys::NonSceneComponents].ArrayRange()) {
-				string CompClass = CompJSON[SceneKeys::ClassName].ToString();
-				UObject* CompObj = FObjectFactory::Get().Create(CompClass);
-				if (!CompObj || !CompObj->IsA<UActorComponent>()) continue;
+	//	// Non-scene components 복원
+	//	if (ActorJSON.hasKey(SceneKeys::NonSceneComponents)) {
+	//		for (auto& CompJSON : ActorJSON[SceneKeys::NonSceneComponents].ArrayRange()) {
+	//			string CompClass = CompJSON[SceneKeys::ClassName].ToString();
+	//			UObject* CompObj = FObjectFactory::Get().Create(CompClass);
+	//			if (!CompObj || !CompObj->IsA<UActorComponent>()) continue;
 
-				UActorComponent* Comp = static_cast<UActorComponent*>(CompObj);
-				Actor->RegisterComponent(Comp);
+	//			UActorComponent* Comp = static_cast<UActorComponent*>(CompObj);
+	//			Actor->RegisterComponent(Comp);
 
-				if (CompJSON.hasKey(SceneKeys::Properties)) {
-					auto PropsJSON = CompJSON[SceneKeys::Properties];
-					DeserializeProperties(Comp, PropsJSON);
-				}
-			}
+	//			if (CompJSON.hasKey(SceneKeys::Properties)) {
+	//				auto PropsJSON = CompJSON[SceneKeys::Properties];
+	//				DeserializeProperties(Comp, PropsJSON);
+	//			}
+	//		}
+	// 
+	//	}
+	//}
+
+	if (root.hasKey("Primitives"))
+	{
+		for (auto& CompJSON : root["Primitives"].ObjectRange())
+		{
+			string CompClass = CompJSON.second["Type"].ToString();
+			AStaticMeshActor* Actor = World->SpawnActor<AStaticMeshActor>();
+			Actor->InitDefaultComponents();
+
+			Actor->SetActorLocation(FVector(CompJSON.second["Location"][0].ToFloat(),
+				CompJSON.second["Location"][1].ToFloat(),
+				CompJSON.second["Location"][2].ToFloat()));
+			Actor->SetActorRotation(FVector(CompJSON.second["Rotation"][0].ToFloat(),
+				CompJSON.second["Rotation"][1].ToFloat(),
+				CompJSON.second["Rotation"][2].ToFloat()));
+			Actor->SetActorScale(FVector(CompJSON.second["Scale"][0].ToFloat(),
+				CompJSON.second["Scale"][1].ToFloat(),
+				CompJSON.second["Scale"][2].ToFloat()));
+
+			UActorComponent* ActorComp = Actor->GetComponents()[0];
+			UStaticMeshComponent* StaticMeshComp = static_cast<UStaticMeshComponent*>(ActorComp);
+
+			StaticMeshComp->SetStaticMesh(FStaticMeshManager::Get().LoadStaticMeshObject(CompJSON.second["ObjStaticMeshAsset"].ToString()));
 		}
 	}
 

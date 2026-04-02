@@ -14,9 +14,9 @@
 
 namespace
 {
-	FString NormalizePathString(const std::filesystem::path& InPath)
+	std::wstring NormalizePathString(const std::filesystem::path& InPath)
 	{
-		return InPath.lexically_normal().generic_string();
+		return InPath.lexically_normal().wstring();
 	}
 
 	bool TryResolveExistingPath(
@@ -46,7 +46,7 @@ namespace
 		return false;
 	}
 
-	FString TryRemapToCurrentProject(const std::filesystem::path& InPath)
+	std::wstring TryRemapToCurrentProject(const std::filesystem::path& InPath)
 	{
 		const std::filesystem::path ProjectRoot(FPaths::ToUtf8(FPaths::RootDir()));
 		static constexpr std::array<const char*, 2> SearchAnchors = { "Asset", "Data" };
@@ -82,7 +82,7 @@ namespace
 			}
 		}
 
-		return FString();
+		return std::wstring();
 	}
 
 	void RemapMaterialTexturePaths(FStaticMeshAsset& Asset)
@@ -103,14 +103,14 @@ namespace
 			std::filesystem::path ResolvedPath;
 			if (TryResolveExistingPath(RequestedPath, ResolvedPath))
 			{
-				Slot.DiffuseTexturePath = NormalizePathString(ResolvedPath);
+				Slot.DiffuseTexturePath = FPaths::ToUtf8(NormalizePathString(ResolvedPath));
 				continue;
 			}
 
-			const FString RemappedPath = TryRemapToCurrentProject(RequestedPath);
+			const std::wstring RemappedPath = TryRemapToCurrentProject(RequestedPath);
 			if (!RemappedPath.empty())
 			{
-				Slot.DiffuseTexturePath = RemappedPath;
+				Slot.DiffuseTexturePath = FPaths::ToUtf8(RemappedPath);
 			}
 		}
 	}
@@ -148,11 +148,13 @@ FStaticMeshManager::~FStaticMeshManager()
 
 FStaticMeshAsset* FStaticMeshManager::LoadStaticMeshAsset(const FString& InSourcePath)
 {
+	std::wstring wPath = std::filesystem::path(InSourcePath).wstring();
+
 	// opt) 함수 시작 부분
 	std::cout << "[StaticMeshManager] request load: " << InSourcePath << '\n';
 
 	// 같은 파일 경로 표기가 여러 방식일 수 있으므로 먼저 정규화
-	const FString NormalizedPath = NormalizeSourcePath(InSourcePath);
+	const FString NormalizedPath = FPaths::ToUtf8(NormalizeSourcePath(wPath));
 	if (NormalizedPath.empty())
 	{
 		return nullptr;
@@ -253,7 +255,9 @@ FStaticMeshAsset* FStaticMeshManager::LoadStaticMeshAsset(const FString& InSourc
 
 FStaticMeshAsset* FStaticMeshManager::FindLoadedStaticMeshAsset(const FString& InSourcePath)
 {
-	const FString NormalizedPath = NormalizeSourcePath(InSourcePath);
+	std::wstring wPath = std::filesystem::path(InSourcePath).wstring();
+
+	const FString NormalizedPath = FPaths::ToUtf8(NormalizeSourcePath(wPath));
 
 	const auto It = StaticMeshAssetMap.find(NormalizedPath);
 	if (It != StaticMeshAssetMap.end())
@@ -266,14 +270,16 @@ FStaticMeshAsset* FStaticMeshManager::FindLoadedStaticMeshAsset(const FString& I
 
 UStaticMesh* FStaticMeshManager::LoadStaticMeshObject(const FString& InSourcePath)
 {
-	const FString NormalizedPath = NormalizeSourcePath(InSourcePath);
+	std::wstring wPath = std::filesystem::path(InSourcePath).wstring();
+
+	const FString NormalizedPath = FPaths::ToUtf8(NormalizeSourcePath(wPath));
 	if (NormalizedPath.empty())
 	{
 		return nullptr;
 	}
 
 	// 1. object cache 우선 확인
-	if (UStaticMesh* FoundMesh = FindLoadedStaticMeshObject(NormalizedPath))
+	if (UStaticMesh* FoundMesh = FindLoadedStaticMeshObject(FPaths::ToWide(NormalizedPath)))
 	{
 		return FoundMesh;
 	}
@@ -295,10 +301,10 @@ UStaticMesh* FStaticMeshManager::LoadStaticMeshObject(const FString& InSourcePat
 }
 
 
-UStaticMesh* FStaticMeshManager::FindLoadedStaticMeshObject(const FString& InSourcePath)
+UStaticMesh* FStaticMeshManager::FindLoadedStaticMeshObject(const std::wstring& InSourcePath)
 { // "이 경로의 UStaticMesh UObject를 이미 만들어둔 게 있으면 찾아서 재사용해라"
 	// key = NoramlizedSourcePath
-	const FString NormalizedPath = NormalizeSourcePath(InSourcePath);
+	const FString NormalizedPath = FPaths::ToUtf8(NormalizeSourcePath(InSourcePath));
 
 	// 두 단계에 걸친 캐시 찾기
 	// (1) 매니저가 기억하고 있는 빠른 캐시에서 찾기
@@ -353,11 +359,11 @@ void FStaticMeshManager::Clear()
 	StaticMeshObjectMap.clear();
 }
 
-FString FStaticMeshManager::NormalizeSourcePath(const FString& InSourcePath) const
+std::wstring FStaticMeshManager::NormalizeSourcePath(const std::wstring& InSourcePath) const
 {
 	if (InSourcePath.empty())
 	{
-		return FString();
+		return std::wstring();
 	}
 
 	std::filesystem::path Path(InSourcePath);
@@ -375,7 +381,7 @@ FString FStaticMeshManager::NormalizeSourcePath(const FString& InSourcePath) con
 
 	if (Path.is_absolute())
 	{
-		const FString RemappedPath = TryRemapToCurrentProject(Path);
+		const std::wstring RemappedPath = TryRemapToCurrentProject(Path);
 		if (!RemappedPath.empty())
 		{
 			return RemappedPath;
@@ -389,13 +395,15 @@ FString FStaticMeshManager::NormalizeSourcePath(const FString& InSourcePath) con
 // 이 경로로 로드된 UStaticMesh 캐시 삭제
 void FStaticMeshManager::Invalidate(const FString& InSourcePath)
 {
-	const FString NormalizedPath = NormalizeSourcePath(InSourcePath);
+	std::wstring wPath = std::filesystem::path(InSourcePath).wstring();
+
+	const std::wstring NormalizedPath = NormalizeSourcePath(wPath);
 	if (NormalizedPath.empty())
 	{
 		return;
 	}
 
-	auto AssetIt = StaticMeshAssetMap.find(NormalizedPath);
+	auto AssetIt = StaticMeshAssetMap.find(FPaths::ToUtf8(NormalizedPath));
 	if (AssetIt != StaticMeshAssetMap.end())
 	{
 		EngineStatics::SubtractMemoryUsage(EMemoryCategory::StaticMesh, AssetIt->second->GetResourceSize());
@@ -403,7 +411,7 @@ void FStaticMeshManager::Invalidate(const FString& InSourcePath)
 		StaticMeshAssetMap.erase(AssetIt);
 	}
 
-	auto ObjectIt = StaticMeshObjectMap.find(NormalizedPath);
+	auto ObjectIt = StaticMeshObjectMap.find(FPaths::ToUtf8(NormalizedPath));
 	if (ObjectIt != StaticMeshObjectMap.end())
 	{
 		StaticMeshObjectMap.erase(ObjectIt);

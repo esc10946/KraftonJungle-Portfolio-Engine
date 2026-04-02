@@ -28,8 +28,10 @@ void FEditorRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
 	FGPUProfiler::Get().TakeSnapshot();
 #endif
 
-	for (FViewport* Viewport : FViewportManager::Get().GetViewports())
+	for (int i = 0; i < 1; ++i)
 	{
+		FViewport* Viewport = FViewportManager::Get().GetViewports()[i];
+
 		Bus.Clear();
 
 		UWorld* World = Editor->GetWorld();

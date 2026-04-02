@@ -23,7 +23,7 @@ public:
 
 	// asset 기반 UObject wrapper(UStaticMesh) 로드
 	UStaticMesh* LoadStaticMeshObject(const FString& InSourcePath);
-	UStaticMesh* FindLoadedStaticMeshObject(const FString& InSourcePath);
+	UStaticMesh* FindLoadedStaticMeshObject(const std::wstring& InSourcePath);
 
 	// 여러 경로 미리 로드
 	void Preload(const TArray<FString>& InSourcePaths);
@@ -38,7 +38,7 @@ private:
 	~FStaticMeshManager();
 
 	// 경로 문자열을 캐시 key로 쓰기 전에 정규화
-	FString NormalizeSourcePath(const FString& InSourcePath) const;
+	std::wstring NormalizeSourcePath(const std::wstring& InSourcePath) const;
 
 private:
 	TMap<FString, FStaticMeshAsset*> StaticMeshAssetMap;
