@@ -1,6 +1,5 @@
 ﻿#include "Editor/UI/EditorToolbarWidget.h"
 
-#include "Editor/EditorEngine.h"
 #include "Editor/UI/EditorSceneWidget.h"
 #include "Editor/UI/EditorViewportOverlayWidget.h"
 #include "Editor/UI/EditorPlayStreamWidget.h"
@@ -12,7 +11,6 @@
 #include <commdlg.h>
 #include <filesystem>
 #include <shellapi.h>
-#include <utility>
 
 namespace
 {
@@ -116,27 +114,13 @@ void FEditorToolbarWidget::SetPlayStreamWidget(FEditorPlayStreamWidget* InPlaySt
 	PlayStreamWidget = InPlayStreamWidget;
 }
 
-void FEditorToolbarWidget::SetPIEViewportFullscreenCallback(std::function<void(bool)> InCallback)
-{
-	PIEViewportFullscreenCallback = std::move(InCallback);
-}
-
-void FEditorToolbarWidget::SetBuildGameCallback(std::function<void()> InCallback)
-{
-	BuildGameCallback = std::move(InCallback);
-}
-
 void FEditorToolbarWidget::SetPanelVisibilityRefs(
 	bool* InShowConsole,
 	bool* InShowControl,
 	bool* InShowProperty,
 	bool* InShowSceneManager,
 	bool* InShowMaterialEditor,
-	bool* InShowStatProfiler,
-	bool* InShowEditorDebug,
-	bool* InShowContentBrowser,
-	bool* InShowUndoHistory,
-	bool* InPIEViewportFullscreenEnabled)
+	bool* InShowStatProfiler)
 {
 	bShowConsole = InShowConsole;
 	bShowControl = InShowControl;
@@ -144,10 +128,6 @@ void FEditorToolbarWidget::SetPanelVisibilityRefs(
 	bShowSceneManager = InShowSceneManager;
 	bShowMaterialEditor = InShowMaterialEditor;
 	bShowStatProfiler = InShowStatProfiler;
-	bShowEditorDebug = InShowEditorDebug;
-	bShowContentBrowser = InShowContentBrowser;
-	bShowUndoHistory = InShowUndoHistory;
-	bPIEViewportFullscreenEnabled = InPIEViewportFullscreenEnabled;
 }
 
 void FEditorToolbarWidget::Render(float DeltaTime)
@@ -163,28 +143,18 @@ void FEditorToolbarWidget::Render(float DeltaTime)
 		}
 		if (ImGui::IsKeyPressed(ImGuiKey_O, false))
 		{
-			if (SceneWidget->PromptSaveIfDirty())
+			FString PickedPath;
+			if (OpenSceneFileDialog(PickedPath))
 			{
-				FString PickedPath;
-				if (OpenSceneFileDialog(PickedPath))
-				{
-					SceneWidget->LoadSceneFromFilePath(PickedPath, false);
-				}
+				SceneWidget->LoadSceneFromFilePath(PickedPath);
 			}
 		}
 		if (ImGui::IsKeyPressed(ImGuiKey_S, false))
 		{
-			if (IO.KeyShift)
+			FString PickedPath;
+			if (SaveSceneFileDialog(PickedPath))
 			{
-				FString PickedPath;
-				if (SaveSceneFileDialog(PickedPath))
-				{
-					SceneWidget->SaveSceneToFilePath(PickedPath);
-				}
-			}
-			else
-			{
-				SceneWidget->SaveScene();
+				SceneWidget->SaveSceneToFilePath(PickedPath);
 			}
 		}
 	}
@@ -202,18 +172,21 @@ void FEditorToolbarWidget::Render(float DeltaTime)
 	}
 
 	RenderFilesMenu();
-	RenderEditMenu();
-	RenderBuildMenu();
 	RenderViewMenu();
-	RenderSettingsMenu();
+	RenderEditMenu();
 	RenderHelpMenu();
+
+	if (PlayStreamWidget)
+	{
+		PlayStreamWidget->Render(DeltaTime);
+	}
 
 	ImGui::EndMainMenuBar();
 }
 
 void FEditorToolbarWidget::RenderFilesMenu()
 {
-	if (!ImGui::BeginMenu("File"))
+	if (!ImGui::BeginMenu("Files"))
 	{
 		return;
 	}
@@ -226,20 +199,13 @@ void FEditorToolbarWidget::RenderFilesMenu()
 		}
 		if (ImGui::MenuItem("Load Scene", "Ctrl+O"))
 		{
-			if (SceneWidget->PromptSaveIfDirty())
+			FString PickedPath;
+			if (OpenSceneFileDialog(PickedPath))
 			{
-				FString PickedPath;
-				if (OpenSceneFileDialog(PickedPath))
-				{
-					SceneWidget->LoadSceneFromFilePath(PickedPath, false);
-				}
+				SceneWidget->LoadSceneFromFilePath(PickedPath);
 			}
 		}
 		if (ImGui::MenuItem("Save Scene", "Ctrl+S"))
-		{
-			SceneWidget->SaveScene();
-		}
-		if (ImGui::MenuItem("Save Scene As...", "Ctrl+Shift+S"))
 		{
 			FString PickedPath;
 			if (SaveSceneFileDialog(PickedPath))
@@ -265,59 +231,9 @@ void FEditorToolbarWidget::RenderFilesMenu()
 		ImGui::MenuItem("New Scene", "Ctrl+N", false, false);
 		ImGui::MenuItem("Load Scene", "Ctrl+O", false, false);
 		ImGui::MenuItem("Save Scene", "Ctrl+S", false, false);
-		ImGui::MenuItem("Save Scene As...", "Ctrl+Shift+S", false, false);
 		ImGui::Separator();
 		ImGui::MenuItem("Reload Asset From Disk", nullptr, false, false);
 		ImGui::MenuItem("Open Asset Folder", nullptr, false, false);
-	}
-
-	ImGui::EndMenu();
-}
-
-void FEditorToolbarWidget::RenderBuildMenu()
-{
-	if (!ImGui::BeginMenu("Build"))
-	{
-		return;
-	}
-
-	if (ImGui::MenuItem("Packaging...", nullptr, false, BuildGameCallback != nullptr))
-	{
-		if (BuildGameCallback)
-		{
-			BuildGameCallback();
-		}
-	}
-
-	ImGui::EndMenu();
-}
-
-void FEditorToolbarWidget::RenderEditMenu()
-{
-	if (!ImGui::BeginMenu("Edit"))
-	{
-		return;
-	}
-
-	const bool bCanUndo = EditorEngine && !EditorEngine->GetUndoHistory().empty();
-	const bool bCanRedo = EditorEngine && !EditorEngine->GetRedoHistory().empty();
-	if (ImGui::MenuItem("Undo", "Ctrl+Z", false, bCanUndo) && EditorEngine)
-	{
-		EditorEngine->Undo();
-	}
-	if (ImGui::MenuItem("Redo", "Ctrl+Shift+Z", false, bCanRedo) && EditorEngine)
-	{
-		EditorEngine->Redo();
-	}
-
-	ImGui::Separator();
-	if (bShowUndoHistory)
-	{
-		ImGui::MenuItem("Undo History", nullptr, bShowUndoHistory);
-	}
-	else
-	{
-		ImGui::MenuItem("Undo History", nullptr, false, false);
 	}
 
 	ImGui::EndMenu();
@@ -330,28 +246,12 @@ void FEditorToolbarWidget::RenderViewMenu()
 		return;
 	}
 
-	if (bShowConsole) ImGui::MenuItem("Console Drawer", nullptr, bShowConsole);
-	if (bShowControl) ImGui::MenuItem("Jungle Control Panel", nullptr, bShowControl);
-	if (bShowProperty) ImGui::MenuItem("Details", nullptr, bShowProperty);
-	if (bShowSceneManager) ImGui::MenuItem("Outliner", nullptr, bShowSceneManager);
+	if (bShowConsole) ImGui::MenuItem("Console", nullptr, bShowConsole);
+	if (bShowControl) ImGui::MenuItem("Control Panel", nullptr, bShowControl);
+	if (bShowProperty) ImGui::MenuItem("Property", nullptr, bShowProperty);
+	if (bShowSceneManager) ImGui::MenuItem("Scene Manager", nullptr, bShowSceneManager);
 	if (bShowMaterialEditor) ImGui::MenuItem("Material Editor", nullptr, bShowMaterialEditor);
 	if (bShowStatProfiler) ImGui::MenuItem("Stat Profiler", nullptr, bShowStatProfiler);
-	if (bShowContentBrowser) ImGui::MenuItem("Content Browser", "Ctrl+Space", bShowContentBrowser);
-
-	ImGui::EndMenu();
-}
-
-void FEditorToolbarWidget::RenderSettingsMenu()
-{
-	if (!ImGui::BeginMenu("Settings"))
-	{
-		return;
-	}
-
-	if (bShowEditorDebug)
-	{
-		ImGui::MenuItem("Editor Debug", nullptr, bShowEditorDebug);
-	}
 
 	if (ViewportOverlayWidget)
 	{
@@ -360,30 +260,17 @@ void FEditorToolbarWidget::RenderSettingsMenu()
 		{
 			ViewportOverlayWidget->SetViewportSettingsVisible(!bShowViewportSettings);
 		}
-		bool bShowGroupedStats = ViewportOverlayWidget->IsGroupedStatOverlayVisible();
-		if (ImGui::MenuItem("Grouped Stat Overlay", nullptr, bShowGroupedStats))
-		{
-			ViewportOverlayWidget->SetGroupedStatOverlayVisible(!bShowGroupedStats);
-		}
 	}
 
-	if (bPIEViewportFullscreenEnabled)
+	ImGui::EndMenu();
+}
+
+void FEditorToolbarWidget::RenderEditMenu()
+{
+	if (!ImGui::BeginMenu("Edit"))
 	{
-		const bool bEnabled = *bPIEViewportFullscreenEnabled;
-		if (ImGui::MenuItem("PIE Fullscreen Viewport", nullptr, bEnabled))
-		{
-			if (PIEViewportFullscreenCallback)
-			{
-				PIEViewportFullscreenCallback(!bEnabled);
-			}
-			else
-			{
-				*bPIEViewportFullscreenEnabled = !bEnabled;
-			}
-		}
+		return;
 	}
-
-	ImGui::Separator();
 
 	if (ImGui::MenuItem("Remove Cache from Disk"))
 	{

@@ -47,7 +47,6 @@ inline const char* ToString(EAssetMetaType Type)
 	{
 	case EAssetMetaType::Font: return "Font";
 	case EAssetMetaType::Particle: return "Particle";
-	case EAssetMetaType::Texture: return "Texture";
 	default: return "None";
 	}
 }
@@ -118,7 +117,6 @@ public:
 	bool SerializeMaterialInstance(const FString& Path, const UMaterialInstance* MaterialInstance);
 	bool DeserializeMaterial(const FString& Path);
 	TArray<FString> GetMaterialNames() const;
-	TArray<FString> GetMaterialInterfaceNames() const;
 
 	UMaterialInstance* CreateMaterialInstance(const FString& Path, UMaterial* Parent);
 	UMaterialInstance* GetMaterialInstance(const FString& Path) const;

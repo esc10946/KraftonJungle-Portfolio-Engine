@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "Engine/Input/Controller/EditorController/EditorWorldController.h"
-#include "Engine/Input/Controller/EditorController/GameController.h"
+#include "Engine/Input/Controller/EditorController/PIEController.h"
 
 enum class EActiveEditorController
 {
@@ -41,16 +41,16 @@ class FEditorInputRouter
     void RouteKeyboardInput(EKeyInputType Type, int VK);
     void RouteMouseInput(EMouseInputType Type, float DeltaX, float DeltaY);
 
-    EActiveEditorController GetActiveController() const { return ActiveEditorControllerState; }
+    EActiveEditorController GetActiveController() { return ActiveEditorControllerState; }
     void                    SetActiveController(EActiveEditorController);
     void                    SetViewportDim(float X, float Y, float Width, float Height);
 
     FEditorWorldController& GetEditorWorldController() { return EditorWorldController; }
-    FGameController&         GetPIEController() { return PIEController; }
+    FPIEController&         GetPIEController() { return PIEController; }
 
   private:
     EActiveEditorController ActiveEditorControllerState = EActiveEditorController::EditorWorldController;
     IBaseEditorController*  ActiveController = nullptr;
     FEditorWorldController  EditorWorldController;
-    FGameController          PIEController;
+    FPIEController          PIEController;
 };

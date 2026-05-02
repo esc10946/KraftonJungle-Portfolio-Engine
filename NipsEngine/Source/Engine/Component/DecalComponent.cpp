@@ -4,7 +4,7 @@
 #include "GameFramework/World.h"
 #include "Core/Paths.h"
 #include "Core/ResourceManager.h"
-#include "Core/Logging/Log.h"
+#include "Editor/UI/EditorConsoleWidget.h"
 #include "Object/ObjectFactory.h"
 
 DEFINE_CLASS(UDecalComponent, UPrimitiveComponent)

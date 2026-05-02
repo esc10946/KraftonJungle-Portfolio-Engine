@@ -11,7 +11,7 @@
 #include "Engine/Serialization/SceneSaveManager.h"
 #include "GameFramework/World.h"
 #include "ImGui/imgui.h"
-#include "Camera/ViewportCamera.h"
+#include "Viewport/ViewportCamera.h"
 
 DEFINE_CLASS(UObjViewerEngine, UEngine)
 REGISTER_FACTORY(UObjViewerEngine)

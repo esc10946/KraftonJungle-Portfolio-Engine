@@ -2,12 +2,8 @@
 #include "Math/Quat.h"
 #include "Object/ObjectFactory.h"
 #include "Component/SceneComponent.h"
-#include "Camera/ViewportCamera.h"
-#include "GameFramework/AActor.h"
-#include "GameFramework/World.h"
-#if WITH_EDITOR
+#include "Editor/Viewport/ViewportCamera.h"
 #include "Editor/EditorEngine.h"
-#endif
 #include "Engine/Runtime/Engine.h"
 
 DEFINE_CLASS(UPursuitMovementComponent, UMovementComponent)
@@ -35,20 +31,8 @@ float GetPitch(const FVector& NormDir)
 
 void UPursuitMovementComponent::BeginPlay() {
 	if (bAutoTargetPerspCamera && !Target) {
-#if WITH_EDITOR
 		if (UEditorEngine* EditorEngine = Cast<UEditorEngine>(GEngine)) {
 			Target = EditorEngine->GetCamera();
-		}
-#endif
-		if (!Target)
-		{
-			if (AActor* OwnerActor = GetOwner())
-			{
-				if (UWorld* World = OwnerActor->GetFocusedWorld())
-				{
-					Target = World->GetActiveCamera();
-				}
-			}
 		}
 	}
 }

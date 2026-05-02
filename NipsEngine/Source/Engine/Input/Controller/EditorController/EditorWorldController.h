@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "BaseEditorController.h"
-#include "Camera/ViewportCamera.h"
+#include "Editor/Viewport/ViewportCamera.h"
 
 class FSelectionManager;
 class UGizmoComponent;
@@ -42,23 +42,11 @@ class FEditorWorldController : public IBaseEditorController
     float GetMoveSpeed() const { return MoveSpeed; }
     void  SetMoveSpeed(float InSpeed) { MoveSpeed = InSpeed; }
     FVector GetTargetLocation() const { return TargetLocation; }
-    void  SetTargetLocation(FVector InTargetLoc)
-    {
-        TargetLocation = InTargetLoc;
-        bTargetLocationInitialized = true;
-    }
-    void SetTargetRotation(const FQuat& InTargetRotation)
-    {
-        TargetRotation = InTargetRotation;
-        bTargetRotationInitialized = true;
-    }
+    void  SetTargetLocation(FVector InTargetLoc) { TargetLocation = InTargetLoc; }
     void  ResetTargetLocation()
     {
         if (Camera)
-        {
             TargetLocation = Camera->GetLocation();
-            bTargetLocationInitialized = true;
-        }
     }
     void SetWorld(UWorld* InWorld)
     {
@@ -69,8 +57,6 @@ class FEditorWorldController : public IBaseEditorController
 
   private:
     void UpdateCameraRotation();
-    void SelectActorAt(float X, float Y);
-    void ClearPendingSelectionPress();
 
   private:
     FSelectionManager* SelectionManager = nullptr;
@@ -82,10 +68,5 @@ class FEditorWorldController : public IBaseEditorController
     float   Pitch = 0.f;
     float   MoveSpeed = 15.f;
     FVector TargetLocation;
-    FQuat   TargetRotation = FQuat::Identity;
     bool    bTargetLocationInitialized = false;
-    bool    bTargetRotationInitialized = false;
-    bool    bHasPendingSelectionPress = false;
-    float   PendingSelectionPressX = 0.0f;
-    float   PendingSelectionPressY = 0.0f;
 };

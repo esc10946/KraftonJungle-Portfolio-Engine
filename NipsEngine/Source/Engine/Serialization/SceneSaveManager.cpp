@@ -29,7 +29,6 @@ namespace SceneKeys
 	static constexpr const char* Version            = "Version";
 	static constexpr const char* Name               = "Name";
 	static constexpr const char* ClassName          = "ClassName";
-	static constexpr const char* ActorClass         = "ActorClass";
 	static constexpr const char* WorldType          = "WorldType";
 	static constexpr const char* ContextName        = "ContextName";
 	static constexpr const char* ContextHandle      = "ContextHandle";
@@ -71,12 +70,15 @@ static EWorldType StringToWorldType(const FString& Str)
 	return EWorldType::Editor;
 }
 
-static json::JSON BuildSceneSnapshotJson(const FString& SceneName, FWorldContext& WorldContext, const FEditorCameraState* CameraState)
+void FSceneSaveManager::Save(const FString& FilePath, FWorldContext& WorldContext, const FEditorCameraState* CameraState)
 {
 	json::JSON Root = json::Object();
 	FJsonWriter Writer(Root);
 
-	FString FinalName = SceneName.empty() ? "Snapshot" : SceneName;
+	FString FinalName = FilePath.empty() ? "Save_" + GetCurrentTimeStamp() : FilePath;
+	std::wstring SceneDir = GetSceneDirectory();
+	std::filesystem::path FileDestination = std::filesystem::path(SceneDir) / (FPaths::ToWide(FinalName) + SceneExtension);
+	std::filesystem::create_directories(SceneDir);
 
 	int32 Version = 4;
 	uint32 NextUUID = EngineStatics::GetNextUUID();
@@ -113,34 +115,11 @@ static json::JSON BuildSceneSnapshotJson(const FString& SceneName, FWorldContext
 			
 			Writer.BeginObject(std::to_string(Comp->GetUUID()));
 			Comp->Serialize(Writer);
-			if (Comp == Actor->GetRootComponent())
-			{
-				Writer << SceneKeys::ActorClass << Actor->GetTypeInfo()->name;
-			}
-			if (!Comp->IsA<USceneComponent>())
-			{
-				if (USceneComponent* OwnerRoot = Actor->GetRootComponent())
-				{
-					uint32 OwnerRootUUID = OwnerRoot->GetUUID();
-					Writer << SceneKeys::OwnerRootUUID << OwnerRootUUID;
-				}
-			}
 			Writer.EndObject();
 		}
 	}
 	Writer.EndObject();
 
-	return Root;
-}
-
-void FSceneSaveManager::Save(const FString& FilePath, FWorldContext& WorldContext, const FEditorCameraState* CameraState)
-{
-	FString FinalName = FilePath.empty() ? "Save_" + GetCurrentTimeStamp() : FilePath;
-	std::wstring SceneDir = GetSceneDirectory();
-	std::filesystem::path FileDestination = std::filesystem::path(SceneDir) / (FPaths::ToWide(FinalName) + SceneExtension);
-	std::filesystem::create_directories(SceneDir);
-
-	json::JSON Root = BuildSceneSnapshotJson(FinalName, WorldContext, CameraState);
 
 	std::ofstream File(FileDestination);
 	if (File.is_open()) {
@@ -148,42 +127,6 @@ void FSceneSaveManager::Save(const FString& FilePath, FWorldContext& WorldContex
 		File.flush();
 		File.close();
 	}
-}
-
-FString FSceneSaveManager::SaveToString(FWorldContext& WorldContext, const FEditorCameraState* CameraState)
-{
-	if (!WorldContext.World)
-	{
-		return "";
-	}
-
-	json::JSON Root = BuildSceneSnapshotJson("UndoSnapshot", WorldContext, CameraState);
-	return Root.dump();
-}
-
-void FSceneSaveManager::LoadFromString(const FString& Snapshot, FWorldContext& OutWorldContext, FEditorCameraState* OutCameraState)
-{
-	if (Snapshot.empty())
-	{
-		return;
-	}
-
-	std::filesystem::path TempPath = std::filesystem::temp_directory_path()
-		/ (L"NipsEngine_UndoRedo_" + FPaths::ToWide(GetCurrentTimeStamp()) + L".Scene");
-
-	{
-		std::ofstream TempFile(TempPath);
-		if (!TempFile.is_open())
-		{
-			return;
-		}
-		TempFile << Snapshot;
-	}
-
-	Load(FPaths::ToUtf8(TempPath.wstring()), OutWorldContext, OutCameraState);
-
-	std::error_code Ec;
-	std::filesystem::remove(TempPath, Ec);
 }
 
 void FSceneSaveManager::Load(const FString& FilePath, FWorldContext& OutWorldContext, FEditorCameraState* OutCameraState)
@@ -209,22 +152,18 @@ void FSceneSaveManager::Load(const FString& FilePath, FWorldContext& OutWorldCon
 	// Perspective 카메라 상태 복원
 	if (OutCameraState)
 	{
-		OutCameraState->bValid = false;
-		if (Root.hasKey(SceneKeys::PerspectiveCamera))
-		{
-			FVector CamRotation = FVector::ZeroVector;
+		FVector CamRotation;
 
-			Reader.BeginObject(SceneKeys::PerspectiveCamera);
-			Reader << SceneKeys::Location << OutCameraState->Location;
-			Reader << SceneKeys::Rotation << CamRotation;
-			Reader << SceneKeys::FarClip << OutCameraState->FarClip;
-			Reader << SceneKeys::NearClip << OutCameraState->NearClip;
-			Reader << SceneKeys::FOV << OutCameraState->FOV;
-			Reader.EndObject();
+		Reader.BeginObject(SceneKeys::PerspectiveCamera);
+		Reader << SceneKeys::Location << OutCameraState->Location;
+		Reader << SceneKeys::Rotation << CamRotation;
+		Reader << SceneKeys::FarClip << OutCameraState->FarClip;
+		Reader << SceneKeys::NearClip << OutCameraState->NearClip;
+		Reader << SceneKeys::FOV << OutCameraState->FOV;
+		Reader.EndObject();
 
-			OutCameraState->Rotation = FRotator::MakeFromEuler(CamRotation);
-			OutCameraState->bValid = true;
-		}
+		OutCameraState->Rotation = FRotator::MakeFromEuler(CamRotation);
+		OutCameraState->bValid = true;
 	}
 
 	json::JSON& PrimitivesNode = Root[SceneKeys::Primitives];
@@ -257,12 +196,8 @@ void FSceneSaveManager::Load(const FString& FilePath, FWorldContext& OutWorldCon
 		return Type;
 	};
 
-	auto InferActorClass = [&](json::JSON& RootCompData, const FString& CompType) -> FString
+	auto InferActorClass = [](const FString& CompType) -> FString
 	{
-		if (RootCompData.hasKey(SceneKeys::ActorClass))
-		{
-			return RootCompData[SceneKeys::ActorClass].ToString();
-		}
 		if (CompType == "StaticMeshComp" || CompType == "UStaticMeshComponent") return "AStaticMeshActor";
 		if (CompType.length() > 10 && CompType.substr(CompType.size() - 9) == "Component")
 		{
@@ -322,11 +257,9 @@ void FSceneSaveManager::Load(const FString& FilePath, FWorldContext& OutWorldCon
 	// 2단계: Actor 생성 및 컴포넌트 매핑 (InitDefaultComponents 호출 후 UUID 매칭)
 	for (uint32 RootUUID : RootUUIDs)
 	{
-		json::JSON& RootCompData = PrimitivesNode[std::to_string(RootUUID)];
-		FString CompType = RootCompData[SceneKeys::Type].ToString();
+		FString CompType = PrimitivesNode[std::to_string(RootUUID)][SceneKeys::Type].ToString();
 		
-		FString ClassName = InferActorClass(RootCompData, CompType);
-		AActor* NewActor = Cast<AActor>(FObjectFactory::Get().Create(ClassName));
+		AActor* NewActor = Cast<AActor>(FObjectFactory::Get().Create(InferActorClass(CompType)));
 		if (NewActor)
 		{
 			NewActor->InitDefaultComponents();

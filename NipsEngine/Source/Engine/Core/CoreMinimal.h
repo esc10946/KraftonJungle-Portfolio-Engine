@@ -19,7 +19,6 @@
 #include "Containers/Set.h"
 #include "Containers/StaticArray.h"
 #include "Containers/String.h"
-#include "Core/Logging/Log.h"
 
 //=============================================================================
 // Math

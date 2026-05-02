@@ -3,7 +3,6 @@
 #include "Engine/Runtime/Engine.h"
 #include "Engine/Runtime/WindowsApplication.h"
 #include "Engine/Runtime/WindowsFileWatcher.h"
-#include "Engine/Runtime/GameSplashScreen.h"
 #include "Core/Logging/Timer.h"
 
 class FEngineLoop
@@ -19,6 +18,5 @@ private:
 private:
 	FWindowsApplication Application;
 	FWindowsFileWatcher ShaderDirectoryWatcher;
-	FGameSplashScreen GameSplashScreen;
 	FTimer Timer;
 };

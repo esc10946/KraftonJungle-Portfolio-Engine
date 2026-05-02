@@ -2,12 +2,9 @@
 
 #include "Component/FireballComponent.h"
 #include "Component/DecalComponent.h"
-#include "Component/BillboardComponent.h"
 #include "Component/StaticMeshComponent.h"
 #include "Component/TextRenderComponent.h"
 #include "Component/HeightFogComponent.h"
-#include "Component/CameraComponent.h"
-#include "Component/SpringArmComponent.h"
 
 #include "Component/PostProcess/Light/AmbientLightComponent.h"
 #include "Component/PostProcess/Light/DirectionalLightComponent.h"
@@ -18,10 +15,6 @@
 #include "Core/ResourceManager.h"
 #include <format>
 #include <Component/SubUVComponent.h>
-#include "Core/Debug.h"
-#include "Component/BoxComponent.h"
-#include "Core/CollisionTypes.h"
-#include "Component/ProceduralMeshComponent.h"
 
 namespace
 {
@@ -44,15 +37,6 @@ REGISTER_FACTORY(AAttachTestActor)
 
 DEFINE_CLASS(ASceneActor, AActor) 
 REGISTER_FACTORY(ASceneActor)
-
-DEFINE_CLASS(ADefaultPlayerActor, AActor)
-REGISTER_FACTORY(ADefaultPlayerActor)
-
-DEFINE_CLASS(APlayerStart, AActor)
-REGISTER_FACTORY(APlayerStart)
-
-DEFINE_CLASS(AFogActor, AActor)
-REGISTER_FACTORY(AFogActor)
 
 DEFINE_CLASS(AStaticMeshActor, AActor) 
 REGISTER_FACTORY(AStaticMeshActor)
@@ -80,23 +64,18 @@ REGISTER_FACTORY(ALightActor)
 
 DEFINE_CLASS(AAmbientLightActor, ALightActor)
 REGISTER_FACTORY(AAmbientLightActor)
-
 DEFINE_CLASS(ADirectionalLightActor, ALightActor)
 REGISTER_FACTORY(ADirectionalLightActor)
-
 DEFINE_CLASS(APointLightActor, ALightActor)
 REGISTER_FACTORY(APointLightActor)
-
 DEFINE_CLASS(ASpotlightActor, APointLightActor)
 REGISTER_FACTORY(ASpotlightActor)
 
 void ACubeActor::InitDefaultComponents()
 {
 	auto* Cube = AddComponent<UStaticMeshComponent>();
-    // Cube->SetStaticMesh(FResourceManager::Get().LoadStaticMesh("Asset/Mesh/Lumine/LumineModel.obj"));
-    // Cube->SetStaticMesh(FResourceManager::Get().LoadStaticMesh(CubeMeshPath));
-    Cube->SetStaticMesh(FResourceManager::Get().LoadStaticMesh("Asset/Mesh/Dice/Dice.obj"));
-    SetRootComponent(Cube);
+	Cube->SetStaticMesh(FResourceManager::Get().LoadStaticMesh(CubeMeshPath));
+	SetRootComponent(Cube);
 
 	// Text
 	UTextRenderComponent* Text = AddComponent<UTextRenderComponent>();
@@ -106,17 +85,6 @@ void ACubeActor::InitDefaultComponents()
 	Text->SetTransient(true);
 	Text->SetEditorOnly(true);
 	Text->SetRelativeLocation(FVector(0.0f, 0.0f, 1.0f));
-
-	UProceduralMeshComponent* ProcMeshComp1 = AddComponent<UProceduralMeshComponent>();
-    UProceduralMeshComponent* ProcMeshComp2 = AddComponent<UProceduralMeshComponent>();
-    
-	FPlane Plane;
-    Plane.Normal = FVector(0, 1, 1);
-    Plane.D = 0;
-    FMeshSlicer::SliceComponent(Cube, Plane, ProcMeshComp1, ProcMeshComp2);
-	
-	ProcMeshComp1->AttachToComponent(Cube);
-    ProcMeshComp2->AttachToComponent(Cube);
 }
 
 void ASphereActor::InitDefaultComponents()
@@ -189,91 +157,6 @@ void ASceneActor::InitDefaultComponents()
 {
 	auto SceneRoot = AddComponent<USceneComponent>();
 	SetRootComponent(SceneRoot);
-
-	UBillboardComponent* Billboard = AddComponent<UBillboardComponent>();
-	Billboard->AttachToComponent(SceneRoot);
-	Billboard->SetEditorOnly(true);
-	Billboard->SetTextureName("Asset/Texture/EmptyActor.png");
-}
-
-void ADefaultPlayerActor::InitDefaultComponents()
-{
-	auto* SceneRoot = AddComponent<USceneComponent>();
-	SetRootComponent(SceneRoot);
-
-	UBillboardComponent* Billboard = AddComponent<UBillboardComponent>();
-	Billboard->AttachToComponent(SceneRoot);
-	Billboard->SetEditorOnly(true);
-	Billboard->SetTextureName("Asset/Texture/Pawn_64x.png");
-
-	UStaticMeshComponent* DebugBody = AddComponent<UStaticMeshComponent>();
-	DebugBody->AttachToComponent(SceneRoot);
-	DebugBody->SetStaticMesh(FResourceManager::Get().LoadStaticMesh(CubeMeshPath));
-	DebugBody->SetRelativeLocation(FVector(0.0f, 0.0f, 0.5f));
-	DebugBody->SetRelativeScale(FVector(0.4f, 0.4f, 1.0f));
-	DebugBody->SetEnableCull(false);
-
-	SpringArmComp = AddComponent<USpringArmComponent>();
-	SpringArmComp->AttachToComponent(SceneRoot);
-	SpringArmComp->SetRelativeLocation(FVector(0.0f, 0.0f, 1.6f));
-	SpringArmComp->SetTargetArmLength(3.f);
-	SpringArmComp->SetSocketOffset(FVector::ZeroVector);
-
-	CameraComp = AddComponent<UCameraComponent>();
-	CameraComp->AttachToComponent(SpringArmComp);
-	CameraComp->SetRelativeLocation(SpringArmComp->GetSocketLocalLocation());
-	CameraComp->SetRelativeRotation(FVector(0.0f, 0.0f, 0.0f));
-	SpringArmComp->UpdateSocketChildren();
-}
-
-void APlayerStart::InitDefaultComponents()
-{
-	auto* SceneRoot = AddComponent<USceneComponent>();
-	SetRootComponent(SceneRoot);
-
-	UBillboardComponent* Billboard = AddComponent<UBillboardComponent>();
-	Billboard->AttachToComponent(SceneRoot);
-	Billboard->SetEditorOnly(true);
-	Billboard->SetTextureName("Asset/Texture/PlayerStart_64x.PNG");
-}
-
-void AFogActor::InitDefaultComponents()
-{
-	UHeightFogComponent* Fog = AddComponent<UHeightFogComponent>();
-	Fog->SetFogDensity(0.02f);
-	Fog->SetHeightFalloff(0.2f);
-	Fog->SetFogInscatteringColor(FVector4(0.72f, 0.8f, 0.9f, 1.0f));
-	Fog->SetFogHeight(0.0f);
-	Fog->SetFogStartDistance(0.0f);
-	Fog->SetFogCutoffDistance(10000.0f);
-	Fog->SetFogMaxOpacity(1.0f);
-	SetRootComponent(Fog);
-	FogComp = Fog;
-
-	UBillboardComponent* Billboard = AddComponent<UBillboardComponent>();
-	Billboard->AttachToComponent(Fog);
-	Billboard->SetEditorOnly(true);
-	Billboard->SetTextureName("Asset/Texture/ExpoHeightFog_64x.png");
-	BillboardComp = Billboard;
-}
-
-void ASceneActor::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
-{
-    UE_LOG("%s: On Hit", GetFName().ToString().c_str());
-}
-
-void ASceneActor::OnBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-    UE_LOG("%s: On Begin Overlap", GetFName().ToString().c_str());
-    UE_LOG("Hit: %f %f %f", SweepResult.Location.X, SweepResult.Location.Y, SweepResult.Location.Z);
-    UE_LOG("Hit Normal: %f %f %f", SweepResult.Normal.X, SweepResult.Normal.Y, SweepResult.Normal.Z);
-}
-
-void ASceneActor::OnEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-    UE_LOG("%s: On End Overlap", GetFName().ToString().c_str());
-    UE_LOG("Hit: %f %f %f", SweepResult.Location.X, SweepResult.Location.Y, SweepResult.Location.Z);
-    UE_LOG("Hit Normal: %f %f %f", SweepResult.Normal.X, SweepResult.Normal.Y, SweepResult.Normal.Z);
 }
 
 void AStaticMeshActor::InitDefaultComponents()

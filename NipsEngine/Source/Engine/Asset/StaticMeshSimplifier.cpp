@@ -2,7 +2,7 @@
 #include "StaticMesh.h"
 #include <algorithm>
 
-#include "Core/Logging/Log.h"
+#include "Editor/UI/EditorConsoleWidget.h"
 
 FStaticMeshSimplifier::FStaticMeshSimplifier(UStaticMesh* InTargetMesh)
 	: TargetMesh(InTargetMesh)

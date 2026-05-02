@@ -4,9 +4,6 @@
 #include "Render/Scene/RenderBus.h"
 
 class UEditorEngine;
-class UMaterialInterface;
-class UStaticMesh;
-struct ID3D11ShaderResourceView;
 
 class FEditorRenderPipeline : public IRenderPipeline
 {
@@ -20,9 +17,6 @@ public:
 	const FRenderCollector::FCullingStats& GetViewportCullingStats(int32 ViewportIndex) const;
 	const FRenderCollector::FDecalStats& GetViewportDecalStats(int32 ViewportIndex) const;
     const FRenderCollector::FLightStats& GetViewportLightStats(int32 ViewportIndex) const;
-	ID3D11ShaderResourceView* RenderMaterialPreview(FRenderer& Renderer, UStaticMesh* Mesh, UMaterialInterface* Material,
-	                                                uint32 Width, uint32 Height, float YawRad, float PitchRad,
-	                                                float Distance);
 
 private:
 	/*

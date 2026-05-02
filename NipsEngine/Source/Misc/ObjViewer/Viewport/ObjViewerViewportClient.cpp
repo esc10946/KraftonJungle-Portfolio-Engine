@@ -10,7 +10,7 @@
 #include "Editor/Selection/SelectionManager.h"
 #include "GameFramework/World.h"
 #include "Object/Object.h"
-#include "Camera/ViewportCamera.h"
+#include "Viewport/ViewportCamera.h"
 
 namespace
 {

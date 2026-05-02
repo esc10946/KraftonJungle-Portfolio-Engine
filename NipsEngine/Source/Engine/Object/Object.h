@@ -5,10 +5,8 @@
 #include "Core/Singleton.h"
 #include "Core/PropertyTypes.h"
 #include "Serialization/Archive.h"
-#include "Object/Object.h"
 
 #define DECLARE_CLASS(ClassName, ParentClass)                          \
-	using ThisClass = ClassName;									   \
     static const FTypeInfo s_TypeInfo;                                 \
     const FTypeInfo* GetTypeInfo() const override {                    \
         return &s_TypeInfo;                                            \

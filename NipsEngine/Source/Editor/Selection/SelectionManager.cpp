@@ -28,7 +28,7 @@ void FSelectionManager::Select(AActor* Actor)
 	{
 		SelectedActors.push_back(Actor);
 	}
-	RequestGizmoSync();
+	SyncGizmo();
 }
 
 void FSelectionManager::AddSelect(AActor* Actor)
@@ -38,25 +38,12 @@ void FSelectionManager::AddSelect(AActor* Actor)
 		return;
 	}
 
-	auto It = std::find(SelectedActors.begin(), SelectedActors.end(), Actor);
-	if (It != SelectedActors.end())
+	if (std::find(SelectedActors.begin(), SelectedActors.end(), Actor) == SelectedActors.end())
 	{
-		SelectedActors.erase(It);
+		SelectedActors.push_back(Actor);
 	}
-	SelectedActors.push_back(Actor);
 
-	RequestGizmoSync();
-}
-
-namespace
-{
-	void PushUniqueSelection(TArray<AActor*>& OutActors, AActor* Actor)
-	{
-		if (Actor && std::find(OutActors.begin(), OutActors.end(), Actor) == OutActors.end())
-		{
-			OutActors.push_back(Actor);
-		}
-	}
+	SyncGizmo();
 }
 
 void FSelectionManager::SelectRange(AActor* ClickedActor, const TArray<AActor*>& ActorList)
@@ -98,13 +85,12 @@ void FSelectionManager::SelectRange(AActor* ClickedActor, const TArray<AActor*>&
 	SelectedActors.clear();
 	for (int32 i = Lo; i <= Hi; ++i)
 	{
-		if (ActorList[i] != ClickedActor)
+		if (ActorList[i])
 		{
-			PushUniqueSelection(SelectedActors, ActorList[i]);
+			SelectedActors.push_back(ActorList[i]);
 		}
 	}
-	PushUniqueSelection(SelectedActors, ClickedActor);
-	RequestGizmoSync();
+	SyncGizmo();
 }
 
 void FSelectionManager::ToggleSelect(AActor* Actor)
@@ -120,7 +106,7 @@ void FSelectionManager::ToggleSelect(AActor* Actor)
 	{
 		SelectedActors.push_back(Actor);
 	}
-	RequestGizmoSync();
+	SyncGizmo();
 }
 
 void FSelectionManager::Deselect(AActor* Actor)
@@ -130,34 +116,13 @@ void FSelectionManager::Deselect(AActor* Actor)
 	{
 		SelectedActors.erase(It);
 	}
-	RequestGizmoSync();
+	SyncGizmo();
 }
 
 void FSelectionManager::ClearSelection()
 {
 	SelectedActors.clear();
-	RequestGizmoSync();
-}
-
-void FSelectionManager::BeginBatchUpdate()
-{
-	++BatchUpdateDepth;
-}
-
-void FSelectionManager::EndBatchUpdate()
-{
-	if (BatchUpdateDepth <= 0)
-	{
-		SyncGizmo();
-		return;
-	}
-
-	--BatchUpdateDepth;
-	if (BatchUpdateDepth == 0 && bPendingGizmoSync)
-	{
-		bPendingGizmoSync = false;
-		SyncGizmo();
-	}
+	SyncGizmo();
 }
 
 void FSelectionManager::OnActorDestroyed(AActor* Actor)
@@ -172,19 +137,8 @@ void FSelectionManager::OnActorDestroyed(AActor* Actor)
     {
         SelectedActors.erase(It);
 
-        RequestGizmoSync();
+        SyncGizmo();
     }
-}
-
-void FSelectionManager::RequestGizmoSync()
-{
-	if (BatchUpdateDepth > 0)
-	{
-		bPendingGizmoSync = true;
-		return;
-	}
-
-	SyncGizmo();
 }
 
 void FSelectionManager::SyncGizmo()

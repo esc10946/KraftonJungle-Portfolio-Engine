@@ -7,7 +7,7 @@
 #include "GameFramework/World.h"
 #include "Core/Logging/Stats.h"
 #include "Core/Logging/GPUProfiler.h"
-#include "Camera/ViewportCamera.h"
+#include "Viewport/ViewportCamera.h"
 
 FObjViewerRenderPipeline::FObjViewerRenderPipeline(UObjViewerEngine* InEngine, FRenderer& InRenderer)
 	: Engine(InEngine)

@@ -2,7 +2,7 @@
 
 #include "Core/Paths.h"
 #include "Core/ResourceManager.h"
-#include "Core/Logging/Log.h"
+#include "UI/EditorConsoleWidget.h"
 #include "Render/Resource/Shader.h"
 
 #include <chrono>
