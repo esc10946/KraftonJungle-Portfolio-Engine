@@ -27,7 +27,6 @@ public:
 	void GetEditableProperties(TArray<FPropertyDescriptor>& OutProps) override {}
 	void PostEditProperty(const char* PropertyName) override {}
 
-
     // Actor lifecycle
     template<typename T>
     T* SpawnActor()
@@ -44,6 +43,8 @@ public:
         return Actor;
     }
 
+    AActor* SpawnActorByTypeName(const FString& TypeName);
+
     void DestroyActor(AActor* Actor) 
 	{
         if (!Actor) return;
@@ -58,7 +59,7 @@ public:
         UObjectManager::Get().DestroyObject(Actor);
     }
 
-	TArray<AActor*> GetActors() const { return PersistentLevel->GetActors(); }
+	const TArray<AActor*>& GetActors() const { return PersistentLevel->GetActors(); }
 
 	ULevel* GetPersistentLevel() const { return PersistentLevel; }
 
@@ -91,6 +92,9 @@ public:
 	int32 AddActorDestroyedListener(FActorDestroyedListener Listener);
     void RemoveActorDestroyedListener(int32 ListenerId);
     void NotifyActorDestroyed(AActor* Actor);
+
+	// Component Overlap 체크
+	void UpdateOverlaps();
 
 private:
 	EWorldType WorldType = EWorldType::Editor;

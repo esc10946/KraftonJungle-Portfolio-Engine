@@ -1,4 +1,8 @@
 ﻿#include "GameFramework/World.h"
+#include "Engine/Collision/Collision.h"
+#include "Component/PrimitiveComponent.h"
+#include "Core/Logging/Log.h"
+#include "Object/ObjectFactory.h"
 
 DEFINE_CLASS(UWorld, UObject)
 REGISTER_FACTORY(UWorld)
@@ -57,6 +61,30 @@ void UWorld::BeginPlay()
     RebuildSpatialIndex();
 }
 
+AActor* UWorld::SpawnActorByTypeName(const FString& TypeName)
+{
+    UObject* Object = FObjectFactory::Get().Create(TypeName);
+    AActor* Actor = Cast<AActor>(Object);
+    if (!Actor)
+    {
+        if (Object)
+        {
+            UObjectManager::Get().DestroyObject(Object);
+        }
+        UE_LOG("[World] Failed to spawn actor by type name: %s", TypeName.c_str());
+        return nullptr;
+    }
+
+    Actor->SetWorld(this);
+    if (bHasBegunPlay)
+    {
+        Actor->BeginPlay();
+    }
+    PersistentLevel->AddActor(Actor);
+    SpatialIndex.FlushDirtyBounds();
+    return Actor;
+}
+
 void UWorld::Tick(float DeltaTime)
 {
     if (!PersistentLevel)
@@ -68,6 +96,7 @@ void UWorld::Tick(float DeltaTime)
 		PersistentLevel->TickGame(DeltaTime);
 
     SyncSpatialIndex();
+    UpdateOverlaps();
 }
 
 void UWorld::EndPlay(EEndPlayReason::Type EndPlayReason)
@@ -110,4 +139,49 @@ void UWorld::NotifyActorDestroyed(AActor* Actor)
             Listener(Actor);
         }
     }
+}
+
+void UWorld::UpdateOverlaps()
+{
+	if (PersistentLevel)
+	{
+        TArray<UPrimitiveComponent*> CollisionCandidates;
+		for (AActor* Actor : PersistentLevel->GetActors())
+		{
+			for (UActorComponent* Comp : Actor->GetComponents())
+			{
+                UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Comp);
+				if (PrimComp)
+				{
+                    PrimComp->SetPrevOverlaps(PrimComp->GetOverlapInfos());
+                    PrimComp->ClearOverlaps();
+                    if (PrimComp->ShouldGenerateOverlapEvents())
+                        CollisionCandidates.push_back(PrimComp);
+				}
+			}
+		}
+        
+		for (int i = 0; i < CollisionCandidates.size(); ++i)
+        {
+            UPrimitiveComponent* A = CollisionCandidates[i];
+            for (int j = i+1; j < CollisionCandidates.size(); ++j)
+			{
+                UPrimitiveComponent* B = CollisionCandidates[j];
+                if (A != B)
+				{
+					// Normal 의 경우 A -> B 방향
+					FCollisionResult CollisionResult = FCollision::CheckOverlap(A, B);
+
+					if (CollisionResult.bHit)
+                    {
+                        A->AddOverlap(B, CollisionResult);
+                        // B -> A 방향으로 바꿔주기
+                        CollisionResult.HitNormal *= -1;
+                        B->AddOverlap(A, CollisionResult);
+					}
+				}
+			}
+            A->ResolveOverlaps();
+		}
+	}
 }

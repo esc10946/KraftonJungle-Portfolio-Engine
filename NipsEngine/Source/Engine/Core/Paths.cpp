@@ -55,13 +55,14 @@ std::wstring FPaths::RootDir()
 std::wstring FPaths::ShaderDir() { return RootDir() + L"Shaders/"; }
 std::wstring FPaths::SceneDir() { return RootDir() + L"Asset/Scene/"; }
 std::wstring FPaths::DumpDir() { return RootDir() + L"Saves/Dump/"; }
-std::wstring FPaths::SettingsDir() { return RootDir() + L"Settings/"; }
+std::wstring FPaths::SettingsDir(){ return RootDir() + L"Settings/"; }
+std::wstring FPaths::ScriptDir() { return RootDir() + L"LuaScript/"; }
 std::wstring FPaths::ShaderFilePath() { return RootDir() + L"Shaders/ShaderW0.hlsl"; }
 std::wstring FPaths::SettingsFilePath() { return RootDir() + L"Settings/Editor.ini"; }
 std::wstring FPaths::ViewerSettingsFilePath() { return RootDir() + L"Settings/ObjViewer.ini"; }
-std::wstring FPaths::AssetDirectoryPath() { return RootDir() + L"Asset"; }
+std::wstring FPaths::AssetDirectoryPath(){ return RootDir() + L"Asset";}
+std::wstring FPaths::LuaTemplatePath(){ return RootDir() + L"LuaScript/Template.lua"; } 
 std::wstring FPaths::ResourceDefaultMaterialTexture() { return RootDir() + L"Asset/Mesh/Default.png"; }
-
 
 std::wstring FPaths::Combine(const std::wstring& Base, const std::wstring& Child)
 {
@@ -79,6 +80,18 @@ std::wstring FPaths::ToWide(const std::string& Utf8Str)
 {
 	if (Utf8Str.empty()) return {};
 	int32_t Size = MultiByteToWideChar(CP_UTF8, 0, Utf8Str.c_str(), -1, nullptr, 0);
+	if (Size <= 0)
+	{
+		Size = MultiByteToWideChar(CP_ACP, 0, Utf8Str.c_str(), -1, nullptr, 0);
+		if (Size <= 0)
+		{
+			return {};
+		}
+
+		std::wstring Result(Size - 1, L'\0');
+		MultiByteToWideChar(CP_ACP, 0, Utf8Str.c_str(), -1, &Result[0], Size);
+		return Result;
+	}
 	std::wstring Result(Size - 1, L'\0');
 	MultiByteToWideChar(CP_UTF8, 0, Utf8Str.c_str(), -1, &Result[0], Size);
 	return Result;

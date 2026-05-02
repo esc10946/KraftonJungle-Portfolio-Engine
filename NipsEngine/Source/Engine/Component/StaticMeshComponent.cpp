@@ -43,16 +43,19 @@ void UStaticMeshComponent::PostDuplicate(UObject* Original)
 
 void UStaticMeshComponent::Serialize(FArchive& Ar)
 {
-	UMeshComponent::Serialize(Ar);
-	Ar << "ObjStaticMeshAsset" << StaticMeshAssetPath;
-
 	if (Ar.IsLoading())
 	{
+		Ar << "ObjStaticMeshAsset" << StaticMeshAssetPath;
 		if (!StaticMeshAssetPath.empty())
 		{
 			SetStaticMesh(FResourceManager::Get().LoadStaticMesh(StaticMeshAssetPath));
 		}
+		UMeshComponent::Serialize(Ar);
+		return;
 	}
+
+	UMeshComponent::Serialize(Ar);
+	Ar << "ObjStaticMeshAsset" << StaticMeshAssetPath;
 }
 
 void UStaticMeshComponent::SetStaticMesh(UStaticMesh* InStaticMesh)
@@ -128,6 +131,7 @@ void UStaticMeshComponent::PostEditProperty(const char* PropertyName)
 		{
 			SetMaterial(i, Materials[i]);
 		}
+		MarkRenderStateDirty();
 	}
 }
 
@@ -269,6 +273,19 @@ bool UStaticMeshComponent::ConsumeRenderStateDirty()
     const bool bWasDirty = bRenderStateDirty;
     bRenderStateDirty = false;
     return bWasDirty;
+}
+
+void UStaticMeshComponent::GetMeshData(TArray<FNormalVertex>& OutVertices, TArray<uint32>& OutIndices) const
+{
+    for (const FNormalVertex& Vertex : StaticMeshAsset->GetVertices())
+	{
+        OutVertices.push_back(Vertex);
+	}
+
+	for (uint32 Index : StaticMeshAsset->GetIndices())
+	{
+        OutIndices.push_back(Index);
+	}
 }
 
 void UStaticMeshComponent::MarkBoundsDirty()
