@@ -205,6 +205,11 @@
           "ClassName" : "UScriptComponent",
           "Name" : "UScriptComponent_15",
           "Properties" : {
+            "Lua.BaseFriction" : 0.100000,
+            "Lua.DriftFactor" : 0.300000,
+            "Lua.DriftSmoothness" : 0.100000,
+            "Lua.MoveSpeed" : 1.000000,
+            "Lua.RotateSpeed" : 1.000000,
             "Script" : "TankScript.lua",
             "bTickEnable" : true
           }
@@ -311,7 +316,7 @@
   "PerspectiveCamera" : {
     "FOV" : 1.047198,
     "FarClip" : 1000.000000,
-    "Location" : [-11.896534, -23.292747, 17.615086],
+    "Location" : [-22.100677, -35.118790, 26.560490],
     "NearClip" : 0.100000,
     "Rotation" : [-0.000006, 29.799530, 49.210613]
   },
