@@ -277,14 +277,6 @@ void UGizmoComponent::TranslateTarget(float DragAmount)
 	FMatrix M = Proxy->GetTransform();
 	M.SetOrigin(M.GetOrigin() + ConstrainedDelta);
 	Proxy->SetTransform(M);
-
-	if (AllSelectedActors)
-	{
-		for (AActor* Actor : *AllSelectedActors)
-		{
-			if (Actor) Actor->AddActorWorldOffset(ConstrainedDelta);
-		}
-	}
 }
 
 void UGizmoComponent::RotateTarget(float DragAmount)
