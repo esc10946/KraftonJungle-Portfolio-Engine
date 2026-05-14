@@ -351,7 +351,7 @@ public:
 
 	static UMaterialInstance* Create(UMaterial* Material)
 	{
-		UMaterialInstance* Instance = new UMaterialInstance();
+		UMaterialInstance* Instance = UObjectManager::Get().CreateObject<UMaterialInstance>();
 		Instance->Parent = Material;
 		return Instance;
 	}

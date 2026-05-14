@@ -32,7 +32,7 @@ public:
         if (M.Decompose(Translation, Rotation, Scale))
         {
             Actor->SetActorLocation(Translation);
-            Actor->SetActorRotation(Rotation.GetEuler());
+            Actor->SetActorRotationQuat(FQuat(Rotation));
             Actor->SetActorScale(Scale);
         }
     }
@@ -60,7 +60,7 @@ public:
             // but for WorldMatrix we might need SetWorldRotation/Scale if they exist.
             // SceneComponent usually has SetWorldLocation but might not have SetWorldRotation for all.
             // Let's use Relative for now or check SceneComponent.h
-            Component->SetRelativeRotation(Rotation.GetEuler());
+            Component->SetRelativeRotationQuat(FQuat(Rotation));
             Component->SetRelativeScale(Scale);
         }
     }
