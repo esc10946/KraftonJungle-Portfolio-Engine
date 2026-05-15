@@ -24,7 +24,7 @@
 
 `UAnimationClipAsset`을 쓴다.
 
-실제 데이터 포인터는 `SetClipData()`로 넣고 `GetClipData()`로 꺼낸다. 소유권은 `UAnimationClipAsset`이 가진다.
+`UAnimationAssetBase`는 playback용 베이스이고, `UAnimationClipAsset`은 imported `FAnimationClip`을 소유하는 구현체다. 데이터는 `GetClipData()`, source FBX 경로는 `GetSourcePath()`, 길이는 `GetPlayLength()`로 본다.
 
 ## binary cache를 저장하거나 읽고 싶다
 

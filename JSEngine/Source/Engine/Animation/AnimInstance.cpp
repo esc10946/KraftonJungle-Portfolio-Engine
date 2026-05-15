@@ -31,7 +31,7 @@ void UAnimInstance::TickAnimation(float DeltaSeconds)
     NativeUpdateAnimation(DeltaSeconds);
 }
 
-void UAnimSingleNodeInstance::SetAnimationAsset(UAnimationAsset* InAnimationAsset)
+void UAnimSingleNodeInstance::SetAnimationAsset(UAnimationAssetBase* InAnimationAsset)
 {
     AnimationAsset = InAnimationAsset;
     CurrentTime = 0.0f;

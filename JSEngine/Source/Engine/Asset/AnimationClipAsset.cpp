@@ -1,6 +1,9 @@
 #include "Asset/AnimationClipAsset.h"
 
-DEFINE_CLASS(UAnimationClipAsset, UObject)
+#include "Object/ObjectFactory.h"
+
+DEFINE_CLASS(UAnimationClipAsset, UAnimationAssetBase)
+REGISTER_FACTORY(UAnimationClipAsset)
 
 UAnimationClipAsset::~UAnimationClipAsset()
 {
@@ -31,6 +34,11 @@ const FAnimationClip* UAnimationClipAsset::GetClipData() const
 
 const FString& UAnimationClipAsset::GetAssetPathFileName() const
 {
+    return GetSourcePath();
+}
+
+const FString& UAnimationClipAsset::GetSourcePath() const
+{
     static FString Empty = {};
     return ClipData ? ClipData->SourcePath : Empty;
 }
@@ -38,5 +46,10 @@ const FString& UAnimationClipAsset::GetAssetPathFileName() const
 bool UAnimationClipAsset::HasValidClipData() const
 {
     return ClipData != nullptr && (!ClipData->BoneTracks.empty() || !ClipData->ShapeKeyTracks.empty());
+}
+
+float UAnimationClipAsset::GetPlayLength() const
+{
+    return ClipData ? ClipData->DurationSeconds : 0.0f;
 }
 
