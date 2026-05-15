@@ -586,46 +586,6 @@ static void AssignRigidInfluence(FSkeletalMeshVertex& Vertex, int32 BoneIndex)
     Vertex.BoneWeights[0] = 1.0f;
 }
 
-static EAnimationRotationOrder ToAnimationRotationOrder(EFbxRotationOrder Order)
-{
-    switch (Order)
-    {
-    case eEulerXYZ: return EAnimationRotationOrder::XYZ;
-    case eEulerXZY: return EAnimationRotationOrder::XZY;
-    case eEulerYZX: return EAnimationRotationOrder::YZX;
-    case eEulerYXZ: return EAnimationRotationOrder::YXZ;
-    case eEulerZXY: return EAnimationRotationOrder::ZXY;
-    case eEulerZYX: return EAnimationRotationOrder::ZYX;
-    case eSphericXYZ: return EAnimationRotationOrder::Spheric;
-    default: return EAnimationRotationOrder::XYZ;
-    }
-}
-
-static ECurveInterpMode ToAnimationInterpMode(FbxAnimCurveDef::EInterpolationType Interpolation)
-{
-    switch (Interpolation)
-    {
-    case FbxAnimCurveDef::eInterpolationConstant: return ECurveInterpMode::Constant;
-    case FbxAnimCurveDef::eInterpolationLinear: return ECurveInterpMode::Linear;
-    case FbxAnimCurveDef::eInterpolationCubic: return ECurveInterpMode::Cubic;
-    default: return ECurveInterpMode::Linear;
-    }
-}
-
-static ECurveTangentMode ToAnimationTangentMode(FbxAnimCurveDef::ETangentMode TangentMode)
-{
-    const int32 Mode = static_cast<int32>(TangentMode);
-    if ((Mode & static_cast<int32>(FbxAnimCurveDef::eTangentGenericBreak)) != 0)
-    {
-        return ECurveTangentMode::Break;
-    }
-    if ((Mode & static_cast<int32>(FbxAnimCurveDef::eTangentUser)) != 0)
-    {
-        return ECurveTangentMode::User;
-    }
-    return ECurveTangentMode::Auto;
-}
-
 static bool HasAnyKeys(const FAnimationFloatCurve& Curve)
 {
     return Curve.bHasCurve && !Curve.Keys.empty();
@@ -645,17 +605,6 @@ static bool HasAnyAnimatedCurve(const FBoneAnimationTrack& Track)
     return false;
 }
 
-static void SortAnimationCurveKeys(FAnimationFloatCurve& Curve)
-{
-    std::sort(
-        Curve.Keys.begin(),
-        Curve.Keys.end(),
-        [](const FAnimationCurveKey& A, const FAnimationCurveKey& B)
-        {
-            return A.TimeSeconds < B.TimeSeconds;
-        });
-}
-
 static void SetupAnimationCurveDefaults(
     FAnimationFloatCurve& Curve,
     EAnimationCurveChannel Channel,
@@ -667,59 +616,36 @@ static void SetupAnimationCurveDefaults(
     Curve.Keys.clear();
 }
 
-static float SanitizeOptionalCurveMetadata(float Value)
+static void AddSampledAnimationKey(FAnimationFloatCurve& Curve, float TimeSeconds, float Value)
 {
-    return std::isfinite(Value) ? Value : 0.0f;
+    FAnimationCurveKey Key;
+    Key.TimeSeconds = TimeSeconds;
+    Key.Value = Value;
+
+    Curve.bHasCurve = true;
+    Curve.Keys.push_back(Key);
 }
 
-static void ExtractAnimationFloatCurve(FbxAnimCurve* SourceCurve, FAnimationFloatCurve& OutCurve)
+static bool IsNearlyEqual(float A, float B, float Tolerance = 0.0001f)
 {
-    if (!SourceCurve)
+    return std::fabs(A - B) <= Tolerance;
+}
+
+static bool IsNearlyEqual(const FVector& A, const FVector& B, float Tolerance = 0.0001f)
+{
+    return IsNearlyEqual(A.X, B.X, Tolerance)
+        && IsNearlyEqual(A.Y, B.Y, Tolerance)
+        && IsNearlyEqual(A.Z, B.Z, Tolerance);
+}
+
+static void ReserveSampledTrackKeys(FBoneAnimationTrack& Track, size_t SampleCount)
+{
+    for (int32 Axis = 0; Axis < 3; ++Axis)
     {
-        return;
+        Track.Translation[Axis].Keys.reserve(SampleCount);
+        Track.Rotation[Axis].Keys.reserve(SampleCount);
+        Track.Scale[Axis].Keys.reserve(SampleCount);
     }
-
-    const int32 KeyCount = SourceCurve->KeyGetCount();
-    if (KeyCount <= 0)
-    {
-        return;
-    }
-
-    OutCurve.bHasCurve = true;
-    OutCurve.Keys.reserve(KeyCount);
-
-    for (int32 KeyIndex = 0; KeyIndex < KeyCount; ++KeyIndex)
-    {
-        FbxAnimCurveKey FbxKey = SourceCurve->KeyGet(KeyIndex);
-        const FbxAnimCurveDef::EInterpolationType Interpolation = SourceCurve->KeyGetInterpolation(KeyIndex);
-        const FbxAnimCurveDef::EConstantMode ConstantMode = FbxKey.GetConstantMode();
-        const FbxAnimCurveDef::ETangentMode TangentMode = FbxKey.GetTangentMode(true);
-        const FbxAnimCurveDef::EWeightedMode WeightedMode = FbxKey.GetTangentWeightMode();
-        const FbxAnimCurveDef::EVelocityMode VelocityMode = FbxKey.GetTangentVelocityMode();
-
-        FAnimationCurveKey Key;
-        Key.TimeSeconds = static_cast<float>(SourceCurve->KeyGetTime(KeyIndex).GetSecondDouble());
-        Key.Value = SourceCurve->KeyGetValue(KeyIndex);
-        Key.InterpMode = ToAnimationInterpMode(Interpolation);
-        Key.TangentMode = ToAnimationTangentMode(TangentMode);
-        Key.ArriveTangent = SanitizeOptionalCurveMetadata(SourceCurve->KeyGetLeftDerivative(KeyIndex));
-        Key.LeaveTangent = SanitizeOptionalCurveMetadata(SourceCurve->KeyGetRightDerivative(KeyIndex));
-        Key.ArriveTangentWeight = SanitizeOptionalCurveMetadata(SourceCurve->KeyGetLeftTangentWeight(KeyIndex));
-        Key.LeaveTangentWeight = SanitizeOptionalCurveMetadata(SourceCurve->KeyGetRightTangentWeight(KeyIndex));
-        Key.ArriveTangentVelocity = SanitizeOptionalCurveMetadata(SourceCurve->KeyGetLeftTangentVelocity(KeyIndex));
-        Key.LeaveTangentVelocity = SanitizeOptionalCurveMetadata(SourceCurve->KeyGetRightTangentVelocity(KeyIndex));
-        Key.bArriveWeighted = (static_cast<int32>(WeightedMode) & static_cast<int32>(FbxAnimCurveDef::eWeightedNextLeft)) != 0;
-        Key.bLeaveWeighted = (static_cast<int32>(WeightedMode) & static_cast<int32>(FbxAnimCurveDef::eWeightedRight)) != 0;
-        Key.bArriveHasVelocity = (static_cast<int32>(VelocityMode) & static_cast<int32>(FbxAnimCurveDef::eVelocityNextLeft)) != 0;
-        Key.bLeaveHasVelocity = (static_cast<int32>(VelocityMode) & static_cast<int32>(FbxAnimCurveDef::eVelocityRight)) != 0;
-        Key.RawInterpolation = static_cast<int32>(Interpolation);
-        Key.RawConstantMode = static_cast<int32>(ConstantMode);
-        Key.RawTangentMode = static_cast<int32>(TangentMode);
-
-        OutCurve.Keys.push_back(Key);
-    }
-
-    SortAnimationCurveKeys(OutCurve);
 }
 
 static bool IsFinite(float Value)
@@ -759,18 +685,6 @@ static bool ValidateAnimationFloatCurve(
             return false;
         }
 
-        if (!IsFinite(Key.ArriveTangent) ||
-            !IsFinite(Key.LeaveTangent) ||
-            !IsFinite(Key.ArriveTangentWeight) ||
-            !IsFinite(Key.LeaveTangentWeight) ||
-            !IsFinite(Key.ArriveTangentVelocity) ||
-            !IsFinite(Key.LeaveTangentVelocity))
-        {
-            UE_LOG_WARNING("[FbxImporter] Animation curve has non-finite optional tangent metadata: Clip=%s Track=%s",
-                           ClipName,
-                           TrackName);
-        }
-
         if (Key.TimeSeconds < PreviousTime)
         {
             UE_LOG_WARNING("[FbxImporter] Animation curve keys are not sorted: Clip=%s Track=%s",
@@ -805,13 +719,7 @@ static bool ValidateBoneAnimationTrack(const FBoneAnimationTrack& Track, const F
 
     if (!IsFinite(Track.DefaultTranslation) ||
         !IsFinite(Track.DefaultRotationEuler) ||
-        !IsFinite(Track.DefaultScale) ||
-        !IsFinite(Track.PreRotation) ||
-        !IsFinite(Track.PostRotation) ||
-        !IsFinite(Track.RotationOffset) ||
-        !IsFinite(Track.RotationPivot) ||
-        !IsFinite(Track.ScalingOffset) ||
-        !IsFinite(Track.ScalingPivot))
+        !IsFinite(Track.DefaultScale))
     {
         UE_LOG_WARNING("[FbxImporter] Animation bone track has non-finite transform metadata: Clip=%s Bone=%s",
                        Clip.Name.c_str(),
@@ -1246,7 +1154,7 @@ bool FFbxImporter::ExtractAnimationStack(
 
     if (ImportOptions.bImportBoneTransforms)
     {
-        ExtractBoneAnimationTracks(AnimLayer, BoneNodes, OutClip);
+        ExtractBoneAnimationTracks(Scene, BoneNodes, OutClip);
     }
 
     if (ImportOptions.bImportShapeKeys)
@@ -1270,20 +1178,14 @@ bool FFbxImporter::ExtractAnimationStack(
 }
 
 void FFbxImporter::ExtractBoneAnimationTracks(
-    FbxAnimLayer* AnimLayer,
+    FbxScene* Scene,
     const TArray<FbxNode*>& BoneNodes,
     FAnimationClip& OutClip) const
 {
-    if (!AnimLayer)
+    if (!Scene)
     {
         return;
     }
-
-    static const char* FbxChannels[3] = {
-        FBXSDK_CURVENODE_COMPONENT_X,
-        FBXSDK_CURVENODE_COMPONENT_Y,
-        FBXSDK_CURVENODE_COMPONENT_Z,
-    };
 
     static const EAnimationCurveChannel TranslationChannels[3] = {
         EAnimationCurveChannel::TranslationX,
@@ -1303,6 +1205,14 @@ void FFbxImporter::ExtractBoneAnimationTracks(
         EAnimationCurveChannel::ScaleZ,
     };
 
+    const float FrameRate = OutClip.SourceFrameRate > 0.0f ? OutClip.SourceFrameRate : 30.0f;
+    const double StartSeconds = static_cast<double>(OutClip.StartTimeSeconds);
+    const double EndSeconds = static_cast<double>(OutClip.EndTimeSeconds);
+    const double DurationSeconds = std::max(0.0, EndSeconds - StartSeconds);
+    const double SampleIntervalSeconds = 1.0 / static_cast<double>(FrameRate);
+    const int32 FrameSampleCount = static_cast<int32>(std::floor(DurationSeconds * FrameRate + 0.0001)) + 1;
+    const int32 SampleCount = std::max(1, FrameSampleCount);
+
     for (FbxNode* BoneNode : BoneNodes)
     {
         if (!BoneNode)
@@ -1315,35 +1225,117 @@ void FFbxImporter::ExtractBoneAnimationTracks(
         Track.DefaultTranslation = ToFVector(BoneNode->LclTranslation.Get());
         Track.DefaultRotationEuler = ToFVector(BoneNode->LclRotation.Get());
         Track.DefaultScale = ToFVector(BoneNode->LclScaling.Get());
-        Track.bRotationActive = BoneNode->GetRotationActive();
-
-        EFbxRotationOrder RotationOrder = eEulerXYZ;
-        BoneNode->GetRotationOrder(FbxNode::eSourcePivot, RotationOrder);
-        Track.RotationOrder = ToAnimationRotationOrder(RotationOrder);
-
-        FbxTransform::EInheritType InheritType = FbxTransform::eInheritRrSs;
-        BoneNode->GetTransformationInheritType(InheritType);
-        Track.TransformInheritType = static_cast<int32>(InheritType);
-
-        Track.PreRotation = ToFVector(BoneNode->GetPreRotation(FbxNode::eSourcePivot));
-        Track.PostRotation = ToFVector(BoneNode->GetPostRotation(FbxNode::eSourcePivot));
-        Track.RotationOffset = ToFVector(BoneNode->GetRotationOffset(FbxNode::eSourcePivot));
-        Track.RotationPivot = ToFVector(BoneNode->GetRotationPivot(FbxNode::eSourcePivot));
-        Track.ScalingOffset = ToFVector(BoneNode->GetScalingOffset(FbxNode::eSourcePivot));
-        Track.ScalingPivot = ToFVector(BoneNode->GetScalingPivot(FbxNode::eSourcePivot));
 
         for (int32 Axis = 0; Axis < 3; ++Axis)
         {
             SetupAnimationCurveDefaults(Track.Translation[Axis], TranslationChannels[Axis], Track.DefaultTranslation[Axis]);
             SetupAnimationCurveDefaults(Track.Rotation[Axis], RotationChannels[Axis], Track.DefaultRotationEuler[Axis]);
             SetupAnimationCurveDefaults(Track.Scale[Axis], ScaleChannels[Axis], Track.DefaultScale[Axis]);
-
-            ExtractAnimationFloatCurve(BoneNode->LclTranslation.GetCurve(AnimLayer, FbxChannels[Axis], false), Track.Translation[Axis]);
-            ExtractAnimationFloatCurve(BoneNode->LclRotation.GetCurve(AnimLayer, FbxChannels[Axis], false), Track.Rotation[Axis]);
-            ExtractAnimationFloatCurve(BoneNode->LclScaling.GetCurve(AnimLayer, FbxChannels[Axis], false), Track.Scale[Axis]);
         }
 
-        if (HasAnyAnimatedCurve(Track))
+        ReserveSampledTrackKeys(Track, static_cast<size_t>(SampleCount + 1));
+
+        bool bHasAnimatedSamples = false;
+        FVector FirstTranslation = Track.DefaultTranslation;
+        FVector FirstRotation = Track.DefaultRotationEuler;
+        FVector FirstScale = Track.DefaultScale;
+
+        for (int32 SampleIndex = 0; SampleIndex < SampleCount; ++SampleIndex)
+        {
+            const double SampleSeconds = std::min(EndSeconds, StartSeconds + SampleIntervalSeconds * static_cast<double>(SampleIndex));
+
+            FbxTime SampleTime;
+            SampleTime.SetSecondDouble(SampleSeconds);
+
+            FbxAMatrix SampledLocalTransform = BoneNode->EvaluateLocalTransform(
+                SampleTime,
+                FbxNode::eSourcePivot,
+                false,
+                true);
+
+            const FVector Translation = ToFVector(SampledLocalTransform.GetT());
+            const FVector Rotation = ToFVector(SampledLocalTransform.GetR());
+            const FVector Scale = ToFVector(SampledLocalTransform.GetS());
+            const float TimeSeconds = static_cast<float>(SampleSeconds);
+
+            if (SampleIndex == 0)
+            {
+                FirstTranslation = Translation;
+                FirstRotation = Rotation;
+                FirstScale = Scale;
+
+                Track.DefaultTranslation = Translation;
+                Track.DefaultRotationEuler = Rotation;
+                Track.DefaultScale = Scale;
+
+                for (int32 Axis = 0; Axis < 3; ++Axis)
+                {
+                    Track.Translation[Axis].DefaultValue = Translation[Axis];
+                    Track.Rotation[Axis].DefaultValue = Rotation[Axis];
+                    Track.Scale[Axis].DefaultValue = Scale[Axis];
+                }
+            }
+            else if (!IsNearlyEqual(Translation, FirstTranslation) ||
+                     !IsNearlyEqual(Rotation, FirstRotation) ||
+                     !IsNearlyEqual(Scale, FirstScale))
+            {
+                bHasAnimatedSamples = true;
+            }
+
+            if (!IsNearlyEqual(Translation, Track.DefaultTranslation) ||
+                !IsNearlyEqual(Rotation, Track.DefaultRotationEuler) ||
+                !IsNearlyEqual(Scale, Track.DefaultScale))
+            {
+                bHasAnimatedSamples = true;
+            }
+
+            for (int32 Axis = 0; Axis < 3; ++Axis)
+            {
+                AddSampledAnimationKey(Track.Translation[Axis], TimeSeconds, Translation[Axis]);
+                AddSampledAnimationKey(Track.Rotation[Axis], TimeSeconds, Rotation[Axis]);
+                AddSampledAnimationKey(Track.Scale[Axis], TimeSeconds, Scale[Axis]);
+            }
+        }
+
+        if (SampleCount > 0)
+        {
+            const double LastSampleSeconds = StartSeconds + SampleIntervalSeconds * static_cast<double>(SampleCount - 1);
+            if (EndSeconds > LastSampleSeconds + 0.0001)
+            {
+                FbxTime EndSampleTime;
+                EndSampleTime.SetSecondDouble(EndSeconds);
+
+                FbxAMatrix EndLocalTransform = BoneNode->EvaluateLocalTransform(
+                    EndSampleTime,
+                    FbxNode::eSourcePivot,
+                    false,
+                    true);
+
+                const FVector Translation = ToFVector(EndLocalTransform.GetT());
+                const FVector Rotation = ToFVector(EndLocalTransform.GetR());
+                const FVector Scale = ToFVector(EndLocalTransform.GetS());
+                const float TimeSeconds = static_cast<float>(EndSeconds);
+
+                if (!IsNearlyEqual(Translation, FirstTranslation) ||
+                    !IsNearlyEqual(Rotation, FirstRotation) ||
+                    !IsNearlyEqual(Scale, FirstScale) ||
+                    !IsNearlyEqual(Translation, Track.DefaultTranslation) ||
+                    !IsNearlyEqual(Rotation, Track.DefaultRotationEuler) ||
+                    !IsNearlyEqual(Scale, Track.DefaultScale))
+                {
+                    bHasAnimatedSamples = true;
+                }
+
+                for (int32 Axis = 0; Axis < 3; ++Axis)
+                {
+                    AddSampledAnimationKey(Track.Translation[Axis], TimeSeconds, Translation[Axis]);
+                    AddSampledAnimationKey(Track.Rotation[Axis], TimeSeconds, Rotation[Axis]);
+                    AddSampledAnimationKey(Track.Scale[Axis], TimeSeconds, Scale[Axis]);
+                }
+            }
+        }
+
+        if (bHasAnimatedSamples && HasAnyAnimatedCurve(Track))
         {
             OutClip.BoneTracks.push_back(Track);
         }

@@ -89,7 +89,7 @@ private:
         const FAnimationImportOptions& ImportOptions,
         FAnimationClip& OutClip) const;
     void ExtractBoneAnimationTracks(
-        FbxAnimLayer* AnimLayer,
+        FbxScene* Scene,
         const TArray<FbxNode*>& BoneNodes,
         FAnimationClip& OutClip) const;
     void ExtractShapeKeyTracks(FbxAnimLayer* AnimLayer, FbxScene* Scene, FAnimationClip& OutClip) const;

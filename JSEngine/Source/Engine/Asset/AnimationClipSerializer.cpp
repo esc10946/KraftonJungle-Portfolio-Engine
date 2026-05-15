@@ -10,7 +10,7 @@
 namespace
 {
 constexpr uint32 ANIMATION_CLIP_BINARY_MAGIC = 0x4D494E41; // 'ANIM'
-constexpr uint32 ANIMATION_CLIP_BINARY_VERSION = 1;
+constexpr uint32 ANIMATION_CLIP_BINARY_VERSION = 2;
 constexpr uint32 MAX_ANIMATION_BONE_TRACK_COUNT = 65'536;
 constexpr uint32 MAX_ANIMATION_SHAPE_KEY_TRACK_COUNT = 1'000'000;
 constexpr uint32 MAX_ANIMATION_CURVE_COUNT = 2'000'000;
@@ -140,21 +140,6 @@ void FAnimationClipSerializer::WriteCurveKey(std::ofstream& Out, const FAnimatio
 {
     WriteFloatLE(Out, Key.TimeSeconds);
     WriteFloatLE(Out, Key.Value);
-    WriteInt32LE(Out, static_cast<int32>(Key.InterpMode));
-    WriteInt32LE(Out, static_cast<int32>(Key.TangentMode));
-    WriteFloatLE(Out, Key.ArriveTangent);
-    WriteFloatLE(Out, Key.LeaveTangent);
-    WriteFloatLE(Out, Key.ArriveTangentWeight);
-    WriteFloatLE(Out, Key.LeaveTangentWeight);
-    WriteFloatLE(Out, Key.ArriveTangentVelocity);
-    WriteFloatLE(Out, Key.LeaveTangentVelocity);
-    WriteBool(Out, Key.bArriveWeighted);
-    WriteBool(Out, Key.bLeaveWeighted);
-    WriteBool(Out, Key.bArriveHasVelocity);
-    WriteBool(Out, Key.bLeaveHasVelocity);
-    WriteInt32LE(Out, Key.RawInterpolation);
-    WriteInt32LE(Out, Key.RawConstantMode);
-    WriteInt32LE(Out, Key.RawTangentMode);
 }
 
 void FAnimationClipSerializer::WriteFloatCurve(std::ofstream& Out, const FAnimationFloatCurve& Curve)
@@ -175,15 +160,6 @@ void FAnimationClipSerializer::WriteBoneTrack(std::ofstream& Out, const FBoneAni
     WriteVector(Out, Track.DefaultTranslation);
     WriteVector(Out, Track.DefaultRotationEuler);
     WriteVector(Out, Track.DefaultScale);
-    WriteInt32LE(Out, static_cast<int32>(Track.RotationOrder));
-    WriteInt32LE(Out, Track.TransformInheritType);
-    WriteBool(Out, Track.bRotationActive);
-    WriteVector(Out, Track.PreRotation);
-    WriteVector(Out, Track.PostRotation);
-    WriteVector(Out, Track.RotationOffset);
-    WriteVector(Out, Track.RotationPivot);
-    WriteVector(Out, Track.ScalingOffset);
-    WriteVector(Out, Track.ScalingPivot);
 
     for (int32 Axis = 0; Axis < 3; ++Axis)
     {
@@ -309,32 +285,8 @@ bool FAnimationClipSerializer::ReadHeader(std::ifstream& In, FAnimationClipBinar
 
 bool FAnimationClipSerializer::ReadCurveKey(std::ifstream& In, FAnimationCurveKey& OutKey) const
 {
-    int32 InterpMode = 0;
-    int32 TangentMode = 0;
-    if (!ReadFloatLE(In, OutKey.TimeSeconds) ||
-        !ReadFloatLE(In, OutKey.Value) ||
-        !ReadInt32LE(In, InterpMode) ||
-        !ReadInt32LE(In, TangentMode) ||
-        !ReadFloatLE(In, OutKey.ArriveTangent) ||
-        !ReadFloatLE(In, OutKey.LeaveTangent) ||
-        !ReadFloatLE(In, OutKey.ArriveTangentWeight) ||
-        !ReadFloatLE(In, OutKey.LeaveTangentWeight) ||
-        !ReadFloatLE(In, OutKey.ArriveTangentVelocity) ||
-        !ReadFloatLE(In, OutKey.LeaveTangentVelocity) ||
-        !ReadBool(In, OutKey.bArriveWeighted) ||
-        !ReadBool(In, OutKey.bLeaveWeighted) ||
-        !ReadBool(In, OutKey.bArriveHasVelocity) ||
-        !ReadBool(In, OutKey.bLeaveHasVelocity) ||
-        !ReadInt32LE(In, OutKey.RawInterpolation) ||
-        !ReadInt32LE(In, OutKey.RawConstantMode) ||
-        !ReadInt32LE(In, OutKey.RawTangentMode))
-    {
-        return false;
-    }
-
-    OutKey.InterpMode = static_cast<ECurveInterpMode>(InterpMode);
-    OutKey.TangentMode = static_cast<ECurveTangentMode>(TangentMode);
-    return true;
+    return ReadFloatLE(In, OutKey.TimeSeconds)
+        && ReadFloatLE(In, OutKey.Value);
 }
 
 bool FAnimationClipSerializer::ReadFloatCurve(std::ifstream& In, FAnimationFloatCurve& OutCurve) const
@@ -364,25 +316,13 @@ bool FAnimationClipSerializer::ReadFloatCurve(std::ifstream& In, FAnimationFloat
 
 bool FAnimationClipSerializer::ReadBoneTrack(std::ifstream& In, FBoneAnimationTrack& OutTrack) const
 {
-    int32 RotationOrder = 0;
     if (!ReadString(In, OutTrack.BoneName) ||
         !ReadVector(In, OutTrack.DefaultTranslation) ||
         !ReadVector(In, OutTrack.DefaultRotationEuler) ||
-        !ReadVector(In, OutTrack.DefaultScale) ||
-        !ReadInt32LE(In, RotationOrder) ||
-        !ReadInt32LE(In, OutTrack.TransformInheritType) ||
-        !ReadBool(In, OutTrack.bRotationActive) ||
-        !ReadVector(In, OutTrack.PreRotation) ||
-        !ReadVector(In, OutTrack.PostRotation) ||
-        !ReadVector(In, OutTrack.RotationOffset) ||
-        !ReadVector(In, OutTrack.RotationPivot) ||
-        !ReadVector(In, OutTrack.ScalingOffset) ||
-        !ReadVector(In, OutTrack.ScalingPivot))
+        !ReadVector(In, OutTrack.DefaultScale))
     {
         return false;
     }
-
-    OutTrack.RotationOrder = static_cast<EAnimationRotationOrder>(RotationOrder);
 
     for (int32 Axis = 0; Axis < 3; ++Axis)
     {

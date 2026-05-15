@@ -8,17 +8,17 @@
 
 이 함수는 메모리 캐시를 먼저 보고, binary cache가 유효하면 `.bin`을 읽고, 아니면 FBX에서 다시 import한 뒤 cache를 저장한다. 실제 흐름은 `FAnimationClipLoadService::Load()`가 담당한다.
 
-## FBX에서 curve key를 직접 읽고 싶다
+## FBX에서 animation을 import하고 싶다
 
 `FFbxImporter::LoadAnimations(Path, Options)`를 사용한다.
 
-이 함수는 FBX의 `AnimStack`을 `FAnimationClip`으로 바꾼다. bone track 수집은 `ExtractBoneAnimationTracks()`, 실제 `FbxAnimCurve` key 변환은 `ExtractAnimationFloatCurve()`에 있다. 이 경로는 `EvaluateLocalTransform` 같은 pose sampling을 쓰지 않는다.
+이 함수는 FBX의 `AnimStack`을 `FAnimationClip`으로 바꾼다. bone track 수집은 `ExtractBoneAnimationTracks()`가 담당하며, FBX SDK의 `EvaluateLocalTransform()`으로 clip frame rate 기준 샘플을 만든다. FBX의 원본 `FbxAnimCurve` key/tangent metadata는 엔진 데이터로 복사하지 않는다.
 
 ## 결과 데이터는 어디에 있나
 
 핵심 타입은 `AnimationTypes.h`에 있다.
 
-`FAnimationClip`은 clip 단위 데이터이고, `FBoneAnimationTrack`은 bone 하나의 TRS curve와 FBX transform metadata를 담는다. 각 축 curve는 `FAnimationFloatCurve`, 각 key는 `FAnimationCurveKey`다.
+`FAnimationClip`은 clip 단위 데이터이고, `FBoneAnimationTrack`은 bone 하나의 샘플링된 TRS curve를 담는다. 각 축 curve는 `FAnimationFloatCurve`, 각 key는 시간/값만 가진 `FAnimationCurveKey`다.
 
 ## runtime asset wrapper가 필요하다
 
@@ -48,10 +48,10 @@
 
 `ValidateAnimationClip()`을 보면 된다.
 
-clip time range, duplicate bone track, empty bone name, non-finite key time/value를 검사한다. FBX SDK가 tangent metadata에 NaN을 줄 수 있어서 tangent/weight/velocity는 import 시 0으로 sanitize한다.
+clip time range, duplicate bone track, empty bone name, non-finite key time/value를 검사한다.
 
 ## 지금 구현 범위
 
-현재 완성된 범위는 `FBX AnimStack -> bone name 기반 FAnimationClip -> binary cache -> UAnimationClipAsset`이다.
+현재 완성된 범위는 `FBX AnimStack -> SDK-sampled bone name 기반 FAnimationClip -> binary cache -> UAnimationClipAsset`이다.
 
 아직 없는 것은 runtime pose evaluation, skinning 반영, editor preview playback, retargeting, compression, shape key evaluation이다.
