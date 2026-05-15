@@ -4,17 +4,17 @@ setlocal EnableExtensions
 set "SOLUTION_DIR=%~dp0"
 set "PROJECT_DIR=%SOLUTION_DIR%JSEngine"
 set "SOLUTION_FILE=%SOLUTION_DIR%JSEngine.sln"
-set "CONFIGURATION=Release"
+set "CONFIGURATION=GameClientRelease"
 set "PLATFORM=x64"
 set "BUILD_OUTPUT=%PROJECT_DIR%\Bin\%CONFIGURATION%"
-set "PACKAGE_DIR=%SOLUTION_DIR%ReleaseBuild"
-set "EXE_NAME=JSEngine.exe"
+set "PACKAGE_DIR=%SOLUTION_DIR%GameBuild"
+set "EXE_NAME=JSEngineGame.exe"
 
 call :LoadVsDevEnvironment
 if errorlevel 1 goto :Fail
 
 echo ============================================
-echo  Release Build Script
+echo  Game Build Script
 echo  Configuration: %CONFIGURATION% ^| Platform: %PLATFORM%
 echo ============================================
 
@@ -39,15 +39,13 @@ echo.
 echo [3/3] Copying files...
 call :CopyRequiredFile "%BUILD_OUTPUT%\%EXE_NAME%" "%PACKAGE_DIR%\" "%EXE_NAME%"
 if errorlevel 1 goto :Fail
-call :CopyOptionalFile "%BUILD_OUTPUT%\JSEngine.pdb" "%PACKAGE_DIR%\" "JSEngine.pdb"
+call :CopyOptionalFile "%BUILD_OUTPUT%\JSEngineGame.pdb" "%PACKAGE_DIR%\" "JSEngineGame.pdb"
 if errorlevel 1 goto :Fail
 call :CopyBuildDlls
 if errorlevel 1 goto :Fail
 call :EnsureRuntimeDll "lua51.dll" "%BUILD_OUTPUT%\lua51.dll" "%PROJECT_DIR%\ThirdParty\luajit\src\lua51.dll"
 if errorlevel 1 goto :Fail
 call :EnsureRuntimeDll "libfbxsdk.dll" "%BUILD_OUTPUT%\libfbxsdk.dll" "%PROJECT_DIR%\ThirdParty\FBX\lib\release\libfbxsdk.dll"
-if errorlevel 1 goto :Fail
-call :CopyOptionalFile "%PROJECT_DIR%\imgui.ini" "%PACKAGE_DIR%\" "imgui.ini"
 if errorlevel 1 goto :Fail
 
 call :CopyOptionalDir "%PROJECT_DIR%\Shaders" "%PACKAGE_DIR%\Shaders" "Shaders"
@@ -62,7 +60,10 @@ call :CopyOptionalDir "%PROJECT_DIR%\LuaScript" "%PACKAGE_DIR%\LuaScript" "LuaSc
 if errorlevel 1 goto :Fail
 call :CopyOptionalDir "%PROJECT_DIR%\Settings" "%PACKAGE_DIR%\Settings" "Settings"
 if errorlevel 1 goto :Fail
-call :CopyOptionalDir "%PROJECT_DIR%\Saves" "%PACKAGE_DIR%\Saves" "Saves"
+
+if not exist "%PACKAGE_DIR%\Settings" mkdir "%PACKAGE_DIR%\Settings"
+if not exist "%PACKAGE_DIR%\Saves" mkdir "%PACKAGE_DIR%\Saves"
+call :WriteDefaultGameIni
 if errorlevel 1 goto :Fail
 
 echo.
@@ -179,6 +180,37 @@ if errorlevel 2 (
     exit /b 1
 )
 echo Copied %~3
+exit /b 0
+
+:WriteDefaultGameIni
+(
+    echo [Game]
+    echo GameName=JSEngineGame
+    echo ExecutableName=%EXE_NAME%
+    echo StartupScene=Asset/Scene/Main.Scene
+    echo GameModeClass=AGameModeBase
+    echo PlayerControllerClass=APlayerController
+    echo DefaultPawnClass=ADefaultPawn
+    echo DefaultPawnPrefabPath=
+    echo.
+    echo [Scenes]
+    echo Count=1
+    echo Scene0=Asset/Scene/Main.Scene
+    echo.
+    echo [Branding]
+    echo Icon=
+    echo Splash=
+    echo SplashMinSeconds=3
+    echo.
+    echo [Render]
+    echo bShadow=true
+    echo bSkeletalMesh=true
+) > "%PACKAGE_DIR%\Settings\Game.ini"
+if errorlevel 1 (
+    echo Failed to write Settings\Game.ini
+    exit /b 1
+)
+echo Wrote Settings\Game.ini
 exit /b 0
 
 :Fail
