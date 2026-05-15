@@ -1,6 +1,7 @@
 ﻿#include "Core/ResourceManager.h"
 
 #include "Core/Paths.h"
+#include "Core/AnimationClipLoadService.h"
 #include "Core/AssetPathPolicy.h"
 #include "Core/ImportedMaterialPolicy.h"
 #include "Core/MaterialLoadService.h"
@@ -96,6 +97,24 @@ bool FResourceManager::IsSkeletalMeshBinaryValid(const FString& SourcePath, cons
 	return Header.SourceFileWriteTime == SourceWriteTime;
 }
 
+bool FResourceManager::IsAnimationClipBinaryValid(const FString& SourcePath, const FString& BinaryPath) const
+{
+	FAnimationClipBinaryHeader Header;
+	const FString NormalizedBinaryPath = FPaths::Normalize(BinaryPath);
+	if (!AnimationClipSerializer.ReadAnimationClipHeader(NormalizedBinaryPath, Header))
+	{
+		return false;
+	}
+
+	const uint64 SourceWriteTime = GetFileWriteTimeTicks(FPaths::Normalize(SourcePath));
+	if (SourceWriteTime == 0)
+	{
+		return false;
+	}
+
+	return Header.SourceFileWriteTime == SourceWriteTime;
+}
+
 void FResourceManager::PreloadStaticMeshes()
 {
 	for (const auto& [Key, Resource] : StaticMeshCache.GetRegistry())
@@ -152,6 +171,7 @@ void FResourceManager::ClearDiscoveredResourceLists(bool bClearAtlasCache)
 	MaterialFilePaths.clear();
 	ParticleFilePaths.clear();
 	CurveFilePaths.clear();
+	AnimationClipFilePaths.clear();
 	SkeletalMeshFilePaths.clear();
 	StaticMeshCache.ClearRegistry();
 
@@ -176,6 +196,10 @@ void FResourceManager::RegisterDiscoveredAssetFile(const std::filesystem::path& 
 	if (FAssetPathPolicy::IsCurveAssetPath(FPaths::ToUtf8(FilePath.generic_wstring())))
 	{
 		CurveFilePaths.push_back(RelativePath);
+	}
+	else if (FAssetPathPolicy::IsAnimationClipAssetPath(FPaths::ToUtf8(FilePath.generic_wstring())))
+	{
+		AnimationClipFilePaths.push_back(RelativePath);
 	}
 	else if (Extension == L".obj" || Extension == L".fbx")
 	{
@@ -466,6 +490,12 @@ void FResourceManager::ReleaseGPUResources()
 		UObjectManager::Get().DestroyObject(Mesh);
 	}
 	SkeletalMeshMap.clear();
+
+	for (auto& [Path, Clip] : AnimationClipMap)
+	{
+		UObjectManager::Get().DestroyObject(Clip);
+	}
+	AnimationClipMap.clear();
 
 	DefaultWhiteTexture.Reset();
 	CachedDevice.Reset();
@@ -873,6 +903,40 @@ bool FResourceManager::SaveCurve(const FString& Path, const UCurveFloatAsset* Cu
 TArray<FString> FResourceManager::GetCurvePaths() const
 {
 	return CurveFilePaths;
+}
+
+UAnimationClipAsset* FResourceManager::LoadAnimationClip(const FString& Path)
+{
+	return FAnimationClipLoadService(*this).Load(Path);
+}
+
+UAnimationClipAsset* FResourceManager::FindAnimationClip(const FString& Path) const
+{
+	const FString NormalizedPath = FPaths::Normalize(Path);
+	auto It = AnimationClipMap.find(NormalizedPath);
+	return It != AnimationClipMap.end() ? It->second : nullptr;
+}
+
+bool FResourceManager::SaveAnimationClip(UAnimationClipAsset* Clip)
+{
+	if (!Clip)
+	{
+		return false;
+	}
+
+	FAnimationClip* Data = Clip->GetClipData();
+	if (!Data || Data->SourcePath.empty())
+	{
+		return false;
+	}
+
+	const FString BinPath = FAssetPathPolicy::MakeWritableAnimationClipCacheBinaryPath(Data->SourcePath);
+	return AnimationClipSerializer.SaveAnimationClip(BinPath, Data->SourcePath, *Data);
+}
+
+TArray<FString> FResourceManager::GetAnimationClipPaths() const
+{
+	return AnimationClipFilePaths;
 }
 
 const TArray<FString>& FResourceManager::GetTextureFilePath() const

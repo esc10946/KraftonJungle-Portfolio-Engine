@@ -1,6 +1,8 @@
 ﻿#pragma once
 
 #include "Asset/BinarySerializer.h"
+#include "Asset/AnimationClipAsset.h"
+#include "Asset/AnimationClipSerializer.h"
 #include "Asset/CurveFloatAsset.h"
 #include "Asset/FbxImporter.h"
 #include "Asset/ObjLoader.h"
@@ -28,6 +30,7 @@
 
 class FMaterialLoadService;
 class FMaterialSerializationService;
+class FAnimationClipLoadService;
 class FStaticMeshLoadService;
 class FSkeletalMeshLoadService;
 class FFbxMaterialLoadService;
@@ -38,6 +41,7 @@ class FResourceManager : public TSingleton<FResourceManager>
 	friend class TSingleton<FResourceManager>;
 	friend class FMaterialLoadService;
 	friend class FMaterialSerializationService;
+	friend class FAnimationClipLoadService;
 	friend class FStaticMeshLoadService;
 	friend class FSkeletalMeshLoadService;
 	friend class FFbxMaterialLoadService;
@@ -126,6 +130,11 @@ public:
 	bool SaveCurve(const FString& Path, const UCurveFloatAsset* Curve);
 	TArray<FString> GetCurvePaths() const;
 
+	UAnimationClipAsset* LoadAnimationClip(const FString& Path);
+	UAnimationClipAsset* FindAnimationClip(const FString& Path) const;
+	bool SaveAnimationClip(UAnimationClipAsset* Clip);
+	TArray<FString> GetAnimationClipPaths() const;
+
 	ID3D11SamplerState* GetOrCreateSamplerState(ESamplerType Type, ID3D11Device* Device = nullptr);
 	ID3D11DepthStencilState* GetOrCreateDepthStencilState(EDepthStencilType Type, ID3D11Device* Device = nullptr);
 	ID3D11BlendState* GetOrCreateBlendState(EBlendType Type, ID3D11Device* Device = nullptr);
@@ -145,6 +154,7 @@ private:
 	uint64 GetFileWriteTimeTicks(const FString& Path) const;
 	bool IsStaticMeshBinaryValid(const FString& SourcePath, const FString& BinaryPath) const;
 	bool IsSkeletalMeshBinaryValid(const FString& SourcePath, const FString& BinaryPath) const;
+	bool IsAnimationClipBinaryValid(const FString& SourcePath, const FString& BinaryPath) const;
 	void PreloadStaticMeshes();
 	UStaticMesh* CreateStaticMeshFromLoadedData(FStaticMesh* LoadedMeshData, const FString& LogPath, bool bLogLodTiming, bool bLogLodSkipped) const;
 	
@@ -163,6 +173,7 @@ private:
 	FObjLoader ObjLoader;
 	FFbxImporter FbxImporter;
 	FBinarySerializer BinarySerializer;
+	FAnimationClipSerializer AnimationClipSerializer;
 
 	TComPtr<ID3D11Texture2D>          DefaultWhiteTexture;
 
@@ -175,6 +186,7 @@ private:
 	FAtlasResourceCache AtlasCache;
 
 	TMap<FString, USkeletalMesh*> SkeletalMeshMap;
+	TMap<FString, UAnimationClipAsset*> AnimationClipMap;
 
 	/* Paths */
 	TArray<FString> ObjFilePaths;
@@ -184,4 +196,5 @@ private:
 	TArray<FString> TextureFilePaths;
 	TArray<FString> SkeletalMeshFilePaths;
 	TArray<FString> CurveFilePaths;
+	TArray<FString> AnimationClipFilePaths;
 };

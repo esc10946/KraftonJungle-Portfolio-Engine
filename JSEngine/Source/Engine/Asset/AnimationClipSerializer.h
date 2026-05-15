@@ -1,0 +1,53 @@
+#pragma once
+
+#include "Asset/AnimationTypes.h"
+#include "Core/CoreMinimal.h"
+
+#include <fstream>
+
+struct FAnimationClipBinaryHeader
+{
+    uint32 MagicNumber = 0x4D494E41; // 'ANIM'
+    uint32 Version = 1;
+    uint32 BoneTrackCount = 0;
+    uint32 ShapeKeyTrackCount = 0;
+    uint32 CurveCount = 0;
+    uint32 KeyCount = 0;
+    uint64 SourceFileWriteTime = 0;
+};
+
+class FAnimationClipSerializer
+{
+public:
+    bool SaveAnimationClip(const FString& BinaryPath, const FString& SourcePath, const FAnimationClip& Data);
+    bool LoadAnimationClip(const FString& BinaryPath, FAnimationClip& OutData);
+    bool ReadAnimationClipHeader(const FString& BinaryPath, FAnimationClipBinaryHeader& OutHeader) const;
+
+private:
+    void WriteBool(std::ofstream& Out, bool Value);
+    void WriteInt32LE(std::ofstream& Out, int32 Value);
+    void WriteUInt32LE(std::ofstream& Out, uint32 Value);
+    void WriteUInt64LE(std::ofstream& Out, uint64 Value);
+    void WriteFloatLE(std::ofstream& Out, float Value);
+    void WriteString(std::ofstream& Out, const FString& Value);
+    void WriteVector(std::ofstream& Out, const FVector& Value);
+    void WriteHeader(std::ofstream& Out, const FAnimationClipBinaryHeader& Header);
+    void WriteCurveKey(std::ofstream& Out, const FAnimationCurveKey& Key);
+    void WriteFloatCurve(std::ofstream& Out, const FAnimationFloatCurve& Curve);
+    void WriteBoneTrack(std::ofstream& Out, const FBoneAnimationTrack& Track);
+    void WriteShapeKeyTrack(std::ofstream& Out, const FShapeKeyAnimationTrack& Track);
+
+    bool ReadBool(std::ifstream& In, bool& OutValue) const;
+    bool ReadInt32LE(std::ifstream& In, int32& OutValue) const;
+    bool ReadUInt32LE(std::ifstream& In, uint32& OutValue) const;
+    bool ReadUInt64LE(std::ifstream& In, uint64& OutValue) const;
+    bool ReadFloatLE(std::ifstream& In, float& OutValue) const;
+    bool ReadString(std::ifstream& In, FString& OutValue) const;
+    bool ReadVector(std::ifstream& In, FVector& OutValue) const;
+    bool ReadHeader(std::ifstream& In, FAnimationClipBinaryHeader& OutHeader) const;
+    bool ReadCurveKey(std::ifstream& In, FAnimationCurveKey& OutKey) const;
+    bool ReadFloatCurve(std::ifstream& In, FAnimationFloatCurve& OutCurve) const;
+    bool ReadBoneTrack(std::ifstream& In, FBoneAnimationTrack& OutTrack) const;
+    bool ReadShapeKeyTrack(std::ifstream& In, FShapeKeyAnimationTrack& OutTrack) const;
+};
+
