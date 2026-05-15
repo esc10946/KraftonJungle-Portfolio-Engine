@@ -24,7 +24,7 @@ struct FAnimationImportOptions
     FString SkeletonSourcePath;
     bool bImportAllStacks = true;
     bool bImportBoneTransforms = true;
-    bool bImportShapeKeys = false;
+    bool bImportShapeKeys = true;
 };
 
 class FFbxImporter : public IAssetLoader
@@ -89,7 +89,7 @@ private:
         const FAnimationImportOptions& ImportOptions,
         FAnimationClip& OutClip) const;
     void ExtractBoneAnimationTracks(
-        FbxScene* Scene,
+        FbxAnimLayer* AnimLayer,
         const TArray<FbxNode*>& BoneNodes,
         FAnimationClip& OutClip) const;
     void ExtractShapeKeyTracks(FbxAnimLayer* AnimLayer, FbxScene* Scene, FAnimationClip& OutClip) const;

@@ -8,7 +8,7 @@
 struct FAnimationClipBinaryHeader
 {
     uint32 MagicNumber = 0x4D494E41; // 'ANIM'
-    uint32 Version = 1;
+    uint32 Version = 3;
     uint32 BoneTrackCount = 0;
     uint32 ShapeKeyTrackCount = 0;
     uint32 CurveCount = 0;
@@ -31,9 +31,11 @@ private:
     void WriteFloatLE(std::ofstream& Out, float Value);
     void WriteString(std::ofstream& Out, const FString& Value);
     void WriteVector(std::ofstream& Out, const FVector& Value);
+    void WriteQuat(std::ofstream& Out, const FQuat& Value);
     void WriteHeader(std::ofstream& Out, const FAnimationClipBinaryHeader& Header);
     void WriteCurveKey(std::ofstream& Out, const FAnimationCurveKey& Key);
     void WriteFloatCurve(std::ofstream& Out, const FAnimationFloatCurve& Curve);
+    void WriteRawAnimSequenceTrack(std::ofstream& Out, const FRawAnimSequenceTrack& Track);
     void WriteBoneTrack(std::ofstream& Out, const FBoneAnimationTrack& Track);
     void WriteShapeKeyTrack(std::ofstream& Out, const FShapeKeyAnimationTrack& Track);
 
@@ -44,9 +46,11 @@ private:
     bool ReadFloatLE(std::ifstream& In, float& OutValue) const;
     bool ReadString(std::ifstream& In, FString& OutValue) const;
     bool ReadVector(std::ifstream& In, FVector& OutValue) const;
+    bool ReadQuat(std::ifstream& In, FQuat& OutValue) const;
     bool ReadHeader(std::ifstream& In, FAnimationClipBinaryHeader& OutHeader) const;
     bool ReadCurveKey(std::ifstream& In, FAnimationCurveKey& OutKey) const;
     bool ReadFloatCurve(std::ifstream& In, FAnimationFloatCurve& OutCurve) const;
+    bool ReadRawAnimSequenceTrack(std::ifstream& In, FRawAnimSequenceTrack& OutTrack) const;
     bool ReadBoneTrack(std::ifstream& In, FBoneAnimationTrack& OutTrack) const;
     bool ReadShapeKeyTrack(std::ifstream& In, FShapeKeyAnimationTrack& OutTrack) const;
 };

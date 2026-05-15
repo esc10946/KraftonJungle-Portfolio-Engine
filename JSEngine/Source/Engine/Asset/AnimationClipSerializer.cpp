@@ -10,7 +10,7 @@
 namespace
 {
 constexpr uint32 ANIMATION_CLIP_BINARY_MAGIC = 0x4D494E41; // 'ANIM'
-constexpr uint32 ANIMATION_CLIP_BINARY_VERSION = 2;
+constexpr uint32 ANIMATION_CLIP_BINARY_VERSION = 3;
 constexpr uint32 MAX_ANIMATION_BONE_TRACK_COUNT = 65'536;
 constexpr uint32 MAX_ANIMATION_SHAPE_KEY_TRACK_COUNT = 1'000'000;
 constexpr uint32 MAX_ANIMATION_CURVE_COUNT = 2'000'000;
@@ -44,12 +44,11 @@ static void CountClipData(const FAnimationClip& Clip, uint32& OutCurveCount, uin
 
     for (const FBoneAnimationTrack& Track : Clip.BoneTracks)
     {
-        for (int32 Axis = 0; Axis < 3; ++Axis)
-        {
-            CountCurve(Track.Translation[Axis]);
-            CountCurve(Track.Rotation[Axis]);
-            CountCurve(Track.Scale[Axis]);
-        }
+        OutKeyCount += static_cast<uint32>(
+            Track.InternalTrack.PosKeys.size() +
+            Track.InternalTrack.RotKeys.size() +
+            Track.InternalTrack.ScaleKeys.size());
+
     }
 
     for (const FShapeKeyAnimationTrack& Track : Clip.ShapeKeyTracks)
@@ -125,6 +124,14 @@ void FAnimationClipSerializer::WriteVector(std::ofstream& Out, const FVector& Va
     WriteFloatLE(Out, Value.Z);
 }
 
+void FAnimationClipSerializer::WriteQuat(std::ofstream& Out, const FQuat& Value)
+{
+    WriteFloatLE(Out, Value.X);
+    WriteFloatLE(Out, Value.Y);
+    WriteFloatLE(Out, Value.Z);
+    WriteFloatLE(Out, Value.W);
+}
+
 void FAnimationClipSerializer::WriteHeader(std::ofstream& Out, const FAnimationClipBinaryHeader& Header)
 {
     WriteUInt32LE(Out, Header.MagicNumber);
@@ -140,6 +147,21 @@ void FAnimationClipSerializer::WriteCurveKey(std::ofstream& Out, const FAnimatio
 {
     WriteFloatLE(Out, Key.TimeSeconds);
     WriteFloatLE(Out, Key.Value);
+    WriteInt32LE(Out, static_cast<int32>(Key.InterpMode));
+    WriteInt32LE(Out, static_cast<int32>(Key.TangentMode));
+    WriteFloatLE(Out, Key.ArriveTangent);
+    WriteFloatLE(Out, Key.LeaveTangent);
+    WriteFloatLE(Out, Key.ArriveTangentWeight);
+    WriteFloatLE(Out, Key.LeaveTangentWeight);
+    WriteFloatLE(Out, Key.ArriveTangentVelocity);
+    WriteFloatLE(Out, Key.LeaveTangentVelocity);
+    WriteBool(Out, Key.bArriveWeighted);
+    WriteBool(Out, Key.bLeaveWeighted);
+    WriteBool(Out, Key.bArriveHasVelocity);
+    WriteBool(Out, Key.bLeaveHasVelocity);
+    WriteInt32LE(Out, Key.RawInterpolation);
+    WriteInt32LE(Out, Key.RawConstantMode);
+    WriteInt32LE(Out, Key.RawTangentMode);
 }
 
 void FAnimationClipSerializer::WriteFloatCurve(std::ofstream& Out, const FAnimationFloatCurve& Curve)
@@ -154,19 +176,44 @@ void FAnimationClipSerializer::WriteFloatCurve(std::ofstream& Out, const FAnimat
     }
 }
 
+void FAnimationClipSerializer::WriteRawAnimSequenceTrack(std::ofstream& Out, const FRawAnimSequenceTrack& Track)
+{
+    WriteUInt32LE(Out, static_cast<uint32>(Track.PosKeys.size()));
+    for (const FVector& Key : Track.PosKeys)
+    {
+        WriteVector(Out, Key);
+    }
+
+    WriteUInt32LE(Out, static_cast<uint32>(Track.RotKeys.size()));
+    for (const FQuat& Key : Track.RotKeys)
+    {
+        WriteQuat(Out, Key);
+    }
+
+    WriteUInt32LE(Out, static_cast<uint32>(Track.ScaleKeys.size()));
+    for (const FVector& Key : Track.ScaleKeys)
+    {
+        WriteVector(Out, Key);
+    }
+}
+
 void FAnimationClipSerializer::WriteBoneTrack(std::ofstream& Out, const FBoneAnimationTrack& Track)
 {
     WriteString(Out, Track.BoneName);
+    WriteRawAnimSequenceTrack(Out, Track.InternalTrack);
     WriteVector(Out, Track.DefaultTranslation);
     WriteVector(Out, Track.DefaultRotationEuler);
     WriteVector(Out, Track.DefaultScale);
+    WriteInt32LE(Out, static_cast<int32>(Track.RotationOrder));
+    WriteInt32LE(Out, Track.TransformInheritType);
+    WriteBool(Out, Track.bRotationActive);
+    WriteVector(Out, Track.PreRotation);
+    WriteVector(Out, Track.PostRotation);
+    WriteVector(Out, Track.RotationOffset);
+    WriteVector(Out, Track.RotationPivot);
+    WriteVector(Out, Track.ScalingOffset);
+    WriteVector(Out, Track.ScalingPivot);
 
-    for (int32 Axis = 0; Axis < 3; ++Axis)
-    {
-        WriteFloatCurve(Out, Track.Translation[Axis]);
-        WriteFloatCurve(Out, Track.Rotation[Axis]);
-        WriteFloatCurve(Out, Track.Scale[Axis]);
-    }
 }
 
 void FAnimationClipSerializer::WriteShapeKeyTrack(std::ofstream& Out, const FShapeKeyAnimationTrack& Track)
@@ -272,6 +319,14 @@ bool FAnimationClipSerializer::ReadVector(std::ifstream& In, FVector& OutValue) 
         && ReadFloatLE(In, OutValue.Z);
 }
 
+bool FAnimationClipSerializer::ReadQuat(std::ifstream& In, FQuat& OutValue) const
+{
+    return ReadFloatLE(In, OutValue.X)
+        && ReadFloatLE(In, OutValue.Y)
+        && ReadFloatLE(In, OutValue.Z)
+        && ReadFloatLE(In, OutValue.W);
+}
+
 bool FAnimationClipSerializer::ReadHeader(std::ifstream& In, FAnimationClipBinaryHeader& OutHeader) const
 {
     return ReadUInt32LE(In, OutHeader.MagicNumber)
@@ -285,8 +340,32 @@ bool FAnimationClipSerializer::ReadHeader(std::ifstream& In, FAnimationClipBinar
 
 bool FAnimationClipSerializer::ReadCurveKey(std::ifstream& In, FAnimationCurveKey& OutKey) const
 {
-    return ReadFloatLE(In, OutKey.TimeSeconds)
-        && ReadFloatLE(In, OutKey.Value);
+    int32 InterpMode = 0;
+    int32 TangentMode = 0;
+    if (!ReadFloatLE(In, OutKey.TimeSeconds) ||
+        !ReadFloatLE(In, OutKey.Value) ||
+        !ReadInt32LE(In, InterpMode) ||
+        !ReadInt32LE(In, TangentMode) ||
+        !ReadFloatLE(In, OutKey.ArriveTangent) ||
+        !ReadFloatLE(In, OutKey.LeaveTangent) ||
+        !ReadFloatLE(In, OutKey.ArriveTangentWeight) ||
+        !ReadFloatLE(In, OutKey.LeaveTangentWeight) ||
+        !ReadFloatLE(In, OutKey.ArriveTangentVelocity) ||
+        !ReadFloatLE(In, OutKey.LeaveTangentVelocity) ||
+        !ReadBool(In, OutKey.bArriveWeighted) ||
+        !ReadBool(In, OutKey.bLeaveWeighted) ||
+        !ReadBool(In, OutKey.bArriveHasVelocity) ||
+        !ReadBool(In, OutKey.bLeaveHasVelocity) ||
+        !ReadInt32LE(In, OutKey.RawInterpolation) ||
+        !ReadInt32LE(In, OutKey.RawConstantMode) ||
+        !ReadInt32LE(In, OutKey.RawTangentMode))
+    {
+        return false;
+    }
+
+    OutKey.InterpMode = static_cast<ECurveInterpMode>(InterpMode);
+    OutKey.TangentMode = static_cast<ECurveTangentMode>(TangentMode);
+    return true;
 }
 
 bool FAnimationClipSerializer::ReadFloatCurve(std::ifstream& In, FAnimationFloatCurve& OutCurve) const
@@ -314,25 +393,76 @@ bool FAnimationClipSerializer::ReadFloatCurve(std::ifstream& In, FAnimationFloat
     return true;
 }
 
-bool FAnimationClipSerializer::ReadBoneTrack(std::ifstream& In, FBoneAnimationTrack& OutTrack) const
+bool FAnimationClipSerializer::ReadRawAnimSequenceTrack(std::ifstream& In, FRawAnimSequenceTrack& OutTrack) const
 {
-    if (!ReadString(In, OutTrack.BoneName) ||
-        !ReadVector(In, OutTrack.DefaultTranslation) ||
-        !ReadVector(In, OutTrack.DefaultRotationEuler) ||
-        !ReadVector(In, OutTrack.DefaultScale))
+    uint32 PosKeyCount = 0;
+    if (!ReadUInt32LE(In, PosKeyCount) || PosKeyCount > MAX_ANIMATION_KEY_COUNT)
     {
         return false;
     }
-
-    for (int32 Axis = 0; Axis < 3; ++Axis)
+    OutTrack.PosKeys.resize(PosKeyCount);
+    for (FVector& Key : OutTrack.PosKeys)
     {
-        if (!ReadFloatCurve(In, OutTrack.Translation[Axis]) ||
-            !ReadFloatCurve(In, OutTrack.Rotation[Axis]) ||
-            !ReadFloatCurve(In, OutTrack.Scale[Axis]))
+        if (!ReadVector(In, Key))
         {
             return false;
         }
     }
+
+    uint32 RotKeyCount = 0;
+    if (!ReadUInt32LE(In, RotKeyCount) || RotKeyCount > MAX_ANIMATION_KEY_COUNT)
+    {
+        return false;
+    }
+    OutTrack.RotKeys.resize(RotKeyCount);
+    for (FQuat& Key : OutTrack.RotKeys)
+    {
+        if (!ReadQuat(In, Key))
+        {
+            return false;
+        }
+    }
+
+    uint32 ScaleKeyCount = 0;
+    if (!ReadUInt32LE(In, ScaleKeyCount) || ScaleKeyCount > MAX_ANIMATION_KEY_COUNT)
+    {
+        return false;
+    }
+    OutTrack.ScaleKeys.resize(ScaleKeyCount);
+    for (FVector& Key : OutTrack.ScaleKeys)
+    {
+        if (!ReadVector(In, Key))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+bool FAnimationClipSerializer::ReadBoneTrack(std::ifstream& In, FBoneAnimationTrack& OutTrack) const
+{
+    int32 RotationOrder = 0;
+    if (!ReadString(In, OutTrack.BoneName) ||
+        !ReadRawAnimSequenceTrack(In, OutTrack.InternalTrack) ||
+        !ReadVector(In, OutTrack.DefaultTranslation) ||
+        !ReadVector(In, OutTrack.DefaultRotationEuler) ||
+        !ReadVector(In, OutTrack.DefaultScale) ||
+        !ReadInt32LE(In, RotationOrder) ||
+        !ReadInt32LE(In, OutTrack.TransformInheritType) ||
+        !ReadBool(In, OutTrack.bRotationActive) ||
+        !ReadVector(In, OutTrack.PreRotation) ||
+        !ReadVector(In, OutTrack.PostRotation) ||
+        !ReadVector(In, OutTrack.RotationOffset) ||
+        !ReadVector(In, OutTrack.RotationPivot) ||
+        !ReadVector(In, OutTrack.ScalingOffset) ||
+        !ReadVector(In, OutTrack.ScalingPivot))
+    {
+        return false;
+    }
+
+    OutTrack.RotationOrder = static_cast<EAnimationRotationOrder>(RotationOrder);
+
     return true;
 }
 
@@ -378,6 +508,8 @@ bool FAnimationClipSerializer::SaveAnimationClip(const FString& BinaryPath, cons
     WriteFloatLE(Out, Data.EndTimeSeconds);
     WriteFloatLE(Out, Data.DurationSeconds);
     WriteFloatLE(Out, Data.SourceFrameRate);
+    WriteInt32LE(Out, Data.NumberOfFrames);
+    WriteInt32LE(Out, Data.NumberOfKeys);
 
     WriteUInt32LE(Out, Header.BoneTrackCount);
     for (const FBoneAnimationTrack& Track : Data.BoneTracks)
@@ -414,7 +546,9 @@ bool FAnimationClipSerializer::LoadAnimationClip(const FString& BinaryPath, FAni
         !ReadFloatLE(In, OutData.StartTimeSeconds) ||
         !ReadFloatLE(In, OutData.EndTimeSeconds) ||
         !ReadFloatLE(In, OutData.DurationSeconds) ||
-        !ReadFloatLE(In, OutData.SourceFrameRate))
+        !ReadFloatLE(In, OutData.SourceFrameRate) ||
+        !ReadInt32LE(In, OutData.NumberOfFrames) ||
+        !ReadInt32LE(In, OutData.NumberOfKeys))
     {
         return false;
     }
