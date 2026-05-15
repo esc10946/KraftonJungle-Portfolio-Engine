@@ -1,6 +1,8 @@
 @echo off
 setlocal EnableExtensions
 
+:: 단독 실행용 게임 클라이언트 패키지 빌드
+:: GameClient 구성은 vcxproj에서 TargetName=JSEngineGame 사용
 set "SOLUTION_DIR=%~dp0"
 set "PROJECT_DIR=%SOLUTION_DIR%JSEngine"
 set "SOLUTION_FILE=%SOLUTION_DIR%JSEngine.sln"
@@ -22,6 +24,7 @@ echo.
 echo [1/3] Building %CONFIGURATION% %PLATFORM%...
 "%MSBUILD_EXE%" "%SOLUTION_FILE%" /p:Configuration=%CONFIGURATION% /p:Platform=%PLATFORM% /m /v:minimal
 set "MSBUILD_EXIT_CODE=%ERRORLEVEL%"
+:: 로컬 배치 라벨 호출 전에 원래 PATH로 복구
 if defined BUILD_PATH_BACKUP set "PATH=%BUILD_PATH_BACKUP%"
 set "BUILD_PATH_BACKUP="
 if not "%MSBUILD_EXIT_CODE%"=="0" (
@@ -37,6 +40,7 @@ if errorlevel 1 goto :Fail
 
 echo.
 echo [3/3] Copying files...
+:: 실행 파일과 빌드 산출 DLL은 선택된 OutDir에서 가져옴
 call :CopyRequiredFile "%BUILD_OUTPUT%\%EXE_NAME%" "%PACKAGE_DIR%\" "%EXE_NAME%"
 if errorlevel 1 goto :Fail
 call :CopyOptionalFile "%BUILD_OUTPUT%\JSEngineGame.pdb" "%PACKAGE_DIR%\" "JSEngineGame.pdb"
@@ -48,6 +52,7 @@ if errorlevel 1 goto :Fail
 call :EnsureRuntimeDll "libfbxsdk.dll" "%BUILD_OUTPUT%\libfbxsdk.dll" "%PROJECT_DIR%\ThirdParty\FBX\lib\release\libfbxsdk.dll"
 if errorlevel 1 goto :Fail
 
+:: 런타임 데이터는 게임 런타임이 FPaths::RootDir() 아래에서 기대하는 구조를 따름
 call :CopyOptionalDir "%PROJECT_DIR%\Shaders" "%PACKAGE_DIR%\Shaders" "Shaders"
 if errorlevel 1 goto :Fail
 call :CopyOptionalDir "%PROJECT_DIR%\DerivedData\ShaderCache" "%PACKAGE_DIR%\DerivedData\ShaderCache" "ShaderCache"
@@ -63,6 +68,8 @@ if errorlevel 1 goto :Fail
 
 if not exist "%PACKAGE_DIR%\Settings" mkdir "%PACKAGE_DIR%\Settings"
 if not exist "%PACKAGE_DIR%\Saves" mkdir "%PACKAGE_DIR%\Saves"
+:: 에디터 패키저는 더 풍부한 Game.ini를 작성함. 이 기본값은 에디터에서
+:: 패키징 데이터를 만들지 않았을 때도 수동 스크립트 빌드가 실행 가능하도록 함
 call :WriteDefaultGameIni
 if errorlevel 1 goto :Fail
 
@@ -75,6 +82,7 @@ pause
 exit /b 0
 
 :LoadVsDevEnvironment
+:: Developer Command Prompt에 의존하지 않고 Visual Studio 설치 경로 탐색
 set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
 if not exist "%VSWHERE%" (
     echo vswhere.exe not found.
@@ -100,6 +108,8 @@ call :NormalizePathEnvironment
 exit /b %ERRORLEVEL%
 
 :NormalizePathEnvironment
+:: 일부 셸은 PATH와 Path를 동시에 넘김. MSBuild의 .NET Task 환경은 이를
+:: 중복 키로 취급하므로, MSBuild 실행 중에는 오래된 혼합 대소문자 항목 제거
 set "BUILD_PATH_BACKUP=%PATH%"
 set "HAS_UPPER_PATH="
 set "HAS_TITLE_PATH="
@@ -137,6 +147,7 @@ echo Copied %~3
 exit /b 0
 
 :CopyBuildDlls
+:: Post-build 이벤트로 복사된 런타임 DLL을 포함해 MSBuild가 출력한 모든 DLL 복사
 if not exist "%BUILD_OUTPUT%\*.dll" (
     echo Skipped build output DLLs
     exit /b 0
@@ -150,6 +161,7 @@ echo Copied build output DLLs
 exit /b 0
 
 :EnsureRuntimeDll
+:: MSBuild가 런타임 DLL을 복사하지 않았다면 원본 위치에서 직접 가져옴
 if exist "%PACKAGE_DIR%\%~1" (
     echo Found %~1
     exit /b 0
@@ -183,6 +195,7 @@ echo Copied %~3
 exit /b 0
 
 :WriteDefaultGameIni
+:: UGameEngine::LoadGameSettings()가 읽는 최소 시작 설정
 (
     echo [Game]
     echo GameName=JSEngineGame
