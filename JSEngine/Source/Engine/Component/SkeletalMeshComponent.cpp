@@ -1,5 +1,6 @@
 ﻿#include "SkeletalMeshComponent.h"
 
+#include "Animation/AnimInstance.h"
 #include "Object/ObjectFactory.h"
 
 DEFINE_CLASS(USkeletalMeshComponent, USkinnedMeshComponent)
@@ -9,8 +10,39 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime)
 {
     USkinnedMeshComponent::TickComponent(DeltaTime);
 
+    if (AnimInstance)
+    {
+        AnimInstance->TickAnimation(DeltaTime);
+    }
+
 	// Pose가 바뀐 경우에만 실제 CPU skinning이 수행(dirty flag 이용)
     EnsureSkinningUpdated();
+}
+
+void USkeletalMeshComponent::SetAnimInstance(UAnimInstance* InAnimInstance)
+{
+    if (AnimInstance == InAnimInstance)
+    {
+        return;
+    }
+
+    AnimInstance = InAnimInstance;
+    if (AnimInstance)
+    {
+        AnimInstance->Initialize(this);
+    }
+}
+
+void USkeletalMeshComponent::ApplyLocalPose(const TArray<FMatrix>& InLocalPose)
+{
+    if (InLocalPose.size() != CurrentLocalPose.size())
+    {
+        return;
+    }
+
+    CurrentLocalPose = InLocalPose;
+    UpdateCurrentGlobalPose();
+    MarkSkinningDirty();
 }
 
 void USkeletalMeshComponent::ResetToBindPose()

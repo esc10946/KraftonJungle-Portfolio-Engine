@@ -2,6 +2,8 @@
 
 #include "Component/SkinnedMeshComponent.h"
 
+class UAnimInstance;
+
 /**
  * @brief Unreal Engine 스타일에서는 skinned mesh가 skeleton을 이용하는 mesh를 표현하고,
  *        skeletal mesh는 실제로 actor에 붙어서 애니메이션을 붙일 수 있는 component로 사용되고 있으므로
@@ -20,6 +22,11 @@ public:
 
     EPrimitiveType GetPrimitiveType() const override { return EPrimitiveType::EPT_SkeletalMesh; }
 
+    void SetAnimInstance(UAnimInstance* InAnimInstance);
+    UAnimInstance* GetAnimInstance() const { return AnimInstance; }
+
+    void ApplyLocalPose(const TArray<FMatrix>& InLocalPose);
+
     void ResetToBindPose();
 
     void SetBoneLocalTransform(int32 BoneIndex, const FMatrix& NewLocalTransform);
@@ -27,4 +34,7 @@ public:
 
     FMatrix GetBoneGlobalTransform(int32 BoneIndex) const;
     void SetBoneGlobalTransform(int32 BoneIndex, const FMatrix& NewGlobalTransform);
+
+private:
+    UAnimInstance* AnimInstance = nullptr;
 };
