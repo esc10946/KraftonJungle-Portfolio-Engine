@@ -142,7 +142,7 @@ public:
 
 	size_t GetMaterialMemorySize() const;
 	
-	//	Binary 전체 삭제
+	// 디스크의 Binary 전체 삭제 (이미 로드된 메모리 상의 에셋은 건드리지 않음)
 	void DeleteAllCacheFiles();
 
 private:

@@ -45,6 +45,63 @@ namespace
 
 namespace fs = std::filesystem;
 
+namespace
+{
+	struct FCacheDeleteRule
+	{
+		fs::path Root;
+		const wchar_t* Extensions[2];
+		size_t ExtensionCount;
+	};
+
+	bool HasExtension(const std::wstring& Extension, const FCacheDeleteRule& Rule)
+	{
+		for (size_t Index = 0; Index < Rule.ExtensionCount; ++Index)
+		{
+			if (Extension == Rule.Extensions[Index])
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	void DeleteEmptyDirectoriesUnder(const fs::path& Root)
+	{
+		if (!fs::exists(Root) || !fs::is_directory(Root))
+		{
+			return;
+		}
+
+		TArray<fs::path> Directories;
+		std::error_code Ec;
+		for (const fs::directory_entry& Entry : fs::recursive_directory_iterator(Root, fs::directory_options::skip_permission_denied, Ec))
+		{
+			if (!Ec && Entry.is_directory(Ec))
+			{
+				Directories.push_back(Entry.path());
+			}
+		}
+
+		std::sort(
+			Directories.begin(),
+			Directories.end(),
+			[](const fs::path& A, const fs::path& B)
+			{
+				return A.native().size() > B.native().size();
+			});
+
+		for (const fs::path& Directory : Directories)
+		{
+			Ec.clear();
+			if (fs::is_empty(Directory, Ec) && !Ec)
+			{
+				fs::remove(Directory, Ec);
+			}
+		}
+	}
+}
+
 uint64 FResourceManager::GetFileWriteTimeTicks(const FString& Path) const
 {
 	const FString NormalizedPath = FPaths::Normalize(Path);
@@ -411,43 +468,49 @@ void FResourceManager::RefreshFromAssetDirectory(const FString& Path)
 
 void FResourceManager::DeleteAllCacheFiles()
 {
-	namespace fs = std::filesystem;
-
-	const fs::path BinRootPath = fs::path(FPaths::RootDir()) / "Asset" / "Mesh" / "Bin";
-
-	if (!fs::exists(BinRootPath) || !fs::is_directory(BinRootPath))
+	const fs::path RootPath = fs::path(FPaths::RootDir());
+	const FCacheDeleteRule Rules[] =
 	{
-		return;
-	}
+		{ RootPath / "Asset" / "Mesh" / "Bin", { L".bin", nullptr }, 1 },
+		{ RootPath / "Asset" / "SkeletalMesh" / "Bin", { L".bin", nullptr }, 1 },
+		{ RootPath / "Asset" / "Animation" / "Bin", { L".bin", nullptr }, 1 },
+		{ RootPath / "Asset" / "Material" / "Auto", { L".mat", L".matinst" }, 2 },
+	};
 
-	for (const auto& Entry : fs::recursive_directory_iterator(BinRootPath))
+	uint32 DeletedFileCount = 0;
+	for (const FCacheDeleteRule& Rule : Rules)
 	{
-		if (!Entry.is_regular_file())
+		if (!fs::exists(Rule.Root) || !fs::is_directory(Rule.Root))
 		{
 			continue;
 		}
 
-		const fs::path& FilePath = Entry.path();
-		if (FilePath.extension() == L".bin")
-		{
-			std::error_code Ec;
-			fs::remove(FilePath, Ec);
-		}
-	}
-
-	// ????븐뼚???ル벣遊??筌먲퐘遊?
-	for (auto It = fs::recursive_directory_iterator(BinRootPath);
-		 It != fs::recursive_directory_iterator();
-		 ++It)
-	{
 		std::error_code Ec;
-		if (It->is_directory(Ec) && fs::is_empty(It->path(), Ec))
+		for (const fs::directory_entry& Entry : fs::recursive_directory_iterator(Rule.Root, fs::directory_options::skip_permission_denied, Ec))
 		{
-			fs::remove(It->path(), Ec);
+			if (Ec || !Entry.is_regular_file(Ec))
+			{
+				continue;
+			}
+
+			const fs::path& FilePath = Entry.path();
+			const std::wstring Extension = FilePath.extension().wstring();
+			if (!HasExtension(Extension, Rule))
+			{
+				continue;
+			}
+
+			Ec.clear();
+			if (fs::remove(FilePath, Ec) && !Ec)
+			{
+				++DeletedFileCount;
+			}
 		}
+
+		DeleteEmptyDirectoriesUnder(Rule.Root);
 	}
 
-	UE_LOG("[ResourceManager] All mesh cache files removed");
+	UE_LOG("[ResourceManager] Removed %u cache files from disk", DeletedFileCount);
 }
 
 FTextureAssetMeta FResourceManager::LoadOrCreateTextureMeta(const std::filesystem::path& FilePath) const
