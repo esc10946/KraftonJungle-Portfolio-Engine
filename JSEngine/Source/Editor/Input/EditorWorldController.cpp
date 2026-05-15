@@ -28,6 +28,13 @@ void FEditorWorldController::SetCamera(FViewportCamera& InCamera)
     ResetTargetFromCamera();
 }
 
+bool FEditorWorldController::HasPendingCameraTransition(float LocationTolerance, float RotationTolerance) const
+{
+    return Camera &&
+           ((!bTargetLocationInitialized || !TargetLocation.Equals(Camera->GetLocation(), LocationTolerance)) ||
+            (!bTargetRotationInitialized || !TargetRotation.Equals(Camera->GetRotation(), RotationTolerance)));
+}
+
 void FEditorWorldController::ResetTargetFromCamera()
 {
     if (!Camera)
