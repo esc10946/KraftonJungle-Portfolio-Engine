@@ -4,15 +4,7 @@
 #include "Asset/SkeletalMeshTypes.h"
 #include "Asset/StaticMeshTypes.h"
 #include "Core/ResourceTypes.h"
-
-namespace fbxsdk
-{
-	class FbxManager;
-	class FbxScene;
-	class FbxNode;
-    class FbxMesh;
-    class FbxAMatrix;
-}
+#include <fbxsdk.h>
 
 enum class ESkeletalMeshImportPass
 {
@@ -42,11 +34,11 @@ public:
 	FFbxMeshContentInfo InspectMeshContent(const FString& Path);
 
 private:
-	bool ImportScene(const FString& Path, fbxsdk::FbxManager* Manager, fbxsdk::FbxScene* Scene);
+	bool ImportScene(const FString& Path, FbxManager* Manager, FbxScene* Scene);
 
 	// Scene -> StaticMesh (mesh node를 재귀로 순회)
-	void CollectMeshes(fbxsdk::FbxNode* Node, FStaticMesh* InStaticMesh);
-	void ProcessMesh(fbxsdk::FbxMesh* Mesh, FStaticMesh* InStaticMesh);
+	void CollectMeshes(FbxNode* Node, FStaticMesh* InStaticMesh);
+	void ProcessMesh(FbxMesh* Mesh, FStaticMesh* InStaticMesh);
 
 	int32 GetOrAddMaterialSlot(FStaticMesh* InStaticMesh, const FString& MaterialName);
 	FAABB BuildLocalBounds(FStaticMesh* InStaticMesh) const;
@@ -55,23 +47,23 @@ private:
 	void ComputeTangents(FStaticMesh* InStaticMesh);
 
     void CollectSkeletalMeshes(
-        fbxsdk::FbxNode* Node,
+        FbxNode* Node,
         FSkeletalMesh* InSkeletalMesh,
         ESkeletalMeshImportPass Pass,
-        TMap<fbxsdk::FbxNode*, int32>& BoneNodeToIndex,
+        TMap<FbxNode*, int32>& BoneNodeToIndex,
         bool& bHasImportedSkinnedMesh);
 
     void ProcessSkeletalMesh(
-        fbxsdk::FbxMesh* Mesh,
+        FbxMesh* Mesh,
         FSkeletalMesh* InSkeletalMesh,
         ESkeletalMeshImportPass Pass,
-        TMap<fbxsdk::FbxNode*, int32>& BoneNodeToIndex,
+        TMap<FbxNode*, int32>& BoneNodeToIndex,
         bool& bHasImportedSkinnedMesh);
 
     void ProcessRigidAttachedMesh(
-        fbxsdk::FbxMesh* Mesh,
+        FbxMesh* Mesh,
         FSkeletalMesh* InSkeletalMesh,
-        TMap<fbxsdk::FbxNode*, int32>& BoneNodeToIndex,
+        TMap<FbxNode*, int32>& BoneNodeToIndex,
         bool bHasImportedSkinnedMesh);
 
     int32 GetOrAddMaterialSlot(FSkeletalMesh* InSkeletalMesh, const FString& MaterialName);

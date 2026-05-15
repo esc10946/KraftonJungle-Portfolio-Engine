@@ -1,17 +1,15 @@
-﻿#include "FbxImporter.h"
+﻿#include <fbxsdk.h>
+
+#include "FbxImporter.h"
 #include "Asset/StaticMeshTypes.h"
 #include "Core/Logging/Log.h"
 #include "Core/PlatformTime.h"
-
-#include <fbxsdk.h>
 
 #include <algorithm>
 #include <array>
 #include <cfloat>
 #include <cctype>
 #include <cstring>
-
-using namespace fbxsdk;
 
 namespace
 {
