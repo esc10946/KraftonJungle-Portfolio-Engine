@@ -1,6 +1,8 @@
 @echo off
 setlocal EnableExtensions
 
+:: 에디터 실행용 Release 패키지 빌드
+:: CONFIGURATION 값은 Visual Studio 솔루션 구성 이름과 일치해야 함
 set "SOLUTION_DIR=%~dp0"
 set "PROJECT_DIR=%SOLUTION_DIR%JSEngine"
 set "SOLUTION_FILE=%SOLUTION_DIR%JSEngine.sln"
@@ -22,6 +24,7 @@ echo.
 echo [1/3] Building %CONFIGURATION% %PLATFORM%...
 "%MSBUILD_EXE%" "%SOLUTION_FILE%" /p:Configuration=%CONFIGURATION% /p:Platform=%PLATFORM% /m /v:minimal
 set "MSBUILD_EXIT_CODE=%ERRORLEVEL%"
+:: 로컬 배치 라벨 호출 전에 원래 PATH로 복구
 if defined BUILD_PATH_BACKUP set "PATH=%BUILD_PATH_BACKUP%"
 set "BUILD_PATH_BACKUP="
 if not "%MSBUILD_EXIT_CODE%"=="0" (
@@ -37,6 +40,7 @@ if errorlevel 1 goto :Fail
 
 echo.
 echo [3/3] Copying files...
+:: 실행 파일과 빌드 산출 DLL은 선택된 OutDir에서 가져옴
 call :CopyRequiredFile "%BUILD_OUTPUT%\%EXE_NAME%" "%PACKAGE_DIR%\" "%EXE_NAME%"
 if errorlevel 1 goto :Fail
 call :CopyOptionalFile "%BUILD_OUTPUT%\JSEngine.pdb" "%PACKAGE_DIR%\" "JSEngine.pdb"
@@ -50,6 +54,7 @@ if errorlevel 1 goto :Fail
 call :CopyOptionalFile "%PROJECT_DIR%\imgui.ini" "%PACKAGE_DIR%\" "imgui.ini"
 if errorlevel 1 goto :Fail
 
+:: 런타임 데이터는 에디터와 패키저가 FPaths::RootDir() 아래에서 기대하는 구조를 따름
 call :CopyOptionalDir "%PROJECT_DIR%\Shaders" "%PACKAGE_DIR%\Shaders" "Shaders"
 if errorlevel 1 goto :Fail
 call :CopyOptionalDir "%PROJECT_DIR%\DerivedData\ShaderCache" "%PACKAGE_DIR%\DerivedData\ShaderCache" "ShaderCache"
@@ -74,6 +79,7 @@ pause
 exit /b 0
 
 :LoadVsDevEnvironment
+:: Developer Command Prompt에 의존하지 않고 Visual Studio 설치 경로 탐색
 set "VSWHERE=%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe"
 if not exist "%VSWHERE%" (
     echo vswhere.exe not found.
@@ -99,6 +105,8 @@ call :NormalizePathEnvironment
 exit /b %ERRORLEVEL%
 
 :NormalizePathEnvironment
+:: 일부 셸은 PATH와 Path를 동시에 넘김. MSBuild의 .NET Task 환경은 이를
+:: 중복 키로 취급하므로, MSBuild 실행 중에는 오래된 혼합 대소문자 항목 제거
 set "BUILD_PATH_BACKUP=%PATH%"
 set "HAS_UPPER_PATH="
 set "HAS_TITLE_PATH="
@@ -136,6 +144,7 @@ echo Copied %~3
 exit /b 0
 
 :CopyBuildDlls
+:: Post-build 이벤트로 복사된 런타임 DLL을 포함해 MSBuild가 출력한 모든 DLL 복사
 if not exist "%BUILD_OUTPUT%\*.dll" (
     echo Skipped build output DLLs
     exit /b 0
@@ -149,6 +158,7 @@ echo Copied build output DLLs
 exit /b 0
 
 :EnsureRuntimeDll
+:: MSBuild가 런타임 DLL을 복사하지 않았다면 원본 위치에서 직접 가져옴
 if exist "%PACKAGE_DIR%\%~1" (
     echo Found %~1
     exit /b 0

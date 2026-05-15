@@ -26,6 +26,7 @@ SOLUTION_GUID = "{4EBC5DD2-CECA-4722-9D19-87C7CB5F481B}"
 VS_PROJECT_TYPE = "{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}"
 ROOT_NAMESPACE = "Week2"
 
+# 실제 C++ 프로젝트 구성. 솔루션 전용 alias는 여기에 추가하지 않음
 PROJECT_CONFIGURATIONS = [
     ("Debug", "Win32"),
     ("Release", "Win32"),
@@ -36,6 +37,8 @@ PROJECT_CONFIGURATIONS = [
     ("GameClientRelease", "x64"),
 ]
 
+# Visual Studio 툴바에서 x86을 선택할 수 있으므로, x64 전용 구성도 솔루션에는
+# x86 alias 노출. 실제 프로젝트 구성 매핑은 아래 함수에서 처리
 SOLUTION_CONFIGURATIONS = [
     ("Debug", "x64"),
     ("Debug", "x86"),
@@ -49,9 +52,14 @@ SOLUTION_CONFIGURATIONS = [
     ("Release", "x86"),
 ]
 
+# RmlUi와 SoLoud는 여기서 재귀 스캔하지 않음. 두 라이브러리는
+# BuildTools/Scripts/*.ps1에서 정적 라이브러리로 빌드한 뒤 vcxproj에서 링크
 SOURCE_SCAN_DIRS = ["Source", "ThirdParty\\ImGui"]
 SHADER_SCAN_DIRS = ["Shaders"]
 ROOT_SOURCE_FILES = ["main.cpp"]
+
+# 전체 디렉터리를 가져오지 않고 Solution Explorer에만 표시할 header-only 또는
+# 외부 빌드 ThirdParty 진입점
 EXPLICIT_HEADER_FILES = [
     "ThirdParty\\luajit\\src\\lua.h",
     "ThirdParty\\SimpleJSON\\json.hpp",
@@ -75,6 +83,8 @@ BASE_INCLUDE_PATHS = [
     ".",
 ]
 
+# GameClient는 대부분의 에디터 소스를 컴파일에서 제외하지만, 일부 런타임 파일은
+# 공유 선언 때문에 에디터 헤더를 include함
 GAME_CLIENT_INCLUDE_PATHS = [
     "Source\\Engine",
     "Source",
@@ -110,6 +120,8 @@ NUGET_PACKAGES = [
     ("directxtk_desktop_win10", "2025.10.28.2"),
 ]
 
+# Visual Studio 필터는 표시용. 파일을 프로젝트에 직접 포함하지 않는 외부
+# 라이브러리 루트도 Solution Explorer에서 보이도록 유지
 FILTER_ONLY_FOLDERS = [
     "ThirdParty\\SoLoud\\",
 ]
@@ -143,6 +155,7 @@ def scan_files(project_dir: Path) -> dict[str, list[str]]:
         "Folder": [],
     }
 
+    # 재생성된 프로젝트 파일 diff가 안정적이도록 항상 결정적인 순서로 스캔
     for scan_dir in SOURCE_SCAN_DIRS:
         full_dir = project_dir / scan_dir
         if not full_dir.exists():
@@ -166,6 +179,7 @@ def scan_files(project_dir: Path) -> dict[str, list[str]]:
                 elif ext in NONE_EXTS:
                     result["None"].append(rel)
 
+    # 셰이더는 런타임 에셋이며 Visual Studio FxCompile 빌드 입력이 아님
     for shader_dir in SHADER_SCAN_DIRS:
         full_dir = project_dir / shader_dir
         if not full_dir.exists():
@@ -261,12 +275,16 @@ def add_excluded_from_build(parent: ET.Element, excluded_configs: list[tuple[str
 
 
 def game_client_exclusions_for_source(rel_path: str) -> list[tuple[str, str]]:
+    # GameClient 빌드는 엔진/런타임만 링크함. Editor 및 ObjViewer 코드는
+    # 프로젝트에는 표시하되 게임 구성에서는 빌드 제외
     if rel_path.startswith("Source\\Editor\\") or rel_path.startswith("Source\\Misc\\ObjViewer\\"):
         return [("GameClientDebug", "x64"), ("GameClientRelease", "x64")]
     return []
 
 
 def resource_exclusions(rel_path: str) -> list[tuple[str, str]]:
+    # AppIcon.rc는 에디터 빌드용. GameBranding.rc는 에디터 패키저가
+    # 생성하므로 일반 에디터 Release/Debug 빌드에서는 제외
     if rel_path == "Source\\Engine\\Runtime\\AppIcon.rc":
         return [
             ("Debug", "Win32"),
@@ -286,6 +304,7 @@ def include_path_for(config: str) -> str:
 
 
 def preprocessor_definitions(config: str, platform: str) -> str:
+    # C++ 코드의 런타임 feature gate와 일치하도록 전처리 정의 유지
     prefix = []
     if platform == "Win32":
         prefix.append("WIN32")
@@ -330,6 +349,8 @@ def add_item_definition_group(project: ET.Element, config: str, platform: str) -
     add_text(cl, "ExceptionHandling", "Async")
 
     if platform == "x64":
+        # x64 구성은 LuaJIT/FBX/RmlUi/SoLoud 사용. ObjViewer는
+        # LuaJIT/FBX include set을 쓰지 않으므로 더 좁은 include 목록 사용
         add_text(cl, "LanguageStandard", "stdcpp20")
         if config == "ObjViewer":
             include_dirs = OBJ_VIEWER_ADDITIONAL_INCLUDE_DIRS
@@ -407,6 +428,8 @@ def generate_vcxproj(files: dict[str, list[str]]) -> None:
     for config, platform in PROJECT_CONFIGURATIONS:
         add_item_definition_group(project, config, platform)
 
+    # RmlUi, SoLoud, FBX 공통 링크 설정. 라이브러리 구성명은 아래
+    # ThirdPartyBinaryConfiguration에서 정규화
     common = add_text(project, "ItemDefinitionGroup")
     common_cl = add_text(common, "ClCompile")
     add_text(common_cl, "PreprocessorDefinitions", "FBXSDK_SHARED;%(PreprocessorDefinitions)")
@@ -429,6 +452,7 @@ def generate_vcxproj(files: dict[str, list[str]]) -> None:
     add_text(third_party_props, "FbxSdkConfiguration", "release")
     add_text(third_party_props, "FbxSdkConfiguration", "debug", Condition="'$(Configuration)'=='Debug'")
 
+    # 프로젝트 소스 컴파일 전에 ThirdParty 정적 라이브러리를 먼저 빌드
     rml_target = add_text(project, "Target", Name="BuildRmlUiStaticLibrary", BeforeTargets="ClCompile")
     add_text(
         rml_target,
@@ -477,6 +501,7 @@ def generate_vcxproj(files: dict[str, list[str]]) -> None:
 
     add_text(project, "Import", Project="$(VCTargetsPath)\\Microsoft.Cpp.targets")
 
+    # LuaJIT은 ThirdParty/luajit/src에서 링크되며 실행 파일 옆에 있어야 함
     lua_target = add_text(
         project,
         "Target",
@@ -548,6 +573,7 @@ def generate_filters(files: dict[str, list[str]]) -> None:
 
 
 def map_solution_config_to_project(config: str, solution_platform: str) -> tuple[str, str]:
+    # x64 전용 타깃의 x86 솔루션 항목은 의도적으로 x64 프로젝트 구성을 빌드
     if solution_platform == "x64":
         return config, "x64"
     if config in {"Debug", "Release"}:
