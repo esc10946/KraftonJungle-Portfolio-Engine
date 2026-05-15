@@ -4,6 +4,7 @@
 #include "Launch/LaunchModeFactory.h"
 
 #include <objbase.h>
+#include <Core/CrashTest.h>
 
 void FEngineLoop::CreateEngine()
 {
@@ -80,7 +81,8 @@ int FEngineLoop::Run()
 		}
 
 		Timer.Tick();
-		GEngine->Tick(Timer.GetDeltaTime());
+        GEngine->Tick(Timer.GetDeltaTime());
+        FCrashTest::TickRandomObjectDeletion();
 
 #if WITH_EDITOR || IS_OBJ_VIEWER
 		ShaderDirectoryWatcher.Tick();

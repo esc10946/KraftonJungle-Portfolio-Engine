@@ -11,6 +11,14 @@
 
 #include "Editor/UI/EditorWidget.h"
 
+enum class ECrashCommandTarget
+{
+    None,
+    Dav,
+    Seh,
+    Dangle
+};
+
 class FEditorConsoleWidget : public FEditorWidget
 {
 public:
@@ -64,15 +72,22 @@ private:
 	void ExecCommand(const char* CommandLine);
 	static int32 TextEditCallback(ImGuiInputTextCallbackData* Data);
 
+    bool bPendingCrashCommand = false;
+    ECrashCommandTarget PendingCrashTarget = ECrashCommandTarget::None;
+
 private:
 	void CmdHelp(const TArray<FString>& Args);
 	void CmdCommands(const TArray<FString>& Args);
 	void CmdSuggest(const TArray<FString>& Args);
 	void CmdStat(const TArray<FString>& Args);
     void CmdShadow(const TArray<FString>& Args);
+    void CmdCrash(const TArray<FString>& Args);
 	void PrintHistoryStats();
 	void PrintCommandList(const FString& Prefix = "");
 	FString FindClosestCommand(const FString& Query) const;
 	TArray<FString> BuildCommandSuggestions(const FString& Query) const;
 	void RenderCommandSuggestions(const char* Id, const ImVec2& InputMin, const ImVec2& InputSize);
+
+    void ExecutePendingCrashCommand();
+    void ClearPendingCrashCommand();
 };

@@ -203,4 +203,11 @@ public:
 		if (Index >= GUObjectArray.size()) return nullptr;
 		return GUObjectArray[Index];
 	}
+
+	UObject* GetRandomObject() {
+        int num = rand();
+        num = num % GUObjectArray.size();
+
+		return GUObjectArray[num];
+	}
 };

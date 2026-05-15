@@ -10,6 +10,7 @@
 #include <cstring>
 #include <limits>
 #include <mutex>
+#include <Core/CrashTest.h>
 
 namespace
 {
@@ -157,6 +158,8 @@ FEditorConsoleWidget::FEditorConsoleWidget()
 	RegisterCommand("recommend", "Alias for suggest.", [this](const TArray<FString>& Args) { CmdSuggest(Args); });
 	RegisterCommand("recommendations", "Alias for suggest.", [this](const TArray<FString>& Args) { CmdSuggest(Args); });
 	RegisterCommand("stat", "Viewport and editor stats. Usage: stat <fps|memory|history|nametable|cascadevis|none>", [this](const TArray<FString>& Args) { CmdStat(Args); });
+    
+	RegisterCommand("Crash", "[Warning] Crash for Debug", [this](const TArray<FString>& Args) { CmdCrash(Args); });
 
 	RegisterCommand("shadow", "Set shadow options. Usage: shadow filter <pcf|vsm>", [this](const TArray<FString>& Args){ CmdShadow(Args); });
 }
@@ -641,6 +644,11 @@ TArray<FString> FEditorConsoleWidget::BuildCommandSuggestions(const FString& Que
 		"stat none",
 		"shadow filter pcf",
 		"shadow filter vsm",
+        "crash dav",
+        "crash seh",
+        "crash dangle",
+        "crash confirm",
+        "crash cancel",
 	};
 
 	if (Normalized == "help" || Normalized == "?")
@@ -872,6 +880,107 @@ void FEditorConsoleWidget::CmdShadow(const TArray<FString>& Args)
     {
         AddLog("[ERROR] Unknown shadow command target: %s\n", CommandTarget.c_str());
     }
+}
+
+void FEditorConsoleWidget::CmdCrash(const TArray<FString>& Args)
+{
+    if (Args.size() < 2)
+    {
+        AddLog("[WARN] Usage: crash <dav|seh|dangle|confirm|cancel>\n");
+        return;
+    }
+    FString CommandTarget = Args[1];
+    std::transform(CommandTarget.begin(), CommandTarget.end(), CommandTarget.begin(), ::tolower);
+
+    if (CommandTarget == "confirm")
+    {
+        if (!bPendingCrashCommand)
+        {
+            AddLog("[WARN] No pending crash command.\n");
+            return;
+        }
+
+        ExecutePendingCrashCommand();
+        return;
+    }
+
+    if (CommandTarget == "cancel")
+    {
+        if (!bPendingCrashCommand)
+        {
+            AddLog("[WARN] No pending crash command to cancel.\n");
+            return;
+        }
+
+        ClearPendingCrashCommand();
+        AddLog("[INFO] Pending crash command canceled.\n");
+        return;
+    }
+
+    if (CommandTarget == "dav")
+    {
+        bPendingCrashCommand = true;
+        PendingCrashTarget = ECrashCommandTarget::Dav;
+
+        AddLog("[WARN] This will intentionally cause Access Violation.\n");
+        AddLog("[WARN] Type 'crash confirm' to execute, or 'crash cancel' to cancel.\n");
+    }
+    else if (CommandTarget == "seh")
+    {
+        bPendingCrashCommand = true;
+        PendingCrashTarget = ECrashCommandTarget::Seh;
+
+        AddLog("[WARN] This will intentionally raise a SEH exception.\n");
+        AddLog("[WARN] Type 'crash confirm' to execute, or 'crash cancel' to cancel.\n");
+    }
+    else if (CommandTarget == "dangle")
+    {
+        bPendingCrashCommand = true;
+        PendingCrashTarget = ECrashCommandTarget::Dangle;
+
+        AddLog("[WARN] This will enable random UObject deletion fault injection.\n");
+        AddLog("[WARN] Type 'crash confirm' to execute, or 'crash cancel' to cancel.\n");
+    }
+    else
+    {
+        AddLog("[WARN] Unknown crash command.\n");
+        AddLog("[WARN] Usage: crash <dav|seh|dangle|confirm|cancel>\n");
+    }
+}
+
+void FEditorConsoleWidget::ExecutePendingCrashCommand()
+{
+    const ECrashCommandTarget Target = PendingCrashTarget;
+
+    ClearPendingCrashCommand();
+
+    switch (Target)
+    {
+    case ECrashCommandTarget::Dav:
+        AddLog("[CRASH] Causing Access Violation...\n");
+        FCrashTest::CauseCrash();
+        break;
+
+    case ECrashCommandTarget::Seh:
+        AddLog("[CRASH] Raising SEH exception...\n");
+        FCrashTest::RaiseTestException();
+        break;
+
+    case ECrashCommandTarget::Dangle:
+        AddLog("[CRASH] Enabling random UObject deletion fault injection...\n");
+        FCrashTest::EnableRandomObjectDeletion(true, 1);
+        break;
+
+    default:
+        AddLog("[WARN] Invalid pending crash command.\n");
+        break;
+    }
+}
+
+void FEditorConsoleWidget::ClearPendingCrashCommand()
+{
+    bPendingCrashCommand = false;
+    PendingCrashTarget = ECrashCommandTarget::None;
 }
 
 ImVector<char*> FEditorConsoleWidget::Messages;
