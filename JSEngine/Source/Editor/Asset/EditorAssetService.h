@@ -9,6 +9,7 @@ class UMaterialInterface;
 class UStaticMesh;
 class USkeletalMesh;
 class UTexture;
+class UAnimationSequence;
 
 enum class EEditorAssetType : uint8
 {
@@ -18,6 +19,7 @@ enum class EEditorAssetType : uint8
 	Material,
 	Font,
 	Particle,
+	AnimationSequence,
 	Scene,
 	Script,
 };
@@ -43,9 +45,11 @@ public:
 	const TArray<FString>& GetMaterialInterfaceNames() const { return MaterialInterfaceNames; }
 	const TArray<FString>& GetFontNames() const { return FontNames; }
 	const TArray<FString>& GetParticleNames() const { return ParticleNames; }
+	const TArray<FString>& GetAnimationSequenceAssetPaths() const { return AnimationSequencePaths; }
 
 	UStaticMesh* LoadStaticMesh(const FString& Path) const;
 	USkeletalMesh* LoadSkeletalMesh(const FString& Path) const;
+	UAnimationSequence* LoadAnimationSequence(const FString& Path) const;
 	UTexture* LoadTexture(const FString& Path) const;
 	UMaterialInterface* GetMaterialInterface(const FString& NameOrPath) const;
 	UMaterialInterface* ResolveMaterialInterface(const FString& NameOrPath);
@@ -67,6 +71,7 @@ private:
 	TArray<FString> MaterialInterfaceNames;
 	TArray<FString> FontNames;
 	TArray<FString> ParticleNames;
+	TArray<FString> AnimationSequencePaths;
 	TArray<UMaterialInterface*> CachedMaterialInterfaces;
 	TArray<bool> CachedMaterialInterfaceResolved;
 
@@ -76,5 +81,6 @@ private:
 	TArray<FEditorAssetItem> MaterialItems;
 	TArray<FEditorAssetItem> FontItems;
 	TArray<FEditorAssetItem> ParticleItems;
+	TArray<FEditorAssetItem> AnimationSequenceItems;
 	TArray<FEditorAssetItem> EmptyItems;
 };

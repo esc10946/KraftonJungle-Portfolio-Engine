@@ -11,49 +11,72 @@ REGISTER_FACTORY(UAnimationSequence)
 
 namespace
 {
-int32 GetNearestKeyIndex(float Time, const FAnimationSequence& SequenceData, int32 KeyCount)
+struct FKeyFrameRange
 {
+    int32 PrevIndex = 0;
+    int32 NextIndex = 0;
+    float Alpha = 0.0f;
+};
+
+float ClampSequenceTime(float Time, const FAnimationSequence& SequenceData)
+{
+    if (Time < 0.0f)
+    {
+        return 0.0f;
+    }
+
+    if (SequenceData.DurationSeconds > 0.0f && Time > SequenceData.DurationSeconds)
+    {
+        return SequenceData.DurationSeconds;
+    }
+
+    return Time;
+}
+
+FKeyFrameRange GetKeyFrameRange(float Time, const FAnimationSequence& SequenceData, int32 KeyCount)
+{
+    FKeyFrameRange Range;
     if (KeyCount <= 1)
     {
-        return 0;
+        return Range;
     }
 
-    float ClampedTime = Time;
-    if (ClampedTime < 0.0f)
-    {
-        ClampedTime = 0.0f;
-    }
+    const float ClampedTime = ClampSequenceTime(Time, SequenceData);
+    float KeyPosition = 0.0f;
 
-    if (SequenceData.DurationSeconds > 0.0f && ClampedTime > SequenceData.DurationSeconds)
-    {
-        ClampedTime = SequenceData.DurationSeconds;
-    }
-
-    int32 KeyIndex = 0;
     if (SequenceData.SourceFrameRate > 0.0f)
     {
-        KeyIndex = static_cast<int32>(std::round(ClampedTime * SequenceData.SourceFrameRate));
+        KeyPosition = ClampedTime * SequenceData.SourceFrameRate;
     }
     else if (SequenceData.DurationSeconds > 0.0f)
     {
         const float NormalizedTime = ClampedTime / SequenceData.DurationSeconds;
-        KeyIndex = static_cast<int32>(std::round(NormalizedTime * static_cast<float>(KeyCount - 1)));
+        KeyPosition = NormalizedTime * static_cast<float>(KeyCount - 1);
     }
 
-    return std::clamp(KeyIndex, 0, KeyCount - 1);
+    const int32 PrevIndex = static_cast<int32>(std::floor(KeyPosition));
+    const int32 NextIndex = PrevIndex + 1;
+
+    Range.PrevIndex = std::clamp(PrevIndex, 0, KeyCount - 1);
+    Range.NextIndex = std::clamp(NextIndex, 0, KeyCount - 1);
+    Range.Alpha = KeyPosition - static_cast<float>(Range.PrevIndex);
+    Range.Alpha = std::clamp(Range.Alpha, 0.0f, 1.0f);
+
+    return Range;
 }
 
-const FBoneAnimationTrack* FindBoneTrackByName(const FAnimationSequence& SequenceData, const FString& BoneName)
+int32 FindBoneTrackIndexByName(const FAnimationSequence& SequenceData, const FString& BoneName)
 {
-    for (const FBoneAnimationTrack& BoneTrack : SequenceData.BoneTracks)
+    for (int32 TrackIndex = 0; TrackIndex < static_cast<int32>(SequenceData.BoneTracks.size()); ++TrackIndex)
     {
+        const FBoneAnimationTrack& BoneTrack = SequenceData.BoneTracks[TrackIndex];
         if (BoneTrack.BoneName == BoneName)
         {
-            return &BoneTrack;
+            return TrackIndex;
         }
     }
 
-    return nullptr;
+    return -1;
 }
 
 FVector SampleTranslation(const FAnimationSequence& SequenceData, const FBoneAnimationTrack& BoneTrack, float Time)
@@ -64,8 +87,8 @@ FVector SampleTranslation(const FAnimationSequence& SequenceData, const FBoneAni
         return BoneTrack.DefaultTranslation;
     }
 
-    const int32 KeyIndex = GetNearestKeyIndex(Time, SequenceData, static_cast<int32>(PosKeys.size()));
-    return PosKeys[KeyIndex];
+    const FKeyFrameRange Range = GetKeyFrameRange(Time, SequenceData, static_cast<int32>(PosKeys.size()));
+    return FVector::Lerp(PosKeys[Range.PrevIndex], PosKeys[Range.NextIndex], Range.Alpha);
 }
 
 FQuat SampleRotation(const FAnimationSequence& SequenceData, const FBoneAnimationTrack& BoneTrack, float Time)
@@ -76,8 +99,8 @@ FQuat SampleRotation(const FAnimationSequence& SequenceData, const FBoneAnimatio
         return FQuat::MakeFromEuler(BoneTrack.DefaultRotationEuler);
     }
 
-    const int32 KeyIndex = GetNearestKeyIndex(Time, SequenceData, static_cast<int32>(RotKeys.size()));
-    return RotKeys[KeyIndex].GetNormalized();
+    const FKeyFrameRange Range = GetKeyFrameRange(Time, SequenceData, static_cast<int32>(RotKeys.size()));
+    return FQuat::Slerp(RotKeys[Range.PrevIndex], RotKeys[Range.NextIndex], Range.Alpha);
 }
 
 FVector SampleScale(const FAnimationSequence& SequenceData, const FBoneAnimationTrack& BoneTrack, float Time)
@@ -88,8 +111,8 @@ FVector SampleScale(const FAnimationSequence& SequenceData, const FBoneAnimation
         return BoneTrack.DefaultScale;
     }
 
-    const int32 KeyIndex = GetNearestKeyIndex(Time, SequenceData, static_cast<int32>(ScaleKeys.size()));
-    return ScaleKeys[KeyIndex];
+    const FKeyFrameRange Range = GetKeyFrameRange(Time, SequenceData, static_cast<int32>(ScaleKeys.size()));
+    return FVector::Lerp(ScaleKeys[Range.PrevIndex], ScaleKeys[Range.NextIndex], Range.Alpha);
 }
 }
 
@@ -108,6 +131,8 @@ void UAnimationSequence::SetSequenceData(FAnimationSequence* InSequenceData)
 
     delete SequenceData;
     SequenceData = InSequenceData;
+    CachedTargetMesh = nullptr;
+    CachedTrackIndexByBoneIndex.clear();
 }
 
 FAnimationSequence* UAnimationSequence::GetSequenceData()
@@ -156,25 +181,50 @@ bool UAnimationSequence::SamplePose(const USkeletalMesh* TargetMesh, float Time,
         return false;
     }
 
+    if (CachedTargetMesh != TargetMesh || CachedTrackIndexByBoneIndex.size() != TargetBones.size())
+    {
+        RebuildTrackCache(TargetMesh);
+    }
+
     OutLocalPose.resize(TargetBones.size());
     for (int32 BoneIndex = 0; BoneIndex < static_cast<int32>(TargetBones.size()); ++BoneIndex)
     {
         const FBoneInfo& TargetBone = TargetBones[BoneIndex];
         OutLocalPose[BoneIndex] = TargetBone.LocalBindTransform;
 
-        const FBoneAnimationTrack* BoneTrack = FindBoneTrackByName(*SequenceData, TargetBone.Name);
-        if (!BoneTrack)
+        const int32 TrackIndex = CachedTrackIndexByBoneIndex[BoneIndex];
+        if (TrackIndex < 0)
         {
             continue;
         }
 
-        const FVector Translation = SampleTranslation(*SequenceData, *BoneTrack, Time);
-        const FQuat Rotation = SampleRotation(*SequenceData, *BoneTrack, Time);
-        const FVector Scale = SampleScale(*SequenceData, *BoneTrack, Time);
+        const FBoneAnimationTrack& BoneTrack = SequenceData->BoneTracks[TrackIndex];
+        const FVector Translation = SampleTranslation(*SequenceData, BoneTrack, Time);
+        const FQuat Rotation = SampleRotation(*SequenceData, BoneTrack, Time);
+        const FVector Scale = SampleScale(*SequenceData, BoneTrack, Time);
 
         OutLocalPose[BoneIndex] = FMatrix::MakeTRS(Translation, Rotation.ToMatrix(), Scale);
     }
 
     return true;
+}
+
+void UAnimationSequence::RebuildTrackCache(const USkeletalMesh* TargetMesh) const
+{
+    CachedTargetMesh = TargetMesh;
+    CachedTrackIndexByBoneIndex.clear();
+
+    if (!SequenceData || !TargetMesh)
+    {
+        return;
+    }
+
+    const TArray<FBoneInfo>& TargetBones = TargetMesh->GetBones();
+    CachedTrackIndexByBoneIndex.resize(TargetBones.size());
+
+    for (int32 BoneIndex = 0; BoneIndex < static_cast<int32>(TargetBones.size()); ++BoneIndex)
+    {
+        CachedTrackIndexByBoneIndex[BoneIndex] = FindBoneTrackIndexByName(*SequenceData, TargetBones[BoneIndex].Name);
+    }
 }
 

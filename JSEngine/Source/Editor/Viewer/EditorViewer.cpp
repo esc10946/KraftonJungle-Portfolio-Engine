@@ -6,10 +6,13 @@
 #include "Component/SkeletalMeshComponent.h"
 #include "Component/StaticMeshComponent.h"
 #include "Component/TransformProxy.h"
+#include "Animation/AnimInstance.h"
+#include "Asset/AnimationSequence.h"
 #include "Core/ResourceManager.h"
 #include "Engine/Geometry/Ray.h"
 #include "GameFramework/PrimitiveActors.h"
 #include "Math/Vector4.h"
+#include "Object/Object.h"
 
 #include <algorithm>
 #include <cfloat>
@@ -192,6 +195,13 @@ void FEditorViewer::Shutdown()
     // SocketPreview 컴포넌트들은 ViewTarget actor 소멸자가 이미 함께 destroy함.
     // 우리는 단순히 map만 비우고 포인터를 null로 잡는다.
     SocketPreviewMeshes.clear();
+    if (PreviewAnimInstance)
+    {
+        UObjectManager::Get().DestroyObject(PreviewAnimInstance);
+        PreviewAnimInstance = nullptr;
+    }
+    CurrentAnimationSequence = nullptr;
+    AnimationSequencePath.clear();
     ViewTarget = nullptr;
     Client.SetBonePickHandler(nullptr);
 
@@ -506,4 +516,122 @@ void FEditorViewer::ChangeTarget(const FString& InFileName)
     USkeletalMesh* SkelMesh = FResourceManager::Get().LoadSkeletalMesh(InFileName.c_str());
     if (SkelMesh)
 	    ViewTarget->GetSkeletalMeshComponent()->SetSkeletalMesh(SkelMesh);
+
+    ClearAnimationSequence();
+}
+
+bool FEditorViewer::SetAnimationSequence(const FString& AnimationPath)
+{
+    if (!ViewTarget)
+    {
+        return false;
+    }
+
+    USkeletalMeshComponent* SkelComp = ViewTarget->GetSkeletalMeshComponent();
+    if (!SkelComp || !SkelComp->GetSkeletalMesh())
+    {
+        return false;
+    }
+
+    UAnimationSequence* Sequence = FResourceManager::Get().LoadAnimationSequence(AnimationPath);
+    if (!Sequence)
+    {
+        return false;
+    }
+
+    if (!PreviewAnimInstance)
+    {
+        PreviewAnimInstance = UObjectManager::Get().CreateObject<UAnimSingleNodeInstance>();
+        PreviewAnimInstance->SetLooping(true);
+    }
+
+    CurrentAnimationSequence = Sequence;
+    AnimationSequencePath = AnimationPath;
+
+    SkelComp->SetAnimInstance(PreviewAnimInstance);
+    PreviewAnimInstance->SetSequence(Sequence);
+    PreviewAnimInstance->SetLooping(true);
+    PreviewAnimInstance->SetCurrentTime(0.0f);
+    return true;
+}
+
+void FEditorViewer::ClearAnimationSequence()
+{
+    CurrentAnimationSequence = nullptr;
+    AnimationSequencePath.clear();
+
+    if (PreviewAnimInstance)
+    {
+        PreviewAnimInstance->Stop();
+        PreviewAnimInstance->SetSequence(nullptr);
+    }
+
+    if (ViewTarget)
+    {
+        if (USkeletalMeshComponent* SkelComp = ViewTarget->GetSkeletalMeshComponent())
+        {
+            SkelComp->SetAnimInstance(nullptr);
+            SkelComp->ResetToBindPose();
+        }
+    }
+}
+
+void FEditorViewer::PlayAnimation()
+{
+    if (PreviewAnimInstance && CurrentAnimationSequence)
+    {
+        PreviewAnimInstance->Play();
+    }
+}
+
+void FEditorViewer::PauseAnimation()
+{
+    if (PreviewAnimInstance)
+    {
+        PreviewAnimInstance->Pause();
+    }
+}
+
+void FEditorViewer::StopAnimation()
+{
+    if (PreviewAnimInstance)
+    {
+        PreviewAnimInstance->Stop();
+    }
+
+    if (ViewTarget)
+    {
+        if (USkeletalMeshComponent* SkelComp = ViewTarget->GetSkeletalMeshComponent())
+        {
+            SkelComp->ResetToBindPose();
+        }
+    }
+}
+
+void FEditorViewer::SetAnimationTime(float Time)
+{
+    if (PreviewAnimInstance && CurrentAnimationSequence)
+    {
+        PreviewAnimInstance->SetCurrentTime(Time);
+    }
+}
+
+float FEditorViewer::GetAnimationTime() const
+{
+    return PreviewAnimInstance ? PreviewAnimInstance->GetCurrentTime() : 0.0f;
+}
+
+float FEditorViewer::GetAnimationLength() const
+{
+    return CurrentAnimationSequence ? CurrentAnimationSequence->GetPlayLength() : 0.0f;
+}
+
+bool FEditorViewer::IsAnimationPlaying() const
+{
+    return PreviewAnimInstance && PreviewAnimInstance->IsPlaying();
+}
+
+bool FEditorViewer::IsAnimationPaused() const
+{
+    return PreviewAnimInstance && PreviewAnimInstance->IsPaused();
 }
