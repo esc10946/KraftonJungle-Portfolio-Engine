@@ -200,6 +200,7 @@ private:
 	FStaticMeshResourceCache StaticMeshCache;
 	FAtlasResourceCache AtlasCache;
 
+	// 하나의 skeletal mesh가 source FBX path와 생성된 cache.bin path 양쪽을 key로 가져서 두 번 캐시될 수 있음 (alias)
 	TMap<FString, USkeletalMesh*> SkeletalMeshMap;
 	TMap<FString, USkeletonAsset*> SkeletonMap;
 	TMap<FString, UAnimationClipAsset*> AnimationClipMap;

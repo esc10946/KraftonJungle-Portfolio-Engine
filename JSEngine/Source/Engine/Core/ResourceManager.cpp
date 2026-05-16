@@ -578,17 +578,35 @@ void FResourceManager::ReleaseGPUResources()
 
 	RenderStateCache.Release();
 
+	TSet<USkeletalMesh*> DestroyedSkeletalMeshes;
 	for (auto& [Path, Mesh] : SkeletalMeshMap)
 	{
-		UObjectManager::Get().DestroyObject(Mesh);
+		if (Mesh && DestroyedSkeletalMeshes.insert(Mesh).second)
+		{
+			UObjectManager::Get().DestroyObject(Mesh);
+		}
 	}
 	SkeletalMeshMap.clear();
 
+	TSet<UAnimationClipAsset*> DestroyedAnimationClips;
 	for (auto& [Path, Clip] : AnimationClipMap)
 	{
-		UObjectManager::Get().DestroyObject(Clip);
+		if (Clip && DestroyedAnimationClips.insert(Clip).second)
+		{
+			UObjectManager::Get().DestroyObject(Clip);
+		}
 	}
 	AnimationClipMap.clear();
+
+	TSet<USkeletonAsset*> DestroyedSkeletons;
+	for (auto& [Path, Skeleton] : SkeletonMap)
+	{
+		if (Skeleton && DestroyedSkeletons.insert(Skeleton).second)
+		{
+			UObjectManager::Get().DestroyObject(Skeleton);
+		}
+	}
+	SkeletonMap.clear();
 
 	DefaultWhiteTexture.Reset();
 	CachedDevice.Reset();
