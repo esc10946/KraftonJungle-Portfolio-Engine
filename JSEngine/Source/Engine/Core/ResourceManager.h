@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Asset/BinarySerializer.h"
-#include "Asset/AnimationClipAsset.h"
+#include "Asset/AnimationSequence.h"
 #include "Asset/AnimationClipSerializer.h"
 #include "Asset/CurveFloatAsset.h"
 #include "Asset/FbxImporter.h"
@@ -144,9 +144,9 @@ public:
 	bool SaveCurve(const FString& Path, const UCurveFloatAsset* Curve);
 	TArray<FString> GetCurvePaths() const;
 
-	UAnimationClipAsset* LoadAnimationClip(const FString& Path);
-	UAnimationClipAsset* FindAnimationClip(const FString& Path) const;
-	bool SaveAnimationClip(UAnimationClipAsset* Clip);
+	UAnimationSequence* LoadAnimationClip(const FString& Path);
+	UAnimationSequence* FindAnimationClip(const FString& Path) const;
+	bool SaveAnimationClip(UAnimationSequence* Clip);
 	TArray<FString> GetAnimationClipPaths() const;
 
 	ID3D11SamplerState* GetOrCreateSamplerState(ESamplerType Type, ID3D11Device* Device = nullptr);
@@ -203,7 +203,7 @@ private:
 	// 하나의 skeletal mesh가 source FBX path와 생성된 cache.bin path 양쪽을 key로 가져서 두 번 캐시될 수 있음 (alias)
 	TMap<FString, USkeletalMesh*> SkeletalMeshMap;
 	TMap<FString, USkeletonAsset*> SkeletonMap;
-	TMap<FString, UAnimationClipAsset*> AnimationClipMap;
+	TMap<FString, UAnimationSequence*> AnimationClipMap;
 
 	/* Paths */
 	TArray<FString> ObjFilePaths;

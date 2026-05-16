@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Animation/AnimationAssetBase.h"
+#include "Animation/AnimationSequenceBase.h"
 #include "Object/Object.h"
 
 class USkeletalMeshComponent;
@@ -31,8 +31,8 @@ class UAnimSingleNodeInstance : public UAnimInstance
 public:
     DECLARE_CLASS(UAnimSingleNodeInstance, UAnimInstance)
 
-    void SetAnimationAsset(UAnimationAssetBase* InAnimationAsset);
-    UAnimationAssetBase* GetAnimationAsset() const { return AnimationAsset; }
+    void SetSequence(UAnimationSequenceBase* InSequence);
+    UAnimationSequenceBase* GetSequence() const { return Sequence; }
 
     void Play();
     void Pause();
@@ -59,7 +59,7 @@ protected:
     bool ApplyCurrentPoseToSkeletalMesh();
 
 protected:
-    UAnimationAssetBase* AnimationAsset = nullptr;
+    UAnimationSequenceBase* Sequence = nullptr;
     TArray<FMatrix> CurrentLocalPose;
     float CurrentTime = 0.0f;
     float PlayRate = 1.0f;

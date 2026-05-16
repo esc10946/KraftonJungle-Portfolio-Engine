@@ -111,7 +111,7 @@ struct FShapeKeyAnimationTrack
     FAnimationFloatCurve WeightCurve;
 };
 
-struct FAnimationClip
+struct FAnimationSequence
 {
     FString Name;
     FString SourcePath;
@@ -128,4 +128,6 @@ struct FAnimationClip
 
     TArray<FShapeKeyAnimationTrack> ShapeKeyTracks;
 };
+
+using FAnimationClip = FAnimationSequence;
 

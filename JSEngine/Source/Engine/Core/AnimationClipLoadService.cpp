@@ -1,6 +1,6 @@
-#include "Core/AnimationClipLoadService.h"
+﻿#include "Core/AnimationClipLoadService.h"
 
-#include "Asset/AnimationClipAsset.h"
+#include "Asset/AnimationSequence.h"
 #include "Core/AssetPathPolicy.h"
 #include "Core/Logging/Log.h"
 #include "Core/Paths.h"
@@ -72,11 +72,11 @@ FAnimationClipLoadService::FAnimationClipLoadService(FResourceManager& InResourc
 {
 }
 
-UAnimationClipAsset* FAnimationClipLoadService::Load(const FString& Path)
+UAnimationSequence* FAnimationClipLoadService::Load(const FString& Path)
 {
     const FString NormalizedPath = FPaths::Normalize(Path);
 
-    if (UAnimationClipAsset* FoundClip = ResourceManager.FindAnimationClip(NormalizedPath))
+    if (UAnimationSequence* FoundClip = ResourceManager.FindAnimationClip(NormalizedPath))
     {
         return FoundClip;
     }
@@ -86,7 +86,7 @@ UAnimationClipAsset* FAnimationClipLoadService::Load(const FString& Path)
         return LoadBinary(NormalizedPath, NormalizedPath);
     }
 
-    if (UAnimationClipAsset* ImportedClip = LoadSiblingImportedBinary(NormalizedPath))
+    if (UAnimationSequence* ImportedClip = LoadSiblingImportedBinary(NormalizedPath))
     {
         ResourceManager.AnimationClipMap[NormalizedPath] = ImportedClip;
         return ImportedClip;
@@ -95,9 +95,9 @@ UAnimationClipAsset* FAnimationClipLoadService::Load(const FString& Path)
     return LoadSourceOrCachedBinary(NormalizedPath);
 }
 
-UAnimationClipAsset* FAnimationClipLoadService::LoadBinary(const FString& BinaryPath, const FString& CacheKey)
+UAnimationSequence* FAnimationClipLoadService::LoadBinary(const FString& BinaryPath, const FString& CacheKey)
 {
-    FAnimationClip* LoadedClipData = new FAnimationClip();
+    FAnimationSequence* LoadedClipData = new FAnimationSequence();
     if (!ResourceManager.AnimationClipSerializer.LoadAnimationClip(BinaryPath, *LoadedClipData))
     {
         delete LoadedClipData;
@@ -108,12 +108,12 @@ UAnimationClipAsset* FAnimationClipLoadService::LoadBinary(const FString& Binary
     return FinalizeLoadedClip(LoadedClipData, CacheKey);
 }
 
-UAnimationClipAsset* FAnimationClipLoadService::LoadSiblingImportedBinary(const FString& NormalizedPath)
+UAnimationSequence* FAnimationClipLoadService::LoadSiblingImportedBinary(const FString& NormalizedPath)
 {
     const TArray<FString> BinaryPaths = FindSiblingAnimationBinaries(NormalizedPath);
     for (const FString& BinaryPath : BinaryPaths)
     {
-        if (UAnimationClipAsset* Clip = LoadBinary(BinaryPath, BinaryPath))
+        if (UAnimationSequence* Clip = LoadBinary(BinaryPath, BinaryPath))
         {
             return Clip;
         }
@@ -122,11 +122,11 @@ UAnimationClipAsset* FAnimationClipLoadService::LoadSiblingImportedBinary(const 
     return nullptr;
 }
 
-UAnimationClipAsset* FAnimationClipLoadService::LoadSourceOrCachedBinary(const FString& NormalizedPath)
+UAnimationSequence* FAnimationClipLoadService::LoadSourceOrCachedBinary(const FString& NormalizedPath)
 {
     const FString BinaryPath = FAssetPathPolicy::MakeWritableAnimationClipCacheBinaryPath(NormalizedPath);
 
-    FAnimationClip* LoadedClipData = nullptr;
+    FAnimationSequence* LoadedClipData = nullptr;
     double BinaryLoadSec = 0.0;
     double SourceLoadSec = 0.0;
 
@@ -134,7 +134,7 @@ UAnimationClipAsset* FAnimationClipLoadService::LoadSourceOrCachedBinary(const F
     {
         const auto BinaryStart = std::chrono::steady_clock::now();
 
-        LoadedClipData = new FAnimationClip();
+        LoadedClipData = new FAnimationSequence();
         if (!ResourceManager.AnimationClipSerializer.LoadAnimationClip(BinaryPath, *LoadedClipData))
         {
             delete LoadedClipData;
@@ -168,7 +168,7 @@ UAnimationClipAsset* FAnimationClipLoadService::LoadSourceOrCachedBinary(const F
             return nullptr;
         }
 
-        UAnimationClipAsset* FirstLoadedClip = nullptr;
+        UAnimationSequence* FirstLoadedClip = nullptr;
         for (FAnimationClip* Clip : ImportedClips)
         {
             if (!Clip)
@@ -192,7 +192,7 @@ UAnimationClipAsset* FAnimationClipLoadService::LoadSourceOrCachedBinary(const F
                 UE_LOG("[AnimationClipLoad] Source=FBX | Path=%s | FbxSec=%.6f | BinarySave=OK | BinaryPath=%s",
                        NormalizedPath.c_str(), SourceLoadSec, SaveBinaryPath.c_str());
 
-                UAnimationClipAsset* LoadedClip = FinalizeLoadedClip(Clip, SaveBinaryPath);
+                UAnimationSequence* LoadedClip = FinalizeLoadedClip(Clip, SaveBinaryPath);
                 if (!FirstLoadedClip)
                 {
                     FirstLoadedClip = LoadedClip;
@@ -222,10 +222,10 @@ UAnimationClipAsset* FAnimationClipLoadService::LoadSourceOrCachedBinary(const F
     return FinalizeLoadedClip(LoadedClipData, NormalizedPath);
 }
 
-UAnimationClipAsset* FAnimationClipLoadService::FinalizeLoadedClip(FAnimationClip* ClipData, const FString& CacheKey)
+UAnimationSequence* FAnimationClipLoadService::FinalizeLoadedClip(FAnimationSequence* SequenceData, const FString& CacheKey)
 {
-    UAnimationClipAsset* LoadedClip = UObjectManager::Get().CreateObject<UAnimationClipAsset>();
-    LoadedClip->SetClipData(ClipData);
+    UAnimationSequence* LoadedClip = UObjectManager::Get().CreateObject<UAnimationSequence>();
+    LoadedClip->SetSequenceData(SequenceData);
 
     ResourceManager.AnimationClipMap[CacheKey] = LoadedClip;
     if (std::find(ResourceManager.AnimationClipFilePaths.begin(), ResourceManager.AnimationClipFilePaths.end(), CacheKey)
@@ -234,7 +234,7 @@ UAnimationClipAsset* FAnimationClipLoadService::FinalizeLoadedClip(FAnimationCli
         ResourceManager.AnimationClipFilePaths.push_back(CacheKey);
     }
 
-    const FAnimationClip* Clip = LoadedClip->GetClipData();
+    const FAnimationSequence* Clip = LoadedClip->GetSequenceData();
     UE_LOG("[AnimationClipLoad] Loaded | Path=%s | Name=%s | BoneTracks=%zu | ShapeKeyTracks=%zu | Duration=%.3f",
            CacheKey.c_str(),
            Clip ? Clip->Name.c_str() : "",

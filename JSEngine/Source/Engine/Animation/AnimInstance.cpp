@@ -32,9 +32,9 @@ void UAnimInstance::TickAnimation(float DeltaSeconds)
     NativeUpdateAnimation(DeltaSeconds);
 }
 
-void UAnimSingleNodeInstance::SetAnimationAsset(UAnimationAssetBase* InAnimationAsset)
+void UAnimSingleNodeInstance::SetSequence(UAnimationSequenceBase* InSequence)
 {
-    AnimationAsset = InAnimationAsset;
+    Sequence = InSequence;
     CurrentTime = 0.0f;
     CurrentLocalPose.clear();
 }
@@ -65,9 +65,9 @@ void UAnimSingleNodeInstance::SetCurrentTime(float InCurrentTime)
 {
     float PlayLength = 0.0f;
 
-    if (AnimationAsset)
+    if (Sequence)
     {
-        PlayLength = AnimationAsset->GetPlayLength();
+        PlayLength = Sequence->GetPlayLength();
     }
 
     if (PlayLength > 0.0f)
@@ -87,12 +87,12 @@ void UAnimSingleNodeInstance::SetCurrentTime(float InCurrentTime)
 
 void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaSeconds)
 {
-    if (!AnimationAsset || !bPlaying || bPaused)
+    if (!Sequence || !bPlaying || bPaused)
     {
         return;
     }
 
-    const float PlayLength = AnimationAsset->GetPlayLength();
+    const float PlayLength = Sequence->GetPlayLength();
     CurrentTime += DeltaSeconds * PlayRate;
 
     if (PlayLength <= 0.0f)
@@ -134,14 +134,14 @@ void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 bool UAnimSingleNodeInstance::SampleCurrentPose()
 {
-    if (!AnimationAsset)
+    if (!Sequence)
     {
         CurrentLocalPose.clear();
         return false;
     }
 
     TArray<FMatrix> SampledPose;
-    if (!AnimationAsset->SamplePose(CurrentTime, SampledPose))
+    if (!Sequence->SamplePose(CurrentTime, SampledPose))
     {
         return false;
     }

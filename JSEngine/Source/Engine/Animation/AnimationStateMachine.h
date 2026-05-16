@@ -4,7 +4,7 @@
 #include "Object/Object.h"
 
 class UAnimInstance;
-class UAnimationAssetBase;
+class UAnimationSequenceBase;
 
 enum class EAnimState : uint8
 {
@@ -18,7 +18,7 @@ enum class EAnimState : uint8
 struct FAnimStateAnimation
 {
     EAnimState State = EAnimState::None;
-    UAnimationAssetBase* AnimationAsset = nullptr;
+    UAnimationSequenceBase* Sequence = nullptr;
 };
 
 class UAnimationStateMachine : public UObject
@@ -33,9 +33,9 @@ public:
     EAnimState GetCurrentState() const { return CurrentState; }
     EAnimState GetPreviousState() const { return PreviousState; }
 
-    void SetAnimationAssetForState(EAnimState State, UAnimationAssetBase* AnimationAsset);
-    UAnimationAssetBase* GetAnimationAssetForState(EAnimState State) const;
-    UAnimationAssetBase* GetCurrentAnimationAsset() const;
+    void SetSequenceForState(EAnimState State, UAnimationSequenceBase* Sequence);
+    UAnimationSequenceBase* GetSequenceForState(EAnimState State) const;
+    UAnimationSequenceBase* GetCurrentSequence() const;
 
 protected:
     void SetState(EAnimState NewState);

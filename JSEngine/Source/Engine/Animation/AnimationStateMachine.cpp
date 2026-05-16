@@ -31,7 +31,7 @@ void UAnimationStateMachine::SetState(EAnimState NewState)
     CurrentState = NewState;
 }
 
-void UAnimationStateMachine::SetAnimationAssetForState(EAnimState State, UAnimationAssetBase* AnimationAsset)
+void UAnimationStateMachine::SetSequenceForState(EAnimState State, UAnimationSequenceBase* Sequence)
 {
     if (State == EAnimState::None)
     {
@@ -42,31 +42,31 @@ void UAnimationStateMachine::SetAnimationAssetForState(EAnimState State, UAnimat
     {
         if (StateAnimation.State == State)
         {
-            StateAnimation.AnimationAsset = AnimationAsset;
+            StateAnimation.Sequence = Sequence;
             return;
         }
     }
 
     FAnimStateAnimation NewStateAnimation;
     NewStateAnimation.State = State;
-    NewStateAnimation.AnimationAsset = AnimationAsset;
+    NewStateAnimation.Sequence = Sequence;
     StateAnimations.push_back(NewStateAnimation);
 }
 
-UAnimationAssetBase* UAnimationStateMachine::GetAnimationAssetForState(EAnimState State) const
+UAnimationSequenceBase* UAnimationStateMachine::GetSequenceForState(EAnimState State) const
 {
     for (const FAnimStateAnimation& StateAnimation : StateAnimations)
     {
         if (StateAnimation.State == State)
         {
-            return StateAnimation.AnimationAsset;
+            return StateAnimation.Sequence;
         }
     }
 
     return nullptr;
 }
 
-UAnimationAssetBase* UAnimationStateMachine::GetCurrentAnimationAsset() const
+UAnimationSequenceBase* UAnimationStateMachine::GetCurrentSequence() const
 {
-    return GetAnimationAssetForState(CurrentState);
+    return GetSequenceForState(CurrentState);
 }

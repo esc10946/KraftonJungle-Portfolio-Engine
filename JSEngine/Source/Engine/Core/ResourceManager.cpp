@@ -588,7 +588,7 @@ void FResourceManager::ReleaseGPUResources()
 	}
 	SkeletalMeshMap.clear();
 
-	TSet<UAnimationClipAsset*> DestroyedAnimationClips;
+	TSet<UAnimationSequence*> DestroyedAnimationClips;
 	for (auto& [Path, Clip] : AnimationClipMap)
 	{
 		if (Clip && DestroyedAnimationClips.insert(Clip).second)
@@ -1124,26 +1124,26 @@ TArray<FString> FResourceManager::GetCurvePaths() const
 	return CurveFilePaths;
 }
 
-UAnimationClipAsset* FResourceManager::LoadAnimationClip(const FString& Path)
+UAnimationSequence* FResourceManager::LoadAnimationClip(const FString& Path)
 {
 	return FAnimationClipLoadService(*this).Load(Path);
 }
 
-UAnimationClipAsset* FResourceManager::FindAnimationClip(const FString& Path) const
+UAnimationSequence* FResourceManager::FindAnimationClip(const FString& Path) const
 {
 	const FString NormalizedPath = FPaths::Normalize(Path);
 	auto It = AnimationClipMap.find(NormalizedPath);
 	return It != AnimationClipMap.end() ? It->second : nullptr;
 }
 
-bool FResourceManager::SaveAnimationClip(UAnimationClipAsset* Clip)
+bool FResourceManager::SaveAnimationClip(UAnimationSequence* Clip)
 {
 	if (!Clip)
 	{
 		return false;
 	}
 
-	FAnimationClip* Data = Clip->GetClipData();
+	FAnimationSequence* Data = Clip->GetSequenceData();
 	if (!Data || Data->SourcePath.empty())
 	{
 		return false;

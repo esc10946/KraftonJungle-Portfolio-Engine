@@ -459,7 +459,7 @@
     <ClCompile Include="Source\Engine\Animation\AnimInstance.cpp">
       <Filter>Source\Engine\Animation</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Animation\AnimationAssetBase.cpp">
+    <ClCompile Include="Source\Engine\Animation\AnimationSequenceBase.cpp">
       <Filter>Source\Engine\Animation</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Animation\AnimationStateMachine.cpp">
@@ -471,7 +471,7 @@
     <ClCompile Include="Source\Engine\Animation\TimelinePlayer.cpp">
       <Filter>Source\Engine\Animation</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Asset\AnimationClipAsset.cpp">
+    <ClCompile Include="Source\Engine\Asset\AnimationSequence.cpp">
       <Filter>Source\Engine\Asset</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Asset\AnimationClipSerializer.cpp">
@@ -1374,7 +1374,7 @@
     <ClInclude Include="Source\Engine\Animation\AnimInstance.h">
       <Filter>Source\Engine\Animation</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Animation\AnimationAssetBase.h">
+    <ClInclude Include="Source\Engine\Animation\AnimationSequenceBase.h">
       <Filter>Source\Engine\Animation</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Animation\AnimationStateMachine.h">
@@ -1386,7 +1386,7 @@
     <ClInclude Include="Source\Engine\Animation\TimelinePlayer.h">
       <Filter>Source\Engine\Animation</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Asset\AnimationClipAsset.h">
+    <ClInclude Include="Source\Engine\Asset\AnimationSequence.h">
       <Filter>Source\Engine\Asset</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Asset\AnimationClipSerializer.h">

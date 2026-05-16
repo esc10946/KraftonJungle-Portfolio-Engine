@@ -1,23 +1,23 @@
 #pragma once
 
+#include "Asset/AnimationTypes.h"
 #include "Core/CoreMinimal.h"
 
 class FResourceManager;
-class UAnimationClipAsset;
-struct FAnimationClip;
+class UAnimationSequence;
 
 class FAnimationClipLoadService
 {
 public:
     explicit FAnimationClipLoadService(FResourceManager& InResourceManager);
 
-    UAnimationClipAsset* Load(const FString& Path);
+    UAnimationSequence* Load(const FString& Path);
 
 private:
-    UAnimationClipAsset* LoadBinary(const FString& BinaryPath, const FString& CacheKey);
-    UAnimationClipAsset* LoadSiblingImportedBinary(const FString& NormalizedPath);
-    UAnimationClipAsset* LoadSourceOrCachedBinary(const FString& NormalizedPath);
-    UAnimationClipAsset* FinalizeLoadedClip(FAnimationClip* ClipData, const FString& CacheKey);
+    UAnimationSequence* LoadBinary(const FString& BinaryPath, const FString& CacheKey);
+    UAnimationSequence* LoadSiblingImportedBinary(const FString& NormalizedPath);
+    UAnimationSequence* LoadSourceOrCachedBinary(const FString& NormalizedPath);
+    UAnimationSequence* FinalizeLoadedClip(FAnimationSequence* SequenceData, const FString& CacheKey);
 
     FResourceManager& ResourceManager;
 };

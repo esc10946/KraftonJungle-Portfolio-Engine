@@ -610,11 +610,11 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Animation\ActorSequence.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimInstance.cpp" />
-    <ClCompile Include="Source\Engine\Animation\AnimationAssetBase.cpp" />
+    <ClCompile Include="Source\Engine\Animation\AnimationSequenceBase.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimationStateMachine.cpp" />
     <ClCompile Include="Source\Engine\Animation\CurvePlayback.cpp" />
     <ClCompile Include="Source\Engine\Animation\TimelinePlayer.cpp" />
-    <ClCompile Include="Source\Engine\Asset\AnimationClipAsset.cpp" />
+    <ClCompile Include="Source\Engine\Asset\AnimationSequence.cpp" />
     <ClCompile Include="Source\Engine\Asset\AnimationClipSerializer.cpp" />
     <ClCompile Include="Source\Engine\Asset\AssetQueryService.cpp" />
     <ClCompile Include="Source\Engine\Asset\BinarySerializer.cpp" />
@@ -943,11 +943,11 @@
     <ClInclude Include="Source\Editor\Viewport\ViewportLayout.h" />
     <ClInclude Include="Source\Engine\Animation\ActorSequence.h" />
     <ClInclude Include="Source\Engine\Animation\AnimInstance.h" />
-    <ClInclude Include="Source\Engine\Animation\AnimationAssetBase.h" />
+    <ClInclude Include="Source\Engine\Animation\AnimationSequenceBase.h" />
     <ClInclude Include="Source\Engine\Animation\AnimationStateMachine.h" />
     <ClInclude Include="Source\Engine\Animation\CurvePlayback.h" />
     <ClInclude Include="Source\Engine\Animation\TimelinePlayer.h" />
-    <ClInclude Include="Source\Engine\Asset\AnimationClipAsset.h" />
+    <ClInclude Include="Source\Engine\Asset\AnimationSequence.h" />
     <ClInclude Include="Source\Engine\Asset\AnimationClipSerializer.h" />
     <ClInclude Include="Source\Engine\Asset\AnimationTypes.h" />
     <ClInclude Include="Source\Engine\Asset\AssetQueryService.h" />
