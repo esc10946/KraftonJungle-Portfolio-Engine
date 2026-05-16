@@ -259,9 +259,6 @@ REGISTER_FACTORY(AMainSceneDestructibleActor)
 DEFINE_CLASS(ABladeSlash, AActor)
 REGISTER_FACTORY(ABladeSlash)
 
-DEFINE_CLASS(AMyActor, AActor)
-REGISTER_FACTORY(AMyActor)
-
 void ACubeActor::InitDefaultComponents()
 {
     auto* Cube = AddComponent<UStaticMeshComponent>();
@@ -1435,35 +1432,3 @@ void ABoundsBoxActor::PostDuplicate(UObject* Original)
     }
 }
 
-UClass* AMyActor::StaticClass()
-{
-    static UClass Class(
-        "AMyActor",
-        Super::StaticClass(),
-        sizeof(AMyActor),
-        CF_None,
-        []() -> UObject*
-        { return UObjectManager::Get().CreateObject<AMyActor>(); });
-
-    static bool bRegistered = false;
-    if (!bRegistered)
-    {
-        bRegistered = true;
-        Class.AddProperty({ "Speed",
-                            EReflectedPropertyType::Float,
-                            offsetof(AMyActor, speed),
-                            sizeof(float),
-                            EPropertyFlags::Read | EPropertyFlags::Write | EPropertyFlags::Edit });
-
-                
-        FReflectionRegistry::Get().RegisterUClass(&Class);
-    }
-
-    return &Class;
-}
-
-void AMyActor::InitDefaultComponents()
-{
-    auto* Cube = AddComponent<USceneComponent>();
-    SetRootComponent(Cube);
-}

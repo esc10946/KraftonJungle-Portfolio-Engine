@@ -953,15 +953,23 @@ void UScriptComponent::BeginPlay()
 {
     UActorComponent::BeginPlay();
 
+    UE_LOG("[ScriptComponent] BeginPlay ScriptName=%s Loaded=%s",
+           ScriptName.c_str(),
+           bScriptLoaded ? "true" : "false");
+
     if (!bScriptLoaded)
     {
         if (!LoadScript())
         {
+            UE_LOG_ERROR("[ScriptComponent] LoadScript failed: %s", ScriptName.c_str());
             return;
         }
     }
-	CallScriptFunction("BeginPlay");
+
+    UE_LOG("[ScriptComponent] Call Lua BeginPlay: %s", ScriptName.c_str());
+    CallScriptFunction("BeginPlay");
 }
+
 
 void UScriptComponent::TickComponent(float DeltaTime)
 {

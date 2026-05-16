@@ -3,6 +3,7 @@
 #include <functional>
 #include <utility>
 #include "Object/Object.h"
+#include "Object/ReflectionRegistry.h"
 #include "Core/Singleton.h"
 
 #define REGISTER_FACTORY(TypeName)															\
@@ -35,8 +36,18 @@ public:
 	}
 
 	UObject* Create(const std::string& TypeName) {
-		auto Spawner = Registry.find(TypeName);	// Do NOT use array accessor [] here. it will insert a new key if not found.
-		return (Spawner != Registry.end() && Spawner->second.Spawner) ? Spawner->second.Spawner() : nullptr;
+        if (UClass* Class = FReflectionRegistry::Get().FindClass(FString(TypeName)))
+        {
+            if (UObject* Object = Class->CreateObject())
+            {
+                return Object;
+            }
+        }
+
+        auto Spawner = Registry.find(TypeName);
+        return (Spawner != Registry.end() && Spawner->second.Spawner)
+                   ? Spawner->second.Spawner()
+                   : nullptr;	
 	}
 
 	void GetRegisteredTypeInfos(TArray<const FTypeInfo*>& OutTypes) const {

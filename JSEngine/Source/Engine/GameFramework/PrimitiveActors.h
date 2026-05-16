@@ -354,14 +354,3 @@ private:
     UProjectileMovementComponent* ProjMoveComp = nullptr;
     UMainSceneDestructibleComponent* PresentationComponent = nullptr;
 };
-
-class AMyActor : public AActor
-{
-public:
-    DECLARE_CLASS(AMyActor, AActor)
-    GENERATED_BODY(AMyActor, AActor)
-    void InitDefaultComponents() override;
-
-	UPROPERTY(Edit)
-	float speed = 5.0f;
-};

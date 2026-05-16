@@ -12,6 +12,12 @@ class USceneComponent : public UActorComponent
 public:
 	DECLARE_CLASS(USceneComponent, UActorComponent)
 
+	static UClass* StaticClass();
+    UClass* GetClass() const override 
+    {
+        return StaticClass();
+    }
+
 	USceneComponent();
 	~USceneComponent() override;
 

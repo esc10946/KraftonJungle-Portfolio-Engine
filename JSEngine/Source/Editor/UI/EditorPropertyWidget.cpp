@@ -43,6 +43,7 @@
 #include "Runtime/Script/ScriptManager.h"
 #include <Runtime/Script/ScriptComponent.h>
 #include <commdlg.h>
+#include <NewTestComponent.h>
 
 #define SEPARATOR(); ImGui::Spacing(); ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing(); ImGui::Spacing();
 
@@ -262,6 +263,34 @@ namespace
 		OutFilePath = FPaths::ToUtf8(SelectedPath.lexically_normal().wstring());
 		return true;
 	}
+
+	static FString GetObjectDisplayPath(UObject* Object)
+    {
+        if (!Object)
+        {
+            return "None";
+        }
+
+        // Actor인 경우
+        if (AActor* Actor = Cast<AActor>(Object))
+        {
+            return Actor->GetName();
+        }
+
+        // Component인 경우: OwnerActor / ComponentName
+        if (UActorComponent* Component = Cast<UActorComponent>(Object))
+        {
+            if (AActor* Owner = Component->GetOwner())
+            {
+                return Owner->GetName() + " / " + Component->GetName();
+            }
+
+            return FString("<NoOwner> / ") + Component->GetName();
+        }
+
+        // 그 외 UObject
+        return Object->GetName();
+    }
  }
 
 // 1. 메뉴 항목의 이름과, 해당 컴포넌트를 생성&초기화할 함수(람다)를 담는 구조체
@@ -384,6 +413,13 @@ static const TArray<FComponentMenuEntry> ComponentMenuRegistry = {
 		"Fireball Component",
 		[](AActor* Actor) -> UActorComponent* {
 			UFireballComponent* Comp = Actor->AddComponent<UFireballComponent>();
+			return Comp;
+		}
+	},
+	{
+		"NewTest Component",
+		[](AActor* Actor) -> UActorComponent* {
+			NewTestComponent* Comp = Actor->AddComponent<NewTestComponent>();
 			return Comp;
 		}
 	},
@@ -1452,20 +1488,15 @@ void FEditorPropertyWidget::RenderComponentProperties()
         SelectedComponent->GetClass()->GetAllProperties(ReflectedProperties);
     }
 
-    if (!ReflectedProperties.empty())
+    for (const FProperty* Property : ReflectedProperties)
     {
-        for (const FProperty* Property : ReflectedProperties)
+        if (Property)
         {
-            if (Property)
-            {
-                RenderReflectionProperties(SelectedComponent, *Property);
-            }
+            RenderReflectionProperties(SelectedComponent, *Property);
         }
     }
-    else
-    {
-        SelectedComponent->GetEditableProperties(Props);
-    }
+
+    SelectedComponent->GetEditableProperties(Props);
 
 	const FDetailsPerfClock::time_point PropertiesEnd = bDetailsPerfTraceFrame ? FDetailsPerfClock::now() : FDetailsPerfClock::time_point{};
 
@@ -2413,6 +2444,7 @@ void FEditorPropertyWidget::RenderReflectionProperties(UObject* Object, const FP
 	}
 
     case EReflectedPropertyType::String:
+    case EReflectedPropertyType::Asset:
     {
         FString Value;
         if (!Property.GetPropertyValue_InContainer(Object, Value))
@@ -2432,7 +2464,26 @@ void FEditorPropertyWidget::RenderReflectionProperties(UObject* Object, const FP
 
         break;
     }
+    case EReflectedPropertyType::Name:
+    {
+        FName Value;
+        if (!Property.GetPropertyValue_InContainer(Object, Value))
+        {
+            return;
+        }
 
+        char Buffer[256] = {};
+        strncpy_s(Buffer, sizeof(Buffer), Value.ToString().c_str(), _TRUNCATE);
+
+        bChanged = ImGui::InputText(Property.Name, Buffer, sizeof(Buffer));
+
+        if (bChanged)
+        {
+            Property.SetPropertyValue_InContainer(Object, FName(Buffer));
+        }
+
+        break;
+    }
     case EReflectedPropertyType::Object:
     {
         UObject* Value = nullptr;
@@ -2441,12 +2492,67 @@ void FEditorPropertyWidget::RenderReflectionProperties(UObject* Object, const FP
             return;
         }
 
-        ImGui::Text("%s: %s",
-                    Property.Name,
-                    Value ? Value->GetName().c_str() : "None");
+        const FString CurrentDisplayName = GetObjectDisplayPath(Value);
+
+        FString ButtonLabel = CurrentDisplayName + "##" + Property.Name;
+        if (ImGui::Button(ButtonLabel.c_str()))
+        {
+            ImGui::OpenPopup(Property.Name);
+        }
+
+        if (ImGui::BeginPopup(Property.Name))
+        {
+            static char Filter[128] = {};
+            if (ImGui::IsWindowAppearing())
+            {
+                Filter[0] = '\0';
+            }
+
+            ImGui::InputText("##filter", Filter, sizeof(Filter));
+
+            UClass* TargetClass = Property.GetObjectClass();
+            if (!TargetClass)
+            {
+                TargetClass = UObject::StaticClass();
+            }
+
+            for (UObject* Candidate : UObjectManager::Get().GetAllObjects())
+            {
+                if (!Candidate || !Candidate->IsA(TargetClass))
+                {
+                    continue;
+                }
+
+                const FString CandidateDisplayName = GetObjectDisplayPath(Candidate);
+
+                if (Filter[0] && !strstr(CandidateDisplayName.c_str(), Filter))
+                {
+                    continue;
+                }
+
+                const bool bSelected = Candidate == Value;
+
+                ImGui::PushID(Candidate);
+
+                if (ImGui::Selectable(CandidateDisplayName.c_str(), bSelected))
+                {
+                    if (Property.SetPropertyValue_InContainer(Object, Candidate))
+                    {
+                        bChanged = true;
+                    }
+
+                    ImGui::CloseCurrentPopup();
+                }
+
+                ImGui::PopID();
+            }
+
+            ImGui::EndPopup();
+        }
 
         break;
     }
+
 
     default:
         break;
@@ -2454,7 +2560,23 @@ void FEditorPropertyWidget::RenderReflectionProperties(UObject* Object, const FP
 
     if (bChanged)
     {
+        if (!bPropertyEditUndoCaptured && EditorEngine)
+        {
+            EditorEngine->GetUndoSystem().CaptureSnapshot("Edit Property");
+            bPropertyEditUndoCaptured = true;
+        }
+
         Object->PostEditChangeProperty({ Property.Name, EPropertyChangeType::ValueSet });
+
+        if (EditorEngine)
+        {
+            EditorEngine->GetSceneService().MarkDirty();
+        }
+    }
+
+    if (ImGui::IsItemDeactivatedAfterEdit() || !ImGui::IsAnyItemActive())
+    {
+        bPropertyEditUndoCaptured = false;
     }
 }
 

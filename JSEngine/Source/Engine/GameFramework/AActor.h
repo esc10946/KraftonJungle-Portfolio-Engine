@@ -14,6 +14,12 @@ class UPrimitiveComponent;
 class AActor : public UObject {
 public:
 	DECLARE_CLASS(AActor, UObject)
+    static UClass* StaticClass();
+    UClass* GetClass() const override
+    {
+        return StaticClass();
+    }
+
 	AActor() = default;
 	~AActor() override;
 
@@ -36,7 +42,7 @@ public:
 		bPrimitiveCacheDirty = true;
 
 		Comp->SetOwner(this);
-		Comp->SetFName(FName(MakeUniqueComponentName(Comp, T::s_TypeInfo.name, true)));
+		Comp->SetFName(FName(MakeUniqueComponentName(Comp, GetUObjectClassName<T>(), true)));
 		OwnedComponents.push_back(Comp);
 		bPrimitiveCacheDirty = true;
 		NotifyComponentRegistered(Comp);
@@ -54,8 +60,9 @@ public:
 	bool ShouldTickInEditor() const { return bTickInEditor; }
 	void SetTickInEditor(bool bEnabled)  { bTickInEditor = bEnabled; }
 
-	// FTypeInfo 기반 런타임 컴포넌트 생성
-	UActorComponent* AddComponentByClass(const FTypeInfo* Class);
+	// UClass 기반 런타임 컴포넌트 생성. FTypeInfo overload는 legacy fallback으로 유지합니다.
+    UActorComponent* AddComponentByClass(const UClass* Class);
+    UActorComponent* AddComponentByClass(const FTypeInfo* Class);
 	void RemoveComponent(UActorComponent* Component);
 	void RegisterComponent(UActorComponent* Comp);
 

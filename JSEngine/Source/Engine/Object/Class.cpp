@@ -49,7 +49,20 @@ void UClass::AddProperty(const FProperty& Property)
         return;
     }
 
-    if (FindProperty(Property.Name))
+    for (const FProperty& ExistingProperty : Properties)
+    {
+        if (ExistingProperty.Name && std::strcmp(ExistingProperty.Name, Property.Name) == 0)
+        {
+            return;
+        }
+    }
+
+    if (Property.Type == EReflectedPropertyType::Object && Property.Size != sizeof(UObject*))
+    {
+        return;
+    }
+
+    if (Property.Type == EReflectedPropertyType::Asset && Property.Size != sizeof(FString))
     {
         return;
     }

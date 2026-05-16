@@ -158,6 +158,7 @@ AActor* FPrefabManager::SpawnActorFromPrefab(UWorld* World, const FString& Relat
 	AActor* Actor = FActorSerialization::SpawnActorFromJson(World, ActorData, Options);
 	if (Actor)
 	{
+		UObjectManager::Get().ResolvePendingObjectReferences();
 		World->SyncSpatialIndex();
 	}
 	return Actor;

@@ -49,6 +49,12 @@ struct FTypeInfo
 	}
 };
 
+template<typename T>
+struct TIsUClassReflected
+{
+	static constexpr bool Value = false;
+};
+
 class UObject
 {
 public:
@@ -92,8 +98,24 @@ public:
 	// RTTI stuffs
 	virtual const FTypeInfo* GetTypeInfo() const { return &s_TypeInfo; }
 
+	bool IsA(const UClass* TargetClass) const
+	{
+		UClass* ThisClass = GetClass();
+		return ThisClass && TargetClass && ThisClass->IsChildOf(TargetClass);
+	}
+
 	template<typename T>
-	bool IsA() const { return GetTypeInfo()->IsA(&T::s_TypeInfo); }
+	bool IsA() const
+	{
+		if constexpr (TIsUClassReflected<T>::Value)
+		{
+			return IsA(T::StaticClass());
+		}
+		else
+		{
+			return GetTypeInfo()->IsA(&T::s_TypeInfo);
+		}
+	}
 
 	bool IsValidLowLevel() const { return this != nullptr; }
 
@@ -134,6 +156,20 @@ private:
 extern TArray<UObject*> GUObjectArray;
 
 template <typename T>
+inline const char* GetUObjectClassName()
+{
+	if constexpr (requires { T::StaticClass(); })
+	{
+		UClass* Class = T::StaticClass();
+		return Class ? Class->GetName() : "UObject";
+	}
+	else
+	{
+		return T::s_TypeInfo.name;
+	}
+}
+
+template <typename T>
 inline T* Cast(UObject* Src)
 {
 	if (Src && Src->IsA<T>())
@@ -164,7 +200,7 @@ public:
 		static_assert(std::is_base_of<UObject, T>::value, "T must derive from UObject");
 		T* Obj = new T();
 
-		const char* ClassName = T::s_TypeInfo.name;
+		const char* ClassName = GetUObjectClassName<T>();
 		uint32& Counter = NameCounters[ClassName];
 		FString Name = FString(ClassName) + "_" + std::to_string(Counter++);
 		Obj->SetFName(FName(Name));
@@ -183,6 +219,13 @@ public:
 
 private:
 	TMap<FString, uint32> NameCounters;
+	struct FPendingObjectReference
+	{
+		UObject** TargetSlot = nullptr;
+		uint32 TargetUUID = 0;
+		UClass* ExpectedClass = nullptr;
+	};
+	TArray<FPendingObjectReference> PendingObjectReferences;
 
 public:
 	UObject* FindByUUID(uint32 InUUID)
@@ -191,6 +234,47 @@ public:
 			if (Obj && Obj->GetUUID() == InUUID)
 				return Obj;
 		return nullptr;
+	}
+
+	void RegisterPendingObjectReference(UObject** TargetSlot, uint32 TargetUUID, UClass* ExpectedClass)
+	{
+		if (!TargetSlot || TargetUUID == 0)
+		{
+			return;
+		}
+
+		PendingObjectReferences.push_back({ TargetSlot, TargetUUID, ExpectedClass });
+	}
+
+	void ResolvePendingObjectReferences()
+	{
+		for (const FPendingObjectReference& PendingReference : PendingObjectReferences)
+		{
+			if (!PendingReference.TargetSlot)
+			{
+				continue;
+			}
+
+			UObject* ResolvedObject = FindByUUID(PendingReference.TargetUUID);
+			if (ResolvedObject && PendingReference.ExpectedClass && !ResolvedObject->IsA(PendingReference.ExpectedClass))
+			{
+				ResolvedObject = nullptr;
+			}
+
+			*PendingReference.TargetSlot = ResolvedObject;
+		}
+
+		PendingObjectReferences.clear();
+	}
+
+	void ClearPendingObjectReferences()
+	{
+		PendingObjectReferences.clear();
+	}
+
+	const TArray<UObject*>& GetAllObjects() const
+	{
+		return GUObjectArray;
 	}
 
 	bool ContainsObject(const UObject* InObject)

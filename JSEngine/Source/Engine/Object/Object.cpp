@@ -57,7 +57,16 @@ UClass* UObject::StaticClass()
 // 그대로 nullptr 를 반환합니다.
 UObject* UObject::Duplicate()
 {
-    UObject* Dup = FObjectFactory::Get().Create(GetTypeInfo()->name);
+    const char* ClassName = GetTypeInfo()->name;
+    if (UClass* Class = GetClass())
+    {
+        if (Class != UObject::StaticClass())
+        {
+            ClassName = Class->GetName();
+        }
+    }
+
+    UObject* Dup = FObjectFactory::Get().Create(ClassName);
     if (!Dup) return nullptr;
     Dup->CopyPropertiesFrom(this);
     Dup->PostDuplicate(this);
@@ -146,8 +155,6 @@ void UObject::Serialize(FArchive& Ar)
     FString ClassName = GetClass()->GetName();
     Ar << "Type" << ClassName;
     Ar << "ObjectName" << ObjectName;
-
-    SerializeReflectedProperties(Ar);
 }
 
 void UObject::SerializeReflectedProperties(FArchive& Ar)

@@ -26,8 +26,9 @@ namespace ActorJsonKeys
 	static constexpr const char* RootComponent = "RootComponent";
 	static constexpr const char* Type = "Type";
 	static constexpr const char* ParentUUID = "ParentUUID";
-	static constexpr const char* EditorOnly = "EditorOnly";
-}
+    static constexpr const char* EditorOnly = "EditorOnly";
+    static constexpr const char* Properties = "Properties";
+    }
 
 namespace
 {
@@ -38,6 +39,23 @@ namespace
 			return "UStaticMeshComponent";
 		}
 		return Type;
+	}
+
+	FString GetSerializableClassName(const UObject* Object)
+	{
+		if (!Object)
+		{
+			return "";
+		}
+
+		UClass* Class = Object->GetClass();
+		if (Class && Class != UObject::StaticClass() && Class->GetName())
+		{
+			return Class->GetName();
+		}
+
+		const FTypeInfo* TypeInfo = Object->GetTypeInfo();
+		return TypeInfo && TypeInfo->name ? TypeInfo->name : "";
 	}
 
 	FString GetJsonString(json::JSON& Object, const char* Key, const FString& DefaultValue = "")
@@ -57,7 +75,12 @@ namespace
 		Component->Serialize(ComponentWriter);
 
 		ComponentJson[ActorJsonKeys::UUID] = static_cast<int32>(Component->GetUUID());
-		ComponentJson[ActorJsonKeys::ClassName] = Component->GetTypeInfo()->name;
+		ComponentJson[ActorJsonKeys::ClassName] = GetSerializableClassName(Component);
+		
+		ComponentJson[ActorJsonKeys::Properties] = json::Object();
+
+        FJsonWriter PropertyWriter(ComponentJson[ActorJsonKeys::Properties]);
+        Component->SerializeReflectedProperties(PropertyWriter);
 		return ComponentJson;
 	}
 
@@ -223,7 +246,7 @@ namespace FActorSerialization
 		}
 
 		ActorJson[ActorJsonKeys::UUID] = static_cast<int32>(Actor->GetUUID());
-		ActorJson[ActorJsonKeys::ClassName] = Actor->GetTypeInfo()->name;
+		ActorJson[ActorJsonKeys::ClassName] = GetSerializableClassName(Actor);
 		ActorJson[ActorJsonKeys::Name] = Actor->GetName();
 		ActorJson[ActorJsonKeys::Visible] = Actor->IsVisible();
 		ActorJson[ActorJsonKeys::EditorOnly] = Actor->ShouldTickInEditor();
@@ -231,8 +254,12 @@ namespace FActorSerialization
 			? static_cast<int32>(Actor->GetRootComponent()->GetUUID())
 			: 0;
 
+		ActorJson[ActorJsonKeys::Properties] = json::Object();
+
+        FJsonWriter PropertyWriter(ActorJson[ActorJsonKeys::Properties]);
+        Actor->SerializeReflectedProperties(PropertyWriter);
+
 		FJsonWriter ActorWriter(ActorJson);
-        Actor->SerializeReflectedProperties(ActorWriter);
 		TArray<FString> ActorTags = Actor->GetTags();
 		ActorWriter << ActorJsonKeys::Tags << ActorTags;
 
@@ -295,7 +322,6 @@ namespace FActorSerialization
 		{
 			TArray<FString> ActorTags;
             FJsonReader ActorReader(ActorData);
-            NewActor->SerializeReflectedProperties(ActorReader);
 
 			ActorReader << ActorJsonKeys::Tags << ActorTags;
 			NewActor->ClearTags();
@@ -304,6 +330,11 @@ namespace FActorSerialization
 				NewActor->AddTag(Tag);
 			}
 		}
+        if (ActorData.hasKey(ActorJsonKeys::Properties))
+        {
+            FJsonReader PropertyReader(ActorData[ActorJsonKeys::Properties]);
+            NewActor->SerializeReflectedProperties(PropertyReader);
+        }
 
 		NewActor->SetWorld(World);
 		if (ULevel* Level = World->GetPersistentLevel())
@@ -331,7 +362,7 @@ namespace FActorSerialization
 			for (auto It = UnusedDefaultComponents.begin(); It != UnusedDefaultComponents.end(); ++It)
 			{
 				UActorComponent* Candidate = *It;
-				if (Candidate && GetNormalizedType(Candidate->GetTypeInfo()->name) == TypeName)
+				if (Candidate && GetNormalizedType(GetSerializableClassName(Candidate)) == TypeName)
 				{
 					UnusedDefaultComponents.erase(It);
 					return Candidate;
@@ -361,7 +392,7 @@ namespace FActorSerialization
 
 			UActorComponent* Component = nullptr;
 			if (SavedCompUUID == RootUUID && NewActor->GetRootComponent()
-				&& GetNormalizedType(NewActor->GetRootComponent()->GetTypeInfo()->name) == Type)
+				&& GetNormalizedType(GetSerializableClassName(NewActor->GetRootComponent())) == Type)
 			{
 				Component = NewActor->GetRootComponent();
 				MarkDefaultComponentUsed(Component);
@@ -426,6 +457,13 @@ namespace FActorSerialization
 
 			FJsonReader ComponentReader(CompData);
 			Component->Serialize(ComponentReader);
+
+			if (CompData.hasKey(ActorJsonKeys::Properties))
+            {
+                FJsonReader PropertyReader(CompData[ActorJsonKeys::Properties]);
+                Component->SerializeReflectedProperties(PropertyReader);
+            }
+
 			Component->PostEditChangeProperty({ "Rotation", EPropertyChangeType::ValueSet });
 			if (USceneComponent* SceneComponent = Cast<USceneComponent>(Component))
 			{

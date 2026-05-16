@@ -27,6 +27,29 @@ namespace
     }
 }
 
+// UActorComponent.cpp
+UClass* UActorComponent::StaticClass()
+{
+    static UClass Class(
+        "UActorComponent",
+        UObject::StaticClass(),
+        sizeof(UActorComponent),
+        CF_None,
+        []() -> UObject*
+        {
+            return UObjectManager::Get().CreateObject<UActorComponent>();
+        });
+
+    static bool bRegistered = false;
+    if (!bRegistered)
+    {
+        bRegistered = true;
+        FReflectionRegistry::Get().RegisterUClass(&Class);
+    }
+
+    return &Class;
+}
+
 void UActorComponent::BeginPlay()
 {
     if (bAutoActivate)

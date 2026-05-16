@@ -386,6 +386,8 @@ void FSceneSaveManager::Load(const FString& FilePath, FWorldContext& OutWorldCon
 	UObject* WorldObj = FObjectFactory::Get().Create(ClassName);
 	if (!WorldObj || !WorldObj->IsA<UWorld>()) return;
 
+	UObjectManager::Get().ClearPendingObjectReferences();
+
 	UWorld* World = static_cast<UWorld*>(WorldObj);
 	EWorldType WorldType = Root.hasKey(SceneKeys::WorldType) ? StringToWorldType(Root[SceneKeys::WorldType].ToString()) : EWorldType::Editor;
 	if (Root.hasKey(SceneKeys::WorldSettings))
@@ -461,6 +463,7 @@ void FSceneSaveManager::Load(const FString& FilePath, FWorldContext& OutWorldCon
 
 	if (World)
 	{
+		UObjectManager::Get().ResolvePendingObjectReferences();
 		EnsureUniqueComponentPersistentGuids(World);
 		World->SyncSpatialIndex();
 	}

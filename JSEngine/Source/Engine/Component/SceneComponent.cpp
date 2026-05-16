@@ -39,6 +39,29 @@ void USceneComponent::Serialize(FArchive& Ar)
 	Ar << "Scale" << RelativeScale3D;
 	Ar << "AttachSocket" << AttachSocketName;
 }
+
+UClass* USceneComponent::StaticClass()
+{
+    static UClass Class(
+        "USceneComponent",
+        UActorComponent::StaticClass(), // ← Super
+        sizeof(USceneComponent),
+        CF_Component,
+        []() -> UObject*
+        {
+            return UObjectManager::Get().CreateObject<USceneComponent>();
+        });
+
+    static bool bRegistered = false;
+    if (!bRegistered)
+    {
+        bRegistered = true;
+        FReflectionRegistry::Get().RegisterUClass(&Class);
+    }
+
+    return &Class;
+}
+
 USceneComponent::USceneComponent()
 {
 	CachedWorldMatrix = FMatrix::Identity;

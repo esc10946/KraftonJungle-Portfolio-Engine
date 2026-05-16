@@ -2,8 +2,10 @@
 #include "Object/FName.h"
 #include "Object/ObjectMacros.h"
 #include "Serialization/Archive.h"
+#include <type_traits>
 
 class UObject;
+class UClass;
 enum class EReflectedPropertyType : uint8
 {
     Bool,
@@ -12,6 +14,7 @@ enum class EReflectedPropertyType : uint8
     Name,
     String,
     Object,
+    Asset,
 };
 
 template<typename T> 
@@ -24,6 +27,20 @@ template<> struct TReflectedPropertyType<int32>    { static constexpr EReflected
 template<> struct TReflectedPropertyType<FName>    { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::Name; };
 template<> struct TReflectedPropertyType<FString>  { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::String; };
 template<> struct TReflectedPropertyType<UObject*> { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::Object; };
+
+// EPropertyFlags 규칙
+// Edit      -> Read | Write | Edit
+// Read      -> Read
+// Write     -> Write
+// Transient -> Transient
+// LuaRead   -> LuaRead
+// LuaWrite  -> LuaWrite
+//
+// 예시) UPROPERTY(Edit, LuaRead)
+// -> Read | Write | Edit | LuaRead
+//
+// 예시) UPROPERTY(Edit, LuaRead, LuaWrite)
+// -> Read | Write | Edit | LuaRead | LuaWrite
 
 enum class EPropertyFlags : uint32
 {
@@ -54,11 +71,13 @@ struct FProperty
     size_t Offset = 0;
     size_t Size = 0;
     EPropertyFlags Flags = EPropertyFlags::None;
+    UClass* ObjectClass = nullptr;
 
-	void SerializeItem(FArchive& Ar, UObject* Container) const;
+    void SerializeItem(FArchive& Ar, UObject* Container) const;
+    UClass* GetObjectClass() const { return ObjectClass; }
 
     template <typename ValueType>
-    ValueType* ContainerPtrToValuePtr(UObject* Container) const
+    ValueType* ContainerPtrToValuePtr(void* Container) const
     {
         if (!Container)
         {
@@ -70,7 +89,7 @@ struct FProperty
     }
 
     template <typename ValueType>
-    const ValueType* ContainerPtrToValuePtr(const UObject* Container) const
+    const ValueType* ContainerPtrToValuePtr(const void* Container) const
     {
         if (!Container)
         {
@@ -82,14 +101,36 @@ struct FProperty
     }
 
     template <typename ValueType>
-    bool GetPropertyValue_InContainer(const UObject* Container, ValueType& OutValue) const
+    bool IsCompatibleValueType() const
+    {
+        if constexpr (std::is_pointer_v<ValueType> &&
+                      std::is_base_of_v<UObject, std::remove_pointer_t<ValueType>>)
+        {
+            return Type == EReflectedPropertyType::Object
+                && Size == sizeof(UObject*);
+        }
+        else if constexpr (std::is_same_v<ValueType, FString>)
+        {
+            return (Type == EReflectedPropertyType::String ||
+                    Type == EReflectedPropertyType::Asset)
+                && Size == sizeof(FString);
+        }
+        else
+        {
+            return Type == TReflectedPropertyType<ValueType>::Value
+                && Size == sizeof(ValueType);
+        }
+    }
+
+    template <typename ValueType>
+    bool GetPropertyValue_InContainer(const void* Container, ValueType& OutValue) const
     {
         if (!Container)
         {
             return false;
         }
 
-        if (Type != TReflectedPropertyType<ValueType>::Value)
+        if (!IsCompatibleValueType<ValueType>())
         {
             return false;
         }
@@ -110,14 +151,14 @@ struct FProperty
     }
 
     template <typename ValueType>
-    bool SetPropertyValue_InContainer(UObject* Container, const ValueType& InValue) const
+    bool SetPropertyValue_InContainer(void* Container, const ValueType& InValue) const
     {
         if (!Container)
         {
             return false;
         }
 
-        if (Type != TReflectedPropertyType<ValueType>::Value)
+        if (!IsCompatibleValueType<ValueType>())
         {
             return false;
         }

@@ -35,6 +35,8 @@
 #include "GameFramework/AActor.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/PrimitiveActors.h"
+#include "Object/Class.h"
+#include "Object/ReflectionRegistry.h"
 #include "Runtime/Script/ScriptComponent.h"
 #include "Runtime/Script/ScriptUtils.h"
 #include "ThirdParty/sol/sol.hpp"
@@ -46,56 +48,70 @@ namespace
         return TypeName == NativeName || TypeName == LuaName;
     }
 
-    const FTypeInfo* FindComponentTypeInfo(const FString& TypeName)
+    const UClass* FindUClassByTypeName(const FString& TypeName)
     {
-        if (MatchLuaTypeName(TypeName, "UActorComponent", "ActorComponent")) return &UActorComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "USceneComponent", "SceneComponent")) return &USceneComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "UPrimitiveComponent", "PrimitiveComponent")) return &UPrimitiveComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "UShapeComponent", "ShapeComponent")) return &UShapeComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "UMeshComponent", "MeshComponent")) return &UMeshComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "UStaticMeshComponent", "StaticMeshComponent")) return &UStaticMeshComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "UActorSequenceComponent", "ActorSequenceComponent")) return &UActorSequenceComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "UProceduralMeshComponent", "ProceduralMeshComponent")) return &UProceduralMeshComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "UBillboardComponent", "BillboardComponent")) return &UBillboardComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "USubUVComponent", "SubUVComponent")) return &USubUVComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "UTextRenderComponent", "TextRenderComponent")) return &UTextRenderComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "UCameraComponent", "CameraComponent")) return &UCameraComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "USpringArmComponent", "SpringArmComponent")) return &USpringArmComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "USoundComponent", "SoundComponent")) return &USoundComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "UScriptComponent", "ScriptComponent")) return &UScriptComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "UActorSequenceComponent", "ActorSequenceComponent")) return &UActorSequenceComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "UDecalComponent", "DecalComponent")) return &UDecalComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "UFireballComponent", "FireballComponent")) return &UFireballComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "UHeightFogComponent", "HeightFogComponent")) return &UHeightFogComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "UMovementComponent", "MovementComponent")) return &UMovementComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "UProjectileMovementComponent", "ProjectileMovementComponent")) return &UProjectileMovementComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "UPursuitMovementComponent", "PursuitMovementComponent")) return &UPursuitMovementComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "UInterpToMovementComponent", "InterpToMovementComponent")) return &UInterpToMovementComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "URotatingMovementComponent", "RotatingMovementComponent")) return &URotatingMovementComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "ULightComponentBase", "LightComponentBase")) return &ULightComponentBase::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "ULightComponent", "LightComponent")) return &ULightComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "UAmbientLightComponent", "AmbientLightComponent")) return &UAmbientLightComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "UDirectionalLightComponent", "DirectionalLightComponent")) return &UDirectionalLightComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "UPointLightComponent", "PointLightComponent")) return &UPointLightComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "USpotlightComponent", "SpotlightComponent")) return &USpotlightComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "UBoxComponent", "BoxComponent")) return &UBoxComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "USphereComponent", "SphereComponent")) return &USphereComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "UCapsuleComponent", "CapsuleComponent")) return &UCapsuleComponent::s_TypeInfo;
-        if (MatchLuaTypeName(TypeName, "UMainSceneDestructibleComponent", "MainSceneDestructibleComponent")) return &UMainSceneDestructibleComponent::s_TypeInfo;
-        return nullptr;
-    }
-
-    UActorComponent* GetComponentByType(AActor& Actor, const FString& TypeName)
-    {
-        const FTypeInfo* TargetType = FindComponentTypeInfo(TypeName);
-        if (!TargetType)
+        if (TypeName.empty())
         {
             return nullptr;
         }
 
+        if (const UClass* Class = FReflectionRegistry::Get().FindClass(TypeName))
+        {
+            return Class;
+        }
+
+        if (TypeName[0] != 'U' && TypeName[0] != 'A')
+        {
+            if (const UClass* Class = FReflectionRegistry::Get().FindClass(FString("U") + TypeName))
+            {
+                return Class;
+            }
+
+            if (const UClass* Class = FReflectionRegistry::Get().FindClass(FString("A") + TypeName))
+            {
+                return Class;
+            }
+        }
+
+        return nullptr;
+    }
+
+	const UClass* FindComponentClass(const FString& TypeName)
+    {
+        if (UClass* Class = FReflectionRegistry::Get().FindClass(TypeName))
+        {
+            return Class;
+        }
+
+        if (!TypeName.empty() && (TypeName[0] == 'U' || TypeName[0] == 'A'))
+        {
+            return FReflectionRegistry::Get().FindClass("U" + TypeName);
+        }
+
+        return nullptr;
+    }
+
+    bool ComponentMatchesTypeName(UActorComponent* Component, const FString& TypeName)
+    {
+        if (!Component)
+        {
+            return false;
+        }
+
+        if (const UClass* TargetClass = FindUClassByTypeName(TypeName))
+        {
+            return Component->IsA(TargetClass);
+        }
+
+        const UClass* TargetClass = FindComponentClass(TypeName);
+        return TargetClass && Component && Component->IsA(TargetClass);
+    }
+
+    UActorComponent* GetComponentByType(AActor& Actor, const FString& TypeName)
+    {
         for (UActorComponent* Component : Actor.GetComponents())
         {
-            if (Component && Component->GetTypeInfo()->IsA(TargetType))
+            if (ComponentMatchesTypeName(Component, TypeName))
             {
                 return Component;
             }
@@ -105,7 +121,7 @@ namespace
 
     UActorComponent* AddComponentByType(AActor& Actor, const FString& TypeName, sol::optional<bool> bAttachToRoot)
     {
-        const FTypeInfo* TargetType = FindComponentTypeInfo(TypeName);
+        const UClass* TargetType = FindUClassByTypeName(TypeName);
         if (!TargetType)
         {
             return nullptr;
@@ -152,16 +168,10 @@ namespace
         sol::state_view Lua(State);
         sol::table Components = Lua.create_table();
 
-        const FTypeInfo* TargetType = FindComponentTypeInfo(TypeName);
-        if (!TargetType)
-        {
-            return Components;
-        }
-
         int32 Index = 1;
         for (UActorComponent* Component : Actor.GetComponents())
         {
-            if (Component && Component->GetTypeInfo()->IsA(TargetType))
+            if (ComponentMatchesTypeName(Component, TypeName))
             {
                 Components[Index++] = Component;
             }

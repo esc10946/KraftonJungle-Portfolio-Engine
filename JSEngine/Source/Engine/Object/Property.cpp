@@ -7,8 +7,13 @@ void FProperty::SerializeItem(FArchive& Ar, UObject* Container) const
     if (HasPropertyFlag(Flags, EPropertyFlags::Transient))
         return;
 
-    // 프로퍼티 이름을 키로 먼저 세팅
-    Ar.SetCurrentKey(FString(Name));
+    const FString PropertyKey(Name);
+    if (Ar.IsLoading() && !Ar.HasKey(PropertyKey))
+    {
+        return;
+    }
+
+    Ar.SetCurrentKey(PropertyKey);
 
     switch (Type)
     {
@@ -24,11 +29,29 @@ void FProperty::SerializeItem(FArchive& Ar, UObject* Container) const
     case EReflectedPropertyType::String:
         Ar << *ContainerPtrToValuePtr<FString>(Container);
         break;
+    case EReflectedPropertyType::Asset:
+        Ar << *ContainerPtrToValuePtr<FString>(Container);
+        break;
     case EReflectedPropertyType::Name:
         Ar << *ContainerPtrToValuePtr<FName>(Container);
         break;
     case EReflectedPropertyType::Object:
-        // Phase 5 — GUID/경로 직렬화로 처리 예정
+    {
+        UObject** ObjectPtr = ContainerPtrToValuePtr<UObject*>(Container);
+        if (!ObjectPtr)
+        {
+            break;
+        }
+
+        uint32 ObjectUUID = (Ar.IsSaving() && *ObjectPtr) ? (*ObjectPtr)->GetUUID() : 0;
+        Ar << ObjectUUID;
+
+        if (Ar.IsLoading())
+        {
+            *ObjectPtr = nullptr;
+            UObjectManager::Get().RegisterPendingObjectReference(ObjectPtr, ObjectUUID, ObjectClass);
+        }
         break;
+    }
     }
 }

@@ -4,7 +4,10 @@
 #include "Core/CollisionTypes.h"
 #include "Geometry/Transform.h"
 #include "Math/Vector.h"
+#include "Object/Class.h"
 #include "Object/Object.h"
+#include "Object/Property.h"
+#include "Object/ReflectionRegistry.h"
 #include "Runtime/Script/ScriptUtils.h"
 #include "ThirdParty/sol/sol.hpp"
 
@@ -15,10 +18,67 @@ namespace
         return Object.GetName();
     }
 
+    const UClass* FindUClassByTypeName(const FString& TypeName)
+    {
+        if (TypeName.empty())
+        {
+            return nullptr;
+        }
+
+        if (const UClass* Class = FReflectionRegistry::Get().FindClass(TypeName))
+        {
+            return Class;
+        }
+
+        if (TypeName[0] != 'U' && TypeName[0] != 'A')
+        {
+            if (const UClass* Class = FReflectionRegistry::Get().FindClass(FString("U") + TypeName))
+            {
+                return Class;
+            }
+
+            if (const UClass* Class = FReflectionRegistry::Get().FindClass(FString("A") + TypeName))
+            {
+                return Class;
+            }
+        }
+
+        return nullptr;
+    }
+
+    FString GetBestObjectTypeName(UObject& Object)
+    {
+        UClass* Class = Object.GetClass();
+        const FTypeInfo* TypeInfo = Object.GetTypeInfo();
+
+        if (!Class)
+        {
+            return TypeInfo && TypeInfo->name ? TypeInfo->name : "";
+        }
+
+        if (!TypeInfo || !TypeInfo->name)
+        {
+            return Class->GetName() ? Class->GetName() : "";
+        }
+
+        const FString TypeInfoName = TypeInfo->name;
+        const FString ClassName = Class->GetName() ? Class->GetName() : "";
+        if (ClassName == TypeInfoName)
+        {
+            return ClassName;
+        }
+
+        if (FReflectionRegistry::Get().FindClass(TypeInfoName))
+        {
+            return ClassName;
+        }
+
+        return TypeInfoName;
+    }
+
     FString LuaGetObjectType(UObject& Object)
     {
-        const FTypeInfo* TypeInfo = Object.GetTypeInfo();
-        return TypeInfo ? TypeInfo->name : "";
+        return GetBestObjectTypeName(Object);
     }
 
     bool LuaObjectIsA(UObject& Object, const FString& TypeName)
@@ -26,6 +86,14 @@ namespace
         if (TypeName.empty())
         {
             return false;
+        }
+
+        if (const UClass* TargetClass = FindUClassByTypeName(TypeName))
+        {
+            if (Object.IsA(TargetClass))
+            {
+                return true;
+            }
         }
 
         for (const FTypeInfo* TypeInfo = Object.GetTypeInfo(); TypeInfo; TypeInfo = TypeInfo->Parent)
@@ -40,6 +108,121 @@ namespace
                 return true;
             }
         }
+        return false;
+    }
+
+    const FProperty* FindLuaProperty(UObject& Object, const FString& PropertyName, EPropertyFlags RequiredFlag)
+    {
+        UClass* Class = Object.GetClass();
+        if (!Class)
+        {
+            return nullptr;
+        }
+
+        const FProperty* Property = Class->FindProperty(PropertyName.c_str());
+        if (!Property || !HasPropertyFlag(Property->Flags, RequiredFlag))
+        {
+            return nullptr;
+        }
+        return Property;
+    }
+
+    sol::object LuaGetReflectedProperty(sol::this_state State, UObject& Object, const FString& PropertyName)
+    {
+        const FProperty* Property = FindLuaProperty(Object, PropertyName, EPropertyFlags::LuaRead);
+        if (!Property)
+        {
+            return sol::make_object(State, sol::nil);
+        }
+
+        switch (Property->Type)
+        {
+        case EReflectedPropertyType::Bool:
+        {
+            bool Value = false;
+            return Property->GetPropertyValue_InContainer(&Object, Value)
+                ? sol::make_object(State, Value)
+                : sol::make_object(State, sol::nil);
+        }
+        case EReflectedPropertyType::Int32:
+        {
+            int32 Value = 0;
+            return Property->GetPropertyValue_InContainer(&Object, Value)
+                ? sol::make_object(State, Value)
+                : sol::make_object(State, sol::nil);
+        }
+        case EReflectedPropertyType::Float:
+        {
+            float Value = 0.0f;
+            return Property->GetPropertyValue_InContainer(&Object, Value)
+                ? sol::make_object(State, Value)
+                : sol::make_object(State, sol::nil);
+        }
+        case EReflectedPropertyType::Name:
+        {
+            FName Value;
+            return Property->GetPropertyValue_InContainer(&Object, Value)
+                ? sol::make_object(State, Value)
+                : sol::make_object(State, sol::nil);
+        }
+        case EReflectedPropertyType::String:
+        case EReflectedPropertyType::Asset:
+        {
+            FString Value;
+            return Property->GetPropertyValue_InContainer(&Object, Value)
+                ? sol::make_object(State, Value)
+                : sol::make_object(State, sol::nil);
+        }
+        case EReflectedPropertyType::Object:
+        {
+            UObject* Value = nullptr;
+            return Property->GetPropertyValue_InContainer(&Object, Value)
+                ? sol::make_object(State, Value)
+                : sol::make_object(State, sol::nil);
+        }
+        }
+
+        return sol::make_object(State, sol::nil);
+    }
+
+    bool LuaSetReflectedProperty(UObject& Object, const FString& PropertyName, sol::object Value)
+    {
+        const FProperty* Property = FindLuaProperty(Object, PropertyName, EPropertyFlags::LuaWrite);
+        if (!Property || !Value.valid() || Value == sol::nil)
+        {
+            return false;
+        }
+
+        switch (Property->Type)
+        {
+        case EReflectedPropertyType::Bool:
+            return Value.is<bool>()
+                && Property->SetPropertyValue_InContainer(&Object, Value.as<bool>());
+        case EReflectedPropertyType::Int32:
+            return Value.get_type() == sol::type::number
+                && Property->SetPropertyValue_InContainer(&Object, static_cast<int32>(Value.as<double>()));
+        case EReflectedPropertyType::Float:
+            return Value.get_type() == sol::type::number
+                && Property->SetPropertyValue_InContainer(&Object, static_cast<float>(Value.as<double>()));
+        case EReflectedPropertyType::Name:
+            if (Value.is<FName>())
+            {
+                return Property->SetPropertyValue_InContainer(&Object, Value.as<FName>());
+            }
+            if (Value.is<FString>())
+            {
+                return Property->SetPropertyValue_InContainer(&Object, FName(Value.as<FString>()));
+            }
+            return false;
+        case EReflectedPropertyType::String:
+        case EReflectedPropertyType::Asset:
+            return Value.is<FString>()
+                && Property->SetPropertyValue_InContainer(&Object, Value.as<FString>());
+        case EReflectedPropertyType::Object:
+            return Value.is<UObject*>()
+                && Property->SetPropertyValue_InContainer(&Object, Value.as<UObject*>());
+        }
+
         return false;
     }
 }
@@ -265,5 +448,9 @@ void FScriptManager::BindObjectTypes()
     LUA_SET(GetName, &LuaGetObjectName);
     LUA_SET(GetType, &LuaGetObjectType);
     LUA_SET(IsA, &LuaObjectIsA);
+    LUA_SET(GetProperty, &LuaGetReflectedProperty);
+    LUA_SET(SetProperty, &LuaSetReflectedProperty);
+    LUA_SET(GetReflectedProperty, &LuaGetReflectedProperty);
+    LUA_SET(SetReflectedProperty, &LuaSetReflectedProperty);
     LUA_END_TYPE();
 }

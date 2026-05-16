@@ -96,6 +96,28 @@ static FString StripGeneratedObjectNameSuffixes(const FString& Name)
     }
 }
 
+UClass* AActor::StaticClass()
+{
+    static UClass Class(
+        "AActor",
+        UObject::StaticClass(), // ← Super
+        sizeof(AActor),
+        CF_Actor,
+        []() -> UObject*
+        {
+            return UObjectManager::Get().CreateObject<AActor>();
+        });
+
+    static bool bRegistered = false;
+    if (!bRegistered)
+    {
+        bRegistered = true;
+        FReflectionRegistry::Get().RegisterUClass(&Class);
+    }
+
+    return &Class;
+}
+
 AActor::~AActor()
 {
     if (OwningWorld != nullptr)
@@ -326,6 +348,11 @@ UActorComponent* AActor::AddComponentByClass(const FTypeInfo* Class)
     if (!Class)
         return nullptr;
 
+    if (UClass* ReflectedClass = FReflectionRegistry::Get().FindClass(FString(Class->name)))
+    {
+        return AddComponentByClass(ReflectedClass);
+    }
+
     UObject* Obj = FObjectFactory::Get().Create(Class->name);
     if (!Obj)
         return nullptr;
@@ -339,6 +366,33 @@ UActorComponent* AActor::AddComponentByClass(const FTypeInfo* Class)
 
     Comp->SetOwner(this);
     Comp->SetFName(FName(MakeUniqueComponentName(Comp, Class->name, true)));
+    OwnedComponents.push_back(Comp);
+    bPrimitiveCacheDirty = true;
+    NotifyComponentRegistered(Comp);
+    return Comp;
+}
+
+UActorComponent* AActor::AddComponentByClass(const UClass* Class)
+{
+    if (!Class)
+        return nullptr;
+
+    if (!Class->IsChildOf(UActorComponent::StaticClass()))
+        return nullptr;
+
+    UObject* Obj = Class->CreateObject();
+    if (!Obj)
+        return nullptr;
+
+    UActorComponent* Comp = Cast<UActorComponent>(Obj);
+    if (!Comp)
+    {
+        UObjectManager::Get().DestroyObject(Obj);
+        return nullptr;
+    }
+
+    Comp->SetOwner(this);
+    Comp->SetFName(FName(MakeUniqueComponentName(Comp, Class->GetName(), true)));
     OwnedComponents.push_back(Comp);
     bPrimitiveCacheDirty = true;
     NotifyComponentRegistered(Comp);

@@ -1177,6 +1177,9 @@
       <Filter>ThirdParty\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="NewTestComponent.cpp" />
+    <ClCompile Include="Generated\JSEngine.generated.cpp" />
+    <ClCompile Include="Source\Engine\GameFramework\AReflectionTestActor.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\Asset\EditorAssetService.h">
@@ -2238,6 +2241,10 @@
     <ClInclude Include="ThirdParty\luajit\src\lua.h">
       <Filter>ThirdParty\luajit\src</Filter>
     </ClInclude>
+    <ClInclude Include="NewTestComponent.h" />
+    <ClInclude Include="Generated\NewTestComponent.generated.h" />
+    <ClInclude Include="Source\Engine\GameFramework\AReflectionTestActor.h" />
+    <ClInclude Include="Generated\AReflectionTestActor.generated.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Source\Engine\Runtime\AppIcon.rc">

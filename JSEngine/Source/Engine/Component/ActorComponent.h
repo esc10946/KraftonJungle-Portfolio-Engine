@@ -11,6 +11,12 @@ class UActorComponent : public UObject
 public:
 	DECLARE_CLASS(UActorComponent, UObject)
 	
+	static UClass* StaticClass();     // ← 추가
+    UClass* GetClass() const override // ← 추가
+    {
+        return StaticClass();
+    }
+
 	virtual void BeginPlay();
 	virtual void EndPlay() {};
 
