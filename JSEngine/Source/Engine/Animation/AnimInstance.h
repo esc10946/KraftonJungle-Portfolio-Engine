@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Animation/AnimationAssetBase.h"
 #include "Object/Object.h"
@@ -56,6 +56,7 @@ public:
 
 protected:
     bool SampleCurrentPose();
+    bool ApplyCurrentPoseToSkeletalMesh();
 
 protected:
     UAnimationAssetBase* AnimationAsset = nullptr;

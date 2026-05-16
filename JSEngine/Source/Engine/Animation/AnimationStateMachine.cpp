@@ -30,3 +30,43 @@ void UAnimationStateMachine::SetState(EAnimState NewState)
     PreviousState = CurrentState;
     CurrentState = NewState;
 }
+
+void UAnimationStateMachine::SetAnimationAssetForState(EAnimState State, UAnimationAssetBase* AnimationAsset)
+{
+    if (State == EAnimState::None)
+    {
+        return;
+    }
+
+    for (FAnimStateAnimation& StateAnimation : StateAnimations)
+    {
+        if (StateAnimation.State == State)
+        {
+            StateAnimation.AnimationAsset = AnimationAsset;
+            return;
+        }
+    }
+
+    FAnimStateAnimation NewStateAnimation;
+    NewStateAnimation.State = State;
+    NewStateAnimation.AnimationAsset = AnimationAsset;
+    StateAnimations.push_back(NewStateAnimation);
+}
+
+UAnimationAssetBase* UAnimationStateMachine::GetAnimationAssetForState(EAnimState State) const
+{
+    for (const FAnimStateAnimation& StateAnimation : StateAnimations)
+    {
+        if (StateAnimation.State == State)
+        {
+            return StateAnimation.AnimationAsset;
+        }
+    }
+
+    return nullptr;
+}
+
+UAnimationAssetBase* UAnimationStateMachine::GetCurrentAnimationAsset() const
+{
+    return GetAnimationAssetForState(CurrentState);
+}

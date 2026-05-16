@@ -88,12 +88,7 @@ FMatrix USkeletalMeshComponent::GetBoneGlobalTransform(int32 BoneIndex) const
 
 void USkeletalMeshComponent::SetBoneGlobalTransform(int32 BoneIndex, const FMatrix& NewGlobalTransform)
 {
-    if (BoneIndex < 0 || BoneIndex >= static_cast<int32>(CurrentLocalPose.size()))
-    {
-        return;
-    }
-
-    if (!SkeletalMesh)
+    if (BoneIndex < 0 || BoneIndex >= static_cast<int32>(CurrentLocalPose.size()) || !SkeletalMesh)
     {
         return;
     }

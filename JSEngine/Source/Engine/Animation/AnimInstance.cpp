@@ -1,6 +1,7 @@
 ﻿#include "Animation/AnimInstance.h"
 
 #include "Animation/AnimationStateMachine.h"
+#include "Component/SkeletalMeshComponent.h"
 #include "Object/ObjectFactory.h"
 
 #include <algorithm>
@@ -62,12 +63,26 @@ void UAnimSingleNodeInstance::Stop()
 
 void UAnimSingleNodeInstance::SetCurrentTime(float InCurrentTime)
 {
-    const float PlayLength = AnimationAsset ? AnimationAsset->GetPlayLength() : 0.0f;
-    CurrentTime = PlayLength > 0.0f
-        ? std::clamp(InCurrentTime, 0.0f, PlayLength)
-        : std::max(0.0f, InCurrentTime);
+    float PlayLength = 0.0f;
 
-    SampleCurrentPose();
+    if (AnimationAsset)
+    {
+        PlayLength = AnimationAsset->GetPlayLength();
+    }
+
+    if (PlayLength > 0.0f)
+    {
+        CurrentTime = std::clamp(InCurrentTime, 0.0f, PlayLength);
+    }
+    else
+    {
+        CurrentTime = 0.0f;
+    }
+
+    if (SampleCurrentPose())
+    {
+        ApplyCurrentPoseToSkeletalMesh();
+    }
 }
 
 void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaSeconds)
@@ -82,7 +97,7 @@ void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaSeconds)
 
     if (PlayLength <= 0.0f)
     {
-        CurrentTime = std::max(0.0f, CurrentTime);
+        CurrentTime = 0.0f;
         return;
     }
 
@@ -111,7 +126,10 @@ void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaSeconds)
         }
     }
 
-    SampleCurrentPose();
+    if (SampleCurrentPose())
+    {
+        ApplyCurrentPoseToSkeletalMesh();
+    }
 }
 
 bool UAnimSingleNodeInstance::SampleCurrentPose()
@@ -129,5 +147,16 @@ bool UAnimSingleNodeInstance::SampleCurrentPose()
     }
 
     CurrentLocalPose = SampledPose;
+    return true;
+}
+
+bool UAnimSingleNodeInstance::ApplyCurrentPoseToSkeletalMesh()
+{
+    if (!SkelMeshComponent || CurrentLocalPose.empty())
+    {
+        return false;
+    }
+
+    SkelMeshComponent->ApplyLocalPose(CurrentLocalPose);
     return true;
 }
