@@ -114,6 +114,13 @@ FVector SampleScale(const FAnimationSequence& SequenceData, const FBoneAnimation
     const FKeyFrameRange Range = GetKeyFrameRange(Time, SequenceData, static_cast<int32>(ScaleKeys.size()));
     return FVector::Lerp(ScaleKeys[Range.PrevIndex], ScaleKeys[Range.NextIndex], Range.Alpha);
 }
+
+bool HasAnimatedKeys(const FBoneAnimationTrack& BoneTrack)
+{
+    return BoneTrack.InternalTrack.PosKeys.size() > 1 ||
+        BoneTrack.InternalTrack.RotKeys.size() > 1 ||
+        BoneTrack.InternalTrack.ScaleKeys.size() > 1;
+}
 }
 
 UAnimationSequence::~UAnimationSequence()
@@ -199,6 +206,11 @@ bool UAnimationSequence::SamplePose(const USkeletalMesh* TargetMesh, float Time,
         }
 
         const FBoneAnimationTrack& BoneTrack = SequenceData->BoneTracks[TrackIndex];
+        if (!HasAnimatedKeys(BoneTrack))
+        {
+            continue;
+        }
+
         const FVector Translation = SampleTranslation(*SequenceData, BoneTrack, Time);
         const FQuat Rotation = SampleRotation(*SequenceData, BoneTrack, Time);
         const FVector Scale = SampleScale(*SequenceData, BoneTrack, Time);
