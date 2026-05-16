@@ -1,6 +1,6 @@
 #include "Core/ImportedFbxAssetDiscovery.h"
 
-#include "Asset/AnimationClipSerializer.h"
+#include "Asset/AnimationSequenceSerializer.h"
 #include "Asset/BinarySerializer.h"
 #include "Asset/SkeletalMeshTypes.h"
 #include "Asset/SkeletonSerializer.h"
@@ -74,16 +74,16 @@ bool FImportedFbxAssetDiscovery::ReadImportedAssetRecord(const FString& BinaryPa
     }
 
     {
-        FAnimationClipSerializer Serializer;
-        FAnimationClip Clip;
-        if (Serializer.LoadAnimationClip(NormalizedBinaryPath, Clip))
+        FAnimationSequenceSerializer Serializer;
+        FAnimationSequence Sequence;
+        if (Serializer.LoadAnimationSequence(NormalizedBinaryPath, Sequence))
         {
             OutRecord = {};
-            OutRecord.Type = EImportedFbxAssetType::AnimationClip;
+            OutRecord.Type = EImportedFbxAssetType::AnimationSequence;
             OutRecord.AssetPath = NormalizedBinaryPath;
-            OutRecord.SourcePath = Clip.SourcePath;
-            OutRecord.Name = Clip.Name;
-            OutRecord.SkeletonSourcePath = Clip.SkeletonSourcePath;
+            OutRecord.SourcePath = Sequence.SourcePath;
+            OutRecord.Name = Sequence.Name;
+            OutRecord.SkeletonSourcePath = Sequence.SkeletonSourcePath;
             return true;
         }
     }

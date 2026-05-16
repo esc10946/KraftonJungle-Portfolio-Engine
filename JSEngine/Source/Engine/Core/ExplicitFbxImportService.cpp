@@ -15,7 +15,7 @@ TArray<FImportedFbxAssetRecord> FExplicitFbxImportService::Import(const FString&
 
     ResourceManager.ImportSkeletonsFromFbx(NormalizedSourcePath);
     ResourceManager.LoadSkeletalMesh(NormalizedSourcePath);
-    ResourceManager.LoadAnimationClip(NormalizedSourcePath);
+    ResourceManager.LoadAnimationSequence(NormalizedSourcePath);
 
     FImportedFbxAssetDiscovery Discovery;
     TArray<FImportedFbxAssetRecord> Records = Discovery.DiscoverForSourceFbx(NormalizedSourcePath);

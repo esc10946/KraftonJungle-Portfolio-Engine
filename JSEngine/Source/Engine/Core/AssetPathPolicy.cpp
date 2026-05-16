@@ -56,12 +56,12 @@ bool FAssetPathPolicy::IsCurveAssetPath(const FString& Path)
 	return EndsWith(FileName, ".curve");
 }
 
-bool FAssetPathPolicy::IsAnimationClipAssetPath(const FString& Path)
+bool FAssetPathPolicy::IsAnimationSequenceAssetPath(const FString& Path)
 {
 	std::filesystem::path FsPath(FPaths::ToWide(FPaths::Normalize(Path)));
 	std::wstring Extension = FsPath.extension().wstring();
 	std::transform(Extension.begin(), Extension.end(), Extension.begin(), ::towlower);
-	return Extension == L".animclip";
+	return Extension == L".animsequence";
 }
 
 bool FAssetPathPolicy::IsSequenceAssetPath(const FString& Path)
@@ -197,9 +197,9 @@ FString FAssetPathPolicy::MakeSiblingSkeletalMeshBinaryPath(const FString& Sourc
 	return PathToNormalizedString(MakeSiblingBinaryPath(SourceFbxPath, "skeletalmesh", MeshOrSkeletonToken));
 }
 
-FString FAssetPathPolicy::MakeSiblingAnimationClipBinaryPath(const FString& SourceFbxPath, const FString& ClipName)
+FString FAssetPathPolicy::MakeSiblingAnimationSequenceBinaryPath(const FString& SourceFbxPath, const FString& SequenceName)
 {
-	return PathToNormalizedString(MakeSiblingBinaryPath(SourceFbxPath, "anim", ClipName));
+	return PathToNormalizedString(MakeSiblingBinaryPath(SourceFbxPath, "anim", SequenceName));
 }
 
 FString FAssetPathPolicy::MakeAssetRelativePath(const FString& FromAssetPath, const FString& ToAssetPath)
@@ -240,7 +240,7 @@ FString FAssetPathPolicy::ResolveAssetRelativePath(const FString& FromAssetPath,
 
 FString FAssetPathPolicy::MakeWritableSkeletalMeshCacheBinaryPath(const FString& SourcePath)
 {
-	// StaticMesh와 stem 이 겹칠 수 있어 SkeletalMesh 전용 루트로 분리.
+	// StaticMesh?� stem ??겹칠 ???�어 SkeletalMesh ?�용 루트�?분리.
 	const FString NormalizedSourcePath = FPaths::Normalize(SourcePath);
 	std::filesystem::path SourceFsPath(FPaths::ToWide(NormalizedSourcePath));
 
@@ -258,7 +258,7 @@ FString FAssetPathPolicy::MakeWritableSkeletalMeshCacheBinaryPath(const FString&
 	return FPaths::ToString(BinaryPath.wstring());
 }
 
-FString FAssetPathPolicy::MakeWritableAnimationClipCacheBinaryPath(const FString& SourcePath)
+FString FAssetPathPolicy::MakeWritableAnimationSequenceCacheBinaryPath(const FString& SourcePath)
 {
 	const FString NormalizedSourcePath = FPaths::Normalize(SourcePath);
 	std::filesystem::path SourceFsPath(FPaths::ToWide(NormalizedSourcePath));

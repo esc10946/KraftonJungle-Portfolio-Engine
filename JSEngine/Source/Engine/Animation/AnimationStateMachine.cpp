@@ -30,3 +30,43 @@ void UAnimationStateMachine::SetState(EAnimState NewState)
     PreviousState = CurrentState;
     CurrentState = NewState;
 }
+
+void UAnimationStateMachine::SetSequenceForState(EAnimState State, UAnimationSequenceBase* Sequence)
+{
+    if (State == EAnimState::None)
+    {
+        return;
+    }
+
+    for (FAnimStateAnimation& StateAnimation : StateAnimations)
+    {
+        if (StateAnimation.State == State)
+        {
+            StateAnimation.Sequence = Sequence;
+            return;
+        }
+    }
+
+    FAnimStateAnimation NewStateAnimation;
+    NewStateAnimation.State = State;
+    NewStateAnimation.Sequence = Sequence;
+    StateAnimations.push_back(NewStateAnimation);
+}
+
+UAnimationSequenceBase* UAnimationStateMachine::GetSequenceForState(EAnimState State) const
+{
+    for (const FAnimStateAnimation& StateAnimation : StateAnimations)
+    {
+        if (StateAnimation.State == State)
+        {
+            return StateAnimation.Sequence;
+        }
+    }
+
+    return nullptr;
+}
+
+UAnimationSequenceBase* UAnimationStateMachine::GetCurrentSequence() const
+{
+    return GetSequenceForState(CurrentState);
+}

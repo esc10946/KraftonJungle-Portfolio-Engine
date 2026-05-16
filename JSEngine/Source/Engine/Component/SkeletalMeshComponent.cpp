@@ -1,5 +1,6 @@
 ﻿#include "SkeletalMeshComponent.h"
 
+#include "Animation/AnimInstance.h"
 #include "Object/ObjectFactory.h"
 
 DEFINE_CLASS(USkeletalMeshComponent, USkinnedMeshComponent)
@@ -9,8 +10,39 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime)
 {
     USkinnedMeshComponent::TickComponent(DeltaTime);
 
+    if (AnimInstance)
+    {
+        AnimInstance->TickAnimation(DeltaTime);
+    }
+
 	// Pose가 바뀐 경우에만 실제 CPU skinning이 수행(dirty flag 이용)
     EnsureSkinningUpdated();
+}
+
+void USkeletalMeshComponent::SetAnimInstance(UAnimInstance* InAnimInstance)
+{
+    if (AnimInstance == InAnimInstance)
+    {
+        return;
+    }
+
+    AnimInstance = InAnimInstance;
+    if (AnimInstance)
+    {
+        AnimInstance->Initialize(this);
+    }
+}
+
+void USkeletalMeshComponent::ApplyLocalPose(const TArray<FMatrix>& InLocalPose)
+{
+    if (InLocalPose.size() != CurrentLocalPose.size())
+    {
+        return;
+    }
+
+    CurrentLocalPose = InLocalPose;
+    UpdateCurrentGlobalPose();
+    MarkSkinningDirty();
 }
 
 void USkeletalMeshComponent::ResetToBindPose()
@@ -56,12 +88,7 @@ FMatrix USkeletalMeshComponent::GetBoneGlobalTransform(int32 BoneIndex) const
 
 void USkeletalMeshComponent::SetBoneGlobalTransform(int32 BoneIndex, const FMatrix& NewGlobalTransform)
 {
-    if (BoneIndex < 0 || BoneIndex >= static_cast<int32>(CurrentLocalPose.size()))
-    {
-        return;
-    }
-
-    if (!SkeletalMesh)
+    if (BoneIndex < 0 || BoneIndex >= static_cast<int32>(CurrentLocalPose.size()) || !SkeletalMesh)
     {
         return;
     }

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Shaders">
@@ -459,7 +459,7 @@
     <ClCompile Include="Source\Engine\Animation\AnimInstance.cpp">
       <Filter>Source\Engine\Animation</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Animation\AnimationAssetBase.cpp">
+    <ClCompile Include="Source\Engine\Animation\AnimationSequenceBase.cpp">
       <Filter>Source\Engine\Animation</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Animation\AnimationStateMachine.cpp">
@@ -471,10 +471,10 @@
     <ClCompile Include="Source\Engine\Animation\TimelinePlayer.cpp">
       <Filter>Source\Engine\Animation</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Asset\AnimationClipAsset.cpp">
+    <ClCompile Include="Source\Engine\Asset\AnimationSequence.cpp">
       <Filter>Source\Engine\Asset</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Asset\AnimationClipSerializer.cpp">
+    <ClCompile Include="Source\Engine\Asset\AnimationSequenceSerializer.cpp">
       <Filter>Source\Engine\Asset</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Asset\AssetQueryService.cpp">
@@ -654,7 +654,7 @@
     <ClCompile Include="Source\Engine\Component\TextRenderComponent.cpp">
       <Filter>Source\Engine\Component</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Core\AnimationClipLoadService.cpp">
+    <ClCompile Include="Source\Engine\Core\AnimationSequenceLoadService.cpp">
       <Filter>Source\Engine\Core</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Core\AssetPathPolicy.cpp">
@@ -1374,7 +1374,7 @@
     <ClInclude Include="Source\Engine\Animation\AnimInstance.h">
       <Filter>Source\Engine\Animation</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Animation\AnimationAssetBase.h">
+    <ClInclude Include="Source\Engine\Animation\AnimationSequenceBase.h">
       <Filter>Source\Engine\Animation</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Animation\AnimationStateMachine.h">
@@ -1386,10 +1386,10 @@
     <ClInclude Include="Source\Engine\Animation\TimelinePlayer.h">
       <Filter>Source\Engine\Animation</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Asset\AnimationClipAsset.h">
+    <ClInclude Include="Source\Engine\Asset\AnimationSequence.h">
       <Filter>Source\Engine\Asset</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Asset\AnimationClipSerializer.h">
+    <ClInclude Include="Source\Engine\Asset\AnimationSequenceSerializer.h">
       <Filter>Source\Engine\Asset</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Asset\AnimationTypes.h">
@@ -1590,7 +1590,7 @@
     <ClInclude Include="Source\Engine\Component\TransformProxy.h">
       <Filter>Source\Engine\Component</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Core\AnimationClipLoadService.h">
+    <ClInclude Include="Source\Engine\Core\AnimationSequenceLoadService.h">
       <Filter>Source\Engine\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Core\AssetPathPolicy.h">
