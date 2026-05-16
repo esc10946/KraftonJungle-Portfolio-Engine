@@ -22,6 +22,32 @@ namespace
         const fs::path RelativeMatPath = AutoMaterialDir / FPaths::ToWide(MatName + ".mat");
         return FPaths::Normalize(FPaths::ToUtf8(RelativeMatPath.generic_wstring()));
     }
+
+    bool TryGetLastWriteTime(const FString& Path, fs::file_time_type& OutTime)
+    {
+        std::error_code Ec;
+        const fs::path AbsolutePath = FPaths::ToAbsolute(FPaths::ToWide(FPaths::Normalize(Path)));
+        if (!fs::exists(AbsolutePath, Ec) || Ec)
+        {
+            return false;
+        }
+
+        OutTime = fs::last_write_time(AbsolutePath, Ec);
+        return !Ec;
+    }
+
+    bool IsCachedMaterialFresh(const FString& SourceFbxPath, const FString& FirstMaterialPath)
+    {
+        fs::file_time_type SourceTime;
+        fs::file_time_type MaterialTime;
+        if (!TryGetLastWriteTime(SourceFbxPath, SourceTime) ||
+            !TryGetLastWriteTime(FirstMaterialPath, MaterialTime))
+        {
+            return false;
+        }
+
+        return MaterialTime >= SourceTime;
+    }
 }
 
 FFbxMaterialLoadService::FFbxMaterialLoadService(FResourceManager& InResourceManager)
@@ -39,7 +65,8 @@ bool FFbxMaterialLoadService::Load(const FString& FbxFilePath, EMaterialShaderTy
 
     // Cache hit early return (in-memory): 같은 FBX의 첫 material key가 이미 캐시에 있으면 즉시 반환.
     const FString FirstMaterialKey = MakeFbxMaterialAssetPath(NormalizedFbxPath, 0);
-    if (ResourceManager.MaterialCache.ContainsMaterialKey(FirstMaterialKey))
+    const bool bCachedMaterialFresh = IsCachedMaterialFresh(NormalizedFbxPath, FirstMaterialKey);
+    if (ResourceManager.MaterialCache.ContainsMaterialKey(FirstMaterialKey) && bCachedMaterialFresh)
     {
         UE_LOG("[FbxMaterialLoadService] Skipped (already cached): %s", NormalizedFbxPath.c_str());
         return true;
@@ -47,7 +74,7 @@ bool FFbxMaterialLoadService::Load(const FString& FbxFilePath, EMaterialShaderTy
 
     // Disk cache fallback: 이전 import에서 .mat을 디스크에 저장해두었으면 그것부터 로드.
     // FBX scene 파싱 비용(~4초)을 회피하고 엔진 재시작 후에도 material 상태 유지.
-    if (FAssetPathPolicy::FileExists(FirstMaterialKey))
+    if (FAssetPathPolicy::FileExists(FirstMaterialKey) && bCachedMaterialFresh)
     {
         int32 LoadedCount = 0;
         for (int32 Index = 0; ; ++Index)
@@ -80,6 +107,10 @@ bool FFbxMaterialLoadService::Load(const FString& FbxFilePath, EMaterialShaderTy
             UE_LOG("[FbxMaterialLoadService] Loaded %d materials from disk cache: %s", LoadedCount, NormalizedFbxPath.c_str());
             return true;
         }
+    }
+    else if (FAssetPathPolicy::FileExists(FirstMaterialKey))
+    {
+        UE_LOG("[FbxMaterialLoadService] Cached materials are older than source FBX. Reimporting: %s", NormalizedFbxPath.c_str());
     }
 
     TMap<FString, UMaterial*> Parsed;
@@ -120,7 +151,9 @@ bool FFbxMaterialLoadService::Load(const FString& FbxFilePath, EMaterialShaderTy
         Mat->SetShaderType(ShaderType);
 
         // 중복 등록 가드: 이미 같은 key가 있다면 재사용하고 새 객체는 폐기.
-        UMaterial* ExistingMaterial = ResourceManager.MaterialCache.FindMaterialByKey(MaterialKey);
+        UMaterial* ExistingMaterial = bCachedMaterialFresh
+            ? ResourceManager.MaterialCache.FindMaterialByKey(MaterialKey)
+            : nullptr;
         if (ExistingMaterial)
         {
             if (ExistingMaterial != Mat)

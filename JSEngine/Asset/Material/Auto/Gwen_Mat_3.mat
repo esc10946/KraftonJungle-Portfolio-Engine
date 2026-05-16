@@ -1,5 +1,5 @@
 {
-        "ImportedName" : "Body",
+        "ImportedName" : "Needle",
         "Name" : "Gwen_Mat_3",
         "Params" : [{
             "Name" : "AmbientColor",
@@ -20,7 +20,7 @@
           }, {
             "Name" : "DiffuseMap",
             "Type" : "Texture",
-            "Value" : ""
+            "Value" : "Asset/SkeletalMesh/GwenFBX/Gwen.fbm/Scissors.png"
           }, {
             "Name" : "EmissiveColor",
             "Type" : "Vector3",
@@ -52,7 +52,7 @@
           }, {
             "Name" : "bHasDiffuseMap",
             "Type" : "Bool",
-            "Value" : false
+            "Value" : true
           }, {
             "Name" : "bHasAmbientMap",
             "Type" : "Bool",
