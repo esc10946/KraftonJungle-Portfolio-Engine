@@ -20,6 +20,43 @@ namespace
 		return Extension == L".bin";
 	}
 
+	bool IsFbxPath(const FString& Path)
+	{
+		std::filesystem::path FsPath(FPaths::ToWide(FPaths::Normalize(Path)));
+		std::wstring Extension = FsPath.extension().wstring();
+		std::transform(Extension.begin(), Extension.end(), Extension.begin(), ::towlower);
+		return Extension == L".fbx";
+	}
+
+	FString TryDeriveSourceFbxPathFromSiblingSkeletalMeshBinary(const FString& BinaryPath)
+	{
+		const std::filesystem::path BinaryFsPath(FPaths::ToWide(FPaths::Normalize(BinaryPath)));
+		const FString FileStem = FPaths::ToUtf8(BinaryFsPath.stem().generic_wstring());
+		const FString Marker = "_skeletalmesh_";
+		const size_t MarkerPos = FileStem.find(Marker);
+		if (MarkerPos == FString::npos || MarkerPos == 0)
+		{
+			return {};
+		}
+
+		std::filesystem::path SourcePath = BinaryFsPath.parent_path() / FPaths::ToWide(FileStem.substr(0, MarkerPos) + ".fbx");
+		SourcePath = SourcePath.lexically_normal();
+		const FString NormalizedSourcePath = FPaths::Normalize(FPaths::ToUtf8(SourcePath.generic_wstring()));
+		return FAssetPathPolicy::FileExists(NormalizedSourcePath) ? NormalizedSourcePath : FString{};
+	}
+
+	FString ResolveMaterialSourcePathForSkeletalBinary(const FString& BinaryPath, const FString& SerializedPath)
+	{
+		const FString NormalizedSerializedPath = FPaths::Normalize(SerializedPath);
+		if (IsFbxPath(NormalizedSerializedPath) && FAssetPathPolicy::FileExists(NormalizedSerializedPath))
+		{
+			return NormalizedSerializedPath;
+		}
+
+		const FString DerivedSourcePath = TryDeriveSourceFbxPathFromSiblingSkeletalMeshBinary(BinaryPath);
+		return DerivedSourcePath.empty() ? FPaths::Normalize(BinaryPath) : DerivedSourcePath;
+	}
+
 	TArray<FString> FindSiblingSkeletalMeshBinaries(const FString& SourceFbxPath, const FString& SkeletonName)
 	{
 		TArray<FString> Result;
@@ -99,12 +136,12 @@ USkeletalMesh* FSkeletalMeshLoadService::Load(const FString& Path, const FString
 		return FoundMesh;
 	}
 
-	ResourceManager.LoadMaterial(NormalizedPath, EMaterialShaderType::SurfaceLit);
-
 	if (IsBinaryPath(NormalizedPath))
 	{
 		return LoadBinary(NormalizedPath, NormalizedPath);
 	}
+
+	ResourceManager.LoadMaterial(NormalizedPath, EMaterialShaderType::SurfaceLit);
 
 	if (USkeletalMesh* ImportedMesh = LoadSiblingImportedBinary(NormalizedPath, SkeletonName))
 	{
@@ -123,12 +160,19 @@ USkeletalMesh* FSkeletalMeshLoadService::LoadBinary(const FString& BinaryPath, c
 		delete LoadedMeshData;
 		return nullptr;
 	}
+
+	const FString MaterialResolvePath = ResolveMaterialSourcePathForSkeletalBinary(BinaryPath, LoadedMeshData->PathFileName);
+	if (IsFbxPath(MaterialResolvePath))
+	{
+		ResourceManager.LoadMaterial(MaterialResolvePath, EMaterialShaderType::SurfaceLit);
+	}
+
 	LoadedMeshData->PathFileName = BinaryPath;
 
 	UE_LOG("[SkeletalMeshLoad] Source=ImportedBinary | Path=%s", BinaryPath.c_str());
 	return FinalizeLoadedMesh(
 		LoadedMeshData,
-		LoadedMeshData->PathFileName.empty() ? BinaryPath : LoadedMeshData->PathFileName,
+		MaterialResolvePath,
 		CacheKey,
 		BinaryPath);
 }
@@ -221,10 +265,10 @@ USkeletalMesh* FSkeletalMeshLoadService::LoadSourceOrCachedBinary(const FString&
 				SaveBinaryPath,
 				TargetSkeleton->GetAssetPathFileName());
 		}
-		LoadedMeshData->PathFileName = SaveBinaryPath;
 
 		// Material 포인터는 직렬화 대상이 아니므로 이 시점에 그대로 굽고, resolve는 Finalize에서 한 번만.
 		const bool bSaveBinaryOk = ResourceManager.BinarySerializer.SaveSkeletalMesh(SaveBinaryPath, NormalizedPath, *LoadedMeshData);
+		LoadedMeshData->PathFileName = SaveBinaryPath;
 		if (bSaveBinaryOk)
 		{
 			UE_LOG("[SkeletalMeshLoad] Source=FBX | Path=%s | FbxSec=%.6f | BinarySave=OK | BinaryPath=%s",
