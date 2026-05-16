@@ -1674,6 +1674,7 @@ void FEditorPropertyWidget::RenderSceneComponentRefWidget(FPropertyDescriptor& P
 void FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 {
 	bool bChanged = false;
+	bool bPostEditHandled = false;
 
 	switch (Prop.Type)
 	{
@@ -1749,21 +1750,39 @@ void FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 		}
 		else if (strcmp(Prop.Name, "SkeletalMesh") == 0)
 		{
-			const TArray<FString>& MeshPaths = EditorEngine
-				? EditorEngine->GetAssetService().GetSkeletalMeshAssetPaths()
-				: EmptyAssetNames();
-			if (!MeshPaths.empty())
+			if (EditorEngine)
 			{
 				const FString Current = *Val;
 				if (ImGui::BeginCombo(Prop.Name, Current.empty() ? "<None>" : Current.c_str()))
 				{
+					EditorEngine->GetAssetService().RefreshAssetDatabase();
+					const TArray<FString>& MeshPaths = EditorEngine->GetAssetService().GetSkeletalMeshAssetPaths();
 					for (const FString& Path : MeshPaths)
 					{
 						const bool bSelected = (Current == Path);
 						if (ImGui::Selectable(Path.c_str(), bSelected))
 						{
-							*Val = Path;
-							bChanged = true;
+							if (USkeletalMeshComponent* SkeletalComp = Cast<USkeletalMeshComponent>(SelectedComponent))
+							{
+								if (USkeletalMesh* LoadedMesh = FResourceManager::Get().LoadSkeletalMesh(Path))
+								{
+									SkeletalComp->SetSkeletalMesh(LoadedMesh);
+									*Val = SkeletalComp->GetSkeletalMesh()
+										? SkeletalComp->GetSkeletalMesh()->GetAssetPathFileName()
+										: Path;
+									bChanged = true;
+									bPostEditHandled = true;
+								}
+								else
+								{
+									UE_LOG_WARNING("[EditorPropertyWidget] Failed to load skeletal mesh: %s", Path.c_str());
+								}
+							}
+							else
+							{
+								*Val = Path;
+								bChanged = true;
+							}
 						}
 						if (bSelected)
 						{
@@ -2242,7 +2261,10 @@ void FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 			EditorEngine->GetUndoSystem().CaptureSnapshot("Edit Property");
 			bPropertyEditUndoCaptured = true;
 		}
-		SelectedComponent->PostEditChangeProperty({ Prop.Name, EPropertyChangeType::ValueSet });
+		if (!bPostEditHandled)
+		{
+			SelectedComponent->PostEditChangeProperty({ Prop.Name, EPropertyChangeType::ValueSet });
+		}
 		if (EditorEngine)
 		{
 			EditorEngine->GetSceneService().MarkDirty();
