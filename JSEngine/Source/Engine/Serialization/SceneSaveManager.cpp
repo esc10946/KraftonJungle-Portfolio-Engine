@@ -24,7 +24,9 @@
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonWriter.h"
 #include "Serialization/ActorSerialization.h"
+#if WITH_EDITOR
 #include "Selection/SelectionManager.h"
+#endif
 
 namespace SceneKeys
 {
@@ -467,8 +469,10 @@ void FSceneSaveManager::Load(const FString& FilePath, FWorldContext& OutWorldCon
 
 	OutWorldContext.WorldType = WorldType;
 	OutWorldContext.World = World;
+#if WITH_EDITOR
     OutWorldContext.SelectionManager = new FSelectionManager;
     OutWorldContext.SelectionManager->Init();
+#endif
 }
 
 FString FSceneSaveManager::GetCurrentTimeStamp()
