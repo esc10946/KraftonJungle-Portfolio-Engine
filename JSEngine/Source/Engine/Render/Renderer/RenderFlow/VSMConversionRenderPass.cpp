@@ -1,4 +1,5 @@
 #include "VSMConversionRenderPass.h"
+#include "Render/Common/ShaderBindingSlots.h"
 #include "Render/Resource/ShadowAtlasManager.h"
 #include "Render/Resource/ShaderHelper.h"
 #include "Render/Resource/ShaderPaths.h"
@@ -173,7 +174,7 @@ bool FVSMConversionRenderPass::End(const FRenderPassContext* Context)
     ID3D11SamplerState* PointSampler = nullptr;
 
     Context->DeviceContext->OMSetRenderTargets(0, nullptr, nullptr);
-    Context->DeviceContext->PSSetShaderResources(10, 1, &ShadowMap);
+    Context->DeviceContext->PSSetShaderResources(ShaderBindingSlots::ShadowMapSRV, 1, &ShadowMap);
     Context->DeviceContext->PSSetSamplers(2, 1, &PointSampler);
     // VarianceShadowRTV 해제
 
@@ -210,7 +211,7 @@ bool FVSMConversionRenderPass::DrawVSMConversion(const FRenderPassContext* Conte
 
     // initialize할 때 이미 묶어 놓았을 것 & Getting Normal ShadowMapSRV
     ID3D11ShaderResourceView* ShadowMap = FShadowAtlasManager::Get().GetSRV();
-    Context->DeviceContext->PSSetShaderResources(10, 1, &ShadowMap);
+    Context->DeviceContext->PSSetShaderResources(ShaderBindingSlots::ShadowMapSRV, 1, &ShadowMap);
 
     FShaderProgram* ShadowProgram = GetVSMShadowProgram();
     if (!ShadowProgram)
@@ -246,7 +247,7 @@ bool FVSMConversionRenderPass::DrawVSMConversion(const FRenderPassContext* Conte
 
 	    // 추가: PS t10 명시적 해제 ? VarianceShadowTexture UAV 바인딩 전에 반드시 정리
     ID3D11ShaderResourceView* NullSRV = nullptr;
-    Context->DeviceContext->PSSetShaderResources(10, 1, &NullSRV);
+    Context->DeviceContext->PSSetShaderResources(ShaderBindingSlots::ShadowMapSRV, 1, &NullSRV);
     return true;
 }
 

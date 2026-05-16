@@ -1,4 +1,5 @@
 ﻿#include "DepthLessRenderPass.h"
+#include "Render/Common/ShaderBindingSlots.h"
 #include "Render/Scene/RenderBus.h"
 #include "Render/Resource/RenderResources.h"
 #include "Render/Resource/Material.h"
@@ -52,7 +53,7 @@ bool FDepthLessRenderPass::Begin(const FRenderPassContext* Context)
     ID3D11DepthStencilView* DSV = Context->RenderTargets->DepthStencilView;
 
     ID3D11ShaderResourceView* NullSRV[1] = { nullptr };
-    Context->DeviceContext->PSSetShaderResources(11, 1, NullSRV);
+    Context->DeviceContext->PSSetShaderResources(ShaderBindingSlots::VSMShadowMapSRV, 1, NullSRV);
 
     Context->DeviceContext->OMSetRenderTargets(1, &RTV, DSV);
     Context->DeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -74,8 +75,8 @@ bool FDepthLessRenderPass::DrawCommand(const FRenderPassContext* Context)
     {
         Context->RenderResources->PerObjectConstantBuffer.Update(Context->DeviceContext, &Cmd.PerObjectConstants, sizeof(FPerObjectConstants));
         ID3D11Buffer* cb1 = Context->RenderResources->PerObjectConstantBuffer.GetBuffer();
-        Context->DeviceContext->VSSetConstantBuffers(1, 1, &cb1);
-        Context->DeviceContext->PSSetConstantBuffers(1, 1, &cb1);
+        Context->DeviceContext->VSSetConstantBuffers(ShaderBindingSlots::PerObjectCB, 1, &cb1);
+        Context->DeviceContext->PSSetConstantBuffers(ShaderBindingSlots::PerObjectCB, 1, &cb1);
 
         if (Cmd.MeshBuffer == nullptr || !Cmd.MeshBuffer->IsValid())
         {

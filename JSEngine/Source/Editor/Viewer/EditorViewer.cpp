@@ -8,6 +8,7 @@
 #include "Component/TransformProxy.h"
 #include "Animation/AnimInstance.h"
 #include "Asset/AnimationSequence.h"
+#include "Core/Logging/Log.h"
 #include "Core/ResourceManager.h"
 #include "Engine/Geometry/Ray.h"
 #include "GameFramework/PrimitiveActors.h"
@@ -22,6 +23,16 @@
 
 namespace
 {
+static int32 GetSkeletalMeshBoneCount(const USkeletalMesh* Mesh)
+{
+    return Mesh ? static_cast<int32>(Mesh->GetBones().size()) : 0;
+}
+
+static const char* GetSkeletalMeshPath(const USkeletalMesh* Mesh)
+{
+    return Mesh ? Mesh->GetAssetPathFileName().c_str() : "<None>";
+}
+
 float DistanceSquaredRaySegment(const FRay& Ray, const FVector& SegmentStart, const FVector& SegmentEnd, float& OutRayT)
 {
     const FVector RayDir = Ray.Direction.GetSafeNormal();
@@ -515,7 +526,15 @@ void FEditorViewer::ChangeTarget(const FString& InFileName)
     FileName = InFileName;
     USkeletalMesh* SkelMesh = FResourceManager::Get().LoadSkeletalMesh(InFileName.c_str());
     if (SkelMesh)
+    {
 	    ViewTarget->GetSkeletalMeshComponent()->SetSkeletalMesh(SkelMesh);
+    }
+
+    UE_LOG(
+        "[EditorViewer] ChangeTarget | Requested=%s | LoadedMesh=%s | Bones=%d",
+        InFileName.c_str(),
+        GetSkeletalMeshPath(SkelMesh),
+        GetSkeletalMeshBoneCount(SkelMesh));
 
     ClearAnimationSequence();
 }
@@ -533,11 +552,29 @@ bool FEditorViewer::SetAnimationSequence(const FString& AnimationPath)
         return false;
     }
 
+    if (!FileName.empty())
+    {
+        if (USkeletalMesh* TargetMesh = FResourceManager::Get().LoadSkeletalMesh(FileName))
+        {
+            SkelComp->SetSkeletalMesh(TargetMesh);
+        }
+    }
+
     UAnimationSequence* Sequence = FResourceManager::Get().LoadAnimationSequence(AnimationPath);
     if (!Sequence)
     {
         return false;
     }
+
+    const FAnimationSequence* SequenceData = Sequence->GetSequenceData();
+    UE_LOG(
+        "[EditorViewer] SetAnimationSequence | ViewerMeshRequest=%s | CurrentMesh=%s | MeshBones=%d | Animation=%s | AnimationSkeleton=%s | TrackCount=%zu",
+        FileName.c_str(),
+        GetSkeletalMeshPath(SkelComp->GetSkeletalMesh()),
+        GetSkeletalMeshBoneCount(SkelComp->GetSkeletalMesh()),
+        AnimationPath.c_str(),
+        SequenceData ? SequenceData->SkeletonSourcePath.c_str() : "<None>",
+        SequenceData ? SequenceData->BoneTracks.size() : 0);
 
     if (!PreviewAnimInstance)
     {

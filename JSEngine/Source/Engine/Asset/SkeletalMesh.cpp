@@ -82,7 +82,7 @@ const TArray<uint32>& USkeletalMesh::GetIndices() const
 const TArray<FBoneInfo>& USkeletalMesh::GetBones() const
 {
     static const TArray<FBoneInfo> Empty = {};
-    if (SkeletonAsset && SkeletonAsset->HasValidSkeletonData())
+    if (CanUseSkeletonAssetBones())
     {
         return SkeletonAsset->GetBones();
     }
@@ -92,7 +92,7 @@ const TArray<FBoneInfo>& USkeletalMesh::GetBones() const
 
 const FBoneInfo* USkeletalMesh::GetBoneInfo(int32 BoneIndex) const
 {
-    if (SkeletonAsset && SkeletonAsset->HasValidSkeletonData())
+    if (CanUseSkeletonAssetBones())
     {
         return SkeletonAsset->GetBoneInfo(BoneIndex);
     }
@@ -149,7 +149,7 @@ const TArray<FStaticMeshMaterialSlot>& USkeletalMesh::GetMaterialSlots() const
 const TArray<FSkeletalMeshSocket>& USkeletalMesh::GetSockets() const
 {
     static const TArray<FSkeletalMeshSocket> Empty = {};
-    if (SkeletonAsset && SkeletonAsset->HasValidSkeletonData())
+    if (CanUseSkeletonAssetBones())
     {
         return SkeletonAsset->GetSockets();
     }
@@ -159,7 +159,7 @@ const TArray<FSkeletalMeshSocket>& USkeletalMesh::GetSockets() const
 
 const FSkeletalMeshSocket* USkeletalMesh::FindSocket(const FName& Name) const
 {
-    if (SkeletonAsset && SkeletonAsset->HasValidSkeletonData())
+    if (CanUseSkeletonAssetBones())
     {
         return SkeletonAsset->FindSocket(Name);
     }
@@ -207,6 +207,16 @@ const FAABB& USkeletalMesh::GetConservativeLocalBounds() const
 bool USkeletalMesh::HasValidMeshData() const
 {
     return MeshData != nullptr && !MeshData->Vertices.empty() && !MeshData->Indices.empty() && !GetBones().empty();
+}
+
+bool USkeletalMesh::CanUseSkeletonAssetBones() const
+{
+    if (!MeshData || !SkeletonAsset || !SkeletonAsset->HasValidSkeletonData())
+    {
+        return false;
+    }
+
+    return SkeletonAsset->GetBones().size() == MeshData->Bones.size();
 }
 
 void USkeletalMesh::RebuildLocalBoundsFromMeshData()

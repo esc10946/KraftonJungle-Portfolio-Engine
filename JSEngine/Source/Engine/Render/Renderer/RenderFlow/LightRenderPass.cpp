@@ -1,5 +1,6 @@
 #include "LightRenderPass.h"
 #include "Core/ResourceManager.h"
+#include "Render/Common/ShaderBindingSlots.h"
 #include "Render/Resource/ShaderPaths.h"
 
 namespace
@@ -84,7 +85,7 @@ bool FLightRenderPass::Begin(const FRenderPassContext* Context)
         Context->RenderResources->LightShadowIndexBuffer.GetSRV(),
         Context->RenderResources->AtlasShadowBuffer.GetSRV(),
     };
-    Context->DeviceContext->PSSetShaderResources(14, 2, ShadowInfoSRVs);
+    Context->DeviceContext->PSSetShaderResources(ShaderBindingSlots::LightShadowIndicesSRV, ShaderBindingSlots::ShadowInfoSRVCount, ShadowInfoSRVs);
 
     FShaderProgram* LightPassProgram = GetLightPassProgram();
     if (!LightPassProgram)
@@ -118,6 +119,6 @@ bool FLightRenderPass::End(const FRenderPassContext* Context)
     ID3D11ShaderResourceView* nullSRVs[] = { nullptr, nullptr, nullptr, nullptr, nullptr };
     Context->DeviceContext->PSSetShaderResources(0, 5, nullSRVs);
     ID3D11ShaderResourceView* nullShadowSRVs[] = { nullptr, nullptr };
-    Context->DeviceContext->PSSetShaderResources(14, 2, nullShadowSRVs);
+    Context->DeviceContext->PSSetShaderResources(ShaderBindingSlots::LightShadowIndicesSRV, ShaderBindingSlots::ShadowInfoSRVCount, nullShadowSRVs);
     return true;
 }

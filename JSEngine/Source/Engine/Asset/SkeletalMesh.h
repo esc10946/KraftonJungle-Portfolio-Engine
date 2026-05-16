@@ -48,6 +48,8 @@ public:
     bool HasValidMeshData() const;
 
 private:
+    bool CanUseSkeletonAssetBones() const;
+
     void RebuildLocalBoundsFromMeshData();
     void RebuildConservativeLocalBoundsFromMeshData();
 

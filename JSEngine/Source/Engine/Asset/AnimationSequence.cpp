@@ -1,6 +1,7 @@
 ﻿#include "Asset/AnimationSequence.h"
 
 #include "Asset/SkeletalMesh.h"
+#include "Core/Logging/Log.h"
 #include "Object/ObjectFactory.h"
 
 #include <algorithm>
@@ -114,6 +115,26 @@ FVector SampleScale(const FAnimationSequence& SequenceData, const FBoneAnimation
     const FKeyFrameRange Range = GetKeyFrameRange(Time, SequenceData, static_cast<int32>(ScaleKeys.size()));
     return FVector::Lerp(ScaleKeys[Range.PrevIndex], ScaleKeys[Range.NextIndex], Range.Alpha);
 }
+
+bool HasPoseKeys(const FBoneAnimationTrack& BoneTrack)
+{
+    return !BoneTrack.InternalTrack.PosKeys.empty() ||
+        !BoneTrack.InternalTrack.RotKeys.empty() ||
+        !BoneTrack.InternalTrack.ScaleKeys.empty();
+}
+
+FMatrix BuildTrackTransform(const FVector& Translation, const FQuat& Rotation, const FVector& Scale)
+{
+    return FMatrix::MakeTRS(Translation, Rotation.ToMatrix(), Scale);
+}
+
+FMatrix BuildSampledKeyTransform(const FAnimationSequence& SequenceData, const FBoneAnimationTrack& BoneTrack, float Time)
+{
+    return BuildTrackTransform(
+        SampleTranslation(SequenceData, BoneTrack, Time),
+        SampleRotation(SequenceData, BoneTrack, Time),
+        SampleScale(SequenceData, BoneTrack, Time));
+}
 }
 
 UAnimationSequence::~UAnimationSequence()
@@ -187,6 +208,10 @@ bool UAnimationSequence::SamplePose(const USkeletalMesh* TargetMesh, float Time,
     }
 
     OutLocalPose.resize(TargetBones.size());
+    int32 MatchedTrackCount = 0;
+    int32 AppliedPoseTrackCount = 0;
+    int32 ChangedLocalPoseCount = 0;
+
     for (int32 BoneIndex = 0; BoneIndex < static_cast<int32>(TargetBones.size()); ++BoneIndex)
     {
         const FBoneInfo& TargetBone = TargetBones[BoneIndex];
@@ -199,11 +224,36 @@ bool UAnimationSequence::SamplePose(const USkeletalMesh* TargetMesh, float Time,
         }
 
         const FBoneAnimationTrack& BoneTrack = SequenceData->BoneTracks[TrackIndex];
-        const FVector Translation = SampleTranslation(*SequenceData, BoneTrack, Time);
-        const FQuat Rotation = SampleRotation(*SequenceData, BoneTrack, Time);
-        const FVector Scale = SampleScale(*SequenceData, BoneTrack, Time);
+        ++MatchedTrackCount;
 
-        OutLocalPose[BoneIndex] = FMatrix::MakeTRS(Translation, Rotation.ToMatrix(), Scale);
+        if (!HasPoseKeys(BoneTrack))
+        {
+            continue;
+        }
+
+        const FMatrix CurrentKeyTransform = BuildSampledKeyTransform(*SequenceData, BoneTrack, Time);
+
+        OutLocalPose[BoneIndex] = CurrentKeyTransform;
+        ++AppliedPoseTrackCount;
+
+        if (!OutLocalPose[BoneIndex].Equals(TargetBone.LocalBindTransform, 0.001f))
+        {
+            ++ChangedLocalPoseCount;
+        }
+    }
+
+    static int32 DebugSampleCounter = 0;
+    ++DebugSampleCounter;
+    if (DebugSampleCounter % 60 == 0)
+    {
+        UE_LOG(
+            "[AnimationSequence] SamplePose | Sequence=%s | Time=%.3f | Bones=%zu | MatchedTracks=%d | AppliedPoseTracks=%d | ChangedLocalPoses=%d",
+            SequenceData->Name.c_str(),
+            Time,
+            TargetBones.size(),
+            MatchedTrackCount,
+            AppliedPoseTrackCount,
+            ChangedLocalPoseCount);
     }
 
     return true;

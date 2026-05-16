@@ -1,5 +1,6 @@
 #include "FogRenderPass.h"
 #include "Core/ResourceManager.h"
+#include "Render/Common/ShaderBindingSlots.h"
 #include "Render/Scene/RenderBus.h"
 #include "Render/Resource/RenderResources.h"
 #include "Render/Resource/ShaderPaths.h"
@@ -100,8 +101,8 @@ bool FFogRenderPass::DrawCommand(const FRenderPassContext* Context)
 
     Context->RenderResources->FogPassConstantBuffer.Update(Context->DeviceContext, &FogPassConstants, sizeof(FFogPassConstants));
     ID3D11Buffer* cb9 = Context->RenderResources->FogPassConstantBuffer.GetBuffer();
-    Context->DeviceContext->VSSetConstantBuffers(9, 1, &cb9);
-    Context->DeviceContext->PSSetConstantBuffers(9, 1, &cb9);
+    Context->DeviceContext->VSSetConstantBuffers(ShaderBindingSlots::FogCB, 1, &cb9);
+    Context->DeviceContext->PSSetConstantBuffers(ShaderBindingSlots::FogCB, 1, &cb9);
 
     Context->DeviceContext->Draw(3, 0);
 

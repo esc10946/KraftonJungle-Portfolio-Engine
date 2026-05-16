@@ -5,6 +5,7 @@
 #include "Render/Resource/Material.h"
 #include "Render/Resource/ShaderHelper.h"
 #include "Render/Resource/ShadowAtlasManager.h"
+#include "Render/Common/ShaderBindingSlots.h"
 #include "Render/Resource/VertexFactoryTypes.h"
 #include "Core/Logging/Stats.h"
 #include "Core/ResourceManager.h"
@@ -41,10 +42,10 @@ bool FOpaqueRenderPass::Begin(const FRenderPassContext* Context)
 
 	///// debugging
 	/*ID3D11ShaderResourceView* VSMSRV = FShadowAtlasManager::Get().VarianceShadowSRV.Get();
-    Context->DeviceContext->PSSetShaderResources(11, 1, &VSMSRV);
+    Context->DeviceContext->PSSetShaderResources(ShaderBindingSlots::VSMShadowMapSRV, 1, &VSMSRV);
     *////// debugging
     ID3D11ShaderResourceView* VSMSRV = FShadowAtlasManager::Get().GetVarianceSRV();
-    Context->DeviceContext->PSSetShaderResources(11, 1, &VSMSRV);
+    Context->DeviceContext->PSSetShaderResources(ShaderBindingSlots::VSMShadowMapSRV, 1, &VSMSRV);
 
 
 
@@ -52,7 +53,7 @@ bool FOpaqueRenderPass::Begin(const FRenderPassContext* Context)
 		Context->RenderResources->LightShadowIndexBuffer.GetSRV(),
 		Context->RenderResources->AtlasShadowBuffer.GetSRV(),
 	};
-	Context->DeviceContext->PSSetShaderResources(14, 2, ShadowInfoSRVs);
+	Context->DeviceContext->PSSetShaderResources(ShaderBindingSlots::LightShadowIndicesSRV, ShaderBindingSlots::ShadowInfoSRVCount, ShadowInfoSRVs);
 
 	//ID3D11ShaderResourceView* VSMSRV = FShadowAtlasManager::Get().VarianceShadowSRV.Get();
  //   Context->DeviceContext->PSSetShaderResources(16, 1, &VSMSRV);
@@ -73,13 +74,13 @@ bool FOpaqueRenderPass::DrawCommand(const FRenderPassContext* Context)
    {  
        Context->RenderResources->PerObjectConstantBuffer.Update(Context->DeviceContext, &Cmd.PerObjectConstants, sizeof(FPerObjectConstants));  
        ID3D11Buffer* cb1 = Context->RenderResources->PerObjectConstantBuffer.GetBuffer();  
-       Context->DeviceContext->VSSetConstantBuffers(1, 1, &cb1);  
-       Context->DeviceContext->PSSetConstantBuffers(1, 1, &cb1);
+       Context->DeviceContext->VSSetConstantBuffers(ShaderBindingSlots::PerObjectCB, 1, &cb1);
+       Context->DeviceContext->PSSetConstantBuffers(ShaderBindingSlots::PerObjectCB, 1, &cb1);
 
 	   ID3D11ShaderResourceView *ShadowSRV = FShadowAtlasManager::Get().GetSRV();
-	   Context->DeviceContext->PSSetShaderResources(10, 1, &ShadowSRV);
+	   Context->DeviceContext->PSSetShaderResources(ShaderBindingSlots::ShadowMapSRV, 1, &ShadowSRV);
        ID3D11ShaderResourceView* PointShadowCubeSRV = FShadowAtlasManager::Get().GetCubeSRV();
-       Context->DeviceContext->PSSetShaderResources(12, 1, &PointShadowCubeSRV);
+       Context->DeviceContext->PSSetShaderResources(ShaderBindingSlots::PointShadowCubeSRV, 1, &PointShadowCubeSRV);
 
        if (Cmd.Type == ERenderCommandType::PostProcessOutline)  
        {  
@@ -242,7 +243,7 @@ bool FOpaqueRenderPass::End(const FRenderPassContext* Context)
 	//Context->DeviceContext->VSSetShaderResources(4, 3, nullSRVs);
 	//Context->DeviceContext->PSSetShaderResources(4, 3, nullSRVs);
     ID3D11ShaderResourceView* nullSRV = nullptr;
-    Context->DeviceContext->PSSetShaderResources(16, 1, &nullSRV);
+    Context->DeviceContext->PSSetShaderResources(ShaderBindingSlots::BoneMatricesSRV, 1, &nullSRV);
     return true;
 }
 

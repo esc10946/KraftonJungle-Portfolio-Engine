@@ -1,5 +1,6 @@
 ﻿#include "LightCullingPass.h"
 #include "Core/ResourceManager.h"
+#include "Render/Common/ShaderBindingSlots.h"
 #include "Render/Common/ViewTypes.h"
 
 namespace {
@@ -25,7 +26,7 @@ bool FLightCullingPass::Begin(const FRenderPassContext* Context)
     OutRTV = RenderTargets->SceneColorRTV;
 
     ID3D11ShaderResourceView* nullSRVs[] = { nullptr, nullptr, nullptr };
-    Context->DeviceContext->PSSetShaderResources(4, 3, nullSRVs);
+    Context->DeviceContext->PSSetShaderResources(ShaderBindingSlots::LightsSRV, ShaderBindingSlots::LightCullingSRVCount, nullSRVs);
 
     return true;
 }
@@ -92,7 +93,7 @@ bool FLightCullingPass::End(const FRenderPassContext* Context)
         Resources->LightCulledIndexBuffer.GetSRV(),
         Resources->LightTileBuffer.GetSRV()
     };
-    DeviceContext->PSSetShaderResources(4, 3, LightSRVs);
+    DeviceContext->PSSetShaderResources(ShaderBindingSlots::LightsSRV, ShaderBindingSlots::LightCullingSRVCount, LightSRVs);
 
     return true;
 }

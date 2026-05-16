@@ -6,6 +6,7 @@
 	RenderCommand는 Renderer에서 Draw Call을 1회 수행하기 위해 필요한 정보를 담고 있습니다.
 */
 
+#include "Render/Common/ShaderBindingSlots.h"
 #include "Render/Common/RenderTypes.h"
 #include "Render/Resource/Buffer.h"
 #include "Render/Resource/Material.h"
@@ -447,7 +448,7 @@ inline void BindSkeletalGpuSkinningBoneMatrixSRV(
 		BoneMatrixSRV = SkinningPayload.BoneMatrixSRV;
 	}
 
-	Context->VSSetShaderResources(16, 1, &BoneMatrixSRV);
+	Context->VSSetShaderResources(ShaderBindingSlots::BoneMatricesSRV, 1, &BoneMatrixSRV);
 }
 
 enum class EMeshOverlayMode : uint32
