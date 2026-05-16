@@ -58,6 +58,20 @@ namespace
 
         return MaxLOD;
     }
+
+    void ApplySkeletalGpuPayload(FRenderCommand& Cmd, USkeletalMeshComponent* SkeletalMeshComp, FStructuredBuffer* BoneMatrixBuffer, ESkinningMode Mode)
+    {
+        Cmd.SkeletalGpuSkinning.Mode = Mode;
+        if (Mode == ESkinningMode::GPUVertexShader && BoneMatrixBuffer)
+        {
+            Cmd.SkeletalGpuSkinning.BoneMatrixSRV = BoneMatrixBuffer->GetSRV();
+            Cmd.SkeletalGpuSkinning.BoneCount = BoneMatrixBuffer->GetCount();
+        }
+        else if (SkeletalMeshComp)
+        {
+            Cmd.SkeletalGpuSkinning.BoneCount = static_cast<uint32>(SkeletalMeshComp->GetSkinningMatrices().size());
+        }
+    }
 }
 
 bool FPrimitiveDrawCommandBuilder::CollectPrimitive(UPrimitiveComponent* Primitive, const FShowFlags& ShowFlags,
@@ -129,18 +143,30 @@ bool FPrimitiveDrawCommandBuilder::CollectPrimitive(UPrimitiveComponent* Primiti
 
         if (!SkeletalMesh || !SkeletalMesh->HasValidMeshData()) return true;
 
-        SkeletalMeshComp->EnsureSkinningUpdated();
-        const bool bNeedsUpload = SkeletalMeshComp->ConsumeRenderStateDirty();
+        const ESkinningMode SkinningMode = SkeletalMeshComp->GetEffectiveSkinningMode();
+        FStructuredBuffer* BoneMatrixBuffer = nullptr;
+        FMeshBuffer* MeshBuffer = nullptr;
 
-        const TArray<FSkeletalMeshVertex>& SkinnedVertices = SkeletalMeshComp->GetSkinnedVertices();
-        const TArray<uint32>& Indices = SkeletalMesh->GetIndices(); // 이건 immutable이라 걍 asset에서 들고와도 댐
-
-        FMeshBuffer* MeshBuffer = MeshBufferManager.GetSkeletalMeshBuffer(
-            SkeletalMeshComp->GetUUID(),
-            SkeletalMesh,
-            SkinnedVertices,
-            Indices,
-            bNeedsUpload);
+        if (SkinningMode == ESkinningMode::GPUVertexShader)
+        {
+            SkeletalMeshComp->EnsureGPUSkinningResourcesDirty();
+            BoneMatrixBuffer = MeshBufferManager.GetSkeletalBoneMatrixBuffer(
+                SkeletalMeshComp->GetUUID(),
+                SkeletalMeshComp->GetSkinningMatrices(),
+                SkeletalMeshComp->ConsumeGPUBoneBufferDirty());
+            MeshBuffer = MeshBufferManager.GetSkeletalBindPoseBuffer(SkeletalMesh);
+        }
+        else
+        {
+            SkeletalMeshComp->EnsureCPUSkinnedVerticesUpdated();
+            const bool bNeedsUpload = SkeletalMeshComp->ConsumeRenderStateDirty();
+            MeshBuffer = MeshBufferManager.GetSkeletalMeshBuffer(
+                SkeletalMeshComp->GetUUID(),
+                SkeletalMesh,
+                SkeletalMeshComp->GetSkinnedVertices(),
+                SkeletalMesh->GetIndices(),
+                bNeedsUpload);
+        }
         if (!MeshBuffer) return true;
 
         const TArray<FStaticMeshSection>& Sections = SkeletalMesh->GetSections();
@@ -156,6 +182,7 @@ bool FPrimitiveDrawCommandBuilder::CollectPrimitive(UPrimitiveComponent* Primiti
             Cmd.SectionIndexCount = MeshBuffer->GetIndexBuffer().GetIndexCount();
             Cmd.Material = SkeletalMeshComp->GetMaterial(0);
             Cmd.WorldAABB = SkeletalMeshComp->GetWorldAABB();
+            ApplySkeletalGpuPayload(Cmd, SkeletalMeshComp, BoneMatrixBuffer, SkinningMode);
 
             RenderBus.AddCommand(ERenderPass::Opaque, Cmd);
             return true;
@@ -183,6 +210,7 @@ bool FPrimitiveDrawCommandBuilder::CollectPrimitive(UPrimitiveComponent* Primiti
             Cmd.Material = Material;
 
             Cmd.WorldAABB = SkeletalMeshComp->GetWorldAABB();
+            ApplySkeletalGpuPayload(Cmd, SkeletalMeshComp, BoneMatrixBuffer, SkinningMode);
 
             RenderBus.AddCommand(ERenderPass::Opaque, Cmd);
         }

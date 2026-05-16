@@ -10,6 +10,7 @@
 #include "Render/Resource/Buffer.h"
 #include "Render/Resource/Material.h"
 #include "Render/Resource/VertexFactoryTypes.h"
+#include "Render/Skinning/SkinningRuntimeSettings.h"
 #include "Render/Device/D3DDevice.h"
 #include "Core/CoreMinimal.h"
 #include "Core/ResourceTypes.h"
@@ -416,6 +417,13 @@ struct FSelectionMaskConstants
 	FVector2 UVScale = FVector2(1.0f, 1.0f);
 };
 
+struct FSkeletalGpuSkinningPayload
+{
+	ESkinningMode Mode = ESkinningMode::CPU;
+	ID3D11ShaderResourceView* BoneMatrixSRV = nullptr;
+	uint32 BoneCount = 0;
+};
+
 struct FRenderCommand
 {
 	FPerObjectConstants PerObjectConstants = {};
@@ -432,6 +440,7 @@ struct FRenderCommand
 	uint32 SectionIndexCount = 0;
 
 	FBoundingBox WorldAABB;
+	FSkeletalGpuSkinningPayload SkeletalGpuSkinning;
 
 	union
 	{
@@ -454,3 +463,23 @@ struct FRenderCommand
 
 	ERenderCommandType Type = ERenderCommandType::Primitive;
 };
+
+inline void BindVertexFactoryResources(
+	ID3D11DeviceContext* Context,
+	EVertexFactoryType Type,
+	const FRenderCommand& Cmd)
+{
+	if (!Context)
+	{
+		return;
+	}
+
+	ID3D11ShaderResourceView* BoneMatrixSRV = nullptr;
+	if (Type == EVertexFactoryType::SkeletalMesh &&
+		Cmd.SkeletalGpuSkinning.Mode == ESkinningMode::GPUVertexShader)
+	{
+		BoneMatrixSRV = Cmd.SkeletalGpuSkinning.BoneMatrixSRV;
+	}
+
+	Context->VSSetShaderResources(16, 1, &BoneMatrixSRV);
+}

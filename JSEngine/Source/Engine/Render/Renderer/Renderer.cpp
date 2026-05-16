@@ -562,6 +562,7 @@ void FRenderer::Render(const FRenderBus& InRenderBus)
 
 void FRenderer::RenderEditorIdPickBuffer(const FRenderBus& InRenderBus, FViewportRenderResource& Resource, TArray<AActor*>& OutActors)
 {
+    SCOPE_STAT("GPU.SkeletalDraw.IDPick");
     OutActors.clear();
 
     ID3D11DeviceContext* Context = Device.GetDeviceContext();
@@ -691,6 +692,7 @@ void FRenderer::RenderEditorIdPickBuffer(const FRenderBus& InRenderBus, FViewpor
                 continue;
             }
             PickProgram->Bind(Context);
+            BindVertexFactoryResources(Context, Command.VertexFactoryType, Command);
             DrawIdPickCommand(Context, Command);
         }
     }

@@ -24,4 +24,5 @@ struct FSkeletalMesh
 
     // Bounds
     FAABB LocalBounds;
+    FAABB ConservativeLocalBounds;
 };

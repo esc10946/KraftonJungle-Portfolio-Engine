@@ -3,6 +3,8 @@
 #include "Asset/SkeletonAsset.h"
 #include "Core/Logging/Log.h"
 
+#include <algorithm>
+
 DEFINE_CLASS(USkeletalMesh, UObject)
 
 USkeletalMesh::~USkeletalMesh()
@@ -30,6 +32,7 @@ void USkeletalMesh::SetMeshData(FSkeletalMesh* InMeshData)
 void USkeletalMesh::SetSkeletonAsset(USkeletonAsset* InSkeletonAsset)
 {
     SkeletonAsset = InSkeletonAsset;
+    RebuildConservativeLocalBoundsFromMeshData();
 }
 
 FSkeletalMesh* USkeletalMesh::GetMeshData()
@@ -188,6 +191,19 @@ const FAABB& USkeletalMesh::GetLocalBounds() const
     return MeshData ? MeshData->LocalBounds : Empty;
 }
 
+const FAABB& USkeletalMesh::GetConservativeLocalBounds() const
+{
+    static const FAABB Empty = {};
+    if (!MeshData)
+    {
+        return Empty;
+    }
+
+    return MeshData->ConservativeLocalBounds.IsValid()
+        ? MeshData->ConservativeLocalBounds
+        : MeshData->LocalBounds;
+}
+
 bool USkeletalMesh::HasValidMeshData() const
 {
     return MeshData != nullptr && !MeshData->Vertices.empty() && !MeshData->Indices.empty() && !GetBones().empty();
@@ -206,4 +222,36 @@ void USkeletalMesh::RebuildLocalBoundsFromMeshData()
     {
         MeshData->LocalBounds.Expand(Vertex.Position);
     }
+
+    RebuildConservativeLocalBoundsFromMeshData();
+}
+
+void USkeletalMesh::RebuildConservativeLocalBoundsFromMeshData()
+{
+    if (!MeshData)
+    {
+        return;
+    }
+
+    FAABB Bounds = MeshData->LocalBounds;
+
+    const TArray<FBoneInfo>& Bones = GetBones();
+    for (const FBoneInfo& Bone : Bones)
+    {
+        Bounds.Expand(Bone.GlobalBindTransform.GetTranslation());
+    }
+
+    if (!Bounds.IsValid())
+    {
+        MeshData->ConservativeLocalBounds = MeshData->LocalBounds;
+        return;
+    }
+
+    const FVector Center = Bounds.GetCenter();
+    FVector Extent = Bounds.GetExtent();
+    const float MaxExtent = std::max({ Extent.X, Extent.Y, Extent.Z });
+    const float Padding = std::max(10.0f, MaxExtent * 0.25f);
+
+    Extent = Extent * 1.35f + FVector(Padding, Padding, Padding);
+    MeshData->ConservativeLocalBounds = FAABB(Center - Extent, Center + Extent);
 }

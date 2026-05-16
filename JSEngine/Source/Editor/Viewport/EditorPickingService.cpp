@@ -3,7 +3,6 @@
 #include "Camera/ViewportCamera.h"
 #include "Component/PrimitiveComponent.h"
 #include "Core/CollisionTypes.h"
-#include "Editor/Settings/EditorSettings.h"
 #include "Editor/Viewport/FSceneViewport.h"
 #include "EditorEngine.h"
 #include "GameFramework/World.h"
@@ -24,16 +23,12 @@ bool FEditorPickingService::ResolveActorForSelection(
 	AActor*& OutActor)
 {
 	OutActor = nullptr;
-	const FEditorSettings& EditorSettings = FEditorSettings::Get();
-	if (EditorSettings.PickingMode == EEditorPickingMode::IdBuffer &&
-		PickActorByIdAtViewportLocalPoint(Viewport, Editor, LocalX, LocalY, OutActor) &&
-		OutActor)
+	if (PickActorByIdAtViewportLocalPoint(Viewport, Editor, LocalX, LocalY, OutActor) && OutActor)
 	{
 		return true;
 	}
 
-	// return PickActorByRayAtViewportLocalPoint(World, Camera, Viewport, LocalX, LocalY, OutActor);
-    return false;
+	return false;
 }
 
 bool FEditorPickingService::PickActorByIdAtViewportLocalPoint(
@@ -93,6 +88,9 @@ bool FEditorPickingService::PickActorByRayAtViewportLocalPoint(
 	float LocalY,
 	AActor*& OutActor)
 {
+	// Currently unused: editor actor selection is intentionally ID-buffer only.
+	// Keep this ray-triangle path as dormant infrastructure for future geometry
+	// queries such as edit tools, CPU-skinned export validation, or diagnostics.
 	OutActor = nullptr;
 	if (!World || !Camera || !Viewport)
 	{

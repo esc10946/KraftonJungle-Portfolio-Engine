@@ -43,11 +43,13 @@ public:
     bool                               HasSocket(const FName& Name) const;
 
     const FAABB& GetLocalBounds() const;
+    const FAABB& GetConservativeLocalBounds() const;
 
     bool HasValidMeshData() const;
 
 private:
     void RebuildLocalBoundsFromMeshData();
+    void RebuildConservativeLocalBoundsFromMeshData();
 
 private:
     FSkeletalMesh* MeshData = nullptr;
