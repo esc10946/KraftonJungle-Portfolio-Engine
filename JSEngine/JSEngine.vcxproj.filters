@@ -882,6 +882,9 @@
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\LightRenderPass.cpp">
       <Filter>Source\Engine\Render\Renderer\RenderFlow</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\MeshOverlayRenderPass.cpp">
+      <Filter>Source\Engine\Render\Renderer\RenderFlow</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\OpaqueRenderPass.cpp">
       <Filter>Source\Engine\Render\Renderer\RenderFlow</Filter>
     </ClCompile>
@@ -1929,6 +1932,9 @@
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\LightRenderPass.h">
       <Filter>Source\Engine\Render\Renderer\RenderFlow</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\MeshOverlayRenderPass.h">
+      <Filter>Source\Engine\Render\Renderer\RenderFlow</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\OpaqueRenderPass.h">
       <Filter>Source\Engine\Render\Renderer\RenderFlow</Filter>
     </ClInclude>
@@ -2292,6 +2298,9 @@
     </None>
     <None Include="Shaders\Depth\DepthPrepass.hlsl">
       <Filter>Shaders\Depth</Filter>
+    </None>
+    <None Include="Shaders\EditorDebug\BoneWeightHeatmap.hlsl">
+      <Filter>Shaders\EditorDebug</Filter>
     </None>
     <None Include="Shaders\EditorDebug\Editor.hlsl">
       <Filter>Shaders\EditorDebug</Filter>

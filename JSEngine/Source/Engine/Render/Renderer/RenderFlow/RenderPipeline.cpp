@@ -10,6 +10,7 @@
 #include "FontRenderPass.h"
 #include "SubUVRenderPass.h"
 #include "TranslucentRenderPass.h"
+#include "MeshOverlayRenderPass.h"
 #include "SelectionMaskRenderPass.h"
 #include "GridRenderPass.h"
 #include "EditorRenderPass.h"
@@ -42,6 +43,7 @@ namespace
             "RenderPass.Font",
             "RenderPass.SubUV",
             "RenderPass.Translucent",
+            "RenderPass.MeshOverlay",
             "RenderPass.SelectionMask",
             "RenderPass.Grid",
             "RenderPass.Editor",
@@ -85,6 +87,9 @@ bool FRenderPipeline::Initialize()
 
     TranslucentRenderPass = std::make_shared<FTranslucentRenderPass>();
     TranslucentRenderPass->Initialize();
+
+    MeshOverlayRenderPass = std::make_shared<FMeshOverlayRenderPass>();
+    MeshOverlayRenderPass->Initialize();
 
     SelectionMaskRenderPass = std::make_shared<FSelectionMaskRenderPass>();
     SelectionMaskRenderPass->Initialize();
@@ -137,6 +142,7 @@ bool FRenderPipeline::Initialize()
 	RenderPasses.push_back(FontRenderPass);
     RenderPasses.push_back(SubUVRenderPass);
     RenderPasses.push_back(TranslucentRenderPass);
+    RenderPasses.push_back(MeshOverlayRenderPass);
     RenderPasses.push_back(SelectionMaskRenderPass);
     RenderPasses.push_back(GridRenderPass);
     RenderPasses.push_back(EditorRenderPass);
@@ -227,6 +233,12 @@ void FRenderPipeline::Release()
     {
         TranslucentRenderPass->Release();
         TranslucentRenderPass.reset();
+    }
+
+    if (MeshOverlayRenderPass)
+    {
+        MeshOverlayRenderPass->Release();
+        MeshOverlayRenderPass.reset();
     }
 
     if (SelectionMaskRenderPass)

@@ -17,6 +17,7 @@ enum class EVertexFactoryType : uint8
 {
     StaticMesh,
     SkeletalMesh,
+    SkeletalMeshOverlay,
     ProceduralMesh,
     Primitive,
     Billboard,
@@ -128,6 +129,19 @@ public:
             SkeletalVertexLayout,
             SkeletalVertexLayout
         };
+        static const FVertexFactoryDesc SkeletalMeshOverlayDesc = {
+            FShaderPaths::EditorBoneWeightHeatmap,
+            FShaderPaths::EditorBoneWeightHeatmap,
+            FShaderPaths::EditorBoneWeightHeatmap,
+            FShaderPaths::EditorBoneWeightHeatmap,
+            "VS",
+            "VS",
+            "VS",
+            "VS",
+            SkeletalVertexLayout,
+            SkeletalVertexLayout,
+            SkeletalVertexLayout
+        };
         static const FVertexFactoryDesc DecalDesc = {
             FShaderPaths::MaterialDecal,
             FShaderPaths::DepthPrepass,
@@ -198,6 +212,8 @@ public:
         {
         case EVertexFactoryType::SkeletalMesh:
             return SkeletalMeshDesc;
+        case EVertexFactoryType::SkeletalMeshOverlay:
+            return SkeletalMeshOverlayDesc;
         case EVertexFactoryType::Decal:
             return DecalDesc;
         case EVertexFactoryType::Gizmo:

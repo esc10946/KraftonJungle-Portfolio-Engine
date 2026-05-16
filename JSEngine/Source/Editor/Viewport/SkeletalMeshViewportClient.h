@@ -12,6 +12,8 @@ struct FSkeletalViewerShowFlags
 	bool bShowOnlySelectedBone = false;
 	bool bShowBoundingBox      = false;
 	bool bShowOutline          = false;
+	bool bShowBoneWeightHeatmap = false;
+	float BoneWeightHeatmapOpacity = 0.65f;
 };
 
 class FSkeletalMeshViewportClient : public FEditorViewportClient
