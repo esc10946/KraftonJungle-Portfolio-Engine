@@ -2,6 +2,7 @@
 
 #include "Core/ResourceManager.h"
 #include "Core/Logging/Stats.h"
+#include "Render/Common/ShaderBindingSlots.h"
 #include "Render/Resource/ShaderHelper.h"
 #include "Render/Resource/ShaderPaths.h"
 #include "Render/Resource/ShadowAtlasManager.h"
@@ -83,8 +84,8 @@ void FShadowPass::RenderShadowDepth(
 
 	ShadowBuffer->Update(DeviceContext, &ShadowData, sizeof(FShadowConstants));
 	ID3D11Buffer* cb4 = ShadowBuffer->GetBuffer();
-	DeviceContext->VSSetConstantBuffers(4, 1, &cb4);
-	DeviceContext->PSSetConstantBuffers(4, 1, &cb4);
+	DeviceContext->VSSetConstantBuffers(ShaderBindingSlots::ShadowCB, 1, &cb4);
+	DeviceContext->PSSetConstantBuffers(ShaderBindingSlots::ShadowCB, 1, &cb4);
 
 	for (const auto& Cmd : OpaqueCmds)
 	{
@@ -108,7 +109,7 @@ void FShadowPass::RenderShadowDepth(
 		Context->RenderResources->PerObjectConstantBuffer.Update(
 			DeviceContext, &Cmd.PerObjectConstants, sizeof(FPerObjectConstants));
 		ID3D11Buffer* cb1 = Context->RenderResources->PerObjectConstantBuffer.GetBuffer();
-		DeviceContext->VSSetConstantBuffers(1, 1, &cb1);
+		DeviceContext->VSSetConstantBuffers(ShaderBindingSlots::PerObjectCB, 1, &cb1);
 
 		uint32 Offset = 0;
 		DeviceContext->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
@@ -152,8 +153,8 @@ bool FShadowPass::Begin(const FRenderPassContext* Context)
 	}
 
 	ID3D11ShaderResourceView* NullSRV[1] = { nullptr };
-	Context->DeviceContext->PSSetShaderResources(10, 1, NullSRV);
-	Context->DeviceContext->PSSetShaderResources(12, 1, NullSRV);
+	Context->DeviceContext->PSSetShaderResources(ShaderBindingSlots::ShadowMapSRV, 1, NullSRV);
+	Context->DeviceContext->PSSetShaderResources(ShaderBindingSlots::PointShadowCubeSRV, 1, NullSRV);
 
 	const TArray<FRenderCommand>& OpaqueCmds = Context->RenderBus->GetCommands(ERenderPass::Opaque);
 	if (!Context->RenderBus->GetShowFlags().bShadow ||
@@ -602,8 +603,8 @@ bool FShadowPass::DrawCommand(const FRenderPassContext* Context)
 	{
 		ShadowBuffer->Update(DeviceContext, &DirectionalShadowData, sizeof(FShadowConstants));
 		ID3D11Buffer* cb4 = ShadowBuffer->GetBuffer();
-		Context->DeviceContext->VSSetConstantBuffers(4, 1, &cb4);
-		Context->DeviceContext->PSSetConstantBuffers(4, 1, &cb4);
+		Context->DeviceContext->VSSetConstantBuffers(ShaderBindingSlots::ShadowCB, 1, &cb4);
+		Context->DeviceContext->PSSetConstantBuffers(ShaderBindingSlots::ShadowCB, 1, &cb4);
 	}
 	
 	return true;

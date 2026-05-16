@@ -15,6 +15,7 @@
 #include "Component/PrimitiveComponent.h"
 #include "Component/SubUVComponent.h"
 #include "GameFramework/AActor.h"
+#include "Render/Common/ShaderBindingSlots.h"
 #include "Render/Renderer/RenderTarget/RenderTargetFactory.h"
 #include "Render/Renderer/RenderTarget/DepthStencilFactory.h"
 #include "Render/Resource/ShaderHelper.h"
@@ -679,8 +680,8 @@ void FRenderer::RenderEditorIdPickBuffer(const FRenderBus& InRenderBus, FViewpor
 
             Resources.PerObjectConstantBuffer.Update(Context, &PerObjectConstants, sizeof(FPerObjectConstants));
             ID3D11Buffer* PerObjectBuffer = Resources.PerObjectConstantBuffer.GetBuffer();
-            Context->VSSetConstantBuffers(1, 1, &PerObjectBuffer);
-            Context->PSSetConstantBuffers(1, 1, &PerObjectBuffer);
+            Context->VSSetConstantBuffers(ShaderBindingSlots::PerObjectCB, 1, &PerObjectBuffer);
+            Context->PSSetConstantBuffers(ShaderBindingSlots::PerObjectCB, 1, &PerObjectBuffer);
 
             Resources.EditorPickingConstantBuffer.Update(Context, &PickingConstants, sizeof(FEditorPickingConstants));
             ID3D11Buffer* PickingBuffer = Resources.EditorPickingConstantBuffer.GetBuffer();
@@ -1442,8 +1443,8 @@ void FRenderer::BindShaderByType(const FRenderCommand& InCmd, ID3D11DeviceContex
     // 객체별 Transform Data는 항상 업데이트해야 한다.
     Resources.PerObjectConstantBuffer.Update(Context, &InCmd.PerObjectConstants, sizeof(FPerObjectConstants));
 	ID3D11Buffer* cb1 = Resources.PerObjectConstantBuffer.GetBuffer();
-	Context->VSSetConstantBuffers(1, 1, &cb1);
-	Context->PSSetConstantBuffers(1, 1, &cb1);
+	Context->VSSetConstantBuffers(ShaderBindingSlots::PerObjectCB, 1, &cb1);
+	Context->PSSetConstantBuffers(ShaderBindingSlots::PerObjectCB, 1, &cb1);
 
 	// 데이터 Update는 항상 수행하지만, 셰이더/상수 버퍼 바인딩은 타입이 변경된 경우에만 수행
     switch (InCmd.Type)
@@ -1561,8 +1562,8 @@ void FRenderer::UpdateFrameBuffer(ID3D11DeviceContext* Context, const FRenderBus
 
 	Resources.FrameBuffer.Update(Context, &frameConstantData, sizeof(FFrameConstants));
 	ID3D11Buffer* b0 = Resources.FrameBuffer.GetBuffer();
-	Context->VSSetConstantBuffers(0, 1, &b0);
-	Context->PSSetConstantBuffers(0, 1, &b0);
+	Context->VSSetConstantBuffers(ShaderBindingSlots::FrameCB, 1, &b0);
+	Context->PSSetConstantBuffers(ShaderBindingSlots::FrameCB, 1, &b0);
 }
 
 void FRenderer::UpdateUberBuffer(ID3D11DeviceContext* Context, const FRenderBus& InRenderBus)
@@ -1683,18 +1684,18 @@ void FRenderer::UpdateUberBuffer(ID3D11DeviceContext* Context, const FRenderBus&
 
     Resources.LightBuffer.Update(Context, &lightConstantData, sizeof(FUberConstants));
     ID3D11Buffer* b3 = Resources.LightBuffer.GetBuffer();
-    Context->VSSetConstantBuffers(3, 1, &b3);
-    Context->PSSetConstantBuffers(3, 1, &b3);
-    Context->CSSetConstantBuffers(3, 1, &b3);
+    Context->VSSetConstantBuffers(ShaderBindingSlots::UberCB, 1, &b3);
+    Context->PSSetConstantBuffers(ShaderBindingSlots::UberCB, 1, &b3);
+    Context->CSSetConstantBuffers(ShaderBindingSlots::UberCB, 1, &b3);
 
 	ID3D11Buffer* b4 = Resources.ShadowBuffer.GetBuffer();
-	Context->VSSetConstantBuffers(4, 1, &b4);
-	Context->PSSetConstantBuffers(4, 1, &b4);
+	Context->VSSetConstantBuffers(ShaderBindingSlots::ShadowCB, 1, &b4);
+	Context->PSSetConstantBuffers(ShaderBindingSlots::ShadowCB, 1, &b4);
 
     Resources.LightStructuredBuffer.Update(Context, InRenderBus.LightInfos.data(), (uint32)InRenderBus.LightInfos.size());
     ID3D11ShaderResourceView* SRVs[] = {
         Resources.LightStructuredBuffer.GetSRV(),
     };
-    Context->VSSetShaderResources(4, 1, SRVs);
-    Context->PSSetShaderResources(4, 1, SRVs);
+    Context->VSSetShaderResources(ShaderBindingSlots::LightsSRV, 1, SRVs);
+    Context->PSSetShaderResources(ShaderBindingSlots::LightsSRV, 1, SRVs);
 }

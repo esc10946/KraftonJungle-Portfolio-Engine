@@ -1,4 +1,5 @@
 #include "TranslucentRenderPass.h"
+#include "Render/Common/ShaderBindingSlots.h"
 #include "Render/Scene/RenderBus.h"
 #include "Render/Resource/RenderResources.h"
 #include "Render/Resource/Material.h"
@@ -84,8 +85,8 @@ namespace
                 &Cmd.PerObjectConstants,
                 sizeof(FPerObjectConstants));
             ID3D11Buffer* cb1 = Context->RenderResources->PerObjectConstantBuffer.GetBuffer();
-            Context->DeviceContext->VSSetConstantBuffers(1, 1, &cb1);
-            Context->DeviceContext->PSSetConstantBuffers(1, 1, &cb1);
+            Context->DeviceContext->VSSetConstantBuffers(ShaderBindingSlots::PerObjectCB, 1, &cb1);
+            Context->DeviceContext->PSSetConstantBuffers(ShaderBindingSlots::PerObjectCB, 1, &cb1);
 
             if (Cmd.MeshBuffer == nullptr || !Cmd.MeshBuffer->IsValid())
             {

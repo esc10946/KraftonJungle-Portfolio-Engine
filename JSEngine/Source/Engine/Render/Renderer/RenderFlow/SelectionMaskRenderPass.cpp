@@ -2,6 +2,7 @@
 #include "Core/ResourceManager.h"
 #include "Core/Logging/Stats.h"
 #include "Component/PrimitiveComponent.h"
+#include "Render/Common/ShaderBindingSlots.h"
 #include "Render/Scene/RenderBus.h"
 #include "Render/Resource/RenderResources.h"
 #include "Render/Resource/ShaderPaths.h"
@@ -221,8 +222,8 @@ bool FSelectionMaskRenderPass::DrawCommand(const FRenderPassContext* Context)
 
         Context->RenderResources->PerObjectConstantBuffer.Update(Context->DeviceContext, &Cmd.PerObjectConstants, sizeof(FPerObjectConstants));
         ID3D11Buffer* cb1 = Context->RenderResources->PerObjectConstantBuffer.GetBuffer();
-        Context->DeviceContext->VSSetConstantBuffers(1, 1, &cb1);
-        Context->DeviceContext->PSSetConstantBuffers(1, 1, &cb1);
+        Context->DeviceContext->VSSetConstantBuffers(ShaderBindingSlots::PerObjectCB, 1, &cb1);
+        Context->DeviceContext->PSSetConstantBuffers(ShaderBindingSlots::PerObjectCB, 1, &cb1);
 
         FSelectionMaskConstants MaskConstants;
         ID3D11ShaderResourceView* TextureSRV = nullptr;

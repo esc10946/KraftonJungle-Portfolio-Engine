@@ -2,6 +2,7 @@
 
 #include "Core/Logging/Stats.h"
 #include "Core/ResourceManager.h"
+#include "Render/Common/ShaderBindingSlots.h"
 #include "Render/Resource/RenderResources.h"
 #include "Render/Resource/ShaderPaths.h"
 #include "Render/Resource/VertexFactoryTypes.h"
@@ -114,8 +115,8 @@ bool FMeshOverlayRenderPass::DrawCommand(const FRenderPassContext* Context)
             &Cmd.PerObjectConstants,
             sizeof(FPerObjectConstants));
         ID3D11Buffer* PerObjectCB = Context->RenderResources->PerObjectConstantBuffer.GetBuffer();
-        Context->DeviceContext->VSSetConstantBuffers(1, 1, &PerObjectCB);
-        Context->DeviceContext->PSSetConstantBuffers(1, 1, &PerObjectCB);
+        Context->DeviceContext->VSSetConstantBuffers(ShaderBindingSlots::PerObjectCB, 1, &PerObjectCB);
+        Context->DeviceContext->PSSetConstantBuffers(ShaderBindingSlots::PerObjectCB, 1, &PerObjectCB);
 
         Context->RenderResources->MeshOverlayConstantBuffer.Update(
             Context->DeviceContext,
@@ -146,6 +147,6 @@ bool FMeshOverlayRenderPass::DrawCommand(const FRenderPassContext* Context)
 bool FMeshOverlayRenderPass::End(const FRenderPassContext* Context)
 {
     ID3D11ShaderResourceView* NullSRV = nullptr;
-    Context->DeviceContext->VSSetShaderResources(16, 1, &NullSRV);
+    Context->DeviceContext->VSSetShaderResources(ShaderBindingSlots::BoneMatricesSRV, 1, &NullSRV);
     return true;
 }

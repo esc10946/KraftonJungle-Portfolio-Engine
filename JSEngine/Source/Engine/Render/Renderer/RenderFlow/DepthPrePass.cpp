@@ -1,4 +1,5 @@
 #include "DepthPrePass.h"
+#include "Render/Common/ShaderBindingSlots.h"
 #include "Render/Scene/RenderBus.h"
 #include "Render/Resource/RenderResources.h"
 #include "Render/Resource/Material.h"
@@ -84,7 +85,7 @@ bool FDepthPrePass::DrawCommand(const FRenderPassContext* Context)
 
 		Context->RenderResources->PerObjectConstantBuffer.Update(Context->DeviceContext, &Cmd.PerObjectConstants, sizeof(FPerObjectConstants));
 		ID3D11Buffer* CB1 = Context->RenderResources->PerObjectConstantBuffer.GetBuffer();
-		Context->DeviceContext->VSSetConstantBuffers(1, 1, &CB1);
+		Context->DeviceContext->VSSetConstantBuffers(ShaderBindingSlots::PerObjectCB, 1, &CB1);
 
 		uint32 Offset = 0;
 		Context->DeviceContext->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
