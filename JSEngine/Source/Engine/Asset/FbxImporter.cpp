@@ -56,6 +56,35 @@ static FMatrix ToFMatrix(const FbxAMatrix& M)
         static_cast<float>(M.Get(3, 0)), static_cast<float>(M.Get(3, 1)), static_cast<float>(M.Get(3, 2)), static_cast<float>(M.Get(3, 3)));
 }
 
+static double GetUpper3x3Determinant(const FbxAMatrix& Matrix)
+{
+    return
+        Matrix.Get(0, 0) * (Matrix.Get(1, 1) * Matrix.Get(2, 2) - Matrix.Get(1, 2) * Matrix.Get(2, 1)) -
+        Matrix.Get(0, 1) * (Matrix.Get(1, 0) * Matrix.Get(2, 2) - Matrix.Get(1, 2) * Matrix.Get(2, 0)) +
+        Matrix.Get(0, 2) * (Matrix.Get(1, 0) * Matrix.Get(2, 1) - Matrix.Get(1, 1) * Matrix.Get(2, 0));
+}
+
+static bool HasMirroredHandedness(const FbxAMatrix& Matrix)
+{
+    constexpr double DeterminantEpsilon = 1.e-6;
+    return GetUpper3x3Determinant(Matrix) < -DeterminantEpsilon;
+}
+
+static void AppendTriangleIndices(TArray<uint32>& OutIndices, uint32 I0, uint32 I1, uint32 I2, bool bFlipWinding)
+{
+    OutIndices.push_back(I0);
+    if (bFlipWinding)
+    {
+        OutIndices.push_back(I2);
+        OutIndices.push_back(I1);
+    }
+    else
+    {
+        OutIndices.push_back(I1);
+        OutIndices.push_back(I2);
+    }
+}
+
 struct FTempInfluence
 {
     int32 BoneIndex = -1;
@@ -2474,6 +2503,13 @@ void FFbxImporter::ProcessSkeletalMesh(
 
     const FbxAMatrix NormalBindGlobalWithGeometry =
         GetNormalTransformFromPositionTransform(MeshBindGlobalWithGeometry);
+    const bool bFlipWinding = HasMirroredHandedness(MeshBindGlobalWithGeometry);
+    if (bFlipWinding)
+    {
+        UE_LOG(
+            "[FbxImporter] Mirrored skinned mesh transform detected. Flipping winding | Node=%s",
+            OwnerNode ? OwnerNode->GetName() : "<unknown>");
+    }
 
     // parentIndex LocalBindTransform 
     for (auto& Pair : BoneNodeToIndex)
@@ -2622,6 +2658,8 @@ void FFbxImporter::ProcessSkeletalMesh(
             SlotIndices.resize(SlotIdx + 1);
         }
 
+        uint32 TriangleIndices[3] = {};
+        int32 ValidCornerCount = 0;
         for (int32 Corner = 0; Corner < 3; Corner++)
         {
             const int32 CtrlPointIdx = Mesh->GetPolygonVertex(PolyIdx, Corner);
@@ -2675,7 +2713,18 @@ void FFbxImporter::ProcessSkeletalMesh(
 
             const uint32 NewIndex = static_cast<uint32>(InSkeletalMesh->Vertices.size());
             InSkeletalMesh->Vertices.push_back(Vertex);
-            SlotIndices[SlotIdx].push_back(NewIndex);
+            TriangleIndices[ValidCornerCount] = NewIndex;
+            ++ValidCornerCount;
+        }
+
+        if (ValidCornerCount == 3)
+        {
+            AppendTriangleIndices(
+                SlotIndices[SlotIdx],
+                TriangleIndices[0],
+                TriangleIndices[1],
+                TriangleIndices[2],
+                bFlipWinding);
         }
     }
 
@@ -2780,6 +2829,13 @@ void FFbxImporter::ProcessRigidAttachedMesh(
     const FbxAMatrix OwnerGlobalWithGeometry = GetGlobalTransformWithGeometry(OwnerNode);
     const FbxAMatrix OwnerNormalGlobalWithGeometry =
         GetNormalTransformFromPositionTransform(OwnerGlobalWithGeometry);
+    const bool bFlipWinding = HasMirroredHandedness(OwnerGlobalWithGeometry);
+    if (bFlipWinding)
+    {
+        UE_LOG(
+            "[FbxImporter] Mirrored rigid attached mesh transform detected. Flipping winding | Node=%s",
+            OwnerNode->GetName());
+    }
 
     FbxLayerElementArrayTemplate<int32>* MaterialIndices = nullptr;
     FbxGeometryElement::EMappingMode MaterialMappingMode = FbxGeometryElement::eByPolygon;
@@ -2834,6 +2890,8 @@ void FFbxImporter::ProcessRigidAttachedMesh(
             SlotIndices.resize(SlotIdx + 1);
         }
 
+        uint32 TriangleIndices[3] = {};
+        int32 ValidCornerCount = 0;
         for (int32 Corner = 0; Corner < 3; Corner++)
         {
             const int32 CtrlPointIdx = Mesh->GetPolygonVertex(PolyIdx, Corner);
@@ -2888,7 +2946,18 @@ void FFbxImporter::ProcessRigidAttachedMesh(
 
             const uint32 NewIndex = static_cast<uint32>(InSkeletalMesh->Vertices.size());
             InSkeletalMesh->Vertices.push_back(Vertex);
-            SlotIndices[SlotIdx].push_back(NewIndex);
+            TriangleIndices[ValidCornerCount] = NewIndex;
+            ++ValidCornerCount;
+        }
+
+        if (ValidCornerCount == 3)
+        {
+            AppendTriangleIndices(
+                SlotIndices[SlotIdx],
+                TriangleIndices[0],
+                TriangleIndices[1],
+                TriangleIndices[2],
+                bFlipWinding);
         }
     }
 
