@@ -67,6 +67,24 @@ namespace
 		return Empty;
 	}
 
+	FString ToProjectRelativePathIfAbsolute(const FString& Path)
+	{
+		std::filesystem::path FsPath(FPaths::ToWide(FPaths::Normalize(Path)));
+		if (!FsPath.is_absolute())
+		{
+			return FPaths::Normalize(FPaths::ToUtf8(FsPath.generic_wstring()));
+		}
+
+		std::error_code Ec;
+		std::filesystem::path Relative = std::filesystem::relative(FsPath, std::filesystem::path(FPaths::RootDir()), Ec);
+		if (Ec)
+		{
+			return FPaths::Normalize(FPaths::ToUtf8(FsPath.lexically_normal().generic_wstring()));
+		}
+
+		return FPaths::Normalize(FPaths::ToUtf8(Relative.generic_wstring()));
+	}
+
 	static bool DrawXButton(const char* id, float size = UIConstants::XButtonSize)
 	{
 		ImGui::PushID(id);
@@ -1729,14 +1747,16 @@ void FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 			if (!MeshPaths.empty())
 			{
 				const FString Current = *Val;
-				if (ImGui::BeginCombo(Prop.Name, Current.empty() ? "<None>" : Current.c_str()))
+				const FString CurrentDisplay = ToProjectRelativePathIfAbsolute(Current);
+				if (ImGui::BeginCombo(Prop.Name, CurrentDisplay.empty() ? "<None>" : CurrentDisplay.c_str()))
 				{
 					for (const FString& Path : MeshPaths)
 					{
-						const bool bSelected = (Current == Path);
-						if (ImGui::Selectable(Path.c_str(), bSelected))
+						const FString DisplayPath = ToProjectRelativePathIfAbsolute(Path);
+						const bool bSelected = (CurrentDisplay == DisplayPath);
+						if (ImGui::Selectable(DisplayPath.c_str(), bSelected))
 						{
-							*Val = Path;
+							*Val = DisplayPath;
 							bChanged = true;
 						}
 						if (bSelected)
