@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Asset/IAssetLoader.h"
+#include "Asset/AnimationTypes.h"
 #include "Asset/SkeletalMeshTypes.h"
 #include "Asset/StaticMeshTypes.h"
 #include "Core/ResourceTypes.h"
@@ -18,6 +19,14 @@ struct FFbxMeshContentInfo
     bool bHasSkeletalMesh = false;
 };
 
+struct FAnimationImportOptions
+{
+    FString SkeletonSourcePath;
+    bool bImportAllStacks = true;
+    bool bImportBoneTransforms = true;
+    bool bImportShapeKeys = true;
+};
+
 class FFbxImporter : public IAssetLoader
 {
 public:
@@ -30,6 +39,8 @@ public:
 	FString GetLoaderName() const override;
 
 	FSkeletalMesh* LoadSkeletalMesh(const FString& Path, const FStaticMeshLoadOptions& LoadOptions);
+
+    TArray<FAnimationClip*> LoadAnimations(const FString& Path, const FAnimationImportOptions& ImportOptions);
 
 	FFbxMeshContentInfo InspectMeshContent(const FString& Path);
 
@@ -69,4 +80,17 @@ private:
     int32 GetOrAddMaterialSlot(FSkeletalMesh* InSkeletalMesh, const FString& MaterialName);
     FAABB BuildLocalBounds(FSkeletalMesh* InSkeletalMesh) const;
     void ComputeTangents(FSkeletalMesh* InSkeletalMesh);
+
+    void CollectSkeletonNodes(FbxNode* Node, TArray<FbxNode*>& OutNodes) const;
+    bool ExtractAnimationStack(
+        FbxScene* Scene,
+        FbxAnimStack* AnimStack,
+        const TArray<FbxNode*>& BoneNodes,
+        const FAnimationImportOptions& ImportOptions,
+        FAnimationClip& OutClip) const;
+    void ExtractBoneAnimationTracks(
+        FbxAnimLayer* AnimLayer,
+        const TArray<FbxNode*>& BoneNodes,
+        FAnimationClip& OutClip) const;
+    void ExtractShapeKeyTracks(FbxAnimLayer* AnimLayer, FbxScene* Scene, FAnimationClip& OutClip) const;
 };

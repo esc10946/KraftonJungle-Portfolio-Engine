@@ -456,11 +456,26 @@
     <ClCompile Include="Source\Engine\Animation\ActorSequence.cpp">
       <Filter>Source\Engine\Animation</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Animation\AnimInstance.cpp">
+      <Filter>Source\Engine\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Animation\AnimationAssetBase.cpp">
+      <Filter>Source\Engine\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Animation\AnimationStateMachine.cpp">
+      <Filter>Source\Engine\Animation</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\Animation\CurvePlayback.cpp">
       <Filter>Source\Engine\Animation</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Animation\TimelinePlayer.cpp">
       <Filter>Source\Engine\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Asset\AnimationClipAsset.cpp">
+      <Filter>Source\Engine\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Asset\AnimationClipSerializer.cpp">
+      <Filter>Source\Engine\Asset</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Asset\AssetQueryService.cpp">
       <Filter>Source\Engine\Asset</Filter>
@@ -497,15 +512,6 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Asset\StaticMeshSimplifier.cpp">
       <Filter>Source\Engine\Asset</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Animation\AnimationAsset.cpp">
-      <Filter>Source\Engine\Animation</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Animation\AnimationStateMachine.cpp">
-      <Filter>Source\Engine\Animation</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Animation\AnimInstance.cpp">
-      <Filter>Source\Engine\Animation</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Audio\AudioSystem.cpp">
       <Filter>Source\Engine\Audio</Filter>
@@ -641,6 +647,9 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Component\TextRenderComponent.cpp">
       <Filter>Source\Engine\Component</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Core\AnimationClipLoadService.cpp">
+      <Filter>Source\Engine\Core</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Core\AssetPathPolicy.cpp">
       <Filter>Source\Engine\Core</Filter>
@@ -1347,11 +1356,29 @@
     <ClInclude Include="Source\Engine\Animation\ActorSequence.h">
       <Filter>Source\Engine\Animation</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\Animation\AnimInstance.h">
+      <Filter>Source\Engine\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Animation\AnimationAssetBase.h">
+      <Filter>Source\Engine\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Animation\AnimationStateMachine.h">
+      <Filter>Source\Engine\Animation</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Engine\Animation\CurvePlayback.h">
       <Filter>Source\Engine\Animation</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Animation\TimelinePlayer.h">
       <Filter>Source\Engine\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Asset\AnimationClipAsset.h">
+      <Filter>Source\Engine\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Asset\AnimationClipSerializer.h">
+      <Filter>Source\Engine\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Asset\AnimationTypes.h">
+      <Filter>Source\Engine\Asset</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Asset\AssetQueryService.h">
       <Filter>Source\Engine\Asset</Filter>
@@ -1400,15 +1427,6 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Asset\StaticMeshTypes.h">
       <Filter>Source\Engine\Asset</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Animation\AnimationAsset.h">
-      <Filter>Source\Engine\Animation</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Animation\AnimationStateMachine.h">
-      <Filter>Source\Engine\Animation</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Animation\AnimInstance.h">
-      <Filter>Source\Engine\Animation</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Audio\AudioSystem.h">
       <Filter>Source\Engine\Audio</Filter>
@@ -1547,6 +1565,9 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\TransformProxy.h">
       <Filter>Source\Engine\Component</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Core\AnimationClipLoadService.h">
+      <Filter>Source\Engine\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Core\AssetPathPolicy.h">
       <Filter>Source\Engine\Core</Filter>

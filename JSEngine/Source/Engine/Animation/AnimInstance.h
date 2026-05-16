@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Animation/AnimationAsset.h"
+#include "Animation/AnimationAssetBase.h"
 #include "Object/Object.h"
 
 class USkeletalMeshComponent;
@@ -31,8 +31,8 @@ class UAnimSingleNodeInstance : public UAnimInstance
 public:
     DECLARE_CLASS(UAnimSingleNodeInstance, UAnimInstance)
 
-    void SetAnimationAsset(UAnimationAsset* InAnimationAsset);
-    UAnimationAsset* GetAnimationAsset() const { return AnimationAsset; }
+    void SetAnimationAsset(UAnimationAssetBase* InAnimationAsset);
+    UAnimationAssetBase* GetAnimationAsset() const { return AnimationAsset; }
 
     void Play();
     void Pause();
@@ -53,7 +53,7 @@ public:
     void NativeUpdateAnimation(float DeltaSeconds) override;
 
 protected:
-    UAnimationAsset* AnimationAsset = nullptr;
+    UAnimationAssetBase* AnimationAsset = nullptr;
     float CurrentTime = 0.0f;
     float PlayRate = 1.0f;
     bool bPlaying = false;

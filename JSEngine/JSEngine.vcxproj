@@ -41,46 +41,46 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v145</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v145</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v145</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v145</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ObjViewer|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v145</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='GameClientDebug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v145</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='GameClientRelease|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v145</PlatformToolset>
+    <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -609,8 +609,13 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientRelease|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="Source\Engine\Animation\ActorSequence.cpp" />
+    <ClCompile Include="Source\Engine\Animation\AnimInstance.cpp" />
+    <ClCompile Include="Source\Engine\Animation\AnimationAssetBase.cpp" />
+    <ClCompile Include="Source\Engine\Animation\AnimationStateMachine.cpp" />
     <ClCompile Include="Source\Engine\Animation\CurvePlayback.cpp" />
     <ClCompile Include="Source\Engine\Animation\TimelinePlayer.cpp" />
+    <ClCompile Include="Source\Engine\Asset\AnimationClipAsset.cpp" />
+    <ClCompile Include="Source\Engine\Asset\AnimationClipSerializer.cpp" />
     <ClCompile Include="Source\Engine\Asset\AssetQueryService.cpp" />
     <ClCompile Include="Source\Engine\Asset\BinarySerializer.cpp" />
     <ClCompile Include="Source\Engine\Asset\CurveAssetLoader.cpp" />
@@ -623,9 +628,6 @@
     <ClCompile Include="Source\Engine\Asset\SkeletalMesh.cpp" />
     <ClCompile Include="Source\Engine\Asset\StaticMesh.cpp" />
     <ClCompile Include="Source\Engine\Asset\StaticMeshSimplifier.cpp" />
-    <ClCompile Include="Source\Engine\Animation\AnimationAsset.cpp" />
-    <ClCompile Include="Source\Engine\Animation\AnimationStateMachine.cpp" />
-    <ClCompile Include="Source\Engine\Animation\AnimInstance.cpp" />
     <ClCompile Include="Source\Engine\Audio\AudioSystem.cpp" />
     <ClCompile Include="Source\Engine\Camera\CameraModifier.cpp" />
     <ClCompile Include="Source\Engine\Camera\CameraModifier_CameraShake.cpp" />
@@ -671,6 +673,7 @@
     <ClCompile Include="Source\Engine\Component\StaticMeshComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\SubUVComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\TextRenderComponent.cpp" />
+    <ClCompile Include="Source\Engine\Core\AnimationClipLoadService.cpp" />
     <ClCompile Include="Source\Engine\Core\AssetPathPolicy.cpp" />
     <ClCompile Include="Source\Engine\Core\AtlasResourceCache.cpp" />
     <ClCompile Include="Source\Engine\Core\CrashDump.cpp" />
@@ -934,8 +937,14 @@
     <ClInclude Include="Source\Editor\Viewport\SkeletalMeshViewportClient.h" />
     <ClInclude Include="Source\Editor\Viewport\ViewportLayout.h" />
     <ClInclude Include="Source\Engine\Animation\ActorSequence.h" />
+    <ClInclude Include="Source\Engine\Animation\AnimInstance.h" />
+    <ClInclude Include="Source\Engine\Animation\AnimationAssetBase.h" />
+    <ClInclude Include="Source\Engine\Animation\AnimationStateMachine.h" />
     <ClInclude Include="Source\Engine\Animation\CurvePlayback.h" />
     <ClInclude Include="Source\Engine\Animation\TimelinePlayer.h" />
+    <ClInclude Include="Source\Engine\Asset\AnimationClipAsset.h" />
+    <ClInclude Include="Source\Engine\Asset\AnimationClipSerializer.h" />
+    <ClInclude Include="Source\Engine\Asset\AnimationTypes.h" />
     <ClInclude Include="Source\Engine\Asset\AssetQueryService.h" />
     <ClInclude Include="Source\Engine\Asset\BinarySerializer.h" />
     <ClInclude Include="Source\Engine\Asset\CurveAssetLoader.h" />
@@ -952,9 +961,6 @@
     <ClInclude Include="Source\Engine\Asset\StaticMesh.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMeshSimplifier.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMeshTypes.h" />
-    <ClInclude Include="Source\Engine\Animation\AnimationAsset.h" />
-    <ClInclude Include="Source\Engine\Animation\AnimationStateMachine.h" />
-    <ClInclude Include="Source\Engine\Animation\AnimInstance.h" />
     <ClInclude Include="Source\Engine\Audio\AudioSystem.h" />
     <ClInclude Include="Source\Engine\Camera\CameraModifier.h" />
     <ClInclude Include="Source\Engine\Camera\CameraModifier_CameraShake.h" />
@@ -1001,6 +1007,7 @@
     <ClInclude Include="Source\Engine\Component\SubUVComponent.h" />
     <ClInclude Include="Source\Engine\Component\TextRenderComponent.h" />
     <ClInclude Include="Source\Engine\Component\TransformProxy.h" />
+    <ClInclude Include="Source\Engine\Core\AnimationClipLoadService.h" />
     <ClInclude Include="Source\Engine\Core\AssetPathPolicy.h" />
     <ClInclude Include="Source\Engine\Core\AtlasResourceCache.h" />
     <ClInclude Include="Source\Engine\Core\CollisionTypes.h" />
