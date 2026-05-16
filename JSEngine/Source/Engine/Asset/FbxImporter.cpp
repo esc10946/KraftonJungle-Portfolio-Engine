@@ -1,4 +1,4 @@
-﻿#include <fbxsdk.h>
+#include <fbxsdk.h>
 
 #include "FbxImporter.h"
 #include "Asset/StaticMeshTypes.h"
@@ -27,7 +27,7 @@ static FVector ToFVector(const FbxDouble3& V)
 
 static FVector2 ToFVector2(const FbxVector2& V)
 {
-	// OBJ 로더와 동일하게 V 좌표 뒤집기
+	// OBJ   V  
 	return FVector2(static_cast<float>(V[0]), 1.0f - static_cast<float>(V[1]));
 }
 
@@ -54,6 +54,35 @@ static FMatrix ToFMatrix(const FbxAMatrix& M)
         static_cast<float>(M.Get(1, 0)), static_cast<float>(M.Get(1, 1)), static_cast<float>(M.Get(1, 2)), static_cast<float>(M.Get(1, 3)),
         static_cast<float>(M.Get(2, 0)), static_cast<float>(M.Get(2, 1)), static_cast<float>(M.Get(2, 2)), static_cast<float>(M.Get(2, 3)),
         static_cast<float>(M.Get(3, 0)), static_cast<float>(M.Get(3, 1)), static_cast<float>(M.Get(3, 2)), static_cast<float>(M.Get(3, 3)));
+}
+
+static double GetUpper3x3Determinant(const FbxAMatrix& Matrix)
+{
+    return
+        Matrix.Get(0, 0) * (Matrix.Get(1, 1) * Matrix.Get(2, 2) - Matrix.Get(1, 2) * Matrix.Get(2, 1)) -
+        Matrix.Get(0, 1) * (Matrix.Get(1, 0) * Matrix.Get(2, 2) - Matrix.Get(1, 2) * Matrix.Get(2, 0)) +
+        Matrix.Get(0, 2) * (Matrix.Get(1, 0) * Matrix.Get(2, 1) - Matrix.Get(1, 1) * Matrix.Get(2, 0));
+}
+
+static bool HasMirroredHandedness(const FbxAMatrix& Matrix)
+{
+    constexpr double DeterminantEpsilon = 1.e-6;
+    return GetUpper3x3Determinant(Matrix) < -DeterminantEpsilon;
+}
+
+static void AppendTriangleIndices(TArray<uint32>& OutIndices, uint32 I0, uint32 I1, uint32 I2, bool bFlipWinding)
+{
+    OutIndices.push_back(I0);
+    if (bFlipWinding)
+    {
+        OutIndices.push_back(I2);
+        OutIndices.push_back(I1);
+    }
+    else
+    {
+        OutIndices.push_back(I1);
+        OutIndices.push_back(I2);
+    }
 }
 
 struct FTempInfluence
@@ -291,7 +320,7 @@ static void DeduplicateSkeletalMeshVertices(FSkeletalMesh* Mesh)
 }
 
 /**
- * @brief 영향력 상위 4개의 bone을 FSkeletalMeshVertex에 할당
+ * @brief   4 bone FSkeletalMeshVertex 
  */
 static void AssignTop4Influences(
     const TArray<FTempInfluence>& SourceInfluences,
@@ -308,7 +337,7 @@ static void AssignTop4Influences(
         return;
     }
 
-	// 정렬은 그냥 standard sort 활용
+	//   standard sort 
     TArray<FTempInfluence> Sorted = SourceInfluences;
     std::sort(Sorted.begin(), Sorted.end(), [](const FTempInfluence& A, const FTempInfluence& B)
                 { return A.Weight > B.Weight; });
@@ -324,7 +353,7 @@ static void AssignTop4Influences(
         }
 
 		/*
-		 * note: 현재 BoneIndices가 uint8이라서 bone 개수가 256개 이상이면 무시
+		 * note:  BoneIndices uint8 bone  256  
 		 */
         if (Influence.BoneIndex < 0 || Influence.BoneIndex > 255 || Influence.Weight <= 0.0f)
         {
@@ -356,8 +385,8 @@ static void AssignTop4Influences(
 }
 
 /**
- * @brief FBX에는 node transform 뿐 아니라 mesh geometry 자체에 추가로 붙는
- *        숨은 보정 transform이 존재하기 때문에 이를 계산하는 함수
+ * @brief FBX node transform   mesh geometry   
+ *          transform     
  */
 static FbxAMatrix GetGeometryTransform(FbxNode* Node)
 {
@@ -378,7 +407,7 @@ static FbxAMatrix GetGeometryTransform(FbxNode* Node)
 }
 
 /**
- * @brief normal은 translate를 적용하지 않음
+ * @brief normal translate  
  */
 static FbxAMatrix GetNormalTransform(FbxAMatrix Matrix)
 {
@@ -403,7 +432,7 @@ static FbxAMatrix GetGlobalTransformWithGeometry(FbxNode* Node)
     const FbxAMatrix GlobalTransform = Node->EvaluateGlobalTransform();
     const FbxAMatrix GeometryTransform = GetGeometryTransform(Node);
 
-    // 기존 Static Mesh importer와 동일 정책
+    //  Static Mesh importer  
     return GlobalTransform * GeometryTransform;
 }
 
@@ -457,7 +486,7 @@ static bool ShouldSkipRigidMeshByName(FbxNode* OwnerNode)
 {
     const std::string Name = ToLowerCopy(OwnerNode ? OwnerNode->GetName() : "");
 
-    // helper / reference 성격이 강한 이름은 skip
+    // helper / reference    skip
     return ContainsAnyToken(Name, { "floor",
                                     "ground",
                                     "grid",
@@ -555,7 +584,7 @@ static void InspectMeshContentRecursive(FbxNode* Node, FFbxMeshContentInfo& OutI
 
         if (OutInfo.bHasStaticMesh && OutInfo.bHasSkeletalMesh)
         {
-			// 둘 다 true임을 찾았으면 early exit
+			//   true  early exit
             return;
         }
     }
@@ -577,7 +606,7 @@ static void AssignRigidInfluence(FSkeletalMeshVertex& Vertex, int32 BoneIndex)
     if (BoneIndex < 0 || BoneIndex > 255)
     {
         /*
-         * note: 현재 BoneIndices가 uint8이라서 BoneIndex가 255 이상이면 무시
+         * note:  BoneIndices uint8 BoneIndex 255  
          */
         return;
     }
@@ -776,10 +805,354 @@ static void CompressConstantRawAnimSequenceTrack(FRawAnimSequenceTrack& Track)
     }
 }
 
+static bool IsSkeletonNode(FbxNode* Node)
+{
+    if (!Node)
+    {
+        return false;
+    }
+
+    FbxNodeAttribute* Attr = Node->GetNodeAttribute();
+    return Attr && Attr->GetAttributeType() == FbxNodeAttribute::eSkeleton;
+}
+
+static FbxNode* FindTopmostSkeletonNode(FbxNode* Node)
+{
+    if (!IsSkeletonNode(Node))
+    {
+        return nullptr;
+    }
+
+    FbxNode* Root = Node;
+    while (Root->GetParent() && IsSkeletonNode(Root->GetParent()))
+    {
+        Root = Root->GetParent();
+    }
+
+    return Root;
+}
+
+static FbxNode* FindNearestSkeletonAncestor(FbxNode* Node)
+{
+    for (FbxNode* Current = Node; Current; Current = Current->GetParent())
+    {
+        if (FbxNode* Root = FindTopmostSkeletonNode(Current))
+        {
+            return Root;
+        }
+    }
+
+    return nullptr;
+}
+
+static void CollectSkeletonNodeNames(FbxNode* Node, TArray<FString>& OutBoneNodeNames)
+{
+    if (!Node)
+    {
+        return;
+    }
+
+    if (IsSkeletonNode(Node))
+    {
+        OutBoneNodeNames.push_back(FString(Node->GetName()));
+    }
+
+    for (int32 ChildIndex = 0; ChildIndex < Node->GetChildCount(); ++ChildIndex)
+    {
+        CollectSkeletonNodeNames(Node->GetChild(ChildIndex), OutBoneNodeNames);
+    }
+}
+
+static bool HasSkeletonDesc(const FFbxImportedAssetSet& AssetSet, const FString& RootNodeName)
+{
+    return std::any_of(
+        AssetSet.Skeletons.begin(),
+        AssetSet.Skeletons.end(),
+        [&RootNodeName](const FFbxSkeletonImportDesc& Desc)
+        {
+            return Desc.RootNodeName == RootNodeName;
+        });
+}
+
+static void AddSkeletonDesc(FbxNode* RootNode, FFbxImportedAssetSet& AssetSet)
+{
+    if (!RootNode)
+    {
+        return;
+    }
+
+    const FString RootNodeName(RootNode->GetName());
+    if (HasSkeletonDesc(AssetSet, RootNodeName))
+    {
+        return;
+    }
+
+    FFbxSkeletonImportDesc Desc;
+    Desc.RootNodeName = RootNodeName;
+    CollectSkeletonNodeNames(RootNode, Desc.BoneNodeNames);
+    AssetSet.Skeletons.push_back(Desc);
+}
+
+static TArray<FbxNode*> CollectSkinSkeletonRoots(FbxMesh* Mesh)
+{
+    TArray<FbxNode*> Roots;
+    if (!Mesh)
+    {
+        return Roots;
+    }
+
+    const int32 SkinCount = Mesh->GetDeformerCount(FbxDeformer::eSkin);
+    for (int32 SkinIndex = 0; SkinIndex < SkinCount; ++SkinIndex)
+    {
+        FbxSkin* Skin = static_cast<FbxSkin*>(Mesh->GetDeformer(SkinIndex, FbxDeformer::eSkin));
+        if (!Skin)
+        {
+            continue;
+        }
+
+        const int32 ClusterCount = Skin->GetClusterCount();
+        for (int32 ClusterIndex = 0; ClusterIndex < ClusterCount; ++ClusterIndex)
+        {
+            FbxCluster* Cluster = Skin->GetCluster(ClusterIndex);
+            if (!Cluster || !Cluster->GetLink())
+            {
+                continue;
+            }
+
+            FbxNode* Root = FindTopmostSkeletonNode(Cluster->GetLink());
+            if (!Root)
+            {
+                continue;
+            }
+
+            if (std::find(Roots.begin(), Roots.end(), Root) == Roots.end())
+            {
+                Roots.push_back(Root);
+            }
+        }
+    }
+
+    std::sort(
+        Roots.begin(),
+        Roots.end(),
+        [](const FbxNode* A, const FbxNode* B)
+        {
+            return FString(A ? A->GetName() : "") < FString(B ? B->GetName() : "");
+        });
+
+    return Roots;
+}
+
+static void SortImportedAssetSet(FFbxImportedAssetSet& AssetSet)
+{
+    std::sort(
+        AssetSet.Skeletons.begin(),
+        AssetSet.Skeletons.end(),
+        [](const FFbxSkeletonImportDesc& A, const FFbxSkeletonImportDesc& B)
+        {
+            return A.RootNodeName < B.RootNodeName;
+        });
+
+    std::sort(
+        AssetSet.SkeletalMeshes.begin(),
+        AssetSet.SkeletalMeshes.end(),
+        [](const FFbxSkeletalMeshImportDesc& A, const FFbxSkeletalMeshImportDesc& B)
+        {
+            if (A.SkeletonRootNodeName != B.SkeletonRootNodeName)
+            {
+                return A.SkeletonRootNodeName < B.SkeletonRootNodeName;
+            }
+            return A.MeshNodeName < B.MeshNodeName;
+        });
+
+    std::sort(
+        AssetSet.Animations.begin(),
+        AssetSet.Animations.end(),
+        [](const FFbxAnimationImportDesc& A, const FFbxAnimationImportDesc& B)
+        {
+            if (A.StackIndex != B.StackIndex)
+            {
+                return A.StackIndex < B.StackIndex;
+            }
+            return A.SequenceName < B.SequenceName;
+        });
+}
+
+static void AnalyzeSceneRecursive(FbxNode* Node, FFbxImportedAssetSet& AssetSet)
+{
+    if (!Node)
+    {
+        return;
+    }
+
+    if (FindTopmostSkeletonNode(Node) == Node)
+    {
+        AddSkeletonDesc(Node, AssetSet);
+    }
+
+    if (FbxMesh* Mesh = Node->GetMesh())
+    {
+        const bool bHasGeometry =
+            Mesh->GetControlPointsCount() > 0 &&
+            Mesh->GetPolygonCount() > 0;
+
+        if (bHasGeometry)
+        {
+            const bool bSkinned = HasValidSkinInfluence(Mesh);
+            if (bSkinned)
+            {
+                AssetSet.MeshContentInfo.bHasSkeletalMesh = true;
+
+                TArray<FbxNode*> Roots = CollectSkinSkeletonRoots(Mesh);
+                for (FbxNode* Root : Roots)
+                {
+                    AddSkeletonDesc(Root, AssetSet);
+                }
+
+                FFbxSkeletalMeshImportDesc Desc;
+                Desc.MeshNodeName = FString(Node->GetName());
+                Desc.SkeletonRootNodeName = Roots.empty() ? FString() : FString(Roots[0]->GetName());
+                Desc.MaterialSlotCount = Node->GetMaterialCount();
+                Desc.bSkinned = true;
+                AssetSet.SkeletalMeshes.push_back(Desc);
+            }
+            else if (FbxNode* Root = FindNearestSkeletonAncestor(Node->GetParent()))
+            {
+                AssetSet.MeshContentInfo.bHasSkeletalMesh = true;
+                AddSkeletonDesc(Root, AssetSet);
+
+                FFbxSkeletalMeshImportDesc Desc;
+                Desc.MeshNodeName = FString(Node->GetName());
+                Desc.SkeletonRootNodeName = FString(Root->GetName());
+                Desc.MaterialSlotCount = Node->GetMaterialCount();
+                Desc.bRigidAttached = true;
+                AssetSet.SkeletalMeshes.push_back(Desc);
+            }
+            else
+            {
+                AssetSet.MeshContentInfo.bHasStaticMesh = true;
+            }
+        }
+    }
+
+    for (int32 ChildIndex = 0; ChildIndex < Node->GetChildCount(); ++ChildIndex)
+    {
+        AnalyzeSceneRecursive(Node->GetChild(ChildIndex), AssetSet);
+    }
+}
+
+static void CollectSkeletonNodesPreOrder(FbxNode* Node, TArray<FbxNode*>& OutNodes)
+{
+    if (!Node)
+    {
+        return;
+    }
+
+    if (IsSkeletonNode(Node))
+    {
+        OutNodes.push_back(Node);
+    }
+
+    for (int32 ChildIndex = 0; ChildIndex < Node->GetChildCount(); ++ChildIndex)
+    {
+        CollectSkeletonNodesPreOrder(Node->GetChild(ChildIndex), OutNodes);
+    }
+}
+
+static FSkeleton* BuildSkeletonFromRoot(FbxNode* RootNode, const FString& SourcePath)
+{
+    if (!RootNode)
+    {
+        return nullptr;
+    }
+
+    TArray<FbxNode*> BoneNodes;
+    CollectSkeletonNodesPreOrder(RootNode, BoneNodes);
+    if (BoneNodes.empty())
+    {
+        return nullptr;
+    }
+
+    FSkeleton* Skeleton = new FSkeleton();
+    Skeleton->PathFileName = SourcePath;
+    Skeleton->RootNodeName = FString(RootNode->GetName());
+    Skeleton->Bones.reserve(BoneNodes.size());
+
+    TMap<FbxNode*, int32> BoneNodeToIndex;
+    for (FbxNode* BoneNode : BoneNodes)
+    {
+        const int32 BoneIndex = static_cast<int32>(Skeleton->Bones.size());
+        BoneNodeToIndex[BoneNode] = BoneIndex;
+
+        FBoneInfo Bone = {};
+        Bone.Name = FString(BoneNode->GetName());
+        Bone.ParentIndex = -1;
+        Bone.GlobalBindTransform = ToFMatrix(BoneNode->EvaluateGlobalTransform());
+        Bone.InverseBindPose = Bone.GlobalBindTransform.GetInverse();
+        Bone.LocalBindTransform = Bone.GlobalBindTransform;
+
+        Skeleton->Bones.push_back(Bone);
+    }
+
+    for (FbxNode* BoneNode : BoneNodes)
+    {
+        auto BoneIt = BoneNodeToIndex.find(BoneNode);
+        if (BoneIt == BoneNodeToIndex.end())
+        {
+            continue;
+        }
+
+        const int32 BoneIndex = BoneIt->second;
+        int32 ParentIndex = -1;
+        for (FbxNode* ParentNode = BoneNode->GetParent(); ParentNode; ParentNode = ParentNode->GetParent())
+        {
+            auto ParentIt = BoneNodeToIndex.find(ParentNode);
+            if (ParentIt != BoneNodeToIndex.end())
+            {
+                ParentIndex = ParentIt->second;
+                break;
+            }
+        }
+
+        FBoneInfo& Bone = Skeleton->Bones[BoneIndex];
+        Bone.ParentIndex = ParentIndex;
+        if (ParentIndex >= 0)
+        {
+            const FMatrix ParentGlobalInv = Skeleton->Bones[ParentIndex].GlobalBindTransform.GetInverse();
+            Bone.LocalBindTransform = Bone.GlobalBindTransform * ParentGlobalInv;
+        }
+        else
+        {
+            Bone.LocalBindTransform = Bone.GlobalBindTransform;
+        }
+    }
+
+    return Skeleton;
+}
+
+static void CollectTopmostSkeletonRootNodes(FbxNode* Node, TArray<FbxNode*>& OutRootNodes)
+{
+    if (!Node)
+    {
+        return;
+    }
+
+    if (FindTopmostSkeletonNode(Node) == Node)
+    {
+        OutRootNodes.push_back(Node);
+        return;
+    }
+
+    for (int32 ChildIndex = 0; ChildIndex < Node->GetChildCount(); ++ChildIndex)
+    {
+        CollectTopmostSkeletonRootNodes(Node->GetChild(ChildIndex), OutRootNodes);
+    }
+}
+
 static void ExtractRawAnimSequenceTrack(
     FbxAnimLayer* AnimLayer,
     FbxNode* BoneNode,
-    const FAnimationClip& Clip,
+    const FAnimationSequence& Sequence,
     FRawAnimSequenceTrack& OutTrack)
 {
     if (!AnimLayer || !BoneNode)
@@ -796,10 +1169,10 @@ static void ExtractRawAnimSequenceTrack(
     const FVector DefaultTranslation = ToFVector(BoneNode->LclTranslation.Get());
     const FVector DefaultRotation = ToFVector(BoneNode->LclRotation.Get());
     const FVector DefaultScale = ToFVector(BoneNode->LclScaling.Get());
-    const float FrameRate = Clip.SourceFrameRate > 0.0f ? Clip.SourceFrameRate : 30.0f;
+    const float FrameRate = Sequence.SourceFrameRate > 0.0f ? Sequence.SourceFrameRate : 30.0f;
     const int32 FrameCount = CalculateAnimationFrameCount(
-        Clip.StartTimeSeconds,
-        Clip.EndTimeSeconds,
+        Sequence.StartTimeSeconds,
+        Sequence.EndTimeSeconds,
         FrameRate);
 
     OutTrack.PosKeys.clear();
@@ -822,8 +1195,8 @@ static void ExtractRawAnimSequenceTrack(
     for (int32 FrameIndex = 0; FrameIndex < FrameCount; ++FrameIndex)
     {
         const double SampleTimeSeconds = std::min<double>(
-            Clip.EndTimeSeconds,
-            static_cast<double>(Clip.StartTimeSeconds) + static_cast<double>(FrameIndex) / static_cast<double>(FrameRate));
+            Sequence.EndTimeSeconds,
+            static_cast<double>(Sequence.StartTimeSeconds) + static_cast<double>(FrameIndex) / static_cast<double>(FrameRate));
 
         FbxTime SampleTime;
         SampleTime.SetSecondDouble(SampleTimeSeconds);
@@ -880,7 +1253,7 @@ static FString NormalizeBlendShapeChannelName(const FString& BlendShapeName, con
 static void ExtractShapeKeyTracksRecursive(
     FbxNode* Node,
     FbxAnimLayer* AnimLayer,
-    FAnimationClip& OutClip)
+    FAnimationSequence& OutSequence)
 {
     if (!Node || !AnimLayer)
     {
@@ -927,7 +1300,7 @@ static void ExtractShapeKeyTracksRecursive(
 
                     if (HasAnyKeys(Track.WeightCurve))
                     {
-                        OutClip.ShapeKeyTracks.push_back(Track);
+                        OutSequence.ShapeKeyTracks.push_back(Track);
                     }
                 }
             }
@@ -936,21 +1309,21 @@ static void ExtractShapeKeyTracksRecursive(
 
     for (int32 ChildIndex = 0; ChildIndex < Node->GetChildCount(); ++ChildIndex)
     {
-        ExtractShapeKeyTracksRecursive(Node->GetChild(ChildIndex), AnimLayer, OutClip);
+        ExtractShapeKeyTracksRecursive(Node->GetChild(ChildIndex), AnimLayer, OutSequence);
     }
 }
 
 static bool ValidateAnimationFloatCurve(
     const FAnimationFloatCurve& Curve,
-    const char* ClipName,
+    const char* SequenceName,
     const char* TrackName,
-    float ClipStartSeconds,
-    float ClipEndSeconds)
+    float SequenceStartSeconds,
+    float SequenceEndSeconds)
 {
     if (!IsFinite(Curve.DefaultValue))
     {
-        UE_LOG_WARNING("[FbxImporter] Animation curve has non-finite default value: Clip=%s Track=%s",
-                       ClipName,
+        UE_LOG_WARNING("[FbxImporter] Animation curve has non-finite default value: Sequence=%s Track=%s",
+                       SequenceName,
                        TrackName);
         return false;
     }
@@ -961,8 +1334,8 @@ static bool ValidateAnimationFloatCurve(
         if (!IsFinite(Key.TimeSeconds) ||
             !IsFinite(Key.Value))
         {
-            UE_LOG_WARNING("[FbxImporter] Animation curve has non-finite key time/value: Clip=%s Track=%s",
-                           ClipName,
+            UE_LOG_WARNING("[FbxImporter] Animation curve has non-finite key time/value: Sequence=%s Track=%s",
+                           SequenceName,
                            TrackName);
             return false;
         }
@@ -974,27 +1347,27 @@ static bool ValidateAnimationFloatCurve(
             !IsFinite(Key.ArriveTangentVelocity) ||
             !IsFinite(Key.LeaveTangentVelocity))
         {
-            UE_LOG_WARNING("[FbxImporter] Animation curve has non-finite optional tangent metadata: Clip=%s Track=%s",
-                           ClipName,
+            UE_LOG_WARNING("[FbxImporter] Animation curve has non-finite optional tangent metadata: Sequence=%s Track=%s",
+                           SequenceName,
                            TrackName);
         }
 
         if (Key.TimeSeconds < PreviousTime)
         {
-            UE_LOG_WARNING("[FbxImporter] Animation curve keys are not sorted: Clip=%s Track=%s",
-                           ClipName,
+            UE_LOG_WARNING("[FbxImporter] Animation curve keys are not sorted: Sequence=%s Track=%s",
+                           SequenceName,
                            TrackName);
             return false;
         }
 
-        if (Key.TimeSeconds < ClipStartSeconds - 0.001f || Key.TimeSeconds > ClipEndSeconds + 0.001f)
+        if (Key.TimeSeconds < SequenceStartSeconds - 0.001f || Key.TimeSeconds > SequenceEndSeconds + 0.001f)
         {
-            UE_LOG_WARNING("[FbxImporter] Animation curve key is outside clip range: Clip=%s Track=%s Time=%.6f Range=[%.6f, %.6f]",
-                           ClipName,
+            UE_LOG_WARNING("[FbxImporter] Animation curve key is outside sequence range: Sequence=%s Track=%s Time=%.6f Range=[%.6f, %.6f]",
+                           SequenceName,
                            TrackName,
                            Key.TimeSeconds,
-                           ClipStartSeconds,
-                           ClipEndSeconds);
+                           SequenceStartSeconds,
+                           SequenceEndSeconds);
         }
 
         PreviousTime = Key.TimeSeconds;
@@ -1003,11 +1376,11 @@ static bool ValidateAnimationFloatCurve(
     return true;
 }
 
-static bool ValidateBoneAnimationTrack(const FBoneAnimationTrack& Track, const FAnimationClip& Clip)
+static bool ValidateBoneAnimationTrack(const FBoneAnimationTrack& Track, const FAnimationSequence& Sequence)
 {
     if (Track.BoneName.empty())
     {
-        UE_LOG_WARNING("[FbxImporter] Animation bone track has an empty bone name: Clip=%s", Clip.Name.c_str());
+        UE_LOG_WARNING("[FbxImporter] Animation bone track has an empty bone name: Sequence=%s", Sequence.Name.c_str());
         return false;
     }
 
@@ -1021,14 +1394,14 @@ static bool ValidateBoneAnimationTrack(const FBoneAnimationTrack& Track, const F
         !IsFinite(Track.ScalingOffset) ||
         !IsFinite(Track.ScalingPivot))
     {
-        UE_LOG_WARNING("[FbxImporter] Animation bone track has non-finite transform metadata: Clip=%s Bone=%s",
-                       Clip.Name.c_str(),
+        UE_LOG_WARNING("[FbxImporter] Animation bone track has non-finite transform metadata: Sequence=%s Bone=%s",
+                       Sequence.Name.c_str(),
                        Track.BoneName.c_str());
         return false;
     }
 
     bool bValid = true;
-    const int32 ExpectedRawKeyCount = Clip.NumberOfKeys > 0 ? Clip.NumberOfKeys : Clip.NumberOfFrames;
+    const int32 ExpectedRawKeyCount = Sequence.NumberOfKeys > 0 ? Sequence.NumberOfKeys : Sequence.NumberOfFrames;
     const auto IsValidRawKeyCount = [ExpectedRawKeyCount](size_t KeyCount)
     {
         return KeyCount == 1 || (ExpectedRawKeyCount > 0 && KeyCount == static_cast<size_t>(ExpectedRawKeyCount));
@@ -1040,8 +1413,8 @@ static bool ValidateBoneAnimationTrack(const FBoneAnimationTrack& Track, const F
         !IsValidRawKeyCount(Track.InternalTrack.RotKeys.size()) ||
         !IsValidRawKeyCount(Track.InternalTrack.ScaleKeys.size()))
     {
-        UE_LOG_WARNING("[FbxImporter] Animation raw track key count mismatch: Clip=%s Bone=%s Expected=%d Pos=%zu Rot=%zu Scale=%zu",
-                       Clip.Name.c_str(),
+        UE_LOG_WARNING("[FbxImporter] Animation raw track key count mismatch: Sequence=%s Bone=%s Expected=%d Pos=%zu Rot=%zu Scale=%zu",
+                       Sequence.Name.c_str(),
                        Track.BoneName.c_str(),
                        ExpectedRawKeyCount,
                        Track.InternalTrack.PosKeys.size(),
@@ -1066,54 +1439,54 @@ static bool ValidateBoneAnimationTrack(const FBoneAnimationTrack& Track, const F
     return bValid;
 }
 
-static bool ValidateAnimationClip(const FAnimationClip& Clip)
+static bool ValidateAnimationSequence(const FAnimationSequence& Sequence)
 {
     bool bValid = true;
 
-    if (Clip.Name.empty())
+    if (Sequence.Name.empty())
     {
-        UE_LOG_WARNING("[FbxImporter] Animation clip has an empty name: Source=%s", Clip.SourcePath.c_str());
+        UE_LOG_WARNING("[FbxImporter] Animation sequence has an empty name: Source=%s", Sequence.SourcePath.c_str());
         bValid = false;
     }
 
-    if (!IsFinite(Clip.StartTimeSeconds) ||
-        !IsFinite(Clip.EndTimeSeconds) ||
-        !IsFinite(Clip.DurationSeconds) ||
-        !IsFinite(Clip.SourceFrameRate) ||
-        Clip.EndTimeSeconds < Clip.StartTimeSeconds ||
-        Clip.DurationSeconds < 0.0f)
+    if (!IsFinite(Sequence.StartTimeSeconds) ||
+        !IsFinite(Sequence.EndTimeSeconds) ||
+        !IsFinite(Sequence.DurationSeconds) ||
+        !IsFinite(Sequence.SourceFrameRate) ||
+        Sequence.EndTimeSeconds < Sequence.StartTimeSeconds ||
+        Sequence.DurationSeconds < 0.0f)
     {
-        UE_LOG_WARNING("[FbxImporter] Animation clip has an invalid time range: Clip=%s Start=%.6f End=%.6f Duration=%.6f",
-                       Clip.Name.c_str(),
-                       Clip.StartTimeSeconds,
-                       Clip.EndTimeSeconds,
-                       Clip.DurationSeconds);
+        UE_LOG_WARNING("[FbxImporter] Animation sequence has an invalid time range: Sequence=%s Start=%.6f End=%.6f Duration=%.6f",
+                       Sequence.Name.c_str(),
+                       Sequence.StartTimeSeconds,
+                       Sequence.EndTimeSeconds,
+                       Sequence.DurationSeconds);
         bValid = false;
     }
 
     std::unordered_set<FString> BoneNames;
-    for (const FBoneAnimationTrack& Track : Clip.BoneTracks)
+    for (const FBoneAnimationTrack& Track : Sequence.BoneTracks)
     {
         if (!Track.BoneName.empty() && !BoneNames.insert(Track.BoneName).second)
         {
-            UE_LOG_WARNING("[FbxImporter] Animation clip has duplicate bone tracks: Clip=%s Bone=%s",
-                           Clip.Name.c_str(),
+            UE_LOG_WARNING("[FbxImporter] Animation sequence has duplicate bone tracks: Sequence=%s Bone=%s",
+                           Sequence.Name.c_str(),
                            Track.BoneName.c_str());
             bValid = false;
         }
 
-        bValid &= ValidateBoneAnimationTrack(Track, Clip);
+        bValid &= ValidateBoneAnimationTrack(Track, Sequence);
     }
 
-    for (const FShapeKeyAnimationTrack& Track : Clip.ShapeKeyTracks)
+    for (const FShapeKeyAnimationTrack& Track : Sequence.ShapeKeyTracks)
     {
         if (Track.MeshNodeName.empty() || Track.ShapeKeyName.empty())
         {
-            UE_LOG_WARNING("[FbxImporter] Animation shape key track has an empty binding: Clip=%s", Clip.Name.c_str());
+            UE_LOG_WARNING("[FbxImporter] Animation shape key track has an empty binding: Sequence=%s", Sequence.Name.c_str());
             bValid = false;
         }
 
-        bValid &= ValidateAnimationFloatCurve(Track.WeightCurve, Clip.Name.c_str(), Track.ShapeKeyName.c_str(), Clip.StartTimeSeconds, Clip.EndTimeSeconds);
+        bValid &= ValidateAnimationFloatCurve(Track.WeightCurve, Sequence.Name.c_str(), Track.ShapeKeyName.c_str(), Sequence.StartTimeSeconds, Sequence.EndTimeSeconds);
     }
 
     return bValid;
@@ -1150,7 +1523,7 @@ FStaticMesh* FFbxImporter::Load(const FString& Path, const FStaticMeshLoadOption
 		return nullptr;
 	}
 
-	// Triangulate 후 메시 처리
+	// Triangulate   
 	FbxGeometryConverter Converter(Manager);
 	Converter.Triangulate(Scene, /*pReplace=*/true);
 
@@ -1253,7 +1626,7 @@ FSkeletalMesh* FFbxImporter::LoadSkeletalMesh(const FString& Path, const FStatic
 
     if (FbxNode* RootNode = Scene->GetRootNode())
     {
-        // 1-pass: skin deformer가 있는 mesh만 먼저 처리
+        // 1-pass: skin deformer  mesh  
         for (int32 i = 0; i < RootNode->GetChildCount(); ++i)
         {
             CollectSkeletalMeshes(
@@ -1264,7 +1637,7 @@ FSkeletalMesh* FFbxImporter::LoadSkeletalMesh(const FString& Path, const FStatic
                 bHasImportedSkinnedMesh);
         }
 
-        // 2-pass: skin deformer가 없는 mesh 중 bone 아래에 붙은 mesh를 rigid mesh로 처리
+        // 2-pass: skin deformer  mesh  bone   mesh rigid mesh 
         for (int32 i = 0; i < RootNode->GetChildCount(); ++i)
         {
             CollectSkeletalMeshes(
@@ -1303,12 +1676,71 @@ FSkeletalMesh* FFbxImporter::LoadSkeletalMesh(const FString& Path, const FStatic
     return SkeletalMesh;
 }
 
-TArray<FAnimationClip*> FFbxImporter::LoadAnimations(const FString& Path, const FAnimationImportOptions& ImportOptions)
+TArray<FSkeleton*> FFbxImporter::LoadSkeletons(const FString& Path)
+{
+    TArray<FSkeleton*> Result;
+
+    FbxManager* Manager = FbxManager::Create();
+    if (!Manager)
+    {
+        UE_LOG_ERROR("[FbxImporter] Failed to create FbxManager for skeleton import");
+        return Result;
+    }
+
+    FbxIOSettings* IOSettings = FbxIOSettings::Create(Manager, IOSROOT);
+    Manager->SetIOSettings(IOSettings);
+
+    FbxScene* Scene = FbxScene::Create(Manager, "ImportSkeletonScene");
+    if (!Scene)
+    {
+        UE_LOG_ERROR("[FbxImporter] Failed to create FbxScene for skeleton import");
+        Manager->Destroy();
+        return Result;
+    }
+
+    if (!ImportScene(Path, Manager, Scene))
+    {
+        Manager->Destroy();
+        return Result;
+    }
+
+    TArray<FbxNode*> RootNodes;
+    if (FbxNode* RootNode = Scene->GetRootNode())
+    {
+        CollectTopmostSkeletonRootNodes(RootNode, RootNodes);
+    }
+
+    std::sort(
+        RootNodes.begin(),
+        RootNodes.end(),
+        [](const FbxNode* A, const FbxNode* B)
+        {
+            return FString(A ? A->GetName() : "") < FString(B ? B->GetName() : "");
+        });
+
+    for (FbxNode* RootNode : RootNodes)
+    {
+        if (FSkeleton* Skeleton = BuildSkeletonFromRoot(RootNode, Path))
+        {
+            Result.push_back(Skeleton);
+        }
+    }
+
+    Manager->Destroy();
+
+    UE_LOG("[FbxImporter] FBX skeletons loaded: %s (Skeletons=%zu)",
+           Path.c_str(),
+           Result.size());
+
+    return Result;
+}
+
+TArray<FAnimationSequence*> FFbxImporter::LoadAnimationSequences(const FString& Path, const FAnimationImportOptions& ImportOptions)
 {
     const double StartTime = FPlatformTime::Seconds();
     UE_LOG("[FbxImporter] Start loading FBX animations: %s", Path.c_str());
 
-    TArray<FAnimationClip*> Result;
+    TArray<FAnimationSequence*> Result;
 
     FbxManager* Manager = FbxManager::Create();
     if (!Manager)
@@ -1354,17 +1786,17 @@ TArray<FAnimationClip*> FFbxImporter::LoadAnimations(const FString& Path, const 
             continue;
         }
 
-        FAnimationClip* Clip = new FAnimationClip();
-        Clip->SourcePath = Path;
-        Clip->SkeletonSourcePath = ImportOptions.SkeletonSourcePath;
+        FAnimationSequence* Sequence = new FAnimationSequence();
+        Sequence->SourcePath = Path;
+        Sequence->SkeletonSourcePath = ImportOptions.SkeletonSourcePath;
 
-        if (ExtractAnimationStack(Scene, AnimStack, BoneNodes, ImportOptions, *Clip))
+        if (ExtractAnimationStack(Scene, AnimStack, BoneNodes, ImportOptions, *Sequence))
         {
-            Result.push_back(Clip);
+            Result.push_back(Sequence);
         }
         else
         {
-            delete Clip;
+            delete Sequence;
         }
 
         if (!ImportOptions.bImportAllStacks)
@@ -1376,7 +1808,7 @@ TArray<FAnimationClip*> FFbxImporter::LoadAnimations(const FString& Path, const 
     Manager->Destroy();
 
     const double EndTime = FPlatformTime::Seconds();
-    UE_LOG("[FbxImporter] FBX animations loaded: %s (Clips=%zu, %.3f sec)",
+    UE_LOG("[FbxImporter] FBX animations loaded: %s (Sequences=%zu, %.3f sec)",
            Path.c_str(),
            Result.size(),
            EndTime - StartTime);
@@ -1384,24 +1816,25 @@ TArray<FAnimationClip*> FFbxImporter::LoadAnimations(const FString& Path, const 
     return Result;
 }
 
-FFbxMeshContentInfo FFbxImporter::InspectMeshContent(const FString& Path)
+FFbxImportedAssetSet FFbxImporter::AnalyzeImportedAssets(const FString& Path)
 {
-    FFbxMeshContentInfo Result;
+    FFbxImportedAssetSet Result;
+    Result.SourcePath = Path;
 
     FbxManager* Manager = FbxManager::Create();
     if (!Manager)
     {
-        UE_LOG_ERROR("[FbxImporter] Failed to create FbxManager for inspection");
+        UE_LOG_ERROR("[FbxImporter] Failed to create FbxManager for scene analysis");
         return Result;
     }
 
     FbxIOSettings* IOSettings = FbxIOSettings::Create(Manager, IOSROOT);
     Manager->SetIOSettings(IOSettings);
 
-    FbxScene* Scene = FbxScene::Create(Manager, "InspectFbxScene");
+    FbxScene* Scene = FbxScene::Create(Manager, "AnalyzeFbxScene");
     if (!Scene)
     {
-        UE_LOG_ERROR("[FbxImporter] Failed to create FbxScene for inspection");
+        UE_LOG_ERROR("[FbxImporter] Failed to create FbxScene for scene analysis");
         Manager->Destroy();
         return Result;
     }
@@ -1410,12 +1843,49 @@ FFbxMeshContentInfo FFbxImporter::InspectMeshContent(const FString& Path)
     {
         if (FbxNode* RootNode = Scene->GetRootNode())
         {
-            InspectMeshContentRecursive(RootNode, Result);
+            AnalyzeSceneRecursive(RootNode, Result);
+        }
+
+        FString TargetSkeletonRootNodeName;
+        if (!Result.Skeletons.empty())
+        {
+            const auto FirstSkeleton = std::min_element(
+                Result.Skeletons.begin(),
+                Result.Skeletons.end(),
+                [](const FFbxSkeletonImportDesc& A, const FFbxSkeletonImportDesc& B)
+                {
+                    return A.RootNodeName < B.RootNodeName;
+                });
+            TargetSkeletonRootNodeName = FirstSkeleton->RootNodeName;
+        }
+
+        const int32 AnimStackCount = Scene->GetSrcObjectCount<FbxAnimStack>();
+        for (int32 StackIndex = 0; StackIndex < AnimStackCount; ++StackIndex)
+        {
+            FbxAnimStack* AnimStack = Scene->GetSrcObject<FbxAnimStack>(StackIndex);
+            if (!AnimStack)
+            {
+                continue;
+            }
+
+            FFbxAnimationImportDesc Desc;
+            Desc.SequenceName = AnimStack->GetName() && AnimStack->GetName()[0] != '\0'
+                ? FString(AnimStack->GetName())
+                : FString("AnimStack_") + std::to_string(StackIndex);
+            Desc.TargetSkeletonRootNodeName = TargetSkeletonRootNodeName;
+            Desc.StackIndex = StackIndex;
+            Result.Animations.push_back(Desc);
         }
     }
 
+    SortImportedAssetSet(Result);
     Manager->Destroy();
     return Result;
+}
+
+FFbxMeshContentInfo FFbxImporter::InspectMeshContent(const FString& Path)
+{
+    return AnalyzeImportedAssets(Path).MeshContentInfo;
 }
 
 void FFbxImporter::CollectSkeletonNodes(FbxNode* Node, TArray<FbxNode*>& OutNodes) const
@@ -1444,7 +1914,7 @@ bool FFbxImporter::ExtractAnimationStack(
     FbxAnimStack* AnimStack,
     const TArray<FbxNode*>& BoneNodes,
     const FAnimationImportOptions& ImportOptions,
-    FAnimationClip& OutClip) const
+    FAnimationSequence& OutSequence) const
 {
     if (!Scene || !AnimStack)
     {
@@ -1473,35 +1943,35 @@ bool FFbxImporter::ExtractAnimationStack(
 
     Scene->SetCurrentAnimationStack(AnimStack);
 
-    OutClip.Name = FString(AnimStack->GetName());
+    OutSequence.Name = FString(AnimStack->GetName());
     const FbxTimeSpan TimeSpan = AnimStack->GetLocalTimeSpan();
-    OutClip.StartTimeSeconds = static_cast<float>(TimeSpan.GetStart().GetSecondDouble());
-    OutClip.EndTimeSeconds = static_cast<float>(TimeSpan.GetStop().GetSecondDouble());
-    OutClip.DurationSeconds = std::max(0.0f, OutClip.EndTimeSeconds - OutClip.StartTimeSeconds);
-    OutClip.SourceFrameRate = static_cast<float>(FbxTime::GetFrameRate(Scene->GetGlobalSettings().GetTimeMode()));
-    OutClip.NumberOfFrames = CalculateAnimationFrameCount(
-        OutClip.StartTimeSeconds,
-        OutClip.EndTimeSeconds,
-        OutClip.SourceFrameRate);
-    OutClip.NumberOfKeys = OutClip.NumberOfFrames;
+    OutSequence.StartTimeSeconds = static_cast<float>(TimeSpan.GetStart().GetSecondDouble());
+    OutSequence.EndTimeSeconds = static_cast<float>(TimeSpan.GetStop().GetSecondDouble());
+    OutSequence.DurationSeconds = std::max(0.0f, OutSequence.EndTimeSeconds - OutSequence.StartTimeSeconds);
+    OutSequence.SourceFrameRate = static_cast<float>(FbxTime::GetFrameRate(Scene->GetGlobalSettings().GetTimeMode()));
+    OutSequence.NumberOfFrames = CalculateAnimationFrameCount(
+        OutSequence.StartTimeSeconds,
+        OutSequence.EndTimeSeconds,
+        OutSequence.SourceFrameRate);
+    OutSequence.NumberOfKeys = OutSequence.NumberOfFrames;
 
     if (ImportOptions.bImportBoneTransforms)
     {
-        ExtractBoneAnimationTracks(AnimLayer, BoneNodes, OutClip);
+        ExtractBoneAnimationTracks(AnimLayer, BoneNodes, OutSequence);
     }
 
     if (ImportOptions.bImportShapeKeys)
     {
-        ExtractShapeKeyTracks(AnimLayer, Scene, OutClip);
+        ExtractShapeKeyTracks(AnimLayer, Scene, OutSequence);
     }
 
-    if (OutClip.BoneTracks.empty() && OutClip.ShapeKeyTracks.empty())
+    if (OutSequence.BoneTracks.empty() && OutSequence.ShapeKeyTracks.empty())
     {
         UE_LOG_WARNING("[FbxImporter] Skip animation stack without supported curves: %s", AnimStack->GetName());
         return false;
     }
 
-    if (!ValidateAnimationClip(OutClip))
+    if (!ValidateAnimationSequence(OutSequence))
     {
         UE_LOG_WARNING("[FbxImporter] Skip invalid animation stack: %s", AnimStack->GetName());
         return false;
@@ -1513,7 +1983,7 @@ bool FFbxImporter::ExtractAnimationStack(
 void FFbxImporter::ExtractBoneAnimationTracks(
     FbxAnimLayer* AnimLayer,
     const TArray<FbxNode*>& BoneNodes,
-    FAnimationClip& OutClip) const
+    FAnimationSequence& OutSequence) const
 {
     if (!AnimLayer)
     {
@@ -1532,7 +2002,7 @@ void FFbxImporter::ExtractBoneAnimationTracks(
         Track.DefaultTranslation = ToFVector(BoneNode->LclTranslation.Get());
         Track.DefaultRotationEuler = ToFVector(BoneNode->LclRotation.Get());
         Track.DefaultScale = ToFVector(BoneNode->LclScaling.Get());
-        ExtractRawAnimSequenceTrack(AnimLayer, BoneNode, OutClip, Track.InternalTrack);
+        ExtractRawAnimSequenceTrack(AnimLayer, BoneNode, OutSequence, Track.InternalTrack);
         Track.bRotationActive = BoneNode->GetRotationActive();
 
         EFbxRotationOrder RotationOrder = eEulerXYZ;
@@ -1554,19 +2024,19 @@ void FFbxImporter::ExtractBoneAnimationTracks(
             !Track.InternalTrack.RotKeys.empty() &&
             !Track.InternalTrack.ScaleKeys.empty())
         {
-            OutClip.BoneTracks.push_back(Track);
+            OutSequence.BoneTracks.push_back(Track);
         }
     }
 }
 
-void FFbxImporter::ExtractShapeKeyTracks(FbxAnimLayer* AnimLayer, FbxScene* Scene, FAnimationClip& OutClip) const
+void FFbxImporter::ExtractShapeKeyTracks(FbxAnimLayer* AnimLayer, FbxScene* Scene, FAnimationSequence& OutSequence) const
 {
     if (!AnimLayer || !Scene)
     {
         return;
     }
 
-    ExtractShapeKeyTracksRecursive(Scene->GetRootNode(), AnimLayer, OutClip);
+    ExtractShapeKeyTracksRecursive(Scene->GetRootNode(), AnimLayer, OutSequence);
 }
 
 bool FFbxImporter::ImportScene(const FString& Path, FbxManager* Manager, FbxScene* Scene)
@@ -1590,7 +2060,7 @@ bool FFbxImporter::ImportScene(const FString& Path, FbxManager* Manager, FbxScen
 	if (bResult)
 	{
 		// Engine import policy: left-handed, Z-up, X-forward, meter.
-		// FBX SDK가 mesh/transform/anim까지 일관되게 변환해주므로 정점 단계에서 축 swap 금지.
+		// FBX SDK mesh/transform/anim      swap .
 		const FbxAxisSystem TargetAxis(
 			FbxAxisSystem::eZAxis,
 			FbxAxisSystem::eParityOdd,
@@ -1630,8 +2100,8 @@ void FFbxImporter::ProcessMesh(FbxMesh* Mesh, FStaticMesh* InStaticMesh)
 
 	FbxNode* OwnerNode = Mesh->GetNode();
 
-	// FbxAxisSystem/FbxSystemUnit::ConvertScene은 노드 transform에 변환을 baked함.
-	// → control point에 GlobalTransform * GeometricTransform을 적용해야 단위/축이 반영됨.
+	// FbxAxisSystem/FbxSystemUnit::ConvertScene  transform  baked.
+	//  control point GlobalTransform * GeometricTransform  / .
 	FbxAMatrix VertexTransform;
 	FbxAMatrix NormalTransform;
 	if (OwnerNode)
@@ -1645,7 +2115,7 @@ void FFbxImporter::ProcessMesh(FbxMesh* Mesh, FStaticMesh* InStaticMesh)
 		const FbxAMatrix GlobalTransform = OwnerNode->EvaluateGlobalTransform();
 		VertexTransform = GlobalTransform * GeomTransform;
 
-		// Normal은 회전·스케일만 — translation 제거
+		// Normal  ? translation 
 		NormalTransform = VertexTransform;
 		NormalTransform.SetT(FbxVector4(0, 0, 0, 0));
 	}
@@ -1653,7 +2123,7 @@ void FFbxImporter::ProcessMesh(FbxMesh* Mesh, FStaticMesh* InStaticMesh)
 	const FbxVector4* ControlPoints = Mesh->GetControlPoints();
 	if (!ControlPoints) return;
 
-	// 머티리얼 매핑 모드 확인 (per-polygon으로 가정, 그 외엔 단일 슬롯으로 처리)
+	//     (per-polygon ,     )
 	FbxLayerElementArrayTemplate<int32>* MaterialIndices = nullptr;
 	FbxGeometryElement::EMappingMode MaterialMappingMode = FbxGeometryElement::eByPolygon;
 	if (Mesh->GetElementMaterial())
@@ -1662,17 +2132,17 @@ void FFbxImporter::ProcessMesh(FbxMesh* Mesh, FStaticMesh* InStaticMesh)
 		MaterialMappingMode = Mesh->GetElementMaterial()->GetMappingMode();
 	}
 
-	// 슬롯별 인덱스 임시 저장 (OBJ 로더와 동일한 패턴)
+	//     (OBJ   )
 	TArray<TArray<uint32>> SlotIndices;
 
 	const int32 PolygonCount = Mesh->GetPolygonCount();
 	for (int32 PolyIdx = 0; PolyIdx < PolygonCount; ++PolyIdx)
 	{
-		// Triangulate 이후이므로 PolygonSize == 3 가정
+		// Triangulate  PolygonSize == 3 
 		const int32 PolygonSize = Mesh->GetPolygonSize(PolyIdx);
 		if (PolygonSize != 3) continue;
 
-		// 머티리얼 슬롯 결정
+		//   
 		FString MaterialName = "DefaultWhite";
 		if (MaterialIndices && OwnerNode)
 		{
@@ -1718,7 +2188,7 @@ void FFbxImporter::ProcessMesh(FbxMesh* Mesh, FStaticMesh* InStaticMesh)
 			FbxVector4 Normal(0, 0, 1, 0);
 			if (Mesh->GetPolygonVertexNormal(PolyIdx, Corner, Normal))
 			{
-				Normal[3] = 0.0;  // direction vector — translation은 무시
+				Normal[3] = 0.0;  // direction vector ? translation 
 				Normal = NormalTransform.MultT(Normal);
 				Vertex.Normal = ToFVector(Normal);
 				const float Len = Vertex.Normal.Size();
@@ -1729,7 +2199,7 @@ void FFbxImporter::ProcessMesh(FbxMesh* Mesh, FStaticMesh* InStaticMesh)
 				Vertex.Normal = FVector(0.0f, 0.0f, 1.0f);
 			}
 
-			// UV (첫 번째 채널만 사용)
+			// UV (   )
 			Vertex.UVs = FVector2(0.0f, 0.0f);
 			if (Mesh->GetElementUVCount() > 0)
 			{
@@ -1754,7 +2224,7 @@ void FFbxImporter::ProcessMesh(FbxMesh* Mesh, FStaticMesh* InStaticMesh)
 		}
 	}
 
-	// 슬롯별 인덱스를 Mesh.Indices에 합치고 Section 생성
+	//   Mesh.Indices  Section 
 	for (int32 SlotIdx = 0; SlotIdx < static_cast<int32>(SlotIndices.size()); ++SlotIdx)
 	{
 		TArray<uint32>& IndicesPerSlot = SlotIndices[SlotIdx];
@@ -1946,6 +2416,10 @@ void FFbxImporter::ProcessSkeletalMesh(
     }
 
     FbxNode* OwnerNode = Mesh->GetNode();
+    const size_t VertexCountBefore = InSkeletalMesh->Vertices.size();
+    const size_t IndexCountBefore = InSkeletalMesh->Indices.size();
+    const size_t SectionCountBefore = InSkeletalMesh->Sections.size();
+    const size_t SlotCountBefore = InSkeletalMesh->MaterialSlots.size();
 
     const FbxVector4* ControlPoints = Mesh->GetControlPoints();
     if (!ControlPoints)
@@ -1964,7 +2438,7 @@ void FFbxImporter::ProcessSkeletalMesh(
     TArray<TArray<FTempInfluence>> InfluencesByControlPoint;
     InfluencesByControlPoint.resize(ControlPointCount);
 
-    // cluster link node를 bone으로 등록
+    // cluster link node bone 
     for (int32 SkinIndex = 0; SkinIndex < SkinCount; ++SkinIndex)
     {
         FbxSkin* Skin = static_cast<FbxSkin*>(Mesh->GetDeformer(SkinIndex, FbxDeformer::eSkin));
@@ -2029,8 +2503,15 @@ void FFbxImporter::ProcessSkeletalMesh(
 
     const FbxAMatrix NormalBindGlobalWithGeometry =
         GetNormalTransformFromPositionTransform(MeshBindGlobalWithGeometry);
+    const bool bFlipWinding = HasMirroredHandedness(MeshBindGlobalWithGeometry);
+    if (bFlipWinding)
+    {
+        UE_LOG(
+            "[FbxImporter] Mirrored skinned mesh transform detected. Flipping winding | Node=%s",
+            OwnerNode ? OwnerNode->GetName() : "<unknown>");
+    }
 
-    // parentIndex와 LocalBindTransform을 계산
+    // parentIndex LocalBindTransform 
     for (auto& Pair : BoneNodeToIndex)
     {
         FbxNode* BoneNode = Pair.first;
@@ -2067,7 +2548,8 @@ void FFbxImporter::ProcessSkeletalMesh(
         }
     }
 
-    // control point별 influence를 수집
+    // control point influence 
+    int32 SkippedInfluenceCountForUint8Limit = 0;
     for (int32 SkinIndex = 0; SkinIndex < SkinCount; SkinIndex++)
     {
         FbxSkin* Skin = static_cast<FbxSkin*>(Mesh->GetDeformer(SkinIndex, FbxDeformer::eSkin));
@@ -2092,6 +2574,11 @@ void FFbxImporter::ProcessSkeletalMesh(
             }
 
             const int32 BoneIndex = BoneIt->second;
+            if (BoneIndex > 255)
+            {
+                SkippedInfluenceCountForUint8Limit += Cluster->GetControlPointIndicesCount();
+                continue;
+            }
 
             const int32 IndexCount = Cluster->GetControlPointIndicesCount();
             int* ControlPointIndices = Cluster->GetControlPointIndices();
@@ -2117,7 +2604,7 @@ void FFbxImporter::ProcessSkeletalMesh(
         }
     }
 
-    // material mapping 정보 준비
+    // material mapping  
     FbxLayerElementArrayTemplate<int32>* MaterialIndices = nullptr;
     FbxGeometryElement::EMappingMode MaterialMappingMode = FbxGeometryElement::eByPolygon;
 
@@ -2129,7 +2616,7 @@ void FFbxImporter::ProcessSkeletalMesh(
 
     TArray<TArray<uint32>> SlotIndices;
 
-    // polygon corner를 FSkeletalMeshVertex로 변환
+    // polygon corner FSkeletalMeshVertex 
     const int32 PolygonCount = Mesh->GetPolygonCount();
     for (int32 PolyIdx = 0; PolyIdx < PolygonCount; PolyIdx++)
     {
@@ -2171,6 +2658,8 @@ void FFbxImporter::ProcessSkeletalMesh(
             SlotIndices.resize(SlotIdx + 1);
         }
 
+        uint32 TriangleIndices[3] = {};
+        int32 ValidCornerCount = 0;
         for (int32 Corner = 0; Corner < 3; Corner++)
         {
             const int32 CtrlPointIdx = Mesh->GetPolygonVertex(PolyIdx, Corner);
@@ -2224,7 +2713,18 @@ void FFbxImporter::ProcessSkeletalMesh(
 
             const uint32 NewIndex = static_cast<uint32>(InSkeletalMesh->Vertices.size());
             InSkeletalMesh->Vertices.push_back(Vertex);
-            SlotIndices[SlotIdx].push_back(NewIndex);
+            TriangleIndices[ValidCornerCount] = NewIndex;
+            ++ValidCornerCount;
+        }
+
+        if (ValidCornerCount == 3)
+        {
+            AppendTriangleIndices(
+                SlotIndices[SlotIdx],
+                TriangleIndices[0],
+                TriangleIndices[1],
+                TriangleIndices[2],
+                bFlipWinding);
         }
     }
 
@@ -2248,6 +2748,26 @@ void FFbxImporter::ProcessSkeletalMesh(
 
         InSkeletalMesh->Sections.push_back(NewSection);
     }
+
+    if (SkippedInfluenceCountForUint8Limit > 0)
+    {
+        UE_LOG_WARNING(
+            "[FbxImporter] Skipped skeletal influences because bone index exceeds uint8 limit | Node=%s | Count=%d",
+            OwnerNode ? OwnerNode->GetName() : "<unknown>",
+            SkippedInfluenceCountForUint8Limit);
+    }
+
+    UE_LOG(
+        "[FbxImporter] Merged skinned mesh node: %s (Vertices: %zu -> %zu, Indices: %zu -> %zu, Sections: %zu -> %zu, Slots: %zu -> %zu)",
+        OwnerNode ? OwnerNode->GetName() : "<unknown>",
+        VertexCountBefore,
+        InSkeletalMesh->Vertices.size(),
+        IndexCountBefore,
+        InSkeletalMesh->Indices.size(),
+        SectionCountBefore,
+        InSkeletalMesh->Sections.size(),
+        SlotCountBefore,
+        InSkeletalMesh->MaterialSlots.size());
 }
 
 void FFbxImporter::ProcessRigidAttachedMesh(
@@ -2293,6 +2813,11 @@ void FFbxImporter::ProcessRigidAttachedMesh(
         return;
     }
 
+    const size_t VertexCountBefore = InSkeletalMesh->Vertices.size();
+    const size_t IndexCountBefore = InSkeletalMesh->Indices.size();
+    const size_t SectionCountBefore = InSkeletalMesh->Sections.size();
+    const size_t SlotCountBefore = InSkeletalMesh->MaterialSlots.size();
+
     const FbxVector4* ControlPoints = Mesh->GetControlPoints();
     if (!ControlPoints)
     {
@@ -2304,6 +2829,13 @@ void FFbxImporter::ProcessRigidAttachedMesh(
     const FbxAMatrix OwnerGlobalWithGeometry = GetGlobalTransformWithGeometry(OwnerNode);
     const FbxAMatrix OwnerNormalGlobalWithGeometry =
         GetNormalTransformFromPositionTransform(OwnerGlobalWithGeometry);
+    const bool bFlipWinding = HasMirroredHandedness(OwnerGlobalWithGeometry);
+    if (bFlipWinding)
+    {
+        UE_LOG(
+            "[FbxImporter] Mirrored rigid attached mesh transform detected. Flipping winding | Node=%s",
+            OwnerNode->GetName());
+    }
 
     FbxLayerElementArrayTemplate<int32>* MaterialIndices = nullptr;
     FbxGeometryElement::EMappingMode MaterialMappingMode = FbxGeometryElement::eByPolygon;
@@ -2358,6 +2890,8 @@ void FFbxImporter::ProcessRigidAttachedMesh(
             SlotIndices.resize(SlotIdx + 1);
         }
 
+        uint32 TriangleIndices[3] = {};
+        int32 ValidCornerCount = 0;
         for (int32 Corner = 0; Corner < 3; Corner++)
         {
             const int32 CtrlPointIdx = Mesh->GetPolygonVertex(PolyIdx, Corner);
@@ -2407,12 +2941,23 @@ void FFbxImporter::ProcessRigidAttachedMesh(
 
             Vertex.Color = FColor{ 1.0f, 1.0f, 1.0f, 1.0f };
 
-            // skin이 없는 rigid mesh이므로 parent bone 하나에 100% 붙임
+            // skin  rigid mesh parent bone  100% 
             AssignRigidInfluence(Vertex, AttachBoneIndex);
 
             const uint32 NewIndex = static_cast<uint32>(InSkeletalMesh->Vertices.size());
             InSkeletalMesh->Vertices.push_back(Vertex);
-            SlotIndices[SlotIdx].push_back(NewIndex);
+            TriangleIndices[ValidCornerCount] = NewIndex;
+            ++ValidCornerCount;
+        }
+
+        if (ValidCornerCount == 3)
+        {
+            AppendTriangleIndices(
+                SlotIndices[SlotIdx],
+                TriangleIndices[0],
+                TriangleIndices[1],
+                TriangleIndices[2],
+                bFlipWinding);
         }
     }
 
@@ -2436,6 +2981,19 @@ void FFbxImporter::ProcessRigidAttachedMesh(
 
         InSkeletalMesh->Sections.push_back(NewSection);
     }
+
+    UE_LOG(
+        "[FbxImporter] Merged rigid attached mesh node: %s (AttachBone=%d, Vertices: %zu -> %zu, Indices: %zu -> %zu, Sections: %zu -> %zu, Slots: %zu -> %zu)",
+        OwnerNode->GetName(),
+        AttachBoneIndex,
+        VertexCountBefore,
+        InSkeletalMesh->Vertices.size(),
+        IndexCountBefore,
+        InSkeletalMesh->Indices.size(),
+        SectionCountBefore,
+        InSkeletalMesh->Sections.size(),
+        SlotCountBefore,
+        InSkeletalMesh->MaterialSlots.size());
 }
 
 int32 FFbxImporter::GetOrAddMaterialSlot(FSkeletalMesh* InSkeletalMesh, const FString& MaterialName)

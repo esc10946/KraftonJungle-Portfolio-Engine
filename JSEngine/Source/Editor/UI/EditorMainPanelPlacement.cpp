@@ -94,7 +94,13 @@ FString ResolveSkeletalMeshDropLoadPath(const FString& PayloadPath)
         return {};
     }
 
-    if (GetLowerExtension(Path) != L".fbx")
+    const std::wstring Extension = GetLowerExtension(Path);
+    if (Extension == L".bin")
+    {
+        return FPaths::Normalize(FPaths::ToUtf8(Path.generic_wstring()));
+    }
+
+    if (Extension != L".fbx")
     {
         return {};
     }
@@ -201,19 +207,37 @@ bool FEditorMainPanel::SpawnSkeletalMeshFromContentPath(
     }
 
     const FString MeshLoadPath = ResolveSkeletalMeshDropLoadPath(PayloadPath);
-    const FString InspectPath = ResolveFbxDropInspectPath(PayloadPath);
-    if (MeshLoadPath.empty() || InspectPath.empty())
+    if (MeshLoadPath.empty())
     {
         return false;
     }
 
-    const FFbxMeshContentInfo ContentInfo = FResourceManager::Get().InspectFbxMeshContent(InspectPath);
-    if (!ContentInfo.bHasSkeletalMesh)
+    FString FinalMeshLoadPath = MeshLoadPath;
+    if (GetLowerExtension(std::filesystem::path(FPaths::ToWide(MeshLoadPath))) == L".fbx")
     {
-        return false;
+        TArray<FImportedFbxAssetRecord> Records = FResourceManager::Get().DiscoverImportedFbxAssets(MeshLoadPath);
+        if (Records.empty())
+        {
+            Records = FResourceManager::Get().ImportFbxAssets(MeshLoadPath);
+        }
+
+        auto MeshRecordIt = std::find_if(
+            Records.begin(),
+            Records.end(),
+            [](const FImportedFbxAssetRecord& Record)
+            {
+                return Record.Type == EImportedFbxAssetType::SkeletalMesh;
+            });
+
+        if (MeshRecordIt == Records.end())
+        {
+            return false;
+        }
+
+        FinalMeshLoadPath = MeshRecordIt->AssetPath;
     }
 
-    USkeletalMesh* Mesh = FResourceManager::Get().LoadSkeletalMesh(MeshLoadPath);
+    USkeletalMesh* Mesh = FResourceManager::Get().LoadSkeletalMesh(FinalMeshLoadPath);
     if (!Mesh || !Mesh->HasValidMeshData())
     {
         PushFooterLog("Failed to load dropped skeletal mesh");

@@ -14,6 +14,24 @@ namespace
 		return Value.size() >= Suffix.size() &&
 			Value.compare(Value.size() - Suffix.size(), Suffix.size(), Suffix) == 0;
 	}
+
+	FString PathToNormalizedString(const std::filesystem::path& Path)
+	{
+		return FPaths::Normalize(FPaths::ToUtf8(Path.generic_wstring()));
+	}
+
+	std::filesystem::path MakeSiblingBinaryPath(
+		const FString& SourceFbxPath,
+		const FString& AssetKind,
+		const FString& Token)
+	{
+		std::filesystem::path SourceFsPath(FPaths::ToWide(FPaths::Normalize(SourceFbxPath)));
+		std::filesystem::path BinaryFileName = SourceFsPath.stem();
+		BinaryFileName += FPaths::ToWide("_" + AssetKind + "_" + FAssetPathPolicy::SanitizeImportedAssetToken(Token));
+		BinaryFileName += L".bin";
+		return SourceFsPath.parent_path() / BinaryFileName;
+	}
+
 }
 
 bool FAssetPathPolicy::FileExists(const FString& Path)
@@ -38,12 +56,12 @@ bool FAssetPathPolicy::IsCurveAssetPath(const FString& Path)
 	return EndsWith(FileName, ".curve");
 }
 
-bool FAssetPathPolicy::IsAnimationClipAssetPath(const FString& Path)
+bool FAssetPathPolicy::IsAnimationSequenceAssetPath(const FString& Path)
 {
 	std::filesystem::path FsPath(FPaths::ToWide(FPaths::Normalize(Path)));
 	std::wstring Extension = FsPath.extension().wstring();
 	std::transform(Extension.begin(), Extension.end(), Extension.begin(), ::towlower);
-	return Extension == L".animclip";
+	return Extension == L".animsequence";
 }
 
 bool FAssetPathPolicy::IsSequenceAssetPath(const FString& Path)
@@ -121,9 +139,108 @@ FString FAssetPathPolicy::MakeWritableStaticMeshCacheBinaryPath(const FString& S
 	return FPaths::ToString(BinaryPath.wstring());
 }
 
+FString FAssetPathPolicy::SanitizeImportedAssetToken(const FString& Token)
+{
+	FString Result;
+	Result.reserve(Token.size());
+
+	bool bPreviousUnderscore = false;
+	for (unsigned char Ch : Token)
+	{
+		const bool bIsUnsafeAscii =
+			Ch < 32
+			|| Ch == '<'
+			|| Ch == '>'
+			|| Ch == ':'
+			|| Ch == '"'
+			|| Ch == '/'
+			|| Ch == '\\'
+			|| Ch == '|'
+			|| Ch == '?'
+			|| Ch == '*';
+
+		const bool bUseUnderscore = bIsUnsafeAscii || std::isspace(Ch) != 0;
+		if (bUseUnderscore)
+		{
+			if (!bPreviousUnderscore)
+			{
+				Result.push_back('_');
+				bPreviousUnderscore = true;
+			}
+			continue;
+		}
+
+		Result.push_back(static_cast<char>(Ch));
+		bPreviousUnderscore = false;
+	}
+
+	while (!Result.empty() && (Result.front() == '.' || Result.front() == '_'))
+	{
+		Result.erase(Result.begin());
+	}
+
+	while (!Result.empty() && (Result.back() == '.' || Result.back() == '_'))
+	{
+		Result.pop_back();
+	}
+
+	return Result.empty() ? "unnamed" : Result;
+}
+
+FString FAssetPathPolicy::MakeSiblingSkeletonBinaryPath(const FString& SourceFbxPath, const FString& SkeletonRootName)
+{
+	return PathToNormalizedString(MakeSiblingBinaryPath(SourceFbxPath, "skeleton", SkeletonRootName));
+}
+
+FString FAssetPathPolicy::MakeSiblingSkeletalMeshBinaryPath(const FString& SourceFbxPath, const FString& MeshOrSkeletonToken)
+{
+	return PathToNormalizedString(MakeSiblingBinaryPath(SourceFbxPath, "skeletalmesh", MeshOrSkeletonToken));
+}
+
+FString FAssetPathPolicy::MakeSiblingAnimationSequenceBinaryPath(const FString& SourceFbxPath, const FString& SequenceName)
+{
+	return PathToNormalizedString(MakeSiblingBinaryPath(SourceFbxPath, "anim", SequenceName));
+}
+
+FString FAssetPathPolicy::MakeAssetRelativePath(const FString& FromAssetPath, const FString& ToAssetPath)
+{
+	std::filesystem::path FromPath(FPaths::ToWide(FPaths::Normalize(FromAssetPath)));
+	std::filesystem::path ToPath(FPaths::ToWide(FPaths::Normalize(ToAssetPath)));
+	std::filesystem::path FromDir = FromPath.has_filename() ? FromPath.parent_path() : FromPath;
+
+	FromDir = FromDir.lexically_normal();
+	ToPath = ToPath.lexically_normal();
+
+	if (FromDir.empty())
+	{
+		return PathToNormalizedString(ToPath);
+	}
+
+	std::filesystem::path RelativePath = ToPath.lexically_relative(FromDir);
+	if (RelativePath.empty())
+	{
+		return PathToNormalizedString(ToPath);
+	}
+
+	return PathToNormalizedString(RelativePath);
+}
+
+FString FAssetPathPolicy::ResolveAssetRelativePath(const FString& FromAssetPath, const FString& RelativeTargetPath)
+{
+	std::filesystem::path TargetPath(FPaths::ToWide(FPaths::Normalize(RelativeTargetPath)));
+	if (TargetPath.is_absolute())
+	{
+		return PathToNormalizedString(TargetPath.lexically_normal());
+	}
+
+	std::filesystem::path FromPath(FPaths::ToWide(FPaths::Normalize(FromAssetPath)));
+	std::filesystem::path FromDir = FromPath.has_filename() ? FromPath.parent_path() : FromPath;
+	return PathToNormalizedString((FromDir / TargetPath).lexically_normal());
+}
+
 FString FAssetPathPolicy::MakeWritableSkeletalMeshCacheBinaryPath(const FString& SourcePath)
 {
-	// StaticMesh와 stem 이 겹칠 수 있어 SkeletalMesh 전용 루트로 분리.
+	// StaticMesh?� stem ??겹칠 ???�어 SkeletalMesh ?�용 루트�?분리.
 	const FString NormalizedSourcePath = FPaths::Normalize(SourcePath);
 	std::filesystem::path SourceFsPath(FPaths::ToWide(NormalizedSourcePath));
 
@@ -141,7 +258,7 @@ FString FAssetPathPolicy::MakeWritableSkeletalMeshCacheBinaryPath(const FString&
 	return FPaths::ToString(BinaryPath.wstring());
 }
 
-FString FAssetPathPolicy::MakeWritableAnimationClipCacheBinaryPath(const FString& SourcePath)
+FString FAssetPathPolicy::MakeWritableAnimationSequenceCacheBinaryPath(const FString& SourcePath)
 {
 	const FString NormalizedSourcePath = FPaths::Normalize(SourcePath);
 	std::filesystem::path SourceFsPath(FPaths::ToWide(NormalizedSourcePath));

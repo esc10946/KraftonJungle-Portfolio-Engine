@@ -1,16 +1,19 @@
-﻿#pragma once
+#pragma once
 
 #include "Asset/BinarySerializer.h"
-#include "Asset/AnimationClipAsset.h"
-#include "Asset/AnimationClipSerializer.h"
+#include "Asset/AnimationSequence.h"
+#include "Asset/AnimationSequenceSerializer.h"
 #include "Asset/CurveFloatAsset.h"
 #include "Asset/FbxImporter.h"
 #include "Asset/ObjLoader.h"
+#include "Asset/SkeletonAsset.h"
+#include "Asset/SkeletonSerializer.h"
 #include "Asset/SkeletalMesh.h"
 #include "Asset/StaticMesh.h"
 #include "Core/AtlasResourceCache.h"
 #include "Core/CurveResourceCache.h"
 #include "Core/CoreTypes.h"
+#include "Core/ImportedFbxAssetDiscovery.h"
 #include "Core/MaterialResourceCache.h"
 #include "Core/RenderStateResourceCache.h"
 #include "Core/Singleton.h"
@@ -30,20 +33,22 @@
 
 class FMaterialLoadService;
 class FMaterialSerializationService;
-class FAnimationClipLoadService;
+class FAnimationSequenceLoadService;
 class FStaticMeshLoadService;
 class FSkeletalMeshLoadService;
+class FSkeletonLoadService;
 class FFbxMaterialLoadService;
 
-// 리소스를 관리하는 싱글턴.
+//   .
 class FResourceManager : public TSingleton<FResourceManager>
 {
 	friend class TSingleton<FResourceManager>;
 	friend class FMaterialLoadService;
 	friend class FMaterialSerializationService;
-	friend class FAnimationClipLoadService;
+	friend class FAnimationSequenceLoadService;
 	friend class FStaticMeshLoadService;
 	friend class FSkeletalMeshLoadService;
+	friend class FSkeletonLoadService;
 	friend class FFbxMaterialLoadService;
 
 public:
@@ -65,7 +70,7 @@ public:
 	UTexture* LoadTexture(const FString& Path, ID3D11Device* Device = nullptr);
 	const TArray<FString>& GetTextureFilePath() const;
 
-	// Shader는 이제 VS / PS Stage 단위로 가져오고, Draw 시점에는 Program(VS+PS 조합)을 바인딩합니다.
+	// Shader  VS / PS Stage  , Draw  Program(VS+PS ) .
 	FVertexShader* GetOrCreateVertexShader(
 		const FShaderStageKey& Key,
 		const D3D_SHADER_MACRO* Defines = nullptr,
@@ -82,7 +87,7 @@ public:
     bool LoadComputeShader(const FString& FilePath, const FString& CSEntryPoint,
                            const D3D_SHADER_MACRO* Defines = nullptr, const FString& Key = "");
 
-	// Shader 파일 변경 시 관련 Stage/Program 캐시만 비웁니다. 다음 사용 시 Lazy Compile 됩니다.
+	// Shader     Stage/Program  .    Lazy Compile .
 	void InvalidateShaderFile(const FString& Path);
 
 	UMaterial* GetMaterial(const FString& Path) const;
@@ -114,15 +119,24 @@ public:
 	UStaticMesh* FindStaticMesh(const FString& Path) const;
 	TArray<FString> GetStaticMeshPaths() const;
 
+	USkeletonAsset* LoadSkeleton(const FString& Path);
+	USkeletonAsset* FindSkeleton(const FString& Path) const;
+	TArray<FString> GetSkeletonPaths() const;
+	TArray<USkeletonAsset*> ImportSkeletonsFromFbx(const FString& SourceFbxPath);
+	bool SaveSkeleton(USkeletonAsset* Skeleton);
+
 	/*
-	 * note: 병합하면서 충돌이 발생하거나 동일한 로직의 함수가 있다면 날려버리셔도 됩니다
+	 * note:         
 	 */
 	USkeletalMesh* LoadSkeletalMesh(const FString& Path);
+	USkeletalMesh* LoadSkeletalMesh(const FString& Path, const FString& SkeletonName);
     USkeletalMesh* FindSkeletalMesh(const FString& Path) const;
 	TArray<FString> GetSkeletalMeshPaths() const;
 	FFbxMeshContentInfo InspectFbxMeshContent(const FString& Path);
+	TArray<FImportedFbxAssetRecord> ImportFbxAssets(const FString& SourceFbxPath);
+	TArray<FImportedFbxAssetRecord> DiscoverImportedFbxAssets(const FString& SourceFbxPath) const;
 
-	// 에디터에서 socket 등 mesh data 변경 후 writable cache(.bin)에 저장.
+	//  socket  mesh data   writable cache(.bin) .
 	bool SaveSkeletalMesh(USkeletalMesh* Mesh);
 
 	UCurveFloatAsset* LoadCurve(const FString& Path);
@@ -130,10 +144,10 @@ public:
 	bool SaveCurve(const FString& Path, const UCurveFloatAsset* Curve);
 	TArray<FString> GetCurvePaths() const;
 
-	UAnimationClipAsset* LoadAnimationClip(const FString& Path);
-	UAnimationClipAsset* FindAnimationClip(const FString& Path) const;
-	bool SaveAnimationClip(UAnimationClipAsset* Clip);
-	TArray<FString> GetAnimationClipPaths() const;
+	UAnimationSequence* LoadAnimationSequence(const FString& Path);
+	UAnimationSequence* FindAnimationSequence(const FString& Path) const;
+	bool SaveAnimationSequence(UAnimationSequence* Sequence);
+	TArray<FString> GetAnimationSequencePaths() const;
 
 	ID3D11SamplerState* GetOrCreateSamplerState(ESamplerType Type, ID3D11Device* Device = nullptr);
 	ID3D11DepthStencilState* GetOrCreateDepthStencilState(EDepthStencilType Type, ID3D11Device* Device = nullptr);
@@ -142,7 +156,7 @@ public:
 
 	size_t GetMaterialMemorySize() const;
 	
-	// 디스크의 Binary 전체 삭제 (이미 로드된 메모리 상의 에셋은 건드리지 않음)
+	//  Binary   (      )
 	void DeleteAllCacheFiles();
 
 private:
@@ -154,7 +168,7 @@ private:
 	uint64 GetFileWriteTimeTicks(const FString& Path) const;
 	bool IsStaticMeshBinaryValid(const FString& SourcePath, const FString& BinaryPath) const;
 	bool IsSkeletalMeshBinaryValid(const FString& SourcePath, const FString& BinaryPath) const;
-	bool IsAnimationClipBinaryValid(const FString& SourcePath, const FString& BinaryPath) const;
+	bool IsAnimationSequenceBinaryValid(const FString& SourcePath, const FString& BinaryPath) const;
 	void PreloadStaticMeshes();
 	UStaticMesh* CreateStaticMeshFromLoadedData(FStaticMesh* LoadedMeshData, const FString& LogPath, bool bLogLodTiming, bool bLogLodSkipped) const;
 	
@@ -173,7 +187,8 @@ private:
 	FObjLoader ObjLoader;
 	FFbxImporter FbxImporter;
 	FBinarySerializer BinarySerializer;
-	FAnimationClipSerializer AnimationClipSerializer;
+	FAnimationSequenceSerializer AnimationSequenceSerializer;
+	FSkeletonSerializer SkeletonSerializer;
 
 	TComPtr<ID3D11Texture2D>          DefaultWhiteTexture;
 
@@ -185,8 +200,10 @@ private:
 	FStaticMeshResourceCache StaticMeshCache;
 	FAtlasResourceCache AtlasCache;
 
+	//  skeletal mesh source FBX path  cache.bin path  key       (alias)
 	TMap<FString, USkeletalMesh*> SkeletalMeshMap;
-	TMap<FString, UAnimationClipAsset*> AnimationClipMap;
+	TMap<FString, USkeletonAsset*> SkeletonMap;
+	TMap<FString, UAnimationSequence*> AnimationSequenceMap;
 
 	/* Paths */
 	TArray<FString> ObjFilePaths;
@@ -194,7 +211,8 @@ private:
 	TArray<FString> ParticleFilePaths;
 	TArray<FString> FontFilePaths;
 	TArray<FString> TextureFilePaths;
+	TArray<FString> SkeletonFilePaths;
 	TArray<FString> SkeletalMeshFilePaths;
 	TArray<FString> CurveFilePaths;
-	TArray<FString> AnimationClipFilePaths;
+	TArray<FString> AnimationSequenceFilePaths;
 };

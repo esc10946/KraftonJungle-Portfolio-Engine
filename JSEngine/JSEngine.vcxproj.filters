@@ -169,6 +169,9 @@
     <Filter Include="Source\Engine\Render\Scene">
       <UniqueIdentifier>{30d0d318-bc5a-7785-5232-0bcdfa76ec4e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Engine\Render\Skinning">
+      <UniqueIdentifier>{d93b5b93-cbce-7248-89ef-d7961fc1e203}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source\Engine\Runtime">
       <UniqueIdentifier>{91a20d0b-8bfe-f09c-0c9f-5396bc21afd0}</UniqueIdentifier>
     </Filter>
@@ -459,7 +462,7 @@
     <ClCompile Include="Source\Engine\Animation\AnimInstance.cpp">
       <Filter>Source\Engine\Animation</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Animation\AnimationAssetBase.cpp">
+    <ClCompile Include="Source\Engine\Animation\AnimationSequenceBase.cpp">
       <Filter>Source\Engine\Animation</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Animation\AnimationStateMachine.cpp">
@@ -471,10 +474,10 @@
     <ClCompile Include="Source\Engine\Animation\TimelinePlayer.cpp">
       <Filter>Source\Engine\Animation</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Asset\AnimationClipAsset.cpp">
+    <ClCompile Include="Source\Engine\Asset\AnimationSequence.cpp">
       <Filter>Source\Engine\Asset</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Asset\AnimationClipSerializer.cpp">
+    <ClCompile Include="Source\Engine\Asset\AnimationSequenceSerializer.cpp">
       <Filter>Source\Engine\Asset</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Asset\AssetQueryService.cpp">
@@ -505,6 +508,12 @@
       <Filter>Source\Engine\Asset</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Asset\SkeletalMesh.cpp">
+      <Filter>Source\Engine\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Asset\SkeletonAsset.cpp">
+      <Filter>Source\Engine\Asset</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Asset\SkeletonSerializer.cpp">
       <Filter>Source\Engine\Asset</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Asset\StaticMesh.cpp">
@@ -648,7 +657,7 @@
     <ClCompile Include="Source\Engine\Component\TextRenderComponent.cpp">
       <Filter>Source\Engine\Component</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Core\AnimationClipLoadService.cpp">
+    <ClCompile Include="Source\Engine\Core\AnimationSequenceLoadService.cpp">
       <Filter>Source\Engine\Core</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Core\AssetPathPolicy.cpp">
@@ -672,10 +681,16 @@
     <ClCompile Include="Source\Engine\Core\EngineTypes.cpp">
       <Filter>Source\Engine\Core</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Core\ExplicitFbxImportService.cpp">
+      <Filter>Source\Engine\Core</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\Core\FbxMaterialLoadService.cpp">
       <Filter>Source\Engine\Core</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Core\Guid.cpp">
+      <Filter>Source\Engine\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Core\ImportedFbxAssetDiscovery.cpp">
       <Filter>Source\Engine\Core</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Core\ImportedMaterialPolicy.cpp">
@@ -724,6 +739,9 @@
       <Filter>Source\Engine\Core</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Core\SkeletalMeshLoadService.cpp">
+      <Filter>Source\Engine\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Core\SkeletonLoadService.cpp">
       <Filter>Source\Engine\Core</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Core\StaticMeshLoadService.cpp">
@@ -871,6 +889,9 @@
       <Filter>Source\Engine\Render\Renderer\RenderFlow</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\LightRenderPass.cpp">
+      <Filter>Source\Engine\Render\Renderer\RenderFlow</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\MeshOverlayRenderPass.cpp">
       <Filter>Source\Engine\Render\Renderer\RenderFlow</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\OpaqueRenderPass.cpp">
@@ -1371,7 +1392,7 @@
     <ClInclude Include="Source\Engine\Animation\AnimInstance.h">
       <Filter>Source\Engine\Animation</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Animation\AnimationAssetBase.h">
+    <ClInclude Include="Source\Engine\Animation\AnimationSequenceBase.h">
       <Filter>Source\Engine\Animation</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Animation\AnimationStateMachine.h">
@@ -1383,10 +1404,10 @@
     <ClInclude Include="Source\Engine\Animation\TimelinePlayer.h">
       <Filter>Source\Engine\Animation</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Asset\AnimationClipAsset.h">
+    <ClInclude Include="Source\Engine\Asset\AnimationSequence.h">
       <Filter>Source\Engine\Asset</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Asset\AnimationClipSerializer.h">
+    <ClInclude Include="Source\Engine\Asset\AnimationSequenceSerializer.h">
       <Filter>Source\Engine\Asset</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Asset\AnimationTypes.h">
@@ -1429,6 +1450,15 @@
       <Filter>Source\Engine\Asset</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Asset\SkeletalMeshTypes.h">
+      <Filter>Source\Engine\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Asset\SkeletonAsset.h">
+      <Filter>Source\Engine\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Asset\SkeletonSerializer.h">
+      <Filter>Source\Engine\Asset</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Asset\SkeletonTypes.h">
       <Filter>Source\Engine\Asset</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Asset\StaticMesh.h">
@@ -1578,7 +1608,7 @@
     <ClInclude Include="Source\Engine\Component\TransformProxy.h">
       <Filter>Source\Engine\Component</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Core\AnimationClipLoadService.h">
+    <ClInclude Include="Source\Engine\Core\AnimationSequenceLoadService.h">
       <Filter>Source\Engine\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Core\AssetPathPolicy.h">
@@ -1647,10 +1677,16 @@
     <ClInclude Include="Source\Engine\Core\EngineTypes.h">
       <Filter>Source\Engine\Core</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\Core\ExplicitFbxImportService.h">
+      <Filter>Source\Engine\Core</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Engine\Core\FbxMaterialLoadService.h">
       <Filter>Source\Engine\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Core\Guid.h">
+      <Filter>Source\Engine\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Core\ImportedFbxAssetDiscovery.h">
       <Filter>Source\Engine\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Core\ImportedMaterialPolicy.h">
@@ -1708,6 +1744,9 @@
       <Filter>Source\Engine\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Core\SkeletalMeshLoadService.h">
+      <Filter>Source\Engine\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Core\SkeletonLoadService.h">
       <Filter>Source\Engine\Core</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Core\StaticMeshLoadService.h">
@@ -1917,6 +1956,9 @@
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\LightRenderPass.h">
       <Filter>Source\Engine\Render\Renderer\RenderFlow</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\MeshOverlayRenderPass.h">
+      <Filter>Source\Engine\Render\Renderer\RenderFlow</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\OpaqueRenderPass.h">
       <Filter>Source\Engine\Render\Renderer\RenderFlow</Filter>
     </ClInclude>
@@ -2042,6 +2084,9 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Render\Scene\RenderCommand.h">
       <Filter>Source\Engine\Render\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Render\Skinning\SkinningRuntimeSettings.h">
+      <Filter>Source\Engine\Render\Skinning</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Render\SubUVBatcher.h">
       <Filter>Source\Engine\Render</Filter>
@@ -2267,6 +2312,9 @@
     <None Include="Shaders\Common\ShadowFunction.hlsli">
       <Filter>Shaders\Common</Filter>
     </None>
+    <None Include="Shaders\Common\SkeletalSkinning.hlsli">
+      <Filter>Shaders\Common</Filter>
+    </None>
     <None Include="Shaders\Compute\HiZDownsample.hlsl">
       <Filter>Shaders\Compute</Filter>
     </None>
@@ -2278,6 +2326,9 @@
     </None>
     <None Include="Shaders\Depth\DepthPrepass.hlsl">
       <Filter>Shaders\Depth</Filter>
+    </None>
+    <None Include="Shaders\EditorDebug\BoneWeightHeatmap.hlsl">
+      <Filter>Shaders\EditorDebug</Filter>
     </None>
     <None Include="Shaders\EditorDebug\Editor.hlsl">
       <Filter>Shaders\EditorDebug</Filter>

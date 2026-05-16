@@ -38,7 +38,7 @@ constexpr uint32 STATIC_MESH_BINARY_MAGIC = 0x4853454D; // 'MESH'
 constexpr uint32 STATIC_MESH_BINARY_VERSION = 1;
 
 constexpr uint32 SKELETAL_MESH_BINARY_MAGIC   = 0x534D4B53; // 'SKMS'
-constexpr uint32 SKELETAL_MESH_BINARY_VERSION = 2;          // v2: Sockets 블록 추가
+constexpr uint32 SKELETAL_MESH_BINARY_VERSION = 3;          // v3: target skeleton path 추가
 
 //	Vailidation Checkers
 constexpr uint32 MAX_STATIC_MESH_VERTEX_COUNT   = 10'000'000;
@@ -96,8 +96,8 @@ static bool IsValidSkeletalMeshHeader(const FSkeletalMeshBinaryHeader& Header)
 		return false;
 	}
 
-	// v1과 v2 모두 수용. v1은 SocketCount가 0인 것으로 간주.
-	if (Header.Version != 1 && Header.Version != SKELETAL_MESH_BINARY_VERSION)
+	// v1/v2/v3 모두 수용. v1은 SocketCount가 0인 것으로 간주하고, v1/v2는 SkeletonSourcePath가 없다.
+	if (Header.Version != 1 && Header.Version != 2 && Header.Version != SKELETAL_MESH_BINARY_VERSION)
 	{
 		return false;
 	}
@@ -699,7 +699,7 @@ bool FBinarySerializer::ReadStaticMeshHeader(const FString& BinaryPath, FStaticM
 
 void FBinarySerializer::WriteSkeletalHeader(std::ofstream& Out, const FSkeletalMeshBinaryHeader& Header)
 {
-	// Save는 항상 v2 포맷으로 기록 (SocketCount 포함).
+	// Save는 항상 최신 포맷으로 기록.
 	WriteUInt32LE(Out, Header.MagicNumber);
 	WriteUInt32LE(Out, Header.Version);
 	WriteUInt32LE(Out, Header.VertexCount);
@@ -1076,12 +1076,14 @@ void FBinarySerializer::WriteSkeletalBounds(std::ofstream& Out, const FSkeletalM
 
 bool FBinarySerializer::ReadSkeletalBounds(std::ifstream& In, FSkeletalMesh& OutData) const
 {
-	return ReadFloatLE(In, OutData.LocalBounds.Min.X)
+	const bool bRead = ReadFloatLE(In, OutData.LocalBounds.Min.X)
 		&& ReadFloatLE(In, OutData.LocalBounds.Min.Y)
 		&& ReadFloatLE(In, OutData.LocalBounds.Min.Z)
 		&& ReadFloatLE(In, OutData.LocalBounds.Max.X)
 		&& ReadFloatLE(In, OutData.LocalBounds.Max.Y)
 		&& ReadFloatLE(In, OutData.LocalBounds.Max.Z);
+	OutData.ConservativeLocalBounds = OutData.LocalBounds;
+	return bRead;
 }
 
 bool FBinarySerializer::SaveSkeletalMesh(const FString& BinaryPath, const FString& SourcePath, const FSkeletalMesh& Data)
@@ -1111,6 +1113,7 @@ bool FBinarySerializer::SaveSkeletalMesh(const FString& BinaryPath, const FStrin
 	WriteSkeletalHeader(Out, Header);
 
 	WriteString(Out, Data.PathFileName);
+	WriteString(Out, Data.SkeletonSourcePath);
 	WriteSkeletalVertices(Out, Data);
 	WriteIndexArray(Out, Data.Indices);
 	WriteSkeletalSections(Out, Data);
@@ -1152,6 +1155,18 @@ bool FBinarySerializer::LoadSkeletalMesh(const FString& BinaryPath, FSkeletalMes
 	if (!ReadString(In, OutData.PathFileName))
 	{
 		return false;
+	}
+
+	if (Header.Version >= 3)
+	{
+		if (!ReadString(In, OutData.SkeletonSourcePath))
+		{
+			return false;
+		}
+	}
+	else
+	{
+		OutData.SkeletonSourcePath.clear();
 	}
 
 	if (!ReadSkeletalVertices(In, OutData, Header.VertexCount))

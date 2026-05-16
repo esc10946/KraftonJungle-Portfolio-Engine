@@ -1,5 +1,6 @@
 #include "Editor/UI/EditorMainPanel.h"
 
+#include "Editor/EditorEngine.h"
 #include "Editor/UI/EditorChromeConstants.h"
 #include "Editor/UI/EditorMainPanelViewportToolbarHelpers.h"
 #include "Editor/Viewer/EditorViewer.h"
@@ -7,6 +8,7 @@
 
 #include "ImGui/imgui.h"
 
+#include <algorithm>
 #include <cstdio>
 
 void FEditorMainPanel::RenderActiveDocumentToolbar()
@@ -251,7 +253,83 @@ void FEditorMainPanel::RenderViewerToolbarControls(FEditorViewer* Viewer)
 		ImGui::Separator();
 		ImGui::MenuItem("Bounding Box", nullptr, &ShowFlags.bShowBoundingBox);
 		ImGui::MenuItem("Outline", nullptr, &ShowFlags.bShowOutline);
+		ImGui::Separator();
+		ImGui::MenuItem("Bone Weight Heatmap", nullptr, &ShowFlags.bShowBoneWeightHeatmap);
+		ImGui::BeginDisabled(!ShowFlags.bShowBoneWeightHeatmap);
+		if (ImGui::SliderFloat("Opacity", &ShowFlags.BoneWeightHeatmapOpacity, 0.05f, 1.0f, "%.2f"))
+		{
+			ShowFlags.BoneWeightHeatmapOpacity = std::clamp(ShowFlags.BoneWeightHeatmapOpacity, 0.05f, 1.0f);
+		}
+		ImGui::EndDisabled();
 		ImGui::EndPopup();
+	}
+
+	ImGui::SameLine(0.0f, 10.0f);
+	const FString& CurrentAnimPath = Viewer->GetAnimationSequencePath();
+	const char* AnimationLabel = CurrentAnimPath.empty() ? "Animation" : CurrentAnimPath.c_str();
+	if (DrawViewportTextButton("##ViewerAnimationSequenceShared", AnimationLabel))
+	{
+		ImGui::OpenPopup("##ViewerAnimationSequencePopupShared");
+	}
+	if (ImGui::BeginPopup("##ViewerAnimationSequencePopupShared"))
+	{
+		const TArray<FString>& AnimationPaths = EditorEngine->GetAssetService().GetAnimationSequenceAssetPaths();
+		if (AnimationPaths.empty())
+		{
+			ImGui::TextDisabled("No animation sequences");
+		}
+		for (const FString& AnimationPath : AnimationPaths)
+		{
+			const bool bSelected = AnimationPath == CurrentAnimPath;
+			if (ImGui::MenuItem(AnimationPath.c_str(), nullptr, bSelected))
+			{
+				Viewer->SetAnimationSequence(AnimationPath);
+			}
+		}
+		if (!CurrentAnimPath.empty())
+		{
+			ImGui::Separator();
+			if (ImGui::MenuItem("Clear"))
+			{
+				Viewer->ClearAnimationSequence();
+			}
+		}
+		ImGui::EndPopup();
+	}
+
+	const bool bHasAnimation = Viewer->GetAnimationLength() > 0.0f;
+	if (!bHasAnimation)
+	{
+		ImGui::BeginDisabled();
+	}
+	ImGui::SameLine();
+	if (DrawViewportTextButton("##ViewerAnimationPlayShared", Viewer->IsAnimationPlaying() && !Viewer->IsAnimationPaused() ? "Pause" : "Play"))
+	{
+		if (Viewer->IsAnimationPlaying() && !Viewer->IsAnimationPaused())
+		{
+			Viewer->PauseAnimation();
+		}
+		else
+		{
+			Viewer->PlayAnimation();
+		}
+	}
+	ImGui::SameLine();
+	if (DrawViewportTextButton("##ViewerAnimationStopShared", "Stop"))
+	{
+		Viewer->StopAnimation();
+	}
+	ImGui::SameLine();
+	float AnimationTime = Viewer->GetAnimationTime();
+	const float AnimationLength = Viewer->GetAnimationLength();
+	ImGui::SetNextItemWidth(140.0f);
+	if (ImGui::SliderFloat("##ViewerAnimationTimeShared", &AnimationTime, 0.0f, AnimationLength, "%.2f"))
+	{
+		Viewer->SetAnimationTime(AnimationTime);
+	}
+	if (!bHasAnimation)
+	{
+		ImGui::EndDisabled();
 	}
 	ImGui::PopID();
 }
@@ -371,6 +449,14 @@ bool FEditorMainPanel::RenderActiveDocumentMainMenu()
 				ImGui::EndDisabled();
 				ImGui::MenuItem("Bounding Box", nullptr, &ShowFlags.bShowBoundingBox);
 				ImGui::MenuItem("Outline", nullptr, &ShowFlags.bShowOutline);
+				ImGui::Separator();
+				ImGui::MenuItem("Bone Weight Heatmap", nullptr, &ShowFlags.bShowBoneWeightHeatmap);
+				ImGui::BeginDisabled(!ShowFlags.bShowBoneWeightHeatmap);
+				if (ImGui::SliderFloat("Opacity", &ShowFlags.BoneWeightHeatmapOpacity, 0.05f, 1.0f, "%.2f"))
+				{
+					ShowFlags.BoneWeightHeatmapOpacity = std::clamp(ShowFlags.BoneWeightHeatmapOpacity, 0.05f, 1.0f);
+				}
+				ImGui::EndDisabled();
 			}
 			else
 			{

@@ -14,6 +14,8 @@ class FWindowsWindow;
 struct ID3D11ShaderResourceView;
 class ASkeletalMeshActor;
 class UStaticMeshComponent;
+class UAnimSingleNodeInstance;
+class UAnimationSequence;
 
 class FEditorViewer
 {
@@ -55,8 +57,19 @@ public:
     UStaticMeshComponent* FindPreviewMesh(const FName& SocketName) const;
 
 	void ChangeTarget(const FString& InFileName);
+	bool SetAnimationSequence(const FString& AnimationPath);
+	void ClearAnimationSequence();
+	void PlayAnimation();
+	void PauseAnimation();
+	void StopAnimation();
+	void SetAnimationTime(float Time);
 
     const FString& GetFileName() const { return FileName; }
+	const FString& GetAnimationSequencePath() const { return AnimationSequencePath; }
+	float GetAnimationTime() const;
+	float GetAnimationLength() const;
+	bool IsAnimationPlaying() const;
+	bool IsAnimationPaused() const;
     void SelectBone(int32 BoneIndex);
     void SelectSocket(int32 SocketIndex);
     void ClearSelection();
@@ -73,8 +86,11 @@ private:
     FSceneViewport Viewport;
     FSkeletalMeshViewportClient Client;
 	ASkeletalMeshActor* ViewTarget = nullptr;
+	UAnimSingleNodeInstance* PreviewAnimInstance = nullptr;
+	UAnimationSequence* CurrentAnimationSequence = nullptr;
 
     FString FileName;
+	FString AnimationSequencePath;
 
     TMap<FName, UStaticMeshComponent*, FName::Hash> SocketPreviewMeshes;
 

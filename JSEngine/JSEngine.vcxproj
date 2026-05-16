@@ -616,12 +616,12 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Animation\ActorSequence.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimInstance.cpp" />
-    <ClCompile Include="Source\Engine\Animation\AnimationAssetBase.cpp" />
+    <ClCompile Include="Source\Engine\Animation\AnimationSequenceBase.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimationStateMachine.cpp" />
     <ClCompile Include="Source\Engine\Animation\CurvePlayback.cpp" />
     <ClCompile Include="Source\Engine\Animation\TimelinePlayer.cpp" />
-    <ClCompile Include="Source\Engine\Asset\AnimationClipAsset.cpp" />
-    <ClCompile Include="Source\Engine\Asset\AnimationClipSerializer.cpp" />
+    <ClCompile Include="Source\Engine\Asset\AnimationSequence.cpp" />
+    <ClCompile Include="Source\Engine\Asset\AnimationSequenceSerializer.cpp" />
     <ClCompile Include="Source\Engine\Asset\AssetQueryService.cpp" />
     <ClCompile Include="Source\Engine\Asset\BinarySerializer.cpp" />
     <ClCompile Include="Source\Engine\Asset\CurveAssetLoader.cpp" />
@@ -632,6 +632,8 @@
     <ClCompile Include="Source\Engine\Asset\ObjLoader.cpp" />
     <ClCompile Include="Source\Engine\Asset\ParticleAtlasLoader.cpp" />
     <ClCompile Include="Source\Engine\Asset\SkeletalMesh.cpp" />
+    <ClCompile Include="Source\Engine\Asset\SkeletonAsset.cpp" />
+    <ClCompile Include="Source\Engine\Asset\SkeletonSerializer.cpp" />
     <ClCompile Include="Source\Engine\Asset\StaticMesh.cpp" />
     <ClCompile Include="Source\Engine\Asset\StaticMeshSimplifier.cpp" />
     <ClCompile Include="Source\Engine\Audio\AudioSystem.cpp" />
@@ -679,7 +681,7 @@
     <ClCompile Include="Source\Engine\Component\StaticMeshComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\SubUVComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\TextRenderComponent.cpp" />
-    <ClCompile Include="Source\Engine\Core\AnimationClipLoadService.cpp" />
+    <ClCompile Include="Source\Engine\Core\AnimationSequenceLoadService.cpp" />
     <ClCompile Include="Source\Engine\Core\AssetPathPolicy.cpp" />
     <ClCompile Include="Source\Engine\Core\AtlasResourceCache.cpp" />
     <ClCompile Include="Source\Engine\Core\CrashDump.cpp" />
@@ -687,8 +689,10 @@
     <ClCompile Include="Source\Engine\Core\CurveResourceCache.cpp" />
     <ClCompile Include="Source\Engine\Core\Delegates\Delegate.cpp" />
     <ClCompile Include="Source\Engine\Core\EngineTypes.cpp" />
+    <ClCompile Include="Source\Engine\Core\ExplicitFbxImportService.cpp" />
     <ClCompile Include="Source\Engine\Core\FbxMaterialLoadService.cpp" />
     <ClCompile Include="Source\Engine\Core\Guid.cpp" />
+    <ClCompile Include="Source\Engine\Core\ImportedFbxAssetDiscovery.cpp" />
     <ClCompile Include="Source\Engine\Core\ImportedMaterialPolicy.cpp" />
     <ClCompile Include="Source\Engine\Core\Logging\GPUProfiler.cpp" />
     <ClCompile Include="Source\Engine\Core\Logging\Log.cpp" />
@@ -705,6 +709,7 @@
     <ClCompile Include="Source\Engine\Core\ResourceMemoryReporter.cpp" />
     <ClCompile Include="Source\Engine\Core\ShaderResourceCache.cpp" />
     <ClCompile Include="Source\Engine\Core\SkeletalMeshLoadService.cpp" />
+    <ClCompile Include="Source\Engine\Core\SkeletonLoadService.cpp" />
     <ClCompile Include="Source\Engine\Core\StaticMeshLoadService.cpp" />
     <ClCompile Include="Source\Engine\Core\StaticMeshResourceCache.cpp" />
     <ClCompile Include="Source\Engine\Core\TextureAssetMetaService.cpp" />
@@ -754,6 +759,7 @@
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\GridRenderPass.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\LightCullingPass.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\LightRenderPass.cpp" />
+    <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\MeshOverlayRenderPass.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\OpaqueRenderPass.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\PostProcessOutlineRenderPass.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\PostProcessRenderPass.cpp" />
@@ -951,12 +957,12 @@
     <ClInclude Include="Source\Editor\Viewport\ViewportLayout.h" />
     <ClInclude Include="Source\Engine\Animation\ActorSequence.h" />
     <ClInclude Include="Source\Engine\Animation\AnimInstance.h" />
-    <ClInclude Include="Source\Engine\Animation\AnimationAssetBase.h" />
+    <ClInclude Include="Source\Engine\Animation\AnimationSequenceBase.h" />
     <ClInclude Include="Source\Engine\Animation\AnimationStateMachine.h" />
     <ClInclude Include="Source\Engine\Animation\CurvePlayback.h" />
     <ClInclude Include="Source\Engine\Animation\TimelinePlayer.h" />
-    <ClInclude Include="Source\Engine\Asset\AnimationClipAsset.h" />
-    <ClInclude Include="Source\Engine\Asset\AnimationClipSerializer.h" />
+    <ClInclude Include="Source\Engine\Asset\AnimationSequence.h" />
+    <ClInclude Include="Source\Engine\Asset\AnimationSequenceSerializer.h" />
     <ClInclude Include="Source\Engine\Asset\AnimationTypes.h" />
     <ClInclude Include="Source\Engine\Asset\AssetQueryService.h" />
     <ClInclude Include="Source\Engine\Asset\BinarySerializer.h" />
@@ -971,6 +977,9 @@
     <ClInclude Include="Source\Engine\Asset\ParticleAtlasLoader.h" />
     <ClInclude Include="Source\Engine\Asset\SkeletalMesh.h" />
     <ClInclude Include="Source\Engine\Asset\SkeletalMeshTypes.h" />
+    <ClInclude Include="Source\Engine\Asset\SkeletonAsset.h" />
+    <ClInclude Include="Source\Engine\Asset\SkeletonSerializer.h" />
+    <ClInclude Include="Source\Engine\Asset\SkeletonTypes.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMesh.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMeshSimplifier.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMeshTypes.h" />
@@ -1020,7 +1029,7 @@
     <ClInclude Include="Source\Engine\Component\SubUVComponent.h" />
     <ClInclude Include="Source\Engine\Component\TextRenderComponent.h" />
     <ClInclude Include="Source\Engine\Component\TransformProxy.h" />
-    <ClInclude Include="Source\Engine\Core\AnimationClipLoadService.h" />
+    <ClInclude Include="Source\Engine\Core\AnimationSequenceLoadService.h" />
     <ClInclude Include="Source\Engine\Core\AssetPathPolicy.h" />
     <ClInclude Include="Source\Engine\Core\AtlasResourceCache.h" />
     <ClInclude Include="Source\Engine\Core\CollisionTypes.h" />
@@ -1043,8 +1052,10 @@
     <ClInclude Include="Source\Engine\Core\Delegates\Delegate.h" />
     <ClInclude Include="Source\Engine\Core\EditorResourcePaths.h" />
     <ClInclude Include="Source\Engine\Core\EngineTypes.h" />
+    <ClInclude Include="Source\Engine\Core\ExplicitFbxImportService.h" />
     <ClInclude Include="Source\Engine\Core\FbxMaterialLoadService.h" />
     <ClInclude Include="Source\Engine\Core\Guid.h" />
+    <ClInclude Include="Source\Engine\Core\ImportedFbxAssetDiscovery.h" />
     <ClInclude Include="Source\Engine\Core\ImportedMaterialPolicy.h" />
     <ClInclude Include="Source\Engine\Core\Logging\GPUProfiler.h" />
     <ClInclude Include="Source\Engine\Core\Logging\Log.h" />
@@ -1064,6 +1075,7 @@
     <ClInclude Include="Source\Engine\Core\ShaderResourceCache.h" />
     <ClInclude Include="Source\Engine\Core\Singleton.h" />
     <ClInclude Include="Source\Engine\Core\SkeletalMeshLoadService.h" />
+    <ClInclude Include="Source\Engine\Core\SkeletonLoadService.h" />
     <ClInclude Include="Source\Engine\Core\StaticMeshLoadService.h" />
     <ClInclude Include="Source\Engine\Core\StaticMeshResourceCache.h" />
     <ClInclude Include="Source\Engine\Core\StringUtils.h" />
@@ -1133,6 +1145,7 @@
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\GridRenderPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\LightCullingPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\LightRenderPass.h" />
+    <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\MeshOverlayRenderPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\OpaqueRenderPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\PostProcessOutlineRenderPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\PostProcessRenderPass.h" />
@@ -1175,6 +1188,7 @@
     <ClInclude Include="Source\Engine\Render\Scene\RenderBus.h" />
     <ClInclude Include="Source\Engine\Render\Scene\RenderCollector.h" />
     <ClInclude Include="Source\Engine\Render\Scene\RenderCommand.h" />
+    <ClInclude Include="Source\Engine\Render\Skinning\SkinningRuntimeSettings.h" />
     <ClInclude Include="Source\Engine\Render\SubUVBatcher.h" />
     <ClInclude Include="Source\Engine\Runtime\Engine.h" />
     <ClInclude Include="Source\Engine\Runtime\EngineLoop.h" />
@@ -1260,10 +1274,12 @@
     <None Include="Shaders\Common\Common.hlsli" />
     <None Include="Shaders\Common\Lighting.hlsli" />
     <None Include="Shaders\Common\ShadowFunction.hlsli" />
+    <None Include="Shaders\Common\SkeletalSkinning.hlsli" />
     <None Include="Shaders\Compute\HiZDownsample.hlsl" />
     <None Include="Shaders\Compute\LightCullingCS.hlsl" />
     <None Include="Shaders\Compute\OcclusionCull.hlsl" />
     <None Include="Shaders\Depth\DepthPrepass.hlsl" />
+    <None Include="Shaders\EditorDebug\BoneWeightHeatmap.hlsl" />
     <None Include="Shaders\EditorDebug\Editor.hlsl" />
     <None Include="Shaders\EditorDebug\Gizmo.hlsl" />
     <None Include="Shaders\EditorDebug\IDPick.hlsl" />

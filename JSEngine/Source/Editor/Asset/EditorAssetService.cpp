@@ -1,6 +1,7 @@
 #include "Editor/Asset/EditorAssetService.h"
 
 #include "Asset/AssetQueryService.h"
+#include "Core/ImportedFbxAssetDiscovery.h"
 #include "Core/Paths.h"
 #include "Core/ResourceManager.h"
 #include "Render/Resource/Material.h"
@@ -37,6 +38,17 @@ namespace
 			Relative = AbsolutePath.lexically_normal();
 		}
 		return FPaths::Normalize(FPaths::ToUtf8(Relative.generic_wstring()));
+	}
+
+	FString ToProjectRelativePathIfAbsolute(const FString& Path)
+	{
+		std::filesystem::path FsPath(FPaths::ToWide(FPaths::Normalize(Path)));
+		if (!FsPath.is_absolute())
+		{
+			return FPaths::Normalize(FPaths::ToUtf8(FsPath.generic_wstring()));
+		}
+
+		return ToProjectRelativePath(FsPath);
 	}
 
 	FString LowerExtension(const std::filesystem::path& Path)
@@ -108,6 +120,7 @@ void FEditorAssetService::RefreshAssetDatabase()
 	MaterialInterfaceNames.clear();
 	FontNames.clear();
 	ParticleNames.clear();
+	AnimationSequencePaths.clear();
 	CachedMaterialInterfaces.clear();
 	CachedMaterialInterfaceResolved.clear();
 
@@ -120,10 +133,22 @@ void FEditorAssetService::RefreshAssetDatabase()
 		FEditorAssetService::AddUniquePath(StaticMeshPaths, Path);
 	}
 
-	ListAssetFiles(L"SkeletalMesh", { ".fbx" }, SkeletalMeshPaths);
-	for (const FString& Path : FResourceManager::Get().GetSkeletalMeshPaths())
+	FImportedFbxAssetDiscovery ImportedFbxDiscovery;
+	const std::filesystem::path AssetRoot = std::filesystem::path(FPaths::RootDir()) / L"Asset";
+	for (const FImportedFbxAssetRecord& Record : ImportedFbxDiscovery.DiscoverInDirectory(FPaths::ToUtf8(AssetRoot.generic_wstring())))
 	{
-		FEditorAssetService::AddUniquePath(SkeletalMeshPaths, Path);
+		if (Record.Type == EImportedFbxAssetType::SkeletalMesh)
+		{
+			FEditorAssetService::AddUniquePath(SkeletalMeshPaths, ToProjectRelativePathIfAbsolute(Record.AssetPath));
+		}
+		else if (Record.Type == EImportedFbxAssetType::AnimationSequence)
+		{
+			FEditorAssetService::AddUniquePath(AnimationSequencePaths, ToProjectRelativePathIfAbsolute(Record.AssetPath));
+		}
+	}
+	for (const FString& Path : FResourceManager::Get().GetAnimationSequencePaths())
+	{
+		FEditorAssetService::AddUniquePath(AnimationSequencePaths, Path);
 	}
 
 	for (const FString& Path : FAssetQueryService::GetTexturePaths())
@@ -156,6 +181,7 @@ void FEditorAssetService::RefreshAssetDatabase()
 	BuildItems(MaterialInterfaceNames, EEditorAssetType::Material, MaterialItems);
 	BuildItems(FontNames, EEditorAssetType::Font, FontItems);
 	BuildItems(ParticleNames, EEditorAssetType::Particle, ParticleItems);
+	BuildItems(AnimationSequencePaths, EEditorAssetType::AnimationSequence, AnimationSequenceItems);
 }
 
 const TArray<FEditorAssetItem>& FEditorAssetService::GetAssets(EEditorAssetType Type) const
@@ -174,6 +200,8 @@ const TArray<FEditorAssetItem>& FEditorAssetService::GetAssets(EEditorAssetType 
 		return FontItems;
 	case EEditorAssetType::Particle:
 		return ParticleItems;
+	case EEditorAssetType::AnimationSequence:
+		return AnimationSequenceItems;
 	case EEditorAssetType::Scene:
 	case EEditorAssetType::Script:
 	default:
@@ -189,6 +217,11 @@ UStaticMesh* FEditorAssetService::LoadStaticMesh(const FString& Path) const
 USkeletalMesh* FEditorAssetService::LoadSkeletalMesh(const FString& Path) const
 {
 	return FResourceManager::Get().LoadSkeletalMesh(Path);
+}
+
+UAnimationSequence* FEditorAssetService::LoadAnimationSequence(const FString& Path) const
+{
+	return FResourceManager::Get().LoadAnimationSequence(Path);
 }
 
 UTexture* FEditorAssetService::LoadTexture(const FString& Path) const

@@ -1,12 +1,14 @@
-﻿#include "Core/ResourceManager.h"
+#include "Core/ResourceManager.h"
 
 #include "Core/Paths.h"
-#include "Core/AnimationClipLoadService.h"
+#include "Core/AnimationSequenceLoadService.h"
 #include "Core/AssetPathPolicy.h"
+#include "Core/ExplicitFbxImportService.h"
 #include "Core/ImportedMaterialPolicy.h"
 #include "Core/MaterialLoadService.h"
 #include "Core/MaterialSerializationService.h"
 #include "Core/ResourceMemoryReporter.h"
+#include "Core/SkeletonLoadService.h"
 #include "Core/SkeletalMeshLoadService.h"
 #include "Core/StaticMeshLoadService.h"
 
@@ -154,11 +156,11 @@ bool FResourceManager::IsSkeletalMeshBinaryValid(const FString& SourcePath, cons
 	return Header.SourceFileWriteTime == SourceWriteTime;
 }
 
-bool FResourceManager::IsAnimationClipBinaryValid(const FString& SourcePath, const FString& BinaryPath) const
+bool FResourceManager::IsAnimationSequenceBinaryValid(const FString& SourcePath, const FString& BinaryPath) const
 {
-	FAnimationClipBinaryHeader Header;
+	FAnimationSequenceBinaryHeader Header;
 	const FString NormalizedBinaryPath = FPaths::Normalize(BinaryPath);
-	if (!AnimationClipSerializer.ReadAnimationClipHeader(NormalizedBinaryPath, Header))
+	if (!AnimationSequenceSerializer.ReadAnimationSequenceHeader(NormalizedBinaryPath, Header))
 	{
 		return false;
 	}
@@ -228,7 +230,8 @@ void FResourceManager::ClearDiscoveredResourceLists(bool bClearAtlasCache)
 	MaterialFilePaths.clear();
 	ParticleFilePaths.clear();
 	CurveFilePaths.clear();
-	AnimationClipFilePaths.clear();
+	AnimationSequenceFilePaths.clear();
+	SkeletonFilePaths.clear();
 	SkeletalMeshFilePaths.clear();
 	StaticMeshCache.ClearRegistry();
 
@@ -254,9 +257,9 @@ void FResourceManager::RegisterDiscoveredAssetFile(const std::filesystem::path& 
 	{
 		CurveFilePaths.push_back(RelativePath);
 	}
-	else if (FAssetPathPolicy::IsAnimationClipAssetPath(FPaths::ToUtf8(FilePath.generic_wstring())))
+	else if (FAssetPathPolicy::IsAnimationSequenceAssetPath(FPaths::ToUtf8(FilePath.generic_wstring())))
 	{
-		AnimationClipFilePaths.push_back(RelativePath);
+		AnimationSequenceFilePaths.push_back(RelativePath);
 	}
 	else if (Extension == L".obj" || Extension == L".fbx")
 	{
@@ -384,10 +387,10 @@ void FResourceManager::InitializeOutlineMaterial()
     OutlineMat->SetParam("OutlineViewportOrigin", FMaterialParamValue(FVector2(0.0f, 0.0f)));
 }
 
-//	RootPath ??瑜곷쭊?????덈츎 嶺뚮ㅄ維獄??????띠럾???Asset??????琉우뿰 ?貫?껆뵳?????????⑤갭由????貫??
+//	RootPath ??륁맄?????�뮉 筌뤴뫀�??????�쎛???Asset??????뤿연 ?λ?�由?????????�밸�????λ??
 void FResourceManager::LoadFromAssetDirectory(const FString& Path)
 {
-	//	?貫?껆뵳??
+	//	?λ?�由??
 	ClearDiscoveredResourceLists(false);
 
 	InitializeDefaultResources(CachedDevice.Get());
@@ -469,6 +472,7 @@ void FResourceManager::RefreshFromAssetDirectory(const FString& Path)
 void FResourceManager::DeleteAllCacheFiles()
 {
 	const fs::path RootPath = fs::path(FPaths::RootDir());
+	const fs::path AssetRoot = RootPath / "Asset";
 	const FCacheDeleteRule Rules[] =
 	{
 		{ RootPath / "Asset" / "Mesh" / "Bin", { L".bin", nullptr }, 1 },
@@ -510,6 +514,32 @@ void FResourceManager::DeleteAllCacheFiles()
 		DeleteEmptyDirectoriesUnder(Rule.Root);
 	}
 
+	if (fs::exists(AssetRoot) && fs::is_directory(AssetRoot))
+	{
+		FImportedFbxAssetDiscovery ImportedDiscovery;
+		const TArray<FImportedFbxAssetRecord> ImportedRecords =
+			ImportedDiscovery.DiscoverInDirectory(FPaths::ToUtf8(AssetRoot.generic_wstring()));
+
+		for (const FImportedFbxAssetRecord& Record : ImportedRecords)
+		{
+			if (Record.Type == EImportedFbxAssetType::Unknown || Record.AssetPath.empty())
+			{
+				continue;
+			}
+
+			const fs::path ImportedBinaryPath = fs::path(FPaths::ToWide(Record.AssetPath));
+			const fs::path AbsoluteImportedBinaryPath = ImportedBinaryPath.is_absolute()
+				? ImportedBinaryPath.lexically_normal()
+				: (RootPath / ImportedBinaryPath).lexically_normal();
+
+			std::error_code Ec;
+			if (fs::is_regular_file(AbsoluteImportedBinaryPath, Ec) && fs::remove(AbsoluteImportedBinaryPath, Ec) && !Ec)
+			{
+				++DeletedFileCount;
+			}
+		}
+	}
+
 	UE_LOG("[ResourceManager] Removed %u cache files from disk", DeletedFileCount);
 }
 
@@ -548,17 +578,35 @@ void FResourceManager::ReleaseGPUResources()
 
 	RenderStateCache.Release();
 
+	TSet<USkeletalMesh*> DestroyedSkeletalMeshes;
 	for (auto& [Path, Mesh] : SkeletalMeshMap)
 	{
-		UObjectManager::Get().DestroyObject(Mesh);
+		if (Mesh && DestroyedSkeletalMeshes.insert(Mesh).second)
+		{
+			UObjectManager::Get().DestroyObject(Mesh);
+		}
 	}
 	SkeletalMeshMap.clear();
 
-	for (auto& [Path, Clip] : AnimationClipMap)
+	TSet<UAnimationSequence*> DestroyedAnimationSequences;
+	for (auto& [Path, Sequence] : AnimationSequenceMap)
 	{
-		UObjectManager::Get().DestroyObject(Clip);
+		if (Sequence && DestroyedAnimationSequences.insert(Sequence).second)
+		{
+			UObjectManager::Get().DestroyObject(Sequence);
+		}
 	}
-	AnimationClipMap.clear();
+	AnimationSequenceMap.clear();
+
+	TSet<USkeletonAsset*> DestroyedSkeletons;
+	for (auto& [Path, Skeleton] : SkeletonMap)
+	{
+		if (Skeleton && DestroyedSkeletons.insert(Skeleton).second)
+		{
+			UObjectManager::Get().DestroyObject(Skeleton);
+		}
+	}
+	SkeletonMap.clear();
 
 	DefaultWhiteTexture.Reset();
 	CachedDevice.Reset();
@@ -618,7 +666,7 @@ UMaterial* FResourceManager::GetMaterial(const FString& MaterialName) const
 	return MaterialCache.GetMaterial(MaterialName);
 }
 
-// 嶺뚮씞?녻뚯궘??????怨몃턄 ?띠럾????띠룄????Material????諛댁뎽
+// 筌띲?�而삭??????곸뵠 ?�쎛????�쏄????Material????밴쉐
 UMaterial* FResourceManager::GetOrCreateMaterial(const FString& Path, EMaterialShaderType ShaderType)
 {
 	UMaterial* Material = GetMaterial(Path);
@@ -884,9 +932,106 @@ TArray<FString> FResourceManager::GetStaticMeshPaths() const
 	return ObjFilePaths;
 }
 
+USkeletonAsset* FResourceManager::LoadSkeleton(const FString& Path)
+{
+	return FSkeletonLoadService(*this).Load(Path);
+}
+
+USkeletonAsset* FResourceManager::FindSkeleton(const FString& Path) const
+{
+	const FString NormalizedPath = FPaths::Normalize(Path);
+
+	auto It = SkeletonMap.find(NormalizedPath);
+	if (It != SkeletonMap.end())
+	{
+		return It->second;
+	}
+
+	return nullptr;
+}
+
+TArray<FString> FResourceManager::GetSkeletonPaths() const
+{
+	return SkeletonFilePaths;
+}
+
+TArray<USkeletonAsset*> FResourceManager::ImportSkeletonsFromFbx(const FString& SourceFbxPath)
+{
+	const FString NormalizedSourcePath = FPaths::Normalize(SourceFbxPath);
+	TArray<USkeletonAsset*> Result;
+	TArray<FSkeleton*> ImportedSkeletons = FbxImporter.LoadSkeletons(NormalizedSourcePath);
+
+	for (FSkeleton* Data : ImportedSkeletons)
+	{
+		if (!Data)
+		{
+			continue;
+		}
+
+		const FString BinaryPath = FAssetPathPolicy::MakeSiblingSkeletonBinaryPath(NormalizedSourcePath, Data->RootNodeName);
+		Data->PathFileName = BinaryPath;
+
+		if (!SkeletonSerializer.SaveSkeleton(BinaryPath, *Data))
+		{
+			UE_LOG_WARNING("[SkeletonImport] Failed to save skeleton binary | Source=%s | Binary=%s | Root=%s",
+			               NormalizedSourcePath.c_str(),
+			               BinaryPath.c_str(),
+			               Data->RootNodeName.c_str());
+			delete Data;
+			continue;
+		}
+
+		USkeletonAsset* Skeleton = FindSkeleton(BinaryPath);
+		if (!Skeleton)
+		{
+			Skeleton = UObjectManager::Get().CreateObject<USkeletonAsset>();
+			SkeletonMap[BinaryPath] = Skeleton;
+		}
+
+		Skeleton->SetSkeletonData(Data);
+
+		if (std::find(SkeletonFilePaths.begin(), SkeletonFilePaths.end(), BinaryPath) == SkeletonFilePaths.end())
+		{
+			SkeletonFilePaths.push_back(BinaryPath);
+		}
+
+		Result.push_back(Skeleton);
+
+		UE_LOG("[SkeletonImport] Saved | Source=%s | Binary=%s | Root=%s | Bones=%zu | Sockets=%zu",
+		       NormalizedSourcePath.c_str(),
+		       BinaryPath.c_str(),
+		       Data->RootNodeName.c_str(),
+		       Data->Bones.size(),
+		       Data->Sockets.size());
+	}
+
+	return Result;
+}
+
+bool FResourceManager::SaveSkeleton(USkeletonAsset* Skeleton)
+{
+	if (!Skeleton)
+	{
+		return false;
+	}
+
+	FSkeleton* Data = Skeleton->GetSkeletonData();
+	if (!Data || Data->PathFileName.empty())
+	{
+		return false;
+	}
+
+	return SkeletonSerializer.SaveSkeleton(Data->PathFileName, *Data);
+}
+
 USkeletalMesh* FResourceManager::LoadSkeletalMesh(const FString& Path)
 {
     return FSkeletalMeshLoadService(*this).Load(Path);
+}
+
+USkeletalMesh* FResourceManager::LoadSkeletalMesh(const FString& Path, const FString& SkeletonName)
+{
+	return FSkeletalMeshLoadService(*this).Load(Path, SkeletonName);
 }
 
 USkeletalMesh* FResourceManager::FindSkeletalMesh(const FString& Path) const
@@ -910,6 +1055,17 @@ TArray<FString> FResourceManager::GetSkeletalMeshPaths() const
 FFbxMeshContentInfo FResourceManager::InspectFbxMeshContent(const FString& Path)
 {
     return FbxImporter.InspectMeshContent(Path);
+}
+
+TArray<FImportedFbxAssetRecord> FResourceManager::ImportFbxAssets(const FString& SourceFbxPath)
+{
+	return FExplicitFbxImportService(*this).Import(SourceFbxPath);
+}
+
+TArray<FImportedFbxAssetRecord> FResourceManager::DiscoverImportedFbxAssets(const FString& SourceFbxPath) const
+{
+	FImportedFbxAssetDiscovery Discovery;
+	return Discovery.DiscoverForSourceFbx(SourceFbxPath);
 }
 
 bool FResourceManager::SaveSkeletalMesh(USkeletalMesh* Mesh)
@@ -968,38 +1124,40 @@ TArray<FString> FResourceManager::GetCurvePaths() const
 	return CurveFilePaths;
 }
 
-UAnimationClipAsset* FResourceManager::LoadAnimationClip(const FString& Path)
+UAnimationSequence* FResourceManager::LoadAnimationSequence(const FString& Path)
 {
-	return FAnimationClipLoadService(*this).Load(Path);
+	return FAnimationSequenceLoadService(*this).Load(Path);
 }
 
-UAnimationClipAsset* FResourceManager::FindAnimationClip(const FString& Path) const
+UAnimationSequence* FResourceManager::FindAnimationSequence(const FString& Path) const
 {
 	const FString NormalizedPath = FPaths::Normalize(Path);
-	auto It = AnimationClipMap.find(NormalizedPath);
-	return It != AnimationClipMap.end() ? It->second : nullptr;
+	auto It = AnimationSequenceMap.find(NormalizedPath);
+	return It != AnimationSequenceMap.end() ? It->second : nullptr;
 }
 
-bool FResourceManager::SaveAnimationClip(UAnimationClipAsset* Clip)
+bool FResourceManager::SaveAnimationSequence(UAnimationSequence* Sequence)
 {
-	if (!Clip)
+	if (!Sequence)
 	{
 		return false;
 	}
 
-	FAnimationClip* Data = Clip->GetClipData();
+	FAnimationSequence* Data = Sequence->GetSequenceData();
 	if (!Data || Data->SourcePath.empty())
 	{
 		return false;
 	}
 
-	const FString BinPath = FAssetPathPolicy::MakeWritableAnimationClipCacheBinaryPath(Data->SourcePath);
-	return AnimationClipSerializer.SaveAnimationClip(BinPath, Data->SourcePath, *Data);
+	const FString BinPath = Data->Name.empty()
+		? FAssetPathPolicy::MakeWritableAnimationSequenceCacheBinaryPath(Data->SourcePath)
+		: FAssetPathPolicy::MakeSiblingAnimationSequenceBinaryPath(Data->SourcePath, Data->Name);
+	return AnimationSequenceSerializer.SaveAnimationSequence(BinPath, Data->SourcePath, *Data);
 }
 
-TArray<FString> FResourceManager::GetAnimationClipPaths() const
+TArray<FString> FResourceManager::GetAnimationSequencePaths() const
 {
-	return AnimationClipFilePaths;
+	return AnimationSequenceFilePaths;
 }
 
 const TArray<FString>& FResourceManager::GetTextureFilePath() const

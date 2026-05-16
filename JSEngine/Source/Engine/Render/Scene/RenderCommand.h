@@ -10,6 +10,7 @@
 #include "Render/Resource/Buffer.h"
 #include "Render/Resource/Material.h"
 #include "Render/Resource/VertexFactoryTypes.h"
+#include "Render/Skinning/SkinningRuntimeSettings.h"
 #include "Render/Device/D3DDevice.h"
 #include "Core/CoreMinimal.h"
 #include "Core/ResourceTypes.h"
@@ -416,6 +417,53 @@ struct FSelectionMaskConstants
 	FVector2 UVScale = FVector2(1.0f, 1.0f);
 };
 
+struct FSkeletalGpuSkinningPayload
+{
+	ESkinningMode Mode = ESkinningMode::CPU;
+	ID3D11ShaderResourceView* BoneMatrixSRV = nullptr;
+	uint32 BoneCount = 0;
+};
+
+inline bool IsSkeletalVertexFactoryResourceType(EVertexFactoryType Type)
+{
+	return Type == EVertexFactoryType::SkeletalMesh ||
+		Type == EVertexFactoryType::SkeletalMeshOverlay;
+}
+
+inline void BindSkeletalGpuSkinningBoneMatrixSRV(
+	ID3D11DeviceContext* Context,
+	EVertexFactoryType Type,
+	const FSkeletalGpuSkinningPayload& SkinningPayload)
+{
+	if (!Context)
+	{
+		return;
+	}
+
+	ID3D11ShaderResourceView* BoneMatrixSRV = nullptr;
+	if (IsSkeletalVertexFactoryResourceType(Type) &&
+		SkinningPayload.Mode == ESkinningMode::GPUVertexShader)
+	{
+		BoneMatrixSRV = SkinningPayload.BoneMatrixSRV;
+	}
+
+	Context->VSSetShaderResources(16, 1, &BoneMatrixSRV);
+}
+
+enum class EMeshOverlayMode : uint32
+{
+	None,
+	BoneWeightHeatmap,
+};
+
+struct FMeshOverlayConstants
+{
+	EMeshOverlayMode Mode = EMeshOverlayMode::None;
+	int32 SelectedBoneIndex = -1;
+	float Opacity = 0.65f;
+	float Padding = 0.0f;
+};
+
 struct FRenderCommand
 {
 	FPerObjectConstants PerObjectConstants = {};
@@ -432,6 +480,8 @@ struct FRenderCommand
 	uint32 SectionIndexCount = 0;
 
 	FBoundingBox WorldAABB;
+	FSkeletalGpuSkinningPayload SkeletalGpuSkinning;
+	FMeshOverlayConstants MeshOverlay;
 
 	union
 	{
@@ -454,3 +504,13 @@ struct FRenderCommand
 
 	ERenderCommandType Type = ERenderCommandType::Primitive;
 };
+
+inline void BindVertexFactoryResources(
+	ID3D11DeviceContext* Context,
+	EVertexFactoryType Type,
+	const FRenderCommand& Cmd)
+{
+	// VertexFactory별 리소스 바인딩 진입점.
+	// 현재 구현된 VF 전용 리소스는 GPU skinning의 bone matrix SRV뿐입니다.
+	BindSkeletalGpuSkinningBoneMatrixSRV(Context, Type, Cmd.SkeletalGpuSkinning);
+}

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Asset/IAssetLoader.h"
 #include "Asset/AnimationTypes.h"
@@ -17,6 +17,37 @@ struct FFbxMeshContentInfo
 {
     bool bHasStaticMesh = false;
     bool bHasSkeletalMesh = false;
+};
+
+struct FFbxSkeletonImportDesc
+{
+    FString RootNodeName;
+    TArray<FString> BoneNodeNames;
+};
+
+struct FFbxSkeletalMeshImportDesc
+{
+    FString MeshNodeName;
+    FString SkeletonRootNodeName;
+    int32 MaterialSlotCount = 0;
+    bool bSkinned = false;
+    bool bRigidAttached = false;
+};
+
+struct FFbxAnimationImportDesc
+{
+    FString SequenceName;
+    FString TargetSkeletonRootNodeName;
+    int32 StackIndex = -1;
+};
+
+struct FFbxImportedAssetSet
+{
+    FString SourcePath;
+    FFbxMeshContentInfo MeshContentInfo;
+    TArray<FFbxSkeletonImportDesc> Skeletons;
+    TArray<FFbxSkeletalMeshImportDesc> SkeletalMeshes;
+    TArray<FFbxAnimationImportDesc> Animations;
 };
 
 struct FAnimationImportOptions
@@ -39,9 +70,11 @@ public:
 	FString GetLoaderName() const override;
 
 	FSkeletalMesh* LoadSkeletalMesh(const FString& Path, const FStaticMeshLoadOptions& LoadOptions);
+	TArray<FSkeleton*> LoadSkeletons(const FString& Path);
 
-    TArray<FAnimationClip*> LoadAnimations(const FString& Path, const FAnimationImportOptions& ImportOptions);
+    TArray<FAnimationSequence*> LoadAnimationSequences(const FString& Path, const FAnimationImportOptions& ImportOptions);
 
+	FFbxImportedAssetSet AnalyzeImportedAssets(const FString& Path);
 	FFbxMeshContentInfo InspectMeshContent(const FString& Path);
 
 private:
@@ -87,10 +120,10 @@ private:
         FbxAnimStack* AnimStack,
         const TArray<FbxNode*>& BoneNodes,
         const FAnimationImportOptions& ImportOptions,
-        FAnimationClip& OutClip) const;
+        FAnimationSequence& OutSequence) const;
     void ExtractBoneAnimationTracks(
         FbxAnimLayer* AnimLayer,
         const TArray<FbxNode*>& BoneNodes,
-        FAnimationClip& OutClip) const;
-    void ExtractShapeKeyTracks(FbxAnimLayer* AnimLayer, FbxScene* Scene, FAnimationClip& OutClip) const;
+        FAnimationSequence& OutSequence) const;
+    void ExtractShapeKeyTracks(FbxAnimLayer* AnimLayer, FbxScene* Scene, FAnimationSequence& OutSequence) const;
 };

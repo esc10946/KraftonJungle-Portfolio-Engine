@@ -1,4 +1,5 @@
 #include "../Common/Common.hlsli"
+#include "../Common/SkeletalSkinning.hlsli"
 
 cbuffer EditorPickingBuffer : register(b12)
 {
@@ -76,8 +77,15 @@ VSOutputTextured VSStaticMesh(VSInputStaticMesh Input)
 
 VSOutputTextured VSSkeletalMesh(VSInputSkeletalMesh Input)
 {
+    FSkeletalSkinningInput SkinInput;
+    SkinInput.Position = Input.Position;
+    SkinInput.Normal = Input.Normal;
+    SkinInput.Tangent = Input.Tangent;
+    SkinInput.BoneIndices = Input.BoneIndices;
+    SkinInput.BoneWeights = Input.BoneWeights;
+
     VSOutputTextured Output;
-    Output.Position = ApplyMVP(Input.Position);
+    Output.Position = ApplyMVP(ApplySkeletalSkinning(SkinInput).Position);
     Output.UV = UVOffset + Input.UV * UVScale;
     return Output;
 }

@@ -1,8 +1,13 @@
 #include "Editor/Packaging/GamePackager.h"
 
+#include "Asset/AnimationSequenceSerializer.h"
 #include "Asset/BinarySerializer.h"
 #include "Asset/ObjLoader.h"
+#include "Asset/SkeletalMeshTypes.h"
+#include "Asset/SkeletonSerializer.h"
 #include "Asset/StaticMeshTypes.h"
+#include "Core/AssetPathPolicy.h"
+#include "Core/ImportedFbxAssetDiscovery.h"
 #include "Core/Logging/Log.h"
 #include "Core/Paths.h"
 #include "Editor/Settings/EditorSettings.h"
@@ -984,6 +989,7 @@ namespace
             || Extension == ".prefab"
             || Extension == ".curve"
             || Extension == ".sequence"
+            || Extension == ".animsequence"
             || Extension == ".rml"
             || Extension == ".rcss"
             || Extension == ".meta"
@@ -1140,6 +1146,99 @@ namespace
     bool AddFileDependency(FPackageCookContext& Context, const FString& Path, FString& OutMessage);
     std::filesystem::path ResolveStartupSceneForValidation(const FString& StartupScene);
 
+    bool TryResolveImportedSkeletalMeshBinaryForFbx(const FString& SourceFbxPath, FString& OutBinaryPath)
+    {
+        const std::filesystem::path SourceAbs = ResolveProjectFilePath(SourceFbxPath);
+        FImportedFbxAssetDiscovery Discovery;
+        TArray<FImportedFbxAssetRecord> Records =
+            Discovery.DiscoverForSourceFbx(FPaths::ToUtf8(SourceAbs.wstring()));
+        auto MeshRecordIt = std::find_if(
+            Records.begin(),
+            Records.end(),
+            [](const FImportedFbxAssetRecord& Record)
+            {
+                return Record.Type == EImportedFbxAssetType::SkeletalMesh;
+            });
+
+        if (MeshRecordIt == Records.end())
+        {
+            return false;
+        }
+
+        OutBinaryPath = MeshRecordIt->AssetPath;
+        return !OutBinaryPath.empty();
+    }
+
+    bool AddImportedBinaryDependencies(FPackageCookContext& Context, const FString& BinaryPath, FString& OutMessage)
+    {
+        const FString NormalizedBinaryPath = NormalizeAssetPathForPackage(BinaryPath);
+        const std::filesystem::path BinaryAbs = ResolveProjectFilePath(NormalizedBinaryPath);
+        const FString BinaryAbsString = FPaths::ToUtf8(BinaryAbs.wstring());
+
+        FBinarySerializer MeshSerializer;
+        FSkeletalMeshBinaryHeader SkeletalHeader;
+        if (MeshSerializer.ReadSkeletalMeshHeader(BinaryAbsString, SkeletalHeader))
+        {
+            FSkeletalMesh Mesh;
+            if (!MeshSerializer.LoadSkeletalMesh(BinaryAbsString, Mesh))
+            {
+                OutMessage = "Failed to read skeletal mesh binary for packaging: " + NormalizedBinaryPath;
+                return false;
+            }
+
+            if (!Mesh.SkeletonSourcePath.empty())
+            {
+                const FString SkeletonPath = FAssetPathPolicy::ResolveAssetRelativePath(
+                    NormalizedBinaryPath,
+                    Mesh.SkeletonSourcePath);
+                if (!AddFileDependency(Context, SkeletonPath, OutMessage))
+                {
+                    OutMessage = "Failed to include skeletal mesh skeleton dependency: " + SkeletonPath + " | " + OutMessage;
+                    return false;
+                }
+            }
+
+            AddManifest(Context, "Included skeletal mesh binary: " + NormalizedBinaryPath);
+            return true;
+        }
+
+        FAnimationSequenceSerializer AnimationSerializer;
+        FAnimationSequenceBinaryHeader AnimationHeader;
+        if (AnimationSerializer.ReadAnimationSequenceHeader(BinaryAbsString, AnimationHeader))
+        {
+            FAnimationSequence Sequence;
+            if (!AnimationSerializer.LoadAnimationSequence(BinaryAbsString, Sequence))
+            {
+                OutMessage = "Failed to read animation binary for packaging: " + NormalizedBinaryPath;
+                return false;
+            }
+
+            if (!Sequence.SkeletonSourcePath.empty())
+            {
+                const FString SkeletonPath = FAssetPathPolicy::ResolveAssetRelativePath(
+                    NormalizedBinaryPath,
+                    Sequence.SkeletonSourcePath);
+                if (!AddFileDependency(Context, SkeletonPath, OutMessage))
+                {
+                    OutMessage = "Failed to include animation skeleton dependency: " + SkeletonPath + " | " + OutMessage;
+                    return false;
+                }
+            }
+
+            AddManifest(Context, "Included animation binary: " + NormalizedBinaryPath);
+            return true;
+        }
+
+        FSkeletonSerializer SkeletonSerializer;
+        FSkeletonBinaryHeader SkeletonHeader;
+        if (SkeletonSerializer.ReadSkeletonHeader(BinaryAbsString, SkeletonHeader))
+        {
+            AddManifest(Context, "Included skeleton binary: " + NormalizedBinaryPath);
+        }
+
+        return true;
+    }
+
     bool ShouldIncludeRuntimeFileByExtension(const std::set<FString>& Extensions, const std::filesystem::path& Path)
     {
         const FString Extension = ToLowerAscii(FPaths::ToUtf8(Path.extension().generic_wstring()));
@@ -1231,6 +1330,10 @@ namespace
                 return false;
             }
             Context.FilesToCopy.insert(NormalizedSource);
+            if (!AddImportedBinaryDependencies(Context, NormalizedSource, OutMessage))
+            {
+                return false;
+            }
             OutCookedPath = NormalizedSource;
             return true;
         }
@@ -1331,6 +1434,22 @@ namespace
             }
 
             const FString Extension = GetLowerExtension(Value);
+            if (Extension == ".fbx")
+            {
+                FString ImportedBinaryPath;
+                if (TryResolveImportedSkeletalMeshBinaryForFbx(Value, ImportedBinaryPath))
+                {
+                    FString CookedPath;
+                    if (!CookStaticMeshDependency(Context, ImportedBinaryPath, CookedPath, OutMessage))
+                    {
+                        return false;
+                    }
+                    Node = CookedPath;
+                    AddManifest(Context, "Rewrote imported skeletal FBX reference: " + Value + " -> " + CookedPath);
+                    return true;
+                }
+            }
+
             if (Extension == ".obj" || Extension == ".bin")
             {
                 FString CookedPath;
@@ -1593,7 +1712,7 @@ namespace
         {
             return false;
         }
-        if (!AddRuntimeFilesByExtension(Context, "Asset/Sequence", { ".sequence" }, OutMessage))
+        if (!AddRuntimeFilesByExtension(Context, "Asset/Sequence", { ".sequence", ".animsequence" }, OutMessage))
         {
             return false;
         }

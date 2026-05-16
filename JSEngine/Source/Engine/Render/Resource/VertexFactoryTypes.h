@@ -8,15 +8,13 @@
 
 #include <cstddef>
 
-struct FRenderCommand;
-struct ID3D11DeviceContext;
-
 // Mesh Vertex 데이터를 어떤 방식으로 해석할지 나타내는 타입입니다.
 // Material이 Static/Skeletal 여부를 알지 않도록 RenderCommand가 이 값을 들고 갑니다.
 enum class EVertexFactoryType : uint8
 {
     StaticMesh,
     SkeletalMesh,
+    SkeletalMeshOverlay,
     ProceduralMesh,
     Primitive,
     Billboard,
@@ -121,11 +119,24 @@ public:
             FShaderPaths::Shadow,
             FShaderPaths::EditorSelectionMask,
             "SkeletalMeshVS",
-            "DepthPrepassVS",
-            "ShadowVS",
+            "SkeletalDepthPrepassVS",
+            "SkeletalShadowVS",
             "VSSkeletalMesh",
             SkeletalVertexLayout,
-            PositionOnlyLayout,
+            SkeletalVertexLayout,
+            SkeletalVertexLayout
+        };
+        static const FVertexFactoryDesc SkeletalMeshOverlayDesc = {
+            FShaderPaths::EditorBoneWeightHeatmap,
+            FShaderPaths::EditorBoneWeightHeatmap,
+            FShaderPaths::EditorBoneWeightHeatmap,
+            FShaderPaths::EditorBoneWeightHeatmap,
+            "VS",
+            "VS",
+            "VS",
+            "VS",
+            SkeletalVertexLayout,
+            SkeletalVertexLayout,
             SkeletalVertexLayout
         };
         static const FVertexFactoryDesc DecalDesc = {
@@ -198,6 +209,8 @@ public:
         {
         case EVertexFactoryType::SkeletalMesh:
             return SkeletalMeshDesc;
+        case EVertexFactoryType::SkeletalMeshOverlay:
+            return SkeletalMeshOverlayDesc;
         case EVertexFactoryType::Decal:
             return DecalDesc;
         case EVertexFactoryType::Gizmo:
@@ -217,15 +230,3 @@ public:
         }
     }
 };
-
-inline void BindVertexFactoryResources(
-    ID3D11DeviceContext* Context,
-    EVertexFactoryType Type,
-    const FRenderCommand& Cmd)
-{
-    // 현재 CPU Skinning은 이미 갱신된 VertexBuffer를 넘기므로 추가 리소스가 없습니다.
-    // 이후 GPU Skinning을 넣으면 여기서 BoneMatrixBuffer 같은 VF 전용 리소스를 바인딩합니다.
-    (void)Context;
-    (void)Type;
-    (void)Cmd;
-}

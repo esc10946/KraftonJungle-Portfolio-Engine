@@ -1,6 +1,7 @@
 #include "ShadowPass.h"
 
 #include "Core/ResourceManager.h"
+#include "Core/Logging/Stats.h"
 #include "Render/Resource/ShaderHelper.h"
 #include "Render/Resource/ShaderPaths.h"
 #include "Render/Resource/ShadowAtlasManager.h"
@@ -170,6 +171,7 @@ bool FShadowPass::Begin(const FRenderPassContext* Context)
 
 bool FShadowPass::DrawCommand(const FRenderPassContext* Context)
 {
+	SCOPE_STAT("GPU.SkeletalDraw.Shadow");
     if (!Context->RenderBus->GetShowFlags().bShadow)
         return true;
 

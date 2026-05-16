@@ -290,6 +290,7 @@ void FRenderer::CreateResources()
 	Resources.FXAAConstantBuffer.Create(Device.GetDevice(), sizeof(FFXAAConstants));
     Resources.EditorPickingConstantBuffer.Create(Device.GetDevice(), sizeof(FEditorPickingConstants));
     Resources.SelectionMaskConstantBuffer.Create(Device.GetDevice(), sizeof(FSelectionMaskConstants));
+    Resources.MeshOverlayConstantBuffer.Create(Device.GetDevice(), sizeof(FMeshOverlayConstants));
     Resources.SandevistanCB.Create(Device.GetDevice(), sizeof(FSandevistanConstants));
     Resources.PostProcessCB.Create(Device.GetDevice(), sizeof(FPostProcessConstants));
     Resources.ScreenOverlayCB.Create(Device.GetDevice(), sizeof(FScreenOverlayConstants));
@@ -362,6 +363,7 @@ void FRenderer::Release()
     Resources.FXAAConstantBuffer.Release();
     Resources.EditorPickingConstantBuffer.Release();
     Resources.SelectionMaskConstantBuffer.Release();
+    Resources.MeshOverlayConstantBuffer.Release();
     Resources.LightPassConstantBuffer.Release();
     Resources.VSMConstantBuffer.Release();
 	FGPUProfiler::Get().Shutdown();
@@ -562,6 +564,7 @@ void FRenderer::Render(const FRenderBus& InRenderBus)
 
 void FRenderer::RenderEditorIdPickBuffer(const FRenderBus& InRenderBus, FViewportRenderResource& Resource, TArray<AActor*>& OutActors)
 {
+    SCOPE_STAT("GPU.SkeletalDraw.IDPick");
     OutActors.clear();
 
     ID3D11DeviceContext* Context = Device.GetDeviceContext();
@@ -691,6 +694,7 @@ void FRenderer::RenderEditorIdPickBuffer(const FRenderBus& InRenderBus, FViewpor
                 continue;
             }
             PickProgram->Bind(Context);
+            BindVertexFactoryResources(Context, Command.VertexFactoryType, Command);
             DrawIdPickCommand(Context, Command);
         }
     }
