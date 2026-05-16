@@ -62,6 +62,10 @@ void USkinnedMeshComponent::Serialize(FArchive& Ar)
     }
 
     UMeshComponent::Serialize(Ar);
+    if (SkeletalMesh)
+    {
+        SkeletalMeshPath = SkeletalMesh->GetAssetPathFileName();
+    }
     Ar << "SkeletalMeshAsset" << SkeletalMeshPath;
 }
 

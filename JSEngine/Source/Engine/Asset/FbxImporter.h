@@ -19,6 +19,37 @@ struct FFbxMeshContentInfo
     bool bHasSkeletalMesh = false;
 };
 
+struct FFbxSkeletonImportDesc
+{
+    FString RootNodeName;
+    TArray<FString> BoneNodeNames;
+};
+
+struct FFbxSkeletalMeshImportDesc
+{
+    FString MeshNodeName;
+    FString SkeletonRootNodeName;
+    int32 MaterialSlotCount = 0;
+    bool bSkinned = false;
+    bool bRigidAttached = false;
+};
+
+struct FFbxAnimationImportDesc
+{
+    FString ClipName;
+    FString TargetSkeletonRootNodeName;
+    int32 StackIndex = -1;
+};
+
+struct FFbxImportedAssetSet
+{
+    FString SourcePath;
+    FFbxMeshContentInfo MeshContentInfo;
+    TArray<FFbxSkeletonImportDesc> Skeletons;
+    TArray<FFbxSkeletalMeshImportDesc> SkeletalMeshes;
+    TArray<FFbxAnimationImportDesc> Animations;
+};
+
 struct FAnimationImportOptions
 {
     FString SkeletonSourcePath;
@@ -39,9 +70,11 @@ public:
 	FString GetLoaderName() const override;
 
 	FSkeletalMesh* LoadSkeletalMesh(const FString& Path, const FStaticMeshLoadOptions& LoadOptions);
+	TArray<FSkeleton*> LoadSkeletons(const FString& Path);
 
     TArray<FAnimationClip*> LoadAnimations(const FString& Path, const FAnimationImportOptions& ImportOptions);
 
+	FFbxImportedAssetSet AnalyzeImportedAssets(const FString& Path);
 	FFbxMeshContentInfo InspectMeshContent(const FString& Path);
 
 private:

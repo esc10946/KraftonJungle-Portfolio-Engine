@@ -626,6 +626,8 @@
     <ClCompile Include="Source\Engine\Asset\ObjLoader.cpp" />
     <ClCompile Include="Source\Engine\Asset\ParticleAtlasLoader.cpp" />
     <ClCompile Include="Source\Engine\Asset\SkeletalMesh.cpp" />
+    <ClCompile Include="Source\Engine\Asset\SkeletonAsset.cpp" />
+    <ClCompile Include="Source\Engine\Asset\SkeletonSerializer.cpp" />
     <ClCompile Include="Source\Engine\Asset\StaticMesh.cpp" />
     <ClCompile Include="Source\Engine\Asset\StaticMeshSimplifier.cpp" />
     <ClCompile Include="Source\Engine\Audio\AudioSystem.cpp" />
@@ -681,8 +683,10 @@
     <ClCompile Include="Source\Engine\Core\CurveResourceCache.cpp" />
     <ClCompile Include="Source\Engine\Core\Delegates\Delegate.cpp" />
     <ClCompile Include="Source\Engine\Core\EngineTypes.cpp" />
+    <ClCompile Include="Source\Engine\Core\ExplicitFbxImportService.cpp" />
     <ClCompile Include="Source\Engine\Core\FbxMaterialLoadService.cpp" />
     <ClCompile Include="Source\Engine\Core\Guid.cpp" />
+    <ClCompile Include="Source\Engine\Core\ImportedFbxAssetDiscovery.cpp" />
     <ClCompile Include="Source\Engine\Core\ImportedMaterialPolicy.cpp" />
     <ClCompile Include="Source\Engine\Core\Logging\GPUProfiler.cpp" />
     <ClCompile Include="Source\Engine\Core\Logging\Log.cpp" />
@@ -699,6 +703,7 @@
     <ClCompile Include="Source\Engine\Core\ResourceMemoryReporter.cpp" />
     <ClCompile Include="Source\Engine\Core\ShaderResourceCache.cpp" />
     <ClCompile Include="Source\Engine\Core\SkeletalMeshLoadService.cpp" />
+    <ClCompile Include="Source\Engine\Core\SkeletonLoadService.cpp" />
     <ClCompile Include="Source\Engine\Core\StaticMeshLoadService.cpp" />
     <ClCompile Include="Source\Engine\Core\StaticMeshResourceCache.cpp" />
     <ClCompile Include="Source\Engine\Core\TextureAssetMetaService.cpp" />
@@ -958,6 +963,9 @@
     <ClInclude Include="Source\Engine\Asset\ParticleAtlasLoader.h" />
     <ClInclude Include="Source\Engine\Asset\SkeletalMesh.h" />
     <ClInclude Include="Source\Engine\Asset\SkeletalMeshTypes.h" />
+    <ClInclude Include="Source\Engine\Asset\SkeletonAsset.h" />
+    <ClInclude Include="Source\Engine\Asset\SkeletonSerializer.h" />
+    <ClInclude Include="Source\Engine\Asset\SkeletonTypes.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMesh.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMeshSimplifier.h" />
     <ClInclude Include="Source\Engine\Asset\StaticMeshTypes.h" />
@@ -1030,8 +1038,10 @@
     <ClInclude Include="Source\Engine\Core\Delegates\Delegate.h" />
     <ClInclude Include="Source\Engine\Core\EditorResourcePaths.h" />
     <ClInclude Include="Source\Engine\Core\EngineTypes.h" />
+    <ClInclude Include="Source\Engine\Core\ExplicitFbxImportService.h" />
     <ClInclude Include="Source\Engine\Core\FbxMaterialLoadService.h" />
     <ClInclude Include="Source\Engine\Core\Guid.h" />
+    <ClInclude Include="Source\Engine\Core\ImportedFbxAssetDiscovery.h" />
     <ClInclude Include="Source\Engine\Core\ImportedMaterialPolicy.h" />
     <ClInclude Include="Source\Engine\Core\Logging\GPUProfiler.h" />
     <ClInclude Include="Source\Engine\Core\Logging\Log.h" />
@@ -1051,6 +1061,7 @@
     <ClInclude Include="Source\Engine\Core\ShaderResourceCache.h" />
     <ClInclude Include="Source\Engine\Core\Singleton.h" />
     <ClInclude Include="Source\Engine\Core\SkeletalMeshLoadService.h" />
+    <ClInclude Include="Source\Engine\Core\SkeletonLoadService.h" />
     <ClInclude Include="Source\Engine\Core\StaticMeshLoadService.h" />
     <ClInclude Include="Source\Engine\Core\StaticMeshResourceCache.h" />
     <ClInclude Include="Source\Engine\Core\StringUtils.h" />

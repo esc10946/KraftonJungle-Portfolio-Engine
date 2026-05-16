@@ -6,11 +6,14 @@
 #include "Asset/CurveFloatAsset.h"
 #include "Asset/FbxImporter.h"
 #include "Asset/ObjLoader.h"
+#include "Asset/SkeletonAsset.h"
+#include "Asset/SkeletonSerializer.h"
 #include "Asset/SkeletalMesh.h"
 #include "Asset/StaticMesh.h"
 #include "Core/AtlasResourceCache.h"
 #include "Core/CurveResourceCache.h"
 #include "Core/CoreTypes.h"
+#include "Core/ImportedFbxAssetDiscovery.h"
 #include "Core/MaterialResourceCache.h"
 #include "Core/RenderStateResourceCache.h"
 #include "Core/Singleton.h"
@@ -33,6 +36,7 @@ class FMaterialSerializationService;
 class FAnimationClipLoadService;
 class FStaticMeshLoadService;
 class FSkeletalMeshLoadService;
+class FSkeletonLoadService;
 class FFbxMaterialLoadService;
 
 // 리소스를 관리하는 싱글턴.
@@ -44,6 +48,7 @@ class FResourceManager : public TSingleton<FResourceManager>
 	friend class FAnimationClipLoadService;
 	friend class FStaticMeshLoadService;
 	friend class FSkeletalMeshLoadService;
+	friend class FSkeletonLoadService;
 	friend class FFbxMaterialLoadService;
 
 public:
@@ -114,13 +119,22 @@ public:
 	UStaticMesh* FindStaticMesh(const FString& Path) const;
 	TArray<FString> GetStaticMeshPaths() const;
 
+	USkeletonAsset* LoadSkeleton(const FString& Path);
+	USkeletonAsset* FindSkeleton(const FString& Path) const;
+	TArray<FString> GetSkeletonPaths() const;
+	TArray<USkeletonAsset*> ImportSkeletonsFromFbx(const FString& SourceFbxPath);
+	bool SaveSkeleton(USkeletonAsset* Skeleton);
+
 	/*
 	 * note: 병합하면서 충돌이 발생하거나 동일한 로직의 함수가 있다면 날려버리셔도 됩니다
 	 */
 	USkeletalMesh* LoadSkeletalMesh(const FString& Path);
+	USkeletalMesh* LoadSkeletalMesh(const FString& Path, const FString& SkeletonName);
     USkeletalMesh* FindSkeletalMesh(const FString& Path) const;
 	TArray<FString> GetSkeletalMeshPaths() const;
 	FFbxMeshContentInfo InspectFbxMeshContent(const FString& Path);
+	TArray<FImportedFbxAssetRecord> ImportFbxAssets(const FString& SourceFbxPath);
+	TArray<FImportedFbxAssetRecord> DiscoverImportedFbxAssets(const FString& SourceFbxPath) const;
 
 	// 에디터에서 socket 등 mesh data 변경 후 writable cache(.bin)에 저장.
 	bool SaveSkeletalMesh(USkeletalMesh* Mesh);
@@ -174,6 +188,7 @@ private:
 	FFbxImporter FbxImporter;
 	FBinarySerializer BinarySerializer;
 	FAnimationClipSerializer AnimationClipSerializer;
+	FSkeletonSerializer SkeletonSerializer;
 
 	TComPtr<ID3D11Texture2D>          DefaultWhiteTexture;
 
@@ -186,6 +201,7 @@ private:
 	FAtlasResourceCache AtlasCache;
 
 	TMap<FString, USkeletalMesh*> SkeletalMeshMap;
+	TMap<FString, USkeletonAsset*> SkeletonMap;
 	TMap<FString, UAnimationClipAsset*> AnimationClipMap;
 
 	/* Paths */
@@ -194,6 +210,7 @@ private:
 	TArray<FString> ParticleFilePaths;
 	TArray<FString> FontFilePaths;
 	TArray<FString> TextureFilePaths;
+	TArray<FString> SkeletonFilePaths;
 	TArray<FString> SkeletalMeshFilePaths;
 	TArray<FString> CurveFilePaths;
 	TArray<FString> AnimationClipFilePaths;

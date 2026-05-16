@@ -16,6 +16,13 @@ public:
 	static FString MakeStaticMeshCacheBinaryPath(const FString& SourcePath);
 	static FString MakeWritableStaticMeshCacheBinaryPath(const FString& SourcePath);
 
+	static FString SanitizeImportedAssetToken(const FString& Token);
+	static FString MakeSiblingSkeletonBinaryPath(const FString& SourceFbxPath, const FString& SkeletonRootName);
+	static FString MakeSiblingSkeletalMeshBinaryPath(const FString& SourceFbxPath, const FString& MeshOrSkeletonToken);
+	static FString MakeSiblingAnimationClipBinaryPath(const FString& SourceFbxPath, const FString& ClipName);
+	static FString MakeAssetRelativePath(const FString& FromAssetPath, const FString& ToAssetPath);
+	static FString ResolveAssetRelativePath(const FString& FromAssetPath, const FString& RelativeTargetPath);
+
 	static FString MakeWritableSkeletalMeshCacheBinaryPath(const FString& SourcePath);
 	static FString MakeWritableAnimationClipCacheBinaryPath(const FString& SourcePath);
 };
