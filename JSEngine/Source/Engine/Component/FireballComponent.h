@@ -2,10 +2,11 @@
 #include "PrimitiveComponent.h"
 #include "Core/ResourceTypes.h"
 
+#include "UFireballComponent.generated.h"
+UCLASS()
 class UFireballComponent : public UPrimitiveComponent {
 public:
-	DECLARE_CLASS(UFireballComponent, UPrimitiveComponent)
-
+	GENERATED_BODY(UFireballComponent, UPrimitiveComponent)
 	UFireballComponent();
 	~UFireballComponent() override = default;
 

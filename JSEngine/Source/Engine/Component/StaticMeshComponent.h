@@ -3,10 +3,12 @@
 #include "Asset/StaticMesh.h"
 #include "Render/Resource/Material.h"
 
+#include "UStaticMeshComponent.generated.h"
+UCLASS()
 class UStaticMeshComponent : public UMeshComponent
 {
 public:
-	DECLARE_CLASS(UStaticMeshComponent, UMeshComponent)
+	GENERATED_BODY(UStaticMeshComponent, UMeshComponent)
 	UStaticMeshComponent();
 	
 	virtual void PostDuplicate(UObject* Original) override;

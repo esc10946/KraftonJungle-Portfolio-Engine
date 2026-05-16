@@ -6,6 +6,30 @@
 
 class UObject;
 class UClass;
+
+struct FAssetReference
+{
+    FString Path;
+
+    FAssetReference() = default;
+    explicit FAssetReference(const FString& InPath)
+        : Path(InPath)
+    {
+    }
+
+    bool IsEmpty() const { return Path.empty(); }
+    const FString& ToString() const { return Path; }
+};
+
+struct FStaticMeshAssetRef : FAssetReference { using FAssetReference::FAssetReference; };
+struct FSkeletalMeshAssetRef : FAssetReference { using FAssetReference::FAssetReference; };
+struct FTextureAssetRef : FAssetReference { using FAssetReference::FAssetReference; };
+struct FMaterialAssetRef : FAssetReference { using FAssetReference::FAssetReference; };
+struct FAnimationSequenceAssetRef : FAssetReference { using FAssetReference::FAssetReference; };
+struct FCurveAssetRef : FAssetReference { using FAssetReference::FAssetReference; };
+struct FSceneAssetRef : FAssetReference { using FAssetReference::FAssetReference; };
+struct FSoundAssetRef : FAssetReference { using FAssetReference::FAssetReference; };
+
 enum class EReflectedPropertyType : uint8
 {
     Bool,
@@ -14,7 +38,15 @@ enum class EReflectedPropertyType : uint8
     Name,
     String,
     Object,
-    Asset,
+    Array,
+    StaticMeshAsset,
+    SkeletalMeshAsset,
+    TextureAsset,
+    MaterialAsset,
+    AnimationSequenceAsset,
+    CurveAsset,
+    SceneAsset,
+    SoundAsset,
 };
 
 template<typename T> 
@@ -27,6 +59,26 @@ template<> struct TReflectedPropertyType<int32>    { static constexpr EReflected
 template<> struct TReflectedPropertyType<FName>    { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::Name; };
 template<> struct TReflectedPropertyType<FString>  { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::String; };
 template<> struct TReflectedPropertyType<UObject*> { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::Object; };
+template<> struct TReflectedPropertyType<FStaticMeshAssetRef> { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::StaticMeshAsset; };
+template<> struct TReflectedPropertyType<FSkeletalMeshAssetRef> { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::SkeletalMeshAsset; };
+template<> struct TReflectedPropertyType<FTextureAssetRef> { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::TextureAsset; };
+template<> struct TReflectedPropertyType<FMaterialAssetRef> { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::MaterialAsset; };
+template<> struct TReflectedPropertyType<FAnimationSequenceAssetRef> { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::AnimationSequenceAsset; };
+template<> struct TReflectedPropertyType<FCurveAssetRef> { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::CurveAsset; };
+template<> struct TReflectedPropertyType<FSceneAssetRef> { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::SceneAsset; };
+template<> struct TReflectedPropertyType<FSoundAssetRef> { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::SoundAsset; };
+
+inline bool IsReflectedAssetPropertyType(EReflectedPropertyType Type)
+{
+    return Type == EReflectedPropertyType::StaticMeshAsset
+        || Type == EReflectedPropertyType::SkeletalMeshAsset
+        || Type == EReflectedPropertyType::TextureAsset
+        || Type == EReflectedPropertyType::MaterialAsset
+        || Type == EReflectedPropertyType::AnimationSequenceAsset
+        || Type == EReflectedPropertyType::CurveAsset
+        || Type == EReflectedPropertyType::SceneAsset
+        || Type == EReflectedPropertyType::SoundAsset;
+}
 
 // EPropertyFlags 규칙
 // Edit      -> Read | Write | Edit
@@ -73,6 +125,9 @@ struct FProperty
     EPropertyFlags Flags = EPropertyFlags::None;
     UClass* ObjectClass = nullptr;
 
+    EReflectedPropertyType InnerType = EReflectedPropertyType::Float;
+    UClass* InnerClass = nullptr; // TArray<UObject*> 대응
+
     void SerializeItem(FArchive& Ar, UObject* Container) const;
     UClass* GetObjectClass() const { return ObjectClass; }
 
@@ -111,8 +166,7 @@ struct FProperty
         }
         else if constexpr (std::is_same_v<ValueType, FString>)
         {
-            return (Type == EReflectedPropertyType::String ||
-                    Type == EReflectedPropertyType::Asset)
+            return Type == EReflectedPropertyType::String
                 && Size == sizeof(FString);
         }
         else

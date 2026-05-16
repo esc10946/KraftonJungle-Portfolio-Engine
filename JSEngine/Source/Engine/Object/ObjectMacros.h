@@ -29,6 +29,8 @@ Reflection규칙
 public:                                       \
     using ThisClass = ClassName;              \
     using Super = SuperClass;                 \
+    static const FTypeInfo s_TypeInfo;        \
+    const FTypeInfo* GetTypeInfo() const override { return &s_TypeInfo; } \
     static UClass* StaticClass();             \
     UClass* GetClass() const override         \
     {                                         \

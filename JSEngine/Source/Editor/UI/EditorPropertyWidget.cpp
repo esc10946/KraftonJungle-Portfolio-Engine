@@ -24,6 +24,7 @@
 #include "Core/Logging/Log.h"
 #include "Math/Color.h"
 #include "Core/ResourceManager.h"
+#include "Asset/AssetQueryService.h"
 #include "Render/Resource/Material.h"
 #include "Asset/StaticMesh.h"
 #include "Object/FName.h"
@@ -43,6 +44,7 @@
 #include "Runtime/Script/ScriptManager.h"
 #include <Runtime/Script/ScriptComponent.h>
 #include <commdlg.h>
+#include "TestComponent.h"
 
 #define SEPARATOR(); ImGui::Spacing(); ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing(); ImGui::Spacing();
 
@@ -65,6 +67,203 @@ namespace
 	{
 		static const TArray<FString> Empty;
 		return Empty;
+	}
+
+	bool ContainsCaseInsensitive(const FString& Text, const char* Filter)
+	{
+		if (!Filter || Filter[0] == '\0')
+		{
+			return true;
+		}
+
+		FString LowerText = Text;
+		FString LowerFilter = Filter;
+		std::transform(
+			LowerText.begin(),
+			LowerText.end(),
+			LowerText.begin(),
+			[](unsigned char Ch)
+			{
+				return static_cast<char>(std::tolower(Ch));
+			});
+		std::transform(
+			LowerFilter.begin(),
+			LowerFilter.end(),
+			LowerFilter.begin(),
+			[](unsigned char Ch)
+			{
+				return static_cast<char>(std::tolower(Ch));
+			});
+
+		return LowerText.find(LowerFilter) != FString::npos;
+	}
+
+	void AddUniqueAssetPath(TArray<FString>& Paths, const FString& Path)
+	{
+		FString NormalizedPath;
+		if (!FAssetQueryService::NormalizeAssetPath(Path, NormalizedPath))
+		{
+			NormalizedPath = FPaths::Normalize(Path);
+		}
+
+		if (!NormalizedPath.empty() && std::find(Paths.begin(), Paths.end(), NormalizedPath) == Paths.end())
+		{
+			Paths.push_back(NormalizedPath);
+		}
+	}
+
+	TArray<FString> GetReflectionAssetPickerPaths(UEditorEngine* EditorEngine, EReflectedPropertyType AssetType)
+	{
+		TArray<FString> Paths;
+
+		if (EditorEngine)
+		{
+			FEditorAssetService& AssetService = EditorEngine->GetAssetService();
+			const TArray<FString>* SourcePaths = nullptr;
+			switch (AssetType)
+			{
+			case EReflectedPropertyType::StaticMeshAsset:
+				SourcePaths = &AssetService.GetStaticMeshAssetPaths();
+				break;
+			case EReflectedPropertyType::SkeletalMeshAsset:
+				SourcePaths = &AssetService.GetSkeletalMeshAssetPaths();
+				break;
+			case EReflectedPropertyType::TextureAsset:
+				SourcePaths = &AssetService.GetTextureAssetPaths();
+				break;
+			case EReflectedPropertyType::MaterialAsset:
+				SourcePaths = &AssetService.GetMaterialInterfaceNames();
+				break;
+			case EReflectedPropertyType::AnimationSequenceAsset:
+				SourcePaths = &AssetService.GetAnimationSequenceAssetPaths();
+				break;
+			default:
+				break;
+			}
+
+			if (SourcePaths)
+			{
+				for (const FString& Path : *SourcePaths)
+				{
+					AddUniqueAssetPath(Paths, Path);
+				}
+			}
+		}
+
+		if (AssetType == EReflectedPropertyType::CurveAsset)
+		{
+			for (const FString& Path : FAssetQueryService::GetCurvePaths())
+			{
+				AddUniqueAssetPath(Paths, Path);
+			}
+		}
+		else if (AssetType == EReflectedPropertyType::SceneAsset)
+		{
+			for (const FString& Path : FAssetQueryService::GetScenePaths())
+			{
+				AddUniqueAssetPath(Paths, Path);
+			}
+		}
+		else if (AssetType == EReflectedPropertyType::SoundAsset)
+		{
+			for (const FString& Path : FAssetQueryService::GetSoundPaths())
+			{
+				AddUniqueAssetPath(Paths, Path);
+			}
+		}
+
+		std::sort(Paths.begin(), Paths.end());
+		return Paths;
+	}
+
+	bool GetReflectionAssetValue(UObject* Object, const FProperty& Property, FString& OutPath)
+	{
+		switch (Property.Type)
+		{
+		case EReflectedPropertyType::StaticMeshAsset:
+		{
+			FStaticMeshAssetRef Value;
+			if (!Property.GetPropertyValue_InContainer(Object, Value)) return false;
+			OutPath = Value.Path;
+			return true;
+		}
+		case EReflectedPropertyType::SkeletalMeshAsset:
+		{
+			FSkeletalMeshAssetRef Value;
+			if (!Property.GetPropertyValue_InContainer(Object, Value)) return false;
+			OutPath = Value.Path;
+			return true;
+		}
+		case EReflectedPropertyType::TextureAsset:
+		{
+			FTextureAssetRef Value;
+			if (!Property.GetPropertyValue_InContainer(Object, Value)) return false;
+			OutPath = Value.Path;
+			return true;
+		}
+		case EReflectedPropertyType::MaterialAsset:
+		{
+			FMaterialAssetRef Value;
+			if (!Property.GetPropertyValue_InContainer(Object, Value)) return false;
+			OutPath = Value.Path;
+			return true;
+		}
+		case EReflectedPropertyType::AnimationSequenceAsset:
+		{
+			FAnimationSequenceAssetRef Value;
+			if (!Property.GetPropertyValue_InContainer(Object, Value)) return false;
+			OutPath = Value.Path;
+			return true;
+		}
+		case EReflectedPropertyType::CurveAsset:
+		{
+			FCurveAssetRef Value;
+			if (!Property.GetPropertyValue_InContainer(Object, Value)) return false;
+			OutPath = Value.Path;
+			return true;
+		}
+		case EReflectedPropertyType::SceneAsset:
+		{
+			FSceneAssetRef Value;
+			if (!Property.GetPropertyValue_InContainer(Object, Value)) return false;
+			OutPath = Value.Path;
+			return true;
+		}
+		case EReflectedPropertyType::SoundAsset:
+		{
+			FSoundAssetRef Value;
+			if (!Property.GetPropertyValue_InContainer(Object, Value)) return false;
+			OutPath = Value.Path;
+			return true;
+		}
+		default:
+			return false;
+		}
+	}
+
+	bool SetReflectionAssetValue(UObject* Object, const FProperty& Property, const FString& Path)
+	{
+		switch (Property.Type)
+		{
+		case EReflectedPropertyType::StaticMeshAsset:
+			return Property.SetPropertyValue_InContainer(Object, FStaticMeshAssetRef(Path));
+		case EReflectedPropertyType::SkeletalMeshAsset:
+			return Property.SetPropertyValue_InContainer(Object, FSkeletalMeshAssetRef(Path));
+		case EReflectedPropertyType::TextureAsset:
+			return Property.SetPropertyValue_InContainer(Object, FTextureAssetRef(Path));
+		case EReflectedPropertyType::MaterialAsset:
+			return Property.SetPropertyValue_InContainer(Object, FMaterialAssetRef(Path));
+		case EReflectedPropertyType::AnimationSequenceAsset:
+			return Property.SetPropertyValue_InContainer(Object, FAnimationSequenceAssetRef(Path));
+		case EReflectedPropertyType::CurveAsset:
+			return Property.SetPropertyValue_InContainer(Object, FCurveAssetRef(Path));
+		case EReflectedPropertyType::SceneAsset:
+			return Property.SetPropertyValue_InContainer(Object, FSceneAssetRef(Path));
+		case EReflectedPropertyType::SoundAsset:
+			return Property.SetPropertyValue_InContainer(Object, FSoundAssetRef(Path));
+		default:
+			return false;
+		}
 	}
 
 	FString ToProjectRelativePathIfAbsolute(const FString& Path)
@@ -322,7 +521,7 @@ static const TArray<FComponentMenuEntry> ComponentMenuRegistry = {
 	{
 		"Scene Component",
 		[](AActor* Actor) -> UActorComponent* {
-			return Actor->AddComponent<USceneComponent>();
+			return Actor->AddComponent<TestComponent>();
 		}
 	},
 	{
@@ -2485,7 +2684,6 @@ void FEditorPropertyWidget::RenderReflectionProperties(UObject* Object, const FP
 	}
 
     case EReflectedPropertyType::String:
-    case EReflectedPropertyType::Asset:
     {
         FString Value;
         if (!Property.GetPropertyValue_InContainer(Object, Value))
@@ -2503,6 +2701,120 @@ void FEditorPropertyWidget::RenderReflectionProperties(UObject* Object, const FP
             Property.SetPropertyValue_InContainer(Object, FString(Buffer));
         }
 
+        break;
+    }
+    case EReflectedPropertyType::StaticMeshAsset:
+    case EReflectedPropertyType::SkeletalMeshAsset:
+    case EReflectedPropertyType::TextureAsset:
+    case EReflectedPropertyType::MaterialAsset:
+    case EReflectedPropertyType::AnimationSequenceAsset:
+    case EReflectedPropertyType::CurveAsset:
+    case EReflectedPropertyType::SceneAsset:
+    case EReflectedPropertyType::SoundAsset:
+    {
+        FString Value;
+        if (!GetReflectionAssetValue(Object, Property, Value))
+        {
+            return;
+        }
+
+        char Buffer[256] = {};
+        strncpy_s(Buffer, sizeof(Buffer), Value.c_str(), _TRUNCATE);
+
+        const bool bHasValue = !Value.empty();
+        const bool bAssetExists = !bHasValue || FAssetQueryService::Exists(Value);
+
+        ImGui::PushID(Property.Name);
+
+        ImGui::SetNextItemWidth(std::max(120.0f, ImGui::GetContentRegionAvail().x - 64.0f));
+        const bool bInputChanged = ImGui::InputText("##AssetPath", Buffer, sizeof(Buffer));
+        const bool bInputCommitted = ImGui::IsItemDeactivatedAfterEdit();
+
+        if (bInputChanged)
+        {
+            if (SetReflectionAssetValue(Object, Property, FString(Buffer)))
+            {
+                bChanged = true;
+                Value = Buffer;
+            }
+        }
+
+        if (bInputCommitted)
+        {
+            FString NormalizedPath;
+            if (FAssetQueryService::NormalizeAssetPath(FString(Buffer), NormalizedPath)
+                && NormalizedPath != FString(Buffer))
+            {
+                if (SetReflectionAssetValue(Object, Property, NormalizedPath))
+                {
+                    bChanged = true;
+                    Value = NormalizedPath;
+                }
+            }
+        }
+
+        ImGui::SameLine();
+        if (ImGui::Button("Pick"))
+        {
+            ImGui::OpenPopup("##AssetPicker");
+        }
+
+        ImGui::SameLine();
+        ImGui::TextUnformatted(Property.Name);
+
+        if (!bAssetExists)
+        {
+            ImGui::SameLine();
+            ImGui::TextColored(ImVec4(1.0f, 0.35f, 0.25f, 1.0f), "Missing");
+        }
+
+        if (ImGui::BeginPopup("##AssetPicker"))
+        {
+            static char Filter[128] = {};
+            if (ImGui::IsWindowAppearing())
+            {
+                Filter[0] = '\0';
+            }
+
+            ImGui::InputText("##AssetFilter", Filter, sizeof(Filter));
+
+            if (ImGui::Selectable("None", Value.empty()))
+            {
+                if (SetReflectionAssetValue(Object, Property, FString()))
+                {
+                    bChanged = true;
+                }
+                ImGui::CloseCurrentPopup();
+            }
+
+            const TArray<FString> AssetPaths = GetReflectionAssetPickerPaths(EditorEngine, Property.Type);
+            for (const FString& AssetPath : AssetPaths)
+            {
+                if (!ContainsCaseInsensitive(AssetPath, Filter))
+                {
+                    continue;
+                }
+
+                const bool bSelected = Value == AssetPath;
+                if (ImGui::Selectable(AssetPath.c_str(), bSelected))
+                {
+                    if (SetReflectionAssetValue(Object, Property, AssetPath))
+                    {
+                        bChanged = true;
+                    }
+                    ImGui::CloseCurrentPopup();
+                }
+
+                if (bSelected)
+                {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+
+            ImGui::EndPopup();
+        }
+
+        ImGui::PopID();
         break;
     }
     case EReflectedPropertyType::Name:

@@ -4,8 +4,11 @@
 #include "Object/FName.h"
 
 
+#include "UBillboardComponent.generated.h"
 class FViewportCamera;
 struct FTextureResource;
+
+UCLASS()
 
 class UBillboardComponent : public UPrimitiveComponent
 {
@@ -17,8 +20,7 @@ protected:
 	virtual void PostDuplicate(UObject* Original) override;
 
 public:
-	DECLARE_CLASS(UBillboardComponent, UPrimitiveComponent)
-
+	GENERATED_BODY(UBillboardComponent, UPrimitiveComponent)
 	virtual void Serialize(FArchive& Ar) override;
 
 	void TickComponent(float DeltaTime) override;

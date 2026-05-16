@@ -2,11 +2,12 @@
 
 #include "MovementComponent.h"
 
+#include "URotatingMovementComponent.generated.h"
+UCLASS()
 class URotatingMovementComponent : public UMovementComponent
 {	
 public:
-	DECLARE_CLASS(URotatingMovementComponent, UMovementComponent)
-
+	GENERATED_BODY(URotatingMovementComponent, UMovementComponent)
 	virtual void TickComponent(float DeltaTime) override;
 
 	// RotationRate: X=X축 각속도, Y=Y축 각속도, Z=Z축 각속도 (deg/s)

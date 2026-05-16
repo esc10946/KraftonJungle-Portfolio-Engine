@@ -16,6 +16,19 @@ TYPE_MAP = {
     "float": "EReflectedPropertyType::Float",
     "FName": "EReflectedPropertyType::Name",
     "FString": "EReflectedPropertyType::String",
+    "FStaticMeshAssetRef": "EReflectedPropertyType::StaticMeshAsset",
+    "FSkeletalMeshAssetRef": "EReflectedPropertyType::SkeletalMeshAsset",
+    "FTextureAssetRef": "EReflectedPropertyType::TextureAsset",
+    "FMaterialAssetRef": "EReflectedPropertyType::MaterialAsset",
+    "FAnimationSequenceAssetRef": "EReflectedPropertyType::AnimationSequenceAsset",
+    "FCurveAssetRef": "EReflectedPropertyType::CurveAsset",
+    "FSceneAssetRef": "EReflectedPropertyType::SceneAsset",
+    "FSoundAssetRef": "EReflectedPropertyType::SoundAsset",
+}
+
+ABSTRACT_CLASSES = {
+    "UMeshComponent",
+    "USkinnedMeshComponent",
 }
 
 FLAG_MAP = {
@@ -38,6 +51,11 @@ PROPERTY_PATTERN = re.compile(
     re.MULTILINE,
 )
 
+GENERATED_BODY_PATTERN = re.compile(
+    r"GENERATED_BODY\s*\(\s*(?P<class>\w+)\s*,\s*(?P<super>\w+)\s*\)",
+    re.MULTILINE,
+)
+
 
 @dataclass
 class ReflectedProperty:
@@ -54,6 +72,8 @@ class ReflectedClass:
     class_name: str
     super_name: str
     class_flags: str
+    is_abstract: bool
+    needs_type_info_definition: bool
     properties: list[ReflectedProperty]
 
 
@@ -99,6 +119,77 @@ def reflected_type(cpp_type: str) -> tuple[str | None, str | None]:
 
     return None, None
 
+def skip_ws_and_comments(text: str, offset: int) -> int:
+    while offset < len(text):
+        # whitespace skip
+        match = re.match(r"\s+", text[offset:])
+        if match:
+            offset += match.end()
+            continue
+
+        # // comment skip
+        if text.startswith("//", offset):
+            newline = text.find("\n", offset)
+            if newline == -1:
+                return len(text)
+            offset = newline + 1
+            continue
+
+        # /* */ comment skip
+        if text.startswith("/*", offset):
+            end = text.find("*/", offset + 2)
+            if end == -1:
+                return len(text)
+            offset = end + 2
+            continue
+
+        break
+
+    return offset
+
+
+def read_next_declaration(text: str, offset: int) -> tuple[str, int, int]:
+    decl_start = skip_ws_and_comments(text, offset)
+
+    semicolon = text.find(";", decl_start)
+    if semicolon == -1:
+        return "", decl_start, decl_start
+
+    decl_end = semicolon + 1
+    return text[decl_start:decl_end], decl_start, decl_end
+
+
+def parse_property_declaration(
+    path: Path,
+    content: str,
+    body_start: int,
+    parseable_body: str,
+    decl_text: str,
+    decl_offset: int,
+) -> tuple[str, str]:
+    decl_match = PROPERTY_DECL_PATTERN.match(decl_text)
+    absolute_offset = body_start + decl_offset
+
+    if not decl_match:
+        fail(
+            path,
+            content,
+            absolute_offset,
+            f"failed to parse UPROPERTY declaration '{decl_text.strip()}'",
+        )
+
+    raw_cpp_type = decl_match.group("type").strip()
+    prop_name = decl_match.group("name").strip()
+
+    if "<" in raw_cpp_type or ">" in raw_cpp_type:
+        fail(
+            path,
+            content,
+            absolute_offset,
+            f"template UPROPERTY types are not supported: {raw_cpp_type}",
+        )
+
+    return raw_cpp_type, prop_name
 
 def reflected_type_for_flags(
     path: Path,
@@ -107,11 +198,6 @@ def reflected_type_for_flags(
     cpp_type: str,
     flag_parts: list[str],
 ) -> tuple[str | None, str | None]:
-    if "Asset" in flag_parts:
-        if cpp_type != "FString":
-            fail(path, content, offset, "UPROPERTY Asset must be declared as FString path")
-        return "EReflectedPropertyType::Asset", None
-
     return reflected_type(cpp_type)
 
 
@@ -129,7 +215,7 @@ def parse_flags(path: Path, content: str, offset: int, flag_text: str) -> str:
         )
 
     for part in parts:
-        if part == "Edit" or part == "Asset":
+        if part == "Edit":
             continue
         mapped_flag = FLAG_MAP.get(part)
         if not mapped_flag:
@@ -191,6 +277,44 @@ def strip_conditional_blocks(body: str) -> str:
     return "".join(stripped_lines)
 
 
+def validate_generated_body(
+    path: Path,
+    content: str,
+    body_start: int,
+    parseable_body: str,
+    class_name: str,
+    super_name: str,
+) -> None:
+    generated_body_matches = list(GENERATED_BODY_PATTERN.finditer(parseable_body))
+    if not generated_body_matches:
+        fail(
+            path,
+            content,
+            body_start,
+            f"missing GENERATED_BODY({class_name}, {super_name}) in reflected class body",
+        )
+    if len(generated_body_matches) > 1:
+        fail(
+            path,
+            content,
+            body_start + generated_body_matches[1].start(),
+            "only one GENERATED_BODY(...) is supported per reflected class",
+        )
+
+    generated_body_match = generated_body_matches[0]
+    body_class_name = generated_body_match.group("class")
+    body_super_name = generated_body_match.group("super")
+
+    if body_class_name != class_name or body_super_name != super_name:
+        fail(
+            path,
+            content,
+            body_start + generated_body_match.start(),
+            f"GENERATED_BODY arguments must match class declaration: "
+            f"expected GENERATED_BODY({class_name}, {super_name})",
+        )
+
+
 def infer_class_flags(class_name: str, super_name: str) -> str:
     if class_name.startswith("A") or super_name.startswith("A"):
         return "CF_Actor"
@@ -199,16 +323,29 @@ def infer_class_flags(class_name: str, super_name: str) -> str:
     return "CF_None"
 
 
-def parse_header(path: Path) -> ReflectedClass | None:
-    content = path.read_text(encoding="utf-8")
+def is_abstract_class_body(parseable_body: str) -> bool:
+    return re.search(r"=\s*0\s*;", parseable_body) is not None
 
-    class_matches = list(CLASS_PATTERN.finditer(content))
-    if not class_matches:
-        return None
-    if len(class_matches) > 1:
-        fail(path, content, class_matches[1].start(), "only one UCLASS per header is supported")
 
-    class_match = class_matches[0]
+def is_abstract_class(class_name: str, parseable_body: str) -> bool:
+    return class_name in ABSTRACT_CLASSES or is_abstract_class_body(parseable_body)
+
+
+def has_legacy_define_class(class_name: str) -> bool:
+    pattern = re.compile(rf"\bDEFINE_CLASS\s*\(\s*{re.escape(class_name)}\s*,")
+    for path in PROJECT_DIR.rglob("*"):
+        if path.suffix not in {".h", ".cpp"} or should_skip(path):
+            continue
+        try:
+            content = path.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            continue
+        if pattern.search(content):
+            return True
+    return False
+
+
+def parse_reflected_class(path: Path, content: str, class_match: re.Match) -> ReflectedClass:
     class_name = class_match.group("class")
     super_name = class_match.group("super")
 
@@ -223,14 +360,17 @@ def parse_header(path: Path) -> ReflectedClass | None:
     body_start, body_end = find_matching_class_body(path, content, class_match)
     body = content[body_start:body_end]
     parseable_body = strip_conditional_blocks(body)
+    validate_generated_body(path, content, body_start, parseable_body, class_name, super_name)
 
     properties: list[ReflectedProperty] = []
     property_names: set[str] = set()
     for prop_match in PROPERTY_PATTERN.finditer(parseable_body):
         absolute_offset = body_start + prop_match.start()
         flag_text = prop_match.group("flags")
+
         raw_cpp_type = prop_match.group("type")
         cpp_type = normalize_cpp_type(raw_cpp_type)
+
         prop_name = prop_match.group("name")
 
         if prop_name in property_names:
@@ -260,12 +400,23 @@ def parse_header(path: Path) -> ReflectedClass | None:
         class_name=class_name,
         super_name=super_name,
         class_flags=infer_class_flags(class_name, super_name),
+        is_abstract=is_abstract_class(class_name, parseable_body),
+        needs_type_info_definition=not has_legacy_define_class(class_name),
         properties=properties,
     )
 
 
+def parse_header(path: Path) -> list[ReflectedClass]:
+    content = path.read_text(encoding="utf-8")
+
+    class_matches = list(CLASS_PATTERN.finditer(content))
+    if not class_matches:
+        return []
+
+    return [parse_reflected_class(path, content, class_match) for class_match in class_matches]
+
+
 def write_generated_header(cls: ReflectedClass) -> None:
-    macro_name = f"{cls.class_name.upper()}_GENERATED_BODY"
     generated_h = f"""#pragma once
 
 class {cls.class_name};
@@ -275,13 +426,6 @@ struct TIsUClassReflected<{cls.class_name}>
 {{
     static constexpr bool Value = true;
 }};
-
-#define {macro_name}() \\
-public: \\
-    using ThisClass = {cls.class_name}; \\
-    using Super = {cls.super_name}; \\
-    static UClass* StaticClass(); \\
-    UClass* GetClass() const override {{ return StaticClass(); }}
 """
 
     generated_path = GENERATED_DIR / f"{cls.class_name}.generated.h"
@@ -293,7 +437,11 @@ def build_generated_cpp(classes: list[ReflectedClass]) -> str:
         "",
     ]
 
+    included_files: set[Path] = set()
     for cls in classes:
+        if cls.file_path in included_files:
+            continue
+        included_files.add(cls.file_path)
         rel_include = os.path.relpath(cls.file_path, GENERATED_DIR).replace("\\", "/")
         cpp_lines.append(f'#include "{rel_include}"')
 
@@ -306,6 +454,16 @@ def build_generated_cpp(classes: list[ReflectedClass]) -> str:
     ]
 
     for cls in classes:
+        if cls.needs_type_info_definition:
+            cpp_lines += [
+                f"const FTypeInfo {cls.class_name}::s_TypeInfo = {{",
+                f'    "{cls.class_name}",',
+                f"    &{cls.super_name}::s_TypeInfo,",
+                f"    sizeof({cls.class_name})",
+                "};",
+                "",
+            ]
+
         cpp_lines += [
             f"UClass* {cls.class_name}::StaticClass()",
             "{",
@@ -314,10 +472,21 @@ def build_generated_cpp(classes: list[ReflectedClass]) -> str:
             "        Super::StaticClass(),",
             f"        sizeof({cls.class_name}),",
             f"        {cls.class_flags},",
-            "        []() -> UObject*",
-            "        {",
-            f"            return UObjectManager::Get().CreateObject<{cls.class_name}>();",
-            "        });",
+        ]
+
+        if cls.is_abstract:
+            cpp_lines += [
+                "        nullptr);",
+            ]
+        else:
+            cpp_lines += [
+                "        []() -> UObject*",
+                "        {",
+                f"            return UObjectManager::Get().CreateObject<{cls.class_name}>();",
+                "        });",
+            ]
+
+        cpp_lines += [
             "",
             "    static bool bRegistered = false;",
             "    if (!bRegistered)",
@@ -366,7 +535,6 @@ def build_generated_cpp(classes: list[ReflectedClass]) -> str:
 
     return "\n".join(cpp_lines)
 
-
 def main() -> int:
     classes: list[ReflectedClass] = []
     class_names: dict[str, Path] = {}
@@ -376,8 +544,8 @@ def main() -> int:
         if should_skip(file_path):
             continue
 
-        reflected_class = parse_header(file_path)
-        if reflected_class:
+        reflected_classes = parse_header(file_path)
+        for reflected_class in reflected_classes:
             existing_path = class_names.get(reflected_class.class_name)
             if existing_path:
                 raise ReflectionGeneratorError(
@@ -393,7 +561,6 @@ def main() -> int:
 
     print(f"[GenerateReflection] Generated {len(classes)} reflected classes")
     return 0
-
 
 if __name__ == "__main__":
     try:

@@ -1,13 +1,15 @@
 ﻿#pragma once
 #include "PrimitiveComponent.h"
 
+#include "UMeshComponent.generated.h"
 class UMaterialInterface;
+
+UCLASS()
 
 class UMeshComponent : public UPrimitiveComponent
 {
 public:
-	DECLARE_CLASS(UMeshComponent, UPrimitiveComponent)
-
+	GENERATED_BODY(UMeshComponent, UPrimitiveComponent)
 	virtual void Serialize(FArchive& Ar) override;
 
 	virtual void SetMaterial(int32 SlotIndex, UMaterialInterface* InMaterial) override;

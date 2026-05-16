@@ -2,15 +2,17 @@
 
 #include "GameFramework/AActor.h"
 
+#include "AGameModeBase.generated.h"
 class APawn;
 class APlayerController;
 class FViewportCamera;
 
+UCLASS()
+
 class AGameModeBase : public AActor
 {
 public:
-    DECLARE_CLASS(AGameModeBase, AActor)
-
+    GENERATED_BODY(AGameModeBase, AActor)
     void SetPlayerControllerClass(const FString& InClassName);
     const FString& GetPlayerControllerClass() const { return PlayerControllerClass; }
     void SetDefaultPawnClass(const FString& InClassName);

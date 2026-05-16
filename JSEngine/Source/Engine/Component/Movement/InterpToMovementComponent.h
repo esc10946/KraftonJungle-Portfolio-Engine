@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "MovementComponent.h"
 
+#include "UInterpToMovementComponent.generated.h"
 enum class EInterpBehaviour {
 	OneShot,
 	OneShotReverse,
@@ -8,10 +9,11 @@ enum class EInterpBehaviour {
 	PingPong,
 };
 
+UCLASS()
+
 class UInterpToMovementComponent : public UMovementComponent {
 public:
-	DECLARE_CLASS(UInterpToMovementComponent, UMovementComponent)
-
+	GENERATED_BODY(UInterpToMovementComponent, UMovementComponent)
 	UInterpToMovementComponent() = default;
 
 	// Overrides

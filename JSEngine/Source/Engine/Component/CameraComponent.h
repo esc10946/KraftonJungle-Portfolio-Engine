@@ -7,6 +7,7 @@
 #include "Math/Vector.h"
 #include "Math/Color.h"
 
+#include "UCameraComponent.generated.h"
 // 렌더 전용 구조체
 struct FCameraState
 {
@@ -43,11 +44,12 @@ struct FMinimalViewInfo
     FQuat Rotation = FQuat::Identity;
 };
 
+UCLASS()
+
 class UCameraComponent : public USceneComponent
 {
 public:
-	DECLARE_CLASS(UCameraComponent, USceneComponent)
-
+	GENERATED_BODY(UCameraComponent, USceneComponent)
 	UCameraComponent() = default;
 
 	void GetEditableProperties(TArray<FPropertyDescriptor>& OutProps) override;

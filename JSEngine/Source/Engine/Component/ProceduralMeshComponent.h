@@ -4,14 +4,16 @@
 #include "Geometry/Plane.h"
 #include "Render/Common/RenderTypes.h"
 
+#include "UProceduralMeshComponent.generated.h"
 class UStaticMesh;
 class UStaticMeshComponent;
+
+UCLASS()
 
 class UProceduralMeshComponent : public UPrimitiveComponent
 {
 public:
-    DECLARE_CLASS(UProceduralMeshComponent, UPrimitiveComponent)
-
+    GENERATED_BODY(UProceduralMeshComponent, UPrimitiveComponent)
     struct FMeshSection
     {
         TArray<FNormalVertex> Vertices;

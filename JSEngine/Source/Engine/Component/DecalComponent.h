@@ -2,13 +2,15 @@
 
 #include "Component/PrimitiveComponent.h"
 
+#include "UDecalComponent.generated.h"
 class UMaterialInterface;
+
+UCLASS()
 
 class UDecalComponent : public UPrimitiveComponent
 {
 public:
-	DECLARE_CLASS(UDecalComponent, UPrimitiveComponent)
-
+	GENERATED_BODY(UDecalComponent, UPrimitiveComponent)
 	UDecalComponent();
 
 	void PostDuplicate(UObject* Original) override;

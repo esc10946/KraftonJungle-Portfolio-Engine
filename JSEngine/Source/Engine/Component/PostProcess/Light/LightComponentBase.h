@@ -1,9 +1,11 @@
 ﻿#pragma once
 #include "Component/SceneComponent.h"
+#include "ULightComponentBase.generated.h"
 
+UCLASS()
 class ULightComponentBase : public USceneComponent {
 public:
-	DECLARE_CLASS(ULightComponentBase, USceneComponent)
+	GENERATED_BODY(ULightComponentBase, USceneComponent)
 	ULightComponentBase() = default;
     virtual void PostDuplicate(UObject* Original) override;
     virtual void GetEditableProperties(TArray<FPropertyDescriptor>& OutProps) override;

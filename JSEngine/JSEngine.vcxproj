@@ -879,6 +879,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientDebug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientRelease|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="TestComponent.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui_demo.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui_draw.cpp" />
@@ -1243,6 +1244,7 @@
     <ClInclude Include="Source\Misc\ObjViewer\UI\ObjViewerStatWidget.h" />
     <ClInclude Include="Source\Misc\ObjViewer\UI\ObjViewerWidget.h" />
     <ClInclude Include="Source\Misc\ObjViewer\Viewport\ObjViewerViewportClient.h" />
+    <ClInclude Include="TestComponent.h" />
     <ClInclude Include="ThirdParty\ImGui\imconfig.h" />
     <ClInclude Include="ThirdParty\ImGui\imgui.h" />
     <ClInclude Include="ThirdParty\ImGui\imgui_impl_dx11.h" />

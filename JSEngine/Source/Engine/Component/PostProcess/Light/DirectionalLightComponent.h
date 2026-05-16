@@ -1,10 +1,12 @@
 ﻿#pragma once
 #include "LightComponent.h"
 
+#include "UDirectionalLightComponent.generated.h"
+UCLASS()
 class UDirectionalLightComponent : public ULightComponent
 {
 public:
-    DECLARE_CLASS(UDirectionalLightComponent, ULightComponent)
+    GENERATED_BODY(UDirectionalLightComponent, ULightComponent)
 	virtual void GetEditableProperties(TArray<FPropertyDescriptor>& OutProps) override;
 
 protected:

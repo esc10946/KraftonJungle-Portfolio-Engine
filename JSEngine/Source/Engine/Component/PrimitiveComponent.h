@@ -9,6 +9,7 @@
 #include "Core/Delegates/Delegate.h"
 #include "Collision/Collision.h"
 
+#include "UPrimitiveComponent.generated.h"
 /*
 	아직 미사용
 */
@@ -25,10 +26,12 @@ DECLARE_DELEGATE(FOnComponentHit, UPrimitiveComponent*, AActor*, UPrimitiveCompo
 DECLARE_DELEGATE(FOnComponentBeginOverlap, UPrimitiveComponent*, AActor*, UPrimitiveComponent*, int32, bool, const FHitResult&)
 DECLARE_DELEGATE(FOnComponentEndOverlap, UPrimitiveComponent*, AActor*, UPrimitiveComponent*, int32, bool, const FHitResult&)
 
+UCLASS()
+
 class UPrimitiveComponent : public USceneComponent
 {
 public:
-    DECLARE_CLASS(UPrimitiveComponent, USceneComponent)
+    GENERATED_BODY(UPrimitiveComponent, USceneComponent)
     ~UPrimitiveComponent() override;
 
     FOnComponentBeginOverlap OnComponentBeginOverlap;

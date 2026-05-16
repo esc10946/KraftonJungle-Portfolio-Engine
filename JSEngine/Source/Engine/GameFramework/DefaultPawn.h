@@ -2,12 +2,15 @@
 
 #include "GameFramework/Pawn.h"
 
+#include "ADefaultPawn.generated.h"
 class UCameraComponent;
+
+UCLASS()
 
 class ADefaultPawn : public APawn
 {
 public:
-    DECLARE_CLASS(ADefaultPawn, APawn)
+    GENERATED_BODY(ADefaultPawn, APawn)
     ADefaultPawn() = default;
 
     void InitDefaultComponents() override;

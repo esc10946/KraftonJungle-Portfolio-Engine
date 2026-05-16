@@ -5,11 +5,12 @@
 #include "Render/Resource/VertexTypes.h"
 #include "Render/Skinning/SkinningRuntimeSettings.h"
 
+#include "USkinnedMeshComponent.generated.h"
+UCLASS()
 class USkinnedMeshComponent : public UMeshComponent
 {
 public:
-    DECLARE_CLASS(USkinnedMeshComponent, UMeshComponent)
-
+    GENERATED_BODY(USkinnedMeshComponent, UMeshComponent)
     USkinnedMeshComponent() = default;
     ~USkinnedMeshComponent() override = default;
 

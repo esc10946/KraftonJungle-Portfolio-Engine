@@ -5,15 +5,17 @@
 #include "Camera/ViewportCamera.h"
 #include "Engine/Input/GameplayInputTypes.h"
 
+#include "APlayerController.generated.h"
 class UCameraComponent;
 class APlayerCameraManager;
 enum class ECameraBlendType;
 
+UCLASS()
+
 class APlayerController : public AActor
 {
 public:
-	DECLARE_CLASS(APlayerController, AActor)
-
+	GENERATED_BODY(APlayerController, AActor)
 	void BeginPlay() override;
 	void Tick(float DeltaTime) override;
 

@@ -2,14 +2,16 @@
 
 #include "GameFramework/AActor.h"
 
+#include "APawn.generated.h"
 class APlayerController;
 struct FInputActionState;
+
+UCLASS()
 
 class APawn : public AActor
 {
 public:
-	DECLARE_CLASS(APawn, AActor)
-
+	GENERATED_BODY(APawn, AActor)
 	APlayerController* GetController() const { return Controller; }
 	void PossessedBy(APlayerController* NewController);
 	void UnPossessed();

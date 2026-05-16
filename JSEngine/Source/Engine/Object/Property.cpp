@@ -29,8 +29,29 @@ void FProperty::SerializeItem(FArchive& Ar, UObject* Container) const
     case EReflectedPropertyType::String:
         Ar << *ContainerPtrToValuePtr<FString>(Container);
         break;
-    case EReflectedPropertyType::Asset:
-        Ar << *ContainerPtrToValuePtr<FString>(Container);
+    case EReflectedPropertyType::StaticMeshAsset:
+        Ar << ContainerPtrToValuePtr<FStaticMeshAssetRef>(Container)->Path;
+        break;
+    case EReflectedPropertyType::SkeletalMeshAsset:
+        Ar << ContainerPtrToValuePtr<FSkeletalMeshAssetRef>(Container)->Path;
+        break;
+    case EReflectedPropertyType::TextureAsset:
+        Ar << ContainerPtrToValuePtr<FTextureAssetRef>(Container)->Path;
+        break;
+    case EReflectedPropertyType::MaterialAsset:
+        Ar << ContainerPtrToValuePtr<FMaterialAssetRef>(Container)->Path;
+        break;
+    case EReflectedPropertyType::AnimationSequenceAsset:
+        Ar << ContainerPtrToValuePtr<FAnimationSequenceAssetRef>(Container)->Path;
+        break;
+    case EReflectedPropertyType::CurveAsset:
+        Ar << ContainerPtrToValuePtr<FCurveAssetRef>(Container)->Path;
+        break;
+    case EReflectedPropertyType::SceneAsset:
+        Ar << ContainerPtrToValuePtr<FSceneAssetRef>(Container)->Path;
+        break;
+    case EReflectedPropertyType::SoundAsset:
+        Ar << ContainerPtrToValuePtr<FSoundAssetRef>(Container)->Path;
         break;
     case EReflectedPropertyType::Name:
         Ar << *ContainerPtrToValuePtr<FName>(Container);

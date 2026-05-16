@@ -1,11 +1,12 @@
 ﻿#pragma once
 #include "PrimitiveComponent.h"
 
+#include "UShapeComponent.generated.h"
+UCLASS()
 class UShapeComponent : public UPrimitiveComponent
 {
 public:
-    DECLARE_CLASS(UShapeComponent, UPrimitiveComponent)
-
+    GENERATED_BODY(UShapeComponent, UPrimitiveComponent)
     void PostDuplicate(UObject* Original) override;
     void Serialize(FArchive& Ar) override;
 

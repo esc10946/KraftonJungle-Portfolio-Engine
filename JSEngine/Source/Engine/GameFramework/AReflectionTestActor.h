@@ -5,7 +5,7 @@
 UCLASS()
 class AReflectionTestActor : public AActor
 {
-    AREFLECTIONTESTACTOR_GENERATED_BODY()
+    GENERATED_BODY(AReflectionTestActor, AActor)
 
 	void InitDefaultComponents() override;
 public:

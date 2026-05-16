@@ -3,11 +3,14 @@
 #include "Render/Common/ShadowTypes.h"
 #include "Core/EngineTypes.h"
 
+#include "ULightComponent.generated.h"
 class UMaterialInterface;
+
+UCLASS()
 
 class ULightComponent : public ULightComponentBase {
 public:
-	DECLARE_CLASS(ULightComponent, ULightComponentBase)
+	GENERATED_BODY(ULightComponent, ULightComponentBase)
 	ULightComponent() = default;
 
 	FMatrix GetLightViewProj(const FMatrix& CamView, const FMatrix& CamProj,

@@ -127,6 +127,96 @@ namespace
         return Property;
     }
 
+    bool GetReflectedAssetPathForLua(UObject& Object, const FProperty& Property, FString& OutPath)
+    {
+        switch (Property.Type)
+        {
+        case EReflectedPropertyType::StaticMeshAsset:
+        {
+            FStaticMeshAssetRef Value;
+            if (!Property.GetPropertyValue_InContainer(&Object, Value)) return false;
+            OutPath = Value.Path;
+            return true;
+        }
+        case EReflectedPropertyType::SkeletalMeshAsset:
+        {
+            FSkeletalMeshAssetRef Value;
+            if (!Property.GetPropertyValue_InContainer(&Object, Value)) return false;
+            OutPath = Value.Path;
+            return true;
+        }
+        case EReflectedPropertyType::TextureAsset:
+        {
+            FTextureAssetRef Value;
+            if (!Property.GetPropertyValue_InContainer(&Object, Value)) return false;
+            OutPath = Value.Path;
+            return true;
+        }
+        case EReflectedPropertyType::MaterialAsset:
+        {
+            FMaterialAssetRef Value;
+            if (!Property.GetPropertyValue_InContainer(&Object, Value)) return false;
+            OutPath = Value.Path;
+            return true;
+        }
+        case EReflectedPropertyType::AnimationSequenceAsset:
+        {
+            FAnimationSequenceAssetRef Value;
+            if (!Property.GetPropertyValue_InContainer(&Object, Value)) return false;
+            OutPath = Value.Path;
+            return true;
+        }
+        case EReflectedPropertyType::CurveAsset:
+        {
+            FCurveAssetRef Value;
+            if (!Property.GetPropertyValue_InContainer(&Object, Value)) return false;
+            OutPath = Value.Path;
+            return true;
+        }
+        case EReflectedPropertyType::SceneAsset:
+        {
+            FSceneAssetRef Value;
+            if (!Property.GetPropertyValue_InContainer(&Object, Value)) return false;
+            OutPath = Value.Path;
+            return true;
+        }
+        case EReflectedPropertyType::SoundAsset:
+        {
+            FSoundAssetRef Value;
+            if (!Property.GetPropertyValue_InContainer(&Object, Value)) return false;
+            OutPath = Value.Path;
+            return true;
+        }
+        default:
+            return false;
+        }
+    }
+
+    bool SetReflectedAssetPathFromLua(UObject& Object, const FProperty& Property, const FString& Path)
+    {
+        switch (Property.Type)
+        {
+        case EReflectedPropertyType::StaticMeshAsset:
+            return Property.SetPropertyValue_InContainer(&Object, FStaticMeshAssetRef(Path));
+        case EReflectedPropertyType::SkeletalMeshAsset:
+            return Property.SetPropertyValue_InContainer(&Object, FSkeletalMeshAssetRef(Path));
+        case EReflectedPropertyType::TextureAsset:
+            return Property.SetPropertyValue_InContainer(&Object, FTextureAssetRef(Path));
+        case EReflectedPropertyType::MaterialAsset:
+            return Property.SetPropertyValue_InContainer(&Object, FMaterialAssetRef(Path));
+        case EReflectedPropertyType::AnimationSequenceAsset:
+            return Property.SetPropertyValue_InContainer(&Object, FAnimationSequenceAssetRef(Path));
+        case EReflectedPropertyType::CurveAsset:
+            return Property.SetPropertyValue_InContainer(&Object, FCurveAssetRef(Path));
+        case EReflectedPropertyType::SceneAsset:
+            return Property.SetPropertyValue_InContainer(&Object, FSceneAssetRef(Path));
+        case EReflectedPropertyType::SoundAsset:
+            return Property.SetPropertyValue_InContainer(&Object, FSoundAssetRef(Path));
+        default:
+            return false;
+        }
+    }
+
     sol::object LuaGetReflectedProperty(sol::this_state State, UObject& Object, const FString& PropertyName)
     {
         const FProperty* Property = FindLuaProperty(Object, PropertyName, EPropertyFlags::LuaRead);
@@ -166,10 +256,23 @@ namespace
                 : sol::make_object(State, sol::nil);
         }
         case EReflectedPropertyType::String:
-        case EReflectedPropertyType::Asset:
         {
             FString Value;
             return Property->GetPropertyValue_InContainer(&Object, Value)
+                ? sol::make_object(State, Value)
+                : sol::make_object(State, sol::nil);
+        }
+        case EReflectedPropertyType::StaticMeshAsset:
+        case EReflectedPropertyType::SkeletalMeshAsset:
+        case EReflectedPropertyType::TextureAsset:
+        case EReflectedPropertyType::MaterialAsset:
+        case EReflectedPropertyType::AnimationSequenceAsset:
+        case EReflectedPropertyType::CurveAsset:
+        case EReflectedPropertyType::SceneAsset:
+        case EReflectedPropertyType::SoundAsset:
+        {
+            FString Value;
+            return GetReflectedAssetPathForLua(Object, *Property, Value)
                 ? sol::make_object(State, Value)
                 : sol::make_object(State, sol::nil);
         }
@@ -215,9 +318,18 @@ namespace
             }
             return false;
         case EReflectedPropertyType::String:
-        case EReflectedPropertyType::Asset:
             return Value.is<FString>()
                 && Property->SetPropertyValue_InContainer(&Object, Value.as<FString>());
+        case EReflectedPropertyType::StaticMeshAsset:
+        case EReflectedPropertyType::SkeletalMeshAsset:
+        case EReflectedPropertyType::TextureAsset:
+        case EReflectedPropertyType::MaterialAsset:
+        case EReflectedPropertyType::AnimationSequenceAsset:
+        case EReflectedPropertyType::CurveAsset:
+        case EReflectedPropertyType::SceneAsset:
+        case EReflectedPropertyType::SoundAsset:
+            return Value.is<FString>()
+                && SetReflectedAssetPathFromLua(Object, *Property, Value.as<FString>());
         case EReflectedPropertyType::Object:
             return Value.is<UObject*>()
                 && Property->SetPropertyValue_InContainer(&Object, Value.as<UObject*>());

@@ -2,11 +2,12 @@
 
 #include "Component/SceneComponent.h"
 
+#include "USpringArmComponent.generated.h"
+UCLASS()
 class USpringArmComponent : public USceneComponent
 {
 public:
-	DECLARE_CLASS(USpringArmComponent, USceneComponent)
-
+	GENERATED_BODY(USpringArmComponent, USceneComponent)
 	USpringArmComponent();
 
 	void Serialize(FArchive& Ar) override;

@@ -1,6 +1,46 @@
 ﻿#include "Class.h"
 #include "Object/Object.h"
 
+namespace
+{
+    size_t GetExpectedPropertySize(EReflectedPropertyType Type)
+    {
+        switch (Type)
+        {
+        case EReflectedPropertyType::Bool:
+            return sizeof(bool);
+        case EReflectedPropertyType::Int32:
+            return sizeof(int32);
+        case EReflectedPropertyType::Float:
+            return sizeof(float);
+        case EReflectedPropertyType::Name:
+            return sizeof(FName);
+        case EReflectedPropertyType::String:
+            return sizeof(FString);
+        case EReflectedPropertyType::Object:
+            return sizeof(UObject*);
+        case EReflectedPropertyType::StaticMeshAsset:
+            return sizeof(FStaticMeshAssetRef);
+        case EReflectedPropertyType::SkeletalMeshAsset:
+            return sizeof(FSkeletalMeshAssetRef);
+        case EReflectedPropertyType::TextureAsset:
+            return sizeof(FTextureAssetRef);
+        case EReflectedPropertyType::MaterialAsset:
+            return sizeof(FMaterialAssetRef);
+        case EReflectedPropertyType::AnimationSequenceAsset:
+            return sizeof(FAnimationSequenceAssetRef);
+        case EReflectedPropertyType::CurveAsset:
+            return sizeof(FCurveAssetRef);
+        case EReflectedPropertyType::SceneAsset:
+            return sizeof(FSceneAssetRef);
+        case EReflectedPropertyType::SoundAsset:
+            return sizeof(FSoundAssetRef);
+        }
+
+        return 0;
+    }
+}
+
 UClass::UClass(const char* InName, UClass* InSuperClass, size_t InClassSize, uint32 InClassFlags, FCreateObjectFunc InCreateFunc)
     : Name(InName), SuperClass(InSuperClass), ClassSize(InClassSize), ClassFlags(InClassFlags), CreateFunc(InCreateFunc)
 {
@@ -57,12 +97,8 @@ void UClass::AddProperty(const FProperty& Property)
         }
     }
 
-    if (Property.Type == EReflectedPropertyType::Object && Property.Size != sizeof(UObject*))
-    {
-        return;
-    }
-
-    if (Property.Type == EReflectedPropertyType::Asset && Property.Size != sizeof(FString))
+    const size_t ExpectedSize = GetExpectedPropertySize(Property.Type);
+    if (ExpectedSize != 0 && Property.Size != ExpectedSize)
     {
         return;
     }
