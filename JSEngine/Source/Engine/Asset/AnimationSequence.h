@@ -24,6 +24,7 @@ public:
     bool HasValidSequenceData() const;
 
     float GetPlayLength() const override;
+    bool SamplePose(const USkeletalMesh* TargetMesh, float Time, TArray<FMatrix>& OutLocalPose) const override;
 
 private:
     FAnimationSequence* SequenceData = nullptr;

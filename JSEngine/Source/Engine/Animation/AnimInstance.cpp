@@ -134,14 +134,14 @@ void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaSeconds)
 
 bool UAnimSingleNodeInstance::SampleCurrentPose()
 {
-    if (!Sequence)
+    if (!Sequence || !SkelMeshComponent || !SkelMeshComponent->GetSkeletalMesh())
     {
         CurrentLocalPose.clear();
         return false;
     }
 
     TArray<FMatrix> SampledPose;
-    if (!Sequence->SamplePose(CurrentTime, SampledPose))
+    if (!Sequence->SamplePose(SkelMeshComponent->GetSkeletalMesh(), CurrentTime, SampledPose))
     {
         return false;
     }
