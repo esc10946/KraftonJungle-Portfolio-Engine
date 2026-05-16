@@ -40,6 +40,17 @@ namespace
 		return FPaths::Normalize(FPaths::ToUtf8(Relative.generic_wstring()));
 	}
 
+	FString ToProjectRelativePathIfAbsolute(const FString& Path)
+	{
+		std::filesystem::path FsPath(FPaths::ToWide(FPaths::Normalize(Path)));
+		if (!FsPath.is_absolute())
+		{
+			return FPaths::Normalize(FPaths::ToUtf8(FsPath.generic_wstring()));
+		}
+
+		return ToProjectRelativePath(FsPath);
+	}
+
 	FString LowerExtension(const std::filesystem::path& Path)
 	{
 		FString Extension = FPaths::ToUtf8(Path.extension().wstring());
@@ -128,11 +139,11 @@ void FEditorAssetService::RefreshAssetDatabase()
 	{
 		if (Record.Type == EImportedFbxAssetType::SkeletalMesh)
 		{
-			FEditorAssetService::AddUniquePath(SkeletalMeshPaths, Record.AssetPath);
+			FEditorAssetService::AddUniquePath(SkeletalMeshPaths, ToProjectRelativePathIfAbsolute(Record.AssetPath));
 		}
 		else if (Record.Type == EImportedFbxAssetType::AnimationSequence)
 		{
-			FEditorAssetService::AddUniquePath(AnimationSequencePaths, Record.AssetPath);
+			FEditorAssetService::AddUniquePath(AnimationSequencePaths, ToProjectRelativePathIfAbsolute(Record.AssetPath));
 		}
 	}
 	for (const FString& Path : FResourceManager::Get().GetAnimationSequencePaths())
