@@ -1,6 +1,7 @@
 #include "Editor/Asset/EditorAssetService.h"
 
 #include "Asset/AssetQueryService.h"
+#include "Core/ImportedFbxAssetDiscovery.h"
 #include "Core/Paths.h"
 #include "Core/ResourceManager.h"
 #include "Render/Resource/Material.h"
@@ -120,10 +121,14 @@ void FEditorAssetService::RefreshAssetDatabase()
 		FEditorAssetService::AddUniquePath(StaticMeshPaths, Path);
 	}
 
-	ListAssetFiles(L"SkeletalMesh", { ".fbx" }, SkeletalMeshPaths);
-	for (const FString& Path : FResourceManager::Get().GetSkeletalMeshPaths())
+	FImportedFbxAssetDiscovery ImportedFbxDiscovery;
+	const std::filesystem::path AssetRoot = std::filesystem::path(FPaths::RootDir()) / L"Asset";
+	for (const FImportedFbxAssetRecord& Record : ImportedFbxDiscovery.DiscoverInDirectory(FPaths::ToUtf8(AssetRoot.generic_wstring())))
 	{
-		FEditorAssetService::AddUniquePath(SkeletalMeshPaths, Path);
+		if (Record.Type == EImportedFbxAssetType::SkeletalMesh)
+		{
+			FEditorAssetService::AddUniquePath(SkeletalMeshPaths, Record.AssetPath);
+		}
 	}
 
 	for (const FString& Path : FAssetQueryService::GetTexturePaths())

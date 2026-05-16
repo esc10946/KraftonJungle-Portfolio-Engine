@@ -526,9 +526,9 @@ bool FAnimationClipSerializer::SaveAnimationClip(const FString& BinaryPath, cons
     return Out.good();
 }
 
-bool FAnimationClipSerializer::LoadAnimationClip(const FString& BinaryPath, FAnimationClip& OutData)
+bool FAnimationClipSerializer::LoadAnimationClip(const FString& FbxOrBinaryPath, FAnimationClip& OutData)
 {
-    std::ifstream In(std::filesystem::path(FPaths::ToAbsolute(FPaths::ToWide(BinaryPath))), std::ios::binary);
+    std::ifstream In(std::filesystem::path(FPaths::ToAbsolute(FPaths::ToWide(FbxOrBinaryPath))), std::ios::binary);
     if (!In.is_open())
     {
         return false;

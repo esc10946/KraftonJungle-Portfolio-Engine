@@ -1141,7 +1141,29 @@ void FEditorContentBrowserWidget::DrawContentTile(const FContentItem& Item, cons
 		}
 		else if (Item.Extension == ".fbx")
 		{
-            EditorEngine->CreateViewer(MakeRelativeProjectPath(Item.Path));
+			const FString SourcePath = MakeRelativeProjectPath(Item.Path);
+			TArray<FImportedFbxAssetRecord> Records = FResourceManager::Get().DiscoverImportedFbxAssets(SourcePath);
+			if (Records.empty())
+			{
+				Records = FResourceManager::Get().ImportFbxAssets(SourcePath);
+			}
+
+			auto MeshRecordIt = std::find_if(
+				Records.begin(),
+				Records.end(),
+				[](const FImportedFbxAssetRecord& Record)
+				{
+					return Record.Type == EImportedFbxAssetType::SkeletalMesh;
+				});
+
+			if (MeshRecordIt != Records.end())
+			{
+				EditorEngine->CreateViewer(MeshRecordIt->AssetPath);
+			}
+			else
+			{
+				EditorEngine->GetNotificationService().Warning("No imported skeletal mesh was produced for this FBX.");
+			}
 		}
 		else if (Item.Extension == ".rml")
 		{
@@ -1213,6 +1235,21 @@ void FEditorContentBrowserWidget::DrawContentContextMenu(bool bHasSelectedItem)
 	if (ImGui::MenuItem("Spawn Prefab at Origin", nullptr, false, IsPrefabAsset(SelectedExtension)))
 	{
 		EditorEngine->GetMainPanel().SpawnPrefabAtOrigin(FPaths::ToUtf8(SelectedPath.wstring()));
+		ImGui::CloseCurrentPopup();
+	}
+	if (ImGui::MenuItem("Reimport FBX", nullptr, false, SelectedExtension == ".fbx"))
+	{
+		const FString SourcePath = MakeRelativeProjectPath(SelectedPath);
+		const TArray<FImportedFbxAssetRecord> Records = FResourceManager::Get().ImportFbxAssets(SourcePath);
+		if (Records.empty())
+		{
+			EditorEngine->GetNotificationService().Warning("FBX reimport produced no imported assets.");
+		}
+		else
+		{
+			EditorEngine->GetNotificationService().Info("FBX reimport complete.");
+		}
+		RefreshContent();
 		ImGui::CloseCurrentPopup();
 	}
 	if (ImGui::MenuItem("Rename", "F2"))

@@ -2,6 +2,8 @@
 #include "Object/Object.h"
 #include "SkeletalMeshTypes.h"
 
+class USkeletonAsset;
+
 class USkeletalMesh : public UObject
 {
 public:
@@ -11,11 +13,15 @@ public:
     ~USkeletalMesh() override;
 
     void SetMeshData(FSkeletalMesh* InMeshData);
+    void SetSkeletonAsset(USkeletonAsset* InSkeletonAsset);
 
     FSkeletalMesh* GetMeshData();
     const FSkeletalMesh* GetMeshData() const;
+    USkeletonAsset* GetSkeletonAsset();
+    const USkeletonAsset* GetSkeletonAsset() const;
 
     const FString& GetAssetPathFileName() const;
+    const FString& GetSkeletonSourcePath() const;
 
     const TArray<FSkeletalMeshVertex>& GetVertices() const;
     const TArray<uint32>& GetIndices() const;
@@ -45,4 +51,5 @@ private:
 
 private:
     FSkeletalMesh* MeshData = nullptr;
+    USkeletonAsset* SkeletonAsset = nullptr;
 };

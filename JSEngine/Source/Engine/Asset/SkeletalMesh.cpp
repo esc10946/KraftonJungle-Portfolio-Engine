@@ -1,15 +1,9 @@
 ﻿#include "SkeletalMesh.h"
 
+#include "Asset/SkeletonAsset.h"
 #include "Core/Logging/Log.h"
-#include "Engine/Geometry/Transform.h"
 
 DEFINE_CLASS(USkeletalMesh, UObject)
-
-FMatrix FSkeletalMeshSocket::GetRelativeTransform() const
-{
-    // row-vector 규약: v · S · R · T  (FTransform::ToMatrixWithScale가 동일 합성)
-    return FTransform(RelativeRotation, RelativeLocation, RelativeScale).ToMatrixWithScale();
-}
 
 USkeletalMesh::~USkeletalMesh()
 {
@@ -33,6 +27,11 @@ void USkeletalMesh::SetMeshData(FSkeletalMesh* InMeshData)
     RebuildLocalBoundsFromMeshData();
 }
 
+void USkeletalMesh::SetSkeletonAsset(USkeletonAsset* InSkeletonAsset)
+{
+    SkeletonAsset = InSkeletonAsset;
+}
+
 FSkeletalMesh* USkeletalMesh::GetMeshData()
 {
     return MeshData;
@@ -43,10 +42,26 @@ const FSkeletalMesh* USkeletalMesh::GetMeshData() const
     return MeshData;
 }
 
+USkeletonAsset* USkeletalMesh::GetSkeletonAsset()
+{
+    return SkeletonAsset;
+}
+
+const USkeletonAsset* USkeletalMesh::GetSkeletonAsset() const
+{
+    return SkeletonAsset;
+}
+
 const FString& USkeletalMesh::GetAssetPathFileName() const
 {
     static FString Empty = {};
     return MeshData ? MeshData->PathFileName : Empty;
+}
+
+const FString& USkeletalMesh::GetSkeletonSourcePath() const
+{
+    static FString Empty = {};
+    return MeshData ? MeshData->SkeletonSourcePath : Empty;
 }
 
 const TArray<FSkeletalMeshVertex>& USkeletalMesh::GetVertices() const
@@ -64,11 +79,21 @@ const TArray<uint32>& USkeletalMesh::GetIndices() const
 const TArray<FBoneInfo>& USkeletalMesh::GetBones() const
 {
     static const TArray<FBoneInfo> Empty = {};
+    if (SkeletonAsset && SkeletonAsset->HasValidSkeletonData())
+    {
+        return SkeletonAsset->GetBones();
+    }
+
     return MeshData ? MeshData->Bones : Empty;
 }
 
 const FBoneInfo* USkeletalMesh::GetBoneInfo(int32 BoneIndex) const
 {
+    if (SkeletonAsset && SkeletonAsset->HasValidSkeletonData())
+    {
+        return SkeletonAsset->GetBoneInfo(BoneIndex);
+    }
+
     if (!MeshData)
     {
         return nullptr;
@@ -121,11 +146,21 @@ const TArray<FStaticMeshMaterialSlot>& USkeletalMesh::GetMaterialSlots() const
 const TArray<FSkeletalMeshSocket>& USkeletalMesh::GetSockets() const
 {
     static const TArray<FSkeletalMeshSocket> Empty = {};
+    if (SkeletonAsset && SkeletonAsset->HasValidSkeletonData())
+    {
+        return SkeletonAsset->GetSockets();
+    }
+
     return MeshData ? MeshData->Sockets : Empty;
 }
 
 const FSkeletalMeshSocket* USkeletalMesh::FindSocket(const FName& Name) const
 {
+    if (SkeletonAsset && SkeletonAsset->HasValidSkeletonData())
+    {
+        return SkeletonAsset->FindSocket(Name);
+    }
+
     if (!MeshData || !Name.IsValid())
     {
         return nullptr;
@@ -155,7 +190,7 @@ const FAABB& USkeletalMesh::GetLocalBounds() const
 
 bool USkeletalMesh::HasValidMeshData() const
 {
-    return MeshData != nullptr && !MeshData->Vertices.empty() && !MeshData->Indices.empty() && !MeshData->Bones.empty();
+    return MeshData != nullptr && !MeshData->Vertices.empty() && !MeshData->Indices.empty() && !GetBones().empty();
 }
 
 void USkeletalMesh::RebuildLocalBoundsFromMeshData()

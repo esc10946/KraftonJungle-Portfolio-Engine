@@ -8,6 +8,64 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cwctype>
+#include <filesystem>
+
+namespace
+{
+    bool IsBinaryPath(const FString& Path)
+    {
+        std::filesystem::path FsPath(FPaths::ToWide(FPaths::Normalize(Path)));
+        std::wstring Extension = FsPath.extension().wstring();
+        std::transform(Extension.begin(), Extension.end(), Extension.begin(), ::towlower);
+        return Extension == L".bin";
+    }
+
+    TArray<FString> FindSiblingAnimationBinaries(const FString& SourceFbxPath)
+    {
+        TArray<FString> Result;
+
+        const FString NormalizedSourcePath = FPaths::Normalize(SourceFbxPath);
+        const std::filesystem::path SourceFsPath(FPaths::ToWide(NormalizedSourcePath));
+        const std::filesystem::path ParentPath = SourceFsPath.parent_path();
+
+        std::error_code Ec;
+        if (ParentPath.empty() || !std::filesystem::exists(ParentPath, Ec) || Ec)
+        {
+            return Result;
+        }
+
+        const FString Prefix = FPaths::ToUtf8(SourceFsPath.stem().generic_wstring()) + "_anim_";
+        for (const std::filesystem::directory_entry& Entry : std::filesystem::directory_iterator(ParentPath, Ec))
+        {
+            if (Ec)
+            {
+                break;
+            }
+
+            if (!Entry.is_regular_file(Ec) || Ec)
+            {
+                continue;
+            }
+
+            std::wstring Extension = Entry.path().extension().wstring();
+            std::transform(Extension.begin(), Extension.end(), Extension.begin(), ::towlower);
+            if (Extension != L".bin")
+            {
+                continue;
+            }
+
+            const FString FileName = FPaths::ToUtf8(Entry.path().filename().generic_wstring());
+            if (FileName.rfind(Prefix, 0) == 0)
+            {
+                Result.push_back(FPaths::Normalize(FPaths::ToUtf8(Entry.path().generic_wstring())));
+            }
+        }
+
+        std::sort(Result.begin(), Result.end());
+        return Result;
+    }
+}
 
 FAnimationClipLoadService::FAnimationClipLoadService(FResourceManager& InResourceManager)
     : ResourceManager(InResourceManager)
@@ -23,7 +81,45 @@ UAnimationClipAsset* FAnimationClipLoadService::Load(const FString& Path)
         return FoundClip;
     }
 
+    if (IsBinaryPath(NormalizedPath))
+    {
+        return LoadBinary(NormalizedPath, NormalizedPath);
+    }
+
+    if (UAnimationClipAsset* ImportedClip = LoadSiblingImportedBinary(NormalizedPath))
+    {
+        ResourceManager.AnimationClipMap[NormalizedPath] = ImportedClip;
+        return ImportedClip;
+    }
+
     return LoadSourceOrCachedBinary(NormalizedPath);
+}
+
+UAnimationClipAsset* FAnimationClipLoadService::LoadBinary(const FString& BinaryPath, const FString& CacheKey)
+{
+    FAnimationClip* LoadedClipData = new FAnimationClip();
+    if (!ResourceManager.AnimationClipSerializer.LoadAnimationClip(BinaryPath, *LoadedClipData))
+    {
+        delete LoadedClipData;
+        return nullptr;
+    }
+
+    UE_LOG("[AnimationClipLoad] Source=ImportedBinary | Path=%s", BinaryPath.c_str());
+    return FinalizeLoadedClip(LoadedClipData, CacheKey);
+}
+
+UAnimationClipAsset* FAnimationClipLoadService::LoadSiblingImportedBinary(const FString& NormalizedPath)
+{
+    const TArray<FString> BinaryPaths = FindSiblingAnimationBinaries(NormalizedPath);
+    for (const FString& BinaryPath : BinaryPaths)
+    {
+        if (UAnimationClipAsset* Clip = LoadBinary(BinaryPath, BinaryPath))
+        {
+            return Clip;
+        }
+    }
+
+    return nullptr;
 }
 
 UAnimationClipAsset* FAnimationClipLoadService::LoadSourceOrCachedBinary(const FString& NormalizedPath)
@@ -52,8 +148,11 @@ UAnimationClipAsset* FAnimationClipLoadService::LoadSourceOrCachedBinary(const F
     if (LoadedClipData == nullptr)
     {
         const auto SourceStart = std::chrono::steady_clock::now();
+        const TArray<USkeletonAsset*> ImportedSkeletons = ResourceManager.ImportSkeletonsFromFbx(NormalizedPath);
+        const USkeletonAsset* TargetSkeleton = ImportedSkeletons.empty() ? nullptr : ImportedSkeletons[0];
+
         FAnimationImportOptions ImportOptions;
-        ImportOptions.bImportAllStacks = false;
+        ImportOptions.bImportAllStacks = true;
         TArray<FAnimationClip*> ImportedClips = ResourceManager.FbxImporter.LoadAnimations(NormalizedPath, ImportOptions);
         const auto SourceEnd = std::chrono::steady_clock::now();
         SourceLoadSec = std::chrono::duration<double>(SourceEnd - SourceStart).count();
@@ -69,23 +168,50 @@ UAnimationClipAsset* FAnimationClipLoadService::LoadSourceOrCachedBinary(const F
             return nullptr;
         }
 
-        LoadedClipData = ImportedClips[0];
-        for (size_t Index = 1; Index < ImportedClips.size(); ++Index)
+        UAnimationClipAsset* FirstLoadedClip = nullptr;
+        for (FAnimationClip* Clip : ImportedClips)
         {
-            delete ImportedClips[Index];
+            if (!Clip)
+            {
+                continue;
+            }
+
+            const FString ClipToken = Clip->Name.empty() ? FString("anim") : Clip->Name;
+            const FString SaveBinaryPath = FAssetPathPolicy::MakeSiblingAnimationClipBinaryPath(NormalizedPath, ClipToken);
+
+            if (TargetSkeleton)
+            {
+                Clip->SkeletonSourcePath = FAssetPathPolicy::MakeAssetRelativePath(
+                    SaveBinaryPath,
+                    TargetSkeleton->GetAssetPathFileName());
+            }
+
+            const bool bSaveBinaryOk = ResourceManager.AnimationClipSerializer.SaveAnimationClip(SaveBinaryPath, NormalizedPath, *Clip);
+            if (bSaveBinaryOk)
+            {
+                UE_LOG("[AnimationClipLoad] Source=FBX | Path=%s | FbxSec=%.6f | BinarySave=OK | BinaryPath=%s",
+                       NormalizedPath.c_str(), SourceLoadSec, SaveBinaryPath.c_str());
+
+                UAnimationClipAsset* LoadedClip = FinalizeLoadedClip(Clip, SaveBinaryPath);
+                if (!FirstLoadedClip)
+                {
+                    FirstLoadedClip = LoadedClip;
+                }
+                continue;
+            }
+
+            UE_LOG_WARNING("[AnimationClipLoad] Source=FBX | Path=%s | FbxSec=%.6f | BinarySave=FAIL | BinaryPath=%s",
+                           NormalizedPath.c_str(), SourceLoadSec, SaveBinaryPath.c_str());
+            delete Clip;
         }
 
-        const bool bSaveBinaryOk = ResourceManager.AnimationClipSerializer.SaveAnimationClip(BinaryPath, NormalizedPath, *LoadedClipData);
-        if (bSaveBinaryOk)
+        if (!FirstLoadedClip)
         {
-            UE_LOG("[AnimationClipLoad] Source=FBX | Path=%s | FbxSec=%.6f | BinarySave=OK | BinaryPath=%s",
-                   NormalizedPath.c_str(), SourceLoadSec, BinaryPath.c_str());
+            return nullptr;
         }
-        else
-        {
-            UE_LOG_WARNING("[AnimationClipLoad] Source=FBX | Path=%s | FbxSec=%.6f | BinarySave=FAIL | BinaryPath=%s",
-                           NormalizedPath.c_str(), SourceLoadSec, BinaryPath.c_str());
-        }
+
+        ResourceManager.AnimationClipMap[NormalizedPath] = FirstLoadedClip;
+        return FirstLoadedClip;
     }
     else
     {

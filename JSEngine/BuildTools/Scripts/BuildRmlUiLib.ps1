@@ -10,7 +10,6 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-Import-Module Microsoft.PowerShell.Utility -ErrorAction Stop
 
 $ProjectRoot = [System.IO.Path]::GetFullPath($ProjectDir)
 $RmlRoot = Join-Path $ProjectRoot "ThirdParty\RmlUi"
@@ -73,6 +72,48 @@ function Resolve-MsvcToolPath {
     return $null
 }
 
+function New-MsvcPathArgument {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Prefix,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    return "$Prefix`"$Path`""
+}
+
+function Write-MsvcResponseFile {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+
+        [Parameter(Mandatory = $true)]
+        [array]$Lines
+    )
+
+    [System.IO.File]::WriteAllLines(
+        [System.IO.Path]::GetFullPath($Path),
+        [string[]]$Lines,
+        [System.Text.Encoding]::Unicode)
+}
+
+function Write-Utf8TextFile {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Text
+    )
+
+    [System.IO.File]::WriteAllText(
+        [System.IO.Path]::GetFullPath($Path),
+        $Text,
+        [System.Text.Encoding]::UTF8)
+}
+
 function Get-RelativePath {
     param(
         [Parameter(Mandatory = $true)]
@@ -111,6 +152,24 @@ function Get-UniqueFiles {
     return $Result
 }
 
+function Get-FileSha256 {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    $Sha256 = [System.Security.Cryptography.SHA256]::Create()
+    $Stream = [System.IO.File]::OpenRead($Path)
+    try {
+        $HashBytes = $Sha256.ComputeHash($Stream)
+        return ([System.BitConverter]::ToString($HashBytes) -replace "-", "").ToLowerInvariant()
+    }
+    finally {
+        $Stream.Dispose()
+        $Sha256.Dispose()
+    }
+}
+
 function New-InputManifest {
     param(
         [Parameter(Mandatory = $true)]
@@ -126,7 +185,7 @@ function New-InputManifest {
 
     foreach ($File in ($Files | Sort-Object FullName)) {
         $RelativePath = Get-RelativePath -BasePath $ProjectRoot -Path $File.FullName
-        $Hash = (Get-FileHash -Path $File.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+        $Hash = Get-FileSha256 -Path $File.FullName
         $Lines += "Input=$RelativePath|$($File.Length)|$Hash"
     }
 
@@ -179,9 +238,9 @@ $CommonArgs = @(
     "/utf-8",
     "/bigobj",
     $RuntimeFlag,
-    "/I$IncludeRoot",
-    "/I$SourceRoot",
-    "/I$RmlRoot"
+    (New-MsvcPathArgument -Prefix "/I" -Path $IncludeRoot),
+    (New-MsvcPathArgument -Prefix "/I" -Path $SourceRoot),
+    (New-MsvcPathArgument -Prefix "/I" -Path $RmlRoot)
 ) + $Defines
 
 $ManifestCompileArgs = @(
@@ -244,12 +303,12 @@ foreach ($CppFile in $CppFiles) {
 $CompileResponsePath = Join-Path $ObjDir "RmlUiCore.cl.rsp"
 $CompileResponse = @()
 $CompileResponse += $CommonArgs
-$CompileResponse += "/Fo$ObjDir\"
+$CompileResponse += (New-MsvcPathArgument -Prefix "/Fo" -Path "$ObjDir\")
 foreach ($CppFile in $CppFiles) {
     $CompileResponse += "`"$($CppFile.FullName)`""
 }
 
-Set-Content -Path $CompileResponsePath -Value $CompileResponse -Encoding ASCII
+Write-MsvcResponseFile -Path $CompileResponsePath -Lines $CompileResponse
 
 & $ClPath "@$CompileResponsePath"
 if ($LASTEXITCODE -ne 0) {
@@ -258,17 +317,17 @@ if ($LASTEXITCODE -ne 0) {
 
 $LibResponsePath = Join-Path $ObjDir "RmlUiCore.lib.rsp"
 $LibResponse = @()
-$LibResponse += "/OUT:$LibPath"
+$LibResponse += (New-MsvcPathArgument -Prefix "/OUT:" -Path $LibPath)
 foreach ($ObjectFile in $ObjectFiles) {
     $LibResponse += "`"$ObjectFile`""
 }
 
-Set-Content -Path $LibResponsePath -Value $LibResponse -Encoding ASCII
+Write-MsvcResponseFile -Path $LibResponsePath -Lines $LibResponse
 
 & $LibToolPath /nologo "@$LibResponsePath"
 if ($LASTEXITCODE -ne 0) {
     throw "Failed to create $LibPath."
 }
 
-Set-Content -Path $ManifestPath -Value $InputManifest -Encoding ASCII
+Write-Utf8TextFile -Path $ManifestPath -Text $InputManifest
 Write-Host "Built RmlUiCore.lib: $LibPath"

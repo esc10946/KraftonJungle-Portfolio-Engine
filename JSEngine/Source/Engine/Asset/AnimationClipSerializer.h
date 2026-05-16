@@ -20,7 +20,8 @@ class FAnimationClipSerializer
 {
 public:
     bool SaveAnimationClip(const FString& BinaryPath, const FString& SourcePath, const FAnimationClip& Data);
-    bool LoadAnimationClip(const FString& BinaryPath, FAnimationClip& OutData);
+    // NOTE: Fbx 파일 경로를 인자로 주면 몇개의 애니메이션이 포함되어있던 첫번째 애니메이션 클립 1개만 반환합니다. 
+    bool LoadAnimationClip(const FString& FbxOrBinaryPath, FAnimationClip& OutData);
     bool ReadAnimationClipHeader(const FString& BinaryPath, FAnimationClipBinaryHeader& OutHeader) const;
 
 private:

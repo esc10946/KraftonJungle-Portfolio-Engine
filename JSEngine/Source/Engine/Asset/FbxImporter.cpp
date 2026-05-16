@@ -776,6 +776,350 @@ static void CompressConstantRawAnimSequenceTrack(FRawAnimSequenceTrack& Track)
     }
 }
 
+static bool IsSkeletonNode(FbxNode* Node)
+{
+    if (!Node)
+    {
+        return false;
+    }
+
+    FbxNodeAttribute* Attr = Node->GetNodeAttribute();
+    return Attr && Attr->GetAttributeType() == FbxNodeAttribute::eSkeleton;
+}
+
+static FbxNode* FindTopmostSkeletonNode(FbxNode* Node)
+{
+    if (!IsSkeletonNode(Node))
+    {
+        return nullptr;
+    }
+
+    FbxNode* Root = Node;
+    while (Root->GetParent() && IsSkeletonNode(Root->GetParent()))
+    {
+        Root = Root->GetParent();
+    }
+
+    return Root;
+}
+
+static FbxNode* FindNearestSkeletonAncestor(FbxNode* Node)
+{
+    for (FbxNode* Current = Node; Current; Current = Current->GetParent())
+    {
+        if (FbxNode* Root = FindTopmostSkeletonNode(Current))
+        {
+            return Root;
+        }
+    }
+
+    return nullptr;
+}
+
+static void CollectSkeletonNodeNames(FbxNode* Node, TArray<FString>& OutBoneNodeNames)
+{
+    if (!Node)
+    {
+        return;
+    }
+
+    if (IsSkeletonNode(Node))
+    {
+        OutBoneNodeNames.push_back(FString(Node->GetName()));
+    }
+
+    for (int32 ChildIndex = 0; ChildIndex < Node->GetChildCount(); ++ChildIndex)
+    {
+        CollectSkeletonNodeNames(Node->GetChild(ChildIndex), OutBoneNodeNames);
+    }
+}
+
+static bool HasSkeletonDesc(const FFbxImportedAssetSet& AssetSet, const FString& RootNodeName)
+{
+    return std::any_of(
+        AssetSet.Skeletons.begin(),
+        AssetSet.Skeletons.end(),
+        [&RootNodeName](const FFbxSkeletonImportDesc& Desc)
+        {
+            return Desc.RootNodeName == RootNodeName;
+        });
+}
+
+static void AddSkeletonDesc(FbxNode* RootNode, FFbxImportedAssetSet& AssetSet)
+{
+    if (!RootNode)
+    {
+        return;
+    }
+
+    const FString RootNodeName(RootNode->GetName());
+    if (HasSkeletonDesc(AssetSet, RootNodeName))
+    {
+        return;
+    }
+
+    FFbxSkeletonImportDesc Desc;
+    Desc.RootNodeName = RootNodeName;
+    CollectSkeletonNodeNames(RootNode, Desc.BoneNodeNames);
+    AssetSet.Skeletons.push_back(Desc);
+}
+
+static TArray<FbxNode*> CollectSkinSkeletonRoots(FbxMesh* Mesh)
+{
+    TArray<FbxNode*> Roots;
+    if (!Mesh)
+    {
+        return Roots;
+    }
+
+    const int32 SkinCount = Mesh->GetDeformerCount(FbxDeformer::eSkin);
+    for (int32 SkinIndex = 0; SkinIndex < SkinCount; ++SkinIndex)
+    {
+        FbxSkin* Skin = static_cast<FbxSkin*>(Mesh->GetDeformer(SkinIndex, FbxDeformer::eSkin));
+        if (!Skin)
+        {
+            continue;
+        }
+
+        const int32 ClusterCount = Skin->GetClusterCount();
+        for (int32 ClusterIndex = 0; ClusterIndex < ClusterCount; ++ClusterIndex)
+        {
+            FbxCluster* Cluster = Skin->GetCluster(ClusterIndex);
+            if (!Cluster || !Cluster->GetLink())
+            {
+                continue;
+            }
+
+            FbxNode* Root = FindTopmostSkeletonNode(Cluster->GetLink());
+            if (!Root)
+            {
+                continue;
+            }
+
+            if (std::find(Roots.begin(), Roots.end(), Root) == Roots.end())
+            {
+                Roots.push_back(Root);
+            }
+        }
+    }
+
+    std::sort(
+        Roots.begin(),
+        Roots.end(),
+        [](const FbxNode* A, const FbxNode* B)
+        {
+            return FString(A ? A->GetName() : "") < FString(B ? B->GetName() : "");
+        });
+
+    return Roots;
+}
+
+static void SortImportedAssetSet(FFbxImportedAssetSet& AssetSet)
+{
+    std::sort(
+        AssetSet.Skeletons.begin(),
+        AssetSet.Skeletons.end(),
+        [](const FFbxSkeletonImportDesc& A, const FFbxSkeletonImportDesc& B)
+        {
+            return A.RootNodeName < B.RootNodeName;
+        });
+
+    std::sort(
+        AssetSet.SkeletalMeshes.begin(),
+        AssetSet.SkeletalMeshes.end(),
+        [](const FFbxSkeletalMeshImportDesc& A, const FFbxSkeletalMeshImportDesc& B)
+        {
+            if (A.SkeletonRootNodeName != B.SkeletonRootNodeName)
+            {
+                return A.SkeletonRootNodeName < B.SkeletonRootNodeName;
+            }
+            return A.MeshNodeName < B.MeshNodeName;
+        });
+
+    std::sort(
+        AssetSet.Animations.begin(),
+        AssetSet.Animations.end(),
+        [](const FFbxAnimationImportDesc& A, const FFbxAnimationImportDesc& B)
+        {
+            if (A.StackIndex != B.StackIndex)
+            {
+                return A.StackIndex < B.StackIndex;
+            }
+            return A.ClipName < B.ClipName;
+        });
+}
+
+static void AnalyzeSceneRecursive(FbxNode* Node, FFbxImportedAssetSet& AssetSet)
+{
+    if (!Node)
+    {
+        return;
+    }
+
+    if (FindTopmostSkeletonNode(Node) == Node)
+    {
+        AddSkeletonDesc(Node, AssetSet);
+    }
+
+    if (FbxMesh* Mesh = Node->GetMesh())
+    {
+        const bool bHasGeometry =
+            Mesh->GetControlPointsCount() > 0 &&
+            Mesh->GetPolygonCount() > 0;
+
+        if (bHasGeometry)
+        {
+            const bool bSkinned = HasValidSkinInfluence(Mesh);
+            if (bSkinned)
+            {
+                AssetSet.MeshContentInfo.bHasSkeletalMesh = true;
+
+                TArray<FbxNode*> Roots = CollectSkinSkeletonRoots(Mesh);
+                for (FbxNode* Root : Roots)
+                {
+                    AddSkeletonDesc(Root, AssetSet);
+                }
+
+                FFbxSkeletalMeshImportDesc Desc;
+                Desc.MeshNodeName = FString(Node->GetName());
+                Desc.SkeletonRootNodeName = Roots.empty() ? FString() : FString(Roots[0]->GetName());
+                Desc.MaterialSlotCount = Node->GetMaterialCount();
+                Desc.bSkinned = true;
+                AssetSet.SkeletalMeshes.push_back(Desc);
+            }
+            else if (FbxNode* Root = FindNearestSkeletonAncestor(Node->GetParent()))
+            {
+                AssetSet.MeshContentInfo.bHasSkeletalMesh = true;
+                AddSkeletonDesc(Root, AssetSet);
+
+                FFbxSkeletalMeshImportDesc Desc;
+                Desc.MeshNodeName = FString(Node->GetName());
+                Desc.SkeletonRootNodeName = FString(Root->GetName());
+                Desc.MaterialSlotCount = Node->GetMaterialCount();
+                Desc.bRigidAttached = true;
+                AssetSet.SkeletalMeshes.push_back(Desc);
+            }
+            else
+            {
+                AssetSet.MeshContentInfo.bHasStaticMesh = true;
+            }
+        }
+    }
+
+    for (int32 ChildIndex = 0; ChildIndex < Node->GetChildCount(); ++ChildIndex)
+    {
+        AnalyzeSceneRecursive(Node->GetChild(ChildIndex), AssetSet);
+    }
+}
+
+static void CollectSkeletonNodesPreOrder(FbxNode* Node, TArray<FbxNode*>& OutNodes)
+{
+    if (!Node)
+    {
+        return;
+    }
+
+    if (IsSkeletonNode(Node))
+    {
+        OutNodes.push_back(Node);
+    }
+
+    for (int32 ChildIndex = 0; ChildIndex < Node->GetChildCount(); ++ChildIndex)
+    {
+        CollectSkeletonNodesPreOrder(Node->GetChild(ChildIndex), OutNodes);
+    }
+}
+
+static FSkeleton* BuildSkeletonFromRoot(FbxNode* RootNode, const FString& SourcePath)
+{
+    if (!RootNode)
+    {
+        return nullptr;
+    }
+
+    TArray<FbxNode*> BoneNodes;
+    CollectSkeletonNodesPreOrder(RootNode, BoneNodes);
+    if (BoneNodes.empty())
+    {
+        return nullptr;
+    }
+
+    FSkeleton* Skeleton = new FSkeleton();
+    Skeleton->PathFileName = SourcePath;
+    Skeleton->RootNodeName = FString(RootNode->GetName());
+    Skeleton->Bones.reserve(BoneNodes.size());
+
+    TMap<FbxNode*, int32> BoneNodeToIndex;
+    for (FbxNode* BoneNode : BoneNodes)
+    {
+        const int32 BoneIndex = static_cast<int32>(Skeleton->Bones.size());
+        BoneNodeToIndex[BoneNode] = BoneIndex;
+
+        FBoneInfo Bone = {};
+        Bone.Name = FString(BoneNode->GetName());
+        Bone.ParentIndex = -1;
+        Bone.GlobalBindTransform = ToFMatrix(BoneNode->EvaluateGlobalTransform());
+        Bone.InverseBindPose = Bone.GlobalBindTransform.GetInverse();
+        Bone.LocalBindTransform = Bone.GlobalBindTransform;
+
+        Skeleton->Bones.push_back(Bone);
+    }
+
+    for (FbxNode* BoneNode : BoneNodes)
+    {
+        auto BoneIt = BoneNodeToIndex.find(BoneNode);
+        if (BoneIt == BoneNodeToIndex.end())
+        {
+            continue;
+        }
+
+        const int32 BoneIndex = BoneIt->second;
+        int32 ParentIndex = -1;
+        for (FbxNode* ParentNode = BoneNode->GetParent(); ParentNode; ParentNode = ParentNode->GetParent())
+        {
+            auto ParentIt = BoneNodeToIndex.find(ParentNode);
+            if (ParentIt != BoneNodeToIndex.end())
+            {
+                ParentIndex = ParentIt->second;
+                break;
+            }
+        }
+
+        FBoneInfo& Bone = Skeleton->Bones[BoneIndex];
+        Bone.ParentIndex = ParentIndex;
+        if (ParentIndex >= 0)
+        {
+            const FMatrix ParentGlobalInv = Skeleton->Bones[ParentIndex].GlobalBindTransform.GetInverse();
+            Bone.LocalBindTransform = Bone.GlobalBindTransform * ParentGlobalInv;
+        }
+        else
+        {
+            Bone.LocalBindTransform = Bone.GlobalBindTransform;
+        }
+    }
+
+    return Skeleton;
+}
+
+static void CollectTopmostSkeletonRootNodes(FbxNode* Node, TArray<FbxNode*>& OutRootNodes)
+{
+    if (!Node)
+    {
+        return;
+    }
+
+    if (FindTopmostSkeletonNode(Node) == Node)
+    {
+        OutRootNodes.push_back(Node);
+        return;
+    }
+
+    for (int32 ChildIndex = 0; ChildIndex < Node->GetChildCount(); ++ChildIndex)
+    {
+        CollectTopmostSkeletonRootNodes(Node->GetChild(ChildIndex), OutRootNodes);
+    }
+}
+
 static void ExtractRawAnimSequenceTrack(
     FbxAnimLayer* AnimLayer,
     FbxNode* BoneNode,
@@ -1303,6 +1647,65 @@ FSkeletalMesh* FFbxImporter::LoadSkeletalMesh(const FString& Path, const FStatic
     return SkeletalMesh;
 }
 
+TArray<FSkeleton*> FFbxImporter::LoadSkeletons(const FString& Path)
+{
+    TArray<FSkeleton*> Result;
+
+    FbxManager* Manager = FbxManager::Create();
+    if (!Manager)
+    {
+        UE_LOG_ERROR("[FbxImporter] Failed to create FbxManager for skeleton import");
+        return Result;
+    }
+
+    FbxIOSettings* IOSettings = FbxIOSettings::Create(Manager, IOSROOT);
+    Manager->SetIOSettings(IOSettings);
+
+    FbxScene* Scene = FbxScene::Create(Manager, "ImportSkeletonScene");
+    if (!Scene)
+    {
+        UE_LOG_ERROR("[FbxImporter] Failed to create FbxScene for skeleton import");
+        Manager->Destroy();
+        return Result;
+    }
+
+    if (!ImportScene(Path, Manager, Scene))
+    {
+        Manager->Destroy();
+        return Result;
+    }
+
+    TArray<FbxNode*> RootNodes;
+    if (FbxNode* RootNode = Scene->GetRootNode())
+    {
+        CollectTopmostSkeletonRootNodes(RootNode, RootNodes);
+    }
+
+    std::sort(
+        RootNodes.begin(),
+        RootNodes.end(),
+        [](const FbxNode* A, const FbxNode* B)
+        {
+            return FString(A ? A->GetName() : "") < FString(B ? B->GetName() : "");
+        });
+
+    for (FbxNode* RootNode : RootNodes)
+    {
+        if (FSkeleton* Skeleton = BuildSkeletonFromRoot(RootNode, Path))
+        {
+            Result.push_back(Skeleton);
+        }
+    }
+
+    Manager->Destroy();
+
+    UE_LOG("[FbxImporter] FBX skeletons loaded: %s (Skeletons=%zu)",
+           Path.c_str(),
+           Result.size());
+
+    return Result;
+}
+
 TArray<FAnimationClip*> FFbxImporter::LoadAnimations(const FString& Path, const FAnimationImportOptions& ImportOptions)
 {
     const double StartTime = FPlatformTime::Seconds();
@@ -1384,24 +1787,25 @@ TArray<FAnimationClip*> FFbxImporter::LoadAnimations(const FString& Path, const 
     return Result;
 }
 
-FFbxMeshContentInfo FFbxImporter::InspectMeshContent(const FString& Path)
+FFbxImportedAssetSet FFbxImporter::AnalyzeImportedAssets(const FString& Path)
 {
-    FFbxMeshContentInfo Result;
+    FFbxImportedAssetSet Result;
+    Result.SourcePath = Path;
 
     FbxManager* Manager = FbxManager::Create();
     if (!Manager)
     {
-        UE_LOG_ERROR("[FbxImporter] Failed to create FbxManager for inspection");
+        UE_LOG_ERROR("[FbxImporter] Failed to create FbxManager for scene analysis");
         return Result;
     }
 
     FbxIOSettings* IOSettings = FbxIOSettings::Create(Manager, IOSROOT);
     Manager->SetIOSettings(IOSettings);
 
-    FbxScene* Scene = FbxScene::Create(Manager, "InspectFbxScene");
+    FbxScene* Scene = FbxScene::Create(Manager, "AnalyzeFbxScene");
     if (!Scene)
     {
-        UE_LOG_ERROR("[FbxImporter] Failed to create FbxScene for inspection");
+        UE_LOG_ERROR("[FbxImporter] Failed to create FbxScene for scene analysis");
         Manager->Destroy();
         return Result;
     }
@@ -1410,12 +1814,49 @@ FFbxMeshContentInfo FFbxImporter::InspectMeshContent(const FString& Path)
     {
         if (FbxNode* RootNode = Scene->GetRootNode())
         {
-            InspectMeshContentRecursive(RootNode, Result);
+            AnalyzeSceneRecursive(RootNode, Result);
+        }
+
+        FString TargetSkeletonRootNodeName;
+        if (!Result.Skeletons.empty())
+        {
+            const auto FirstSkeleton = std::min_element(
+                Result.Skeletons.begin(),
+                Result.Skeletons.end(),
+                [](const FFbxSkeletonImportDesc& A, const FFbxSkeletonImportDesc& B)
+                {
+                    return A.RootNodeName < B.RootNodeName;
+                });
+            TargetSkeletonRootNodeName = FirstSkeleton->RootNodeName;
+        }
+
+        const int32 AnimStackCount = Scene->GetSrcObjectCount<FbxAnimStack>();
+        for (int32 StackIndex = 0; StackIndex < AnimStackCount; ++StackIndex)
+        {
+            FbxAnimStack* AnimStack = Scene->GetSrcObject<FbxAnimStack>(StackIndex);
+            if (!AnimStack)
+            {
+                continue;
+            }
+
+            FFbxAnimationImportDesc Desc;
+            Desc.ClipName = AnimStack->GetName() && AnimStack->GetName()[0] != '\0'
+                ? FString(AnimStack->GetName())
+                : FString("AnimStack_") + std::to_string(StackIndex);
+            Desc.TargetSkeletonRootNodeName = TargetSkeletonRootNodeName;
+            Desc.StackIndex = StackIndex;
+            Result.Animations.push_back(Desc);
         }
     }
 
+    SortImportedAssetSet(Result);
     Manager->Destroy();
     return Result;
+}
+
+FFbxMeshContentInfo FFbxImporter::InspectMeshContent(const FString& Path)
+{
+    return AnalyzeImportedAssets(Path).MeshContentInfo;
 }
 
 void FFbxImporter::CollectSkeletonNodes(FbxNode* Node, TArray<FbxNode*>& OutNodes) const
@@ -1946,6 +2387,10 @@ void FFbxImporter::ProcessSkeletalMesh(
     }
 
     FbxNode* OwnerNode = Mesh->GetNode();
+    const size_t VertexCountBefore = InSkeletalMesh->Vertices.size();
+    const size_t IndexCountBefore = InSkeletalMesh->Indices.size();
+    const size_t SectionCountBefore = InSkeletalMesh->Sections.size();
+    const size_t SlotCountBefore = InSkeletalMesh->MaterialSlots.size();
 
     const FbxVector4* ControlPoints = Mesh->GetControlPoints();
     if (!ControlPoints)
@@ -2068,6 +2513,7 @@ void FFbxImporter::ProcessSkeletalMesh(
     }
 
     // control point별 influence를 수집
+    int32 SkippedInfluenceCountForUint8Limit = 0;
     for (int32 SkinIndex = 0; SkinIndex < SkinCount; SkinIndex++)
     {
         FbxSkin* Skin = static_cast<FbxSkin*>(Mesh->GetDeformer(SkinIndex, FbxDeformer::eSkin));
@@ -2092,6 +2538,11 @@ void FFbxImporter::ProcessSkeletalMesh(
             }
 
             const int32 BoneIndex = BoneIt->second;
+            if (BoneIndex > 255)
+            {
+                SkippedInfluenceCountForUint8Limit += Cluster->GetControlPointIndicesCount();
+                continue;
+            }
 
             const int32 IndexCount = Cluster->GetControlPointIndicesCount();
             int* ControlPointIndices = Cluster->GetControlPointIndices();
@@ -2248,6 +2699,26 @@ void FFbxImporter::ProcessSkeletalMesh(
 
         InSkeletalMesh->Sections.push_back(NewSection);
     }
+
+    if (SkippedInfluenceCountForUint8Limit > 0)
+    {
+        UE_LOG_WARNING(
+            "[FbxImporter] Skipped skeletal influences because bone index exceeds uint8 limit | Node=%s | Count=%d",
+            OwnerNode ? OwnerNode->GetName() : "<unknown>",
+            SkippedInfluenceCountForUint8Limit);
+    }
+
+    UE_LOG(
+        "[FbxImporter] Merged skinned mesh node: %s (Vertices: %zu -> %zu, Indices: %zu -> %zu, Sections: %zu -> %zu, Slots: %zu -> %zu)",
+        OwnerNode ? OwnerNode->GetName() : "<unknown>",
+        VertexCountBefore,
+        InSkeletalMesh->Vertices.size(),
+        IndexCountBefore,
+        InSkeletalMesh->Indices.size(),
+        SectionCountBefore,
+        InSkeletalMesh->Sections.size(),
+        SlotCountBefore,
+        InSkeletalMesh->MaterialSlots.size());
 }
 
 void FFbxImporter::ProcessRigidAttachedMesh(
@@ -2292,6 +2763,11 @@ void FFbxImporter::ProcessRigidAttachedMesh(
             AttachBoneIndex);
         return;
     }
+
+    const size_t VertexCountBefore = InSkeletalMesh->Vertices.size();
+    const size_t IndexCountBefore = InSkeletalMesh->Indices.size();
+    const size_t SectionCountBefore = InSkeletalMesh->Sections.size();
+    const size_t SlotCountBefore = InSkeletalMesh->MaterialSlots.size();
 
     const FbxVector4* ControlPoints = Mesh->GetControlPoints();
     if (!ControlPoints)
@@ -2436,6 +2912,19 @@ void FFbxImporter::ProcessRigidAttachedMesh(
 
         InSkeletalMesh->Sections.push_back(NewSection);
     }
+
+    UE_LOG(
+        "[FbxImporter] Merged rigid attached mesh node: %s (AttachBone=%d, Vertices: %zu -> %zu, Indices: %zu -> %zu, Sections: %zu -> %zu, Slots: %zu -> %zu)",
+        OwnerNode->GetName(),
+        AttachBoneIndex,
+        VertexCountBefore,
+        InSkeletalMesh->Vertices.size(),
+        IndexCountBefore,
+        InSkeletalMesh->Indices.size(),
+        SectionCountBefore,
+        InSkeletalMesh->Sections.size(),
+        SlotCountBefore,
+        InSkeletalMesh->MaterialSlots.size());
 }
 
 int32 FFbxImporter::GetOrAddMaterialSlot(FSkeletalMesh* InSkeletalMesh, const FString& MaterialName)
