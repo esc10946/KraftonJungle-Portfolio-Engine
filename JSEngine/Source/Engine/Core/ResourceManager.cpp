@@ -1,7 +1,7 @@
-﻿#include "Core/ResourceManager.h"
+#include "Core/ResourceManager.h"
 
 #include "Core/Paths.h"
-#include "Core/AnimationClipLoadService.h"
+#include "Core/AnimationSequenceLoadService.h"
 #include "Core/AssetPathPolicy.h"
 #include "Core/ExplicitFbxImportService.h"
 #include "Core/ImportedMaterialPolicy.h"
@@ -156,11 +156,11 @@ bool FResourceManager::IsSkeletalMeshBinaryValid(const FString& SourcePath, cons
 	return Header.SourceFileWriteTime == SourceWriteTime;
 }
 
-bool FResourceManager::IsAnimationClipBinaryValid(const FString& SourcePath, const FString& BinaryPath) const
+bool FResourceManager::IsAnimationSequenceBinaryValid(const FString& SourcePath, const FString& BinaryPath) const
 {
-	FAnimationClipBinaryHeader Header;
+	FAnimationSequenceBinaryHeader Header;
 	const FString NormalizedBinaryPath = FPaths::Normalize(BinaryPath);
-	if (!AnimationClipSerializer.ReadAnimationClipHeader(NormalizedBinaryPath, Header))
+	if (!AnimationSequenceSerializer.ReadAnimationSequenceHeader(NormalizedBinaryPath, Header))
 	{
 		return false;
 	}
@@ -230,7 +230,7 @@ void FResourceManager::ClearDiscoveredResourceLists(bool bClearAtlasCache)
 	MaterialFilePaths.clear();
 	ParticleFilePaths.clear();
 	CurveFilePaths.clear();
-	AnimationClipFilePaths.clear();
+	AnimationSequenceFilePaths.clear();
 	SkeletonFilePaths.clear();
 	SkeletalMeshFilePaths.clear();
 	StaticMeshCache.ClearRegistry();
@@ -257,9 +257,9 @@ void FResourceManager::RegisterDiscoveredAssetFile(const std::filesystem::path& 
 	{
 		CurveFilePaths.push_back(RelativePath);
 	}
-	else if (FAssetPathPolicy::IsAnimationClipAssetPath(FPaths::ToUtf8(FilePath.generic_wstring())))
+	else if (FAssetPathPolicy::IsAnimationSequenceAssetPath(FPaths::ToUtf8(FilePath.generic_wstring())))
 	{
-		AnimationClipFilePaths.push_back(RelativePath);
+		AnimationSequenceFilePaths.push_back(RelativePath);
 	}
 	else if (Extension == L".obj" || Extension == L".fbx")
 	{
@@ -387,10 +387,10 @@ void FResourceManager::InitializeOutlineMaterial()
     OutlineMat->SetParam("OutlineViewportOrigin", FMaterialParamValue(FVector2(0.0f, 0.0f)));
 }
 
-//	RootPath ??瑜곷쭊?????덈츎 嶺뚮ㅄ維獄??????띠럾???Asset??????琉우뿰 ?貫?껆뵳?????????⑤갭由????貫??
+//	RootPath ??륁맄?????�뮉 筌뤴뫀�??????�쎛???Asset??????뤿연 ?λ?�由?????????�밸�????λ??
 void FResourceManager::LoadFromAssetDirectory(const FString& Path)
 {
-	//	?貫?껆뵳??
+	//	?λ?�由??
 	ClearDiscoveredResourceLists(false);
 
 	InitializeDefaultResources(CachedDevice.Get());
@@ -588,15 +588,15 @@ void FResourceManager::ReleaseGPUResources()
 	}
 	SkeletalMeshMap.clear();
 
-	TSet<UAnimationSequence*> DestroyedAnimationClips;
-	for (auto& [Path, Clip] : AnimationClipMap)
+	TSet<UAnimationSequence*> DestroyedAnimationSequences;
+	for (auto& [Path, Sequence] : AnimationSequenceMap)
 	{
-		if (Clip && DestroyedAnimationClips.insert(Clip).second)
+		if (Sequence && DestroyedAnimationSequences.insert(Sequence).second)
 		{
-			UObjectManager::Get().DestroyObject(Clip);
+			UObjectManager::Get().DestroyObject(Sequence);
 		}
 	}
-	AnimationClipMap.clear();
+	AnimationSequenceMap.clear();
 
 	TSet<USkeletonAsset*> DestroyedSkeletons;
 	for (auto& [Path, Skeleton] : SkeletonMap)
@@ -666,7 +666,7 @@ UMaterial* FResourceManager::GetMaterial(const FString& MaterialName) const
 	return MaterialCache.GetMaterial(MaterialName);
 }
 
-// 嶺뚮씞?녻뚯궘??????怨몃턄 ?띠럾????띠룄????Material????諛댁뎽
+// 筌띲?�而삭??????곸뵠 ?�쎛????�쏄????Material????밴쉐
 UMaterial* FResourceManager::GetOrCreateMaterial(const FString& Path, EMaterialShaderType ShaderType)
 {
 	UMaterial* Material = GetMaterial(Path);
@@ -1124,40 +1124,40 @@ TArray<FString> FResourceManager::GetCurvePaths() const
 	return CurveFilePaths;
 }
 
-UAnimationSequence* FResourceManager::LoadAnimationClip(const FString& Path)
+UAnimationSequence* FResourceManager::LoadAnimationSequence(const FString& Path)
 {
-	return FAnimationClipLoadService(*this).Load(Path);
+	return FAnimationSequenceLoadService(*this).Load(Path);
 }
 
-UAnimationSequence* FResourceManager::FindAnimationClip(const FString& Path) const
+UAnimationSequence* FResourceManager::FindAnimationSequence(const FString& Path) const
 {
 	const FString NormalizedPath = FPaths::Normalize(Path);
-	auto It = AnimationClipMap.find(NormalizedPath);
-	return It != AnimationClipMap.end() ? It->second : nullptr;
+	auto It = AnimationSequenceMap.find(NormalizedPath);
+	return It != AnimationSequenceMap.end() ? It->second : nullptr;
 }
 
-bool FResourceManager::SaveAnimationClip(UAnimationSequence* Clip)
+bool FResourceManager::SaveAnimationSequence(UAnimationSequence* Sequence)
 {
-	if (!Clip)
+	if (!Sequence)
 	{
 		return false;
 	}
 
-	FAnimationSequence* Data = Clip->GetSequenceData();
+	FAnimationSequence* Data = Sequence->GetSequenceData();
 	if (!Data || Data->SourcePath.empty())
 	{
 		return false;
 	}
 
 	const FString BinPath = Data->Name.empty()
-		? FAssetPathPolicy::MakeWritableAnimationClipCacheBinaryPath(Data->SourcePath)
-		: FAssetPathPolicy::MakeSiblingAnimationClipBinaryPath(Data->SourcePath, Data->Name);
-	return AnimationClipSerializer.SaveAnimationClip(BinPath, Data->SourcePath, *Data);
+		? FAssetPathPolicy::MakeWritableAnimationSequenceCacheBinaryPath(Data->SourcePath)
+		: FAssetPathPolicy::MakeSiblingAnimationSequenceBinaryPath(Data->SourcePath, Data->Name);
+	return AnimationSequenceSerializer.SaveAnimationSequence(BinPath, Data->SourcePath, *Data);
 }
 
-TArray<FString> FResourceManager::GetAnimationClipPaths() const
+TArray<FString> FResourceManager::GetAnimationSequencePaths() const
 {
-	return AnimationClipFilePaths;
+	return AnimationSequenceFilePaths;
 }
 
 const TArray<FString>& FResourceManager::GetTextureFilePath() const

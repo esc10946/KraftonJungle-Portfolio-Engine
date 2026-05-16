@@ -129,5 +129,4 @@ struct FAnimationSequence
     TArray<FShapeKeyAnimationTrack> ShapeKeyTracks;
 };
 
-using FAnimationClip = FAnimationSequence;
 

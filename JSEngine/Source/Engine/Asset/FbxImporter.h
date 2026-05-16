@@ -1,4 +1,4 @@
-ï»¿#pragma once
+#pragma once
 
 #include "Asset/IAssetLoader.h"
 #include "Asset/AnimationTypes.h"
@@ -36,7 +36,7 @@ struct FFbxSkeletalMeshImportDesc
 
 struct FFbxAnimationImportDesc
 {
-    FString ClipName;
+    FString SequenceName;
     FString TargetSkeletonRootNodeName;
     int32 StackIndex = -1;
 };
@@ -72,7 +72,7 @@ public:
 	FSkeletalMesh* LoadSkeletalMesh(const FString& Path, const FStaticMeshLoadOptions& LoadOptions);
 	TArray<FSkeleton*> LoadSkeletons(const FString& Path);
 
-    TArray<FAnimationClip*> LoadAnimations(const FString& Path, const FAnimationImportOptions& ImportOptions);
+    TArray<FAnimationSequence*> LoadAnimationSequences(const FString& Path, const FAnimationImportOptions& ImportOptions);
 
 	FFbxImportedAssetSet AnalyzeImportedAssets(const FString& Path);
 	FFbxMeshContentInfo InspectMeshContent(const FString& Path);
@@ -80,7 +80,7 @@ public:
 private:
 	bool ImportScene(const FString& Path, FbxManager* Manager, FbxScene* Scene);
 
-	// Scene -> StaticMesh (mesh nodeë¥¼ ìž¬ê·€ë¡œ ìˆœíšŒ)
+	// Scene -> StaticMesh (mesh node¸¦ Àç±Í·Î ¼øÈ¸)
 	void CollectMeshes(FbxNode* Node, FStaticMesh* InStaticMesh);
 	void ProcessMesh(FbxMesh* Mesh, FStaticMesh* InStaticMesh);
 
@@ -120,10 +120,10 @@ private:
         FbxAnimStack* AnimStack,
         const TArray<FbxNode*>& BoneNodes,
         const FAnimationImportOptions& ImportOptions,
-        FAnimationClip& OutClip) const;
+        FAnimationSequence& OutSequence) const;
     void ExtractBoneAnimationTracks(
         FbxAnimLayer* AnimLayer,
         const TArray<FbxNode*>& BoneNodes,
-        FAnimationClip& OutClip) const;
-    void ExtractShapeKeyTracks(FbxAnimLayer* AnimLayer, FbxScene* Scene, FAnimationClip& OutClip) const;
+        FAnimationSequence& OutSequence) const;
+    void ExtractShapeKeyTracks(FbxAnimLayer* AnimLayer, FbxScene* Scene, FAnimationSequence& OutSequence) const;
 };

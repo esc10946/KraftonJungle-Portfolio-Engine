@@ -1,6 +1,6 @@
 #include "Editor/Packaging/GamePackager.h"
 
-#include "Asset/AnimationClipSerializer.h"
+#include "Asset/AnimationSequenceSerializer.h"
 #include "Asset/BinarySerializer.h"
 #include "Asset/ObjLoader.h"
 #include "Asset/SkeletalMeshTypes.h"
@@ -989,6 +989,7 @@ namespace
             || Extension == ".prefab"
             || Extension == ".curve"
             || Extension == ".sequence"
+            || Extension == ".animsequence"
             || Extension == ".rml"
             || Extension == ".rcss"
             || Extension == ".meta"
@@ -1201,22 +1202,22 @@ namespace
             return true;
         }
 
-        FAnimationClipSerializer AnimationSerializer;
-        FAnimationClipBinaryHeader AnimationHeader;
-        if (AnimationSerializer.ReadAnimationClipHeader(BinaryAbsString, AnimationHeader))
+        FAnimationSequenceSerializer AnimationSerializer;
+        FAnimationSequenceBinaryHeader AnimationHeader;
+        if (AnimationSerializer.ReadAnimationSequenceHeader(BinaryAbsString, AnimationHeader))
         {
-            FAnimationClip Clip;
-            if (!AnimationSerializer.LoadAnimationClip(BinaryAbsString, Clip))
+            FAnimationSequence Sequence;
+            if (!AnimationSerializer.LoadAnimationSequence(BinaryAbsString, Sequence))
             {
                 OutMessage = "Failed to read animation binary for packaging: " + NormalizedBinaryPath;
                 return false;
             }
 
-            if (!Clip.SkeletonSourcePath.empty())
+            if (!Sequence.SkeletonSourcePath.empty())
             {
                 const FString SkeletonPath = FAssetPathPolicy::ResolveAssetRelativePath(
                     NormalizedBinaryPath,
-                    Clip.SkeletonSourcePath);
+                    Sequence.SkeletonSourcePath);
                 if (!AddFileDependency(Context, SkeletonPath, OutMessage))
                 {
                     OutMessage = "Failed to include animation skeleton dependency: " + SkeletonPath + " | " + OutMessage;
@@ -1711,7 +1712,7 @@ namespace
         {
             return false;
         }
-        if (!AddRuntimeFilesByExtension(Context, "Asset/Sequence", { ".sequence" }, OutMessage))
+        if (!AddRuntimeFilesByExtension(Context, "Asset/Sequence", { ".sequence", ".animsequence" }, OutMessage))
         {
             return false;
         }

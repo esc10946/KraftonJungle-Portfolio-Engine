@@ -1,4 +1,4 @@
-#include "Asset/AnimationClipSerializer.h"
+#include "Asset/AnimationSequenceSerializer.h"
 
 #include "Core/Paths.h"
 
@@ -31,7 +31,7 @@ static uint64 GetFileWriteTimeTicks(const FString& Path)
     return static_cast<uint64>(std::chrono::duration_cast<std::chrono::seconds>(Duration).count());
 }
 
-static void CountClipData(const FAnimationClip& Clip, uint32& OutCurveCount, uint32& OutKeyCount)
+static void CountSequenceData(const FAnimationSequence& Sequence, uint32& OutCurveCount, uint32& OutKeyCount)
 {
     OutCurveCount = 0;
     OutKeyCount = 0;
@@ -42,7 +42,7 @@ static void CountClipData(const FAnimationClip& Clip, uint32& OutCurveCount, uin
         OutKeyCount += static_cast<uint32>(Curve.Keys.size());
     };
 
-    for (const FBoneAnimationTrack& Track : Clip.BoneTracks)
+    for (const FBoneAnimationTrack& Track : Sequence.BoneTracks)
     {
         OutKeyCount += static_cast<uint32>(
             Track.InternalTrack.PosKeys.size() +
@@ -51,13 +51,13 @@ static void CountClipData(const FAnimationClip& Clip, uint32& OutCurveCount, uin
 
     }
 
-    for (const FShapeKeyAnimationTrack& Track : Clip.ShapeKeyTracks)
+    for (const FShapeKeyAnimationTrack& Track : Sequence.ShapeKeyTracks)
     {
         CountCurve(Track.WeightCurve);
     }
 }
 
-static bool IsValidHeader(const FAnimationClipBinaryHeader& Header)
+static bool IsValidHeader(const FAnimationSequenceBinaryHeader& Header)
 {
     return Header.MagicNumber == ANIMATION_CLIP_BINARY_MAGIC
         && Header.Version == ANIMATION_CLIP_BINARY_VERSION
@@ -68,19 +68,19 @@ static bool IsValidHeader(const FAnimationClipBinaryHeader& Header)
 }
 }
 
-void FAnimationClipSerializer::WriteBool(std::ofstream& Out, bool Value)
+void FAnimationSequenceSerializer::WriteBool(std::ofstream& Out, bool Value)
 {
     const uint8 Byte = Value ? 1 : 0;
     Out.write(reinterpret_cast<const char*>(&Byte), sizeof(Byte));
 }
 
-void FAnimationClipSerializer::WriteInt32LE(std::ofstream& Out, int32 Value)
+void FAnimationSequenceSerializer::WriteInt32LE(std::ofstream& Out, int32 Value)
 {
     uint32 U = static_cast<uint32>(Value);
     WriteUInt32LE(Out, U);
 }
 
-void FAnimationClipSerializer::WriteUInt32LE(std::ofstream& Out, uint32 Value)
+void FAnimationSequenceSerializer::WriteUInt32LE(std::ofstream& Out, uint32 Value)
 {
     uint8 Bytes[4] = {
         static_cast<uint8>(Value & 0xFF),
@@ -91,7 +91,7 @@ void FAnimationClipSerializer::WriteUInt32LE(std::ofstream& Out, uint32 Value)
     Out.write(reinterpret_cast<const char*>(Bytes), sizeof(Bytes));
 }
 
-void FAnimationClipSerializer::WriteUInt64LE(std::ofstream& Out, uint64 Value)
+void FAnimationSequenceSerializer::WriteUInt64LE(std::ofstream& Out, uint64 Value)
 {
     for (int32 i = 0; i < 8; ++i)
     {
@@ -100,14 +100,14 @@ void FAnimationClipSerializer::WriteUInt64LE(std::ofstream& Out, uint64 Value)
     }
 }
 
-void FAnimationClipSerializer::WriteFloatLE(std::ofstream& Out, float Value)
+void FAnimationSequenceSerializer::WriteFloatLE(std::ofstream& Out, float Value)
 {
     uint32 Bits = 0;
     std::memcpy(&Bits, &Value, sizeof(float));
     WriteUInt32LE(Out, Bits);
 }
 
-void FAnimationClipSerializer::WriteString(std::ofstream& Out, const FString& Value)
+void FAnimationSequenceSerializer::WriteString(std::ofstream& Out, const FString& Value)
 {
     const uint32 Length = static_cast<uint32>(Value.size());
     WriteUInt32LE(Out, Length);
@@ -117,14 +117,14 @@ void FAnimationClipSerializer::WriteString(std::ofstream& Out, const FString& Va
     }
 }
 
-void FAnimationClipSerializer::WriteVector(std::ofstream& Out, const FVector& Value)
+void FAnimationSequenceSerializer::WriteVector(std::ofstream& Out, const FVector& Value)
 {
     WriteFloatLE(Out, Value.X);
     WriteFloatLE(Out, Value.Y);
     WriteFloatLE(Out, Value.Z);
 }
 
-void FAnimationClipSerializer::WriteQuat(std::ofstream& Out, const FQuat& Value)
+void FAnimationSequenceSerializer::WriteQuat(std::ofstream& Out, const FQuat& Value)
 {
     WriteFloatLE(Out, Value.X);
     WriteFloatLE(Out, Value.Y);
@@ -132,7 +132,7 @@ void FAnimationClipSerializer::WriteQuat(std::ofstream& Out, const FQuat& Value)
     WriteFloatLE(Out, Value.W);
 }
 
-void FAnimationClipSerializer::WriteHeader(std::ofstream& Out, const FAnimationClipBinaryHeader& Header)
+void FAnimationSequenceSerializer::WriteHeader(std::ofstream& Out, const FAnimationSequenceBinaryHeader& Header)
 {
     WriteUInt32LE(Out, Header.MagicNumber);
     WriteUInt32LE(Out, Header.Version);
@@ -143,7 +143,7 @@ void FAnimationClipSerializer::WriteHeader(std::ofstream& Out, const FAnimationC
     WriteUInt64LE(Out, Header.SourceFileWriteTime);
 }
 
-void FAnimationClipSerializer::WriteCurveKey(std::ofstream& Out, const FAnimationCurveKey& Key)
+void FAnimationSequenceSerializer::WriteCurveKey(std::ofstream& Out, const FAnimationCurveKey& Key)
 {
     WriteFloatLE(Out, Key.TimeSeconds);
     WriteFloatLE(Out, Key.Value);
@@ -164,7 +164,7 @@ void FAnimationClipSerializer::WriteCurveKey(std::ofstream& Out, const FAnimatio
     WriteInt32LE(Out, Key.RawTangentMode);
 }
 
-void FAnimationClipSerializer::WriteFloatCurve(std::ofstream& Out, const FAnimationFloatCurve& Curve)
+void FAnimationSequenceSerializer::WriteFloatCurve(std::ofstream& Out, const FAnimationFloatCurve& Curve)
 {
     WriteInt32LE(Out, static_cast<int32>(Curve.Channel));
     WriteFloatLE(Out, Curve.DefaultValue);
@@ -176,7 +176,7 @@ void FAnimationClipSerializer::WriteFloatCurve(std::ofstream& Out, const FAnimat
     }
 }
 
-void FAnimationClipSerializer::WriteRawAnimSequenceTrack(std::ofstream& Out, const FRawAnimSequenceTrack& Track)
+void FAnimationSequenceSerializer::WriteRawAnimSequenceTrack(std::ofstream& Out, const FRawAnimSequenceTrack& Track)
 {
     WriteUInt32LE(Out, static_cast<uint32>(Track.PosKeys.size()));
     for (const FVector& Key : Track.PosKeys)
@@ -197,7 +197,7 @@ void FAnimationClipSerializer::WriteRawAnimSequenceTrack(std::ofstream& Out, con
     }
 }
 
-void FAnimationClipSerializer::WriteBoneTrack(std::ofstream& Out, const FBoneAnimationTrack& Track)
+void FAnimationSequenceSerializer::WriteBoneTrack(std::ofstream& Out, const FBoneAnimationTrack& Track)
 {
     WriteString(Out, Track.BoneName);
     WriteRawAnimSequenceTrack(Out, Track.InternalTrack);
@@ -216,7 +216,7 @@ void FAnimationClipSerializer::WriteBoneTrack(std::ofstream& Out, const FBoneAni
 
 }
 
-void FAnimationClipSerializer::WriteShapeKeyTrack(std::ofstream& Out, const FShapeKeyAnimationTrack& Track)
+void FAnimationSequenceSerializer::WriteShapeKeyTrack(std::ofstream& Out, const FShapeKeyAnimationTrack& Track)
 {
     WriteString(Out, Track.MeshNodeName);
     WriteString(Out, Track.ShapeKeyName);
@@ -224,7 +224,7 @@ void FAnimationClipSerializer::WriteShapeKeyTrack(std::ofstream& Out, const FSha
     WriteFloatCurve(Out, Track.WeightCurve);
 }
 
-bool FAnimationClipSerializer::ReadBool(std::ifstream& In, bool& OutValue) const
+bool FAnimationSequenceSerializer::ReadBool(std::ifstream& In, bool& OutValue) const
 {
     uint8 Byte = 0;
     In.read(reinterpret_cast<char*>(&Byte), sizeof(Byte));
@@ -236,7 +236,7 @@ bool FAnimationClipSerializer::ReadBool(std::ifstream& In, bool& OutValue) const
     return true;
 }
 
-bool FAnimationClipSerializer::ReadInt32LE(std::ifstream& In, int32& OutValue) const
+bool FAnimationSequenceSerializer::ReadInt32LE(std::ifstream& In, int32& OutValue) const
 {
     uint32 U = 0;
     if (!ReadUInt32LE(In, U))
@@ -247,7 +247,7 @@ bool FAnimationClipSerializer::ReadInt32LE(std::ifstream& In, int32& OutValue) c
     return true;
 }
 
-bool FAnimationClipSerializer::ReadUInt32LE(std::ifstream& In, uint32& OutValue) const
+bool FAnimationSequenceSerializer::ReadUInt32LE(std::ifstream& In, uint32& OutValue) const
 {
     uint8 Bytes[4] = {};
     In.read(reinterpret_cast<char*>(Bytes), sizeof(Bytes));
@@ -264,7 +264,7 @@ bool FAnimationClipSerializer::ReadUInt32LE(std::ifstream& In, uint32& OutValue)
     return true;
 }
 
-bool FAnimationClipSerializer::ReadUInt64LE(std::ifstream& In, uint64& OutValue) const
+bool FAnimationSequenceSerializer::ReadUInt64LE(std::ifstream& In, uint64& OutValue) const
 {
     OutValue = 0;
     for (int32 i = 0; i < 8; ++i)
@@ -280,7 +280,7 @@ bool FAnimationClipSerializer::ReadUInt64LE(std::ifstream& In, uint64& OutValue)
     return true;
 }
 
-bool FAnimationClipSerializer::ReadFloatLE(std::ifstream& In, float& OutValue) const
+bool FAnimationSequenceSerializer::ReadFloatLE(std::ifstream& In, float& OutValue) const
 {
     uint32 Bits = 0;
     if (!ReadUInt32LE(In, Bits))
@@ -291,7 +291,7 @@ bool FAnimationClipSerializer::ReadFloatLE(std::ifstream& In, float& OutValue) c
     return true;
 }
 
-bool FAnimationClipSerializer::ReadString(std::ifstream& In, FString& OutValue) const
+bool FAnimationSequenceSerializer::ReadString(std::ifstream& In, FString& OutValue) const
 {
     uint32 Length = 0;
     if (!ReadUInt32LE(In, Length) || Length > MAX_ANIMATION_STRING_LENGTH)
@@ -312,14 +312,14 @@ bool FAnimationClipSerializer::ReadString(std::ifstream& In, FString& OutValue) 
     return true;
 }
 
-bool FAnimationClipSerializer::ReadVector(std::ifstream& In, FVector& OutValue) const
+bool FAnimationSequenceSerializer::ReadVector(std::ifstream& In, FVector& OutValue) const
 {
     return ReadFloatLE(In, OutValue.X)
         && ReadFloatLE(In, OutValue.Y)
         && ReadFloatLE(In, OutValue.Z);
 }
 
-bool FAnimationClipSerializer::ReadQuat(std::ifstream& In, FQuat& OutValue) const
+bool FAnimationSequenceSerializer::ReadQuat(std::ifstream& In, FQuat& OutValue) const
 {
     return ReadFloatLE(In, OutValue.X)
         && ReadFloatLE(In, OutValue.Y)
@@ -327,7 +327,7 @@ bool FAnimationClipSerializer::ReadQuat(std::ifstream& In, FQuat& OutValue) cons
         && ReadFloatLE(In, OutValue.W);
 }
 
-bool FAnimationClipSerializer::ReadHeader(std::ifstream& In, FAnimationClipBinaryHeader& OutHeader) const
+bool FAnimationSequenceSerializer::ReadHeader(std::ifstream& In, FAnimationSequenceBinaryHeader& OutHeader) const
 {
     return ReadUInt32LE(In, OutHeader.MagicNumber)
         && ReadUInt32LE(In, OutHeader.Version)
@@ -338,7 +338,7 @@ bool FAnimationClipSerializer::ReadHeader(std::ifstream& In, FAnimationClipBinar
         && ReadUInt64LE(In, OutHeader.SourceFileWriteTime);
 }
 
-bool FAnimationClipSerializer::ReadCurveKey(std::ifstream& In, FAnimationCurveKey& OutKey) const
+bool FAnimationSequenceSerializer::ReadCurveKey(std::ifstream& In, FAnimationCurveKey& OutKey) const
 {
     int32 InterpMode = 0;
     int32 TangentMode = 0;
@@ -368,7 +368,7 @@ bool FAnimationClipSerializer::ReadCurveKey(std::ifstream& In, FAnimationCurveKe
     return true;
 }
 
-bool FAnimationClipSerializer::ReadFloatCurve(std::ifstream& In, FAnimationFloatCurve& OutCurve) const
+bool FAnimationSequenceSerializer::ReadFloatCurve(std::ifstream& In, FAnimationFloatCurve& OutCurve) const
 {
     int32 Channel = 0;
     uint32 KeyCount = 0;
@@ -393,7 +393,7 @@ bool FAnimationClipSerializer::ReadFloatCurve(std::ifstream& In, FAnimationFloat
     return true;
 }
 
-bool FAnimationClipSerializer::ReadRawAnimSequenceTrack(std::ifstream& In, FRawAnimSequenceTrack& OutTrack) const
+bool FAnimationSequenceSerializer::ReadRawAnimSequenceTrack(std::ifstream& In, FRawAnimSequenceTrack& OutTrack) const
 {
     uint32 PosKeyCount = 0;
     if (!ReadUInt32LE(In, PosKeyCount) || PosKeyCount > MAX_ANIMATION_KEY_COUNT)
@@ -440,7 +440,7 @@ bool FAnimationClipSerializer::ReadRawAnimSequenceTrack(std::ifstream& In, FRawA
     return true;
 }
 
-bool FAnimationClipSerializer::ReadBoneTrack(std::ifstream& In, FBoneAnimationTrack& OutTrack) const
+bool FAnimationSequenceSerializer::ReadBoneTrack(std::ifstream& In, FBoneAnimationTrack& OutTrack) const
 {
     int32 RotationOrder = 0;
     if (!ReadString(In, OutTrack.BoneName) ||
@@ -466,7 +466,7 @@ bool FAnimationClipSerializer::ReadBoneTrack(std::ifstream& In, FBoneAnimationTr
     return true;
 }
 
-bool FAnimationClipSerializer::ReadShapeKeyTrack(std::ifstream& In, FShapeKeyAnimationTrack& OutTrack) const
+bool FAnimationSequenceSerializer::ReadShapeKeyTrack(std::ifstream& In, FShapeKeyAnimationTrack& OutTrack) const
 {
     return ReadString(In, OutTrack.MeshNodeName)
         && ReadString(In, OutTrack.ShapeKeyName)
@@ -474,7 +474,7 @@ bool FAnimationClipSerializer::ReadShapeKeyTrack(std::ifstream& In, FShapeKeyAni
         && ReadFloatCurve(In, OutTrack.WeightCurve);
 }
 
-bool FAnimationClipSerializer::SaveAnimationClip(const FString& BinaryPath, const FString& SourcePath, const FAnimationClip& Data)
+bool FAnimationSequenceSerializer::SaveAnimationSequence(const FString& BinaryPath, const FString& SourcePath, const FAnimationSequence& Data)
 {
     std::ofstream Out(std::filesystem::path(FPaths::ToAbsolute(FPaths::ToWide(BinaryPath))), std::ios::binary);
     if (!Out.is_open())
@@ -484,9 +484,9 @@ bool FAnimationClipSerializer::SaveAnimationClip(const FString& BinaryPath, cons
 
     uint32 CurveCount = 0;
     uint32 KeyCount = 0;
-    CountClipData(Data, CurveCount, KeyCount);
+    CountSequenceData(Data, CurveCount, KeyCount);
 
-    FAnimationClipBinaryHeader Header;
+    FAnimationSequenceBinaryHeader Header;
     Header.MagicNumber = ANIMATION_CLIP_BINARY_MAGIC;
     Header.Version = ANIMATION_CLIP_BINARY_VERSION;
     Header.BoneTrackCount = static_cast<uint32>(Data.BoneTracks.size());
@@ -526,7 +526,7 @@ bool FAnimationClipSerializer::SaveAnimationClip(const FString& BinaryPath, cons
     return Out.good();
 }
 
-bool FAnimationClipSerializer::LoadAnimationClip(const FString& FbxOrBinaryPath, FAnimationClip& OutData)
+bool FAnimationSequenceSerializer::LoadAnimationSequence(const FString& FbxOrBinaryPath, FAnimationSequence& OutData)
 {
     std::ifstream In(std::filesystem::path(FPaths::ToAbsolute(FPaths::ToWide(FbxOrBinaryPath))), std::ios::binary);
     if (!In.is_open())
@@ -534,7 +534,7 @@ bool FAnimationClipSerializer::LoadAnimationClip(const FString& FbxOrBinaryPath,
         return false;
     }
 
-    FAnimationClipBinaryHeader Header;
+    FAnimationSequenceBinaryHeader Header;
     if (!ReadHeader(In, Header) || !IsValidHeader(Header))
     {
         return false;
@@ -586,7 +586,7 @@ bool FAnimationClipSerializer::LoadAnimationClip(const FString& FbxOrBinaryPath,
     return In.good();
 }
 
-bool FAnimationClipSerializer::ReadAnimationClipHeader(const FString& BinaryPath, FAnimationClipBinaryHeader& OutHeader) const
+bool FAnimationSequenceSerializer::ReadAnimationSequenceHeader(const FString& BinaryPath, FAnimationSequenceBinaryHeader& OutHeader) const
 {
     std::ifstream In(std::filesystem::path(FPaths::ToAbsolute(FPaths::ToWide(BinaryPath))), std::ios::binary);
     if (!In.is_open())

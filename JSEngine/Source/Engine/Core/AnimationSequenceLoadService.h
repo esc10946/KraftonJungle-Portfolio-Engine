@@ -6,10 +6,10 @@
 class FResourceManager;
 class UAnimationSequence;
 
-class FAnimationClipLoadService
+class FAnimationSequenceLoadService
 {
 public:
-    explicit FAnimationClipLoadService(FResourceManager& InResourceManager);
+    explicit FAnimationSequenceLoadService(FResourceManager& InResourceManager);
 
     UAnimationSequence* Load(const FString& Path);
 
@@ -17,7 +17,7 @@ private:
     UAnimationSequence* LoadBinary(const FString& BinaryPath, const FString& CacheKey);
     UAnimationSequence* LoadSiblingImportedBinary(const FString& NormalizedPath);
     UAnimationSequence* LoadSourceOrCachedBinary(const FString& NormalizedPath);
-    UAnimationSequence* FinalizeLoadedClip(FAnimationSequence* SequenceData, const FString& CacheKey);
+    UAnimationSequence* FinalizeLoadedSequence(FAnimationSequence* SequenceData, const FString& CacheKey);
 
     FResourceManager& ResourceManager;
 };
