@@ -27,6 +27,11 @@ public:
     bool SamplePose(const USkeletalMesh* TargetMesh, float Time, TArray<FMatrix>& OutLocalPose) const override;
 
 private:
+    void RebuildTrackCache(const USkeletalMesh* TargetMesh) const;
+
+private:
     FAnimationSequence* SequenceData = nullptr;
+    mutable const USkeletalMesh* CachedTargetMesh = nullptr;
+    mutable TArray<int32> CachedTrackIndexByBoneIndex;
 };
 

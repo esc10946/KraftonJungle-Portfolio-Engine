@@ -109,6 +109,7 @@ void FEditorAssetService::RefreshAssetDatabase()
 	MaterialInterfaceNames.clear();
 	FontNames.clear();
 	ParticleNames.clear();
+	AnimationSequencePaths.clear();
 	CachedMaterialInterfaces.clear();
 	CachedMaterialInterfaceResolved.clear();
 
@@ -129,6 +130,14 @@ void FEditorAssetService::RefreshAssetDatabase()
 		{
 			FEditorAssetService::AddUniquePath(SkeletalMeshPaths, Record.AssetPath);
 		}
+		else if (Record.Type == EImportedFbxAssetType::AnimationSequence)
+		{
+			FEditorAssetService::AddUniquePath(AnimationSequencePaths, Record.AssetPath);
+		}
+	}
+	for (const FString& Path : FResourceManager::Get().GetAnimationSequencePaths())
+	{
+		FEditorAssetService::AddUniquePath(AnimationSequencePaths, Path);
 	}
 
 	for (const FString& Path : FAssetQueryService::GetTexturePaths())
@@ -161,6 +170,7 @@ void FEditorAssetService::RefreshAssetDatabase()
 	BuildItems(MaterialInterfaceNames, EEditorAssetType::Material, MaterialItems);
 	BuildItems(FontNames, EEditorAssetType::Font, FontItems);
 	BuildItems(ParticleNames, EEditorAssetType::Particle, ParticleItems);
+	BuildItems(AnimationSequencePaths, EEditorAssetType::AnimationSequence, AnimationSequenceItems);
 }
 
 const TArray<FEditorAssetItem>& FEditorAssetService::GetAssets(EEditorAssetType Type) const
@@ -179,6 +189,8 @@ const TArray<FEditorAssetItem>& FEditorAssetService::GetAssets(EEditorAssetType 
 		return FontItems;
 	case EEditorAssetType::Particle:
 		return ParticleItems;
+	case EEditorAssetType::AnimationSequence:
+		return AnimationSequenceItems;
 	case EEditorAssetType::Scene:
 	case EEditorAssetType::Script:
 	default:
@@ -194,6 +206,11 @@ UStaticMesh* FEditorAssetService::LoadStaticMesh(const FString& Path) const
 USkeletalMesh* FEditorAssetService::LoadSkeletalMesh(const FString& Path) const
 {
 	return FResourceManager::Get().LoadSkeletalMesh(Path);
+}
+
+UAnimationSequence* FEditorAssetService::LoadAnimationSequence(const FString& Path) const
+{
+	return FResourceManager::Get().LoadAnimationSequence(Path);
 }
 
 UTexture* FEditorAssetService::LoadTexture(const FString& Path) const

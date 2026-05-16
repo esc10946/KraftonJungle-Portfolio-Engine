@@ -565,6 +565,12 @@ void FEditorPropertyWidget::Render(float DeltaTime)
 	RenderComponentTree(PrimaryActor);
 	RenderDetailsContextMenu(PrimaryActor, *DisplayActors);
 
+	if (!IsLiveActor(PrimaryActor))
+	{
+		ImGui::End();
+		return;
+	}
+
 	// 디테일 프로퍼티 영역
 	SEPARATOR();
 	DrawDetailsSectionLabel("Details");
@@ -812,6 +818,7 @@ void FEditorPropertyWidget::RenderDetailsContextMenu(AActor* PrimaryActor, const
 				SelectedComponent = nullptr;
 				LastSelectedActor = nullptr;
 				bActorSelected = true;
+				ImGui::CloseCurrentPopup();
 			}
 		}
 		ImGui::EndDisabled();
