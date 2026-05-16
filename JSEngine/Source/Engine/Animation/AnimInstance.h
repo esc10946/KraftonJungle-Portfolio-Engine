@@ -50,10 +50,16 @@ public:
     bool IsPlaying() const { return bPlaying; }
     bool IsPaused() const { return bPaused; }
 
+    const TArray<FMatrix>& GetCurrentLocalPose() const { return CurrentLocalPose; }
+
     void NativeUpdateAnimation(float DeltaSeconds) override;
 
 protected:
+    bool SampleCurrentPose();
+
+protected:
     UAnimationAssetBase* AnimationAsset = nullptr;
+    TArray<FMatrix> CurrentLocalPose;
     float CurrentTime = 0.0f;
     float PlayRate = 1.0f;
     bool bPlaying = false;

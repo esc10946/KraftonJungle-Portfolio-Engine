@@ -35,6 +35,7 @@ void UAnimSingleNodeInstance::SetAnimationAsset(UAnimationAssetBase* InAnimation
 {
     AnimationAsset = InAnimationAsset;
     CurrentTime = 0.0f;
+    CurrentLocalPose.clear();
 }
 
 void UAnimSingleNodeInstance::Play()
@@ -56,6 +57,7 @@ void UAnimSingleNodeInstance::Stop()
     bPlaying = false;
     bPaused = false;
     CurrentTime = 0.0f;
+    CurrentLocalPose.clear();
 }
 
 void UAnimSingleNodeInstance::SetCurrentTime(float InCurrentTime)
@@ -64,6 +66,8 @@ void UAnimSingleNodeInstance::SetCurrentTime(float InCurrentTime)
     CurrentTime = PlayLength > 0.0f
         ? std::clamp(InCurrentTime, 0.0f, PlayLength)
         : std::max(0.0f, InCurrentTime);
+
+    SampleCurrentPose();
 }
 
 void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaSeconds)
@@ -106,4 +110,24 @@ void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaSeconds)
             bPlaying = false;
         }
     }
+
+    SampleCurrentPose();
+}
+
+bool UAnimSingleNodeInstance::SampleCurrentPose()
+{
+    if (!AnimationAsset)
+    {
+        CurrentLocalPose.clear();
+        return false;
+    }
+
+    TArray<FMatrix> SampledPose;
+    if (!AnimationAsset->SamplePose(CurrentTime, SampledPose))
+    {
+        return false;
+    }
+
+    CurrentLocalPose = SampledPose;
+    return true;
 }
