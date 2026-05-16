@@ -1,5 +1,6 @@
 #include "SelectionMaskRenderPass.h"
 #include "Core/ResourceManager.h"
+#include "Core/Logging/Stats.h"
 #include "Component/PrimitiveComponent.h"
 #include "Render/Scene/RenderBus.h"
 #include "Render/Resource/RenderResources.h"
@@ -200,6 +201,7 @@ bool FSelectionMaskRenderPass::Begin(const FRenderPassContext* Context)
 
 bool FSelectionMaskRenderPass::DrawCommand(const FRenderPassContext* Context)
 {
+    SCOPE_STAT("GPU.SkeletalDraw.SelectionMask");
     const TArray<FRenderCommand>& Commands = Context->RenderBus->GetCommands(ERenderPass::SelectionMask);
     if (Commands.empty())
     {

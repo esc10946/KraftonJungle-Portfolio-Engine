@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Core/CoreTypes.h"
+#include "Math/Matrix.h"
 #include "Render/Common/RenderTypes.h"
 
 #include "Render/Resource/Buffer.h"
@@ -29,6 +30,9 @@ private:
     TMap<uint32, FMeshBuffer> ProcMeshBufferMap;
 	TMap<uint32, FMeshBuffer> SkeletalMeshBufferMap;
 	TMap<uint32, const USkeletalMesh*> SkeletalMeshSourceMap;
+	TMap<const USkeletalMesh*, FMeshBuffer> SkeletalBindPoseBufferMap;
+	TMap<uint32, FStructuredBuffer> SkeletalBoneMatrixBufferMap;
+	TMap<uint32, uint32> SkeletalBoneMatrixCapacityMap;
 
 public:
 
@@ -43,4 +47,6 @@ public:
     // Key by component UUID and accept raw section data to avoid header coupling with ProceduralMeshComponent.
     FMeshBuffer* GetProcMeshBuffer(uint32 ProcMeshCompUUID, const TArray<FNormalVertex>& Vertices, const TArray<uint32>& Indices);
 	FMeshBuffer* GetSkeletalMeshBuffer(uint32 SkeletalMeshCompUUID, const USkeletalMesh* SkeletalMeshAsset, const TArray<FSkeletalMeshVertex>& Vertices, const TArray<uint32>& Indices, bool bNeedsUpload);
+	FMeshBuffer* GetSkeletalBindPoseBuffer(const USkeletalMesh* SkeletalMeshAsset);
+	FStructuredBuffer* GetSkeletalBoneMatrixBuffer(uint32 SkeletalMeshCompUUID, const TArray<FMatrix>& BoneMatrices, bool bNeedsUpload);
 };

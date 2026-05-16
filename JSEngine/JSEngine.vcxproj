@@ -1169,6 +1169,7 @@
     <ClInclude Include="Source\Engine\Render\Scene\RenderBus.h" />
     <ClInclude Include="Source\Engine\Render\Scene\RenderCollector.h" />
     <ClInclude Include="Source\Engine\Render\Scene\RenderCommand.h" />
+    <ClInclude Include="Source\Engine\Render\Skinning\SkinningRuntimeSettings.h" />
     <ClInclude Include="Source\Engine\Render\SubUVBatcher.h" />
     <ClInclude Include="Source\Engine\Runtime\Engine.h" />
     <ClInclude Include="Source\Engine\Runtime\EngineLoop.h" />
@@ -1254,6 +1255,7 @@
     <None Include="Shaders\Common\Common.hlsli" />
     <None Include="Shaders\Common\Lighting.hlsli" />
     <None Include="Shaders\Common\ShadowFunction.hlsli" />
+    <None Include="Shaders\Common\SkeletalSkinning.hlsli" />
     <None Include="Shaders\Compute\HiZDownsample.hlsl" />
     <None Include="Shaders\Compute\LightCullingCS.hlsl" />
     <None Include="Shaders\Compute\OcclusionCull.hlsl" />

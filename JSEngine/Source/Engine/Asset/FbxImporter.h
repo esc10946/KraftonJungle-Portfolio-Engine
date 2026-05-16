@@ -80,7 +80,7 @@ public:
 private:
 	bool ImportScene(const FString& Path, FbxManager* Manager, FbxScene* Scene);
 
-	// Scene -> StaticMesh (mesh node¸¦ Àç±Í·Î ¼øÈ¸)
+	// Scene -> StaticMesh (mesh nodeë¥¼ ìž¬ê·€ë¡œ ìˆœíšŒ)
 	void CollectMeshes(FbxNode* Node, FStaticMesh* InStaticMesh);
 	void ProcessMesh(FbxMesh* Mesh, FStaticMesh* InStaticMesh);
 

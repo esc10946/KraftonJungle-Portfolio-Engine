@@ -1,5 +1,6 @@
 #include "SkinnedMeshComponent.h"
 
+#include "Core/Logging/Stats.h"
 #include "Core/ResourceManager.h"
 #include "Render/Resource/Material.h"
 
@@ -137,7 +138,6 @@ void USkinnedMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkeletalMesh)
         }
 
         InitializePoseFromBindPose();
-        SkinnedVertices.resize(SkeletalMesh->GetVertices().size());
     }
     else
     {
@@ -147,6 +147,15 @@ void USkinnedMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkeletalMesh)
     MarkBoundsDirty();
     MarkRenderStateDirty();
     MarkSkinningDirty();
+}
+
+void USkinnedMeshComponent::MarkSkinningDirty()
+{
+    bPoseDirty = true;
+    bSkinningMatricesDirty = true;
+    bCPUSkinnedVerticesDirty = true;
+    bGPUBoneBufferDirty = true;
+    NotifyPoseDependentsDirty();
 }
 
 void USkinnedMeshComponent::UpdateWorldAABB() const
@@ -159,14 +168,15 @@ void USkinnedMeshComponent::UpdateWorldAABB() const
         return;
     }
 
-    if (bEnableCPUSkinning)
+    const ESkinningMode Mode = GetEffectiveSkinningMode();
+    if (Mode == ESkinningMode::CPU && bEnableCPUSkinning)
     {
-        const_cast<USkinnedMeshComponent*>(this)->EnsureSkinningUpdated();
+        const_cast<USkinnedMeshComponent*>(this)->EnsureCPUSkinnedVerticesUpdated();
     }
 
     const FMatrix& WorldMatrix = GetWorldMatrix();
 
-    if (bEnableCPUSkinning && !SkinnedVertices.empty())
+    if (Mode == ESkinningMode::CPU && bEnableCPUSkinning && !SkinnedVertices.empty())
     {
         for (const FSkeletalMeshVertex& Vertex : SkinnedVertices)
         {
@@ -177,7 +187,9 @@ void USkinnedMeshComponent::UpdateWorldAABB() const
         return;
     }
 
-    const FAABB& LocalBounds = SkeletalMesh->GetLocalBounds();
+    const FAABB& LocalBounds = (Mode == ESkinningMode::GPUVertexShader)
+        ? SkeletalMesh->GetConservativeLocalBounds()
+        : SkeletalMesh->GetLocalBounds();
     if (LocalBounds.IsValid())
     {
         const FVector LocalCorners[8] = {
@@ -207,8 +219,8 @@ bool USkinnedMeshComponent::RaycastMesh(const FRay& Ray, FHitResult& OutHitResul
         return false;
     }
 
-    // 현재 pose 기준 SkinnedVertices가 필요
-    EnsureSkinningUpdated();
+    // 현재 pose 기준 CPU-side triangle query를 위해 lazy CPU cache를 갱신.
+    EnsureCPUSkinnedVerticesUpdated();
 
     EnsureBoundsUpdated();
 
@@ -298,19 +310,37 @@ const FAABB& USkinnedMeshComponent::GetWorldAABB() const
 
 bool USkinnedMeshComponent::ConsumeRenderStateDirty()
 {
+    SyncSkinningModeState();
     const bool bWasDirty = bRenderStateDirty;
     bRenderStateDirty = false;
     return bWasDirty;
 }
 
+bool USkinnedMeshComponent::ConsumeGPUBoneBufferDirty()
+{
+    SyncSkinningModeState();
+    const bool bWasDirty = bGPUBoneBufferDirty;
+    bGPUBoneBufferDirty = false;
+    return bWasDirty;
+}
+
 void USkinnedMeshComponent::EnsureSkinningUpdated()
 {
-    if (!bEnableCPUSkinning)
+    if (GetEffectiveSkinningMode() == ESkinningMode::CPU)
     {
+        EnsureCPUSkinnedVerticesUpdated();
         return;
     }
 
-    if (!bSkinningDirty)
+    EnsureSkinningMatricesUpdated();
+}
+
+void USkinnedMeshComponent::EnsurePoseUpdated()
+{
+    SCOPE_STAT("CPU.Skinning.PoseUpdate");
+    SyncSkinningModeState();
+
+    if (!bPoseDirty)
     {
         return;
     }
@@ -321,15 +351,91 @@ void USkinnedMeshComponent::EnsureSkinningUpdated()
     }
 
     UpdateCurrentGlobalPose();
-    UpdateSkinningMatrices();
-    SkinVerticesCPU();
-
-    bSkinningDirty = false;
-    MarkBoundsDirty();
-    MarkRenderStateDirty();
+    bPoseDirty = false;
+    bSkinningMatricesDirty = true;
+    bCPUSkinnedVerticesDirty = true;
+    bGPUBoneBufferDirty = true;
 
     // Bone 자세가 새로 계산됐으므로, *내* socket으로 붙은 child의 world transform이 stale.
     // FName::None도 IsValid이므로 명시적 != 비교 + HasSocket 둘 다 확인.
+    NotifyPoseDependentsDirty();
+}
+
+void USkinnedMeshComponent::EnsureSkinningMatricesUpdated()
+{
+    EnsurePoseUpdated();
+
+    if (!bSkinningMatricesDirty)
+    {
+        return;
+    }
+
+    if (!HasValidMesh())
+    {
+        return;
+    }
+
+    UpdateSkinningMatrices();
+    bSkinningMatricesDirty = false;
+    bCPUSkinnedVerticesDirty = true;
+    bGPUBoneBufferDirty = true;
+}
+
+void USkinnedMeshComponent::EnsureCPUSkinnedVerticesUpdated()
+{
+    SCOPE_STAT("CPU.Skinning.Total");
+    if (!bEnableCPUSkinning)
+    {
+        return;
+    }
+
+    EnsureSkinningMatricesUpdated();
+
+    if (!bCPUSkinnedVerticesDirty)
+    {
+        return;
+    }
+
+    if (!HasValidMesh())
+    {
+        return;
+    }
+
+    SkinVerticesCPU();
+    bCPUSkinnedVerticesDirty = false;
+    MarkBoundsDirty();
+    MarkRenderStateDirty();
+}
+
+void USkinnedMeshComponent::EnsureGPUSkinningResourcesDirty()
+{
+    SCOPE_STAT("GPU.Skinning.PoseUpdateCPU");
+    EnsureSkinningMatricesUpdated();
+}
+
+ESkinningMode USkinnedMeshComponent::GetEffectiveSkinningMode() const
+{
+    SyncSkinningModeState();
+    return CachedSkinningMode;
+}
+
+void USkinnedMeshComponent::SyncSkinningModeState() const
+{
+    const uint64 Revision = FSkinningRuntimeSettings::GetRevision();
+    if (CachedSkinningModeRevision == Revision)
+    {
+        return;
+    }
+
+    CachedSkinningModeRevision = Revision;
+    CachedSkinningMode = FSkinningRuntimeSettings::GetMode();
+    const_cast<USkinnedMeshComponent*>(this)->MarkRenderStateDirty();
+    const_cast<USkinnedMeshComponent*>(this)->MarkBoundsDirty();
+    const_cast<USkinnedMeshComponent*>(this)->bGPUBoneBufferDirty = true;
+}
+
+void USkinnedMeshComponent::NotifyPoseDependentsDirty()
+{
     for (USceneComponent* Child : ChildComponents)
     {
         if (!Child) continue;
@@ -409,6 +515,11 @@ void USkinnedMeshComponent::InitializePoseFromBindPose()
         CurrentGlobalPose[BoneIndex] = Bones[BoneIndex].GlobalBindTransform;
         SkinningMatrices[BoneIndex] = FMatrix::Identity; // 계산은 초기화 함수에서 하지 않고 별도의 업데이트 함수에서 진행
     }
+
+    bPoseDirty = false;
+    bSkinningMatricesDirty = true;
+    bCPUSkinnedVerticesDirty = true;
+    bGPUBoneBufferDirty = true;
 }
 
 void USkinnedMeshComponent::UpdateCurrentGlobalPose()
@@ -463,6 +574,7 @@ void USkinnedMeshComponent::UpdateSkinningMatrices()
 
 void USkinnedMeshComponent::SkinVerticesCPU()
 {
+    SCOPE_STAT("CPU.Skinning.VertexSkin");
     if (!HasValidMesh())
     {
         SkinnedVertices.clear();

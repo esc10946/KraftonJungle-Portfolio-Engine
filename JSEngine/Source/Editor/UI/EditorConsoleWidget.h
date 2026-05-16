@@ -81,6 +81,7 @@ private:
 	void CmdSuggest(const TArray<FString>& Args);
 	void CmdStat(const TArray<FString>& Args);
     void CmdShadow(const TArray<FString>& Args);
+	void CmdSkinMode(const TArray<FString>& Args);
     void CmdCrash(const TArray<FString>& Args);
 	void PrintHistoryStats();
 	void PrintCommandList(const FString& Prefix = "");

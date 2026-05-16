@@ -107,6 +107,20 @@ namespace
             return PrimitiveComponent->GetWorldAABB();
         }
     }
+
+    void ApplySkeletalGpuPayload(FRenderCommand& Cmd, USkeletalMeshComponent* SkeletalMeshComp, FStructuredBuffer* BoneMatrixBuffer, ESkinningMode Mode)
+    {
+        Cmd.SkeletalGpuSkinning.Mode = Mode;
+        if (Mode == ESkinningMode::GPUVertexShader && BoneMatrixBuffer)
+        {
+            Cmd.SkeletalGpuSkinning.BoneMatrixSRV = BoneMatrixBuffer->GetSRV();
+            Cmd.SkeletalGpuSkinning.BoneCount = BoneMatrixBuffer->GetCount();
+        }
+        else if (SkeletalMeshComp)
+        {
+            Cmd.SkeletalGpuSkinning.BoneCount = static_cast<uint32>(SkeletalMeshComp->GetSkinningMatrices().size());
+        }
+    }
 }
 
 void FEditorOverlayCollector::CollectSelection(const TArray<AActor*>& SelectedActors, const FShowFlags& ShowFlags,
@@ -294,6 +308,8 @@ bool FEditorOverlayCollector::CollectFromSelectedActor(AActor* Actor, const FSho
         }
 
         FMeshBuffer* MeshBuffer = nullptr;
+        FStructuredBuffer* BoneMatrixBuffer = nullptr;
+        ESkinningMode SkinningMode = ESkinningMode::CPU;
         if (primitiveComponent->GetPrimitiveType() == EPrimitiveType::EPT_StaticMesh)
         {
             auto* StaticMeshComp = static_cast<UStaticMeshComponent*>(primitiveComponent);
@@ -305,16 +321,29 @@ bool FEditorOverlayCollector::CollectFromSelectedActor(AActor* Actor, const FSho
             USkeletalMesh* SkeletalMesh = SkeletalMeshComp->GetSkeletalMesh();
             if (!SkeletalMesh || !SkeletalMesh->HasValidMeshData()) continue;
 
-            // 메인 render pass(CollectWorld)가 이 함수 *전*에 같은 프레임에 돌면서
-            // skinning + 버퍼 업로드를 이미 끝낸 상태. 여기서는 dirty flag를 소비하지 않고
-            // bNeedsUpload=false로 캐시된 버퍼만 가져온다.
-            SkeletalMeshComp->EnsureSkinningUpdated();
-            MeshBuffer = MeshBufferManager.GetSkeletalMeshBuffer(
-                SkeletalMeshComp->GetUUID(),
-                SkeletalMesh,
-                SkeletalMeshComp->GetSkinnedVertices(),
-                SkeletalMesh->GetIndices(),
-                /*bNeedsUpload=*/ false);
+            SkinningMode = SkeletalMeshComp->GetEffectiveSkinningMode();
+            if (SkinningMode == ESkinningMode::GPUVertexShader)
+            {
+                SkeletalMeshComp->EnsureGPUSkinningResourcesDirty();
+                BoneMatrixBuffer = MeshBufferManager.GetSkeletalBoneMatrixBuffer(
+                    SkeletalMeshComp->GetUUID(),
+                    SkeletalMeshComp->GetSkinningMatrices(),
+                    SkeletalMeshComp->ConsumeGPUBoneBufferDirty());
+                MeshBuffer = MeshBufferManager.GetSkeletalBindPoseBuffer(SkeletalMesh);
+            }
+            else
+            {
+                // 메인 render pass(CollectWorld)가 이 함수 *전*에 같은 프레임에 돌면서
+                // skinning + 버퍼 업로드를 이미 끝낸 상태. 여기서는 dirty flag를 소비하지 않고
+                // bNeedsUpload=false로 캐시된 버퍼만 가져온다.
+                SkeletalMeshComp->EnsureCPUSkinnedVerticesUpdated();
+                MeshBuffer = MeshBufferManager.GetSkeletalMeshBuffer(
+                    SkeletalMeshComp->GetUUID(),
+                    SkeletalMesh,
+                    SkeletalMeshComp->GetSkinnedVertices(),
+                    SkeletalMesh->GetIndices(),
+                    /*bNeedsUpload=*/ false);
+            }
         }
         else
         {
@@ -341,6 +370,7 @@ bool FEditorOverlayCollector::CollectFromSelectedActor(AActor* Actor, const FSho
         else if (primitiveComponent->GetPrimitiveType() == EPrimitiveType::EPT_SkeletalMesh)
         {
             BaseCmd.VertexFactoryType = EVertexFactoryType::SkeletalMesh;
+            ApplySkeletalGpuPayload(BaseCmd, static_cast<USkeletalMeshComponent*>(primitiveComponent), BoneMatrixBuffer, SkinningMode);
         }
         else if (primitiveComponent->GetPrimitiveType() == EPrimitiveType::EPT_Text)
         {

@@ -6,6 +6,7 @@
 #include "Render/Resource/ShaderHelper.h"
 #include "Render/Resource/ShadowAtlasManager.h"
 #include "Render/Resource/VertexFactoryTypes.h"
+#include "Core/Logging/Stats.h"
 #include "Core/ResourceManager.h"
 #include "Component/PostProcess/Light/LightComponent.h"
 
@@ -61,6 +62,7 @@ bool FOpaqueRenderPass::Begin(const FRenderPassContext* Context)
 
 bool FOpaqueRenderPass::DrawCommand(const FRenderPassContext* Context)  
 {  
+   SCOPE_STAT("GPU.SkeletalDraw.BasePass");
    const FRenderBus* RenderBus = Context->RenderBus;  
    const TArray<FRenderCommand>& Commands = RenderBus->GetCommands(ERenderPass::Opaque);  
 

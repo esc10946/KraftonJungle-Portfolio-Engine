@@ -1076,12 +1076,14 @@ void FBinarySerializer::WriteSkeletalBounds(std::ofstream& Out, const FSkeletalM
 
 bool FBinarySerializer::ReadSkeletalBounds(std::ifstream& In, FSkeletalMesh& OutData) const
 {
-	return ReadFloatLE(In, OutData.LocalBounds.Min.X)
+	const bool bRead = ReadFloatLE(In, OutData.LocalBounds.Min.X)
 		&& ReadFloatLE(In, OutData.LocalBounds.Min.Y)
 		&& ReadFloatLE(In, OutData.LocalBounds.Min.Z)
 		&& ReadFloatLE(In, OutData.LocalBounds.Max.X)
 		&& ReadFloatLE(In, OutData.LocalBounds.Max.Y)
 		&& ReadFloatLE(In, OutData.LocalBounds.Max.Z);
+	OutData.ConservativeLocalBounds = OutData.LocalBounds;
+	return bRead;
 }
 
 bool FBinarySerializer::SaveSkeletalMesh(const FString& BinaryPath, const FString& SourcePath, const FSkeletalMesh& Data)
