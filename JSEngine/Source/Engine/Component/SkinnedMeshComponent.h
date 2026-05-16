@@ -3,6 +3,7 @@
 #include "Asset/SkeletalMesh.h"
 #include "Component/MeshComponent.h"
 #include "Render/Resource/VertexTypes.h"
+#include "Render/Skinning/SkinningRuntimeSettings.h"
 
 class USkinnedMeshComponent : public UMeshComponent
 {
@@ -29,7 +30,7 @@ public:
     // 본 자세 최신화는 GetSocketTransform과 동일 컨벤션 — 호출 측이 사전에 EnsureSkinningUpdated를 보장.
     FMatrix GetBoneWorldMatrix(int32 BoneIndex) const;
 
-    void MarkSkinningDirty() { bSkinningDirty = true; }
+    void MarkSkinningDirty();
 
     void UpdateWorldAABB() const override;
     bool RaycastMesh(const FRay& Ray, FHitResult& OutHitResult) override;
@@ -37,8 +38,14 @@ public:
 	virtual const FAABB& GetWorldAABB() const;
 
     bool ConsumeRenderStateDirty();
+    bool ConsumeGPUBoneBufferDirty();
 
     void EnsureSkinningUpdated();
+    void EnsurePoseUpdated();
+    void EnsureSkinningMatricesUpdated();
+    void EnsureCPUSkinnedVerticesUpdated();
+    void EnsureGPUSkinningResourcesDirty();
+    ESkinningMode GetEffectiveSkinningMode() const;
 
     // Socket API override — mesh asset의 Sockets 정의를 사용.
     bool       HasSocket(const FName& SocketName) const override;
@@ -57,6 +64,8 @@ protected:
     void MarkBoundsDirty() { bBoundsDirty = true; }
     void MarkRenderStateDirty() { bRenderStateDirty = true; }
     void EnsureBoundsUpdated() const;
+    void SyncSkinningModeState() const;
+    void NotifyPoseDependentsDirty();
 
 protected:
     USkeletalMesh* SkeletalMesh = nullptr;
@@ -69,8 +78,13 @@ protected:
     TArray<FSkeletalMeshVertex> SkinnedVertices;
 
     bool bEnableCPUSkinning = true;
-    bool bSkinningDirty = true;
+    bool bPoseDirty = true;
+    bool bSkinningMatricesDirty = true;
+    bool bCPUSkinnedVerticesDirty = true;
+    bool bGPUBoneBufferDirty = true;
 
     mutable bool bBoundsDirty = true;
     bool bRenderStateDirty = true;
+    mutable ESkinningMode CachedSkinningMode = ESkinningMode::CPU;
+    mutable uint64 CachedSkinningModeRevision = static_cast<uint64>(-1);
 };

@@ -5,6 +5,7 @@
 #include "Editor/EditorEngine.h"
 #include "Editor/Viewport/ViewportLayout.h"
 #include "Engine/Object/FName.h"
+#include "Render/Skinning/SkinningRuntimeSettings.h"
 
 #include <cctype>
 #include <cstring>
@@ -162,6 +163,7 @@ FEditorConsoleWidget::FEditorConsoleWidget()
 	RegisterCommand("Crash", "[Warning] Crash for Debug", [this](const TArray<FString>& Args) { CmdCrash(Args); });
 
 	RegisterCommand("shadow", "Set shadow options. Usage: shadow filter <pcf|vsm>", [this](const TArray<FString>& Args){ CmdShadow(Args); });
+	RegisterCommand("skinmode", "Set skeletal skinning mode. Usage: skinmode <cpu|gpu|status>", [this](const TArray<FString>& Args) { CmdSkinMode(Args); });
 }
 
 FEditorConsoleWidget::~FEditorConsoleWidget() 
@@ -568,6 +570,13 @@ void FEditorConsoleWidget::CmdSuggest(const TArray<FString>& Args)
 		AddLog("  shadow filter vsm     Use VSM shadow filtering\n");
 		bPrinted = true;
 	}
+	if (Prefix.empty() || FString("skinmode").find(Prefix) == 0)
+	{
+		AddLog("  skinmode cpu          Use CPU skinned vertex buffers\n");
+		AddLog("  skinmode gpu          Use GPU vertex shader skinning\n");
+		AddLog("  skinmode status       Print current skinning mode\n");
+		bPrinted = true;
+	}
 	if (Prefix.empty() || FString("help").find(Prefix) == 0 || FString("commands").find(Prefix) == 0)
 	{
 		AddLog("  commands              List every command\n");
@@ -644,6 +653,9 @@ TArray<FString> FEditorConsoleWidget::BuildCommandSuggestions(const FString& Que
 		"stat none",
 		"shadow filter pcf",
 		"shadow filter vsm",
+		"skinmode cpu",
+		"skinmode gpu",
+		"skinmode status",
         "crash dav",
         "crash seh",
         "crash dangle",
@@ -880,6 +892,44 @@ void FEditorConsoleWidget::CmdShadow(const TArray<FString>& Args)
     {
         AddLog("[ERROR] Unknown shadow command target: %s\n", CommandTarget.c_str());
     }
+}
+
+void FEditorConsoleWidget::CmdSkinMode(const TArray<FString>& Args)
+{
+	if (Args.size() < 2)
+	{
+		AddLog("[WARN] Usage: skinmode <cpu|gpu|status>\n");
+		return;
+	}
+
+	FString CommandTarget = Args[1];
+	std::transform(CommandTarget.begin(), CommandTarget.end(), CommandTarget.begin(), ::tolower);
+
+	if (CommandTarget == "cpu")
+	{
+		FSkinningRuntimeSettings::SetMode(ESkinningMode::CPU);
+		AddLog("Skinning mode changed to: %s\n", FSkinningRuntimeSettings::ToString(FSkinningRuntimeSettings::GetMode()));
+		return;
+	}
+
+	if (CommandTarget == "gpu")
+	{
+		FSkinningRuntimeSettings::SetMode(ESkinningMode::GPUVertexShader);
+		AddLog("Skinning mode changed to: %s\n", FSkinningRuntimeSettings::ToString(FSkinningRuntimeSettings::GetMode()));
+		AddLog("Skin Cache mode remains reserved for a later compute path.\n");
+		return;
+	}
+
+	if (CommandTarget == "status")
+	{
+		AddLog("Skinning.Mode: %s\n", FSkinningRuntimeSettings::ToString(FSkinningRuntimeSettings::GetMode()));
+		AddLog("Skinning.Revision: %llu\n", static_cast<unsigned long long>(FSkinningRuntimeSettings::GetRevision()));
+		AddLog("Skinning.GPUComputeSkinCache: reserved\n");
+		return;
+	}
+
+	AddLog("[ERROR] Invalid skinmode target: %s\n", CommandTarget.c_str());
+	AddLog("[WARN] Usage: skinmode <cpu|gpu|status>\n");
 }
 
 void FEditorConsoleWidget::CmdCrash(const TArray<FString>& Args)

@@ -187,15 +187,6 @@ void FEditorMainPanel::RenderEditorDebugPanel(float DeltaTime)
         ImGui::DragFloat("Camera Zoom Speed", &Settings.CameraZoomSpeed, 1.0f, 10.0f, 5000.0f, "%.0f");
         ImGui::DragFloat("Dolly Speed Scale", &Settings.CameraDollySpeedScale, 0.01f, 0.05f, 5.0f, "%.2fx");
         ImGui::DragFloat("Pan Speed Scale", &Settings.CameraPanSpeedScale, 0.05f, 0.05f, 10.0f, "%.2fx");
-        const char* PickingModeItems[] = { "ID Buffer", "Ray-Triangle" };
-        int32 PickingModeIndex = static_cast<int32>(Settings.PickingMode);
-        if (ImGui::Combo("Picking Mode", &PickingModeIndex, PickingModeItems, IM_ARRAYSIZE(PickingModeItems)))
-        {
-            if (PickingModeIndex >= 0 && PickingModeIndex < static_cast<int32>(EEditorPickingMode::Count))
-            {
-                Settings.PickingMode = static_cast<EEditorPickingMode>(PickingModeIndex);
-            }
-        }
         ImGui::Checkbox("Camera Smoothing", &Settings.bEnableCameraSmoothing);
         ImGui::BeginDisabled(!Settings.bEnableCameraSmoothing);
         ImGui::DragFloat("Move Smooth Speed", &Settings.CameraMoveSmoothSpeed, 0.05f, 0.1f, 40.0f, "%.2f");

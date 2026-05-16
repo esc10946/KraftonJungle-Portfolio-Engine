@@ -4,6 +4,7 @@
 #include "Render/Resource/Material.h"
 #include "Render/Resource/ShaderPaths.h"
 #include "Render/Resource/VertexFactoryTypes.h"
+#include "Core/Logging/Stats.h"
 #include "Core/ResourceManager.h"
 
 namespace
@@ -57,6 +58,7 @@ bool FDepthPrePass::Begin(const FRenderPassContext* Context)
 
 bool FDepthPrePass::DrawCommand(const FRenderPassContext* Context)
 {
+	SCOPE_STAT("GPU.SkeletalDraw.Depth");
 	const FRenderBus* RenderBus = Context->RenderBus;
 	const TArray<FRenderCommand>& OpaqueCmds = RenderBus->GetCommands(ERenderPass::Opaque);
 

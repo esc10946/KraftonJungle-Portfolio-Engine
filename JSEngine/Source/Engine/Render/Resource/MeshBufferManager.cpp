@@ -1,7 +1,9 @@
 ﻿#include "MeshBufferManager.h"
 
+#include "Asset/SkeletalMesh.h"
 #include "Asset/StaticMesh.h"
 #include "Component/ProceduralMeshComponent.h"
+#include "Core/Logging/Stats.h"
 
 namespace
 {
@@ -86,6 +88,19 @@ void FMeshBufferManager::Release()
 
 	SkeletalMeshBufferMap.clear();
 	SkeletalMeshSourceMap.clear();
+
+	for (auto& pair : SkeletalBindPoseBufferMap)
+	{
+		pair.second.Release();
+	}
+	SkeletalBindPoseBufferMap.clear();
+
+	for (auto& pair : SkeletalBoneMatrixBufferMap)
+	{
+		pair.second.Release();
+	}
+	SkeletalBoneMatrixBufferMap.clear();
+	SkeletalBoneMatrixCapacityMap.clear();
     
     Device = nullptr;
 }
@@ -205,6 +220,7 @@ FMeshBuffer* FMeshBufferManager::GetSkeletalMeshBuffer(uint32 SkeletalMeshCompUU
 			{
 				if (bNeedsUpload)
 				{
+					SCOPE_STAT("CPU.Skinning.VertexUpload");
 					UpdateSkeletalMeshBufferVertices(Device, Existing, Vertices);
 				}
 
@@ -217,8 +233,82 @@ FMeshBuffer* FMeshBufferManager::GetSkeletalMeshBuffer(uint32 SkeletalMeshCompUU
 
 	FMeshBuffer& NewBuffer = SkeletalMeshBufferMap[SkeletalMeshCompUUID];
 	NewBuffer.CreateDynamicVertices<FSkeletalMeshVertex>(Device, static_cast<uint32>(Vertices.size()), Indices);
-	UpdateSkeletalMeshBufferVertices(Device, NewBuffer, Vertices);
+	{
+		SCOPE_STAT("CPU.Skinning.VertexUpload");
+		UpdateSkeletalMeshBufferVertices(Device, NewBuffer, Vertices);
+	}
 	SkeletalMeshSourceMap[SkeletalMeshCompUUID] = SkeletalMeshAsset;
 
 	return NewBuffer.IsValid() ? &NewBuffer : nullptr;
+}
+
+FMeshBuffer* FMeshBufferManager::GetSkeletalBindPoseBuffer(const USkeletalMesh* SkeletalMeshAsset)
+{
+	if (!Device || !SkeletalMeshAsset || !SkeletalMeshAsset->HasValidMeshData())
+	{
+		return nullptr;
+	}
+
+	auto It = SkeletalBindPoseBufferMap.find(SkeletalMeshAsset);
+	if (It != SkeletalBindPoseBufferMap.end() && It->second.IsValid())
+	{
+		return &It->second;
+	}
+
+	const TArray<FSkeletalMeshVertex>& Vertices = SkeletalMeshAsset->GetVertices();
+	const TArray<uint32>& Indices = SkeletalMeshAsset->GetIndices();
+	if (Vertices.empty() || Indices.empty())
+	{
+		return nullptr;
+	}
+
+	FMeshBuffer& NewBuffer = SkeletalBindPoseBufferMap[SkeletalMeshAsset];
+	NewBuffer.CreateImmutableVertices(Device, Vertices, Indices);
+	return NewBuffer.IsValid() ? &NewBuffer : nullptr;
+}
+
+FStructuredBuffer* FMeshBufferManager::GetSkeletalBoneMatrixBuffer(uint32 SkeletalMeshCompUUID, const TArray<FMatrix>& BoneMatrices, bool bNeedsUpload)
+{
+	if (!Device || BoneMatrices.empty())
+	{
+		return nullptr;
+	}
+
+	const uint32 BoneCount = static_cast<uint32>(BoneMatrices.size());
+	auto CapacityIt = SkeletalBoneMatrixCapacityMap.find(SkeletalMeshCompUUID);
+	auto BufferIt = SkeletalBoneMatrixBufferMap.find(SkeletalMeshCompUUID);
+	const bool bHasValidBuffer =
+		BufferIt != SkeletalBoneMatrixBufferMap.end() &&
+		CapacityIt != SkeletalBoneMatrixCapacityMap.end() &&
+		CapacityIt->second == BoneCount &&
+		BufferIt->second.GetSRV() != nullptr;
+
+	if (!bHasValidBuffer)
+	{
+		if (BufferIt != SkeletalBoneMatrixBufferMap.end())
+		{
+			BufferIt->second.Release();
+		}
+
+		FStructuredBuffer& NewBuffer = SkeletalBoneMatrixBufferMap[SkeletalMeshCompUUID];
+		NewBuffer.Create(Device, sizeof(FMatrix), BoneCount);
+		SkeletalBoneMatrixCapacityMap[SkeletalMeshCompUUID] = BoneCount;
+		BufferIt = SkeletalBoneMatrixBufferMap.find(SkeletalMeshCompUUID);
+		bNeedsUpload = true;
+	}
+
+	FStructuredBuffer& Buffer = BufferIt->second;
+	if (bNeedsUpload)
+	{
+		SCOPE_STAT("GPU.Skinning.BoneBufferUploadCPU");
+		ID3D11DeviceContext* DeviceContext = nullptr;
+		Device->GetImmediateContext(&DeviceContext);
+		if (DeviceContext)
+		{
+			Buffer.Update(DeviceContext, BoneMatrices.data(), BoneCount);
+			DeviceContext->Release();
+		}
+	}
+
+	return Buffer.GetSRV() ? &Buffer : nullptr;
 }

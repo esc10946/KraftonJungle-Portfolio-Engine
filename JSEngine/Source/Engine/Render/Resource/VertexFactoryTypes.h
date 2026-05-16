@@ -121,11 +121,11 @@ public:
             FShaderPaths::Shadow,
             FShaderPaths::EditorSelectionMask,
             "SkeletalMeshVS",
-            "DepthPrepassVS",
-            "ShadowVS",
+            "SkeletalDepthPrepassVS",
+            "SkeletalShadowVS",
             "VSSkeletalMesh",
             SkeletalVertexLayout,
-            PositionOnlyLayout,
+            SkeletalVertexLayout,
             SkeletalVertexLayout
         };
         static const FVertexFactoryDesc DecalDesc = {
@@ -218,14 +218,7 @@ public:
     }
 };
 
-inline void BindVertexFactoryResources(
+void BindVertexFactoryResources(
     ID3D11DeviceContext* Context,
     EVertexFactoryType Type,
-    const FRenderCommand& Cmd)
-{
-    // 현재 CPU Skinning은 이미 갱신된 VertexBuffer를 넘기므로 추가 리소스가 없습니다.
-    // 이후 GPU Skinning을 넣으면 여기서 BoneMatrixBuffer 같은 VF 전용 리소스를 바인딩합니다.
-    (void)Context;
-    (void)Type;
-    (void)Cmd;
-}
+    const FRenderCommand& Cmd);
