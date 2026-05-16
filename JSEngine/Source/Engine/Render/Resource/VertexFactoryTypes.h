@@ -8,9 +8,6 @@
 
 #include <cstddef>
 
-struct FRenderCommand;
-struct ID3D11DeviceContext;
-
 // Mesh Vertex 데이터를 어떤 방식으로 해석할지 나타내는 타입입니다.
 // Material이 Static/Skeletal 여부를 알지 않도록 RenderCommand가 이 값을 들고 갑니다.
 enum class EVertexFactoryType : uint8
@@ -233,8 +230,3 @@ public:
         }
     }
 };
-
-void BindVertexFactoryResources(
-    ID3D11DeviceContext* Context,
-    EVertexFactoryType Type,
-    const FRenderCommand& Cmd);
