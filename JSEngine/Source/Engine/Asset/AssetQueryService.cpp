@@ -209,6 +209,11 @@ TArray<FString> FAssetQueryService::GetCurvePaths()
     return ListCurveAssetFiles();
 }
 
+TArray<FString> FAssetQueryService::GetAnimationClipPaths()
+{
+    return ListAssetFiles(L"Animation", { ".animclip" });
+}
+
 TArray<FString> FAssetQueryService::GetScenePaths()
 {
     return ListAssetFiles(L"Scene", { ".scene" });

@@ -10,6 +10,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+Import-Module Microsoft.PowerShell.Utility -ErrorAction Stop
 
 $ProjectRoot = [System.IO.Path]::GetFullPath($ProjectDir)
 $RmlRoot = Join-Path $ProjectRoot "ThirdParty\RmlUi"

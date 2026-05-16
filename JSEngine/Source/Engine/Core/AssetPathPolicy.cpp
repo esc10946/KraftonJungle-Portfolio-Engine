@@ -38,6 +38,14 @@ bool FAssetPathPolicy::IsCurveAssetPath(const FString& Path)
 	return EndsWith(FileName, ".curve");
 }
 
+bool FAssetPathPolicy::IsAnimationClipAssetPath(const FString& Path)
+{
+	std::filesystem::path FsPath(FPaths::ToWide(FPaths::Normalize(Path)));
+	std::wstring Extension = FsPath.extension().wstring();
+	std::transform(Extension.begin(), Extension.end(), Extension.begin(), ::towlower);
+	return Extension == L".animclip";
+}
+
 bool FAssetPathPolicy::IsSequenceAssetPath(const FString& Path)
 {
 	std::filesystem::path FsPath(FPaths::ToWide(FPaths::Normalize(Path)));
@@ -120,6 +128,25 @@ FString FAssetPathPolicy::MakeWritableSkeletalMeshCacheBinaryPath(const FString&
 	std::filesystem::path SourceFsPath(FPaths::ToWide(NormalizedSourcePath));
 
 	std::filesystem::path BinDir = std::filesystem::path(FPaths::RootDir()) / "Asset" / "SkeletalMesh" / "Bin";
+
+	if (!std::filesystem::exists(BinDir))
+	{
+		std::filesystem::create_directories(BinDir);
+	}
+
+	std::filesystem::path BinaryFileName = SourceFsPath.stem();
+	BinaryFileName += ".bin";
+
+	std::filesystem::path BinaryPath = BinDir / BinaryFileName;
+	return FPaths::ToString(BinaryPath.wstring());
+}
+
+FString FAssetPathPolicy::MakeWritableAnimationClipCacheBinaryPath(const FString& SourcePath)
+{
+	const FString NormalizedSourcePath = FPaths::Normalize(SourcePath);
+	std::filesystem::path SourceFsPath(FPaths::ToWide(NormalizedSourcePath));
+
+	std::filesystem::path BinDir = std::filesystem::path(FPaths::RootDir()) / "Asset" / "Animation" / "Bin";
 
 	if (!std::filesystem::exists(BinDir))
 	{

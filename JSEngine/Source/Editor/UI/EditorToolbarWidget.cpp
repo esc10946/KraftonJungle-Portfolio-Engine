@@ -450,7 +450,7 @@ void FEditorToolbarWidget::RenderSettingsMenu()
 
 	ImGui::Separator();
 
-	if (ImGui::MenuItem("Remove Cache from Disk"))
+	if (ImGui::MenuItem("Remove All Cache from Disk"))
 	{
 		FResourceManager::Get().DeleteAllCacheFiles();
 	}

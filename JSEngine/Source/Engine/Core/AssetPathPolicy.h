@@ -8,6 +8,7 @@ class FAssetPathPolicy
 public:
 	static bool FileExists(const FString& Path);
 	static bool IsCurveAssetPath(const FString& Path);
+	static bool IsAnimationClipAssetPath(const FString& Path);
 	static bool IsSequenceAssetPath(const FString& Path);
 	static bool IsSerializedMaterialAssetPath(const FString& Path);
 	static FString MakeCookedStaticMeshBinaryPath(const FString& SourcePath);
@@ -16,4 +17,5 @@ public:
 	static FString MakeWritableStaticMeshCacheBinaryPath(const FString& SourcePath);
 
 	static FString MakeWritableSkeletalMeshCacheBinaryPath(const FString& SourcePath);
+	static FString MakeWritableAnimationClipCacheBinaryPath(const FString& SourcePath);
 };

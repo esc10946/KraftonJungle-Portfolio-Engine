@@ -456,6 +456,8 @@ CMakeLists.txt
 JSEngine/Build/
 JSEngine/DerivedData/
 JSEngine/Saves/**
+ReleaseBuild/
+GameBuild/
 Builds/
 
 # Asset 폴더 관련 (그때그때 필요한 파일만 저장하도록 변경)
