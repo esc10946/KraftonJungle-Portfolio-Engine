@@ -56,6 +56,51 @@ static FMatrix ToFMatrix(const FbxAMatrix& M)
         static_cast<float>(M.Get(3, 0)), static_cast<float>(M.Get(3, 1)), static_cast<float>(M.Get(3, 2)), static_cast<float>(M.Get(3, 3)));
 }
 
+static float GetUpper3x3Determinant(const FMatrix& Matrix)
+{
+    return
+        Matrix.M[0][0] * (Matrix.M[1][1] * Matrix.M[2][2] - Matrix.M[1][2] * Matrix.M[2][1]) -
+        Matrix.M[0][1] * (Matrix.M[1][0] * Matrix.M[2][2] - Matrix.M[1][2] * Matrix.M[2][0]) +
+        Matrix.M[0][2] * (Matrix.M[1][0] * Matrix.M[2][1] - Matrix.M[1][1] * Matrix.M[2][0]);
+}
+
+static void ExtractLocalTransformComponents(
+    const FMatrix& LocalTransform,
+    FVector& OutTranslation,
+    FQuat& OutRotation,
+    FVector& OutScale)
+{
+    static constexpr float Tolerance = 1.e-8f;
+
+    OutTranslation = LocalTransform.GetOrigin();
+
+    const FVector XAxis = LocalTransform.GetScaledAxis(EAxis::X);
+    const FVector YAxis = LocalTransform.GetScaledAxis(EAxis::Y);
+    const FVector ZAxis = LocalTransform.GetScaledAxis(EAxis::Z);
+
+    OutScale = FVector(XAxis.Size(), YAxis.Size(), ZAxis.Size());
+
+    if (OutScale.X <= Tolerance || OutScale.Y <= Tolerance || OutScale.Z <= Tolerance)
+    {
+        OutRotation = FQuat(LocalTransform).GetNormalized();
+        return;
+    }
+
+    FVector UnitX = XAxis / OutScale.X;
+    FVector UnitY = YAxis / OutScale.Y;
+    FVector UnitZ = ZAxis / OutScale.Z;
+
+    if (GetUpper3x3Determinant(LocalTransform) < 0.0f)
+    {
+        OutScale.X = -OutScale.X;
+        UnitX = -UnitX;
+    }
+
+    FMatrix RotationMatrix = FMatrix::Identity;
+    RotationMatrix.SetAxes(UnitX, UnitY, UnitZ, FVector::ZeroVector);
+    OutRotation = FQuat(RotationMatrix).GetNormalized();
+}
+
 static double GetUpper3x3Determinant(const FbxAMatrix& Matrix)
 {
     return
@@ -542,6 +587,54 @@ static bool HasValidSkinInfluence(FbxMesh* Mesh)
     return false;
 }
 
+static void AddUniqueFbxNode(TArray<FbxNode*>& Nodes, FbxNode* Node)
+{
+    if (!Node || std::find(Nodes.begin(), Nodes.end(), Node) != Nodes.end())
+    {
+        return;
+    }
+
+    Nodes.push_back(Node);
+}
+
+static void CollectSkinnedClusterBoneNodesRecursive(FbxNode* Node, TArray<FbxNode*>& OutNodes)
+{
+    if (!Node)
+    {
+        return;
+    }
+
+    if (FbxMesh* Mesh = Node->GetMesh())
+    {
+        const int32 SkinCount = Mesh->GetDeformerCount(FbxDeformer::eSkin);
+        for (int32 SkinIndex = 0; SkinIndex < SkinCount; ++SkinIndex)
+        {
+            FbxSkin* Skin = static_cast<FbxSkin*>(Mesh->GetDeformer(SkinIndex, FbxDeformer::eSkin));
+            if (!Skin)
+            {
+                continue;
+            }
+
+            const int32 ClusterCount = Skin->GetClusterCount();
+            for (int32 ClusterIndex = 0; ClusterIndex < ClusterCount; ++ClusterIndex)
+            {
+                FbxCluster* Cluster = Skin->GetCluster(ClusterIndex);
+                if (!Cluster || !Cluster->GetLink())
+                {
+                    continue;
+                }
+
+                AddUniqueFbxNode(OutNodes, Cluster->GetLink());
+            }
+        }
+    }
+
+    for (int32 ChildIndex = 0; ChildIndex < Node->GetChildCount(); ++ChildIndex)
+    {
+        CollectSkinnedClusterBoneNodesRecursive(Node->GetChild(ChildIndex), OutNodes);
+    }
+}
+
 static void InspectMeshContentRecursive(FbxNode* Node, FFbxMeshContentInfo& OutInfo)
 {
     if (!Node)
@@ -735,11 +828,6 @@ static void ExtractAnimationFloatCurve(FbxAnimCurve* SourceCurve, FAnimationFloa
     }
 
     SortAnimationCurveKeys(OutCurve);
-}
-
-static float EvaluateAnimationCurveValue(FbxAnimCurve* SourceCurve, const FbxTime& Time, float DefaultValue)
-{
-    return SourceCurve ? SourceCurve->Evaluate(Time) : DefaultValue;
 }
 
 static int32 CalculateAnimationFrameCount(float StartTimeSeconds, float EndTimeSeconds, float SourceFrameRate)
@@ -1149,9 +1237,23 @@ static void CollectTopmostSkeletonRootNodes(FbxNode* Node, TArray<FbxNode*>& Out
     }
 }
 
+static FbxNode* FindNearestIncludedParentNode(FbxNode* BoneNode, const TArray<FbxNode*>& IncludedNodes)
+{
+    for (FbxNode* ParentNode = BoneNode ? BoneNode->GetParent() : nullptr; ParentNode; ParentNode = ParentNode->GetParent())
+    {
+        if (std::find(IncludedNodes.begin(), IncludedNodes.end(), ParentNode) != IncludedNodes.end())
+        {
+            return ParentNode;
+        }
+    }
+
+    return nullptr;
+}
+
 static void ExtractRawAnimSequenceTrack(
     FbxAnimLayer* AnimLayer,
     FbxNode* BoneNode,
+    FbxNode* ParentBoneNode,
     const FAnimationSequence& Sequence,
     FRawAnimSequenceTrack& OutTrack)
 {
@@ -1160,15 +1262,6 @@ static void ExtractRawAnimSequenceTrack(
         return;
     }
 
-    static const char* FbxChannels[3] = {
-        FBXSDK_CURVENODE_COMPONENT_X,
-        FBXSDK_CURVENODE_COMPONENT_Y,
-        FBXSDK_CURVENODE_COMPONENT_Z,
-    };
-
-    const FVector DefaultTranslation = ToFVector(BoneNode->LclTranslation.Get());
-    const FVector DefaultRotation = ToFVector(BoneNode->LclRotation.Get());
-    const FVector DefaultScale = ToFVector(BoneNode->LclScaling.Get());
     const float FrameRate = Sequence.SourceFrameRate > 0.0f ? Sequence.SourceFrameRate : 30.0f;
     const int32 FrameCount = CalculateAnimationFrameCount(
         Sequence.StartTimeSeconds,
@@ -1182,16 +1275,6 @@ static void ExtractRawAnimSequenceTrack(
     OutTrack.RotKeys.reserve(FrameCount);
     OutTrack.ScaleKeys.reserve(FrameCount);
 
-    FbxAnimCurve* TranslationCurves[3] = {};
-    FbxAnimCurve* RotationCurves[3] = {};
-    FbxAnimCurve* ScaleCurves[3] = {};
-    for (int32 Axis = 0; Axis < 3; ++Axis)
-    {
-        TranslationCurves[Axis] = BoneNode->LclTranslation.GetCurve(AnimLayer, FbxChannels[Axis], false);
-        RotationCurves[Axis] = BoneNode->LclRotation.GetCurve(AnimLayer, FbxChannels[Axis], false);
-        ScaleCurves[Axis] = BoneNode->LclScaling.GetCurve(AnimLayer, FbxChannels[Axis], false);
-    }
-
     for (int32 FrameIndex = 0; FrameIndex < FrameCount; ++FrameIndex)
     {
         const double SampleTimeSeconds = std::min<double>(
@@ -1201,21 +1284,19 @@ static void ExtractRawAnimSequenceTrack(
         FbxTime SampleTime;
         SampleTime.SetSecondDouble(SampleTimeSeconds);
 
-        const FVector Translation(
-            EvaluateAnimationCurveValue(TranslationCurves[0], SampleTime, DefaultTranslation.X),
-            EvaluateAnimationCurveValue(TranslationCurves[1], SampleTime, DefaultTranslation.Y),
-            EvaluateAnimationCurveValue(TranslationCurves[2], SampleTime, DefaultTranslation.Z));
-        const FVector RotationEuler(
-            EvaluateAnimationCurveValue(RotationCurves[0], SampleTime, DefaultRotation.X),
-            EvaluateAnimationCurveValue(RotationCurves[1], SampleTime, DefaultRotation.Y),
-            EvaluateAnimationCurveValue(RotationCurves[2], SampleTime, DefaultRotation.Z));
-        const FVector Scale(
-            EvaluateAnimationCurveValue(ScaleCurves[0], SampleTime, DefaultScale.X),
-            EvaluateAnimationCurveValue(ScaleCurves[1], SampleTime, DefaultScale.Y),
-            EvaluateAnimationCurveValue(ScaleCurves[2], SampleTime, DefaultScale.Z));
+        FVector Translation;
+        FQuat Rotation;
+        FVector Scale;
+        FMatrix SampleTransform = ToFMatrix(BoneNode->EvaluateGlobalTransform(SampleTime));
+        if (ParentBoneNode)
+        {
+            const FMatrix ParentTransform = ToFMatrix(ParentBoneNode->EvaluateGlobalTransform(SampleTime));
+            SampleTransform = SampleTransform * ParentTransform.GetInverse();
+        }
+        ExtractLocalTransformComponents(SampleTransform, Translation, Rotation, Scale);
 
         OutTrack.PosKeys.push_back(Translation);
-        OutTrack.RotKeys.push_back(FQuat::MakeFromEuler(RotationEuler));
+        OutTrack.RotKeys.push_back(Rotation);
         OutTrack.ScaleKeys.push_back(Scale);
     }
 
@@ -1769,7 +1850,11 @@ TArray<FAnimationSequence*> FFbxImporter::LoadAnimationSequences(const FString& 
     TArray<FbxNode*> BoneNodes;
     if (FbxNode* RootNode = Scene->GetRootNode())
     {
-        CollectSkeletonNodes(RootNode, BoneNodes);
+        CollectSkinnedClusterBoneNodesRecursive(RootNode, BoneNodes);
+        if (BoneNodes.empty())
+        {
+            CollectSkeletonNodes(RootNode, BoneNodes);
+        }
     }
 
     if (BoneNodes.empty())
@@ -2002,7 +2087,12 @@ void FFbxImporter::ExtractBoneAnimationTracks(
         Track.DefaultTranslation = ToFVector(BoneNode->LclTranslation.Get());
         Track.DefaultRotationEuler = ToFVector(BoneNode->LclRotation.Get());
         Track.DefaultScale = ToFVector(BoneNode->LclScaling.Get());
-        ExtractRawAnimSequenceTrack(AnimLayer, BoneNode, OutSequence, Track.InternalTrack);
+        ExtractRawAnimSequenceTrack(
+            AnimLayer,
+            BoneNode,
+            FindNearestIncludedParentNode(BoneNode, BoneNodes),
+            OutSequence,
+            Track.InternalTrack);
         Track.bRotationActive = BoneNode->GetRotationActive();
 
         EFbxRotationOrder RotationOrder = eEulerXYZ;

@@ -1146,6 +1146,7 @@ void FEditorContentBrowserWidget::DrawContentTile(const FContentItem& Item, cons
 			if (Records.empty())
 			{
 				Records = FResourceManager::Get().ImportFbxAssets(SourcePath);
+				EditorEngine->GetAssetService().RefreshAssetDatabase();
 			}
 
 			auto MeshRecordIt = std::find_if(
@@ -1241,6 +1242,7 @@ void FEditorContentBrowserWidget::DrawContentContextMenu(bool bHasSelectedItem)
 	{
 		const FString SourcePath = MakeRelativeProjectPath(SelectedPath);
 		const TArray<FImportedFbxAssetRecord> Records = FResourceManager::Get().ImportFbxAssets(SourcePath);
+		EditorEngine->GetAssetService().RefreshAssetDatabase();
 		if (Records.empty())
 		{
 			EditorEngine->GetNotificationService().Warning("FBX reimport produced no imported assets.");

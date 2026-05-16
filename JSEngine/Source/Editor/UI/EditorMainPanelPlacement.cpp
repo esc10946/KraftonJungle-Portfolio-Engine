@@ -219,6 +219,7 @@ bool FEditorMainPanel::SpawnSkeletalMeshFromContentPath(
         if (Records.empty())
         {
             Records = FResourceManager::Get().ImportFbxAssets(MeshLoadPath);
+            EditorEngine->GetAssetService().RefreshAssetDatabase();
         }
 
         auto MeshRecordIt = std::find_if(

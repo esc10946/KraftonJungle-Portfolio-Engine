@@ -8,7 +8,7 @@
 struct FAnimationSequenceBinaryHeader
 {
     uint32 MagicNumber = 0x4D494E41; // 'ANIM'
-    uint32 Version = 3;
+    uint32 Version = 5;
     uint32 BoneTrackCount = 0;
     uint32 ShapeKeyTrackCount = 0;
     uint32 CurveCount = 0;

@@ -116,54 +116,16 @@ FVector SampleScale(const FAnimationSequence& SequenceData, const FBoneAnimation
     return FVector::Lerp(ScaleKeys[Range.PrevIndex], ScaleKeys[Range.NextIndex], Range.Alpha);
 }
 
-bool HasAnimatedKeys(const FBoneAnimationTrack& BoneTrack)
+bool HasPoseKeys(const FBoneAnimationTrack& BoneTrack)
 {
-    return BoneTrack.InternalTrack.PosKeys.size() > 1 ||
-        BoneTrack.InternalTrack.RotKeys.size() > 1 ||
-        BoneTrack.InternalTrack.ScaleKeys.size() > 1;
-}
-
-FVector GetFirstTranslationKey(const FBoneAnimationTrack& BoneTrack)
-{
-    if (!BoneTrack.InternalTrack.PosKeys.empty())
-    {
-        return BoneTrack.InternalTrack.PosKeys[0];
-    }
-
-    return BoneTrack.DefaultTranslation;
-}
-
-FQuat GetFirstRotationKey(const FBoneAnimationTrack& BoneTrack)
-{
-    if (!BoneTrack.InternalTrack.RotKeys.empty())
-    {
-        return BoneTrack.InternalTrack.RotKeys[0];
-    }
-
-    return FQuat::MakeFromEuler(BoneTrack.DefaultRotationEuler);
-}
-
-FVector GetFirstScaleKey(const FBoneAnimationTrack& BoneTrack)
-{
-    if (!BoneTrack.InternalTrack.ScaleKeys.empty())
-    {
-        return BoneTrack.InternalTrack.ScaleKeys[0];
-    }
-
-    return BoneTrack.DefaultScale;
+    return !BoneTrack.InternalTrack.PosKeys.empty() ||
+        !BoneTrack.InternalTrack.RotKeys.empty() ||
+        !BoneTrack.InternalTrack.ScaleKeys.empty();
 }
 
 FMatrix BuildTrackTransform(const FVector& Translation, const FQuat& Rotation, const FVector& Scale)
 {
     return FMatrix::MakeTRS(Translation, Rotation.ToMatrix(), Scale);
-}
-
-FMatrix BuildFirstKeyTransform(const FBoneAnimationTrack& BoneTrack)
-{
-    return BuildTrackTransform(
-        GetFirstTranslationKey(BoneTrack),
-        GetFirstRotationKey(BoneTrack),
-        GetFirstScaleKey(BoneTrack));
 }
 
 FMatrix BuildSampledKeyTransform(const FAnimationSequence& SequenceData, const FBoneAnimationTrack& BoneTrack, float Time)
@@ -247,7 +209,7 @@ bool UAnimationSequence::SamplePose(const USkeletalMesh* TargetMesh, float Time,
 
     OutLocalPose.resize(TargetBones.size());
     int32 MatchedTrackCount = 0;
-    int32 AppliedAnimatedTrackCount = 0;
+    int32 AppliedPoseTrackCount = 0;
     int32 ChangedLocalPoseCount = 0;
 
     for (int32 BoneIndex = 0; BoneIndex < static_cast<int32>(TargetBones.size()); ++BoneIndex)
@@ -264,17 +226,15 @@ bool UAnimationSequence::SamplePose(const USkeletalMesh* TargetMesh, float Time,
         const FBoneAnimationTrack& BoneTrack = SequenceData->BoneTracks[TrackIndex];
         ++MatchedTrackCount;
 
-        if (!HasAnimatedKeys(BoneTrack))
+        if (!HasPoseKeys(BoneTrack))
         {
             continue;
         }
 
-        const FMatrix FirstKeyTransform = BuildFirstKeyTransform(BoneTrack);
         const FMatrix CurrentKeyTransform = BuildSampledKeyTransform(*SequenceData, BoneTrack, Time);
-        const FMatrix AnimationDelta = FirstKeyTransform.GetInverse() * CurrentKeyTransform;
 
-        OutLocalPose[BoneIndex] = TargetBone.LocalBindTransform * AnimationDelta;
-        ++AppliedAnimatedTrackCount;
+        OutLocalPose[BoneIndex] = CurrentKeyTransform;
+        ++AppliedPoseTrackCount;
 
         if (!OutLocalPose[BoneIndex].Equals(TargetBone.LocalBindTransform, 0.001f))
         {
@@ -287,12 +247,12 @@ bool UAnimationSequence::SamplePose(const USkeletalMesh* TargetMesh, float Time,
     if (DebugSampleCounter % 60 == 0)
     {
         UE_LOG(
-            "[AnimationSequence] SamplePose | Sequence=%s | Time=%.3f | Bones=%zu | MatchedTracks=%d | AppliedAnimatedTracks=%d | ChangedLocalPoses=%d",
+            "[AnimationSequence] SamplePose | Sequence=%s | Time=%.3f | Bones=%zu | MatchedTracks=%d | AppliedPoseTracks=%d | ChangedLocalPoses=%d",
             SequenceData->Name.c_str(),
             Time,
             TargetBones.size(),
             MatchedTrackCount,
-            AppliedAnimatedTrackCount,
+            AppliedPoseTrackCount,
             ChangedLocalPoseCount);
     }
 
