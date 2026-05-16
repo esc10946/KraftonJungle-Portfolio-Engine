@@ -22,9 +22,41 @@
 #include <algorithm>
 #include <chrono>
 #include <cstring>
+#include <utility>
 
 namespace
 {
+    void CollectBoneWeightHeatmapOverlay(
+        FRenderBus& Bus,
+        USkeletalMeshComponent* SkelMeshComp,
+        int32 SelectedBoneIndex,
+        float Opacity)
+    {
+        if (!SkelMeshComp || SelectedBoneIndex < 0)
+        {
+            return;
+        }
+
+        const TArray<FRenderCommand>& OpaqueCommands = Bus.GetCommands(ERenderPass::Opaque);
+        for (const FRenderCommand& Cmd : OpaqueCommands)
+        {
+            if (Cmd.Type != ERenderCommandType::SkeletalMesh ||
+                Cmd.SourcePrimitive != SkelMeshComp ||
+                Cmd.VertexFactoryType != EVertexFactoryType::SkeletalMesh)
+            {
+                continue;
+            }
+
+            FRenderCommand OverlayCmd = Cmd;
+            OverlayCmd.Material = nullptr;
+            OverlayCmd.VertexFactoryType = EVertexFactoryType::SkeletalMeshOverlay;
+            OverlayCmd.MeshOverlay.Mode = EMeshOverlayMode::BoneWeightHeatmap;
+            OverlayCmd.MeshOverlay.SelectedBoneIndex = SelectedBoneIndex;
+            OverlayCmd.MeshOverlay.Opacity = std::clamp(Opacity, 0.05f, 1.0f);
+            Bus.AddCommand(ERenderPass::MeshOverlay, std::move(OverlayCmd));
+        }
+    }
+
     void ApplyPIECameraViewEffectsToBus(APlayerController* PlayerController, FRenderBus& Bus)
     {
         APlayerCameraManager* CameraManager = PlayerController
@@ -455,6 +487,18 @@ void FEditorRenderPipeline::RenderViewerViewport(FRenderer& Renderer)
             Bus,
             &ViewFrustum,
             bDrawEditorViewportHelpers);
+
+        if (VFlags.bShowSkeletalMesh && VFlags.bShowBoneWeightHeatmap)
+        {
+            if (ASkeletalMeshActor* ViewTarget = Viewers[i]->GetViewTarget())
+            {
+                CollectBoneWeightHeatmapOverlay(
+                    Bus,
+                    ViewTarget->GetSkeletalMeshComponent(),
+                    Viewers[i]->GetSelectedBoneIndex(),
+                    VFlags.BoneWeightHeatmapOpacity);
+            }
+        }
 
         // 🔹 Editor helper 그대로 유지
         if (bDrawEditorViewportHelpers)

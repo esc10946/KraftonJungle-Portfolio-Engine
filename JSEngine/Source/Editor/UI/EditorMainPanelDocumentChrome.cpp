@@ -8,6 +8,7 @@
 
 #include "ImGui/imgui.h"
 
+#include <algorithm>
 #include <cstdio>
 
 void FEditorMainPanel::RenderActiveDocumentToolbar()
@@ -252,6 +253,14 @@ void FEditorMainPanel::RenderViewerToolbarControls(FEditorViewer* Viewer)
 		ImGui::Separator();
 		ImGui::MenuItem("Bounding Box", nullptr, &ShowFlags.bShowBoundingBox);
 		ImGui::MenuItem("Outline", nullptr, &ShowFlags.bShowOutline);
+		ImGui::Separator();
+		ImGui::MenuItem("Bone Weight Heatmap", nullptr, &ShowFlags.bShowBoneWeightHeatmap);
+		ImGui::BeginDisabled(!ShowFlags.bShowBoneWeightHeatmap);
+		if (ImGui::SliderFloat("Opacity", &ShowFlags.BoneWeightHeatmapOpacity, 0.05f, 1.0f, "%.2f"))
+		{
+			ShowFlags.BoneWeightHeatmapOpacity = std::clamp(ShowFlags.BoneWeightHeatmapOpacity, 0.05f, 1.0f);
+		}
+		ImGui::EndDisabled();
 		ImGui::EndPopup();
 	}
 
@@ -440,6 +449,14 @@ bool FEditorMainPanel::RenderActiveDocumentMainMenu()
 				ImGui::EndDisabled();
 				ImGui::MenuItem("Bounding Box", nullptr, &ShowFlags.bShowBoundingBox);
 				ImGui::MenuItem("Outline", nullptr, &ShowFlags.bShowOutline);
+				ImGui::Separator();
+				ImGui::MenuItem("Bone Weight Heatmap", nullptr, &ShowFlags.bShowBoneWeightHeatmap);
+				ImGui::BeginDisabled(!ShowFlags.bShowBoneWeightHeatmap);
+				if (ImGui::SliderFloat("Opacity", &ShowFlags.BoneWeightHeatmapOpacity, 0.05f, 1.0f, "%.2f"))
+				{
+					ShowFlags.BoneWeightHeatmapOpacity = std::clamp(ShowFlags.BoneWeightHeatmapOpacity, 0.05f, 1.0f);
+				}
+				ImGui::EndDisabled();
 			}
 			else
 			{

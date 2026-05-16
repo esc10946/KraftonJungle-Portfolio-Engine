@@ -14,6 +14,7 @@ namespace FShaderPaths
 	inline constexpr const char* EditorPrimitive = "Shaders/EditorDebug/Primitive.hlsl";
 	inline constexpr const char* EditorMain = "Shaders/EditorDebug/Editor.hlsl";
 	inline constexpr const char* EditorSelectionMask = "Shaders/EditorDebug/SelectionMask.hlsl";
+	inline constexpr const char* EditorBoneWeightHeatmap = "Shaders/EditorDebug/BoneWeightHeatmap.hlsl";
 	inline constexpr const char* EditorIDPick = "Shaders/EditorDebug/IDPick.hlsl";
 	inline constexpr const char* EditorIDPickDebug = "Shaders/EditorDebug/IDPickDebug.hlsl";
 

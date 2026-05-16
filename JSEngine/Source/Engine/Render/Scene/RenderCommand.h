@@ -424,6 +424,20 @@ struct FSkeletalGpuSkinningPayload
 	uint32 BoneCount = 0;
 };
 
+enum class EMeshOverlayMode : uint32
+{
+	None,
+	BoneWeightHeatmap,
+};
+
+struct FMeshOverlayConstants
+{
+	EMeshOverlayMode Mode = EMeshOverlayMode::None;
+	int32 SelectedBoneIndex = -1;
+	float Opacity = 0.65f;
+	float Padding = 0.0f;
+};
+
 struct FRenderCommand
 {
 	FPerObjectConstants PerObjectConstants = {};
@@ -441,6 +455,7 @@ struct FRenderCommand
 
 	FBoundingBox WorldAABB;
 	FSkeletalGpuSkinningPayload SkeletalGpuSkinning;
+	FMeshOverlayConstants MeshOverlay;
 
 	union
 	{
@@ -475,7 +490,8 @@ inline void BindVertexFactoryResources(
 	}
 
 	ID3D11ShaderResourceView* BoneMatrixSRV = nullptr;
-	if (Type == EVertexFactoryType::SkeletalMesh &&
+	if ((Type == EVertexFactoryType::SkeletalMesh ||
+		Type == EVertexFactoryType::SkeletalMeshOverlay) &&
 		Cmd.SkeletalGpuSkinning.Mode == ESkinningMode::GPUVertexShader)
 	{
 		BoneMatrixSRV = Cmd.SkeletalGpuSkinning.BoneMatrixSRV;

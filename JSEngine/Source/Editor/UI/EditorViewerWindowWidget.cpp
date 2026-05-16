@@ -515,6 +515,14 @@ void FEditorViewerWindowWidget::RenderDetachedDocumentChrome(bool& bDockRequeste
         ImGui::MenuItem("Bones", nullptr, &ShowFlags.bShowBones);
         ImGui::MenuItem("Bounding Box", nullptr, &ShowFlags.bShowBoundingBox);
         ImGui::MenuItem("Outline", nullptr, &ShowFlags.bShowOutline);
+        ImGui::Separator();
+        ImGui::MenuItem("Bone Weight Heatmap", nullptr, &ShowFlags.bShowBoneWeightHeatmap);
+        ImGui::BeginDisabled(!ShowFlags.bShowBoneWeightHeatmap);
+        if (ImGui::SliderFloat("Opacity", &ShowFlags.BoneWeightHeatmapOpacity, 0.05f, 1.0f, "%.2f"))
+        {
+            ShowFlags.BoneWeightHeatmapOpacity = std::clamp(ShowFlags.BoneWeightHeatmapOpacity, 0.05f, 1.0f);
+        }
+        ImGui::EndDisabled();
         ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Help"))
