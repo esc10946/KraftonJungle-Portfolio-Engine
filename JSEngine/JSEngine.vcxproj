@@ -316,6 +316,8 @@
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\BuildTools\Scripts\BuildSoLoudLib.ps1&quot; -ProjectDir &quot;$(MSBuildProjectDirectory)&quot; -Configuration &quot;$(ThirdPartyBinaryConfiguration)&quot; -Platform &quot;$(Platform)&quot;" />
   </Target>
   <ItemGroup>
+    <ClCompile Include="Source\Engine\Object\ReflectionRegistry.cpp" />
+    <ClCompile Include="Source\Engine\Object\Class.cpp" />
     <ClCompile Include="Source\Engine\Core\CrashTest.cpp" />
     <ClCompile Include="Source\Editor\UI\EditorViewerWindowWidget.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientDebug|x64'">true</ExcludedFromBuild>
@@ -342,6 +344,7 @@
     <ClCompile Include="Source\Engine\Component\SkeletalMeshComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\SkinnedMeshComponent.cpp" />
     <ClCompile Include="Source\Engine\Core\Random\EngineRandom.cpp" />
+    <ClCompile Include="Source\Engine\Object\Property.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\PostProcessRenderPass.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\SandervistanRenderPass.cpp" />
     <ClCompile Include="Source\Engine\Runtime\Script\CoroutineScheduler.cpp" />
@@ -869,6 +872,9 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\Object\ObjectMacros.h" />
+    <ClInclude Include="Source\Engine\Object\ReflectionRegistry.h" />
+    <ClInclude Include="Source\Engine\Object\Class.h" />
     <ClInclude Include="Source\Engine\Core\CrashTest.h" />
     <ClInclude Include="Source\Editor\UI\EditorViewerWindowWidget.h" />
     <ClInclude Include="Source\Editor\Viewer\EditorViewer.h" />
@@ -883,6 +889,7 @@
     <ClInclude Include="Source\Engine\Camera\PlayerCameraManager.h" />
     <ClInclude Include="Source\Engine\Component\SkeletalMeshComponent.h" />
     <ClInclude Include="Source\Engine\Component\SkinnedMeshComponent.h" />
+    <ClInclude Include="Source\Engine\Object\Property.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\PostProcessRenderPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\SandervistanRenderPass.h" />
     <ClInclude Include="Source\Engine\Runtime\Script\Coroutine.h" />

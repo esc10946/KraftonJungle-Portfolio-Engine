@@ -1,4 +1,4 @@
-#include "Serialization/ActorSerialization.h"
+﻿#include "Serialization/ActorSerialization.h"
 
 #include "Component/ActorComponent.h"
 #include "Component/SceneComponent.h"
@@ -232,6 +232,7 @@ namespace FActorSerialization
 			: 0;
 
 		FJsonWriter ActorWriter(ActorJson);
+        Actor->SerializeReflectedProperties(ActorWriter);
 		TArray<FString> ActorTags = Actor->GetTags();
 		ActorWriter << ActorJsonKeys::Tags << ActorTags;
 
@@ -293,7 +294,9 @@ namespace FActorSerialization
 		if (ActorData.hasKey(ActorJsonKeys::Tags))
 		{
 			TArray<FString> ActorTags;
-			FJsonReader ActorReader(ActorData);
+            FJsonReader ActorReader(ActorData);
+            NewActor->SerializeReflectedProperties(ActorReader);
+
 			ActorReader << ActorJsonKeys::Tags << ActorTags;
 			NewActor->ClearTags();
 			for (const FString& Tag : ActorTags)

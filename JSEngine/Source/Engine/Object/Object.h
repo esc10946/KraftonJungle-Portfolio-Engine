@@ -2,9 +2,11 @@
 
 #include "EngineStatics.h"
 #include "Object/FName.h"
+#include "Object/Class.h"
 #include "Core/Singleton.h"
 #include "Core/PropertyTypes.h"
 #include "Serialization/Archive.h"
+#include "Object/ObjectMacros.h"
 #include "Object/Object.h"
 
 #define DECLARE_CLASS(ClassName, ParentClass)                          \
@@ -21,6 +23,7 @@
         sizeof(ClassName)                                              \
     };
 
+class UClass;
 enum EClassFlags : uint32_t
 {
 	CF_None = 0,
@@ -108,8 +111,17 @@ public:
 	void CopyPropertiesFrom(UObject* Src);
 
 	virtual void Serialize(FArchive& Ar);
+    void SerializeReflectedProperties(FArchive& Ar);
 
 	static const FTypeInfo s_TypeInfo;
+	
+    using ThisClass = UObject;
+	static UClass* StaticClass();
+
+    virtual UClass* GetClass() const
+    {
+        return StaticClass();
+    }
 
 protected:
 	FName ObjectName;

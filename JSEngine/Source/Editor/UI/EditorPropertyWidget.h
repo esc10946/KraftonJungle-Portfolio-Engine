@@ -53,6 +53,7 @@ private:
 	void RenderInterpControlPoints(class UInterpToMovementComponent* Comp);
 	void RenderMaterialPreviewTooltip(UMaterialInterface* Material);
 
+	void RenderReflectionProperties(UObject* Object,const FProperty& Property);
 	// 유틸리티
 	void AttachAndSelectNewComponent(AActor* PrimaryActor, UActorComponent* NewComp, class USceneComponent* AttachTargetOverride = nullptr);
 	bool CanDeleteComponent(AActor* Owner, UActorComponent* Component) const;

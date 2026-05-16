@@ -25,6 +25,7 @@
 #include "Component/Movement/ProjectileMovementComponent.h"
 #include "GameFramework/World.h"
 #include "Runtime/Script/ScriptManager.h"
+#include "Object/ReflectionRegistry.h"
 
 #include <algorithm>
 #include <cfloat>
@@ -257,6 +258,9 @@ REGISTER_FACTORY(AMainSceneDestructibleActor)
 
 DEFINE_CLASS(ABladeSlash, AActor)
 REGISTER_FACTORY(ABladeSlash)
+
+DEFINE_CLASS(AMyActor, AActor)
+REGISTER_FACTORY(AMyActor)
 
 void ACubeActor::InitDefaultComponents()
 {
@@ -1429,4 +1433,37 @@ void ABoundsBoxActor::PostDuplicate(UObject* Original)
         if (BoxComponent)
             break;
     }
+}
+
+UClass* AMyActor::StaticClass()
+{
+    static UClass Class(
+        "AMyActor",
+        Super::StaticClass(),
+        sizeof(AMyActor),
+        CF_None,
+        []() -> UObject*
+        { return UObjectManager::Get().CreateObject<AMyActor>(); });
+
+    static bool bRegistered = false;
+    if (!bRegistered)
+    {
+        bRegistered = true;
+        Class.AddProperty({ "Speed",
+                            EReflectedPropertyType::Float,
+                            offsetof(AMyActor, speed),
+                            sizeof(float),
+                            EPropertyFlags::Read | EPropertyFlags::Write | EPropertyFlags::Edit });
+
+                
+        FReflectionRegistry::Get().RegisterUClass(&Class);
+    }
+
+    return &Class;
+}
+
+void AMyActor::InitDefaultComponents()
+{
+    auto* Cube = AddComponent<USceneComponent>();
+    SetRootComponent(Cube);
 }

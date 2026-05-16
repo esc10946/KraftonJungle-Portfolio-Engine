@@ -1105,6 +1105,25 @@ void FEditorPropertyWidget::RenderActorProperties(AActor* PrimaryActor, const TA
 	RenderEditableName("Name##Actor", PrimaryActor, &bFocusActorNameNextFrame); // 편집 가능한 UI
 	RenderActorTags(PrimaryActor, SelectedActors);
 
+	TArray<const FProperty*> ReflectedProperties;
+	if (PrimaryActor->GetClass())
+	{
+		PrimaryActor->GetClass()->GetAllProperties(ReflectedProperties);
+	}
+
+	if (!ReflectedProperties.empty())
+	{
+		DrawDetailsSeparator();
+		DrawDetailsSectionLabel("Properties");
+		for (const FProperty* Property : ReflectedProperties)
+		{
+			if (Property)
+			{
+				RenderReflectionProperties(PrimaryActor, *Property);
+			}
+		}
+	}
+
 	if (PrimaryActor->GetRootComponent())
 	{
 		DrawDetailsSeparator();
@@ -1426,7 +1445,28 @@ void FEditorPropertyWidget::RenderComponentProperties()
 	// PropertyDescriptor 기반 자동 위젯 렌더링
 	TArray<FPropertyDescriptor> Props;
 	const FDetailsPerfClock::time_point PropertiesStart = bDetailsPerfTraceFrame ? FDetailsPerfClock::now() : FDetailsPerfClock::time_point{};
-	SelectedComponent->GetEditableProperties(Props);
+    TArray<const FProperty*> ReflectedProperties;
+
+    if (SelectedComponent && SelectedComponent->GetClass())
+    {
+        SelectedComponent->GetClass()->GetAllProperties(ReflectedProperties);
+    }
+
+    if (!ReflectedProperties.empty())
+    {
+        for (const FProperty* Property : ReflectedProperties)
+        {
+            if (Property)
+            {
+                RenderReflectionProperties(SelectedComponent, *Property);
+            }
+        }
+    }
+    else
+    {
+        SelectedComponent->GetEditableProperties(Props);
+    }
+
 	const FDetailsPerfClock::time_point PropertiesEnd = bDetailsPerfTraceFrame ? FDetailsPerfClock::now() : FDetailsPerfClock::time_point{};
 
 	AActor* Owner = SelectedComponent->GetOwner();
@@ -2307,6 +2347,115 @@ void FEditorPropertyWidget::RenderMaterialPreviewTooltip(UMaterialInterface* Mat
 		DrawColorParam("Emissive", ImVec4(Color.X, Color.Y, Color.Z, 1.0f));
 	}
 	ImGui::EndTooltip();
+}
+
+void FEditorPropertyWidget::RenderReflectionProperties(UObject* Object, const FProperty& Property)
+{
+    if (!Object) return;
+
+	if (!HasPropertyFlag(Property.Flags, EPropertyFlags::Edit))
+    {
+        return;
+    }
+
+	bool bChanged = false;
+    switch (Property.Type)
+    {
+    case EReflectedPropertyType::Float:
+    {
+		float Value = 0.0f;
+        if (!Property.GetPropertyValue_InContainer(Object, Value))
+        {
+			return;
+		}
+
+        bChanged = ImGui::DragFloat(Property.Name, &Value, 0.1f);
+
+        if (bChanged)
+        {
+            Property.SetPropertyValue_InContainer(Object, Value);
+        }
+
+		break;
+	}
+    case EReflectedPropertyType::Bool:
+    {
+        bool Value = true;
+        if (!Property.GetPropertyValue_InContainer(Object, Value))
+        {
+            return;
+        }
+
+        bChanged = ImGui::Checkbox(Property.Name, &Value);
+
+        if (bChanged)
+        {
+            Property.SetPropertyValue_InContainer(Object, Value);
+        }
+		break;
+	}
+    case EReflectedPropertyType::Int32:
+    {
+        int32 Value = 0;
+        if (!Property.GetPropertyValue_InContainer(Object, Value))
+        {
+            return;
+        }
+
+        bChanged = ImGui::DragInt(Property.Name, &Value);
+
+        if (bChanged)
+        {
+            Property.SetPropertyValue_InContainer(Object, Value);
+        }
+
+        break;
+	}
+
+    case EReflectedPropertyType::String:
+    {
+        FString Value;
+        if (!Property.GetPropertyValue_InContainer(Object, Value))
+        {
+            return;
+        }
+
+        char Buffer[256] = {};
+        strncpy_s(Buffer, sizeof(Buffer), Value.c_str(), _TRUNCATE);
+
+        bChanged = ImGui::InputText(Property.Name, Buffer, sizeof(Buffer));
+
+        if (bChanged)
+        {
+            Property.SetPropertyValue_InContainer(Object, FString(Buffer));
+        }
+
+        break;
+    }
+
+    case EReflectedPropertyType::Object:
+    {
+        UObject* Value = nullptr;
+        if (!Property.GetPropertyValue_InContainer(Object, Value))
+        {
+            return;
+        }
+
+        ImGui::Text("%s: %s",
+                    Property.Name,
+                    Value ? Value->GetName().c_str() : "None");
+
+        break;
+    }
+
+    default:
+        break;
+	}
+
+    if (bChanged)
+    {
+        Object->PostEditChangeProperty({ Property.Name, EPropertyChangeType::ValueSet });
+    }
 }
 
 void FEditorPropertyWidget::RenderSkeletalBonePoseDebug(USkeletalMeshComponent* Comp)

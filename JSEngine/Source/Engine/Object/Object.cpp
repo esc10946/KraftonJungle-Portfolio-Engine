@@ -1,7 +1,9 @@
 ﻿#include "Object.h"
 #include "EngineStatics.h"
+#include "Object/Class.h"
 #include "Object/FName.h"
 #include "Object/ObjectFactory.h"
+#include "Object/ReflectionRegistry.h"
 #include "Math/Vector.h"
 
 #include <cstring>
@@ -30,6 +32,25 @@ UObject::~UObject()
 }
 
 const FTypeInfo UObject::s_TypeInfo = { "UObject", nullptr, sizeof(UObject) };
+
+UClass* UObject::StaticClass()
+{
+    static UClass Class(
+        "UObject",
+        nullptr,
+        sizeof(UObject),
+        CF_None,
+        nullptr);
+
+    static bool bRegistered = false;
+    if (!bRegistered)
+    {
+        bRegistered = true;
+        FReflectionRegistry::Get().RegisterUClass(&Class);
+    }
+
+    return &Class;
+}
 
 // FObjectFactory 로 같은 타입의 인스턴스를 생성한 뒤 프로퍼티 복사 → PostDuplicate 훅을 실행합니다.
 // 팩토리에 등록되지 않은 추상 클래스(PrimitiveComponent 등)는 Create() 가 nullptr 를 반환하므로
@@ -122,6 +143,27 @@ void UObject::CopyPropertiesFrom(UObject* Src)
 
 void UObject::Serialize(FArchive& Ar)
 {
-	Ar << "Type" << GetTypeInfo()->name;
+    FString ClassName = GetClass()->GetName();
+    Ar << "Type" << ClassName;
     Ar << "ObjectName" << ObjectName;
+
+    SerializeReflectedProperties(Ar);
+}
+
+void UObject::SerializeReflectedProperties(FArchive& Ar)
+{
+    UClass* Class = GetClass();
+    if (!Class)
+        return;
+
+    TArray<const FProperty*> Properties;
+    Class->GetAllProperties(Properties);
+
+    for (const FProperty* Property : Properties)
+    {
+        if (Property)
+        {
+            Property->SerializeItem(Ar, this);
+        }
+    }
 }

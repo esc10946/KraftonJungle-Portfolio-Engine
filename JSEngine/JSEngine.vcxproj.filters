@@ -1036,6 +1036,9 @@
     <ClCompile Include="Source\Editor\Viewer\EditorViewer.cpp" />
     <ClCompile Include="Source\Editor\Viewport\SkeletalMeshViewportClient.cpp" />
     <ClCompile Include="Source\Engine\Core\CrashTest.cpp" />
+    <ClCompile Include="Source\Engine\Object\Class.cpp" />
+    <ClCompile Include="Source\Engine\Object\Property.cpp" />
+    <ClCompile Include="Source\Engine\Object\ReflectionRegistry.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Engine\Audio\AudioSystem.h">
@@ -1997,6 +2000,10 @@
     <ClInclude Include="Source\Editor\Viewer\EditorViewer.h" />
     <ClInclude Include="Source\Editor\Viewport\SkeletalMeshViewportClient.h" />
     <ClInclude Include="Source\Engine\Core\CrashTest.h" />
+    <ClInclude Include="Source\Engine\Object\Class.h" />
+    <ClInclude Include="Source\Engine\Object\Property.h" />
+    <ClInclude Include="Source\Engine\Object\ReflectionRegistry.h" />
+    <ClInclude Include="Source\Engine\Object\ObjectMacros.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Source\Engine\Runtime\AppIcon.rc" />
