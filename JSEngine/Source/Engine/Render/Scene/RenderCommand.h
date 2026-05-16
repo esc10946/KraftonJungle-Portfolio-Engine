@@ -424,6 +424,46 @@ struct FSkeletalGpuSkinningPayload
 	uint32 BoneCount = 0;
 };
 
+inline bool IsSkeletalVertexFactoryResourceType(EVertexFactoryType Type)
+{
+	return Type == EVertexFactoryType::SkeletalMesh ||
+		Type == EVertexFactoryType::SkeletalMeshOverlay;
+}
+
+inline void BindSkeletalGpuSkinningBoneMatrixSRV(
+	ID3D11DeviceContext* Context,
+	EVertexFactoryType Type,
+	const FSkeletalGpuSkinningPayload& SkinningPayload)
+{
+	if (!Context)
+	{
+		return;
+	}
+
+	ID3D11ShaderResourceView* BoneMatrixSRV = nullptr;
+	if (IsSkeletalVertexFactoryResourceType(Type) &&
+		SkinningPayload.Mode == ESkinningMode::GPUVertexShader)
+	{
+		BoneMatrixSRV = SkinningPayload.BoneMatrixSRV;
+	}
+
+	Context->VSSetShaderResources(16, 1, &BoneMatrixSRV);
+}
+
+enum class EMeshOverlayMode : uint32
+{
+	None,
+	BoneWeightHeatmap,
+};
+
+struct FMeshOverlayConstants
+{
+	EMeshOverlayMode Mode = EMeshOverlayMode::None;
+	int32 SelectedBoneIndex = -1;
+	float Opacity = 0.65f;
+	float Padding = 0.0f;
+};
+
 struct FRenderCommand
 {
 	FPerObjectConstants PerObjectConstants = {};
@@ -441,6 +481,7 @@ struct FRenderCommand
 
 	FBoundingBox WorldAABB;
 	FSkeletalGpuSkinningPayload SkeletalGpuSkinning;
+	FMeshOverlayConstants MeshOverlay;
 
 	union
 	{
@@ -469,17 +510,7 @@ inline void BindVertexFactoryResources(
 	EVertexFactoryType Type,
 	const FRenderCommand& Cmd)
 {
-	if (!Context)
-	{
-		return;
-	}
-
-	ID3D11ShaderResourceView* BoneMatrixSRV = nullptr;
-	if (Type == EVertexFactoryType::SkeletalMesh &&
-		Cmd.SkeletalGpuSkinning.Mode == ESkinningMode::GPUVertexShader)
-	{
-		BoneMatrixSRV = Cmd.SkeletalGpuSkinning.BoneMatrixSRV;
-	}
-
-	Context->VSSetShaderResources(16, 1, &BoneMatrixSRV);
+	// VertexFactory별 리소스 바인딩 진입점.
+	// 현재 구현된 VF 전용 리소스는 GPU skinning의 bone matrix SRV뿐입니다.
+	BindSkeletalGpuSkinningBoneMatrixSRV(Context, Type, Cmd.SkeletalGpuSkinning);
 }

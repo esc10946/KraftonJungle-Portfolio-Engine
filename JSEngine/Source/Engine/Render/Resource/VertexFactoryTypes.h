@@ -8,15 +8,13 @@
 
 #include <cstddef>
 
-struct FRenderCommand;
-struct ID3D11DeviceContext;
-
 // Mesh Vertex 데이터를 어떤 방식으로 해석할지 나타내는 타입입니다.
 // Material이 Static/Skeletal 여부를 알지 않도록 RenderCommand가 이 값을 들고 갑니다.
 enum class EVertexFactoryType : uint8
 {
     StaticMesh,
     SkeletalMesh,
+    SkeletalMeshOverlay,
     ProceduralMesh,
     Primitive,
     Billboard,
@@ -128,6 +126,19 @@ public:
             SkeletalVertexLayout,
             SkeletalVertexLayout
         };
+        static const FVertexFactoryDesc SkeletalMeshOverlayDesc = {
+            FShaderPaths::EditorBoneWeightHeatmap,
+            FShaderPaths::EditorBoneWeightHeatmap,
+            FShaderPaths::EditorBoneWeightHeatmap,
+            FShaderPaths::EditorBoneWeightHeatmap,
+            "VS",
+            "VS",
+            "VS",
+            "VS",
+            SkeletalVertexLayout,
+            SkeletalVertexLayout,
+            SkeletalVertexLayout
+        };
         static const FVertexFactoryDesc DecalDesc = {
             FShaderPaths::MaterialDecal,
             FShaderPaths::DepthPrepass,
@@ -198,6 +209,8 @@ public:
         {
         case EVertexFactoryType::SkeletalMesh:
             return SkeletalMeshDesc;
+        case EVertexFactoryType::SkeletalMeshOverlay:
+            return SkeletalMeshOverlayDesc;
         case EVertexFactoryType::Decal:
             return DecalDesc;
         case EVertexFactoryType::Gizmo:
@@ -217,8 +230,3 @@ public:
         }
     }
 };
-
-void BindVertexFactoryResources(
-    ID3D11DeviceContext* Context,
-    EVertexFactoryType Type,
-    const FRenderCommand& Cmd);

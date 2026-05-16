@@ -19,6 +19,7 @@ struct FRenderResources
 	FConstantBuffer VSMConstantBuffer;				// b11
     FConstantBuffer EditorPickingConstantBuffer;     // b12
     FConstantBuffer SelectionMaskConstantBuffer;     // b12
+    FConstantBuffer MeshOverlayConstantBuffer;        // b12
     FConstantBuffer SandevistanCB;
     FConstantBuffer PostProcessCB;
     FConstantBuffer ScreenOverlayCB;

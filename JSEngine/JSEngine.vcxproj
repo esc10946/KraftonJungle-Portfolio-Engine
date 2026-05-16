@@ -750,6 +750,7 @@
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\GridRenderPass.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\LightCullingPass.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\LightRenderPass.cpp" />
+    <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\MeshOverlayRenderPass.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\OpaqueRenderPass.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\PostProcessOutlineRenderPass.cpp" />
     <ClCompile Include="Source\Engine\Render\Renderer\RenderFlow\PostProcessRenderPass.cpp" />
@@ -1127,6 +1128,7 @@
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\GridRenderPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\LightCullingPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\LightRenderPass.h" />
+    <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\MeshOverlayRenderPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\OpaqueRenderPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\PostProcessOutlineRenderPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\PostProcessRenderPass.h" />
@@ -1260,6 +1262,7 @@
     <None Include="Shaders\Compute\LightCullingCS.hlsl" />
     <None Include="Shaders\Compute\OcclusionCull.hlsl" />
     <None Include="Shaders\Depth\DepthPrepass.hlsl" />
+    <None Include="Shaders\EditorDebug\BoneWeightHeatmap.hlsl" />
     <None Include="Shaders\EditorDebug\Editor.hlsl" />
     <None Include="Shaders\EditorDebug\Gizmo.hlsl" />
     <None Include="Shaders\EditorDebug\IDPick.hlsl" />
