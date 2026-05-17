@@ -3,12 +3,15 @@
 #include "Asset/AnimationTypes.h"
 #include "Animation/AnimationSequenceBase.h"
 
+#include "UAnimationSequence.generated.h"
+
 // FBX 등에서 import한 실제 animation sequence asset이다.
 // FAnimationSequence 하나를 소유하고, 재생 계층에는 UAnimationSequenceBase API로 노출한다.
+UCLASS()
 class UAnimationSequence : public UAnimationSequenceBase
 {
 public:
-    DECLARE_CLASS(UAnimationSequence, UAnimationSequenceBase)
+    GENERATED_BODY(UAnimationSequence, UAnimationSequenceBase)
 
     UAnimationSequence() = default;
     ~UAnimationSequence() override;

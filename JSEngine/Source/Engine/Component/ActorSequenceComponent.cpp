@@ -1,13 +1,9 @@
 #include "Component/ActorSequenceComponent.h"
 
 #include "GameFramework/AActor.h"
-#include "Object/ObjectFactory.h"
 #include "Serialization/Archive.h"
 
 #include <algorithm>
-
-DEFINE_CLASS(UActorSequenceComponent, UActorComponent)
-REGISTER_FACTORY(UActorSequenceComponent)
 
 void UActorSequenceComponent::BeginPlay()
 {

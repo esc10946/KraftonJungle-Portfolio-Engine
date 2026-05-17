@@ -6,10 +6,14 @@
 class USkeletalMeshComponent;
 class UAnimationStateMachine;
 
+#include "UAnimInstance.generated.h"
+#include "UAnimSingleNodeInstance.generated.h"
+
+UCLASS()
 class UAnimInstance : public UObject
 {
 public:
-    DECLARE_CLASS(UAnimInstance, UObject)
+    GENERATED_BODY(UAnimInstance, UObject)
 
     virtual void Initialize(USkeletalMeshComponent* InSkelMeshComponent);
     virtual void NativeUpdateAnimation(float DeltaSeconds);
@@ -22,14 +26,18 @@ public:
     UAnimationStateMachine* GetStateMachine() const { return StateMachine; }
 
 protected:
+    UPROPERTY(Transient, Read)
     USkeletalMeshComponent* SkelMeshComponent = nullptr;
+
+    UPROPERTY(Transient, Read, Write)
     UAnimationStateMachine* StateMachine = nullptr;
 };
 
+UCLASS()
 class UAnimSingleNodeInstance : public UAnimInstance
 {
 public:
-    DECLARE_CLASS(UAnimSingleNodeInstance, UAnimInstance)
+    GENERATED_BODY(UAnimSingleNodeInstance, UAnimInstance)
 
     void SetSequence(UAnimationSequenceBase* InSequence);
     UAnimationSequenceBase* GetSequence() const { return Sequence; }
@@ -59,11 +67,23 @@ protected:
     bool ApplyCurrentPoseToSkeletalMesh();
 
 protected:
+    UPROPERTY(Edit, LuaRead, LuaWrite)
     UAnimationSequenceBase* Sequence = nullptr;
+
     TArray<FMatrix> CurrentLocalPose;
+
+    UPROPERTY(Edit, LuaRead, LuaWrite)
     float CurrentTime = 0.0f;
+
+    UPROPERTY(Edit, LuaRead, LuaWrite)
     float PlayRate = 1.0f;
+
+    UPROPERTY(Read, LuaRead)
     bool bPlaying = false;
+
+    UPROPERTY(Read, LuaRead)
     bool bPaused = false;
+
+    UPROPERTY(Edit, LuaRead, LuaWrite)
     bool bLooping = false;
 };

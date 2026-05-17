@@ -1,10 +1,5 @@
 #include "Animation/AnimationStateMachine.h"
 
-#include "Object/ObjectFactory.h"
-
-DEFINE_CLASS(UAnimationStateMachine, UObject)
-REGISTER_FACTORY(UAnimationStateMachine)
-
 void UAnimationStateMachine::Initialize(UAnimInstance* InAnimInstance)
 {
     AnimInstance = InAnimInstance;

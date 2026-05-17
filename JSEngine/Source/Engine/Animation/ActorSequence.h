@@ -96,23 +96,34 @@ struct FResolvedActorSequenceTrack
     bool bValid = false;
 };
 
+#include "UActorSequence.generated.h"
+#include "UActorSequencePlayer.generated.h"
+
+UCLASS()
 class UActorSequence : public UObject
 {
 public:
-    DECLARE_CLASS(UActorSequence, UObject)
+    GENERATED_BODY(UActorSequence, UObject)
 
+    UPROPERTY(Edit, LuaRead, LuaWrite)
     float StartTime = 0.0f;
+
+    UPROPERTY(Edit, LuaRead, LuaWrite)
     float Duration = 1.0f;
+
+    UPROPERTY(Edit, LuaRead, LuaWrite)
     bool bLoop = false;
+
     TArray<FActorSequenceBinding> Bindings;
 
     void Serialize(FArchive& Ar) override;
 };
 
+UCLASS()
 class UActorSequencePlayer : public UObject
 {
 public:
-    DECLARE_CLASS(UActorSequencePlayer, UObject)
+    GENERATED_BODY(UActorSequencePlayer, UObject)
 
     void Initialize(
         UActorSequenceComponent* InOwner,
@@ -150,17 +161,33 @@ private:
     void ApplyFloat(FResolvedActorSequenceTrack& Resolved, float CurveValue);
 
 private:
+    UPROPERTY(Transient, Read)
     UActorSequenceComponent* OwnerComponent = nullptr;
+
+    UPROPERTY(Transient, Read)
     UActorSequence* Sequence = nullptr;
+
     ESequencePlayerContext Context = ESequencePlayerContext::Runtime;
 
+    UPROPERTY(Edit, LuaRead, LuaWrite)
     float CurrentTime = 0.0f;
+
+    UPROPERTY(Edit, LuaRead, LuaWrite)
     float PlayRate = 1.0f;
+
+    UPROPERTY(Edit, LuaRead, LuaWrite)
     float StartOffsetSeconds = 0.0f;
 
+    UPROPERTY(Read, LuaRead)
     bool bPlaying = false;
+
+    UPROPERTY(Read, LuaRead)
     bool bPaused = false;
+
+    UPROPERTY(Edit, LuaRead, LuaWrite)
     bool bPauseAtEnd = false;
+
+    UPROPERTY(Transient, Read)
     bool bResolveDirty = true;
 
     TArray<FResolvedActorSequenceTrack> ResolvedTracks;

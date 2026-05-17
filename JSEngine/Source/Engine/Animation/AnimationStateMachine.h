@@ -21,10 +21,12 @@ struct FAnimStateAnimation
     UAnimationSequenceBase* Sequence = nullptr;
 };
 
+#include "UAnimationStateMachine.generated.h"
+UCLASS()
 class UAnimationStateMachine : public UObject
 {
 public:
-    DECLARE_CLASS(UAnimationStateMachine, UObject)
+    GENERATED_BODY(UAnimationStateMachine, UObject)
 
     virtual void Initialize(UAnimInstance* InAnimInstance);
     virtual void TickStateMachine(float DeltaSeconds);
@@ -41,7 +43,9 @@ protected:
     void SetState(EAnimState NewState);
 
 protected:
+    UPROPERTY(Transient, Read)
     UAnimInstance* AnimInstance = nullptr;
+
     TArray<FAnimStateAnimation> StateAnimations;
     EAnimState CurrentState = EAnimState::None;
     EAnimState PreviousState = EAnimState::None;

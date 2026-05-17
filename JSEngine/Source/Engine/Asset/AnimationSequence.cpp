@@ -2,13 +2,9 @@
 
 #include "Asset/SkeletalMesh.h"
 #include "Core/Logging/Log.h"
-#include "Object/ObjectFactory.h"
 
 #include <algorithm>
 #include <cmath>
-
-DEFINE_CLASS(UAnimationSequence, UAnimationSequenceBase)
-REGISTER_FACTORY(UAnimationSequence)
 
 namespace
 {

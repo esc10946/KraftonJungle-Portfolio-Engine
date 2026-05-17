@@ -3,16 +3,9 @@
 #include "Animation/AnimationStateMachine.h"
 #include "Component/SkeletalMeshComponent.h"
 #include "Core/Logging/Log.h"
-#include "Object/ObjectFactory.h"
 
 #include <algorithm>
 #include <cmath>
-
-DEFINE_CLASS(UAnimInstance, UObject)
-REGISTER_FACTORY(UAnimInstance)
-
-DEFINE_CLASS(UAnimSingleNodeInstance, UAnimInstance)
-REGISTER_FACTORY(UAnimSingleNodeInstance)
 
 void UAnimInstance::Initialize(USkeletalMeshComponent* InSkelMeshComponent)
 {

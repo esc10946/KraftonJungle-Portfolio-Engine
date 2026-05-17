@@ -53,12 +53,24 @@ private:
     void ApplyPlaybackSettings(UActorSequencePlayer* Player);
 
 private:
+    UPROPERTY(Transient, Read)
     UActorSequence* Sequence = nullptr;
+
+    UPROPERTY(Transient, Read)
     UActorSequencePlayer* SequencePlayer = nullptr;
+
+    UPROPERTY(Transient, Read)
     UActorSequencePlayer* PreviewSequencePlayer = nullptr;
 
+    UPROPERTY(Edit, LuaRead, LuaWrite)
     bool bAutoPlay = true;
+
+    UPROPERTY(Edit, LuaRead, LuaWrite)
     bool bPauseAtEnd = false;
+
+    UPROPERTY(Edit, LuaRead, LuaWrite)
     float PlayRate = 1.0f;
+
+    UPROPERTY(Edit, LuaRead, LuaWrite)
     float StartOffsetSeconds = 0.0f;
 };
