@@ -1,6 +1,6 @@
 {
-        "ImportedName" : "Doll",
-        "Name" : "Gwen_Mat_0",
+        "ImportedName" : "Material",
+        "Name" : "gwen_Mat_0",
         "Params" : [{
             "Name" : "AmbientColor",
             "Type" : "Vector3",
@@ -20,7 +20,7 @@
           }, {
             "Name" : "DiffuseMap",
             "Type" : "Texture",
-            "Value" : "Asset/SkeletalMesh/GwenFBX/Gwen.fbm/Doll.png"
+            "Value" : ""
           }, {
             "Name" : "EmissiveColor",
             "Type" : "Vector3",
@@ -32,7 +32,7 @@
           }, {
             "Name" : "Shininess",
             "Type" : "Float",
-            "Value" : 36.000000
+            "Value" : 25.000000
           }, {
             "Name" : "Opacity",
             "Type" : "Float",
@@ -52,7 +52,7 @@
           }, {
             "Name" : "bHasDiffuseMap",
             "Type" : "Bool",
-            "Value" : true
+            "Value" : false
           }, {
             "Name" : "bHasAmbientMap",
             "Type" : "Bool",

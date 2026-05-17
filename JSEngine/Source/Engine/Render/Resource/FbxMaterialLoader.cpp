@@ -8,6 +8,8 @@
 
 #include <fbxsdk.h>
 
+#include <algorithm>
+#include <cwctype>
 #include <filesystem>
 
 using namespace fbxsdk;
@@ -15,6 +17,24 @@ namespace fs = std::filesystem;
 
 namespace
 {
+    bool EqualsIgnoreCase(std::wstring A, std::wstring B)
+    {
+        std::transform(A.begin(), A.end(), A.begin(), [](wchar_t Ch) { return static_cast<wchar_t>(std::towlower(Ch)); });
+        std::transform(B.begin(), B.end(), B.begin(), [](wchar_t Ch) { return static_cast<wchar_t>(std::towlower(Ch)); });
+        return A == B;
+    }
+
+    bool IsSupportedTextureFile(const fs::path& Path)
+    {
+        const std::wstring Ext = Path.extension().wstring();
+        return EqualsIgnoreCase(Ext, L".png") ||
+            EqualsIgnoreCase(Ext, L".jpg") ||
+            EqualsIgnoreCase(Ext, L".jpeg") ||
+            EqualsIgnoreCase(Ext, L".tga") ||
+            EqualsIgnoreCase(Ext, L".dds") ||
+            EqualsIgnoreCase(Ext, L".bmp");
+    }
+
     // FBX scene bootstrap. mesh import에 쓰는 ImportScene과 동일하지만 axis/unit 변환은 불필요
     // (material은 color 데이터만 다루므로 공간 변환과 무관).
     bool OpenFbxScene(const FString& Path, FbxManager*& OutManager, FbxScene*& OutScene)
@@ -157,6 +177,54 @@ namespace
         return {};
     }
 
+    FString ResolveTexturePathByMaterialName(const fs::path& FbxDir, const fs::path& FbmDir, const FString& MaterialName)
+    {
+        if (MaterialName.empty())
+        {
+            return {};
+        }
+
+        const std::wstring MaterialStem = FPaths::ToWide(MaterialName);
+        TArray<fs::path> SearchRoots;
+        SearchRoots.push_back(FbxDir / L"textures");
+        SearchRoots.push_back(FbxDir / L"Textures");
+        if (!FbmDir.empty())
+        {
+            SearchRoots.push_back(FbmDir);
+        }
+        SearchRoots.push_back(FbxDir);
+
+        for (const fs::path& Root : SearchRoots)
+        {
+            std::error_code Ec;
+            if (!fs::exists(Root, Ec) || !fs::is_directory(Root, Ec))
+            {
+                continue;
+            }
+
+            for (const fs::directory_entry& Entry : fs::recursive_directory_iterator(
+                Root,
+                fs::directory_options::skip_permission_denied,
+                Ec))
+            {
+                if (Ec)
+                {
+                    break;
+                }
+                if (!Entry.is_regular_file(Ec) || !IsSupportedTextureFile(Entry.path()))
+                {
+                    continue;
+                }
+                if (EqualsIgnoreCase(Entry.path().stem().wstring(), MaterialStem))
+                {
+                    return ToEngineRelativePath(Entry.path());
+                }
+            }
+        }
+
+        return {};
+    }
+
     // surface material의 특정 property에 연결된 첫 번째 FbxFileTexture를 찾는다.
     FbxFileTexture* GetFirstFileTexture(FbxSurfaceMaterial* SurfMat, const char* PropName)
     {
@@ -237,6 +305,15 @@ bool FFbxMaterialLoader::Load(const FString& FbxFilePath,
         // 표준 5개 텍스처 슬롯 추출
         TryExtractTexture(SurfMat, FbxSurfaceMaterial::sDiffuse,  FbxDir, FbmDir,
             MD.DiffuseTexPath,  MD.bHasDiffuseTexture,  "Diffuse");
+        if (!MD.bHasDiffuseTexture)
+        {
+            const FString FallbackDiffusePath = ResolveTexturePathByMaterialName(FbxDir, FbmDir, MatName);
+            if (!FallbackDiffusePath.empty())
+            {
+                MD.DiffuseTexPath = FallbackDiffusePath;
+                MD.bHasDiffuseTexture = true;
+            }
+        }
         TryExtractTexture(SurfMat, FbxSurfaceMaterial::sAmbient,  FbxDir, FbmDir,
             MD.AmbientTexPath,  MD.bHasAmbientTexture,  "Ambient");
         TryExtractTexture(SurfMat, FbxSurfaceMaterial::sSpecular, FbxDir, FbmDir,
