@@ -274,12 +274,28 @@ void FEditorMainPanel::RenderViewerToolbarControls(FEditorViewer* Viewer)
 	if (ImGui::BeginPopup("##ViewerAnimationSequencePopupShared"))
 	{
 		const TArray<FString>& AnimationPaths = EditorEngine->GetAssetService().GetAnimationSequenceAssetPaths();
-		if (AnimationPaths.empty())
-		{
-			ImGui::TextDisabled("No animation sequences");
-		}
+		bool bHasCompatibleAnimation = false;
 		for (const FString& AnimationPath : AnimationPaths)
 		{
+			if (Viewer->IsAnimationSequenceCompatible(AnimationPath))
+			{
+				bHasCompatibleAnimation = true;
+				break;
+			}
+		}
+
+		if (AnimationPaths.empty() || !bHasCompatibleAnimation)
+		{
+			ImGui::TextDisabled("No compatible animation sequences");
+		}
+
+		for (const FString& AnimationPath : AnimationPaths)
+		{
+			if (!Viewer->IsAnimationSequenceCompatible(AnimationPath))
+			{
+				continue;
+			}
+
 			const bool bSelected = AnimationPath == CurrentAnimPath;
 			if (ImGui::MenuItem(AnimationPath.c_str(), nullptr, bSelected))
 			{

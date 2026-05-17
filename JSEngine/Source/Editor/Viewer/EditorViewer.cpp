@@ -8,7 +8,10 @@
 #include "Component/TransformProxy.h"
 #include "Animation/AnimInstance.h"
 #include "Asset/AnimationSequence.h"
+#include "Asset/SkeletonAsset.h"
+#include "Core/AssetPathPolicy.h"
 #include "Core/Logging/Log.h"
+#include "Core/Paths.h"
 #include "Core/ResourceManager.h"
 #include "Engine/Geometry/Ray.h"
 #include "GameFramework/PrimitiveActors.h"
@@ -18,6 +21,8 @@
 #include <algorithm>
 #include <cfloat>
 #include <cmath>
+#include <cwctype>
+#include <filesystem>
 
 #include "Component/PostProcess/Light/AmbientLightComponent.h"
 
@@ -31,6 +36,146 @@ static int32 GetSkeletalMeshBoneCount(const USkeletalMesh* Mesh)
 static const char* GetSkeletalMeshPath(const USkeletalMesh* Mesh)
 {
     return Mesh ? Mesh->GetAssetPathFileName().c_str() : "<None>";
+}
+
+static FString ToLowerNormalizedPath(const FString& Path)
+{
+    FString Normalized = FPaths::Normalize(Path);
+    std::wstring Wide = FPaths::ToWide(Normalized);
+    std::transform(
+        Wide.begin(),
+        Wide.end(),
+        Wide.begin(),
+        [](wchar_t Ch)
+        {
+            return static_cast<wchar_t>(std::towlower(Ch));
+        });
+    return FPaths::ToUtf8(Wide);
+}
+
+static FString ResolveStoredAssetPath(const FString& BaseAssetPath, const FString& StoredPath)
+{
+    if (StoredPath.empty())
+    {
+        return FString();
+    }
+
+    return ToLowerNormalizedPath(FAssetPathPolicy::ResolveAssetRelativePath(BaseAssetPath, StoredPath));
+}
+
+static FString GetMeshSkeletonIdentity(const USkeletalMesh* Mesh)
+{
+    if (!Mesh)
+    {
+        return FString();
+    }
+
+    if (const USkeletonAsset* SkeletonAsset = Mesh->GetSkeletonAsset())
+    {
+        const FString& SkeletonPath = SkeletonAsset->GetAssetPathFileName();
+        if (!SkeletonPath.empty())
+        {
+            return ToLowerNormalizedPath(SkeletonPath);
+        }
+    }
+
+    const FString& SkeletonSourcePath = Mesh->GetSkeletonSourcePath();
+    if (!SkeletonSourcePath.empty())
+    {
+        return ResolveStoredAssetPath(Mesh->GetAssetPathFileName(), SkeletonSourcePath);
+    }
+
+    return FString();
+}
+
+static FString GetAnimationSkeletonIdentity(const UAnimationSequence* Sequence)
+{
+    const FAnimationSequence* SequenceData = Sequence ? Sequence->GetSequenceData() : nullptr;
+    if (!SequenceData || SequenceData->SkeletonSourcePath.empty())
+    {
+        return FString();
+    }
+
+    return ResolveStoredAssetPath(Sequence->GetAssetPathFileName(), SequenceData->SkeletonSourcePath);
+}
+
+struct FImportedAssetOwner
+{
+    FString Directory;
+    FString SourceStem;
+};
+
+static bool TryGetImportedAssetOwner(const FString& AssetPath, FImportedAssetOwner& OutOwner)
+{
+    std::filesystem::path FsPath(FPaths::ToWide(FPaths::Normalize(AssetPath)));
+    if (FsPath.empty())
+    {
+        return false;
+    }
+
+    std::wstring Stem = FsPath.stem().wstring();
+    std::transform(
+        Stem.begin(),
+        Stem.end(),
+        Stem.begin(),
+        [](wchar_t Ch)
+        {
+            return static_cast<wchar_t>(std::towlower(Ch));
+        });
+
+    static const std::wstring Markers[] = {
+        L"_skeletalmesh_",
+        L"_skeleton_",
+        L"_anim_",
+    };
+
+    for (const std::wstring& Marker : Markers)
+    {
+        const size_t MarkerPos = Stem.find(Marker);
+        if (MarkerPos != std::wstring::npos)
+        {
+            Stem = Stem.substr(0, MarkerPos);
+            break;
+        }
+    }
+
+    if (Stem.empty())
+    {
+        return false;
+    }
+
+    OutOwner.Directory = ToLowerNormalizedPath(FPaths::ToUtf8(FsPath.parent_path().generic_wstring()));
+    OutOwner.SourceStem = FPaths::ToUtf8(Stem);
+    return true;
+}
+
+static bool HasSameImportedAssetOwner(const FString& MeshPath, const FString& AnimationPath)
+{
+    FImportedAssetOwner MeshOwner;
+    FImportedAssetOwner AnimationOwner;
+    if (!TryGetImportedAssetOwner(MeshPath, MeshOwner) || !TryGetImportedAssetOwner(AnimationPath, AnimationOwner))
+    {
+        return false;
+    }
+
+    return MeshOwner.Directory == AnimationOwner.Directory && MeshOwner.SourceStem == AnimationOwner.SourceStem;
+}
+
+static bool IsAnimationCompatibleWithMesh(const USkeletalMesh* Mesh, const UAnimationSequence* Sequence, const FString& AnimationPath)
+{
+    if (!Mesh || !Sequence)
+    {
+        return false;
+    }
+
+    const FString MeshSkeleton = GetMeshSkeletonIdentity(Mesh);
+    const FString AnimationSkeleton = GetAnimationSkeletonIdentity(Sequence);
+    if (!MeshSkeleton.empty() && !AnimationSkeleton.empty())
+    {
+        return MeshSkeleton == AnimationSkeleton;
+    }
+
+    return HasSameImportedAssetOwner(Mesh->GetAssetPathFileName(), AnimationPath);
 }
 
 float DistanceSquaredRaySegment(const FRay& Ray, const FVector& SegmentStart, const FVector& SegmentEnd, float& OutRayT)
@@ -539,6 +684,24 @@ void FEditorViewer::ChangeTarget(const FString& InFileName)
     ClearAnimationSequence();
 }
 
+bool FEditorViewer::IsAnimationSequenceCompatible(const FString& AnimationPath) const
+{
+    if (!ViewTarget)
+    {
+        return false;
+    }
+
+    USkeletalMeshComponent* SkelComp = ViewTarget->GetSkeletalMeshComponent();
+    USkeletalMesh* Mesh = SkelComp ? SkelComp->GetSkeletalMesh() : nullptr;
+    if (!Mesh)
+    {
+        return false;
+    }
+
+    UAnimationSequence* Sequence = FResourceManager::Get().LoadAnimationSequence(AnimationPath);
+    return IsAnimationCompatibleWithMesh(Mesh, Sequence, AnimationPath);
+}
+
 bool FEditorViewer::SetAnimationSequence(const FString& AnimationPath)
 {
     if (!ViewTarget)
@@ -563,6 +726,18 @@ bool FEditorViewer::SetAnimationSequence(const FString& AnimationPath)
     UAnimationSequence* Sequence = FResourceManager::Get().LoadAnimationSequence(AnimationPath);
     if (!Sequence)
     {
+        return false;
+    }
+
+    if (!IsAnimationCompatibleWithMesh(SkelComp->GetSkeletalMesh(), Sequence, AnimationPath))
+    {
+        const FAnimationSequence* SequenceData = Sequence->GetSequenceData();
+        UE_LOG_WARNING(
+            "[EditorViewer] RejectAnimationSequence | ViewerMesh=%s | MeshSkeleton=%s | Animation=%s | AnimationSkeleton=%s",
+            GetSkeletalMeshPath(SkelComp->GetSkeletalMesh()),
+            GetMeshSkeletonIdentity(SkelComp->GetSkeletalMesh()).c_str(),
+            AnimationPath.c_str(),
+            SequenceData ? GetAnimationSkeletonIdentity(Sequence).c_str() : "<None>");
         return false;
     }
 
