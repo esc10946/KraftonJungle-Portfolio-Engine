@@ -277,10 +277,17 @@ void FEditorMainPanel::RenderViewerToolbarControls(FEditorViewer* Viewer)
 		bool bHasCompatibleAnimation = false;
 		for (const FString& AnimationPath : AnimationPaths)
 		{
-			if (Viewer->IsAnimationSequenceCompatible(AnimationPath))
+			if (!Viewer->IsAnimationSequenceCompatible(AnimationPath))
 			{
-				bHasCompatibleAnimation = true;
-				break;
+				continue;
+			}
+
+			bHasCompatibleAnimation = true;
+
+			const bool bSelected = AnimationPath == CurrentAnimPath;
+			if (ImGui::MenuItem(AnimationPath.c_str(), nullptr, bSelected))
+			{
+				Viewer->SetAnimationSequence(AnimationPath);
 			}
 		}
 
@@ -289,19 +296,6 @@ void FEditorMainPanel::RenderViewerToolbarControls(FEditorViewer* Viewer)
 			ImGui::TextDisabled("No compatible animation sequences");
 		}
 
-		for (const FString& AnimationPath : AnimationPaths)
-		{
-			if (!Viewer->IsAnimationSequenceCompatible(AnimationPath))
-			{
-				continue;
-			}
-
-			const bool bSelected = AnimationPath == CurrentAnimPath;
-			if (ImGui::MenuItem(AnimationPath.c_str(), nullptr, bSelected))
-			{
-				Viewer->SetAnimationSequence(AnimationPath);
-			}
-		}
 		if (!CurrentAnimPath.empty())
 		{
 			ImGui::Separator();
