@@ -8,7 +8,10 @@
 #include "Component/TransformProxy.h"
 #include "Animation/AnimInstance.h"
 #include "Asset/AnimationSequence.h"
+#include "Asset/SkeletonAsset.h"
+#include "Core/AssetPathPolicy.h"
 #include "Core/Logging/Log.h"
+#include "Core/Paths.h"
 #include "Core/ResourceManager.h"
 #include "Engine/Geometry/Ray.h"
 #include "GameFramework/PrimitiveActors.h"
@@ -18,6 +21,8 @@
 #include <algorithm>
 #include <cfloat>
 #include <cmath>
+#include <cwctype>
+#include <filesystem>
 
 #include "Component/PostProcess/Light/AmbientLightComponent.h"
 
@@ -31,6 +36,106 @@ static int32 GetSkeletalMeshBoneCount(const USkeletalMesh* Mesh)
 static const char* GetSkeletalMeshPath(const USkeletalMesh* Mesh)
 {
     return Mesh ? Mesh->GetAssetPathFileName().c_str() : "<None>";
+}
+
+static FString ToLowerNormalizedPath(const FString& Path)
+{
+    std::wstring Wide = FPaths::ToWide(FPaths::Normalize(Path));
+    std::transform(
+        Wide.begin(),
+        Wide.end(),
+        Wide.begin(),
+        [](wchar_t Ch)
+        {
+            return static_cast<wchar_t>(std::towlower(Ch));
+        });
+    return FPaths::ToUtf8(Wide);
+}
+
+static FString ResolveSkeletonPathFromMesh(const USkeletalMesh* Mesh)
+{
+    if (!Mesh)
+    {
+        return FString();
+    }
+
+    if (const USkeletonAsset* SkeletonAsset = Mesh->GetSkeletonAsset())
+    {
+        const FString& SkeletonPath = SkeletonAsset->GetAssetPathFileName();
+        if (!SkeletonPath.empty())
+        {
+            return ToLowerNormalizedPath(SkeletonPath);
+        }
+    }
+
+    if (!Mesh->GetSkeletonSourcePath().empty())
+    {
+        return ToLowerNormalizedPath(FAssetPathPolicy::ResolveAssetRelativePath(
+            Mesh->GetAssetPathFileName(),
+            Mesh->GetSkeletonSourcePath()));
+    }
+
+    return FString();
+}
+
+static FString ResolveSkeletonPathFromAnimation(const UAnimationSequence* Sequence)
+{
+    const FAnimationSequence* SequenceData = nullptr;
+    if (Sequence)
+    {
+        SequenceData = Sequence->GetSequenceData();
+    }
+
+    if (!SequenceData || SequenceData->SkeletonSourcePath.empty())
+    {
+        return FString();
+    }
+
+    return ToLowerNormalizedPath(FAssetPathPolicy::ResolveAssetRelativePath(
+        Sequence->GetAssetPathFileName(),
+        SequenceData->SkeletonSourcePath));
+}
+
+static FString GetImportedFbxStem(const FString& AssetPath)
+{
+    std::filesystem::path FsPath(FPaths::ToWide(FPaths::Normalize(AssetPath)));
+    std::wstring Stem = FsPath.stem().wstring();
+    std::transform(Stem.begin(), Stem.end(), Stem.begin(), ::towlower);
+
+    static const std::wstring Markers[] = { L"_skeletalmesh_", L"_skeleton_", L"_anim_" };
+    for (const std::wstring& Marker : Markers)
+    {
+        const size_t MarkerPos = Stem.find(Marker);
+        if (MarkerPos != std::wstring::npos)
+        {
+            Stem = Stem.substr(0, MarkerPos);
+            break;
+        }
+    }
+
+    return FPaths::ToUtf8(Stem);
+}
+
+static bool IsAnimationCompatibleWithMesh(const USkeletalMesh* Mesh, const UAnimationSequence* Sequence, const FString& AnimationPath)
+{
+    if (!Mesh || !Sequence)
+    {
+        return false;
+    }
+
+    const FString MeshSkeleton = ResolveSkeletonPathFromMesh(Mesh);
+    const FString AnimationSkeleton = ResolveSkeletonPathFromAnimation(Sequence);
+    if (!MeshSkeleton.empty() && !AnimationSkeleton.empty())
+    {
+        return MeshSkeleton == AnimationSkeleton;
+    }
+
+    const std::filesystem::path MeshPath(FPaths::ToWide(FPaths::Normalize(Mesh->GetAssetPathFileName())));
+    const std::filesystem::path AnimPath(FPaths::ToWide(FPaths::Normalize(AnimationPath)));
+
+    return ToLowerNormalizedPath(FPaths::ToUtf8(MeshPath.parent_path().generic_wstring()))
+        == ToLowerNormalizedPath(FPaths::ToUtf8(AnimPath.parent_path().generic_wstring()))
+        && GetImportedFbxStem(Mesh->GetAssetPathFileName()) == GetImportedFbxStem(AnimationPath);
 }
 
 float DistanceSquaredRaySegment(const FRay& Ray, const FVector& SegmentStart, const FVector& SegmentEnd, float& OutRayT)
@@ -539,6 +644,29 @@ void FEditorViewer::ChangeTarget(const FString& InFileName)
     ClearAnimationSequence();
 }
 
+bool FEditorViewer::IsAnimationSequenceCompatible(const FString& AnimationPath) const
+{
+    if (!ViewTarget)
+    {
+        return false;
+    }
+
+    USkeletalMeshComponent* SkelMeshComp = ViewTarget->GetSkeletalMeshComponent();
+    USkeletalMesh* SkelMesh = nullptr;
+    if (SkelMeshComp)
+    {
+        SkelMesh = SkelMeshComp->GetSkeletalMesh();
+    }
+
+    if (!SkelMesh)
+    {
+        return false;
+    }
+
+    UAnimationSequence* Sequence = FResourceManager::Get().LoadAnimationSequence(AnimationPath);
+    return IsAnimationCompatibleWithMesh(SkelMesh, Sequence, AnimationPath);
+}
+
 bool FEditorViewer::SetAnimationSequence(const FString& AnimationPath)
 {
     if (!ViewTarget)
@@ -566,15 +694,41 @@ bool FEditorViewer::SetAnimationSequence(const FString& AnimationPath)
         return false;
     }
 
+    if (!IsAnimationCompatibleWithMesh(SkelComp->GetSkeletalMesh(), Sequence, AnimationPath))
+    {
+        const FAnimationSequence* SequenceData = Sequence->GetSequenceData();
+        FString AnimationSkeletonPath = "<None>";
+        if (SequenceData)
+        {
+            AnimationSkeletonPath = ResolveSkeletonPathFromAnimation(Sequence);
+        }
+
+        UE_LOG_WARNING(
+            "[EditorViewer] RejectAnimationSequence | ViewerMesh=%s | MeshSkeleton=%s | Animation=%s | AnimationSkeleton=%s",
+            GetSkeletalMeshPath(SkelComp->GetSkeletalMesh()),
+            ResolveSkeletonPathFromMesh(SkelComp->GetSkeletalMesh()).c_str(),
+            AnimationPath.c_str(),
+            AnimationSkeletonPath.c_str());
+        return false;
+    }
+
     const FAnimationSequence* SequenceData = Sequence->GetSequenceData();
+    FString AnimationSkeletonSourcePath = "<None>";
+    size_t AnimationTrackCount = 0;
+    if (SequenceData)
+    {
+        AnimationSkeletonSourcePath = SequenceData->SkeletonSourcePath;
+        AnimationTrackCount = SequenceData->BoneTracks.size();
+    }
+
     UE_LOG(
         "[EditorViewer] SetAnimationSequence | ViewerMeshRequest=%s | CurrentMesh=%s | MeshBones=%d | Animation=%s | AnimationSkeleton=%s | TrackCount=%zu",
         FileName.c_str(),
         GetSkeletalMeshPath(SkelComp->GetSkeletalMesh()),
         GetSkeletalMeshBoneCount(SkelComp->GetSkeletalMesh()),
         AnimationPath.c_str(),
-        SequenceData ? SequenceData->SkeletonSourcePath.c_str() : "<None>",
-        SequenceData ? SequenceData->BoneTracks.size() : 0);
+        AnimationSkeletonSourcePath.c_str(),
+        AnimationTrackCount);
 
     if (!PreviewAnimInstance)
     {

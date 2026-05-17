@@ -8,12 +8,32 @@
 #include "Object/ObjectFactory.h"
 #include "Render/Resource/FbxMaterialLoader.h"
 
+#include <algorithm>
+#include <cwctype>
 #include <filesystem>
 
 namespace fs = std::filesystem;
 
 namespace
 {
+    bool EqualsIgnoreCase(std::wstring A, std::wstring B)
+    {
+        std::transform(A.begin(), A.end(), A.begin(), [](wchar_t Ch) { return static_cast<wchar_t>(std::towlower(Ch)); });
+        std::transform(B.begin(), B.end(), B.begin(), [](wchar_t Ch) { return static_cast<wchar_t>(std::towlower(Ch)); });
+        return A == B;
+    }
+
+    bool IsSupportedTextureFile(const fs::path& Path)
+    {
+        const std::wstring Ext = Path.extension().wstring();
+        return EqualsIgnoreCase(Ext, L".png") ||
+            EqualsIgnoreCase(Ext, L".jpg") ||
+            EqualsIgnoreCase(Ext, L".jpeg") ||
+            EqualsIgnoreCase(Ext, L".tga") ||
+            EqualsIgnoreCase(Ext, L".dds") ||
+            EqualsIgnoreCase(Ext, L".bmp");
+    }
+
     // 인덱스 i에 대한 .mat asset 경로 생성. 등록 / 디스크 저장 / 디스크 로드 모두 동일 키 사용.
     FString MakeFbxMaterialAssetPath(const FString& NormalizedFbxPath, int32 Index)
     {
@@ -36,8 +56,49 @@ namespace
         return !Ec;
     }
 
+    bool HasSiblingTextureFiles(const FString& SourceFbxPath)
+    {
+        const fs::path AbsoluteFbxPath = FPaths::ToAbsolute(FPaths::ToWide(FPaths::Normalize(SourceFbxPath)));
+        const fs::path FbxDir = AbsoluteFbxPath.parent_path();
+        TArray<fs::path> SearchRoots;
+        SearchRoots.push_back(FbxDir / L"textures");
+        SearchRoots.push_back(FbxDir / L"Textures");
+        SearchRoots.push_back(FbxDir / (AbsoluteFbxPath.stem().wstring() + L".fbm"));
+
+        for (const fs::path& Root : SearchRoots)
+        {
+            std::error_code Ec;
+            if (!fs::exists(Root, Ec) || !fs::is_directory(Root, Ec))
+            {
+                continue;
+            }
+
+            for (const fs::directory_entry& Entry : fs::recursive_directory_iterator(
+                Root,
+                fs::directory_options::skip_permission_denied,
+                Ec))
+            {
+                if (Ec)
+                {
+                    break;
+                }
+                if (Entry.is_regular_file(Ec) && IsSupportedTextureFile(Entry.path()))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     bool IsCachedMaterialFresh(const FString& SourceFbxPath, const FString& FirstMaterialPath)
     {
+        if (HasSiblingTextureFiles(SourceFbxPath))
+        {
+            return false;
+        }
+
         fs::file_time_type SourceTime;
         fs::file_time_type MaterialTime;
         if (!TryGetLastWriteTime(SourceFbxPath, SourceTime) ||

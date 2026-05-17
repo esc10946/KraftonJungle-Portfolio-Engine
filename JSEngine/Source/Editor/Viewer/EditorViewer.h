@@ -57,6 +57,7 @@ public:
     UStaticMeshComponent* FindPreviewMesh(const FName& SocketName) const;
 
 	void ChangeTarget(const FString& InFileName);
+	bool IsAnimationSequenceCompatible(const FString& AnimationPath) const;
 	bool SetAnimationSequence(const FString& AnimationPath);
 	void ClearAnimationSequence();
 	void PlayAnimation();
