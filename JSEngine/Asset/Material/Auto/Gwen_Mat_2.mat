@@ -1,5 +1,5 @@
 {
-        "ImportedName" : "Scissors",
+        "ImportedName" : "Scissors_A_Smear",
         "Name" : "gwen_Mat_2",
         "Params" : [{
             "Name" : "AmbientColor",
@@ -20,7 +20,7 @@
           }, {
             "Name" : "DiffuseMap",
             "Type" : "Texture",
-            "Value" : "Asset/SkeletalMesh/GwenFBX/textures/Scissors.png"
+            "Value" : "Asset/SkeletalMesh/GwenFBX/textures/Scissors_A_Smear.png"
           }, {
             "Name" : "EmissiveColor",
             "Type" : "Vector3",
