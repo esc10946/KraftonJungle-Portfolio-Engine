@@ -23,11 +23,11 @@ int Launch(HINSTANCE hInstance, int nShowCmd)
 {
     FCrashHandler::Initialize();
 
-	__try
-	{
-		return GuardedMain(hInstance, nShowCmd);
-	}
-    __except (FCrashHandler::handleException(GetExceptionInformation()))
+    __try
+    {
+        return GuardedMain(hInstance, nShowCmd);
+    }
+    __except (FCrashHandler::HandleException(GetExceptionInformation()))
     {
         return static_cast<int>(GetExceptionCode());
     }

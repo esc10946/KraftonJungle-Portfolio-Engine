@@ -84,6 +84,20 @@ function New-MsvcPathArgument {
     return "$Prefix`"$Path`""
 }
 
+function New-MsvcDirectoryArgument {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Prefix,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    $FullPath = [System.IO.Path]::GetFullPath($Path)
+    $NormalizedPath = $FullPath.Replace("\", "/").TrimEnd("/") + "/"
+    return "$Prefix`"$NormalizedPath`""
+}
+
 function Write-MsvcResponseFile {
     param(
         [Parameter(Mandatory = $true)]
@@ -326,7 +340,7 @@ if ($CppFiles.Count -gt 0) {
     $CompileResponsePath = Join-Path $ObjDir "SoLoud.cpp.cl.rsp"
     $CompileResponse = @()
     $CompileResponse += $CppArgs
-    $CompileResponse += (New-MsvcPathArgument -Prefix "/Fo" -Path "$ObjDir\")
+    $CompileResponse += (New-MsvcDirectoryArgument -Prefix "/Fo" -Path $ObjDir)
     foreach ($SourceFile in $CppFiles) {
         $CompileResponse += "`"$($SourceFile.FullName)`""
     }
@@ -343,7 +357,7 @@ if ($CFiles.Count -gt 0) {
     $CompileResponsePath = Join-Path $ObjDir "SoLoud.c.cl.rsp"
     $CompileResponse = @()
     $CompileResponse += $CArgs
-    $CompileResponse += (New-MsvcPathArgument -Prefix "/Fo" -Path "$ObjDir\")
+    $CompileResponse += (New-MsvcDirectoryArgument -Prefix "/Fo" -Path $ObjDir)
     foreach ($SourceFile in $CFiles) {
         $CompileResponse += "`"$($SourceFile.FullName)`""
     }

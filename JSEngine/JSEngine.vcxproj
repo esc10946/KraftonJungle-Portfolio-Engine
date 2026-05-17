@@ -112,35 +112,35 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <OutDir>$(ProjectDir)Bin\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)Build\$(Configuration)\</IntDir>
-    <IncludePath>Source\Engine;Source;ThirdParty;ThirdParty\SoLoud\include;ThirdParty\RmlUi\Include;ThirdParty\ImGui;Source\Editor;.;$(IncludePath)</IncludePath>
+    <IncludePath>Generated;Source\Engine;Source;ThirdParty;ThirdParty\SoLoud\include;ThirdParty\RmlUi\Include;ThirdParty\ImGui;Source\Editor;.;$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <OutDir>$(ProjectDir)Bin\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)Build\$(Configuration)\</IntDir>
-    <IncludePath>Source\Engine;Source;ThirdParty;ThirdParty\SoLoud\include;ThirdParty\RmlUi\Include;ThirdParty\ImGui;Source\Editor;.;$(IncludePath)</IncludePath>
+    <IncludePath>Generated;Source\Engine;Source;ThirdParty;ThirdParty\SoLoud\include;ThirdParty\RmlUi\Include;ThirdParty\ImGui;Source\Editor;.;$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(ProjectDir)Bin\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)Build\$(Configuration)\</IntDir>
-    <IncludePath>Source\Engine;Source;ThirdParty;ThirdParty\SoLoud\include;ThirdParty\RmlUi\Include;ThirdParty\ImGui;Generated;Source\Editor;.;$(IncludePath)</IncludePath>
+    <IncludePath>Generated;Source\Engine;Source;ThirdParty;ThirdParty\SoLoud\include;ThirdParty\RmlUi\Include;ThirdParty\ImGui;Source\Editor;.;$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(ProjectDir)Bin\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)Build\$(Configuration)\</IntDir>
-    <IncludePath>Source\Engine;Source;ThirdParty;ThirdParty\SoLoud\include;ThirdParty\RmlUi\Include;ThirdParty\ImGui;Source\Editor;.;$(IncludePath)</IncludePath>
+    <IncludePath>Generated;Source\Engine;Source;ThirdParty;ThirdParty\SoLoud\include;ThirdParty\RmlUi\Include;ThirdParty\ImGui;Source\Editor;.;$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='ObjViewer|x64'">
     <OutDir>$(ProjectDir)Bin\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)Build\$(Configuration)\</IntDir>
-    <IncludePath>Source\Engine;Source;ThirdParty;ThirdParty\SoLoud\include;ThirdParty\RmlUi\Include;ThirdParty\ImGui;Source\Editor;.;$(IncludePath)</IncludePath>
+    <IncludePath>Generated;Source\Engine;Source;ThirdParty;ThirdParty\SoLoud\include;ThirdParty\RmlUi\Include;ThirdParty\ImGui;Source\Editor;.;$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
@@ -148,7 +148,7 @@
     <OutDir>$(ProjectDir)Bin\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)Build\$(Configuration)\</IntDir>
     <TargetName>JSEngineGame</TargetName>
-    <IncludePath>Source\Engine;Source;ThirdParty;ThirdParty\SoLoud\include;ThirdParty\RmlUi\Include;ThirdParty\ImGui;.;$(IncludePath)</IncludePath>
+    <IncludePath>Generated;Source\Engine;Source;ThirdParty;ThirdParty\SoLoud\include;ThirdParty\RmlUi\Include;ThirdParty\ImGui;.;$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
@@ -156,7 +156,7 @@
     <OutDir>$(ProjectDir)Bin\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)Build\$(Configuration)\</IntDir>
     <TargetName>JSEngineGame</TargetName>
-    <IncludePath>Source\Engine;Source;ThirdParty;ThirdParty\SoLoud\include;ThirdParty\RmlUi\Include;ThirdParty\ImGui;.;$(IncludePath)</IncludePath>
+    <IncludePath>Generated;Source\Engine;Source;ThirdParty;ThirdParty\SoLoud\include;ThirdParty\RmlUi\Include;ThirdParty\ImGui;.;$(IncludePath)</IncludePath>
     <LibraryPath>$(LibraryPath)</LibraryPath>
     <LocalDebuggerWorkingDirectory>$(ProjectDir)</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
@@ -315,11 +315,7 @@
   <Target Name="BuildSoLoudStaticLibrary" BeforeTargets="ClCompile">
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\BuildTools\Scripts\BuildSoLoudLib.ps1&quot; -ProjectDir &quot;$(MSBuildProjectDirectory)&quot; -Configuration &quot;$(ThirdPartyBinaryConfiguration)&quot; -Platform &quot;$(Platform)&quot;" />
   </Target>
-  <Target Name="GenerateReflectionCode" BeforeTargets="ClCompile">
-    <Exec Command="python &quot;$(MSBuildProjectDirectory)\BuildTools\Scripts\GenerateReflection.py&quot;" />
-  </Target>
   <ItemGroup>
-    <ClCompile Include="Source\Engine\GameFramework\AReflectionTestActor.cpp" />
     <ClCompile Include="Generated\JSEngine.generated.cpp" />
     <ClCompile Include="Source\Editor\Asset\EditorAssetService.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientDebug|x64'">true</ExcludedFromBuild>
@@ -714,6 +710,7 @@
     <ClCompile Include="Source\Engine\Core\TextureAssetMetaService.cpp" />
     <ClCompile Include="Source\Engine\Core\TextureResourceCache.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\AActor.cpp" />
+    <ClCompile Include="Source\Engine\GameFramework\AReflectionTestActor.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\DefaultPawn.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\GameModeBase.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\Level.cpp" />
@@ -890,9 +887,7 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Generated\AReflectionTestActor.generated.h" />
-    <ClInclude Include="Source\Engine\GameFramework\AReflectionTestActor.h" />
-    <ClInclude Include="Generated\NewTestComponent.generated.h" />
+    <ClInclude Include="TestComponent.h" />
     <ClInclude Include="Source\Editor\Asset\EditorAssetService.h" />
     <ClInclude Include="Source\Editor\Command\EditorCommandSystem.h" />
     <ClInclude Include="Source\Editor\EditorEngine.h" />
@@ -1081,6 +1076,7 @@
     <ClInclude Include="Source\Engine\Core\TextureAssetMetaService.h" />
     <ClInclude Include="Source\Engine\Core\TextureResourceCache.h" />
     <ClInclude Include="Source\Engine\GameFramework\AActor.h" />
+    <ClInclude Include="Source\Engine\GameFramework\AReflectionTestActor.h" />
     <ClInclude Include="Source\Engine\GameFramework\DefaultPawn.h" />
     <ClInclude Include="Source\Engine\GameFramework\GameModeBase.h" />
     <ClInclude Include="Source\Engine\GameFramework\Level.h" />
@@ -1125,6 +1121,7 @@
     <ClInclude Include="Source\Engine\Object\ReflectionRegistry.h" />
     <ClInclude Include="Source\Engine\Render\Common\ComPtr.h" />
     <ClInclude Include="Source\Engine\Render\Common\RenderTypes.h" />
+    <ClInclude Include="Source\Engine\Render\Common\ShaderBindingSlots.h" />
     <ClInclude Include="Source\Engine\Render\Common\ShadowTypes.h" />
     <ClInclude Include="Source\Engine\Render\Common\ViewTypes.h" />
     <ClInclude Include="Source\Engine\Render\Device\D3DDevice.h" />
@@ -1244,7 +1241,6 @@
     <ClInclude Include="Source\Misc\ObjViewer\UI\ObjViewerStatWidget.h" />
     <ClInclude Include="Source\Misc\ObjViewer\UI\ObjViewerWidget.h" />
     <ClInclude Include="Source\Misc\ObjViewer\Viewport\ObjViewerViewportClient.h" />
-    <ClInclude Include="TestComponent.h" />
     <ClInclude Include="ThirdParty\ImGui\imconfig.h" />
     <ClInclude Include="ThirdParty\ImGui\imgui.h" />
     <ClInclude Include="ThirdParty\ImGui\imgui_impl_dx11.h" />

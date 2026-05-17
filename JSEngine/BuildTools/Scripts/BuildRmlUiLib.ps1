@@ -84,6 +84,20 @@ function New-MsvcPathArgument {
     return "$Prefix`"$Path`""
 }
 
+function New-MsvcDirectoryArgument {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Prefix,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    $FullPath = [System.IO.Path]::GetFullPath($Path)
+    $NormalizedPath = $FullPath.Replace("\", "/").TrimEnd("/") + "/"
+    return "$Prefix`"$NormalizedPath`""
+}
+
 function Write-MsvcResponseFile {
     param(
         [Parameter(Mandatory = $true)]
@@ -303,7 +317,7 @@ foreach ($CppFile in $CppFiles) {
 $CompileResponsePath = Join-Path $ObjDir "RmlUiCore.cl.rsp"
 $CompileResponse = @()
 $CompileResponse += $CommonArgs
-$CompileResponse += (New-MsvcPathArgument -Prefix "/Fo" -Path "$ObjDir\")
+$CompileResponse += (New-MsvcDirectoryArgument -Prefix "/Fo" -Path $ObjDir)
 foreach ($CppFile in $CppFiles) {
     $CompileResponse += "`"$($CppFile.FullName)`""
 }

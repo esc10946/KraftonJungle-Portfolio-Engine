@@ -759,6 +759,9 @@
     <ClCompile Include="Source\Engine\GameFramework\AActor.cpp">
       <Filter>Source\Engine\GameFramework</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\GameFramework\AReflectionTestActor.cpp">
+      <Filter>Source\Engine\GameFramework</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\GameFramework\DefaultPawn.cpp">
       <Filter>Source\Engine\GameFramework</Filter>
     </ClCompile>
@@ -1198,11 +1201,11 @@
       <Filter>ThirdParty\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="NewTestComponent.cpp" />
     <ClCompile Include="Generated\JSEngine.generated.cpp" />
-    <ClCompile Include="Source\Engine\GameFramework\AReflectionTestActor.cpp" />
+    <ClCompile Include="TestComponent.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="TestComponent.h" />
     <ClInclude Include="Source\Editor\Asset\EditorAssetService.h">
       <Filter>Source\Editor\Asset</Filter>
     </ClInclude>
@@ -1767,6 +1770,9 @@
     <ClInclude Include="Source\Engine\GameFramework\AActor.h">
       <Filter>Source\Engine\GameFramework</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\GameFramework\AReflectionTestActor.h">
+      <Filter>Source\Engine\GameFramework</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Engine\GameFramework\DefaultPawn.h">
       <Filter>Source\Engine\GameFramework</Filter>
     </ClInclude>
@@ -1897,6 +1903,9 @@
       <Filter>Source\Engine\Render\Common</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Render\Common\RenderTypes.h">
+      <Filter>Source\Engine\Render\Common</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Render\Common\ShaderBindingSlots.h">
       <Filter>Source\Engine\Render\Common</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Render\Common\ShadowTypes.h">
@@ -2286,10 +2295,6 @@
     <ClInclude Include="ThirdParty\luajit\src\lua.h">
       <Filter>ThirdParty\luajit\src</Filter>
     </ClInclude>
-    <ClInclude Include="NewTestComponent.h" />
-    <ClInclude Include="Generated\NewTestComponent.generated.h" />
-    <ClInclude Include="Source\Engine\GameFramework\AReflectionTestActor.h" />
-    <ClInclude Include="Generated\AReflectionTestActor.generated.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Source\Engine\Runtime\AppIcon.rc">
