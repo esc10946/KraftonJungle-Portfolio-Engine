@@ -1,7 +1,6 @@
 ﻿#include "Asset/AnimationSequence.h"
 
 #include "Asset/SkeletalMesh.h"
-#include "Core/Logging/Log.h"
 
 #include <algorithm>
 #include <cmath>
@@ -204,9 +203,6 @@ bool UAnimationSequence::SamplePose(const USkeletalMesh* TargetMesh, float Time,
     }
 
     OutLocalPose.resize(TargetBones.size());
-    int32 MatchedTrackCount = 0;
-    int32 AppliedPoseTrackCount = 0;
-    int32 ChangedLocalPoseCount = 0;
 
     for (int32 BoneIndex = 0; BoneIndex < static_cast<int32>(TargetBones.size()); ++BoneIndex)
     {
@@ -220,7 +216,6 @@ bool UAnimationSequence::SamplePose(const USkeletalMesh* TargetMesh, float Time,
         }
 
         const FBoneAnimationTrack& BoneTrack = SequenceData->BoneTracks[TrackIndex];
-        ++MatchedTrackCount;
 
         if (!HasPoseKeys(BoneTrack))
         {
@@ -230,26 +225,6 @@ bool UAnimationSequence::SamplePose(const USkeletalMesh* TargetMesh, float Time,
         const FMatrix CurrentKeyTransform = BuildSampledKeyTransform(*SequenceData, BoneTrack, Time);
 
         OutLocalPose[BoneIndex] = CurrentKeyTransform;
-        ++AppliedPoseTrackCount;
-
-        if (!OutLocalPose[BoneIndex].Equals(TargetBone.LocalBindTransform, 0.001f))
-        {
-            ++ChangedLocalPoseCount;
-        }
-    }
-
-    static int32 DebugSampleCounter = 0;
-    ++DebugSampleCounter;
-    if (DebugSampleCounter % 60 == 0)
-    {
-        UE_LOG(
-            "[AnimationSequence] SamplePose | Sequence=%s | Time=%.3f | Bones=%zu | MatchedTracks=%d | AppliedPoseTracks=%d | ChangedLocalPoses=%d",
-            SequenceData->Name.c_str(),
-            Time,
-            TargetBones.size(),
-            MatchedTrackCount,
-            AppliedPoseTrackCount,
-            ChangedLocalPoseCount);
     }
 
     return true;

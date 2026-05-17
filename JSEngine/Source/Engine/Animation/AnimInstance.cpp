@@ -2,7 +2,6 @@
 
 #include "Animation/AnimationStateMachine.h"
 #include "Component/SkeletalMeshComponent.h"
-#include "Core/Logging/Log.h"
 
 #include <algorithm>
 #include <cmath>
@@ -142,16 +141,6 @@ bool UAnimSingleNodeInstance::SampleCurrentPose()
 
     CurrentLocalPose = SampledPose;
 
-    static int32 DebugSampleCounter = 0;
-    ++DebugSampleCounter;
-    if (DebugSampleCounter % 60 == 0)
-    {
-        UE_LOG(
-            "[AnimSingleNodeInstance] SampleCurrentPose | Time=%.3f | PoseBones=%zu",
-            CurrentTime,
-            CurrentLocalPose.size());
-    }
-
     return true;
 }
 
@@ -163,15 +152,6 @@ bool UAnimSingleNodeInstance::ApplyCurrentPoseToSkeletalMesh()
     }
 
     SkelMeshComponent->ApplyLocalPose(CurrentLocalPose);
-
-    static int32 DebugApplyCounter = 0;
-    ++DebugApplyCounter;
-    if (DebugApplyCounter % 60 == 0)
-    {
-        UE_LOG(
-            "[AnimSingleNodeInstance] ApplyCurrentPoseToSkeletalMesh | PoseBones=%zu",
-            CurrentLocalPose.size());
-    }
 
     return true;
 }

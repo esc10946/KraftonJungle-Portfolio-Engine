@@ -712,24 +712,6 @@ bool FEditorViewer::SetAnimationSequence(const FString& AnimationPath)
         return false;
     }
 
-    const FAnimationSequence* SequenceData = Sequence->GetSequenceData();
-    FString AnimationSkeletonSourcePath = "<None>";
-    size_t AnimationTrackCount = 0;
-    if (SequenceData)
-    {
-        AnimationSkeletonSourcePath = SequenceData->SkeletonSourcePath;
-        AnimationTrackCount = SequenceData->BoneTracks.size();
-    }
-
-    UE_LOG(
-        "[EditorViewer] SetAnimationSequence | ViewerMeshRequest=%s | CurrentMesh=%s | MeshBones=%d | Animation=%s | AnimationSkeleton=%s | TrackCount=%zu",
-        FileName.c_str(),
-        GetSkeletalMeshPath(SkelComp->GetSkeletalMesh()),
-        GetSkeletalMeshBoneCount(SkelComp->GetSkeletalMesh()),
-        AnimationPath.c_str(),
-        AnimationSkeletonSourcePath.c_str(),
-        AnimationTrackCount);
-
     if (!PreviewAnimInstance)
     {
         PreviewAnimInstance = UObjectManager::Get().CreateObject<UAnimSingleNodeInstance>();
