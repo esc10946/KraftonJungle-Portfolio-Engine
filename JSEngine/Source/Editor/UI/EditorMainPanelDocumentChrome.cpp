@@ -266,12 +266,14 @@ void FEditorMainPanel::RenderViewerToolbarControls(FEditorViewer* Viewer)
 
 	ImGui::SameLine(0.0f, 10.0f);
 	const FString& CurrentAnimPath = Viewer->GetAnimationSequencePath();
-	const char* AnimationLabel = CurrentAnimPath.empty() ? "Animation" : CurrentAnimPath.c_str();
-	if (DrawViewportTextButton("##ViewerAnimationSequenceShared", AnimationLabel))
+	const char* AnimationLabel = "Animation";
+	if (!CurrentAnimPath.empty())
 	{
-		ImGui::OpenPopup("##ViewerAnimationSequencePopupShared");
+		AnimationLabel = CurrentAnimPath.c_str();
 	}
-	if (ImGui::BeginPopup("##ViewerAnimationSequencePopupShared"))
+
+	ImGui::SetNextItemWidth(std::max(160.0f, ImGui::CalcTextSize(AnimationLabel).x + 42.0f));
+	if (ImGui::BeginCombo("##ViewerAnimationSequenceComboShared", AnimationLabel))
 	{
 		const TArray<FString>& AnimationPaths = EditorEngine->GetAssetService().GetAnimationSequenceAssetPaths();
 		bool bHasCompatibleAnimation = false;
@@ -304,7 +306,7 @@ void FEditorMainPanel::RenderViewerToolbarControls(FEditorViewer* Viewer)
 				Viewer->ClearAnimationSequence();
 			}
 		}
-		ImGui::EndPopup();
+		ImGui::EndCombo();
 	}
 
 	const bool bHasAnimation = Viewer->GetAnimationLength() > 0.0f;
