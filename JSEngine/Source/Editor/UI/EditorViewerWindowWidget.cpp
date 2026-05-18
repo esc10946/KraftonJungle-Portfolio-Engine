@@ -937,6 +937,7 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
                     {
                         AnimationViewer->SetAnimationSequence(AnimationPath);
                         State.CurrentFrame = 0;
+                        State.SelectedNotifyIndex = -1;
                     }
                 }
             }
@@ -953,6 +954,7 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
                 {
                     AnimationViewer->ClearAnimationSequence();
                     State.CurrentFrame = 0;
+                    State.SelectedNotifyIndex = -1;
                 }
             }
             ImGui::EndCombo();
@@ -1060,9 +1062,40 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
                 Notify.Duration = 0.0f;
                 Notify.NotifyName = FName(State.NotifyNameBuffer);
                 CurrentSequence->AddNotify(Notify);
+                if (Notifies)
+                {
+                    State.SelectedNotifyIndex = static_cast<int32>(Notifies->size()) - 1;
+                }
             }
 
             if (!CurrentSequence)
+            {
+                ImGui::EndDisabled();
+            }
+
+            ImGui::Separator();
+
+            const int32 NotifyCount = Notifies ? static_cast<int32>(Notifies->size()) : 0;
+            if (State.SelectedNotifyIndex >= NotifyCount)
+            {
+                State.SelectedNotifyIndex = -1;
+            }
+
+            const bool bDeleteNotifyDisabled = State.SelectedNotifyIndex < 0 || !CurrentSequence;
+            if (bDeleteNotifyDisabled)
+            {
+                ImGui::BeginDisabled();
+            }
+
+            if (ImGui::Button("Delete Selected Notify", ImVec2(-1.0f, 0.0f)) && CurrentSequence)
+            {
+                if (CurrentSequence->RemoveNotifyAt(State.SelectedNotifyIndex))
+                {
+                    State.SelectedNotifyIndex = -1;
+                }
+            }
+
+            if (bDeleteNotifyDisabled)
             {
                 ImGui::EndDisabled();
             }
@@ -1077,7 +1110,10 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
                     FString NotifyLabel = Notify.NotifyName.IsValid() ? Notify.NotifyName.ToString() : "<None>";
                     NotifyLabel += " @ ";
                     NotifyLabel += std::to_string(Notify.TriggerTime);
-                    ImGui::Selectable(NotifyLabel.c_str(), false);
+                    if (ImGui::Selectable(NotifyLabel.c_str(), State.SelectedNotifyIndex == NotifyIndex))
+                    {
+                        State.SelectedNotifyIndex = NotifyIndex;
+                    }
                 }
             }
             else
@@ -1231,15 +1267,30 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
 
         const float SafeFPS = FPS > 0.0f ? FPS : 30.0f;
 
-        auto DrawKey = [&](float Time, int32 Row, ImU32 Color, const char* Label)
+        struct FTimelineKeyRect
+        {
+            ImVec2 Min;
+            ImVec2 Max;
+
+            bool Contains(const ImVec2& Point) const
+            {
+                return Point.x >= Min.x && Point.x <= Max.x && Point.y >= Min.y && Point.y <= Max.y;
+            }
+        };
+
+        auto DrawKey = [&](float Time, int32 Row, ImU32 Color, const char* Label) -> FTimelineKeyRect
         {
             float Frame = Time * SafeFPS;
             float X = CanvasMin.x + Frame * State.FrameWidth;
             float Y = CanvasMin.y + HeaderHeight + Row * RowHeight;
+            FTimelineKeyRect KeyRect{
+                ImVec2(X - 5.0f, Y + 4.0f),
+                ImVec2(X + 5.0f, Y + RowHeight - 4.0f)
+            };
 
             DrawList->AddRectFilled(
-                ImVec2(X - 4.0f, Y + 5.0f),
-                ImVec2(X + 4.0f, Y + RowHeight - 5.0f),
+                KeyRect.Min,
+                KeyRect.Max,
                 Color,
                 3.0f);
 
@@ -1250,22 +1301,33 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
                     IM_COL32(235, 205, 160, 255),
                     Label);
             }
+
+            return KeyRect;
         };
 
+        bool bNotifyMarkerClicked = false;
         if (Notifies)
         {
-            for (const FAnimNotifyEvent& Notify : *Notifies)
+            for (int32 NotifyIndex = 0; NotifyIndex < static_cast<int32>(Notifies->size()); ++NotifyIndex)
             {
+                const FAnimNotifyEvent& Notify = (*Notifies)[NotifyIndex];
                 if (!Notify.NotifyName.IsValid())
                 {
                     continue;
                 }
 
-                DrawKey(
+                const bool bSelectedNotify = State.SelectedNotifyIndex == NotifyIndex;
+                const FTimelineKeyRect KeyRect = DrawKey(
                     std::clamp(Notify.TriggerTime, 0.0f, Duration),
                     0,
-                    IM_COL32(220, 120, 64, 255),
+                    bSelectedNotify ? IM_COL32(255, 195, 76, 255) : IM_COL32(220, 120, 64, 255),
                     Notify.NotifyName.ToString().c_str());
+
+                if (bHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && KeyRect.Contains(ImGui::GetIO().MousePos))
+                {
+                    State.SelectedNotifyIndex = NotifyIndex;
+                    bNotifyMarkerClicked = true;
+                }
             }
         }
 
@@ -1317,7 +1379,7 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
             AnimationViewer->SetAnimationTime(NewTime);
         };
 
-        if (bHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+        if (bHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !bNotifyMarkerClicked)
         {
             SetTimeFromMouseX();
         }

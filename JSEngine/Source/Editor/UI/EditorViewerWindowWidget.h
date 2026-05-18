@@ -11,6 +11,7 @@ struct FAnimTimelineUIState
     float TrackListWidth = 280.0f;
     float FrameWidth = 30.0f;
     int32 CurrentFrame = 16;
+    int32 SelectedNotifyIndex = -1;
     char NotifyNameBuffer[64] = "Notify";
 };
 
