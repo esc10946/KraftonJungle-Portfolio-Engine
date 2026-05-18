@@ -44,6 +44,7 @@ public:
     float GetPlayRate() const;
 
     const FString& GetAnimationSequencePath() const { return AnimationSequencePath; }
+    UAnimationSequence* GetAnimationSequence() const { return CurrentAnimationSequence; }
     float GetAnimationTime() const;
     float GetAnimationLength() const;
     bool IsAnimationPlaying() const;

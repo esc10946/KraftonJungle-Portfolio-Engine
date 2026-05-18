@@ -11,6 +11,7 @@ struct FAnimTimelineUIState
     float TrackListWidth = 280.0f;
     float FrameWidth = 30.0f;
     int32 CurrentFrame = 16;
+    char NotifyNameBuffer[64] = "Notify";
 };
 
 class FEditorViewerWindowWidget : public FEditorWidget

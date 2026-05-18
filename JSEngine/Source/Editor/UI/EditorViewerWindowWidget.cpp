@@ -3,6 +3,8 @@
 #include "Editor/UI/EditorChromeConstants.h"
 #include "Editor/Viewer/AnimationViewer.h"
 #include "Editor/Viewer/EditorViewer.h"
+#include "Animation/AnimationSequenceBase.h"
+#include "Asset/AnimationSequence.h"
 #include "Viewport/ViewportLayout.h"
 #include "GameFramework/PrimitiveActors.h"
 #include "Component/SkeletalMeshComponent.h"
@@ -888,6 +890,8 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
 
     const FString EmptyAnimPath;
     const FString& AnimPath = AnimationViewer ? AnimationViewer->GetAnimationSequencePath() : EmptyAnimPath;
+    UAnimationSequence* CurrentSequence = AnimationViewer ? AnimationViewer->GetAnimationSequence() : nullptr;
+    const TArray<FAnimNotifyEvent>* Notifies = CurrentSequence ? &CurrentSequence->GetNotifies() : nullptr;
     const char* AnimName = AnimPath.empty() ? "None" : AnimPath.c_str();
     const float CurrentTime = AnimationViewer ? AnimationViewer->GetAnimationTime() : 0.0f;
     const float Duration = AnimationViewer ? AnimationViewer->GetAnimationLength() : 0.0f;
@@ -1041,7 +1045,45 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
 
         if (ImGui::CollapsingHeader("Notifies", ImGuiTreeNodeFlags_DefaultOpen))
         {
-            ImGui::Selectable("1", false);
+            ImGui::SetNextItemWidth(-1.0f);
+            ImGui::InputTextWithHint("##AnimNotifyName", "Notify name", State.NotifyNameBuffer, sizeof(State.NotifyNameBuffer));
+
+            if (!CurrentSequence)
+            {
+                ImGui::BeginDisabled();
+            }
+
+            if (ImGui::Button("Add Notify At Current Time", ImVec2(-1.0f, 0.0f)) && CurrentSequence)
+            {
+                FAnimNotifyEvent Notify;
+                Notify.TriggerTime = std::clamp(CurrentTime, 0.0f, Duration);
+                Notify.Duration = 0.0f;
+                Notify.NotifyName = FName(State.NotifyNameBuffer);
+                CurrentSequence->AddNotify(Notify);
+            }
+
+            if (!CurrentSequence)
+            {
+                ImGui::EndDisabled();
+            }
+
+            ImGui::Separator();
+
+            if (Notifies && !Notifies->empty())
+            {
+                for (int32 NotifyIndex = 0; NotifyIndex < static_cast<int32>(Notifies->size()); ++NotifyIndex)
+                {
+                    const FAnimNotifyEvent& Notify = (*Notifies)[NotifyIndex];
+                    FString NotifyLabel = Notify.NotifyName.IsValid() ? Notify.NotifyName.ToString() : "<None>";
+                    NotifyLabel += " @ ";
+                    NotifyLabel += std::to_string(Notify.TriggerTime);
+                    ImGui::Selectable(NotifyLabel.c_str(), false);
+                }
+            }
+            else
+            {
+                ImGui::TextDisabled("No notifies");
+            }
         }
 
         if (ImGui::CollapsingHeader("Curves", ImGuiTreeNodeFlags_DefaultOpen))
@@ -1187,26 +1229,47 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
             }
         }
 
-        // Example key blocks
-        auto DrawKey = [&](int32 Frame, int32 Row, ImU32 Color)
+        const float SafeFPS = FPS > 0.0f ? FPS : 30.0f;
+
+        auto DrawKey = [&](float Time, int32 Row, ImU32 Color, const char* Label)
         {
+            float Frame = Time * SafeFPS;
             float X = CanvasMin.x + Frame * State.FrameWidth;
             float Y = CanvasMin.y + HeaderHeight + Row * RowHeight;
 
             DrawList->AddRectFilled(
-                ImVec2(X + 4.0f, Y + 5.0f),
-                ImVec2(X + State.FrameWidth - 4.0f, Y + RowHeight - 5.0f),
+                ImVec2(X - 4.0f, Y + 5.0f),
+                ImVec2(X + 4.0f, Y + RowHeight - 5.0f),
                 Color,
                 3.0f);
+
+            if (Label && State.FrameWidth >= 16.0f)
+            {
+                DrawList->AddText(
+                    ImVec2(X + 7.0f, Y + 4.0f),
+                    IM_COL32(235, 205, 160, 255),
+                    Label);
+            }
         };
 
-        DrawKey(0, 0, IM_COL32(180, 180, 180, 255));
-        DrawKey(16, 0, IM_COL32(220, 120, 64, 255));
-        DrawKey(28, 0, IM_COL32(180, 180, 180, 255));
+        if (Notifies)
+        {
+            for (const FAnimNotifyEvent& Notify : *Notifies)
+            {
+                if (!Notify.NotifyName.IsValid())
+                {
+                    continue;
+                }
+
+                DrawKey(
+                    std::clamp(Notify.TriggerTime, 0.0f, Duration),
+                    0,
+                    IM_COL32(220, 120, 64, 255),
+                    Notify.NotifyName.ToString().c_str());
+            }
+        }
 
         // Scrubber / playhead
-        const float SafeFPS = FPS > 0.0f ? FPS : 30.0f;
-
         float CurrentFrameFloat = CurrentTime * SafeFPS;
         CurrentFrameFloat = std::clamp(CurrentFrameFloat, 0.0f, static_cast<float>(TotalFrames));
 
@@ -1250,7 +1313,7 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
             NewFrameFloat = std::clamp(NewFrameFloat, 0.0f, static_cast<float>(TotalFrames));
 
             const float NewTime = NewFrameFloat / SafeFPS;
-            State.CurrentFrame = NewFrameFloat;
+            State.CurrentFrame = static_cast<int32>(std::round(NewFrameFloat));
             AnimationViewer->SetAnimationTime(NewTime);
         };
 
