@@ -1209,6 +1209,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Generated\JSEngine.generated.cpp" />
     <ClCompile Include="TestComponent.cpp" />
+    <ClCompile Include="Source\Editor\Viewer\AnimationViewer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestComponent.h" />
@@ -2304,6 +2305,7 @@
     <ClInclude Include="ThirdParty\luajit\src\lua.h">
       <Filter>ThirdParty\luajit\src</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Editor\Viewer\AnimationViewer.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Source\Engine\Runtime\AppIcon.rc">

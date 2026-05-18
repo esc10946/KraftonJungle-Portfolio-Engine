@@ -1,4 +1,4 @@
-#include "Editor/UI/EditorMainPanel.h"
+﻿#include "Editor/UI/EditorMainPanel.h"
 
 #include "Editor/EditorEngine.h"
 #include "Editor/UI/EditorChromeConstants.h"
@@ -264,85 +264,6 @@ void FEditorMainPanel::RenderViewerToolbarControls(FEditorViewer* Viewer)
 		ImGui::EndPopup();
 	}
 
-	ImGui::SameLine(0.0f, 10.0f);
-	const FString& CurrentAnimPath = Viewer->GetAnimationSequencePath();
-	const char* AnimationLabel = "Animation";
-	if (!CurrentAnimPath.empty())
-	{
-		AnimationLabel = CurrentAnimPath.c_str();
-	}
-
-	ImGui::SetNextItemWidth(std::max(160.0f, ImGui::CalcTextSize(AnimationLabel).x + 42.0f));
-	if (ImGui::BeginCombo("##ViewerAnimationSequenceComboShared", AnimationLabel))
-	{
-		const TArray<FString>& AnimationPaths = EditorEngine->GetAssetService().GetAnimationSequenceAssetPaths();
-		bool bHasCompatibleAnimation = false;
-		for (const FString& AnimationPath : AnimationPaths)
-		{
-			if (!Viewer->IsAnimationSequenceCompatible(AnimationPath))
-			{
-				continue;
-			}
-
-			bHasCompatibleAnimation = true;
-
-			const bool bSelected = AnimationPath == CurrentAnimPath;
-			if (ImGui::MenuItem(AnimationPath.c_str(), nullptr, bSelected))
-			{
-				Viewer->SetAnimationSequence(AnimationPath);
-			}
-		}
-
-		if (AnimationPaths.empty() || !bHasCompatibleAnimation)
-		{
-			ImGui::TextDisabled("No compatible animation sequences");
-		}
-
-		if (!CurrentAnimPath.empty())
-		{
-			ImGui::Separator();
-			if (ImGui::MenuItem("Clear"))
-			{
-				Viewer->ClearAnimationSequence();
-			}
-		}
-		ImGui::EndCombo();
-	}
-
-	const bool bHasAnimation = Viewer->GetAnimationLength() > 0.0f;
-	if (!bHasAnimation)
-	{
-		ImGui::BeginDisabled();
-	}
-	ImGui::SameLine();
-	if (DrawViewportTextButton("##ViewerAnimationPlayShared", Viewer->IsAnimationPlaying() && !Viewer->IsAnimationPaused() ? "Pause" : "Play"))
-	{
-		if (Viewer->IsAnimationPlaying() && !Viewer->IsAnimationPaused())
-		{
-			Viewer->PauseAnimation();
-		}
-		else
-		{
-			Viewer->PlayAnimation();
-		}
-	}
-	ImGui::SameLine();
-	if (DrawViewportTextButton("##ViewerAnimationStopShared", "Stop"))
-	{
-		Viewer->StopAnimation();
-	}
-	ImGui::SameLine();
-	float AnimationTime = Viewer->GetAnimationTime();
-	const float AnimationLength = Viewer->GetAnimationLength();
-	ImGui::SetNextItemWidth(140.0f);
-	if (ImGui::SliderFloat("##ViewerAnimationTimeShared", &AnimationTime, 0.0f, AnimationLength, "%.2f"))
-	{
-		Viewer->SetAnimationTime(AnimationTime);
-	}
-	if (!bHasAnimation)
-	{
-		ImGui::EndDisabled();
-	}
 	ImGui::PopID();
 }
 

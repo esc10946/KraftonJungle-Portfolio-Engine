@@ -4,6 +4,14 @@
 
 class USkeletalMeshComponent;
 class FEditorViewer;
+class FAnimationViewer;
+
+struct FAnimTimelineUIState
+{
+    float TrackListWidth = 280.0f;
+    float FrameWidth = 30.0f;
+    int32 CurrentFrame = 16;
+};
 
 class FEditorViewerWindowWidget : public FEditorWidget
 {
@@ -66,6 +74,10 @@ private:
 	void ResetMeshDirtyBaseline();
 	bool HasMeshAssetEdits() const;
 
+	void RenderAnimationSequencePanelContent(
+		FAnimationViewer* AnimationViewer,
+		FAnimTimelineUIState& State);
+
     TArray<TArray<int32>> Children;             // bone idx → child bone indices
     TArray<TArray<int32>> BoneToSocketIndices;  // bone idx → socket array indices
     FSkeletalMesh* CachedMesh = nullptr;
@@ -81,8 +93,11 @@ private:
 	bool bHasCleanMeshEditSignature = false;
 
 	FEditorViewer* Viewer = nullptr;
+    FAnimTimelineUIState TimelineState;
+
     bool bOpen = false;
 
     float LeftPanelWidth = 250.0f;
     float RightPanelWidth = 250.0f;
+    float DownPanelHeight = 500.0f;
 };
