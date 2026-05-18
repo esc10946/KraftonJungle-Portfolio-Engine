@@ -20,6 +20,7 @@ class FOpaqueRenderPass;
 class FLightCullingPass;
 class FDepthPrePass;
 class FShadowPass;
+class FSkinCachePass;
 class FBaseRenderPass;
 class FVSMConversionRenderPass;
 class FSandevistanRenderPass;
@@ -37,6 +38,7 @@ public:
 
 private:
 	std::shared_ptr<FDepthPrePass> DepthPrePass;
+	std::shared_ptr<FSkinCachePass> SkinCachePass;
 	std::shared_ptr<FLightCullingPass> LightCullingPass;
 	std::shared_ptr<FShadowPass> ShadowPass;
 	std::shared_ptr<FOpaqueRenderPass> OpaqueRenderPass;

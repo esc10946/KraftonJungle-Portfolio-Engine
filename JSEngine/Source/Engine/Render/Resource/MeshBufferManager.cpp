@@ -4,6 +4,9 @@
 #include "Asset/StaticMesh.h"
 #include "Component/ProceduralMeshComponent.h"
 #include "Core/Logging/Stats.h"
+#include "Render/Skinning/SkinningRuntimeSettings.h"
+
+#include <string>
 
 namespace
 {
@@ -94,6 +97,7 @@ void FMeshBufferManager::Release()
 		pair.second.Release();
 	}
 	SkeletalBindPoseBufferMap.clear();
+	SkeletalBindPoseLastUsedFrameMap.clear();
 
 	for (auto& pair : SkeletalBoneMatrixBufferMap)
 	{
@@ -101,8 +105,66 @@ void FMeshBufferManager::Release()
 	}
 	SkeletalBoneMatrixBufferMap.clear();
 	SkeletalBoneMatrixCapacityMap.clear();
+	SkeletalBoneMatrixLastUsedFrameMap.clear();
+	ResourceTrackingFrame = 0;
+	bResourceTrackingFrameActive = false;
     
     Device = nullptr;
+}
+
+void FMeshBufferManager::BeginFrameResourceTracking()
+{
+	++ResourceTrackingFrame;
+	bResourceTrackingFrameActive = true;
+}
+
+void FMeshBufferManager::EndFrameResourceTracking()
+{
+	if (!bResourceTrackingFrameActive)
+	{
+		return;
+	}
+
+	for (auto It = SkeletalBindPoseBufferMap.begin(); It != SkeletalBindPoseBufferMap.end();)
+	{
+		const USkeletalMesh* Mesh = It->first;
+		auto LastUsedIt = SkeletalBindPoseLastUsedFrameMap.find(Mesh);
+		const bool bUsedThisFrame =
+			LastUsedIt != SkeletalBindPoseLastUsedFrameMap.end() &&
+			LastUsedIt->second == ResourceTrackingFrame;
+
+		if (bUsedThisFrame)
+		{
+			++It;
+			continue;
+		}
+
+		It->second.Release();
+		SkeletalBindPoseLastUsedFrameMap.erase(Mesh);
+		It = SkeletalBindPoseBufferMap.erase(It);
+	}
+
+	for (auto It = SkeletalBoneMatrixBufferMap.begin(); It != SkeletalBoneMatrixBufferMap.end();)
+	{
+		const uint32 ComponentUUID = It->first;
+		auto LastUsedIt = SkeletalBoneMatrixLastUsedFrameMap.find(ComponentUUID);
+		const bool bUsedThisFrame =
+			LastUsedIt != SkeletalBoneMatrixLastUsedFrameMap.end() &&
+			LastUsedIt->second == ResourceTrackingFrame;
+
+		if (bUsedThisFrame)
+		{
+			++It;
+			continue;
+		}
+
+		It->second.Release();
+		SkeletalBoneMatrixCapacityMap.erase(ComponentUUID);
+		SkeletalBoneMatrixLastUsedFrameMap.erase(ComponentUUID);
+		It = SkeletalBoneMatrixBufferMap.erase(It);
+	}
+
+	bResourceTrackingFrameActive = false;
 }
 
 //	MeshBuffer는 VB, IB를 모두 포함하고 있습니다.
@@ -156,8 +218,8 @@ FMeshBuffer* FMeshBufferManager::GetStaticMeshBuffer(const UStaticMesh* StaticMe
         return nullptr;
     }
 
-    FMeshBuffer& NewBuffer = TargetMap[StaticMeshAsset];
-    NewBuffer.CreateImmutableVertices(Device, Vertices, Indices);
+	FMeshBuffer& NewBuffer = TargetMap[StaticMeshAsset];
+    NewBuffer.CreateImmutableVertices(Device, Vertices, Indices, EGpuResourceCategory::Mesh, "StaticMesh.LOD" + std::to_string(LODLevel));
     
 
     return &NewBuffer;
@@ -189,7 +251,7 @@ FMeshBuffer* FMeshBufferManager::GetProcMeshBuffer(uint32 ProcMeshCompUUID, cons
     }
 
     FMeshBuffer& NewBuffer = ProcMeshBufferMap[ProcMeshCompUUID];
-    NewBuffer.CreateImmutableVertices(Device, Vertices, Indices);
+    NewBuffer.CreateImmutableVertices(Device, Vertices, Indices, EGpuResourceCategory::Mesh, "ProceduralMesh");
 
     return &NewBuffer;
 }
@@ -232,7 +294,7 @@ FMeshBuffer* FMeshBufferManager::GetSkeletalMeshBuffer(uint32 SkeletalMeshCompUU
 	}
 
 	FMeshBuffer& NewBuffer = SkeletalMeshBufferMap[SkeletalMeshCompUUID];
-	NewBuffer.CreateDynamicVertices<FSkeletalMeshVertex>(Device, static_cast<uint32>(Vertices.size()), Indices);
+	NewBuffer.CreateDynamicVertices<FSkeletalMeshVertex>(Device, static_cast<uint32>(Vertices.size()), Indices, EGpuResourceCategory::Skeletal, "SkeletalMesh.Dynamic");
 	{
 		SCOPE_STAT("CPU.Skinning.VertexUpload");
 		UpdateSkeletalMeshBufferVertices(Device, NewBuffer, Vertices);
@@ -252,6 +314,10 @@ FMeshBuffer* FMeshBufferManager::GetSkeletalBindPoseBuffer(const USkeletalMesh* 
 	auto It = SkeletalBindPoseBufferMap.find(SkeletalMeshAsset);
 	if (It != SkeletalBindPoseBufferMap.end() && It->second.IsValid())
 	{
+		if (bResourceTrackingFrameActive)
+		{
+			SkeletalBindPoseLastUsedFrameMap[SkeletalMeshAsset] = ResourceTrackingFrame;
+		}
 		return &It->second;
 	}
 
@@ -263,7 +329,11 @@ FMeshBuffer* FMeshBufferManager::GetSkeletalBindPoseBuffer(const USkeletalMesh* 
 	}
 
 	FMeshBuffer& NewBuffer = SkeletalBindPoseBufferMap[SkeletalMeshAsset];
-	NewBuffer.CreateImmutableVertices(Device, Vertices, Indices);
+	NewBuffer.CreateImmutableSourceVertices(Device, Vertices, Indices, EGpuResourceCategory::Skeletal, "SkeletalMesh.BindPose");
+	if (NewBuffer.IsValid() && bResourceTrackingFrameActive)
+	{
+		SkeletalBindPoseLastUsedFrameMap[SkeletalMeshAsset] = ResourceTrackingFrame;
+	}
 	return NewBuffer.IsValid() ? &NewBuffer : nullptr;
 }
 
@@ -291,13 +361,17 @@ FStructuredBuffer* FMeshBufferManager::GetSkeletalBoneMatrixBuffer(uint32 Skelet
 		}
 
 		FStructuredBuffer& NewBuffer = SkeletalBoneMatrixBufferMap[SkeletalMeshCompUUID];
-		NewBuffer.Create(Device, sizeof(FMatrix), BoneCount);
+		NewBuffer.Create(Device, sizeof(FMatrix), BoneCount, false, EGpuResourceCategory::Skeletal, "SkeletalMesh.BoneMatrices");
 		SkeletalBoneMatrixCapacityMap[SkeletalMeshCompUUID] = BoneCount;
 		BufferIt = SkeletalBoneMatrixBufferMap.find(SkeletalMeshCompUUID);
 		bNeedsUpload = true;
 	}
 
 	FStructuredBuffer& Buffer = BufferIt->second;
+	if (bResourceTrackingFrameActive)
+	{
+		SkeletalBoneMatrixLastUsedFrameMap[SkeletalMeshCompUUID] = ResourceTrackingFrame;
+	}
 	if (bNeedsUpload)
 	{
 		SCOPE_STAT("GPU.Skinning.BoneBufferUploadCPU");
@@ -311,4 +385,43 @@ FStructuredBuffer* FMeshBufferManager::GetSkeletalBoneMatrixBuffer(uint32 Skelet
 	}
 
 	return Buffer.GetSRV() ? &Buffer : nullptr;
+}
+
+void FMeshBufferManager::AppendGpuMemoryStats(FGpuResourceMemoryStats& OutStats) const
+{
+	for (const auto& Pair : MeshBufferMap)
+	{
+		Pair.second.AppendGpuMemoryStats(OutStats, "PrimitiveMeshBuffer");
+	}
+
+	for (int32 LodIndex = 0; LodIndex < MAX_LOD; ++LodIndex)
+	{
+		for (const auto& Pair : StaticMeshBufferMap[LodIndex])
+		{
+			Pair.second.AppendGpuMemoryStats(OutStats, "StaticMeshBuffer");
+		}
+	}
+
+	for (const auto& Pair : ProcMeshBufferMap)
+	{
+		Pair.second.AppendGpuMemoryStats(OutStats, "ProceduralMeshBuffer");
+	}
+
+	for (const auto& Pair : SkeletalMeshBufferMap)
+	{
+		Pair.second.AppendGpuMemoryStats(OutStats, "SkeletalDynamicMeshBuffer");
+	}
+
+	if (FSkinningRuntimeSettings::GetMode() == ESkinningMode::GPUVertexShader)
+	{
+		for (const auto& Pair : SkeletalBindPoseBufferMap)
+		{
+			Pair.second.AppendGpuMemoryStats(OutStats, "SkeletalBindPoseMeshBuffer");
+		}
+
+		for (const auto& Pair : SkeletalBoneMatrixBufferMap)
+		{
+			Pair.second.AppendGpuMemoryStats(OutStats, "SkeletalBoneMatrixBuffer");
+		}
+	}
 }

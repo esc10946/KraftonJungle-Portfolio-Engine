@@ -56,6 +56,7 @@ void FDefaultRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
 	const uint32 FrameWidth = static_cast<uint32>(Renderer.GetFD3DDevice().GetViewportWidth());
 	const uint32 FrameHeight = static_cast<uint32>(Renderer.GetFD3DDevice().GetViewportHeight());
 
+	Collector.BeginFrameResourceTracking();
 	Bus.Clear();
 
 	UWorld* World = Engine->GetWorld();
@@ -128,6 +129,7 @@ void FDefaultRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
 			}
 		}
 	}
+	Collector.EndFrameResourceTracking();
 
 	Renderer.PrepareBatchers(Bus);
 	Renderer.BeginFrame();

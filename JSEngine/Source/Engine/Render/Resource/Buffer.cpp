@@ -17,7 +17,7 @@ void FMeshBuffer::Create(ID3D11Device* InDevice, const FMeshData& InMeshData)
 	CreateImmutableVertices(InDevice, InMeshData.Vertices, InMeshData.Indices);
 }
 
-void FMeshBuffer::CreateImmutableVertexBuffer(ID3D11Device* InDevice, const void* InVertexData, uint32 InVertexCount, uint32 InVertexStride, const TArray<uint32>& InIndices)
+void FMeshBuffer::CreateImmutableVertexBuffer(ID3D11Device* InDevice, const void* InVertexData, uint32 InVertexCount, uint32 InVertexStride, const TArray<uint32>& InIndices, EGpuResourceCategory InCategory, const FString& InDebugName)
 {
 	if (!InDevice || !InVertexData || InVertexCount == 0 || InVertexStride == 0)
 	{
@@ -25,15 +25,46 @@ void FMeshBuffer::CreateImmutableVertexBuffer(ID3D11Device* InDevice, const void
 		return;
 	}
 
-	VertexBuffer.CreateRaw(InDevice, InVertexData, InVertexCount, InVertexStride, false);
+	bUseSourceVertexBuffer = false;
+	SourceVertexBuffer.Release();
+	VertexBuffer.CreateRaw(InDevice, InVertexData, InVertexCount, InVertexStride, false, InCategory, InDebugName + ".VB");
 
 	if (!InIndices.empty())
 	{
-		IndexBuffer.Create(InDevice, InIndices, static_cast<uint32>(sizeof(uint32) * InIndices.size()));
+		IndexBuffer.Create(InDevice, InIndices, static_cast<uint32>(sizeof(uint32) * InIndices.size()), InCategory, InDebugName + ".IB");
 	}
 }
 
-void FMeshBuffer::CreateDynamicVertexBuffer(ID3D11Device* InDevice, uint32 InMaxVertexCount, uint32 InVertexStride, const TArray<uint32>& InIndices)
+void FMeshBuffer::CreateImmutableSourceVertexBuffer(ID3D11Device* InDevice, const void* InVertexData, uint32 InVertexCount, uint32 InVertexStride, const TArray<uint32>& InIndices, EGpuResourceCategory InCategory, const FString& InDebugName)
+{
+	if (!InDevice || !InVertexData || InVertexCount == 0 || InVertexStride == 0)
+	{
+		Release();
+		return;
+	}
+
+	bUseSourceVertexBuffer = true;
+	VertexBuffer.Release();
+	const bool bCreated = SourceVertexBuffer.Create(InDevice, InVertexData, InVertexCount, InVertexStride, InCategory, InDebugName + ".SourceVB");
+	if (!bCreated)
+	{
+		bUseSourceVertexBuffer = false;
+		SourceVertexBuffer.Release();
+		VertexBuffer.CreateRaw(InDevice, InVertexData, InVertexCount, InVertexStride, false, InCategory, InDebugName + ".VB");
+		if (VertexBuffer.GetBuffer() == nullptr)
+		{
+			Release();
+			return;
+		}
+	}
+
+	if (!InIndices.empty())
+	{
+		IndexBuffer.Create(InDevice, InIndices, static_cast<uint32>(sizeof(uint32) * InIndices.size()), InCategory, InDebugName + ".IB");
+	}
+}
+
+void FMeshBuffer::CreateDynamicVertexBuffer(ID3D11Device* InDevice, uint32 InMaxVertexCount, uint32 InVertexStride, const TArray<uint32>& InIndices, EGpuResourceCategory InCategory, const FString& InDebugName)
 {
 	if (!InDevice || InMaxVertexCount == 0 || InVertexStride == 0)
 	{
@@ -41,11 +72,13 @@ void FMeshBuffer::CreateDynamicVertexBuffer(ID3D11Device* InDevice, uint32 InMax
 		return;
 	}
 
-	VertexBuffer.CreateRaw(InDevice, nullptr, InMaxVertexCount, InVertexStride, true);
+	bUseSourceVertexBuffer = false;
+	SourceVertexBuffer.Release();
+	VertexBuffer.CreateRaw(InDevice, nullptr, InMaxVertexCount, InVertexStride, true, InCategory, InDebugName + ".VB");
 
 	if (!InIndices.empty())
 	{
-		IndexBuffer.Create(InDevice, InIndices, static_cast<uint32>(sizeof(uint32) * InIndices.size()));
+		IndexBuffer.Create(InDevice, InIndices, static_cast<uint32>(sizeof(uint32) * InIndices.size()), InCategory, InDebugName + ".IB");
 	}
 }
 
@@ -57,15 +90,47 @@ void FMeshBuffer::UpdateDynamicVertexBuffer(ID3D11DeviceContext* InDeviceContext
 void FMeshBuffer::Release()
 {
 	VertexBuffer.Release();
+	SourceVertexBuffer.Release();
 	IndexBuffer.Release();
+	bUseSourceVertexBuffer = false;
+}
+
+void FMeshBuffer::AppendGpuMemoryStats(FGpuResourceMemoryStats& OutStats, const FString& OwnerName) const
+{
+	VertexBuffer.AppendGpuMemoryStats(OutStats, OwnerName);
+	SourceVertexBuffer.AppendGpuMemoryStats(OutStats, OwnerName);
+	IndexBuffer.AppendGpuMemoryStats(OutStats, OwnerName);
+}
+
+ID3D11Buffer* FMeshBuffer::GetDrawVertexBuffer() const
+{
+	return bUseSourceVertexBuffer ? SourceVertexBuffer.GetBuffer() : VertexBuffer.GetBuffer();
+}
+
+ID3D11ShaderResourceView* FMeshBuffer::GetSourceVertexSRV() const
+{
+	return bUseSourceVertexBuffer ? SourceVertexBuffer.GetSRV() : nullptr;
+}
+
+uint32 FMeshBuffer::GetDrawVertexCount() const
+{
+	return bUseSourceVertexBuffer ? SourceVertexBuffer.GetCount() : VertexBuffer.GetVertexCount();
+}
+
+uint32 FMeshBuffer::GetDrawVertexStride() const
+{
+	return bUseSourceVertexBuffer ? SourceVertexBuffer.GetStride() : VertexBuffer.GetStride();
 }
 
 #pragma endregion
 
 #pragma region __FVERTEXBUFFER__
 
-void FVertexBuffer::Create(ID3D11Device* InDevice, const TArray<FVertex>& InData, uint32 InByteWidth, uint32 InStride)
+void FVertexBuffer::Create(ID3D11Device* InDevice, const TArray<FVertex>& InData, uint32 InByteWidth, uint32 InStride, EGpuResourceCategory InCategory, const FString& InDebugName)
 {
+	Category = InCategory;
+	DebugName = InDebugName;
+
 	if (InData.empty() || InByteWidth == 0)
 	{
 		Release();
@@ -95,8 +160,11 @@ void FVertexBuffer::Create(ID3D11Device* InDevice, const TArray<FVertex>& InData
 	Stride = InStride;
 }
 
-void FVertexBuffer::CreateRaw(ID3D11Device* InDevice, const void* InData, uint32 InVertexCount, uint32 InStride, bool bDynamic)
+void FVertexBuffer::CreateRaw(ID3D11Device* InDevice, const void* InData, uint32 InVertexCount, uint32 InStride, bool bDynamic, EGpuResourceCategory InCategory, const FString& InDebugName)
 {
+	Category = InCategory;
+	DebugName = InDebugName;
+
 	if (!InDevice || InVertexCount == 0 || InStride == 0 || (!bDynamic && !InData))
 	{
 		Release();
@@ -145,6 +213,7 @@ void FVertexBuffer::Release()
 	VertexCount = 0;
 	VertexCapacity = 0;
 	Stride = 0;
+	DebugName.clear();
 }
 
 void FVertexBuffer::Update(ID3D11DeviceContext* InDeviceContext, const TArray<uint32>& InData, uint32 InByteWidth)
@@ -173,6 +242,182 @@ void FVertexBuffer::UpdateRaw(ID3D11DeviceContext* InDeviceContext, const void* 
 ID3D11Buffer* FVertexBuffer::GetBuffer() const
 {
 	return Buffer.Get();
+}
+
+void FVertexBuffer::AppendGpuMemoryStats(FGpuResourceMemoryStats& OutStats, const FString& OwnerName) const
+{
+	if (Buffer.Get() == nullptr || GetByteSize() == 0)
+	{
+		return;
+	}
+
+	OutStats.AddRecord(
+		Category,
+		DebugName.empty() ? FString("VertexBuffer") : DebugName,
+		GetByteSize(),
+		VertexCapacity,
+		Stride,
+		OwnerName);
+}
+
+#pragma endregion
+
+#pragma region __FVERTEXSOURCEBUFFER__
+
+bool FVertexSourceBuffer::Create(ID3D11Device* InDevice, const void* InData, uint32 InVertexCount, uint32 InStride, EGpuResourceCategory InCategory, const FString& InDebugName)
+{
+	Release();
+	if (!InDevice || !InData || InVertexCount == 0 || InStride == 0)
+	{
+		return false;
+	}
+
+	Category = InCategory;
+	DebugName = InDebugName;
+
+	D3D11_BUFFER_DESC Desc = {};
+	Desc.ByteWidth = InVertexCount * InStride;
+	Desc.Usage = D3D11_USAGE_IMMUTABLE;
+	Desc.BindFlags = D3D11_BIND_VERTEX_BUFFER | D3D11_BIND_SHADER_RESOURCE;
+	Desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
+
+	D3D11_SUBRESOURCE_DATA SRD = {};
+	SRD.pSysMem = InData;
+
+	HRESULT Hr = InDevice->CreateBuffer(&Desc, &SRD, Buffer.ReleaseAndGetAddressOf());
+	if (FAILED(Hr))
+	{
+		Release();
+		return false;
+	}
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC SrvDesc = {};
+	SrvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+	SrvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
+	SrvDesc.BufferEx.FirstElement = 0;
+	SrvDesc.BufferEx.NumElements = Desc.ByteWidth / sizeof(uint32);
+	SrvDesc.BufferEx.Flags = D3D11_BUFFEREX_SRV_FLAG_RAW;
+
+	Hr = InDevice->CreateShaderResourceView(Buffer.Get(), &SrvDesc, SRV.ReleaseAndGetAddressOf());
+	if (FAILED(Hr))
+	{
+		Release();
+		return false;
+	}
+
+	Count = InVertexCount;
+	Stride = InStride;
+	return true;
+}
+
+void FVertexSourceBuffer::Release()
+{
+	SRV.Reset();
+	Buffer.Reset();
+	Count = 0;
+	Stride = 0;
+	DebugName.clear();
+}
+
+void FVertexSourceBuffer::AppendGpuMemoryStats(FGpuResourceMemoryStats& OutStats, const FString& OwnerName) const
+{
+	if (!IsValid() || GetByteSize() == 0)
+	{
+		return;
+	}
+
+	OutStats.AddRecord(
+		Category,
+		DebugName.empty() ? FString("VertexSourceBuffer") : DebugName,
+		GetByteSize(),
+		Count,
+		Stride,
+		OwnerName);
+}
+
+#pragma endregion
+
+#pragma region __FRWVERTEXBUFFER__
+
+bool FRWVertexBuffer::Create(ID3D11Device* InDevice, uint32 InStride, uint32 InCount, EGpuResourceCategory InCategory, const FString& InDebugName)
+{
+	Release();
+	if (!InDevice || InStride == 0 || InCount == 0)
+	{
+		return false;
+	}
+
+	Category = InCategory;
+	DebugName = InDebugName;
+
+	D3D11_BUFFER_DESC Desc = {};
+	Desc.ByteWidth = InStride * InCount;
+	Desc.Usage = D3D11_USAGE_DEFAULT;
+	Desc.BindFlags = D3D11_BIND_VERTEX_BUFFER | D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS;
+	Desc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_ALLOW_RAW_VIEWS;
+
+	HRESULT Hr = InDevice->CreateBuffer(&Desc, nullptr, Buffer.ReleaseAndGetAddressOf());
+	if (FAILED(Hr))
+	{
+		Release();
+		return false;
+	}
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC SrvDesc = {};
+	SrvDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+	SrvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFEREX;
+	SrvDesc.BufferEx.FirstElement = 0;
+	SrvDesc.BufferEx.NumElements = Desc.ByteWidth / sizeof(uint32);
+	SrvDesc.BufferEx.Flags = D3D11_BUFFEREX_SRV_FLAG_RAW;
+	Hr = InDevice->CreateShaderResourceView(Buffer.Get(), &SrvDesc, SRV.ReleaseAndGetAddressOf());
+	if (FAILED(Hr))
+	{
+		Release();
+		return false;
+	}
+
+	D3D11_UNORDERED_ACCESS_VIEW_DESC UavDesc = {};
+	UavDesc.Format = DXGI_FORMAT_R32_TYPELESS;
+	UavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+	UavDesc.Buffer.FirstElement = 0;
+	UavDesc.Buffer.NumElements = Desc.ByteWidth / sizeof(uint32);
+	UavDesc.Buffer.Flags = D3D11_BUFFER_UAV_FLAG_RAW;
+	Hr = InDevice->CreateUnorderedAccessView(Buffer.Get(), &UavDesc, UAV.ReleaseAndGetAddressOf());
+	if (FAILED(Hr))
+	{
+		Release();
+		return false;
+	}
+
+	Count = InCount;
+	Stride = InStride;
+	return true;
+}
+
+void FRWVertexBuffer::Release()
+{
+	UAV.Reset();
+	SRV.Reset();
+	Buffer.Reset();
+	Count = 0;
+	Stride = 0;
+	DebugName.clear();
+}
+
+void FRWVertexBuffer::AppendGpuMemoryStats(FGpuResourceMemoryStats& OutStats, const FString& OwnerName) const
+{
+	if (!IsValid() || GetByteSize() == 0)
+	{
+		return;
+	}
+
+	OutStats.AddRecord(
+		Category,
+		DebugName.empty() ? FString("RWVertexBuffer") : DebugName,
+		GetByteSize(),
+		Count,
+		Stride,
+		OwnerName);
 }
 
 #pragma endregion
@@ -217,8 +462,11 @@ ID3D11Buffer* FConstantBuffer::GetBuffer()
 
 #pragma region __FINDEXBUFFER__
 
-void FIndexBuffer::Create(ID3D11Device* InDevice, const TArray<uint32>& InData, uint32 InByteWidth)
+void FIndexBuffer::Create(ID3D11Device* InDevice, const TArray<uint32>& InData, uint32 InByteWidth, EGpuResourceCategory InCategory, const FString& InDebugName)
 {
+	Category = InCategory;
+	DebugName = InDebugName;
+
 	if (InData.empty() || InByteWidth == 0)
 	{
 		Release();
@@ -247,6 +495,8 @@ void FIndexBuffer::Create(ID3D11Device* InDevice, const TArray<uint32>& InData, 
 void FIndexBuffer::Release()
 {
 	Buffer.Reset();
+	IndexCount = 0;
+	DebugName.clear();
 }
 
 void FIndexBuffer::Update(ID3D11DeviceContext* InDeviceContext, const TArray<uint32>& InData, uint32 InByteWidth)
@@ -261,11 +511,27 @@ ID3D11Buffer* FIndexBuffer::GetBuffer() const
 	return Buffer.Get();
 }
 
+void FIndexBuffer::AppendGpuMemoryStats(FGpuResourceMemoryStats& OutStats, const FString& OwnerName) const
+{
+	if (Buffer.Get() == nullptr || GetByteSize() == 0)
+	{
+		return;
+	}
+
+	OutStats.AddRecord(
+		Category,
+		DebugName.empty() ? FString("IndexBuffer") : DebugName,
+		GetByteSize(),
+		IndexCount,
+		sizeof(uint32),
+		OwnerName);
+}
+
 #pragma endregion
 
 #pragma region __FSTRUCTUREDBUFFER__
 
-void FStructuredBuffer::Create(ID3D11Device* InDevice, uint32 InElementSize, uint32 InMaxElements, bool bEnableUAV)
+void FStructuredBuffer::Create(ID3D11Device* InDevice, uint32 InElementSize, uint32 InMaxElements, bool bEnableUAV, EGpuResourceCategory InCategory, const FString& InDebugName)
 {
 	if (InElementSize == 0)
 	{
@@ -273,7 +539,10 @@ void FStructuredBuffer::Create(ID3D11Device* InDevice, uint32 InElementSize, uin
 		return;
 	}
 
+	Category = InCategory;
+	DebugName = InDebugName;
 	ElementSize = InElementSize;
+	Capacity = InMaxElements;
 
 	D3D11_BUFFER_DESC Desc = {};
 	Desc.ByteWidth = InElementSize * InMaxElements;
@@ -319,7 +588,9 @@ void FStructuredBuffer::Release()
 	UAV.Reset();
 	SRV.Reset();
 	Count = 0;
+	Capacity = 0;
 	ElementSize = 0;
+	DebugName.clear();
 }
 
 void FStructuredBuffer::Update(ID3D11DeviceContext* InContext, const void* InData, uint32 InElementCount)
@@ -356,6 +627,22 @@ ID3D11ShaderResourceView* FStructuredBuffer::GetSRV() const
 ID3D11UnorderedAccessView* FStructuredBuffer::GetUAV() const
 {
 	return UAV.Get();
+}
+
+void FStructuredBuffer::AppendGpuMemoryStats(FGpuResourceMemoryStats& OutStats, const FString& OwnerName) const
+{
+	if (Buffer.Get() == nullptr || GetByteSize() == 0)
+	{
+		return;
+	}
+
+	OutStats.AddRecord(
+		Category,
+		DebugName.empty() ? FString("StructuredBuffer") : DebugName,
+		GetByteSize(),
+		Capacity,
+		ElementSize,
+		OwnerName);
 }
 
 #pragma endregion

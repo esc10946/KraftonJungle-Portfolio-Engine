@@ -420,9 +420,45 @@ struct FSelectionMaskConstants
 
 struct FSkeletalGpuSkinningPayload
 {
+	// 현재는 bone matrix 전달용 payload입니다.
+	// Morph target 입력은 SkinCache entry 쪽에 붙이고, draw pass는 최종 FDeformedVertex stream만 소비합니다.
 	ESkinningMode Mode = ESkinningMode::CPU;
 	ID3D11ShaderResourceView* BoneMatrixSRV = nullptr;
 	uint32 BoneCount = 0;
+};
+
+struct FVertexStreamOverride
+{
+	ID3D11Buffer* VertexBuffer = nullptr;
+	uint32 Stride = 0;
+	uint32 VertexCount = 0;
+	uint32 Offset = 0;
+
+	bool IsValid() const
+	{
+		return VertexBuffer != nullptr && Stride > 0 && VertexCount > 0;
+	}
+};
+
+struct FMeshDrawBinding
+{
+	ID3D11Buffer* VertexBuffer = nullptr;
+	ID3D11Buffer* IndexBuffer = nullptr;
+	uint32 VertexStride = 0;
+	uint32 VertexOffset = 0;
+	uint32 VertexCount = 0;
+	uint32 IndexStart = 0;
+	uint32 IndexCount = 0;
+
+	bool HasIndexBuffer() const
+	{
+		return IndexBuffer != nullptr && IndexCount > 0;
+	}
+
+	bool IsValid() const
+	{
+		return VertexBuffer != nullptr && VertexStride > 0 && VertexCount > 0;
+	}
 };
 
 inline bool IsSkeletalVertexFactoryResourceType(EVertexFactoryType Type)
@@ -479,6 +515,7 @@ struct FRenderCommand
 	EVertexFactoryType VertexFactoryType = EVertexFactoryType::StaticMesh;
 	uint32 SectionIndexStart = 0;
 	uint32 SectionIndexCount = 0;
+	FVertexStreamOverride VertexStreamOverride;
 
 	FBoundingBox WorldAABB;
 	FSkeletalGpuSkinningPayload SkeletalGpuSkinning;
@@ -514,4 +551,54 @@ inline void BindVertexFactoryResources(
 	// VertexFactory별 리소스 바인딩 진입점.
 	// 현재 구현된 VF 전용 리소스는 GPU skinning의 bone matrix SRV뿐입니다.
 	BindSkeletalGpuSkinningBoneMatrixSRV(Context, Type, Cmd.SkeletalGpuSkinning);
+}
+
+inline bool BuildMeshDrawBinding(const FRenderCommand& Cmd, FMeshDrawBinding& OutBinding, bool bAllowVertexStreamOverride = true)
+{
+	OutBinding = {};
+	if (Cmd.MeshBuffer == nullptr || !Cmd.MeshBuffer->IsValid())
+	{
+		return false;
+	}
+
+	const FVertexStreamOverride& Override = Cmd.VertexStreamOverride;
+	if (bAllowVertexStreamOverride && Override.IsValid())
+	{
+		OutBinding.VertexBuffer = Override.VertexBuffer;
+		OutBinding.VertexStride = Override.Stride;
+		OutBinding.VertexOffset = Override.Offset;
+		OutBinding.VertexCount = Override.VertexCount;
+	}
+	else
+	{
+		OutBinding.VertexBuffer = Cmd.MeshBuffer->GetDrawVertexBuffer();
+		OutBinding.VertexStride = Cmd.MeshBuffer->GetDrawVertexStride();
+		OutBinding.VertexOffset = 0;
+		OutBinding.VertexCount = Cmd.MeshBuffer->GetDrawVertexCount();
+	}
+
+	const FIndexBuffer& IndexBuffer = Cmd.MeshBuffer->GetIndexBuffer();
+	OutBinding.IndexBuffer = IndexBuffer.GetBuffer();
+	OutBinding.IndexStart = Cmd.SectionIndexStart;
+	OutBinding.IndexCount = Cmd.SectionIndexCount != 0 ? Cmd.SectionIndexCount : IndexBuffer.GetIndexCount();
+
+	return OutBinding.IsValid();
+}
+
+inline void BindMeshDrawBinding(ID3D11DeviceContext* Context, const FMeshDrawBinding& Binding)
+{
+	if (!Context || !Binding.IsValid())
+	{
+		return;
+	}
+
+	ID3D11Buffer* VertexBuffer = Binding.VertexBuffer;
+	uint32 Stride = Binding.VertexStride;
+	uint32 Offset = Binding.VertexOffset;
+	Context->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
+
+	if (Binding.HasIndexBuffer())
+	{
+		Context->IASetIndexBuffer(Binding.IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
+	}
 }

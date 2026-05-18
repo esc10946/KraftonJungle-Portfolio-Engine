@@ -14,6 +14,7 @@ enum class EVertexFactoryType : uint8
 {
     StaticMesh,
     SkeletalMesh,
+    SkinCacheSkeletalMesh,
     SkeletalMeshOverlay,
     ProceduralMesh,
     Primitive,
@@ -71,6 +72,16 @@ public:
             },
             sizeof(FSkeletalMeshVertex)
         };
+        static const FVertexLayoutDesc DeformedVertexLayout = {
+            {
+                { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, static_cast<uint32>(offsetof(FDeformedVertex, Position)) },
+                { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, static_cast<uint32>(offsetof(FDeformedVertex, Normal)) },
+                { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, static_cast<uint32>(offsetof(FDeformedVertex, UVs)) },
+                { "TANGENT", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, static_cast<uint32>(offsetof(FDeformedVertex, Tangent)) },
+                { "COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, static_cast<uint32>(offsetof(FDeformedVertex, Color)) },
+            },
+            sizeof(FDeformedVertex)
+        };
         static const FVertexLayoutDesc PrimitiveVertexLayout = {
             {
                 { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, static_cast<uint32>(offsetof(FVertex, Position)) },
@@ -125,6 +136,19 @@ public:
             SkeletalVertexLayout,
             SkeletalVertexLayout,
             SkeletalVertexLayout
+        };
+        static const FVertexFactoryDesc SkinCacheSkeletalMeshDesc = {
+            FShaderPaths::MaterialUberLit,
+            FShaderPaths::DepthPrepass,
+            FShaderPaths::Shadow,
+            FShaderPaths::EditorSelectionMask,
+            "SkinCacheSkeletalMeshVS",
+            "SkinCacheDepthPrepassVS",
+            "SkinCacheShadowVS",
+            "VSSkinCacheSkeletalMesh",
+            DeformedVertexLayout,
+            DeformedVertexLayout,
+            DeformedVertexLayout
         };
         static const FVertexFactoryDesc SkeletalMeshOverlayDesc = {
             FShaderPaths::EditorBoneWeightHeatmap,
@@ -209,6 +233,8 @@ public:
         {
         case EVertexFactoryType::SkeletalMesh:
             return SkeletalMeshDesc;
+        case EVertexFactoryType::SkinCacheSkeletalMesh:
+            return SkinCacheSkeletalMeshDesc;
         case EVertexFactoryType::SkeletalMeshOverlay:
             return SkeletalMeshOverlayDesc;
         case EVertexFactoryType::Decal:

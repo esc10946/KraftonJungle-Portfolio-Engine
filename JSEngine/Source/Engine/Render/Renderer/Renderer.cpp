@@ -13,6 +13,7 @@
 #include "Component/BillboardComponent.h"
 #include "Component/PostProcess/Light/DirectionalLightComponent.h"
 #include "Component/PrimitiveComponent.h"
+#include "Component/SkeletalMeshComponent.h"
 #include "Component/SubUVComponent.h"
 #include "GameFramework/AActor.h"
 #include "Render/Common/ShaderBindingSlots.h"
@@ -112,6 +113,11 @@ namespace
 			PSEntryPoint = "PSTextured";
 			VertexLayout = &FVertexFactoryRegistry::Get(EVertexFactoryType::SkeletalMesh).SelectionLayout;
 			break;
+		case 4:
+			VSEntryPoint = "VSSkinCacheSkeletalMesh";
+			PSEntryPoint = "PSTextured";
+			VertexLayout = &FVertexFactoryRegistry::Get(EVertexFactoryType::SkinCacheSkeletalMesh).SelectionLayout;
+			break;
 		default:
 			break;
 		}
@@ -199,35 +205,26 @@ static FMatrix MakeEditorIdPickBillboardMatrix(const UBillboardComponent* Billbo
 
 static void DrawIdPickCommand(ID3D11DeviceContext* Context, const FRenderCommand& Command)
 {
-    if (!Context || !Command.MeshBuffer || !Command.MeshBuffer->IsValid())
+    if (!Context)
     {
         return;
     }
 
-    ID3D11Buffer* VertexBuffer = Command.MeshBuffer->GetVertexBuffer().GetBuffer();
-    if (!VertexBuffer)
+	FMeshDrawBinding DrawBinding;
+    if (!BuildMeshDrawBinding(Command, DrawBinding))
     {
         return;
     }
 
-    uint32 Stride = Command.MeshBuffer->GetVertexBuffer().GetStride();
-    uint32 Offset = 0;
-    if (Stride == 0)
-    {
-        return;
-    }
+	BindMeshDrawBinding(Context, DrawBinding);
 
-    Context->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
-
-    ID3D11Buffer* IndexBuffer = Command.MeshBuffer->GetIndexBuffer().GetBuffer();
-    if (IndexBuffer)
+    if (DrawBinding.HasIndexBuffer())
     {
-        Context->IASetIndexBuffer(IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-        Context->DrawIndexed(Command.SectionIndexCount, Command.SectionIndexStart, 0);
+        Context->DrawIndexed(DrawBinding.IndexCount, DrawBinding.IndexStart, 0);
     }
     else
     {
-        Context->Draw(Command.MeshBuffer->GetVertexBuffer().GetVertexCount(), 0);
+        Context->Draw(DrawBinding.VertexCount, 0);
     }
 }
 
@@ -246,6 +243,7 @@ void FRenderer::Create(HWND hWindow)
 		FShaderHelper::BuildLightCullingCSMacros(ELightCullMode::Clustered).data(), "LightCullingCS_Clustered");
 	FResourceManager::Get().LoadComputeShader("Shaders/Compute/LightCullingCS.hlsl", "main",
 		FShaderHelper::BuildLightCullingCSMacros(ELightCullMode::Tiled).data(), "LightCullingCS_Tiled");
+	FResourceManager::Get().LoadComputeShader(FShaderPaths::ComputeSkinCache, "main", nullptr, "SkinCacheCS");
 
     {
         auto Macros = FShaderHelper::BuildVSMBlurCSMacros(EVSMBlurPass::Horizontal);
@@ -279,13 +277,13 @@ void FRenderer::CreateResources()
 
 	Resources.ShadowBuffer.Create(Device.GetDevice(), sizeof(FShadowConstants));
 	Resources.LightBuffer.Create(Device.GetDevice(), sizeof(FUberConstants));
-    Resources.LightShadowIndexBuffer.Create(Device.GetDevice(), sizeof(FLightShadowIndices), 1024);
-    Resources.AtlasShadowBuffer.Create(Device.GetDevice(), sizeof(FShadowAtlasConstants), 1024);
+    Resources.LightShadowIndexBuffer.Create(Device.GetDevice(), sizeof(FLightShadowIndices), 1024, false, EGpuResourceCategory::Shadow, "Shadow.LightShadowIndices");
+    Resources.AtlasShadowBuffer.Create(Device.GetDevice(), sizeof(FShadowAtlasConstants), 1024, false, EGpuResourceCategory::Shadow, "Shadow.AtlasConstants");
 
 	// Tile을 나누는 기준에 따라서 ByteWidth 설정 수정이 필요합니다.
-	Resources.LightStructuredBuffer.Create(Device.GetDevice(), sizeof(FLightInfo), 1024);
-	Resources.LightCulledIndexBuffer.Create(Device.GetDevice(), sizeof(uint32), 522240 * 24, true);
-	Resources.LightTileBuffer.Create(Device.GetDevice(), sizeof(uint32) * 2, 522240 * 24, true);
+	Resources.LightStructuredBuffer.Create(Device.GetDevice(), sizeof(FLightInfo), 1024, false, EGpuResourceCategory::Lighting, "Lighting.Lights");
+	Resources.LightCulledIndexBuffer.Create(Device.GetDevice(), sizeof(uint32), 522240 * 24, true, EGpuResourceCategory::Lighting, "Lighting.CulledIndices");
+	Resources.LightTileBuffer.Create(Device.GetDevice(), sizeof(uint32) * 2, 522240 * 24, true, EGpuResourceCategory::Lighting, "Lighting.Tiles");
 
 	Resources.FogPassConstantBuffer.Create(Device.GetDevice(), sizeof(FFogPassConstants));
 	Resources.FXAAConstantBuffer.Create(Device.GetDevice(), sizeof(FFXAAConstants));
@@ -294,10 +292,10 @@ void FRenderer::CreateResources()
     Resources.MeshOverlayConstantBuffer.Create(Device.GetDevice(), sizeof(FMeshOverlayConstants));
     Resources.SandevistanCB.Create(Device.GetDevice(), sizeof(FSandevistanConstants));
     Resources.PostProcessCB.Create(Device.GetDevice(), sizeof(FPostProcessConstants));
-    Resources.ScreenOverlayCB.Create(Device.GetDevice(), sizeof(FScreenOverlayConstants));
+	Resources.ScreenOverlayCB.Create(Device.GetDevice(), sizeof(FScreenOverlayConstants));
 	Resources.LightPassConstantBuffer.Create(Device.GetDevice(), sizeof(FLightPassConstants));
-	Resources.MPLightStructuredBuffer.Create(Device.GetDevice(), sizeof(FLightData), 256);
-	Resources.DecalStructuredBuffer.Create(Device.GetDevice(), sizeof(FDecalInfo), 256);
+	Resources.MPLightStructuredBuffer.Create(Device.GetDevice(), sizeof(FLightData), 256, false, EGpuResourceCategory::Lighting, "Lighting.MultipassLights");
+	Resources.DecalStructuredBuffer.Create(Device.GetDevice(), sizeof(FDecalInfo), 256, false, EGpuResourceCategory::Other, "Decal.Infos");
 
 	// VSM 전용 ComputeShader Constantbuffer
     Resources.VSMConstantBuffer.Create(Device.GetDevice(), sizeof(FVSMBlurConstants));
@@ -344,6 +342,7 @@ void FRenderer::Release()
 
 	RenderPipeline.Release();
     RenderPassContext.reset();
+	SkinCacheManager.Release();
 
 	Resources.PerObjectConstantBuffer.Release();
 	Resources.FrameBuffer.Release();
@@ -407,6 +406,82 @@ void FRenderer::PrepareBatchers(const FRenderBus& InRenderBus)
 		PassBatchers[i].Clear();
 		for (const auto& Cmd : AlignedCommands)
 			PassBatchers[i].Collect(Cmd, InRenderBus);
+	}
+}
+
+void FRenderer::ResolveSkinCacheCommands(FRenderBus& InOutRenderBus, bool bRequireDispatchedOutput)
+{
+	if (!Device.GetDevice() || !FResourceManager::Get().GetComputeShader("SkinCacheCS"))
+	{
+		return;
+	}
+
+	static constexpr ERenderPass SkinCacheCandidatePasses[] =
+	{
+		ERenderPass::Opaque,
+		ERenderPass::SelectionMask,
+	};
+
+	TArray<uint32> ActiveSkinCacheComponents;
+
+	for (ERenderPass Pass : SkinCacheCandidatePasses)
+	{
+		TArray<FRenderCommand>& Commands = InOutRenderBus.GetMutableCommands(Pass);
+		for (FRenderCommand& Cmd : Commands)
+		{
+			if (Cmd.VertexFactoryType != EVertexFactoryType::SkeletalMesh || !Cmd.MeshBuffer)
+			{
+				continue;
+			}
+
+			USkeletalMeshComponent* SkeletalMeshComp = Cast<USkeletalMeshComponent>(Cmd.SourcePrimitive);
+			if (!SkeletalMeshComp || !SkeletalMeshComp->ShouldUseSkinCache())
+			{
+				continue;
+			}
+
+			if (SkeletalMeshComp->GetEffectiveSkinningMode() != ESkinningMode::GPUVertexShader)
+			{
+				continue;
+			}
+
+			if (!Cmd.MeshBuffer->HasSourceVertexBuffer() || !Cmd.SkeletalGpuSkinning.BoneMatrixSRV)
+			{
+				continue;
+			}
+
+			if (Pass == ERenderPass::Opaque &&
+				std::find(ActiveSkinCacheComponents.begin(), ActiveSkinCacheComponents.end(), SkeletalMeshComp->GetUUID()) == ActiveSkinCacheComponents.end())
+			{
+				ActiveSkinCacheComponents.push_back(SkeletalMeshComp->GetUUID());
+			}
+
+			USkeletalMesh* SkeletalMesh = SkeletalMeshComp->GetSkeletalMesh();
+			FSkinCacheEntry* Entry = SkinCacheManager.GetOrCreateEntry(
+				Device.GetDevice(),
+				SkeletalMeshComp->GetUUID(),
+				SkeletalMesh,
+				Cmd.MeshBuffer,
+				SkeletalMeshComp->GetDeformationRevision());
+			if (!Entry || !Entry->OutputBuffer.IsValid())
+			{
+				continue;
+			}
+
+			if (bRequireDispatchedOutput && Entry->CachedRevision != SkeletalMeshComp->GetDeformationRevision())
+			{
+				continue;
+			}
+
+			Cmd.VertexFactoryType = EVertexFactoryType::SkinCacheSkeletalMesh;
+			Cmd.VertexStreamOverride = Entry->MakeVertexStreamOverride();
+			Cmd.SkeletalGpuSkinning.Mode = ESkinningMode::GPUComputeSkinCache;
+		}
+	}
+
+	if (!bRequireDispatchedOutput)
+	{
+		SkinCacheManager.RemoveEntriesNotIn(ActiveSkinCacheComponents);
 	}
 }
 
@@ -543,13 +618,19 @@ void FRenderer::Render(const FRenderBus& InRenderBus)
 	ID3D11DeviceContext* Context = Device.GetDeviceContext();
 	UpdateUberBuffer(Context, InRenderBus);
     UpdateFrameBuffer(Context, InRenderBus);
+	if (FSkinningRuntimeSettings::GetMode() == ESkinningMode::CPU)
+	{
+		SkinCacheManager.Release();
+	}
+	SkinCacheResolvedRenderBus = InRenderBus;
+	ResolveSkinCacheCommands(SkinCacheResolvedRenderBus, /*bRequireDispatchedOutput=*/ false);
 
 	/** Opaque 만 테스트 */
     
 	RenderPassContext->Device = Device.GetDevice();
     RenderPassContext->DeviceContext = Device.GetDeviceContext();
     RenderPassContext->RenderState = &PassRenderStates[(uint32)ERenderPass::Opaque];
-    RenderPassContext->RenderBus = &InRenderBus;
+    RenderPassContext->RenderBus = &SkinCacheResolvedRenderBus;
     RenderPassContext->RenderTargets = &CurrentRenderTargets;
     RenderPassContext->RenderResources = &Resources;
     RenderPassContext->FontBatcher = &FontBatcher;
@@ -557,6 +638,7 @@ void FRenderer::Render(const FRenderBus& InRenderBus)
     RenderPassContext->GridLineBatcher = &GridLineBatcher;
     RenderPassContext->EditorLineBatcher = &EditorLineBatcher;
     RenderPassContext->EditorOverlayLineBatcher = &EditorOverlayLineBatcher;
+    RenderPassContext->SkinCacheManager = &SkinCacheManager;
 	RenderPipeline.Render(RenderPassContext.get());
 	
 	SceneFinalSRV = RenderPipeline.GetOutSRV();
@@ -575,6 +657,8 @@ void FRenderer::RenderEditorIdPickBuffer(const FRenderBus& InRenderBus, FViewpor
     }
 
     UpdateFrameBuffer(Context, InRenderBus);
+    FRenderBus PickRenderBus = InRenderBus;
+    ResolveSkinCacheCommands(PickRenderBus, /*bRequireDispatchedOutput=*/ true);
 
     const float ClearId[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
     Context->ClearRenderTargetView(Resource.EditorIdPickRTV.Get(), ClearId);
@@ -606,7 +690,7 @@ void FRenderer::RenderEditorIdPickBuffer(const FRenderBus& InRenderBus, FViewpor
 
     for (ERenderPass Pass : PickPasses)
     {
-        const TArray<FRenderCommand>& Commands = InRenderBus.GetCommands(Pass);
+        const TArray<FRenderCommand>& Commands = PickRenderBus.GetCommands(Pass);
         for (const FRenderCommand& Command : Commands)
         {
             UPrimitiveComponent* Primitive = Command.SourcePrimitive;
@@ -631,7 +715,14 @@ void FRenderer::RenderEditorIdPickBuffer(const FRenderBus& InRenderBus, FViewpor
             uint32 ShaderKey = 0;
             if (Command.Type == ERenderCommandType::StaticMesh || Command.Type == ERenderCommandType::SkeletalMesh)
             {
-                ShaderKey = Command.VertexFactoryType == EVertexFactoryType::SkeletalMesh ? 3 : 1;
+                if (Command.VertexFactoryType == EVertexFactoryType::SkinCacheSkeletalMesh)
+                {
+                    ShaderKey = 4;
+                }
+                else
+                {
+                    ShaderKey = Command.VertexFactoryType == EVertexFactoryType::SkeletalMesh ? 3 : 1;
+                }
                 ID3D11ShaderResourceView* DiffuseSRV = GetDiffuseSRV(Command.Material);
                 TextureSRV = DiffuseSRV ? DiffuseSRV : DefaultSRV;
                 PickingConstants.bUseAlphaTest = DiffuseSRV ? 1u : 0u;
@@ -673,7 +764,7 @@ void FRenderer::RenderEditorIdPickBuffer(const FRenderBus& InRenderBus, FViewpor
                 if (UBillboardComponent* Billboard = Cast<UBillboardComponent>(Primitive))
                 {
                     PerObjectConstants = FPerObjectConstants(
-                        MakeEditorIdPickBillboardMatrix(Billboard, InRenderBus),
+                        MakeEditorIdPickBillboardMatrix(Billboard, PickRenderBus),
                         Command.PerObjectConstants.Color);
                 }
             }
@@ -1468,21 +1559,8 @@ void FRenderer::BindShaderByType(const FRenderCommand& InCmd, ID3D11DeviceContex
 
 void FRenderer::DrawCommand(ID3D11DeviceContext* InDeviceContext, const FRenderCommand& InCommand)
 {
-	if (InCommand.MeshBuffer == nullptr || !InCommand.MeshBuffer->IsValid())
-	{
-		return;
-	}
-
-	uint32 offset = 0;
-	ID3D11Buffer* vertexBuffer = InCommand.MeshBuffer->GetVertexBuffer().GetBuffer();
-	if (vertexBuffer == nullptr)
-	{
-		return;
-	}
-
-	uint32 vertexCount = InCommand.MeshBuffer->GetVertexBuffer().GetVertexCount();
-	uint32 stride = InCommand.MeshBuffer->GetVertexBuffer().GetStride();
-	if (vertexCount == 0 || stride == 0)
+	FMeshDrawBinding DrawBinding;
+	if (!BuildMeshDrawBinding(InCommand, DrawBinding))
 	{
 		return;
 	}
@@ -1499,19 +1577,15 @@ void FRenderer::DrawCommand(ID3D11DeviceContext* InDeviceContext, const FRenderC
 		}
 	}
 
-	InDeviceContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+	BindMeshDrawBinding(InDeviceContext, DrawBinding);
 
-	ID3D11Buffer* indexBuffer = InCommand.MeshBuffer->GetIndexBuffer().GetBuffer();
-	if (indexBuffer != nullptr)
+	if (DrawBinding.HasIndexBuffer())
 	{
-		uint32 indexStart = InCommand.SectionIndexStart;
-		uint32 indexCount = InCommand.SectionIndexCount;
-		InDeviceContext->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
-		InDeviceContext->DrawIndexed(indexCount, indexStart, 0);
+		InDeviceContext->DrawIndexed(DrawBinding.IndexCount, DrawBinding.IndexStart, 0);
 	}
 	else
 	{
-		InDeviceContext->Draw(vertexCount, 0);
+		InDeviceContext->Draw(DrawBinding.VertexCount, 0);
 	}
 }
 

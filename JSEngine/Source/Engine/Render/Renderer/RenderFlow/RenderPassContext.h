@@ -9,6 +9,7 @@ class FRenderBus;
 class FFontBatcher;
 class FSubUVBatcher;
 class FLineBatcher;
+class FSkinCacheManager;
 
 struct FRenderPassContext
 {
@@ -23,6 +24,7 @@ struct FRenderPassContext
     FLineBatcher* GridLineBatcher = nullptr;
     FLineBatcher* EditorLineBatcher = nullptr;
     FLineBatcher* EditorOverlayLineBatcher = nullptr;   // 깊이 무시 와이어 (본 등)
+    FSkinCacheManager* SkinCacheManager = nullptr;
 
 	ID3D11RenderTargetView* FinalRTV = nullptr;
     ID3D11ShaderResourceView* FinalSRV = nullptr;

@@ -23,6 +23,7 @@ public:
 	void AddCommand(ERenderPass Pass, const FRenderCommand& InCommand);
 	void AddCommand(ERenderPass Pass, FRenderCommand&& InCommand);
 	const TArray<FRenderCommand>& GetCommands(ERenderPass Pass) const;
+	TArray<FRenderCommand>& GetMutableCommands(ERenderPass Pass);
 
 	// Getter,Setter
 	void SetViewProjection(const FMatrix& InView, const FMatrix& InProj, float InNearPlane, float InFarPlane);

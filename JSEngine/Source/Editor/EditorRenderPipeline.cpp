@@ -170,14 +170,19 @@ void FEditorRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
 #endif
     const auto StatsEnd = std::chrono::steady_clock::now();
 
-    for (FRenderCollector::FCullingStats& Stats : ViewportCullingStats)
+	for (FRenderCollector::FCullingStats& Stats : ViewportCullingStats)
     {
         Stats = {};
     }
     const auto ResetStatsEnd = std::chrono::steady_clock::now();
 
+	Collector.BeginFrameResourceTracking();
+
     if (!Editor->GetFocusedWorld())
+	{
+		Collector.EndFrameResourceTracking();
         return;
+	}
 
     // 1회: 전체 백버퍼 클리어 (색상 + 깊이/스텐실)
     const auto BeginFrameStart = std::chrono::steady_clock::now();
@@ -212,6 +217,8 @@ void FEditorRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
         Editor->RenderUI(DeltaTime);
         UIEnd = std::chrono::steady_clock::now();
     }
+
+	Collector.EndFrameResourceTracking();
 
     const auto EndFrameStart = std::chrono::steady_clock::now();
     Renderer.EndFrame();
@@ -640,6 +647,11 @@ const FRenderCollector::FLightStats& FEditorRenderPipeline::GetViewportLightStat
 	}
 
 	return ViewportLightStats[ViewportIndex];
+}
+
+void FEditorRenderPipeline::AppendGpuMemoryStats(FGpuResourceMemoryStats& OutStats) const
+{
+	Collector.AppendGpuMemoryStats(OutStats);
 }
 
 ID3D11ShaderResourceView* FEditorRenderPipeline::RenderMaterialPreview(

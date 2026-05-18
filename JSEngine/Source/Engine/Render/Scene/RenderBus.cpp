@@ -36,6 +36,11 @@ const TArray<FRenderCommand>& FRenderBus::GetCommands(ERenderPass Pass) const
 	return PassQueues[(uint32)Pass];
 }
 
+TArray<FRenderCommand>& FRenderBus::GetMutableCommands(ERenderPass Pass)
+{
+	return PassQueues[(uint32)Pass];
+}
+
 void FRenderBus::SetViewProjection(const FMatrix& InView, const FMatrix& InProj, float InNearPlane, float InFarPlane)
 {
 	View = InView;

@@ -31,8 +31,12 @@ private:
 	TMap<uint32, FMeshBuffer> SkeletalMeshBufferMap;
 	TMap<uint32, const USkeletalMesh*> SkeletalMeshSourceMap;
 	TMap<const USkeletalMesh*, FMeshBuffer> SkeletalBindPoseBufferMap;
+	TMap<const USkeletalMesh*, uint64> SkeletalBindPoseLastUsedFrameMap;
 	TMap<uint32, FStructuredBuffer> SkeletalBoneMatrixBufferMap;
 	TMap<uint32, uint32> SkeletalBoneMatrixCapacityMap;
+	TMap<uint32, uint64> SkeletalBoneMatrixLastUsedFrameMap;
+	uint64 ResourceTrackingFrame = 0;
+	bool bResourceTrackingFrameActive = false;
 
 public:
 
@@ -41,6 +45,8 @@ private:
 public:
 	void Create(ID3D11Device* InDevice);
 	void Release();
+	void BeginFrameResourceTracking();
+	void EndFrameResourceTracking();
 
 	FMeshBuffer& GetMeshBuffer(EPrimitiveType InPrimitiveType);
     FMeshBuffer* GetStaticMeshBuffer(const UStaticMesh* StaticMeshAsset, int32 LODLevel = 0);
@@ -49,4 +55,5 @@ public:
 	FMeshBuffer* GetSkeletalMeshBuffer(uint32 SkeletalMeshCompUUID, const USkeletalMesh* SkeletalMeshAsset, const TArray<FSkeletalMeshVertex>& Vertices, const TArray<uint32>& Indices, bool bNeedsUpload);
 	FMeshBuffer* GetSkeletalBindPoseBuffer(const USkeletalMesh* SkeletalMeshAsset);
 	FStructuredBuffer* GetSkeletalBoneMatrixBuffer(uint32 SkeletalMeshCompUUID, const TArray<FMatrix>& BoneMatrices, bool bNeedsUpload);
+	void AppendGpuMemoryStats(FGpuResourceMemoryStats& OutStats) const;
 };
