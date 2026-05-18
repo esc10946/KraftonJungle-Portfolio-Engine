@@ -6,6 +6,7 @@
 class UAnimStateMachineAsset;
 class UAnimInstance;
 class UAnimSingleNodeInstance;
+struct FAnimNotifyEvent;
 struct FAnimStateMachineContext;
 
 /**
@@ -33,6 +34,9 @@ public:
     bool LoadStateMachineFromJson(const FString& JsonPath);
     bool RegisterStateAnimationPath(const FName& AnimationName, const FString& AnimationPath);
     void SetAnimStateMachineContext(const FAnimStateMachineContext& Context);
+    void SetAutoUpdateAnimStateMachineContext(bool bEnabled) { bAutoUpdateAnimStateMachineContext = bEnabled; }
+    bool IsAutoUpdatingAnimStateMachineContext() const { return bAutoUpdateAnimStateMachineContext; }
+    void HandleAnimNotify(const FAnimNotifyEvent& Notify);
 
     void ApplyLocalPose(const TArray<FMatrix>& InLocalPose);
 
@@ -46,8 +50,11 @@ public:
 
 private:
     UAnimSingleNodeInstance* GetOrCreateAnimSingleNodeInstance();
+    void RefreshAnimStateMachineContextFromOwner();
+    void RegisterStateAnimationPathsFromAsset(const UAnimStateMachineAsset* StateMachineAsset);
 
 private:
     UAnimInstance* AnimInstance = nullptr;
     UAnimSingleNodeInstance* AnimSingleNodeInstance = nullptr;
+    bool bAutoUpdateAnimStateMachineContext = true;
 };

@@ -51,6 +51,22 @@ void FScriptManager::BindAnimationTypes()
     {
         return Self.AddState(FName(StateName), FName(AnimationName), bLoop);
     });
+    LUA_SET(AddStateWithPath, [](
+        UAnimStateMachineAsset& Self,
+        const FString& StateName,
+        const FString& AnimationName,
+        const FString& AnimationPath,
+        bool bLoop)
+    {
+        return Self.AddState(FName(StateName), FName(AnimationName), bLoop, AnimationPath);
+    });
+    LUA_SET(SetStateAnimationPath, [](
+        UAnimStateMachineAsset& Self,
+        const FString& StateName,
+        const FString& AnimationPath)
+    {
+        return Self.SetStateAnimationPath(FName(StateName), AnimationPath);
+    });
     LUA_SET(AddTransition, [](
         UAnimStateMachineAsset& Self,
         const FString& FromState,

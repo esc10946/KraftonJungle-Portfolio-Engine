@@ -2,6 +2,9 @@
 
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimationStateMachine.h"
+#include "Component/Movement/MovementComponent.h"
+#include "Core/Logging/Log.h"
+#include "GameFramework/AActor.h"
 #include "Object/Object.h"
 #include "Object/ObjectFactory.h"
 
@@ -28,6 +31,7 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime)
 
     if (AnimInstance)
     {
+        RefreshAnimStateMachineContextFromOwner();
         AnimInstance->TickAnimation(DeltaTime);
     }
 
@@ -75,6 +79,7 @@ bool USkeletalMeshComponent::LoadStateMachineFromJson(const FString& JsonPath)
         return false;
     }
 
+    RegisterStateAnimationPathsFromAsset(StateMachineAsset);
     return UseStateMachine(StateMachineAsset);
 }
 
@@ -101,6 +106,15 @@ void USkeletalMeshComponent::SetAnimStateMachineContext(const FAnimStateMachineC
     AnimSingleNode->SetStateMachineContext(Context);
 }
 
+void USkeletalMeshComponent::HandleAnimNotify(const FAnimNotifyEvent& Notify)
+{
+    AActor* OwnerActor = GetOwner();
+    if (OwnerActor)
+    {
+        OwnerActor->HandleAnimNotify(Notify);
+    }
+}
+
 UAnimSingleNodeInstance* USkeletalMeshComponent::GetOrCreateAnimSingleNodeInstance()
 {
     if (!AnimSingleNodeInstance)
@@ -111,6 +125,90 @@ UAnimSingleNodeInstance* USkeletalMeshComponent::GetOrCreateAnimSingleNodeInstan
     }
 
     return AnimSingleNodeInstance;
+}
+
+void USkeletalMeshComponent::RefreshAnimStateMachineContextFromOwner()
+{
+    if (!bAutoUpdateAnimStateMachineContext || !AnimInstance || !AnimInstance->GetStateMachineAsset())
+    {
+        return;
+    }
+
+    AActor* OwnerActor = GetOwner();
+    if (!OwnerActor)
+    {
+        return;
+    }
+
+    UMovementComponent* MovementComponent = OwnerActor->FindComponent<UMovementComponent>();
+    if (!MovementComponent)
+    {
+        return;
+    }
+
+    FAnimStateMachineContext Context = AnimInstance->GetStateMachineContext();
+    const FVector Velocity = MovementComponent->GetVelocity();
+    Context.Speed = Velocity.Size2D();
+
+    const float MaxSpeed = MovementComponent->GetMaxSpeed();
+    if (MaxSpeed > 0.0f)
+    {
+        Context.RunSpeed = MaxSpeed;
+        if (Context.WalkSpeed <= 0.0f || Context.WalkSpeed > Context.RunSpeed)
+        {
+            Context.WalkSpeed = Context.RunSpeed * 0.5f;
+        }
+    }
+
+    float FallingSpeedThreshold = Context.IdleSpeedThreshold;
+    if (FallingSpeedThreshold <= 0.0f)
+    {
+        FallingSpeedThreshold = 1.0f;
+    }
+
+    if (Velocity.Z < -FallingSpeedThreshold)
+    {
+        Context.bIsGrounded = false;
+        Context.MovementMode = EAnimStateMachineMovementMode::Falling;
+    }
+    else
+    {
+        Context.bIsGrounded = true;
+        Context.MovementMode = EAnimStateMachineMovementMode::Walking;
+    }
+
+    AnimInstance->SetStateMachineContext(Context);
+}
+
+void USkeletalMeshComponent::RegisterStateAnimationPathsFromAsset(const UAnimStateMachineAsset* StateMachineAsset)
+{
+    if (!StateMachineAsset)
+    {
+        return;
+    }
+
+    UAnimSingleNodeInstance* AnimSingleNode = GetOrCreateAnimSingleNodeInstance();
+    if (!AnimSingleNode)
+    {
+        return;
+    }
+
+    for (const FAnimStateDesc& State : StateMachineAsset->GetStates())
+    {
+        if (!State.AnimationName.IsValid() || State.AnimationPath.empty())
+        {
+            continue;
+        }
+
+        if (!AnimSingleNode->RegisterAnimationPath(State.AnimationName, State.AnimationPath))
+        {
+            UE_LOG_WARNING(
+                "[AnimSM] Failed to register state animation path: state=%s animation=%s path=%s",
+                State.StateName.ToString().c_str(),
+                State.AnimationName.ToString().c_str(),
+                State.AnimationPath.c_str());
+        }
+    }
 }
 
 void USkeletalMeshComponent::ApplyLocalPose(const TArray<FMatrix>& InLocalPose)
