@@ -1529,6 +1529,25 @@ void FEditorPropertyWidget::RenderActorProperties(AActor* PrimaryActor, const TA
 				RenderReflectionProperties(PrimaryActor, *Property);
 			}
 		}
+    }
+    
+	TArray<const UFunction*> ReflectFunctions;
+    if (PrimaryActor->GetClass())
+    {
+        PrimaryActor->GetClass()->GetAllFuntions(ReflectFunctions);
+    }
+
+	if (!ReflectFunctions.empty())
+	{
+		DrawDetailsSeparator();
+		DrawDetailsSectionLabel("Functions");
+        for (const UFunction* Function : ReflectFunctions)
+		{
+            if (Function)
+			{
+                RenderReflectionFuctions(PrimaryActor, *Function);
+			}
+		}
 	}
 
 	if (PrimaryActor->GetRootComponent())
@@ -1854,16 +1873,34 @@ void FEditorPropertyWidget::RenderComponentProperties()
 	const FDetailsPerfClock::time_point PropertiesStart = bDetailsPerfTraceFrame ? FDetailsPerfClock::now() : FDetailsPerfClock::time_point{};
     TArray<const FProperty*> ReflectedProperties;
 
+    DrawDetailsSeparator();
+    DrawDetailsSectionLabel("Properties");
     if (SelectedComponent && SelectedComponent->GetClass())
     {
         SelectedComponent->GetClass()->GetAllProperties(ReflectedProperties);
     }
 
+    DrawDetailsSeparator();
+    DrawDetailsSectionLabel("Functions");
     for (const FProperty* Property : ReflectedProperties)
     {
         if (Property)
         {
             RenderReflectionProperties(SelectedComponent, *Property);
+        }
+    }
+
+	TArray<const UFunction*> ReflectFunctions;
+    if (SelectedComponent &&  SelectedComponent->GetClass())
+    {
+        SelectedComponent->GetClass()->GetAllFuntions(ReflectFunctions);
+    }
+
+    for (const UFunction* Function : ReflectFunctions)
+    {
+        if (Function)
+        {
+            RenderReflectionFuctions(SelectedComponent, *Function);
         }
     }
 
@@ -3162,6 +3199,22 @@ void FEditorPropertyWidget::RenderReflectionProperties(UObject* Object, const FP
     {
         bPropertyEditUndoCaptured = false;
     }
+}
+
+void FEditorPropertyWidget::RenderReflectionFuctions(UObject* Object, const UFunction& Fuction)
+{
+    if (!Object)
+        return;
+
+    if (!HasFunctionFlag(Fuction.GetFlags(), EFunctionFlags::EditorCall))
+    {
+        return;
+    }
+
+	if (ImGui::Button(Fuction.GetName()))
+    {
+        Fuction.Invoke(Object);
+	}
 }
 
 void FEditorPropertyWidget::RenderSkeletalBonePoseDebug(USkeletalMeshComponent* Comp)

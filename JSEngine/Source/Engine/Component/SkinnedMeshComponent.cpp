@@ -54,6 +54,7 @@ void USkinnedMeshComponent::Serialize(FArchive& Ar)
     if (Ar.IsLoading())
     {
         Ar << "SkeletalMeshAsset" << SkeletalMeshPath;
+        Ar << "UseSkinCache" << bUseSkinCache;
         if (!SkeletalMeshPath.empty())
         {
             SetSkeletalMesh(FResourceManager::Get().LoadSkeletalMesh(SkeletalMeshPath));
@@ -68,12 +69,14 @@ void USkinnedMeshComponent::Serialize(FArchive& Ar)
         SkeletalMeshPath = SkeletalMesh->GetAssetPathFileName();
     }
     Ar << "SkeletalMeshAsset" << SkeletalMeshPath;
+    Ar << "UseSkinCache" << bUseSkinCache;
 }
 
 void USkinnedMeshComponent::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
 {
     UMeshComponent::GetEditableProperties(OutProps);
     OutProps.push_back({ "SkeletalMesh", EPropertyType::String, &SkeletalMeshPath });
+    OutProps.push_back({ "Use Skin Cache", EPropertyType::Bool, &bUseSkinCache });
     OutProps.push_back({ "Materials", EPropertyType::Material, &Materials });
 }
 
@@ -99,6 +102,12 @@ void USkinnedMeshComponent::PostEditProperty(const char* PropertyName)
         }
 
         MarkRenderStateDirty();
+    }
+    else if (std::strcmp(PropertyName, "Use Skin Cache") == 0)
+    {
+        MarkRenderStateDirty();
+        MarkBoundsDirty();
+        AdvanceDeformationRevision();
     }
 }
 
@@ -151,6 +160,7 @@ void USkinnedMeshComponent::SetSkeletalMesh(USkeletalMesh* InSkeletalMesh)
 
 void USkinnedMeshComponent::MarkSkinningDirty()
 {
+    AdvanceDeformationRevision();
     bPoseDirty = true;
     bSkinningMatricesDirty = true;
     bCPUSkinnedVerticesDirty = true;
@@ -419,6 +429,19 @@ ESkinningMode USkinnedMeshComponent::GetEffectiveSkinningMode() const
     return CachedSkinningMode;
 }
 
+void USkinnedMeshComponent::SetUseSkinCache(bool bInUseSkinCache)
+{
+    if (bUseSkinCache == bInUseSkinCache)
+    {
+        return;
+    }
+
+    bUseSkinCache = bInUseSkinCache;
+    MarkRenderStateDirty();
+    MarkBoundsDirty();
+    AdvanceDeformationRevision();
+}
+
 void USkinnedMeshComponent::SyncSkinningModeState() const
 {
     const uint64 Revision = FSkinningRuntimeSettings::GetRevision();
@@ -432,6 +455,7 @@ void USkinnedMeshComponent::SyncSkinningModeState() const
     const_cast<USkinnedMeshComponent*>(this)->MarkRenderStateDirty();
     const_cast<USkinnedMeshComponent*>(this)->MarkBoundsDirty();
     const_cast<USkinnedMeshComponent*>(this)->bGPUBoneBufferDirty = true;
+    const_cast<USkinnedMeshComponent*>(this)->AdvanceDeformationRevision();
 }
 
 void USkinnedMeshComponent::NotifyPoseDependentsDirty()

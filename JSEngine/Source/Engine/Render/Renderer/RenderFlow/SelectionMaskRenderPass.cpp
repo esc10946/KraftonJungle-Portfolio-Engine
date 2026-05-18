@@ -38,6 +38,11 @@ static ID3D11ShaderResourceView* GetDiffuseSRV(UMaterialInterface* Material)
 
 static uint32 GetSelectionMaskShaderKey(const FRenderCommand& Cmd)
 {
+    if (Cmd.VertexFactoryType == EVertexFactoryType::SkinCacheSkeletalMesh)
+    {
+        return 4;
+    }
+
     if (Cmd.VertexFactoryType == EVertexFactoryType::SkeletalMesh)
     {
         return 3;
@@ -87,6 +92,12 @@ static FShaderProgram* GetSelectionMaskProgram(const FRenderCommand& Cmd)
         VSEntry = "VSSkeletalMesh";
         PSEntry = "PSTextured";
         VertexLayout = &FVertexFactoryRegistry::Get(EVertexFactoryType::SkeletalMesh).SelectionLayout;
+    }
+    else if (ShaderKey == 4)
+    {
+        VSEntry = "VSSkinCacheSkeletalMesh";
+        PSEntry = "PSTextured";
+        VertexLayout = &FVertexFactoryRegistry::Get(EVertexFactoryType::SkinCacheSkeletalMesh).SelectionLayout;
     }
 
     FShaderStageKey VSKey;
@@ -237,36 +248,21 @@ bool FSelectionMaskRenderPass::DrawCommand(const FRenderPassContext* Context)
         Context->DeviceContext->PSSetConstantBuffers(12, 1, &cb12);
         Context->DeviceContext->PSSetShaderResources(0, 1, &TextureSRV);
 
-        if (Cmd.MeshBuffer == nullptr || !Cmd.MeshBuffer->IsValid())
+        FMeshDrawBinding DrawBinding;
+        if (!BuildMeshDrawBinding(Cmd, DrawBinding))
         {
             continue;
         }
 
-        uint32 offset = 0;
-        ID3D11Buffer* vertexBuffer = Cmd.MeshBuffer->GetVertexBuffer().GetBuffer();
-        if (vertexBuffer == nullptr)
-        {
-            continue;
-        }
+        BindMeshDrawBinding(Context->DeviceContext, DrawBinding);
 
-        uint32 vertexCount = Cmd.MeshBuffer->GetVertexBuffer().GetVertexCount();
-        uint32 stride = Cmd.MeshBuffer->GetVertexBuffer().GetStride();
-        if (vertexCount == 0 || stride == 0)
+        if (DrawBinding.HasIndexBuffer())
         {
-            continue;
-        }
-
-        Context->DeviceContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
-
-        ID3D11Buffer* indexBuffer = Cmd.MeshBuffer->GetIndexBuffer().GetBuffer();
-        if (indexBuffer != nullptr)
-        {
-            Context->DeviceContext->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
-            Context->DeviceContext->DrawIndexed(Cmd.SectionIndexCount, Cmd.SectionIndexStart, 0);
+            Context->DeviceContext->DrawIndexed(DrawBinding.IndexCount, DrawBinding.IndexStart, 0);
         }
         else
         {
-            Context->DeviceContext->Draw(vertexCount, 0);
+            Context->DeviceContext->Draw(DrawBinding.VertexCount, 0);
         }
     }
 

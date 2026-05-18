@@ -93,15 +93,8 @@ void FShadowPass::RenderShadowDepth(
 		{
 			continue;
 		}
-		if (!Cmd.MeshBuffer || !Cmd.MeshBuffer->IsValid())
-		{
-			continue;
-		}
-
-		ID3D11Buffer* VertexBuffer = Cmd.MeshBuffer->GetVertexBuffer().GetBuffer();
-		uint32 VertexCount = Cmd.MeshBuffer->GetVertexBuffer().GetVertexCount();
-		uint32 Stride = Cmd.MeshBuffer->GetVertexBuffer().GetStride();
-		if (!VertexBuffer || VertexCount == 0 || Stride == 0)
+		FMeshDrawBinding DrawBinding;
+		if (!BuildMeshDrawBinding(Cmd, DrawBinding))
 		{
 			continue;
 		}
@@ -111,8 +104,7 @@ void FShadowPass::RenderShadowDepth(
 		ID3D11Buffer* cb1 = Context->RenderResources->PerObjectConstantBuffer.GetBuffer();
 		DeviceContext->VSSetConstantBuffers(ShaderBindingSlots::PerObjectCB, 1, &cb1);
 
-		uint32 Offset = 0;
-		DeviceContext->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
+		BindMeshDrawBinding(DeviceContext, DrawBinding);
 
 		FShaderProgram* Program = GetShadowProgram(Cmd.VertexFactoryType, ShadowKey);
 		if (!Program)
@@ -124,15 +116,13 @@ void FShadowPass::RenderShadowDepth(
 		BindVertexFactoryResources(DeviceContext, Cmd.VertexFactoryType, Cmd);
 		CheckOverrideViewMode(Context);
 
-		ID3D11Buffer* IndexBuffer = Cmd.MeshBuffer->GetIndexBuffer().GetBuffer();
-		if (IndexBuffer != nullptr)
+		if (DrawBinding.HasIndexBuffer())
 		{
-			DeviceContext->IASetIndexBuffer(IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-			DeviceContext->DrawIndexed(Cmd.SectionIndexCount, Cmd.SectionIndexStart, 0);
+			DeviceContext->DrawIndexed(DrawBinding.IndexCount, DrawBinding.IndexStart, 0);
 		}
 		else
 		{
-			DeviceContext->Draw(VertexCount, 0);
+			DeviceContext->Draw(DrawBinding.VertexCount, 0);
 		}
 	}
 }

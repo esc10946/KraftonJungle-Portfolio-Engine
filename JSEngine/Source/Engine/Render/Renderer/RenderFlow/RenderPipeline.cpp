@@ -1,4 +1,5 @@
 ﻿#include "RenderPipeline.h"
+#include "SkinCachePass.h"
 #include "DepthPrePass.h"
 #include "ShadowPass.h"
 #include "LightCullingPass.h"
@@ -30,6 +31,7 @@ namespace
     {
         static constexpr const char* Names[] =
         {
+            "RenderPass.SkinCache",
             "RenderPass.DepthPre",
             "RenderPass.LightCulling",
             "RenderPass.Shadow",
@@ -58,6 +60,9 @@ namespace
 
 bool FRenderPipeline::Initialize()
 {
+    SkinCachePass = std::make_shared<FSkinCachePass>();
+    SkinCachePass->Initialize();
+
     DepthPrePass = std::make_shared<FDepthPrePass>();
     DepthPrePass->Initialize();
 
@@ -128,6 +133,7 @@ bool FRenderPipeline::Initialize()
 	 * FXAARenderPass -> FontRenderPass 일 때 FXAASRV 가 아닌 ColorSRV 를 넘겨야 한다.
 	 * ColorSRV 가 최종 결과물 버퍼라고 생각하면 된다.
 	 */
+	RenderPasses.push_back(SkinCachePass);
 	RenderPasses.push_back(DepthPrePass);
 	RenderPasses.push_back(LightCullingPass);
 	RenderPasses.push_back(ShadowPass);
@@ -178,6 +184,12 @@ bool FRenderPipeline::Render(const FRenderPassContext* Context)
 
 void FRenderPipeline::Release()
 {
+	if (SkinCachePass)
+	{
+		SkinCachePass->Release();
+		SkinCachePass.reset();
+	}
+
 	if (DepthPrePass) {
 		DepthPrePass->Release();
 		DepthPrePass.reset();

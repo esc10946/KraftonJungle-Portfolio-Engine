@@ -88,21 +88,8 @@ namespace
             Context->DeviceContext->VSSetConstantBuffers(ShaderBindingSlots::PerObjectCB, 1, &cb1);
             Context->DeviceContext->PSSetConstantBuffers(ShaderBindingSlots::PerObjectCB, 1, &cb1);
 
-            if (Cmd.MeshBuffer == nullptr || !Cmd.MeshBuffer->IsValid())
-            {
-                continue;
-            }
-
-            uint32 offset = 0;
-            ID3D11Buffer* vertexBuffer = Cmd.MeshBuffer->GetVertexBuffer().GetBuffer();
-            if (vertexBuffer == nullptr)
-            {
-                continue;
-            }
-
-            uint32 vertexCount = Cmd.MeshBuffer->GetVertexBuffer().GetVertexCount();
-            uint32 stride = Cmd.MeshBuffer->GetVertexBuffer().GetStride();
-            if (vertexCount == 0 || stride == 0)
+            FMeshDrawBinding DrawBinding;
+            if (!BuildMeshDrawBinding(Cmd, DrawBinding))
             {
                 continue;
             }
@@ -122,17 +109,15 @@ namespace
                 BindVertexFactoryResources(Context->DeviceContext, Cmd.VertexFactoryType, Cmd);
             }
 
-            Context->DeviceContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
+            BindMeshDrawBinding(Context->DeviceContext, DrawBinding);
 
-            ID3D11Buffer* indexBuffer = Cmd.MeshBuffer->GetIndexBuffer().GetBuffer();
-            if (indexBuffer != nullptr)
+            if (DrawBinding.HasIndexBuffer())
             {
-                Context->DeviceContext->IASetIndexBuffer(indexBuffer, DXGI_FORMAT_R32_UINT, 0);
-                Context->DeviceContext->DrawIndexed(Cmd.SectionIndexCount, Cmd.SectionIndexStart, 0);
+                Context->DeviceContext->DrawIndexed(DrawBinding.IndexCount, DrawBinding.IndexStart, 0);
             }
             else
             {
-                Context->DeviceContext->Draw(vertexCount, 0);
+                Context->DeviceContext->Draw(DrawBinding.VertexCount, 0);
             }
         }
 

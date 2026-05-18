@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "Core/CoreMinimal.h"
 #include "Property.h"
+#include "Function.h"
 
 class UObject;
 class UClass
@@ -24,11 +25,13 @@ public:
 
     UObject* CreateObject() const;
     void GetAllProperties(TArray<const FProperty*>& OutProperties) const;
+    void GetAllFuntions(TArray<const UFunction*>& OutFuntions) const;
 
     void AddProperty(std::unique_ptr<FProperty> Property);
     const FProperty* FindProperty(const char* PropertyName) const;
-    const TArray<std::unique_ptr<FProperty>>& GetProperties() const { return Properties; }
 
+	void AddFunction(std::unique_ptr<UFunction> Function);
+    const UFunction* FindFunction(const char* PropertyName) const;
 private:
     const char* Name = nullptr;
     UClass* SuperClass = nullptr;
@@ -37,4 +40,5 @@ private:
     FCreateObjectFunc CreateFunc = nullptr;
 
     TArray<std::unique_ptr<FProperty>> Properties;
+    TArray<std::unique_ptr<UFunction>> Functions;
 };

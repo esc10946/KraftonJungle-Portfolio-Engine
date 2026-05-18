@@ -54,6 +54,7 @@ private:
 	void RenderMaterialPreviewTooltip(UMaterialInterface* Material);
 
 	void RenderReflectionProperties(UObject* Object,const FProperty& Property);
+	void RenderReflectionFuctions(UObject* Object,const UFunction& Fuction);
 	// 유틸리티
 	void AttachAndSelectNewComponent(AActor* PrimaryActor, UActorComponent* NewComp, class USceneComponent* AttachTargetOverride = nullptr);
 	bool CanDeleteComponent(AActor* Owner, UActorComponent* Component) const;

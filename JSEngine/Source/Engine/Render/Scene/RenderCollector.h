@@ -43,6 +43,8 @@ private:
 public:
 	void Initialize(ID3D11Device* InDevice) { MeshBufferManager.Create(InDevice); }
 	void Release() { MeshBufferManager.Release(); }
+	void BeginFrameResourceTracking() { MeshBufferManager.BeginFrameResourceTracking(); }
+	void EndFrameResourceTracking() { MeshBufferManager.EndFrameResourceTracking(); }
 
 	void CollectWorld(UWorld* World, const FShowFlags& ShowFlags, EViewMode ViewMode, FRenderBus& RenderBus,
 	                  const FFrustum* ViewFrustum = nullptr, bool bIncludeEditorOnlyPrimitives = false);
@@ -59,6 +61,7 @@ public:
 	const FCullingStats& GetLastCullingStats() const { return LastCullingStats; }
 	const FDecalStats& GetLastDecalStats() const { return DecalCommandBuilder.GetLastStats(); }
     const FLightStats& GetLastLightStats() const { return LightRenderCollector.GetLastStats(); }
+	void AppendGpuMemoryStats(FGpuResourceMemoryStats& OutStats) const { MeshBufferManager.AppendGpuMemoryStats(OutStats); }
 
 private:
 	void ResetCullingStats();

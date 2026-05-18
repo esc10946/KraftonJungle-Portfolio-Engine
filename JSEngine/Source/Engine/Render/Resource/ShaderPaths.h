@@ -31,4 +31,5 @@ namespace FShaderPaths
 	inline constexpr const char* PostProcessOutline = "Shaders/PostProcess/Outline.hlsl";
 
 	inline constexpr const char* ComputeLightCulling = "Shaders/Compute/LightCullingCS.hlsl";
+	inline constexpr const char* ComputeSkinCache = "Shaders/Compute/SkinCacheCS.hlsl";
 }
