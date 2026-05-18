@@ -312,6 +312,9 @@
   <Target Name="BuildRmlUiStaticLibrary" BeforeTargets="ClCompile">
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\BuildTools\Scripts\BuildRmlUiLib.ps1&quot; -ProjectDir &quot;$(MSBuildProjectDirectory)&quot; -Configuration &quot;$(ThirdPartyBinaryConfiguration)&quot; -Platform &quot;$(Platform)&quot;" />
   </Target>
+  <Target Name="GenerateReflectionCode" BeforeTargets="ClCompile">
+    <Exec Command="python &quot;$(MSBuildProjectDirectory)\BuildTools\Scripts\GenerateReflection.py&quot;" />
+  </Target>
   <Target Name="BuildSoLoudStaticLibrary" BeforeTargets="ClCompile">
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\BuildTools\Scripts\BuildSoLoudLib.ps1&quot; -ProjectDir &quot;$(MSBuildProjectDirectory)&quot; -Configuration &quot;$(ThirdPartyBinaryConfiguration)&quot; -Platform &quot;$(Platform)&quot;" />
   </Target>
@@ -370,6 +373,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientRelease|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="Source\Editor\Selection\SelectionManager.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientDebug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientRelease|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Source\Editor\Subsystems\AssetEditorSubsystem.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientDebug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientRelease|x64'">true</ExcludedFromBuild>
     </ClCompile>
@@ -906,6 +913,7 @@
     <ClInclude Include="Source\Editor\Packaging\GamePackager.h" />
     <ClInclude Include="Source\Editor\Scene\EditorSceneService.h" />
     <ClInclude Include="Source\Editor\Selection\SelectionManager.h" />
+    <ClInclude Include="Source\Editor\Subsystems\AssetEditorSubsystem.h" />
     <ClInclude Include="Source\Editor\Settings\EditorSettings.h" />
     <ClInclude Include="Source\Editor\Settings\ProjectSettings.h" />
     <ClInclude Include="Source\Editor\UI\EditorActorSequenceDetails.h" />

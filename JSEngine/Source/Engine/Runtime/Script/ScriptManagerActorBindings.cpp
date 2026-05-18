@@ -316,7 +316,7 @@ void FScriptManager::BindActorTypes()
     LUA_PROPERTY(Name, [](AActor& Actor) -> FString
                  { return Actor.GetName(); });
     LUA_PROPERTY(TypeName, [](AActor& Actor) -> FString
-                 { return Actor.GetTypeInfo() && Actor.GetTypeInfo()->name ? Actor.GetTypeInfo()->name : ""; });
+                 { return Actor.GetClass() && Actor.GetClass()->GetName() ? Actor.GetClass()->GetName() : ""; });
     LUA_RW_PROPERTY(Location, GetActorLocation, SetActorLocation);
     LUA_RW_PROPERTY(Rotation, GetActorRotation, SetActorRotation);
     LUA_RW_PROPERTY(Scale, GetActorScale, SetActorScale);

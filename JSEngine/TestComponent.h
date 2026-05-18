@@ -17,5 +17,11 @@ public:
     FStaticMeshAssetRef WalkAnimation;
 
     UPROPERTY(Edit)
-    TArray<float> Values;
+    TArray<UObject*> Objects;
+
+    UPROPERTY(Edit)
+    TArray<int32> aa;
+
+    UPROPERTY(Edit)
+    TArray<float> ss;
 };

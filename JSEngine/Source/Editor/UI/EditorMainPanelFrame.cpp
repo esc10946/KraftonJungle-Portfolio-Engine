@@ -23,7 +23,7 @@ void FEditorMainPanel::Render(float DeltaTime)
     RenderBuildGameModal();
     if (EditorEngine)
     {
-        EditorEngine->DrawSkeletalMeshLoadModal();
+        EditorEngine->GetAssetEditorSubsystem().DrawOpeningAssetModal();
     }
     Widgets.ViewportOverlayWidget.RenderFloatingOverlays(DeltaTime);
 

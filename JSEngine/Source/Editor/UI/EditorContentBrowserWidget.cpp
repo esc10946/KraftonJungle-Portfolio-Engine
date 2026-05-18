@@ -1172,7 +1172,7 @@ void FEditorContentBrowserWidget::RequestOpenFbxAsset(const std::filesystem::pat
 {
 	if (EditorEngine)
 	{
-		EditorEngine->RequestOpenFbxInSkeletalMeshViewer(MakeRelativeProjectPath(Path));
+		EditorEngine->GetAssetEditorSubsystem().RequestOpenEditorForAsset(MakeRelativeProjectPath(Path));
 	}
 }
 

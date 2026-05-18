@@ -177,7 +177,7 @@ void FScriptManager::BindComponentTypes()
 {
     LUA_BEGIN_TYPE_NO_CTOR_BASE(GLuaState, UActorComponent, "ActorComponent", UObject)
     LUA_PROPERTY(TypeName, [](UActorComponent& Component) -> FString
-                 { return Component.GetTypeInfo() && Component.GetTypeInfo()->name ? Component.GetTypeInfo()->name : ""; });
+                 { return Component.GetClass() && Component.GetClass()->GetName() ? Component.GetClass()->GetName() : ""; });
     LUA_METHOD(GetOwner, GetOwner);
     LUA_SET(GetActor, &LuaGetComponentActor);
     LUA_SET(AsSceneComponent, [](UActorComponent& Self) -> USceneComponent*

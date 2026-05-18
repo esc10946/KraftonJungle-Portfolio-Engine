@@ -127,94 +127,67 @@ namespace
         return Property;
     }
 
-    bool GetReflectedAssetPathForLua(UObject& Object, const FProperty& Property, FString& OutPath)
+    template <typename AssetRefType>
+    bool TryGetReflectedAssetPathForLua(UObject& Object, const FProperty& Property, FString& OutPath)
     {
-        switch (Property.Type)
+        AssetRefType Value;
+        if (!Property.GetPropertyValue_InContainer(&Object, Value))
         {
-        case EReflectedPropertyType::StaticMeshAsset:
-        {
-            FStaticMeshAssetRef Value;
-            if (!Property.GetPropertyValue_InContainer(&Object, Value)) return false;
-            OutPath = Value.Path;
-            return true;
-        }
-        case EReflectedPropertyType::SkeletalMeshAsset:
-        {
-            FSkeletalMeshAssetRef Value;
-            if (!Property.GetPropertyValue_InContainer(&Object, Value)) return false;
-            OutPath = Value.Path;
-            return true;
-        }
-        case EReflectedPropertyType::TextureAsset:
-        {
-            FTextureAssetRef Value;
-            if (!Property.GetPropertyValue_InContainer(&Object, Value)) return false;
-            OutPath = Value.Path;
-            return true;
-        }
-        case EReflectedPropertyType::MaterialAsset:
-        {
-            FMaterialAssetRef Value;
-            if (!Property.GetPropertyValue_InContainer(&Object, Value)) return false;
-            OutPath = Value.Path;
-            return true;
-        }
-        case EReflectedPropertyType::AnimationSequenceAsset:
-        {
-            FAnimationSequenceAssetRef Value;
-            if (!Property.GetPropertyValue_InContainer(&Object, Value)) return false;
-            OutPath = Value.Path;
-            return true;
-        }
-        case EReflectedPropertyType::CurveAsset:
-        {
-            FCurveAssetRef Value;
-            if (!Property.GetPropertyValue_InContainer(&Object, Value)) return false;
-            OutPath = Value.Path;
-            return true;
-        }
-        case EReflectedPropertyType::SceneAsset:
-        {
-            FSceneAssetRef Value;
-            if (!Property.GetPropertyValue_InContainer(&Object, Value)) return false;
-            OutPath = Value.Path;
-            return true;
-        }
-        case EReflectedPropertyType::SoundAsset:
-        {
-            FSoundAssetRef Value;
-            if (!Property.GetPropertyValue_InContainer(&Object, Value)) return false;
-            OutPath = Value.Path;
-            return true;
-        }
-        default:
             return false;
         }
+
+        OutPath = Value.Path;
+        return true;
+    }
+
+    bool GetReflectedAssetPathForLua(UObject& Object, const FProperty& Property, FString& OutPath)
+    {
+        return TryGetReflectedAssetPathForLua<FStaticMeshAssetRef>(Object, Property, OutPath)
+            || TryGetReflectedAssetPathForLua<FSkeletalMeshAssetRef>(Object, Property, OutPath)
+            || TryGetReflectedAssetPathForLua<FTextureAssetRef>(Object, Property, OutPath)
+            || TryGetReflectedAssetPathForLua<FMaterialAssetRef>(Object, Property, OutPath)
+            || TryGetReflectedAssetPathForLua<FAnimationSequenceAssetRef>(Object, Property, OutPath)
+            || TryGetReflectedAssetPathForLua<FCurveAssetRef>(Object, Property, OutPath)
+            || TryGetReflectedAssetPathForLua<FSceneAssetRef>(Object, Property, OutPath)
+            || TryGetReflectedAssetPathForLua<FSoundAssetRef>(Object, Property, OutPath);
     }
 
     bool SetReflectedAssetPathFromLua(UObject& Object, const FProperty& Property, const FString& Path)
     {
-        switch (Property.Type)
+        if (dynamic_cast<const FStaticMeshAssetProperty*>(&Property))
         {
-        case EReflectedPropertyType::StaticMeshAsset:
             return Property.SetPropertyValue_InContainer(&Object, FStaticMeshAssetRef(Path));
-        case EReflectedPropertyType::SkeletalMeshAsset:
-            return Property.SetPropertyValue_InContainer(&Object, FSkeletalMeshAssetRef(Path));
-        case EReflectedPropertyType::TextureAsset:
-            return Property.SetPropertyValue_InContainer(&Object, FTextureAssetRef(Path));
-        case EReflectedPropertyType::MaterialAsset:
-            return Property.SetPropertyValue_InContainer(&Object, FMaterialAssetRef(Path));
-        case EReflectedPropertyType::AnimationSequenceAsset:
-            return Property.SetPropertyValue_InContainer(&Object, FAnimationSequenceAssetRef(Path));
-        case EReflectedPropertyType::CurveAsset:
-            return Property.SetPropertyValue_InContainer(&Object, FCurveAssetRef(Path));
-        case EReflectedPropertyType::SceneAsset:
-            return Property.SetPropertyValue_InContainer(&Object, FSceneAssetRef(Path));
-        case EReflectedPropertyType::SoundAsset:
-            return Property.SetPropertyValue_InContainer(&Object, FSoundAssetRef(Path));
-        default:
-            return false;
         }
+        if (dynamic_cast<const FSkeletalMeshAssetProperty*>(&Property))
+        {
+            return Property.SetPropertyValue_InContainer(&Object, FSkeletalMeshAssetRef(Path));
+        }
+        if (dynamic_cast<const FTextureAssetProperty*>(&Property))
+        {
+            return Property.SetPropertyValue_InContainer(&Object, FTextureAssetRef(Path));
+        }
+        if (dynamic_cast<const FMaterialAssetProperty*>(&Property))
+        {
+            return Property.SetPropertyValue_InContainer(&Object, FMaterialAssetRef(Path));
+        }
+        if (dynamic_cast<const FAnimationSequenceAssetProperty*>(&Property))
+        {
+            return Property.SetPropertyValue_InContainer(&Object, FAnimationSequenceAssetRef(Path));
+        }
+        if (dynamic_cast<const FCurveAssetProperty*>(&Property))
+        {
+            return Property.SetPropertyValue_InContainer(&Object, FCurveAssetRef(Path));
+        }
+        if (dynamic_cast<const FSceneAssetProperty*>(&Property))
+        {
+            return Property.SetPropertyValue_InContainer(&Object, FSceneAssetRef(Path));
+        }
+        if (dynamic_cast<const FSoundAssetProperty*>(&Property))
+        {
+            return Property.SetPropertyValue_InContainer(&Object, FSoundAssetRef(Path));
+        }
+
+        return false;
     }
 
     sol::object LuaGetReflectedProperty(sol::this_state State, UObject& Object, const FString& PropertyName)
@@ -225,64 +198,61 @@ namespace
             return sol::make_object(State, sol::nil);
         }
 
-        switch (Property->Type)
-        {
-        case EReflectedPropertyType::Bool:
+        if (dynamic_cast<const FBoolProperty*>(Property))
         {
             bool Value = false;
             return Property->GetPropertyValue_InContainer(&Object, Value)
                 ? sol::make_object(State, Value)
                 : sol::make_object(State, sol::nil);
         }
-        case EReflectedPropertyType::Int32:
+        if (dynamic_cast<const FInt32Property*>(Property))
         {
             int32 Value = 0;
             return Property->GetPropertyValue_InContainer(&Object, Value)
                 ? sol::make_object(State, Value)
                 : sol::make_object(State, sol::nil);
         }
-        case EReflectedPropertyType::Float:
+        if (dynamic_cast<const FFloatProperty*>(Property))
         {
             float Value = 0.0f;
             return Property->GetPropertyValue_InContainer(&Object, Value)
                 ? sol::make_object(State, Value)
                 : sol::make_object(State, sol::nil);
         }
-        case EReflectedPropertyType::Name:
+        if (dynamic_cast<const FNameProperty*>(Property))
         {
             FName Value;
             return Property->GetPropertyValue_InContainer(&Object, Value)
                 ? sol::make_object(State, Value)
                 : sol::make_object(State, sol::nil);
         }
-        case EReflectedPropertyType::String:
+        if (dynamic_cast<const FStringProperty*>(Property))
         {
             FString Value;
             return Property->GetPropertyValue_InContainer(&Object, Value)
                 ? sol::make_object(State, Value)
                 : sol::make_object(State, sol::nil);
         }
-        case EReflectedPropertyType::StaticMeshAsset:
-        case EReflectedPropertyType::SkeletalMeshAsset:
-        case EReflectedPropertyType::TextureAsset:
-        case EReflectedPropertyType::MaterialAsset:
-        case EReflectedPropertyType::AnimationSequenceAsset:
-        case EReflectedPropertyType::CurveAsset:
-        case EReflectedPropertyType::SceneAsset:
-        case EReflectedPropertyType::SoundAsset:
+        if (dynamic_cast<const FStaticMeshAssetProperty*>(Property)
+            || dynamic_cast<const FSkeletalMeshAssetProperty*>(Property)
+            || dynamic_cast<const FTextureAssetProperty*>(Property)
+            || dynamic_cast<const FMaterialAssetProperty*>(Property)
+            || dynamic_cast<const FAnimationSequenceAssetProperty*>(Property)
+            || dynamic_cast<const FCurveAssetProperty*>(Property)
+            || dynamic_cast<const FSceneAssetProperty*>(Property)
+            || dynamic_cast<const FSoundAssetProperty*>(Property))
         {
             FString Value;
             return GetReflectedAssetPathForLua(Object, *Property, Value)
                 ? sol::make_object(State, Value)
                 : sol::make_object(State, sol::nil);
         }
-        case EReflectedPropertyType::Object:
+        if (dynamic_cast<const FObjectProperty*>(Property))
         {
             UObject* Value = nullptr;
             return Property->GetPropertyValue_InContainer(&Object, Value)
                 ? sol::make_object(State, Value)
                 : sol::make_object(State, sol::nil);
-        }
         }
 
         return sol::make_object(State, sol::nil);
@@ -296,18 +266,23 @@ namespace
             return false;
         }
 
-        switch (Property->Type)
+        if (dynamic_cast<const FBoolProperty*>(Property))
         {
-        case EReflectedPropertyType::Bool:
             return Value.is<bool>()
                 && Property->SetPropertyValue_InContainer(&Object, Value.as<bool>());
-        case EReflectedPropertyType::Int32:
+        }
+        if (dynamic_cast<const FInt32Property*>(Property))
+        {
             return Value.get_type() == sol::type::number
                 && Property->SetPropertyValue_InContainer(&Object, static_cast<int32>(Value.as<double>()));
-        case EReflectedPropertyType::Float:
+        }
+        if (dynamic_cast<const FFloatProperty*>(Property))
+        {
             return Value.get_type() == sol::type::number
                 && Property->SetPropertyValue_InContainer(&Object, static_cast<float>(Value.as<double>()));
-        case EReflectedPropertyType::Name:
+        }
+        if (dynamic_cast<const FNameProperty*>(Property))
+        {
             if (Value.is<FName>())
             {
                 return Property->SetPropertyValue_InContainer(&Object, Value.as<FName>());
@@ -317,20 +292,26 @@ namespace
                 return Property->SetPropertyValue_InContainer(&Object, FName(Value.as<FString>()));
             }
             return false;
-        case EReflectedPropertyType::String:
+        }
+        if (dynamic_cast<const FStringProperty*>(Property))
+        {
             return Value.is<FString>()
                 && Property->SetPropertyValue_InContainer(&Object, Value.as<FString>());
-        case EReflectedPropertyType::StaticMeshAsset:
-        case EReflectedPropertyType::SkeletalMeshAsset:
-        case EReflectedPropertyType::TextureAsset:
-        case EReflectedPropertyType::MaterialAsset:
-        case EReflectedPropertyType::AnimationSequenceAsset:
-        case EReflectedPropertyType::CurveAsset:
-        case EReflectedPropertyType::SceneAsset:
-        case EReflectedPropertyType::SoundAsset:
+        }
+        if (dynamic_cast<const FStaticMeshAssetProperty*>(Property)
+            || dynamic_cast<const FSkeletalMeshAssetProperty*>(Property)
+            || dynamic_cast<const FTextureAssetProperty*>(Property)
+            || dynamic_cast<const FMaterialAssetProperty*>(Property)
+            || dynamic_cast<const FAnimationSequenceAssetProperty*>(Property)
+            || dynamic_cast<const FCurveAssetProperty*>(Property)
+            || dynamic_cast<const FSceneAssetProperty*>(Property)
+            || dynamic_cast<const FSoundAssetProperty*>(Property))
+        {
             return Value.is<FString>()
                 && SetReflectedAssetPathFromLua(Object, *Property, Value.as<FString>());
-        case EReflectedPropertyType::Object:
+        }
+        if (dynamic_cast<const FObjectProperty*>(Property))
+        {
             return Value.is<UObject*>()
                 && Property->SetPropertyValue_InContainer(&Object, Value.as<UObject*>());
         }

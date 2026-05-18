@@ -336,7 +336,7 @@ FString FEditorActorSequenceEditModel::MakeComponentLabel(AActor* Owner, UActorC
     FString Label = Component->GetFName().ToString();
     if (Label.empty())
     {
-        Label = Component->GetTypeInfo() ? Component->GetTypeInfo()->name : "Component";
+        Label = Component->GetClass() ? Component->GetClass()->GetName() : "Component";
     }
 
     if (Owner && Component == Owner->GetRootComponent())

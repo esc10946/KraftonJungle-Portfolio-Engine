@@ -1,46 +1,6 @@
 ﻿#include "Class.h"
 #include "Object/Object.h"
 
-namespace
-{
-    size_t GetExpectedPropertySize(EReflectedPropertyType Type)
-    {
-        switch (Type)
-        {
-        case EReflectedPropertyType::Bool:
-            return sizeof(bool);
-        case EReflectedPropertyType::Int32:
-            return sizeof(int32);
-        case EReflectedPropertyType::Float:
-            return sizeof(float);
-        case EReflectedPropertyType::Name:
-            return sizeof(FName);
-        case EReflectedPropertyType::String:
-            return sizeof(FString);
-        case EReflectedPropertyType::Object:
-            return sizeof(UObject*);
-        case EReflectedPropertyType::StaticMeshAsset:
-            return sizeof(FStaticMeshAssetRef);
-        case EReflectedPropertyType::SkeletalMeshAsset:
-            return sizeof(FSkeletalMeshAssetRef);
-        case EReflectedPropertyType::TextureAsset:
-            return sizeof(FTextureAssetRef);
-        case EReflectedPropertyType::MaterialAsset:
-            return sizeof(FMaterialAssetRef);
-        case EReflectedPropertyType::AnimationSequenceAsset:
-            return sizeof(FAnimationSequenceAssetRef);
-        case EReflectedPropertyType::CurveAsset:
-            return sizeof(FCurveAssetRef);
-        case EReflectedPropertyType::SceneAsset:
-            return sizeof(FSceneAssetRef);
-        case EReflectedPropertyType::SoundAsset:
-            return sizeof(FSoundAssetRef);
-        }
-
-        return 0;
-    }
-}
-
 UClass::UClass(const char* InName, UClass* InSuperClass, size_t InClassSize, uint32 InClassFlags, FCreateObjectFunc InCreateFunc)
     : Name(InName), SuperClass(InSuperClass), ClassSize(InClassSize), ClassFlags(InClassFlags), CreateFunc(InCreateFunc)
 {
@@ -76,34 +36,37 @@ void UClass::GetAllProperties(TArray<const FProperty*>& OutProperties) const
         SuperClass->GetAllProperties(OutProperties);
     }
 
-    for (const FProperty& Property : Properties)
+    for (const std::unique_ptr<FProperty>& Property : Properties)
     {
-        OutProperties.push_back(&Property);
+        if (Property)
+        {
+            OutProperties.push_back(Property.get());
+        }
     }
 }
 
-void UClass::AddProperty(const FProperty& Property)
+void UClass::AddProperty(std::unique_ptr<FProperty> Property)
 {
-    if (!Property.Name)
+    if (!Property || !Property->Name)
     {
         return;
     }
 
-    for (const FProperty& ExistingProperty : Properties)
+    for (const std::unique_ptr<FProperty>& ExistingProperty : Properties)
     {
-        if (ExistingProperty.Name && std::strcmp(ExistingProperty.Name, Property.Name) == 0)
+        if (ExistingProperty && ExistingProperty->Name && std::strcmp(ExistingProperty->Name, Property->Name) == 0)
         {
             return;
         }
     }
 
-    const size_t ExpectedSize = GetExpectedPropertySize(Property.Type);
-    if (ExpectedSize != 0 && Property.Size != ExpectedSize)
+    const size_t ExpectedSize = Property->GetValueSize();
+    if (ExpectedSize != 0 && Property->Size != ExpectedSize)
     {
         return;
     }
 
-    Properties.push_back(Property);
+    Properties.push_back(std::move(Property));
 }
 
 const FProperty* UClass::FindProperty(const char* PropertyName) const
@@ -113,11 +76,11 @@ const FProperty* UClass::FindProperty(const char* PropertyName) const
         return nullptr;
     }
 
-    for (const FProperty& Property : Properties)
+    for (const std::unique_ptr<FProperty>& Property : Properties)
     {
-        if (Property.Name && std::strcmp(Property.Name, PropertyName) == 0)
+        if (Property && Property->Name && std::strcmp(Property->Name, PropertyName) == 0)
         {
-            return &Property;
+            return Property.get();
         }
     }
 

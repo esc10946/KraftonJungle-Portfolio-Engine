@@ -72,38 +72,35 @@ UClass* UActorSequence::StaticClass()
     {
         bRegistered = true;
 
-        Class.AddProperty({ "StartTime",
-                            EReflectedPropertyType::Float,
+        Class.AddProperty(MakeProperty<FFloatProperty>(
+                            "StartTime",
                             offsetof(UActorSequence, StartTime),
                             sizeof(float),
                             EPropertyFlags::Read |
                                 EPropertyFlags::Write |
                                 EPropertyFlags::Edit |
                                 EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite,
-                            nullptr });
+                                EPropertyFlags::LuaWrite));
 
-        Class.AddProperty({ "Duration",
-                            EReflectedPropertyType::Float,
+        Class.AddProperty(MakeProperty<FFloatProperty>(
+                            "Duration",
                             offsetof(UActorSequence, Duration),
                             sizeof(float),
                             EPropertyFlags::Read |
                                 EPropertyFlags::Write |
                                 EPropertyFlags::Edit |
                                 EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite,
-                            nullptr });
+                                EPropertyFlags::LuaWrite));
 
-        Class.AddProperty({ "bLoop",
-                            EReflectedPropertyType::Bool,
+        Class.AddProperty(MakeProperty<FBoolProperty>(
+                            "bLoop",
                             offsetof(UActorSequence, bLoop),
                             sizeof(bool),
                             EPropertyFlags::Read |
                                 EPropertyFlags::Write |
                                 EPropertyFlags::Edit |
                                 EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite,
-                            nullptr });
+                                EPropertyFlags::LuaWrite));
 
         FReflectionRegistry::Get().RegisterUClass(&Class);
     }
@@ -147,89 +144,82 @@ UClass* UActorSequencePlayer::StaticClass()
     {
         bRegistered = true;
 
-        Class.AddProperty({ "OwnerComponent",
-                            EReflectedPropertyType::Object,
+        Class.AddProperty(MakeObjectProperty(
+                            "OwnerComponent",
                             offsetof(UActorSequencePlayer, OwnerComponent),
                             sizeof(UActorSequenceComponent*),
                             EPropertyFlags::Transient |
                                 EPropertyFlags::Read,
-                            UActorSequenceComponent::StaticClass() });
+                            UActorSequenceComponent::StaticClass()));
 
-        Class.AddProperty({ "Sequence",
-                            EReflectedPropertyType::Object,
+        Class.AddProperty(MakeObjectProperty(
+                            "Sequence",
                             offsetof(UActorSequencePlayer, Sequence),
                             sizeof(UActorSequence*),
                             EPropertyFlags::Transient |
                                 EPropertyFlags::Read,
-                            UActorSequence::StaticClass() });
+                            UActorSequence::StaticClass()));
 
-        Class.AddProperty({ "CurrentTime",
-                            EReflectedPropertyType::Float,
+        Class.AddProperty(MakeProperty<FFloatProperty>(
+                            "CurrentTime",
                             offsetof(UActorSequencePlayer, CurrentTime),
                             sizeof(float),
                             EPropertyFlags::Read |
                                 EPropertyFlags::Write |
                                 EPropertyFlags::Edit |
                                 EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite,
-                            nullptr });
+                                EPropertyFlags::LuaWrite));
 
-        Class.AddProperty({ "PlayRate",
-                            EReflectedPropertyType::Float,
+        Class.AddProperty(MakeProperty<FFloatProperty>(
+                            "PlayRate",
                             offsetof(UActorSequencePlayer, PlayRate),
                             sizeof(float),
                             EPropertyFlags::Read |
                                 EPropertyFlags::Write |
                                 EPropertyFlags::Edit |
                                 EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite,
-                            nullptr });
+                                EPropertyFlags::LuaWrite));
 
-        Class.AddProperty({ "StartOffsetSeconds",
-                            EReflectedPropertyType::Float,
+        Class.AddProperty(MakeProperty<FFloatProperty>(
+                            "StartOffsetSeconds",
                             offsetof(UActorSequencePlayer, StartOffsetSeconds),
                             sizeof(float),
                             EPropertyFlags::Read |
                                 EPropertyFlags::Write |
                                 EPropertyFlags::Edit |
                                 EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite,
-                            nullptr });
+                                EPropertyFlags::LuaWrite));
 
-        Class.AddProperty({ "bPlaying",
-                            EReflectedPropertyType::Bool,
+        Class.AddProperty(MakeProperty<FBoolProperty>(
+                            "bPlaying",
                             offsetof(UActorSequencePlayer, bPlaying),
                             sizeof(bool),
                             EPropertyFlags::Read |
-                                EPropertyFlags::LuaRead,
-                            nullptr });
+                                EPropertyFlags::LuaRead));
 
-        Class.AddProperty({ "bPaused",
-                            EReflectedPropertyType::Bool,
+        Class.AddProperty(MakeProperty<FBoolProperty>(
+                            "bPaused",
                             offsetof(UActorSequencePlayer, bPaused),
                             sizeof(bool),
                             EPropertyFlags::Read |
-                                EPropertyFlags::LuaRead,
-                            nullptr });
+                                EPropertyFlags::LuaRead));
 
-        Class.AddProperty({ "bPauseAtEnd",
-                            EReflectedPropertyType::Bool,
+        Class.AddProperty(MakeProperty<FBoolProperty>(
+                            "bPauseAtEnd",
                             offsetof(UActorSequencePlayer, bPauseAtEnd),
                             sizeof(bool),
                             EPropertyFlags::Read |
                                 EPropertyFlags::Write |
                                 EPropertyFlags::Edit |
                                 EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite,
-                            nullptr });
+                                EPropertyFlags::LuaWrite));
 
-        Class.AddProperty({ "bResolveDirty",
-                            EReflectedPropertyType::Bool,
+        Class.AddProperty(MakeProperty<FBoolProperty>(
+                            "bResolveDirty",
                             offsetof(UActorSequencePlayer, bResolveDirty),
                             sizeof(bool),
                             EPropertyFlags::Transient |
-                                EPropertyFlags::Read,
-                            nullptr });
+                                EPropertyFlags::Read));
 
         FReflectionRegistry::Get().RegisterUClass(&Class);
     }
@@ -357,13 +347,13 @@ UClass* UAnimInstance::StaticClass()
     {
         bRegistered = true;
 
-        Class.AddProperty({ "SkelMeshComponent",
-                            EReflectedPropertyType::Object,
+        Class.AddProperty(MakeObjectProperty(
+                            "SkelMeshComponent",
                             offsetof(UAnimInstance, SkelMeshComponent),
                             sizeof(USkeletalMeshComponent*),
                             EPropertyFlags::Transient |
                                 EPropertyFlags::Read,
-                            USkeletalMeshComponent::StaticClass() });
+                            USkeletalMeshComponent::StaticClass()));
 
         FReflectionRegistry::Get().RegisterUClass(&Class);
     }
@@ -407,8 +397,8 @@ UClass* UAnimSingleNodeInstance::StaticClass()
     {
         bRegistered = true;
 
-        Class.AddProperty({ "Sequence",
-                            EReflectedPropertyType::Object,
+        Class.AddProperty(MakeObjectProperty(
+                            "Sequence",
                             offsetof(UAnimSingleNodeInstance, Sequence),
                             sizeof(UAnimationSequenceBase*),
                             EPropertyFlags::Read |
@@ -416,56 +406,51 @@ UClass* UAnimSingleNodeInstance::StaticClass()
                                 EPropertyFlags::Edit |
                                 EPropertyFlags::LuaRead |
                                 EPropertyFlags::LuaWrite,
-                            UAnimationSequenceBase::StaticClass() });
+                            UAnimationSequenceBase::StaticClass()));
 
-        Class.AddProperty({ "CurrentTime",
-                            EReflectedPropertyType::Float,
+        Class.AddProperty(MakeProperty<FFloatProperty>(
+                            "CurrentTime",
                             offsetof(UAnimSingleNodeInstance, CurrentTime),
                             sizeof(float),
                             EPropertyFlags::Read |
                                 EPropertyFlags::Write |
                                 EPropertyFlags::Edit |
                                 EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite,
-                            nullptr });
+                                EPropertyFlags::LuaWrite));
 
-        Class.AddProperty({ "PlayRate",
-                            EReflectedPropertyType::Float,
+        Class.AddProperty(MakeProperty<FFloatProperty>(
+                            "PlayRate",
                             offsetof(UAnimSingleNodeInstance, PlayRate),
                             sizeof(float),
                             EPropertyFlags::Read |
                                 EPropertyFlags::Write |
                                 EPropertyFlags::Edit |
                                 EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite,
-                            nullptr });
+                                EPropertyFlags::LuaWrite));
 
-        Class.AddProperty({ "bPlaying",
-                            EReflectedPropertyType::Bool,
+        Class.AddProperty(MakeProperty<FBoolProperty>(
+                            "bPlaying",
                             offsetof(UAnimSingleNodeInstance, bPlaying),
                             sizeof(bool),
                             EPropertyFlags::Read |
-                                EPropertyFlags::LuaRead,
-                            nullptr });
+                                EPropertyFlags::LuaRead));
 
-        Class.AddProperty({ "bPaused",
-                            EReflectedPropertyType::Bool,
+        Class.AddProperty(MakeProperty<FBoolProperty>(
+                            "bPaused",
                             offsetof(UAnimSingleNodeInstance, bPaused),
                             sizeof(bool),
                             EPropertyFlags::Read |
-                                EPropertyFlags::LuaRead,
-                            nullptr });
+                                EPropertyFlags::LuaRead));
 
-        Class.AddProperty({ "bLooping",
-                            EReflectedPropertyType::Bool,
+        Class.AddProperty(MakeProperty<FBoolProperty>(
+                            "bLooping",
                             offsetof(UAnimSingleNodeInstance, bLooping),
                             sizeof(bool),
                             EPropertyFlags::Read |
                                 EPropertyFlags::Write |
                                 EPropertyFlags::Edit |
                                 EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite,
-                            nullptr });
+                                EPropertyFlags::LuaWrite));
 
         FReflectionRegistry::Get().RegisterUClass(&Class);
     }
@@ -551,73 +536,69 @@ UClass* UActorSequenceComponent::StaticClass()
     {
         bRegistered = true;
 
-        Class.AddProperty({ "Sequence",
-                            EReflectedPropertyType::Object,
+        Class.AddProperty(MakeObjectProperty(
+                            "Sequence",
                             offsetof(UActorSequenceComponent, Sequence),
                             sizeof(UActorSequence*),
                             EPropertyFlags::Transient |
                                 EPropertyFlags::Read,
-                            UActorSequence::StaticClass() });
+                            UActorSequence::StaticClass()));
 
-        Class.AddProperty({ "SequencePlayer",
-                            EReflectedPropertyType::Object,
+        Class.AddProperty(MakeObjectProperty(
+                            "SequencePlayer",
                             offsetof(UActorSequenceComponent, SequencePlayer),
                             sizeof(UActorSequencePlayer*),
                             EPropertyFlags::Transient |
                                 EPropertyFlags::Read,
-                            UActorSequencePlayer::StaticClass() });
+                            UActorSequencePlayer::StaticClass()));
 
-        Class.AddProperty({ "PreviewSequencePlayer",
-                            EReflectedPropertyType::Object,
+        Class.AddProperty(MakeObjectProperty(
+                            "PreviewSequencePlayer",
                             offsetof(UActorSequenceComponent, PreviewSequencePlayer),
                             sizeof(UActorSequencePlayer*),
                             EPropertyFlags::Transient |
                                 EPropertyFlags::Read,
-                            UActorSequencePlayer::StaticClass() });
+                            UActorSequencePlayer::StaticClass()));
 
-        Class.AddProperty({ "bAutoPlay",
-                            EReflectedPropertyType::Bool,
+        Class.AddProperty(MakeProperty<FBoolProperty>(
+                            "bAutoPlay",
                             offsetof(UActorSequenceComponent, bAutoPlay),
                             sizeof(bool),
                             EPropertyFlags::Read |
                                 EPropertyFlags::Write |
                                 EPropertyFlags::Edit |
                                 EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite,
-                            nullptr });
+                                EPropertyFlags::LuaWrite));
 
-        Class.AddProperty({ "bPauseAtEnd",
-                            EReflectedPropertyType::Bool,
+        Class.AddProperty(MakeProperty<FBoolProperty>(
+                            "bPauseAtEnd",
                             offsetof(UActorSequenceComponent, bPauseAtEnd),
                             sizeof(bool),
                             EPropertyFlags::Read |
                                 EPropertyFlags::Write |
                                 EPropertyFlags::Edit |
                                 EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite,
-                            nullptr });
+                                EPropertyFlags::LuaWrite));
 
-        Class.AddProperty({ "PlayRate",
-                            EReflectedPropertyType::Float,
+        Class.AddProperty(MakeProperty<FFloatProperty>(
+                            "PlayRate",
                             offsetof(UActorSequenceComponent, PlayRate),
                             sizeof(float),
                             EPropertyFlags::Read |
                                 EPropertyFlags::Write |
                                 EPropertyFlags::Edit |
                                 EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite,
-                            nullptr });
+                                EPropertyFlags::LuaWrite));
 
-        Class.AddProperty({ "StartOffsetSeconds",
-                            EReflectedPropertyType::Float,
+        Class.AddProperty(MakeProperty<FFloatProperty>(
+                            "StartOffsetSeconds",
                             offsetof(UActorSequenceComponent, StartOffsetSeconds),
                             sizeof(float),
                             EPropertyFlags::Read |
                                 EPropertyFlags::Write |
                                 EPropertyFlags::Edit |
                                 EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite,
-                            nullptr });
+                                EPropertyFlags::LuaWrite));
 
         FReflectionRegistry::Get().RegisterUClass(&Class);
     }
@@ -1750,27 +1731,25 @@ UClass* AReflectionTestActor::StaticClass()
     {
         bRegistered = true;
 
-        Class.AddProperty({ "Speed",
-                            EReflectedPropertyType::Float,
+        Class.AddProperty(MakeProperty<FFloatProperty>(
+                            "Speed",
                             offsetof(AReflectionTestActor, Speed),
                             sizeof(float),
                             EPropertyFlags::Read |
                                 EPropertyFlags::Write |
                                 EPropertyFlags::Edit |
                                 EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite,
-                            nullptr });
+                                EPropertyFlags::LuaWrite));
 
-        Class.AddProperty({ "Health",
-                            EReflectedPropertyType::Float,
+        Class.AddProperty(MakeProperty<FFloatProperty>(
+                            "Health",
                             offsetof(AReflectionTestActor, Health),
                             sizeof(float),
                             EPropertyFlags::Read |
                                 EPropertyFlags::Write |
                                 EPropertyFlags::Edit |
                                 EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite,
-                            nullptr });
+                                EPropertyFlags::LuaWrite));
 
         FReflectionRegistry::Get().RegisterUClass(&Class);
     }
@@ -2891,34 +2870,61 @@ UClass* TestComponent::StaticClass()
     {
         bRegistered = true;
 
-        Class.AddProperty({ "Speed",
-                            EReflectedPropertyType::Float,
+        Class.AddProperty(MakeProperty<FFloatProperty>(
+                            "Speed",
                             offsetof(TestComponent, Speed),
                             sizeof(float),
                             EPropertyFlags::Read |
                                 EPropertyFlags::Write |
                                 EPropertyFlags::Edit |
                                 EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite,
-                            nullptr });
+                                EPropertyFlags::LuaWrite));
 
-        Class.AddProperty({ "bEnabled",
-                            EReflectedPropertyType::Bool,
+        Class.AddProperty(MakeProperty<FBoolProperty>(
+                            "bEnabled",
                             offsetof(TestComponent, bEnabled),
                             sizeof(bool),
                             EPropertyFlags::Read |
                                 EPropertyFlags::Write |
-                                EPropertyFlags::Edit,
-                            nullptr });
+                                EPropertyFlags::Edit));
 
-        Class.AddProperty({ "WalkAnimation",
-                            EReflectedPropertyType::StaticMeshAsset,
+        Class.AddProperty(MakeProperty<FStaticMeshAssetProperty>(
+                            "WalkAnimation",
                             offsetof(TestComponent, WalkAnimation),
                             sizeof(FStaticMeshAssetRef),
                             EPropertyFlags::Read |
                                 EPropertyFlags::Write |
+                                EPropertyFlags::Edit));
+
+        Class.AddProperty(MakeArrayProperty<FObjectProperty>(
+                            "Objects",
+                            offsetof(TestComponent, Objects),
+                            sizeof(TArray<UObject*>),
+                            EPropertyFlags::Read |
+                                EPropertyFlags::Write |
                                 EPropertyFlags::Edit,
-                            nullptr });
+                            GetArrayPropertyOps<UObject*>(),
+                            UObject::StaticClass()));
+
+        Class.AddProperty(MakeArrayProperty<FInt32Property>(
+                            "aa",
+                            offsetof(TestComponent, aa),
+                            sizeof(TArray<int32>),
+                            EPropertyFlags::Read |
+                                EPropertyFlags::Write |
+                                EPropertyFlags::Edit,
+                            GetArrayPropertyOps<int32>(),
+                            nullptr));
+
+        Class.AddProperty(MakeArrayProperty<FFloatProperty>(
+                            "ss",
+                            offsetof(TestComponent, ss),
+                            sizeof(TArray<float>),
+                            EPropertyFlags::Read |
+                                EPropertyFlags::Write |
+                                EPropertyFlags::Edit,
+                            GetArrayPropertyOps<float>(),
+                            nullptr));
 
         FReflectionRegistry::Get().RegisterUClass(&Class);
     }

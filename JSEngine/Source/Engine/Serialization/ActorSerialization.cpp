@@ -195,7 +195,7 @@ namespace
 		FString BaseName = StripGeneratedNameSuffixes(RequestedName);
 		if (BaseName.empty())
 		{
-			BaseName = TargetActor && TargetActor->GetTypeInfo() ? TargetActor->GetTypeInfo()->name : "Actor";
+			BaseName = TargetActor && TargetActor->GetClass() ? TargetActor->GetClass()->GetName() : "Actor";
 		}
 
 		if (!RequestedCleanName.empty() && !IsActorNameTaken(World, TargetActor, RequestedCleanName))
