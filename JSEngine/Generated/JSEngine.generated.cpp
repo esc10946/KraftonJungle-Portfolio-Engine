@@ -2926,6 +2926,21 @@ UClass* TestComponent::StaticClass()
                             GetArrayPropertyOps<float>(),
                             nullptr));
 
+        Class.AddFunction(MakeFunction(
+                            "PrintLog",
+                            EFunctionFlags::Native |
+                            EFunctionFlags::EditorCall,
+                            [](UObject* Object)
+                            {
+                                TestComponent* TypedObject = Cast<TestComponent>(Object);
+                                if (!TypedObject)
+                                {
+                                    return;
+                                }
+
+                                TypedObject->PrintLog();
+                            }));
+
         FReflectionRegistry::Get().RegisterUClass(&Class);
     }
 

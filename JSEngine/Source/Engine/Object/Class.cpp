@@ -45,6 +45,22 @@ void UClass::GetAllProperties(TArray<const FProperty*>& OutProperties) const
     }
 }
 
+void UClass::GetAllFuntions(TArray<const UFunction*>& OutFuntions) const
+{
+    if (SuperClass)
+    {
+        SuperClass->GetAllFuntions(OutFuntions);
+    }
+
+    for (const std::unique_ptr<UFunction>& Function : Functions)
+    {
+        if (Function)
+        {
+            OutFuntions.push_back(Function.get());
+        }
+    }
+}
+
 void UClass::AddProperty(std::unique_ptr<FProperty> Property)
 {
     if (!Property || !Property->Name)
@@ -85,4 +101,41 @@ const FProperty* UClass::FindProperty(const char* PropertyName) const
     }
 
     return SuperClass ? SuperClass->FindProperty(PropertyName) : nullptr;
+}
+
+
+void UClass::AddFunction(std::unique_ptr<UFunction> Function)
+{
+    if (!Function || !Function->GetName())
+    {
+        return;
+    }
+
+    for (const std::unique_ptr<UFunction>& ExistingFunction : Functions)
+    {
+        if (ExistingFunction && ExistingFunction->GetName() && std::strcmp(ExistingFunction->GetName(), Function->GetName()) == 0)
+        {
+            return;
+        }
+    }
+
+    Functions.push_back(std::move(Function));
+}
+
+const UFunction* UClass::FindFunction(const char* FunctionName) const
+{
+    if (!FunctionName)
+    {
+        return nullptr;
+    }
+
+    for (const std::unique_ptr<UFunction>& ExistingFunction : Functions)
+    {
+        if (ExistingFunction && ExistingFunction->GetName() && std::strcmp(ExistingFunction->GetName(), FunctionName) == 0)
+        {
+            return ExistingFunction.get();
+        }
+    }
+
+	return SuperClass ? SuperClass->FindFunction(FunctionName) : nullptr;
 }

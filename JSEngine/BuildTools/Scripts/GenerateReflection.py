@@ -39,6 +39,12 @@ FLAG_MAP = {
     "LuaWrite": "EPropertyFlags::LuaWrite",
 }
 
+FUNCTION_FLAG_MAP = {
+    "Native": "EFunctionFlags::Native",
+    "EditorCall": "EFunctionFlags::EditorCall",
+    "LuaCallable": "EFunctionFlags::LuaCallable",
+}
+
 CLASS_PATTERN = re.compile(
     r"UCLASS\s*\(\s*\)\s*\n\s*class\s+(?P<class>\w+)\s*:\s*public\s+(?P<super>\w+)",
     re.MULTILINE,
@@ -48,6 +54,15 @@ PROPERTY_PATTERN = re.compile(
     r"UPROPERTY\s*\((?P<flags>[^)]*)\)\s*\n\s*"
     r"(?P<type>TArray\s*<\s*[\w:]+(?:\s*\*)?\s*>|[\w:]+(?:\s*\*)?)\s+"
     r"(?P<name>\w+)\s*(?:=[^;]*)?;",
+    re.MULTILINE,
+)
+
+FUNCTION_PATTERN = re.compile(
+    r"UFUNCTION\s*\((?P<flags>[^)]*)\)\s*\n\s*"
+    r"(?:virtual\s+)?"
+    r"(?P<return_type>[\w:]+(?:\s*\*)?)\s+"
+    r"(?P<name>\w+)\s*\(\s*(?P<params>[^)]*)\s*\)\s*"
+    r"(?:const\s*)?(?:override\s*)?;",
     re.MULTILINE,
 )
 
@@ -71,6 +86,12 @@ class ReflectedProperty:
 
 
 @dataclass
+class ReflectedFunction:
+    name: str
+    flags: str
+
+
+@dataclass
 class ReflectedClass:
     file_path: Path
     class_name: str
@@ -79,6 +100,7 @@ class ReflectedClass:
     is_abstract: bool
     needs_type_info_definition: bool
     properties: list[ReflectedProperty]
+    functions: list[ReflectedFunction]
 
 
 class ReflectionGeneratorError(Exception):
@@ -284,6 +306,27 @@ def parse_flags(path: Path, content: str, offset: int, flag_text: str) -> str:
     return " |\n                                ".join(result)
 
 
+def parse_function_flags(path: Path, content: str, offset: int, flag_text: str) -> str:
+    parts = [part.strip() for part in flag_text.split(",") if part.strip()]
+    flags: list[str] = []
+
+    for part in parts:
+        mapped_flag = FUNCTION_FLAG_MAP.get(part)
+        if not mapped_flag:
+            fail(path, content, offset, f"unsupported UFUNCTION flag '{part}'")
+        flags.append(mapped_flag)
+
+    if not flags:
+        flags.append("EFunctionFlags::None")
+
+    result: list[str] = []
+    for flag in flags:
+        if flag not in result:
+            result.append(flag)
+
+    return " |\n                            ".join(result)
+
+
 def find_matching_class_body(path: Path, content: str, class_match: re.Match) -> tuple[int, int]:
     open_brace = content.find("{", class_match.end())
     if open_brace == -1:
@@ -456,6 +499,36 @@ def parse_reflected_class(path: Path, content: str, class_match: re.Match) -> Re
             )
         )
 
+    functions: list[ReflectedFunction] = []
+    function_names: set[str] = set()
+    for function_match in FUNCTION_PATTERN.finditer(parseable_body):
+        absolute_offset = body_start + function_match.start()
+        return_type = normalize_cpp_type(function_match.group("return_type"))
+        function_name = function_match.group("name")
+        params = function_match.group("params").strip()
+
+        if return_type != "void":
+            fail(path, content, absolute_offset, "only void UFUNCTION return type is supported")
+
+        if params:
+            fail(path, content, absolute_offset, "UFUNCTION parameters are not supported yet")
+
+        if function_name in function_names:
+            fail(path, content, absolute_offset, f"duplicate UFUNCTION name '{function_name}'")
+        function_names.add(function_name)
+
+        functions.append(
+            ReflectedFunction(
+                name=function_name,
+                flags=parse_function_flags(
+                    path,
+                    content,
+                    absolute_offset,
+                    function_match.group("flags"),
+                ),
+            )
+        )
+
     return ReflectedClass(
         file_path=path,
         class_name=class_name,
@@ -464,6 +537,7 @@ def parse_reflected_class(path: Path, content: str, class_match: re.Match) -> Re
         is_abstract=is_abstract_class(class_name, parseable_body),
         needs_type_info_definition=not has_legacy_define_class(class_name),
         properties=properties,
+        functions=functions,
     )
 
 
@@ -597,6 +671,24 @@ def build_generated_cpp(classes: list[ReflectedClass]) -> str:
                     f"                            {prop.flags}));",
                     "",
                 ]
+
+        for function in cls.functions:
+            cpp_lines += [
+                "        Class.AddFunction(MakeFunction(",
+                f'                            "{function.name}",',
+                f"                            {function.flags},",
+                "                            [](UObject* Object)",
+                "                            {",
+                f"                                {cls.class_name}* TypedObject = Cast<{cls.class_name}>(Object);",
+                "                                if (!TypedObject)",
+                "                                {",
+                "                                    return;",
+                "                                }",
+                "",
+                f"                                TypedObject->{function.name}();",
+                "                            }));",
+                "",
+            ]
 
         cpp_lines += [
             "        FReflectionRegistry::Get().RegisterUClass(&Class);",

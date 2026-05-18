@@ -24,4 +24,7 @@ public:
 
     UPROPERTY(Edit)
     TArray<float> ss;
+
+	UFUNCTION(Native, EditorCall)
+    void PrintLog();
 };

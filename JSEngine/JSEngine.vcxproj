@@ -319,6 +319,7 @@
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\BuildTools\Scripts\BuildSoLoudLib.ps1&quot; -ProjectDir &quot;$(MSBuildProjectDirectory)&quot; -Configuration &quot;$(ThirdPartyBinaryConfiguration)&quot; -Platform &quot;$(Platform)&quot;" />
   </Target>
   <ItemGroup>
+    <ClCompile Include="Source\Engine\Object\Function.cpp" />
     <ClCompile Include="Source\Editor\Viewer\AnimationViewer.cpp" />
     <ClCompile Include="Generated\JSEngine.generated.cpp" />
     <ClCompile Include="Source\Editor\Asset\EditorAssetService.cpp">
@@ -895,6 +896,7 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Source\Engine\Object\Function.h" />
     <ClInclude Include="Source\Editor\Viewer\AnimationViewer.h" />
     <ClInclude Include="TestComponent.h" />
     <ClInclude Include="Source\Editor\Asset\EditorAssetService.h" />

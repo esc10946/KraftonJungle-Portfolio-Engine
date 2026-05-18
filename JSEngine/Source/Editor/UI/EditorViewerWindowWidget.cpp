@@ -1250,7 +1250,7 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
             NewFrameFloat = std::clamp(NewFrameFloat, 0.0f, static_cast<float>(TotalFrames));
 
             const float NewTime = NewFrameFloat / SafeFPS;
-            State.CurrentFrame = NewFrameFloat;
+            State.CurrentFrame = static_cast<int32>(std::round(NewFrameFloat));
             AnimationViewer->SetAnimationTime(NewTime);
         };
 

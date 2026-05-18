@@ -1210,6 +1210,7 @@
     <ClCompile Include="Generated\JSEngine.generated.cpp" />
     <ClCompile Include="TestComponent.cpp" />
     <ClCompile Include="Source\Editor\Viewer\AnimationViewer.cpp" />
+    <ClCompile Include="Source\Engine\Object\Function.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="TestComponent.h" />
@@ -2306,6 +2307,7 @@
       <Filter>ThirdParty\luajit\src</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\Viewer\AnimationViewer.h" />
+    <ClInclude Include="Source\Engine\Object\Function.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Source\Engine\Runtime\AppIcon.rc">
