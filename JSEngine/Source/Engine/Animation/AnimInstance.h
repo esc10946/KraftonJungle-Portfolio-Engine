@@ -31,6 +31,7 @@ public:
     const FAnimStateMachineContext& GetStateMachineContext() const { return StateMachineContext; }
 
     void RegisterAnimation(const FName& AnimationName, UAnimationSequenceBase* Sequence);
+    bool RegisterAnimationPath(const FName& AnimationName, const FString& AnimationPath);
     UAnimationSequenceBase* FindRegisteredAnimation(const FName& AnimationName) const;
     virtual bool PlayAnimationByName(const FName& AnimationName, bool bLoop);
 

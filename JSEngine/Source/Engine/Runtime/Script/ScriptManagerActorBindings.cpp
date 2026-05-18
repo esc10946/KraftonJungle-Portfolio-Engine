@@ -25,6 +25,7 @@
 #include "Component/ProceduralMeshComponent.h"
 #include "Component/SceneComponent.h"
 #include "Component/ShapeComponent.h"
+#include "Component/SkeletalMeshComponent.h"
 #include "Component/SoundComponent.h"
 #include "Component/SphereComponent.h"
 #include "Component/SpringArmComponent.h"
@@ -360,6 +361,8 @@ void FScriptManager::BindActorTypes()
     LUA_SET(GetTags, &ActorTagsToLuaTable);
     LUA_SET(Get_Static_Mesh_Component, [](AActor& Actor)
             { return Cast<UStaticMeshComponent>(GetComponentByType(Actor, "StaticMeshComponent")); });
+    LUA_SET(GetSkeletalMeshComponent, [](AActor& Actor)
+            { return Cast<USkeletalMeshComponent>(GetComponentByType(Actor, "SkeletalMeshComponent")); });
     LUA_SET(GetActorSequenceComponent, [](AActor& Actor)
             { return Cast<UActorSequenceComponent>(GetComponentByType(Actor, "ActorSequenceComponent")); });
     LUA_END_TYPE();
