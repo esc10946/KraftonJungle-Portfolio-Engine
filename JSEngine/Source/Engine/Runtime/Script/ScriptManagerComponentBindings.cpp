@@ -1,5 +1,6 @@
 ﻿#include "Runtime/Script/ScriptManager.h"
 
+#include "Animation/AnimationStateMachine.h"
 #include "Asset/CurveFloatAsset.h"
 #include "Asset/StaticMesh.h"
 #include "Camera/CameraShakeBase.h"
@@ -29,6 +30,7 @@
 #include "Component/PrimitiveComponent.h"
 #include "Component/ShapeComponent.h"
 #include "Component/SceneComponent.h"
+#include "Component/SkeletalMeshComponent.h"
 #include "Component/SoundComponent.h"
 #include "Component/SphereComponent.h"
 #include "Component/StaticMeshComponent.h"
@@ -406,6 +408,53 @@ void FScriptManager::BindStaticMeshTypes()
     LUA_METHOD(SetStaticMesh, SetStaticMesh);
     LUA_METHOD(HasValidMesh, HasValidMesh);
     LUA_METHOD(GetPrimitiveType, GetPrimitiveType);
+    LUA_END_TYPE();
+
+    LUA_BEGIN_TYPE_NO_CTOR_BASE(GLuaState, USkinnedMeshComponent, "SkinnedMeshComponent", UMeshComponent, UPrimitiveComponent, USceneComponent, UActorComponent, UObject)
+    LUA_METHOD(GetSkeletalMesh, GetSkeletalMesh);
+    LUA_METHOD(SetSkeletalMesh, SetSkeletalMesh);
+    LUA_METHOD(HasValidMesh, HasValidMesh);
+    LUA_END_TYPE();
+
+    LUA_BEGIN_TYPE_NO_CTOR_BASE(GLuaState, USkeletalMeshComponent, "SkeletalMeshComponent", USkinnedMeshComponent, UMeshComponent, UPrimitiveComponent, USceneComponent, UActorComponent, UObject)
+    LUA_METHOD(GetSkeletalMesh, GetSkeletalMesh);
+    LUA_METHOD(SetSkeletalMesh, SetSkeletalMesh);
+    LUA_METHOD(UseStateMachine, UseStateMachine);
+    LUA_METHOD(LoadStateMachineFromJson, LoadStateMachineFromJson);
+    LUA_SET(RegisterStateAnimation, [](USkeletalMeshComponent& Self, const FString& AnimationName, const FString& AnimationPath)
+    {
+        return Self.RegisterStateAnimationPath(FName(AnimationName), AnimationPath);
+    });
+    LUA_SET(SetAnimStateMachineContext, [](
+        USkeletalMeshComponent& Self,
+        float Speed,
+        bool bIsGrounded,
+        sol::optional<FString> MovementMode,
+        sol::optional<float> WalkSpeed,
+        sol::optional<float> RunSpeed)
+    {
+        FAnimStateMachineContext Context;
+        Context.Speed = Speed;
+        Context.bIsGrounded = bIsGrounded;
+        Context.WalkSpeed = WalkSpeed.value_or(Context.WalkSpeed);
+        Context.RunSpeed = RunSpeed.value_or(Context.RunSpeed);
+
+        const FString Mode = MovementMode.value_or("Walking");
+        if (Mode == "Falling")
+        {
+            Context.MovementMode = EAnimStateMachineMovementMode::Falling;
+        }
+        else if (Mode == "Flying")
+        {
+            Context.MovementMode = EAnimStateMachineMovementMode::Flying;
+        }
+        else
+        {
+            Context.MovementMode = EAnimStateMachineMovementMode::Walking;
+        }
+
+        Self.SetAnimStateMachineContext(Context);
+    });
     LUA_END_TYPE();
 }
 

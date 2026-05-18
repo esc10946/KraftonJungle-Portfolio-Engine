@@ -2,6 +2,7 @@
 
 #include "Animation/AnimationStateMachine.h"
 #include "Component/SkeletalMeshComponent.h"
+#include "Core/ResourceManager.h"
 
 #include <algorithm>
 #include <cmath>
@@ -49,6 +50,23 @@ void UAnimInstance::RegisterAnimation(const FName& AnimationName, UAnimationSequ
     RegisteredAnimations.push_back(RegisteredAnimation);
 }
 
+bool UAnimInstance::RegisterAnimationPath(const FName& AnimationName, const FString& AnimationPath)
+{
+    if (!AnimationName.IsValid() || AnimationPath.empty())
+    {
+        return false;
+    }
+
+    UAnimationSequenceBase* Sequence = FResourceManager::Get().LoadAnimationSequence(AnimationPath);
+    if (!Sequence)
+    {
+        return false;
+    }
+
+    RegisterAnimation(AnimationName, Sequence);
+    return true;
+}
+
 UAnimationSequenceBase* UAnimInstance::FindRegisteredAnimation(const FName& AnimationName) const
 {
     for (const FNamedAnimation& RegisteredAnimation : RegisteredAnimations)
@@ -77,6 +95,15 @@ void UAnimSingleNodeInstance::SetSequence(UAnimationSequenceBase* InSequence)
 bool UAnimSingleNodeInstance::PlayAnimationByName(const FName& AnimationName, bool bLoop)
 {
     UAnimationSequenceBase* TargetSequence = FindRegisteredAnimation(AnimationName);
+    if (!TargetSequence && AnimationName.IsValid())
+    {
+        TargetSequence = FResourceManager::Get().LoadAnimationSequence(AnimationName.ToString());
+        if (TargetSequence)
+        {
+            RegisterAnimation(AnimationName, TargetSequence);
+        }
+    }
+
     if (!TargetSequence)
     {
         return false;

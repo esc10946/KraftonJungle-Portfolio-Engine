@@ -1,4 +1,4 @@
-#include "Animation/AnimationStateMachine.h"
+﻿#include "Animation/AnimationStateMachine.h"
 
 #include "Animation/AnimInstance.h"
 #include "Core/Logging/Log.h"
@@ -56,12 +56,12 @@ int32 GetJsonInt(json::JSON& Object, const char* Key, int32 DefaultValue)
 bool IsConditionNameKnown(const FName& ConditionName)
 {
     return ConditionName == FName("CanWalk") ||
-        ConditionName == FName("ShouldIdle") ||
-        ConditionName == FName("CanRun") ||
-        ConditionName == FName("IsFalling") ||
-        ConditionName == FName("IsFlying");
+           ConditionName == FName("ShouldIdle") ||
+           ConditionName == FName("CanRun") ||
+           ConditionName == FName("IsFalling") ||
+           ConditionName == FName("IsFlying");
 }
-}
+} // namespace
 
 void UAnimStateMachineAsset::SetEntryState(const FName& StateName)
 {
@@ -427,8 +427,8 @@ bool FAnimStateMachineInstance::EvaluateCondition(
     if (ConditionName == FName("CanWalk"))
     {
         return Context.bIsGrounded &&
-            Context.Speed >= Context.IdleSpeedThreshold &&
-            Context.Speed <= Context.WalkSpeed;
+               Context.Speed >= Context.IdleSpeedThreshold &&
+               Context.Speed <= Context.WalkSpeed;
     }
 
     if (ConditionName == FName("CanRun"))
@@ -439,7 +439,7 @@ bool FAnimStateMachineInstance::EvaluateCondition(
     if (ConditionName == FName("IsFalling"))
     {
         return !Context.bIsGrounded ||
-            Context.MovementMode == EAnimStateMachineMovementMode::Falling;
+               Context.MovementMode == EAnimStateMachineMovementMode::Falling;
     }
 
     if (ConditionName == FName("IsFlying"))

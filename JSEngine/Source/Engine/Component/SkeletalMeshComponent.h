@@ -3,7 +3,10 @@
 #include "Component/SkinnedMeshComponent.h"
 
 #include "USkeletalMeshComponent.generated.h"
+class UAnimStateMachineAsset;
 class UAnimInstance;
+class UAnimSingleNodeInstance;
+struct FAnimStateMachineContext;
 
 /**
  * @brief Unreal Engine 스타일에서는 skinned mesh가 skeleton을 이용하는 mesh를 표현하고,
@@ -17,7 +20,7 @@ class USkeletalMeshComponent : public USkinnedMeshComponent
 public:
     GENERATED_BODY(USkeletalMeshComponent, USkinnedMeshComponent)
     USkeletalMeshComponent() = default;
-    ~USkeletalMeshComponent() override = default;
+    ~USkeletalMeshComponent() override;
 
     void TickComponent(float DeltaTime) override;
 
@@ -25,6 +28,11 @@ public:
 
     void SetAnimInstance(UAnimInstance* InAnimInstance);
     UAnimInstance* GetAnimInstance() const { return AnimInstance; }
+
+    bool UseStateMachine(UAnimStateMachineAsset* StateMachineAsset);
+    bool LoadStateMachineFromJson(const FString& JsonPath);
+    bool RegisterStateAnimationPath(const FName& AnimationName, const FString& AnimationPath);
+    void SetAnimStateMachineContext(const FAnimStateMachineContext& Context);
 
     void ApplyLocalPose(const TArray<FMatrix>& InLocalPose);
 
@@ -37,5 +45,9 @@ public:
     void SetBoneGlobalTransform(int32 BoneIndex, const FMatrix& NewGlobalTransform);
 
 private:
+    UAnimSingleNodeInstance* GetOrCreateAnimSingleNodeInstance();
+
+private:
     UAnimInstance* AnimInstance = nullptr;
+    UAnimSingleNodeInstance* AnimSingleNodeInstance = nullptr;
 };
