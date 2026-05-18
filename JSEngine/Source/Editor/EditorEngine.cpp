@@ -8,6 +8,9 @@
 #include "Component/GizmoComponent.h"
 #include "Component/CameraComponent.h"
 #include "Component/PrimitiveComponent.h"
+#include "Component/SkeletalMeshComponent.h"
+#include "Core/Paths.h"
+#include "Core/ResourceManager.h"
 #include "GameFramework/GameModeBase.h"
 #include "GameFramework/PrimitiveActors.h"
 #include "GameFramework/PlayerController.h"
@@ -21,6 +24,7 @@
 #include "Settings/EditorSettings.h"
 #include "Settings/ProjectSettings.h"
 #include <algorithm>
+#include <cmath>
 #if STATS
 #include <chrono>
 #endif
@@ -32,6 +36,55 @@
 
 DEFINE_CLASS(UEditorEngine, UEngine)
 REGISTER_FACTORY(UEditorEngine)
+
+namespace
+{
+bool TryFindSiblingSkeletalMeshBinaryForEditor(const FString& FbxPath, FString& OutBinaryPath)
+{
+    if (FbxPath.empty())
+    {
+        return false;
+    }
+
+    std::filesystem::path SourcePath(FPaths::ToWide(FPaths::Normalize(FbxPath)));
+    if (SourcePath.is_relative())
+    {
+        SourcePath = FPaths::ToAbsolute(SourcePath.wstring());
+    }
+
+    std::error_code ErrorCode;
+    if (!std::filesystem::exists(SourcePath, ErrorCode))
+    {
+        return false;
+    }
+
+    const std::filesystem::path ParentPath = SourcePath.parent_path();
+    const std::wstring Prefix = SourcePath.stem().wstring() + L"_skeletalmesh_";
+
+    for (const std::filesystem::directory_entry& Entry : std::filesystem::directory_iterator(ParentPath, ErrorCode))
+    {
+        if (ErrorCode || !Entry.is_regular_file())
+        {
+            continue;
+        }
+
+        const std::filesystem::path CandidatePath = Entry.path();
+        if (CandidatePath.extension() != L".bin")
+        {
+            continue;
+        }
+
+        const std::wstring CandidateName = CandidatePath.filename().wstring();
+        if (CandidateName.rfind(Prefix, 0) == 0)
+        {
+            OutBinaryPath = FPaths::ToRelativeString(CandidatePath.wstring());
+            return true;
+        }
+    }
+
+    return false;
+}
+}
 
 namespace
 {
@@ -635,6 +688,195 @@ FEditorViewer* UEditorEngine::CreateViewer(FString InFileName)
     Viewers.push_back(std::move(NewViewer));
 
     return Result;
+}
+
+void UEditorEngine::RequestOpenSkeletalMeshViewer(const FString& SkeletalMeshPath)
+{
+    if (SkeletalMeshPath.empty())
+    {
+        return;
+    }
+
+    for (const auto& Viewer : Viewers)
+    {
+        if (Viewer->GetFileName() == SkeletalMeshPath)
+        {
+            MainPanel.OpenViewer(Viewer.get());
+            return;
+        }
+    }
+
+    PendingSkeletalMeshLoadRequest.Type = ESkeletalMeshLoadRequestType::OpenViewer;
+    PendingSkeletalMeshLoadRequest.Path = SkeletalMeshPath;
+    PendingSkeletalMeshLoadRequest.TargetComponent = nullptr;
+    PendingSkeletalMeshLoadRequest.DelayFrames = 2;
+    PendingSkeletalMeshLoadRequest.bModalRequested = true;
+}
+
+void UEditorEngine::RequestOpenFbxInSkeletalMeshViewer(const FString& FbxPath)
+{
+    if (FbxPath.empty())
+    {
+        return;
+    }
+
+    FString SkeletalMeshBinaryPath;
+    if (TryFindSiblingSkeletalMeshBinaryForEditor(FbxPath, SkeletalMeshBinaryPath))
+    {
+        RequestOpenSkeletalMeshViewer(SkeletalMeshBinaryPath);
+        return;
+    }
+
+    PendingSkeletalMeshLoadRequest.Type = ESkeletalMeshLoadRequestType::ImportFbxAndOpenViewer;
+    PendingSkeletalMeshLoadRequest.Path = FbxPath;
+    PendingSkeletalMeshLoadRequest.TargetComponent = nullptr;
+    PendingSkeletalMeshLoadRequest.DelayFrames = 2;
+    PendingSkeletalMeshLoadRequest.bModalRequested = true;
+}
+
+void UEditorEngine::RequestApplySkeletalMeshToComponent(USkeletalMeshComponent* Component, const FString& SkeletalMeshPath)
+{
+    if (!Component || SkeletalMeshPath.empty())
+    {
+        return;
+    }
+
+    if (Component->GetSkeletalMesh() &&
+        Component->GetSkeletalMesh()->GetAssetPathFileName() == SkeletalMeshPath)
+    {
+        return;
+    }
+
+    PendingSkeletalMeshLoadRequest.Type = ESkeletalMeshLoadRequestType::ApplyToComponent;
+    PendingSkeletalMeshLoadRequest.Path = SkeletalMeshPath;
+    PendingSkeletalMeshLoadRequest.TargetComponent = Component;
+    PendingSkeletalMeshLoadRequest.DelayFrames = 2;
+    PendingSkeletalMeshLoadRequest.bModalRequested = true;
+}
+
+void UEditorEngine::DrawSkeletalMeshLoadModal()
+{
+    if (PendingSkeletalMeshLoadRequest.Type == ESkeletalMeshLoadRequestType::None)
+    {
+        return;
+    }
+
+    if (PendingSkeletalMeshLoadRequest.bModalRequested)
+    {
+        ImGui::OpenPopup("Loading Skeletal Mesh");
+        PendingSkeletalMeshLoadRequest.bModalRequested = false;
+    }
+
+    if (!ImGui::BeginPopupModal("Loading Skeletal Mesh", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+    {
+        return;
+    }
+
+    switch (PendingSkeletalMeshLoadRequest.Type)
+    {
+    case ESkeletalMeshLoadRequestType::OpenViewer:
+        ImGui::TextUnformatted("Opening Skeletal Mesh Viewer...");
+        break;
+    case ESkeletalMeshLoadRequestType::ImportFbxAndOpenViewer:
+        ImGui::TextUnformatted("Importing FBX...");
+        break;
+    case ESkeletalMeshLoadRequestType::ApplyToComponent:
+        ImGui::TextUnformatted("Applying Skeletal Mesh...");
+        break;
+    default:
+        ImGui::TextUnformatted("Loading Skeletal Mesh...");
+        break;
+    }
+
+    if (!PendingSkeletalMeshLoadRequest.Path.empty())
+    {
+        ImGui::TextDisabled("%s", PendingSkeletalMeshLoadRequest.Path.c_str());
+    }
+
+    const double Time = ImGui::GetTime();
+    const float Progress = static_cast<float>(std::fmod(Time * 0.45, 1.0));
+    ImGui::ProgressBar(Progress, ImVec2(360.0f, 0.0f), "");
+    ImGui::TextDisabled("The editor may pause while the asset is loaded.");
+
+    if (PendingSkeletalMeshLoadRequest.DelayFrames > 0)
+    {
+        --PendingSkeletalMeshLoadRequest.DelayFrames;
+    }
+    else
+    {
+        ExecutePendingSkeletalMeshLoad();
+    }
+
+    if (PendingSkeletalMeshLoadRequest.Type == ESkeletalMeshLoadRequestType::None)
+    {
+        ImGui::CloseCurrentPopup();
+    }
+
+    ImGui::EndPopup();
+}
+
+void UEditorEngine::ExecutePendingSkeletalMeshLoad()
+{
+    FSkeletalMeshLoadRequest Request = PendingSkeletalMeshLoadRequest;
+    PendingSkeletalMeshLoadRequest = FSkeletalMeshLoadRequest();
+
+    if (Request.Path.empty())
+    {
+        return;
+    }
+
+    switch (Request.Type)
+    {
+    case ESkeletalMeshLoadRequestType::OpenViewer:
+        CreateViewer(Request.Path);
+        break;
+
+    case ESkeletalMeshLoadRequestType::ImportFbxAndOpenViewer:
+    {
+        const TArray<FImportedFbxAssetRecord> Records = FResourceManager::Get().ImportFbxAssets(Request.Path);
+        AssetService.RefreshAssetDatabase();
+
+        auto MeshRecordIt = std::find_if(
+            Records.begin(),
+            Records.end(),
+            [](const FImportedFbxAssetRecord& Record)
+            {
+                return Record.Type == EImportedFbxAssetType::SkeletalMesh;
+            });
+
+        if (MeshRecordIt != Records.end())
+        {
+            CreateViewer(MeshRecordIt->AssetPath);
+        }
+        else
+        {
+            NotificationService.Warning("No imported skeletal mesh was produced for this FBX.");
+        }
+        break;
+    }
+
+    case ESkeletalMeshLoadRequestType::ApplyToComponent:
+    {
+        if (!Request.TargetComponent)
+        {
+            return;
+        }
+
+        USkeletalMesh* Mesh = FResourceManager::Get().LoadSkeletalMesh(Request.Path);
+        if (!Mesh)
+        {
+            UE_LOG_WARNING("[EditorEngine] Failed to load skeletal mesh: %s", Request.Path.c_str());
+            return;
+        }
+
+        Request.TargetComponent->SetSkeletalMesh(Mesh);
+        SceneService.MarkDirty();
+        break;
+    }
+
+    default:
+        break;
+    }
 }
 
 void UEditorEngine::RemoveViewer(FEditorViewer* InViewer)

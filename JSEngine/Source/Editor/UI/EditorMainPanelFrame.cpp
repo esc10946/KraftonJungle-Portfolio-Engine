@@ -1,5 +1,6 @@
 ﻿#include "Editor/UI/EditorMainPanel.h"
 
+#include "Editor/EditorEngine.h"
 #include "Editor/Viewer/EditorViewer.h"
 
 #include "ImGui/imgui.h"
@@ -20,6 +21,10 @@ void FEditorMainPanel::Render(float DeltaTime)
     const bool bDrawEditorPanels = !PIEViewportState.bHideEditorWindows;
     RenderEditorPanelWindows(DeltaTime, bDrawEditorPanels);
     RenderBuildGameModal();
+    if (EditorEngine)
+    {
+        EditorEngine->DrawSkeletalMeshLoadModal();
+    }
     Widgets.ViewportOverlayWidget.RenderFloatingOverlays(DeltaTime);
 
     const float EffectiveDeltaTime = ResolveEffectiveDeltaTime(DeltaTime);

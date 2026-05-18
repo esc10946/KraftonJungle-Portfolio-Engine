@@ -292,36 +292,28 @@ namespace
     static FAutoRegisterUAnimationSequenceBase GAutoRegisterUAnimationSequenceBase;
 }
 
-const FTypeInfo UAnimationStateMachine::s_TypeInfo = {
-    "UAnimationStateMachine",
+const FTypeInfo UAnimStateMachineAsset::s_TypeInfo = {
+    "UAnimStateMachineAsset",
     &UObject::s_TypeInfo,
-    sizeof(UAnimationStateMachine)
+    sizeof(UAnimStateMachineAsset)
 };
 
-UClass* UAnimationStateMachine::StaticClass()
+UClass* UAnimStateMachineAsset::StaticClass()
 {
     static UClass Class(
-        "UAnimationStateMachine",
+        "UAnimStateMachineAsset",
         Super::StaticClass(),
-        sizeof(UAnimationStateMachine),
+        sizeof(UAnimStateMachineAsset),
         CF_None,
         []() -> UObject*
         {
-            return UObjectManager::Get().CreateObject<UAnimationStateMachine>();
+            return UObjectManager::Get().CreateObject<UAnimStateMachineAsset>();
         });
 
     static bool bRegistered = false;
     if (!bRegistered)
     {
         bRegistered = true;
-
-        Class.AddProperty({ "AnimInstance",
-                            EReflectedPropertyType::Object,
-                            offsetof(UAnimationStateMachine, AnimInstance),
-                            sizeof(UAnimInstance*),
-                            EPropertyFlags::Transient |
-                                EPropertyFlags::Read,
-                            UAnimInstance::StaticClass() });
 
         FReflectionRegistry::Get().RegisterUClass(&Class);
     }
@@ -331,15 +323,15 @@ UClass* UAnimationStateMachine::StaticClass()
 
 namespace
 {
-    struct FAutoRegisterUAnimationStateMachine
+    struct FAutoRegisterUAnimStateMachineAsset
     {
-        FAutoRegisterUAnimationStateMachine()
+        FAutoRegisterUAnimStateMachineAsset()
         {
-            UAnimationStateMachine::StaticClass();
+            UAnimStateMachineAsset::StaticClass();
         }
     };
 
-    static FAutoRegisterUAnimationStateMachine GAutoRegisterUAnimationStateMachine;
+    static FAutoRegisterUAnimStateMachineAsset GAutoRegisterUAnimStateMachineAsset;
 }
 
 const FTypeInfo UAnimInstance::s_TypeInfo = {
@@ -372,15 +364,6 @@ UClass* UAnimInstance::StaticClass()
                             EPropertyFlags::Transient |
                                 EPropertyFlags::Read,
                             USkeletalMeshComponent::StaticClass() });
-
-        Class.AddProperty({ "StateMachine",
-                            EReflectedPropertyType::Object,
-                            offsetof(UAnimInstance, StateMachine),
-                            sizeof(UAnimationStateMachine*),
-                            EPropertyFlags::Transient |
-                                EPropertyFlags::Read |
-                                EPropertyFlags::Write,
-                            UAnimationStateMachine::StaticClass() });
 
         FReflectionRegistry::Get().RegisterUClass(&Class);
     }

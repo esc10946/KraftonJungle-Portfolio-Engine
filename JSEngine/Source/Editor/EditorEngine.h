@@ -24,6 +24,7 @@ class FEditorRenderPipeline;
 class AActor;
 class APlayerController;
 class FViewport;
+class USkeletalMeshComponent;
 
 class UEditorEngine : public UEngine
 {
@@ -42,6 +43,10 @@ public:
 
     FEditorViewer* CreateViewer(FString InFileName);
     void RemoveViewer(FEditorViewer* InViewer);
+	void RequestOpenSkeletalMeshViewer(const FString& SkeletalMeshPath);
+	void RequestOpenFbxInSkeletalMeshViewer(const FString& FbxPath);
+	void RequestApplySkeletalMeshToComponent(USkeletalMeshComponent* Component, const FString& SkeletalMeshPath);
+	void DrawSkeletalMeshLoadModal();
 
 	// 퍼스펙티브 카메라(인덱스 0)를 반환합니다.
 	FViewportCamera* GetCamera();
@@ -123,6 +128,7 @@ private:
 	bool RestoreSceneSnapshot(const FString& Snapshot, const FName& RestoreWorldHandle = FName::None);
 	void OnSceneWorldWillUnload(UWorld* OldWorld) override;
 	void OnSceneWorldLoaded(UWorld* NewWorld) override;
+	void ExecutePendingSkeletalMeshLoad();
 
 	FEditorMainPanel MainPanel;
 	FEditorViewportLayout ViewportLayout;
@@ -135,7 +141,26 @@ private:
 	FEditorNotificationService NotificationService;
 	FEditorSceneService SceneService;
 
-    FEditorUndoSystem UndoSystem;
+	FEditorUndoSystem UndoSystem;
+
+	enum class ESkeletalMeshLoadRequestType
+	{
+		None,
+		OpenViewer,
+		ImportFbxAndOpenViewer,
+		ApplyToComponent,
+	};
+
+	struct FSkeletalMeshLoadRequest
+	{
+		ESkeletalMeshLoadRequestType Type = ESkeletalMeshLoadRequestType::None;
+		FString Path;
+		USkeletalMeshComponent* TargetComponent = nullptr;
+		int32 DelayFrames = 0;
+		bool bModalRequested = false;
+	};
+
+	FSkeletalMeshLoadRequest PendingSkeletalMeshLoadRequest;
 
 	bool bStartPlaySessionQueued = false;
 	bool bStopPlaySessionQueued = false;

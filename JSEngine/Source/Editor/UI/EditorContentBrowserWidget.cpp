@@ -16,7 +16,6 @@
 
 #include <algorithm>
 #include <cctype>
-#include <cmath>
 #include <cwctype>
 #include <d3d11.h>
 #include <fstream>
@@ -79,53 +78,6 @@ FString ToLower(FString Value)
 	std::transform(Value.begin(), Value.end(), Value.begin(),
 		[](unsigned char Ch) { return static_cast<char>(std::tolower(Ch)); });
 	return Value;
-}
-
-bool TryFindSiblingSkeletalMeshBinary(const std::filesystem::path& FbxPath, std::filesystem::path& OutBinaryPath)
-{
-	const std::filesystem::path ParentPath = FbxPath.parent_path();
-	std::error_code Ec;
-	if (ParentPath.empty() || !std::filesystem::exists(ParentPath, Ec) || Ec)
-	{
-		return false;
-	}
-
-	const std::wstring Prefix = FbxPath.stem().wstring() + L"_skeletalmesh_";
-	TArray<std::filesystem::path> Matches;
-	for (const std::filesystem::directory_entry& Entry : std::filesystem::directory_iterator(ParentPath, Ec))
-	{
-		if (Ec)
-		{
-			break;
-		}
-
-		if (!Entry.is_regular_file(Ec) || Ec)
-		{
-			continue;
-		}
-
-		std::wstring Extension = Entry.path().extension().wstring();
-		std::transform(Extension.begin(), Extension.end(), Extension.begin(), ::towlower);
-		if (Extension != L".bin")
-		{
-			continue;
-		}
-
-		const std::wstring FileName = Entry.path().filename().wstring();
-		if (FileName.rfind(Prefix, 0) == 0)
-		{
-			Matches.push_back(Entry.path().lexically_normal());
-		}
-	}
-
-	if (Matches.empty())
-	{
-		return false;
-	}
-
-	std::sort(Matches.begin(), Matches.end());
-	OutBinaryPath = Matches.front();
-	return true;
 }
 
 void ApplyContentBrowserWindowClass()
@@ -316,8 +268,6 @@ void FEditorContentBrowserWidget::OpenAssetRoot()
 
 void FEditorContentBrowserWidget::Render(float DeltaTime)
 {
-	ProcessPendingFbxOpen();
-
 	const float TargetAlpha = bVisible ? 1.0f : 0.0f;
 	const float Step = std::max(DeltaTime, ImGui::GetIO().DeltaTime) * 10.0f;
 	if (AnimAlpha < TargetAlpha)
@@ -444,8 +394,6 @@ void FEditorContentBrowserWidget::Render(float DeltaTime)
 	bVisible = bOpen;
 	ImGui::End();
 	ImGui::PopStyleVar(PushedStyleVarCount);
-
-	DrawFbxOpenModal();
 }
 
 bool FEditorContentBrowserWidget::IsMouseOverBrowser() const
@@ -1222,107 +1170,10 @@ void FEditorContentBrowserWidget::DrawContentTile(const FContentItem& Item, cons
 
 void FEditorContentBrowserWidget::RequestOpenFbxAsset(const std::filesystem::path& Path)
 {
-	std::filesystem::path SkeletalMeshBinaryPath;
-	if (TryFindSiblingSkeletalMeshBinary(Path, SkeletalMeshBinaryPath))
+	if (EditorEngine)
 	{
-		PendingFbxOpenPath = MakeRelativeProjectPath(SkeletalMeshBinaryPath);
-		PendingFbxOpenDelayFrames = 2;
-		bFbxOpenModalRequested = true;
-		return;
+		EditorEngine->RequestOpenFbxInSkeletalMeshViewer(MakeRelativeProjectPath(Path));
 	}
-
-	PendingFbxImportPath = MakeRelativeProjectPath(Path);
-	PendingFbxOpenDelayFrames = 2;
-	bFbxOpenModalRequested = true;
-}
-
-void FEditorContentBrowserWidget::ProcessPendingFbxOpen()
-{
-	if (PendingFbxOpenPath.empty() && PendingFbxImportPath.empty())
-	{
-		return;
-	}
-
-	if (PendingFbxOpenDelayFrames > 0)
-	{
-		return;
-	}
-
-	if (!PendingFbxOpenPath.empty())
-	{
-		const FString SkeletalMeshPath = PendingFbxOpenPath;
-		PendingFbxOpenPath.clear();
-		EditorEngine->CreateViewer(SkeletalMeshPath);
-		return;
-	}
-
-	const FString SourcePath = PendingFbxImportPath;
-	PendingFbxImportPath.clear();
-
-	const TArray<FImportedFbxAssetRecord> Records = FResourceManager::Get().ImportFbxAssets(SourcePath);
-	EditorEngine->GetAssetService().RefreshAssetDatabase();
-	RefreshContent();
-
-	auto MeshRecordIt = std::find_if(
-		Records.begin(),
-		Records.end(),
-		[](const FImportedFbxAssetRecord& Record)
-		{
-			return Record.Type == EImportedFbxAssetType::SkeletalMesh;
-		});
-
-	if (MeshRecordIt != Records.end())
-	{
-		EditorEngine->CreateViewer(MeshRecordIt->AssetPath);
-		return;
-	}
-
-	EditorEngine->GetNotificationService().Warning("No imported skeletal mesh was produced for this FBX.");
-}
-
-void FEditorContentBrowserWidget::DrawFbxOpenModal()
-{
-	if (bFbxOpenModalRequested)
-	{
-		ImGui::OpenPopup("Opening FBX Asset");
-		bFbxOpenModalRequested = false;
-	}
-
-	if (!ImGui::BeginPopupModal("Opening FBX Asset", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
-	{
-		return;
-	}
-
-	if (!PendingFbxOpenPath.empty())
-	{
-		ImGui::TextUnformatted("Opening Skeletal Mesh...");
-		ImGui::TextDisabled("%s", PendingFbxOpenPath.c_str());
-	}
-	else
-	{
-		ImGui::TextUnformatted("Importing FBX...");
-		if (!PendingFbxImportPath.empty())
-		{
-			ImGui::TextDisabled("%s", PendingFbxImportPath.c_str());
-		}
-	}
-
-	const double Time = ImGui::GetTime();
-	float Progress = static_cast<float>(std::fmod(Time * 0.45, 1.0));
-	ImGui::ProgressBar(Progress, ImVec2(360.0f, 0.0f), "");
-	ImGui::TextDisabled("The editor may pause while the asset is loaded.");
-
-	if (PendingFbxOpenDelayFrames > 0)
-	{
-		--PendingFbxOpenDelayFrames;
-	}
-
-	if (PendingFbxOpenPath.empty() && PendingFbxImportPath.empty())
-	{
-		ImGui::CloseCurrentPopup();
-	}
-
-	ImGui::EndPopup();
 }
 
 void FEditorContentBrowserWidget::DrawContentContextMenu(bool bHasSelectedItem)

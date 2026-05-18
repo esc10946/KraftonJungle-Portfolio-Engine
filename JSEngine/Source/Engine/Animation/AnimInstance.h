@@ -1,10 +1,10 @@
 ﻿#pragma once
 
 #include "Animation/AnimationSequenceBase.h"
+#include "Animation/AnimationStateMachine.h"
 #include "Object/Object.h"
 
 class USkeletalMeshComponent;
-class UAnimationStateMachine;
 
 #include "UAnimInstance.generated.h"
 #include "UAnimSingleNodeInstance.generated.h"
@@ -22,15 +22,31 @@ public:
 
     USkeletalMeshComponent* GetSkelMeshComponent() const { return SkelMeshComponent; }
 
-    void SetStateMachine(UAnimationStateMachine* InStateMachine) { StateMachine = InStateMachine; }
-    UAnimationStateMachine* GetStateMachine() const { return StateMachine; }
+    void SetStateMachineAsset(UAnimStateMachineAsset* InStateMachineAsset);
+    UAnimStateMachineAsset* GetStateMachineAsset() const { return StateMachineInstance.GetAsset(); }
+    FAnimStateMachineInstance& GetStateMachineInstance() { return StateMachineInstance; }
+    const FAnimStateMachineInstance& GetStateMachineInstance() const { return StateMachineInstance; }
+
+    void SetStateMachineContext(const FAnimStateMachineContext& InContext) { StateMachineContext = InContext; }
+    const FAnimStateMachineContext& GetStateMachineContext() const { return StateMachineContext; }
+
+    void RegisterAnimation(const FName& AnimationName, UAnimationSequenceBase* Sequence);
+    UAnimationSequenceBase* FindRegisteredAnimation(const FName& AnimationName) const;
+    virtual bool PlayAnimationByName(const FName& AnimationName, bool bLoop);
 
 protected:
     UPROPERTY(Transient, Read)
     USkeletalMeshComponent* SkelMeshComponent = nullptr;
 
-    UPROPERTY(Transient, Read, Write)
-    UAnimationStateMachine* StateMachine = nullptr;
+    struct FNamedAnimation
+    {
+        FName AnimationName;
+        UAnimationSequenceBase* Sequence = nullptr;
+    };
+
+    TArray<FNamedAnimation> RegisteredAnimations;
+    FAnimStateMachineContext StateMachineContext;
+    FAnimStateMachineInstance StateMachineInstance;
 };
 
 UCLASS()
@@ -41,6 +57,8 @@ public:
 
     void SetSequence(UAnimationSequenceBase* InSequence);
     UAnimationSequenceBase* GetSequence() const { return Sequence; }
+
+    bool PlayAnimationByName(const FName& AnimationName, bool bLoop) override;
 
     void Play();
     void Pause();
