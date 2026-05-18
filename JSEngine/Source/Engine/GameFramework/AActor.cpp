@@ -142,7 +142,7 @@ FString AActor::MakeUniqueComponentName(const UActorComponent* TargetComponent, 
     FString BaseName = StripGeneratedObjectNameSuffixes(RequestedName);
     if (BaseName.empty())
     {
-        BaseName = TargetComponent && TargetComponent->GetTypeInfo() ? TargetComponent->GetTypeInfo()->name : "UActorComponent";
+        BaseName = TargetComponent && TargetComponent->GetClass() ? TargetComponent->GetClass()->GetName() : "UActorComponent";
     }
 
     bool bRequestedNameTaken = false;
