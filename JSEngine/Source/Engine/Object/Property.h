@@ -1,11 +1,58 @@
-﻿#pragma once
+#pragma once
+
 #include "Object/FName.h"
 #include "Object/ObjectMacros.h"
 #include "Serialization/Archive.h"
+
+#include <memory>
 #include <type_traits>
 
 class UObject;
 class UClass;
+
+struct FArrayPropertyOps
+{
+    size_t (*Num)(void* Array);
+    void (*Resize)(void* Array, size_t NewSize);
+    void (*RemoveAt)(void* Array, size_t Index);
+    void* (*GetElementPtr)(void* Array, size_t Index);
+    const void* (*GetElementPtrConst)(const void* Array, size_t Index);
+};
+
+template <typename T>
+static const FArrayPropertyOps* GetArrayPropertyOps()
+{
+    static const FArrayPropertyOps Ops = {
+        [](void* Array) -> size_t
+        {
+            return static_cast<TArray<T>*>(Array)->size();
+        },
+        [](void* Array, size_t NewSize)
+        {
+            static_cast<TArray<T>*>(Array)->resize(NewSize);
+        },
+        [](void* Array, size_t Index)
+        {
+            auto* TypedArray = static_cast<TArray<T>*>(Array);
+            if (Index < TypedArray->size())
+            {
+                TypedArray->erase(TypedArray->begin() + Index);
+            }
+        },
+        [](void* Array, size_t Index) -> void*
+        {
+            auto* TypedArray = static_cast<TArray<T>*>(Array);
+            return Index < TypedArray->size() ? &(*TypedArray)[Index] : nullptr;
+        },
+        [](const void* Array, size_t Index) -> const void*
+        {
+            const auto* TypedArray = static_cast<const TArray<T>*>(Array);
+            return Index < TypedArray->size() ? &(*TypedArray)[Index] : nullptr;
+        }
+    };
+
+    return &Ops;
+}
 
 struct FAssetReference
 {
@@ -29,70 +76,6 @@ struct FAnimationSequenceAssetRef : FAssetReference { using FAssetReference::FAs
 struct FCurveAssetRef : FAssetReference { using FAssetReference::FAssetReference; };
 struct FSceneAssetRef : FAssetReference { using FAssetReference::FAssetReference; };
 struct FSoundAssetRef : FAssetReference { using FAssetReference::FAssetReference; };
-
-enum class EReflectedPropertyType : uint8
-{
-    Bool,
-    Int32,
-    Float,
-    Name,
-    String,
-    Object,
-    Array,
-    StaticMeshAsset,
-    SkeletalMeshAsset,
-    TextureAsset,
-    MaterialAsset,
-    AnimationSequenceAsset,
-    CurveAsset,
-    SceneAsset,
-    SoundAsset,
-};
-
-template<typename T> 
-struct TReflectedPropertyType; // 선언만 있으면 링크 에러
-
-// 지원 타입마다 이게 다 있어야 합니다
-template<> struct TReflectedPropertyType<float>    { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::Float; };
-template<> struct TReflectedPropertyType<bool>     { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::Bool; };
-template<> struct TReflectedPropertyType<int32>    { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::Int32; };
-template<> struct TReflectedPropertyType<FName>    { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::Name; };
-template<> struct TReflectedPropertyType<FString>  { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::String; };
-template<> struct TReflectedPropertyType<UObject*> { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::Object; };
-template<> struct TReflectedPropertyType<FStaticMeshAssetRef> { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::StaticMeshAsset; };
-template<> struct TReflectedPropertyType<FSkeletalMeshAssetRef> { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::SkeletalMeshAsset; };
-template<> struct TReflectedPropertyType<FTextureAssetRef> { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::TextureAsset; };
-template<> struct TReflectedPropertyType<FMaterialAssetRef> { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::MaterialAsset; };
-template<> struct TReflectedPropertyType<FAnimationSequenceAssetRef> { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::AnimationSequenceAsset; };
-template<> struct TReflectedPropertyType<FCurveAssetRef> { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::CurveAsset; };
-template<> struct TReflectedPropertyType<FSceneAssetRef> { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::SceneAsset; };
-template<> struct TReflectedPropertyType<FSoundAssetRef> { static constexpr EReflectedPropertyType Value = EReflectedPropertyType::SoundAsset; };
-
-inline bool IsReflectedAssetPropertyType(EReflectedPropertyType Type)
-{
-    return Type == EReflectedPropertyType::StaticMeshAsset
-        || Type == EReflectedPropertyType::SkeletalMeshAsset
-        || Type == EReflectedPropertyType::TextureAsset
-        || Type == EReflectedPropertyType::MaterialAsset
-        || Type == EReflectedPropertyType::AnimationSequenceAsset
-        || Type == EReflectedPropertyType::CurveAsset
-        || Type == EReflectedPropertyType::SceneAsset
-        || Type == EReflectedPropertyType::SoundAsset;
-}
-
-// EPropertyFlags 규칙
-// Edit      -> Read | Write | Edit
-// Read      -> Read
-// Write     -> Write
-// Transient -> Transient
-// LuaRead   -> LuaRead
-// LuaWrite  -> LuaWrite
-//
-// 예시) UPROPERTY(Edit, LuaRead)
-// -> Read | Write | Edit | LuaRead
-//
-// 예시) UPROPERTY(Edit, LuaRead, LuaWrite)
-// -> Read | Write | Edit | LuaRead | LuaWrite
 
 enum class EPropertyFlags : uint32
 {
@@ -118,117 +101,373 @@ inline bool HasPropertyFlag(EPropertyFlags Value, EPropertyFlags Flag)
 
 struct FProperty
 {
+    FProperty() = default;
+    FProperty(const char* InName, size_t InOffset, size_t InSize, EPropertyFlags InFlags)
+        : Name(InName)
+        , Offset(InOffset)
+        , Size(InSize)
+        , Flags(InFlags)
+    {
+    }
+
+    virtual ~FProperty() = default;
+
     const char* Name = nullptr;
-    EReflectedPropertyType Type = EReflectedPropertyType::Float;
     size_t Offset = 0;
     size_t Size = 0;
     EPropertyFlags Flags = EPropertyFlags::None;
-    UClass* ObjectClass = nullptr;
 
-    EReflectedPropertyType InnerType = EReflectedPropertyType::Float;
-    UClass* InnerClass = nullptr; // TArray<UObject*> 대응
+    virtual size_t GetValueSize() const = 0;
+    virtual void SerializeValue(FArchive& Ar, void* ValuePtr) const = 0;
 
     void SerializeItem(FArchive& Ar, UObject* Container) const;
-    UClass* GetObjectClass() const { return ObjectClass; }
 
-    template <typename ValueType>
-    ValueType* ContainerPtrToValuePtr(void* Container) const
+    void* ContainerPtrToRawValuePtr(void* Container) const
     {
-        if (!Container)
-        {
-            return nullptr;
-        }
-
-        return reinterpret_cast<ValueType*>(
-            reinterpret_cast<uint8*>(Container) + Offset);
+        return Container ? reinterpret_cast<uint8*>(Container) + Offset : nullptr;
     }
 
-    template <typename ValueType>
-    const ValueType* ContainerPtrToValuePtr(const void* Container) const
+    const void* ContainerPtrToRawValuePtr(const void* Container) const
     {
-        if (!Container)
-        {
-            return nullptr;
-        }
-
-        return reinterpret_cast<const ValueType*>(
-            reinterpret_cast<const uint8*>(Container) + Offset);
+        return Container ? reinterpret_cast<const uint8*>(Container) + Offset : nullptr;
     }
 
-    template <typename ValueType>
-    bool IsCompatibleValueType() const
+    template <typename T>
+    bool IsCompatibleValueType() const;
+
+    template <typename T>
+    T* ContainerPtrToValuePtr(UObject* Container) const;
+
+    template <typename T>
+    const T* ContainerPtrToValuePtr(const UObject* Container) const;
+
+    template <typename T>
+    bool GetPropertyValue_InContainer(const UObject* Container, T& OutValue) const;
+
+    template <typename T>
+    bool SetPropertyValue_InContainer(UObject* Container, const T& Value) const;
+};
+
+template <typename ValueType>
+class TPlainProperty : public FProperty
+{
+public:
+    using FProperty::FProperty;
+
+    static constexpr size_t StaticValueSize = sizeof(ValueType);
+
+    size_t GetValueSize() const override
     {
-        if constexpr (std::is_pointer_v<ValueType> &&
-                      std::is_base_of_v<UObject, std::remove_pointer_t<ValueType>>)
-        {
-            return Type == EReflectedPropertyType::Object
-                && Size == sizeof(UObject*);
-        }
-        else if constexpr (std::is_same_v<ValueType, FString>)
-        {
-            return Type == EReflectedPropertyType::String
-                && Size == sizeof(FString);
-        }
-        else
-        {
-            return Type == TReflectedPropertyType<ValueType>::Value
-                && Size == sizeof(ValueType);
-        }
+        return sizeof(ValueType);
     }
 
-    template <typename ValueType>
-    bool GetPropertyValue_InContainer(const void* Container, ValueType& OutValue) const
+    void SerializeValue(FArchive& Ar, void* ValuePtr) const override
     {
-        if (!Container)
+        if (ValuePtr)
         {
-            return false;
+            Ar << *static_cast<ValueType*>(ValuePtr);
         }
-
-        if (!IsCompatibleValueType<ValueType>())
-        {
-            return false;
-        }
-
-        if (!HasPropertyFlag(Flags, EPropertyFlags::Read))
-        {
-            return false;
-        }
-
-        const ValueType* ValuePtr = ContainerPtrToValuePtr<ValueType>(Container);
-        if (!ValuePtr)
-        {
-            return false;
-        }
-
-        OutValue = *ValuePtr;
-        return true;
-    }
-
-    template <typename ValueType>
-    bool SetPropertyValue_InContainer(void* Container, const ValueType& InValue) const
-    {
-        if (!Container)
-        {
-            return false;
-        }
-
-        if (!IsCompatibleValueType<ValueType>())
-        {
-            return false;
-        }
-
-        if (!HasPropertyFlag(Flags, EPropertyFlags::Write))
-        {
-            return false;
-        }
-
-        ValueType* ValuePtr = ContainerPtrToValuePtr<ValueType>(Container);
-        if (!ValuePtr)
-        {
-            return false;
-        }
-
-        *ValuePtr = InValue;
-        return true;
     }
 };
+
+template <typename AssetRefType>
+class TAssetPathProperty : public FProperty
+{
+public:
+    using FProperty::FProperty;
+
+    static constexpr size_t StaticValueSize = sizeof(AssetRefType);
+
+    size_t GetValueSize() const override
+    {
+        return sizeof(AssetRefType);
+    }
+
+    void SerializeValue(FArchive& Ar, void* ValuePtr) const override
+    {
+        if (ValuePtr)
+        {
+            Ar << static_cast<AssetRefType*>(ValuePtr)->Path;
+        }
+    }
+};
+
+using FBoolProperty = TPlainProperty<bool>;
+using FInt32Property = TPlainProperty<int32>;
+using FFloatProperty = TPlainProperty<float>;
+using FNameProperty = TPlainProperty<FName>;
+using FStringProperty = TPlainProperty<FString>;
+
+using FStaticMeshAssetProperty = TAssetPathProperty<FStaticMeshAssetRef>;
+using FSkeletalMeshAssetProperty = TAssetPathProperty<FSkeletalMeshAssetRef>;
+using FTextureAssetProperty = TAssetPathProperty<FTextureAssetRef>;
+using FMaterialAssetProperty = TAssetPathProperty<FMaterialAssetRef>;
+using FAnimationSequenceAssetProperty = TAssetPathProperty<FAnimationSequenceAssetRef>;
+using FCurveAssetProperty = TAssetPathProperty<FCurveAssetRef>;
+using FSceneAssetProperty = TAssetPathProperty<FSceneAssetRef>;
+using FSoundAssetProperty = TAssetPathProperty<FSoundAssetRef>;
+
+class FObjectProperty : public FProperty
+{
+public:
+    static constexpr size_t StaticValueSize = sizeof(UObject*);
+
+    FObjectProperty() = default;
+    FObjectProperty(const char* InName, size_t InOffset, size_t InSize, EPropertyFlags InFlags, UClass* InObjectClass)
+        : FProperty(InName, InOffset, InSize, InFlags)
+        , ObjectClass(InObjectClass)
+    {
+    }
+
+    size_t GetValueSize() const override
+    {
+        return sizeof(UObject*);
+    }
+
+    UClass* GetObjectClass() const
+    {
+        return ObjectClass;
+    }
+
+    void SerializeValue(FArchive& Ar, void* ValuePtr) const override;
+
+private:
+    UClass* ObjectClass = nullptr;
+};
+
+class FArrayProperty : public FProperty
+{
+public:
+    FArrayProperty() = default;
+    FArrayProperty(
+        const char* InName,
+        size_t InOffset,
+        size_t InSize,
+        EPropertyFlags InFlags,
+        std::unique_ptr<FProperty> InInnerProperty,
+        const FArrayPropertyOps* InArrayOps)
+        : FProperty(InName, InOffset, InSize, InFlags)
+        , InnerProperty(std::move(InInnerProperty))
+        , ArrayOps(InArrayOps)
+    {
+    }
+
+    size_t GetValueSize() const override
+    {
+        return Size;
+    }
+
+    const FProperty* GetInnerProperty() const
+    {
+        return InnerProperty.get();
+    }
+
+    size_t GetArrayNum(UObject* Container) const;
+    bool Resize(UObject* Container, size_t NewSize) const;
+    bool RemoveArrayElement(UObject* Container, size_t Index) const;
+
+    template <typename T>
+    T* GetArrayElementPtr(UObject* Container, size_t Index) const;
+
+    template <typename T>
+    const T* GetArrayElementPtr(const UObject* Container, size_t Index) const;
+
+    void SerializeValue(FArchive& Ar, void* ValuePtr) const override;
+
+private:
+    std::unique_ptr<FProperty> InnerProperty;
+    const FArrayPropertyOps* ArrayOps = nullptr;
+};
+
+template <typename PropertyType>
+std::unique_ptr<PropertyType> MakeProperty(
+    const char* Name,
+    size_t Offset,
+    size_t Size,
+    EPropertyFlags Flags)
+{
+    return std::make_unique<PropertyType>(Name, Offset, Size, Flags);
+}
+
+std::unique_ptr<FObjectProperty> MakeObjectProperty(
+    const char* Name,
+    size_t Offset,
+    size_t Size,
+    EPropertyFlags Flags,
+    UClass* ObjectClass);
+
+template <typename InnerPropertyType>
+std::unique_ptr<FArrayProperty> MakeArrayProperty(
+    const char* Name,
+    size_t Offset,
+    size_t Size,
+    EPropertyFlags Flags,
+    const FArrayPropertyOps* ArrayOps,
+    UClass* InnerObjectClass = nullptr)
+{
+    std::unique_ptr<FProperty> InnerProperty;
+    if constexpr (std::is_same_v<InnerPropertyType, FObjectProperty>)
+    {
+        InnerProperty = std::make_unique<FObjectProperty>(
+            "Element",
+            0,
+            FObjectProperty::StaticValueSize,
+            Flags,
+            InnerObjectClass);
+    }
+    else
+    {
+        InnerProperty = std::make_unique<InnerPropertyType>(
+            "Element",
+            0,
+            InnerPropertyType::StaticValueSize,
+            Flags);
+    }
+
+    return std::make_unique<FArrayProperty>(
+        Name,
+        Offset,
+        Size,
+        Flags,
+        std::move(InnerProperty),
+        ArrayOps);
+}
+
+template <typename T>
+bool FProperty::IsCompatibleValueType() const
+{
+    using RawT = std::remove_cv_t<T>;
+
+    if constexpr (std::is_pointer_v<RawT> && std::is_convertible_v<RawT, UObject*>)
+    {
+        return dynamic_cast<const FObjectProperty*>(this) != nullptr && Size == sizeof(RawT);
+    }
+    else if constexpr (std::is_same_v<RawT, FStaticMeshAssetRef>)
+    {
+        return dynamic_cast<const FStaticMeshAssetProperty*>(this) != nullptr && Size == sizeof(RawT);
+    }
+    else if constexpr (std::is_same_v<RawT, FSkeletalMeshAssetRef>)
+    {
+        return dynamic_cast<const FSkeletalMeshAssetProperty*>(this) != nullptr && Size == sizeof(RawT);
+    }
+    else if constexpr (std::is_same_v<RawT, FTextureAssetRef>)
+    {
+        return dynamic_cast<const FTextureAssetProperty*>(this) != nullptr && Size == sizeof(RawT);
+    }
+    else if constexpr (std::is_same_v<RawT, FMaterialAssetRef>)
+    {
+        return dynamic_cast<const FMaterialAssetProperty*>(this) != nullptr && Size == sizeof(RawT);
+    }
+    else if constexpr (std::is_same_v<RawT, FAnimationSequenceAssetRef>)
+    {
+        return dynamic_cast<const FAnimationSequenceAssetProperty*>(this) != nullptr && Size == sizeof(RawT);
+    }
+    else if constexpr (std::is_same_v<RawT, FCurveAssetRef>)
+    {
+        return dynamic_cast<const FCurveAssetProperty*>(this) != nullptr && Size == sizeof(RawT);
+    }
+    else if constexpr (std::is_same_v<RawT, FSceneAssetRef>)
+    {
+        return dynamic_cast<const FSceneAssetProperty*>(this) != nullptr && Size == sizeof(RawT);
+    }
+    else if constexpr (std::is_same_v<RawT, FSoundAssetRef>)
+    {
+        return dynamic_cast<const FSoundAssetProperty*>(this) != nullptr && Size == sizeof(RawT);
+    }
+    else
+    {
+        return dynamic_cast<const TPlainProperty<RawT>*>(this) != nullptr && Size == sizeof(RawT);
+    }
+}
+
+template <typename T>
+T* FProperty::ContainerPtrToValuePtr(UObject* Container) const
+{
+    if (!Container || !IsCompatibleValueType<T>())
+    {
+        return nullptr;
+    }
+
+    return static_cast<T*>(ContainerPtrToRawValuePtr(Container));
+}
+
+template <typename T>
+const T* FProperty::ContainerPtrToValuePtr(const UObject* Container) const
+{
+    if (!Container || !IsCompatibleValueType<T>())
+    {
+        return nullptr;
+    }
+
+    return static_cast<const T*>(ContainerPtrToRawValuePtr(Container));
+}
+
+template <typename T>
+bool FProperty::GetPropertyValue_InContainer(const UObject* Container, T& OutValue) const
+{
+    if (!HasPropertyFlag(Flags, EPropertyFlags::Read))
+    {
+        return false;
+    }
+
+    const T* ValuePtr = ContainerPtrToValuePtr<T>(Container);
+    if (!ValuePtr)
+    {
+        return false;
+    }
+
+    OutValue = *ValuePtr;
+    return true;
+}
+
+template <typename T>
+bool FProperty::SetPropertyValue_InContainer(UObject* Container, const T& Value) const
+{
+    if (!HasPropertyFlag(Flags, EPropertyFlags::Write))
+    {
+        return false;
+    }
+
+    T* ValuePtr = ContainerPtrToValuePtr<T>(Container);
+    if (!ValuePtr)
+    {
+        return false;
+    }
+
+    *ValuePtr = Value;
+    return true;
+}
+
+template <typename T>
+T* FArrayProperty::GetArrayElementPtr(UObject* Container, size_t Index) const
+{
+    if (!Container || !ArrayOps || !InnerProperty || !HasPropertyFlag(Flags, EPropertyFlags::Read))
+    {
+        return nullptr;
+    }
+
+    if (!InnerProperty->IsCompatibleValueType<T>())
+    {
+        return nullptr;
+    }
+
+    void* ArrayPtr = ContainerPtrToRawValuePtr(Container);
+    return ArrayPtr ? static_cast<T*>(ArrayOps->GetElementPtr(ArrayPtr, Index)) : nullptr;
+}
+
+template <typename T>
+const T* FArrayProperty::GetArrayElementPtr(const UObject* Container, size_t Index) const
+{
+    if (!Container || !ArrayOps || !InnerProperty || !HasPropertyFlag(Flags, EPropertyFlags::Read))
+    {
+        return nullptr;
+    }
+
+    if (!InnerProperty->IsCompatibleValueType<T>())
+    {
+        return nullptr;
+    }
+
+    const void* ArrayPtr = ContainerPtrToRawValuePtr(Container);
+    return ArrayPtr ? static_cast<const T*>(ArrayOps->GetElementPtrConst(ArrayPtr, Index)) : nullptr;
+}

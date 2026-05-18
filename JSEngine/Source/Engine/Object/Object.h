@@ -243,7 +243,11 @@ public:
 			return;
 		}
 
-		PendingObjectReferences.push_back({ TargetSlot, TargetUUID, ExpectedClass });
+		FPendingObjectReference PendingReference;
+		PendingReference.TargetSlot = TargetSlot;
+		PendingReference.TargetUUID = TargetUUID;
+		PendingReference.ExpectedClass = ExpectedClass;
+		PendingObjectReferences.push_back(PendingReference);
 	}
 
 	void ResolvePendingObjectReferences()

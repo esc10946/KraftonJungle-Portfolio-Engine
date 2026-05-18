@@ -112,7 +112,7 @@ namespace
 		}
 	}
 
-	TArray<FString> GetReflectionAssetPickerPaths(UEditorEngine* EditorEngine, EReflectedPropertyType AssetType)
+	TArray<FString> GetReflectionAssetPickerPaths(UEditorEngine* EditorEngine, const FProperty& Property)
 	{
 		TArray<FString> Paths;
 
@@ -120,25 +120,25 @@ namespace
 		{
 			FEditorAssetService& AssetService = EditorEngine->GetAssetService();
 			const TArray<FString>* SourcePaths = nullptr;
-			switch (AssetType)
+			if (dynamic_cast<const FStaticMeshAssetProperty*>(&Property))
 			{
-			case EReflectedPropertyType::StaticMeshAsset:
 				SourcePaths = &AssetService.GetStaticMeshAssetPaths();
-				break;
-			case EReflectedPropertyType::SkeletalMeshAsset:
+			}
+			else if (dynamic_cast<const FSkeletalMeshAssetProperty*>(&Property))
+			{
 				SourcePaths = &AssetService.GetSkeletalMeshAssetPaths();
-				break;
-			case EReflectedPropertyType::TextureAsset:
+			}
+			else if (dynamic_cast<const FTextureAssetProperty*>(&Property))
+			{
 				SourcePaths = &AssetService.GetTextureAssetPaths();
-				break;
-			case EReflectedPropertyType::MaterialAsset:
+			}
+			else if (dynamic_cast<const FMaterialAssetProperty*>(&Property))
+			{
 				SourcePaths = &AssetService.GetMaterialInterfaceNames();
-				break;
-			case EReflectedPropertyType::AnimationSequenceAsset:
+			}
+			else if (dynamic_cast<const FAnimationSequenceAssetProperty*>(&Property))
+			{
 				SourcePaths = &AssetService.GetAnimationSequenceAssetPaths();
-				break;
-			default:
-				break;
 			}
 
 			if (SourcePaths)
@@ -150,21 +150,21 @@ namespace
 			}
 		}
 
-		if (AssetType == EReflectedPropertyType::CurveAsset)
+		if (dynamic_cast<const FCurveAssetProperty*>(&Property))
 		{
 			for (const FString& Path : FAssetQueryService::GetCurvePaths())
 			{
 				AddUniqueAssetPath(Paths, Path);
 			}
 		}
-		else if (AssetType == EReflectedPropertyType::SceneAsset)
+		else if (dynamic_cast<const FSceneAssetProperty*>(&Property))
 		{
 			for (const FString& Path : FAssetQueryService::GetScenePaths())
 			{
 				AddUniqueAssetPath(Paths, Path);
 			}
 		}
-		else if (AssetType == EReflectedPropertyType::SoundAsset)
+		else if (dynamic_cast<const FSoundAssetProperty*>(&Property))
 		{
 			for (const FString& Path : FAssetQueryService::GetSoundPaths())
 			{
@@ -176,94 +176,67 @@ namespace
 		return Paths;
 	}
 
-	bool GetReflectionAssetValue(UObject* Object, const FProperty& Property, FString& OutPath)
+	template <typename AssetRefType>
+	bool TryGetReflectionAssetValue(UObject* Object, const FProperty& Property, FString& OutPath)
 	{
-		switch (Property.Type)
+		AssetRefType Value;
+		if (!Property.GetPropertyValue_InContainer(Object, Value))
 		{
-		case EReflectedPropertyType::StaticMeshAsset:
-		{
-			FStaticMeshAssetRef Value;
-			if (!Property.GetPropertyValue_InContainer(Object, Value)) return false;
-			OutPath = Value.Path;
-			return true;
-		}
-		case EReflectedPropertyType::SkeletalMeshAsset:
-		{
-			FSkeletalMeshAssetRef Value;
-			if (!Property.GetPropertyValue_InContainer(Object, Value)) return false;
-			OutPath = Value.Path;
-			return true;
-		}
-		case EReflectedPropertyType::TextureAsset:
-		{
-			FTextureAssetRef Value;
-			if (!Property.GetPropertyValue_InContainer(Object, Value)) return false;
-			OutPath = Value.Path;
-			return true;
-		}
-		case EReflectedPropertyType::MaterialAsset:
-		{
-			FMaterialAssetRef Value;
-			if (!Property.GetPropertyValue_InContainer(Object, Value)) return false;
-			OutPath = Value.Path;
-			return true;
-		}
-		case EReflectedPropertyType::AnimationSequenceAsset:
-		{
-			FAnimationSequenceAssetRef Value;
-			if (!Property.GetPropertyValue_InContainer(Object, Value)) return false;
-			OutPath = Value.Path;
-			return true;
-		}
-		case EReflectedPropertyType::CurveAsset:
-		{
-			FCurveAssetRef Value;
-			if (!Property.GetPropertyValue_InContainer(Object, Value)) return false;
-			OutPath = Value.Path;
-			return true;
-		}
-		case EReflectedPropertyType::SceneAsset:
-		{
-			FSceneAssetRef Value;
-			if (!Property.GetPropertyValue_InContainer(Object, Value)) return false;
-			OutPath = Value.Path;
-			return true;
-		}
-		case EReflectedPropertyType::SoundAsset:
-		{
-			FSoundAssetRef Value;
-			if (!Property.GetPropertyValue_InContainer(Object, Value)) return false;
-			OutPath = Value.Path;
-			return true;
-		}
-		default:
 			return false;
 		}
+
+		OutPath = Value.Path;
+		return true;
+	}
+
+	bool GetReflectionAssetValue(UObject* Object, const FProperty& Property, FString& OutPath)
+	{
+		return TryGetReflectionAssetValue<FStaticMeshAssetRef>(Object, Property, OutPath)
+			|| TryGetReflectionAssetValue<FSkeletalMeshAssetRef>(Object, Property, OutPath)
+			|| TryGetReflectionAssetValue<FTextureAssetRef>(Object, Property, OutPath)
+			|| TryGetReflectionAssetValue<FMaterialAssetRef>(Object, Property, OutPath)
+			|| TryGetReflectionAssetValue<FAnimationSequenceAssetRef>(Object, Property, OutPath)
+			|| TryGetReflectionAssetValue<FCurveAssetRef>(Object, Property, OutPath)
+			|| TryGetReflectionAssetValue<FSceneAssetRef>(Object, Property, OutPath)
+			|| TryGetReflectionAssetValue<FSoundAssetRef>(Object, Property, OutPath);
 	}
 
 	bool SetReflectionAssetValue(UObject* Object, const FProperty& Property, const FString& Path)
 	{
-		switch (Property.Type)
+		if (dynamic_cast<const FStaticMeshAssetProperty*>(&Property))
 		{
-		case EReflectedPropertyType::StaticMeshAsset:
 			return Property.SetPropertyValue_InContainer(Object, FStaticMeshAssetRef(Path));
-		case EReflectedPropertyType::SkeletalMeshAsset:
-			return Property.SetPropertyValue_InContainer(Object, FSkeletalMeshAssetRef(Path));
-		case EReflectedPropertyType::TextureAsset:
-			return Property.SetPropertyValue_InContainer(Object, FTextureAssetRef(Path));
-		case EReflectedPropertyType::MaterialAsset:
-			return Property.SetPropertyValue_InContainer(Object, FMaterialAssetRef(Path));
-		case EReflectedPropertyType::AnimationSequenceAsset:
-			return Property.SetPropertyValue_InContainer(Object, FAnimationSequenceAssetRef(Path));
-		case EReflectedPropertyType::CurveAsset:
-			return Property.SetPropertyValue_InContainer(Object, FCurveAssetRef(Path));
-		case EReflectedPropertyType::SceneAsset:
-			return Property.SetPropertyValue_InContainer(Object, FSceneAssetRef(Path));
-		case EReflectedPropertyType::SoundAsset:
-			return Property.SetPropertyValue_InContainer(Object, FSoundAssetRef(Path));
-		default:
-			return false;
 		}
+		if (dynamic_cast<const FSkeletalMeshAssetProperty*>(&Property))
+		{
+			return Property.SetPropertyValue_InContainer(Object, FSkeletalMeshAssetRef(Path));
+		}
+		if (dynamic_cast<const FTextureAssetProperty*>(&Property))
+		{
+			return Property.SetPropertyValue_InContainer(Object, FTextureAssetRef(Path));
+		}
+		if (dynamic_cast<const FMaterialAssetProperty*>(&Property))
+		{
+			return Property.SetPropertyValue_InContainer(Object, FMaterialAssetRef(Path));
+		}
+		if (dynamic_cast<const FAnimationSequenceAssetProperty*>(&Property))
+		{
+			return Property.SetPropertyValue_InContainer(Object, FAnimationSequenceAssetRef(Path));
+		}
+		if (dynamic_cast<const FCurveAssetProperty*>(&Property))
+		{
+			return Property.SetPropertyValue_InContainer(Object, FCurveAssetRef(Path));
+		}
+		if (dynamic_cast<const FSceneAssetProperty*>(&Property))
+		{
+			return Property.SetPropertyValue_InContainer(Object, FSceneAssetRef(Path));
+		}
+		if (dynamic_cast<const FSoundAssetProperty*>(&Property))
+		{
+			return Property.SetPropertyValue_InContainer(Object, FSoundAssetRef(Path));
+		}
+
+		return false;
 	}
 
 	FString ToProjectRelativePathIfAbsolute(const FString& Path)
@@ -507,6 +480,189 @@ namespace
         // 그 외 UObject
         return Object->GetName();
     }
+
+	template <typename AssetRefType>
+	static bool DrawAssetRefTextElement(const char* Label, AssetRefType* Value)
+	{
+		if (!Value)
+		{
+			return false;
+		}
+
+		char Buffer[256] = {};
+		strncpy_s(Buffer, sizeof(Buffer), Value->Path.c_str(), _TRUNCATE);
+		if (!ImGui::InputText(Label, Buffer, sizeof(Buffer)))
+		{
+			return false;
+		}
+
+		Value->Path = Buffer;
+		return true;
+	}
+
+	static bool DrawReflectionObjectElement(UObject* OwnerObject, const FArrayProperty& Property, size_t Index)
+	{
+		UObject** Value = Property.GetArrayElementPtr<UObject*>(OwnerObject, Index);
+		if (!Value)
+		{
+			return false;
+		}
+
+		bool bChanged = false;
+		const FString CurrentDisplayName = GetObjectDisplayPath(*Value);
+		const FString ButtonLabel = CurrentDisplayName + "##ObjectElement";
+		if (ImGui::Button(ButtonLabel.c_str()))
+		{
+			ImGui::OpenPopup("ObjectPicker");
+		}
+
+		if (ImGui::BeginPopup("ObjectPicker"))
+		{
+			static char Filter[128] = {};
+			if (ImGui::IsWindowAppearing())
+			{
+				Filter[0] = '\0';
+			}
+
+			ImGui::InputText("##filter", Filter, sizeof(Filter));
+
+			if (ImGui::Selectable("None", *Value == nullptr))
+			{
+				*Value = nullptr;
+				bChanged = true;
+				ImGui::CloseCurrentPopup();
+			}
+
+			const FObjectProperty* InnerObjectProperty = dynamic_cast<const FObjectProperty*>(Property.GetInnerProperty());
+			UClass* TargetClass = InnerObjectProperty && InnerObjectProperty->GetObjectClass()
+				? InnerObjectProperty->GetObjectClass()
+				: UObject::StaticClass();
+			for (UObject* Candidate : UObjectManager::Get().GetAllObjects())
+			{
+				if (!Candidate || !Candidate->IsA(TargetClass))
+				{
+					continue;
+				}
+
+				const FString CandidateDisplayName = GetObjectDisplayPath(Candidate);
+				if (Filter[0] && !strstr(CandidateDisplayName.c_str(), Filter))
+				{
+					continue;
+				}
+
+				const bool bSelected = Candidate == *Value;
+				ImGui::PushID(Candidate);
+				if (ImGui::Selectable(CandidateDisplayName.c_str(), bSelected))
+				{
+					*Value = Candidate;
+					bChanged = true;
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::PopID();
+			}
+
+			ImGui::EndPopup();
+		}
+
+		return bChanged;
+	}
+
+	static bool DrawReflectionArrayElement(UObject* Object, const FArrayProperty& Property, size_t Index)
+	{
+		bool bChanged = false;
+		const FString Label = "##Element" + std::to_string(Index);
+		const FProperty* InnerProperty = Property.GetInnerProperty();
+
+		if (dynamic_cast<const FFloatProperty*>(InnerProperty))
+		{
+			if (float* Value = Property.GetArrayElementPtr<float>(Object, Index))
+			{
+				bChanged = ImGui::DragFloat(Label.c_str(), Value, 0.1f);
+			}
+		}
+		else if (dynamic_cast<const FInt32Property*>(InnerProperty))
+		{
+			if (int32* Value = Property.GetArrayElementPtr<int32>(Object, Index))
+			{
+				bChanged = ImGui::DragInt(Label.c_str(), Value);
+			}
+		}
+		else if (dynamic_cast<const FBoolProperty*>(InnerProperty))
+		{
+			if (bool* Value = Property.GetArrayElementPtr<bool>(Object, Index))
+			{
+				bChanged = ImGui::Checkbox(Label.c_str(), Value);
+			}
+		}
+		else if (dynamic_cast<const FStringProperty*>(InnerProperty))
+		{
+			if (FString* Value = Property.GetArrayElementPtr<FString>(Object, Index))
+			{
+				char Buffer[256] = {};
+				strncpy_s(Buffer, sizeof(Buffer), Value->c_str(), _TRUNCATE);
+				if (ImGui::InputText(Label.c_str(), Buffer, sizeof(Buffer)))
+				{
+					*Value = Buffer;
+					bChanged = true;
+				}
+			}
+		}
+		else if (dynamic_cast<const FNameProperty*>(InnerProperty))
+		{
+			if (FName* Value = Property.GetArrayElementPtr<FName>(Object, Index))
+			{
+				char Buffer[256] = {};
+				strncpy_s(Buffer, sizeof(Buffer), Value->ToString().c_str(), _TRUNCATE);
+				if (ImGui::InputText(Label.c_str(), Buffer, sizeof(Buffer)))
+				{
+					*Value = FName(Buffer);
+					bChanged = true;
+				}
+			}
+		}
+		else if (dynamic_cast<const FObjectProperty*>(InnerProperty))
+		{
+			bChanged = DrawReflectionObjectElement(Object, Property, Index);
+		}
+		else if (dynamic_cast<const FStaticMeshAssetProperty*>(InnerProperty))
+		{
+			bChanged = DrawAssetRefTextElement(Label.c_str(), Property.GetArrayElementPtr<FStaticMeshAssetRef>(Object, Index));
+		}
+		else if (dynamic_cast<const FSkeletalMeshAssetProperty*>(InnerProperty))
+		{
+			bChanged = DrawAssetRefTextElement(Label.c_str(), Property.GetArrayElementPtr<FSkeletalMeshAssetRef>(Object, Index));
+		}
+		else if (dynamic_cast<const FTextureAssetProperty*>(InnerProperty))
+		{
+			bChanged = DrawAssetRefTextElement(Label.c_str(), Property.GetArrayElementPtr<FTextureAssetRef>(Object, Index));
+		}
+		else if (dynamic_cast<const FMaterialAssetProperty*>(InnerProperty))
+		{
+			bChanged = DrawAssetRefTextElement(Label.c_str(), Property.GetArrayElementPtr<FMaterialAssetRef>(Object, Index));
+		}
+		else if (dynamic_cast<const FAnimationSequenceAssetProperty*>(InnerProperty))
+		{
+			bChanged = DrawAssetRefTextElement(Label.c_str(), Property.GetArrayElementPtr<FAnimationSequenceAssetRef>(Object, Index));
+		}
+		else if (dynamic_cast<const FCurveAssetProperty*>(InnerProperty))
+		{
+			bChanged = DrawAssetRefTextElement(Label.c_str(), Property.GetArrayElementPtr<FCurveAssetRef>(Object, Index));
+		}
+		else if (dynamic_cast<const FSceneAssetProperty*>(InnerProperty))
+		{
+			bChanged = DrawAssetRefTextElement(Label.c_str(), Property.GetArrayElementPtr<FSceneAssetRef>(Object, Index));
+		}
+		else if (dynamic_cast<const FSoundAssetProperty*>(InnerProperty))
+		{
+			bChanged = DrawAssetRefTextElement(Label.c_str(), Property.GetArrayElementPtr<FSoundAssetRef>(Object, Index));
+		}
+		else
+		{
+			ImGui::TextDisabled("Unsupported element type");
+		}
+
+		return bChanged;
+	}
  }
 
 // 1. 메뉴 항목의 이름과, 해당 컴포넌트를 생성&초기화할 함수(람다)를 담는 구조체
@@ -2627,13 +2783,11 @@ void FEditorPropertyWidget::RenderReflectionProperties(UObject* Object, const FP
 	if (!HasPropertyFlag(Property.Flags, EPropertyFlags::Edit))
     {
         return;
-    }
+	}
 
 	bool bChanged = false;
-    switch (Property.Type)
-    {
-    case EReflectedPropertyType::Float:
-    {
+	if (dynamic_cast<const FFloatProperty*>(&Property))
+	{
 		float Value = 0.0f;
         if (!Property.GetPropertyValue_InContainer(Object, Value))
         {
@@ -2646,11 +2800,9 @@ void FEditorPropertyWidget::RenderReflectionProperties(UObject* Object, const FP
         {
             Property.SetPropertyValue_InContainer(Object, Value);
         }
-
-		break;
 	}
-    case EReflectedPropertyType::Bool:
-    {
+	else if (dynamic_cast<const FBoolProperty*>(&Property))
+	{
         bool Value = true;
         if (!Property.GetPropertyValue_InContainer(Object, Value))
         {
@@ -2663,10 +2815,9 @@ void FEditorPropertyWidget::RenderReflectionProperties(UObject* Object, const FP
         {
             Property.SetPropertyValue_InContainer(Object, Value);
         }
-		break;
 	}
-    case EReflectedPropertyType::Int32:
-    {
+	else if (dynamic_cast<const FInt32Property*>(&Property))
+	{
         int32 Value = 0;
         if (!Property.GetPropertyValue_InContainer(Object, Value))
         {
@@ -2679,12 +2830,9 @@ void FEditorPropertyWidget::RenderReflectionProperties(UObject* Object, const FP
         {
             Property.SetPropertyValue_InContainer(Object, Value);
         }
-
-        break;
 	}
-
-    case EReflectedPropertyType::String:
-    {
+	else if (dynamic_cast<const FStringProperty*>(&Property))
+	{
         FString Value;
         if (!Property.GetPropertyValue_InContainer(Object, Value))
         {
@@ -2700,18 +2848,16 @@ void FEditorPropertyWidget::RenderReflectionProperties(UObject* Object, const FP
         {
             Property.SetPropertyValue_InContainer(Object, FString(Buffer));
         }
-
-        break;
     }
-    case EReflectedPropertyType::StaticMeshAsset:
-    case EReflectedPropertyType::SkeletalMeshAsset:
-    case EReflectedPropertyType::TextureAsset:
-    case EReflectedPropertyType::MaterialAsset:
-    case EReflectedPropertyType::AnimationSequenceAsset:
-    case EReflectedPropertyType::CurveAsset:
-    case EReflectedPropertyType::SceneAsset:
-    case EReflectedPropertyType::SoundAsset:
-    {
+	else if (dynamic_cast<const FStaticMeshAssetProperty*>(&Property)
+		|| dynamic_cast<const FSkeletalMeshAssetProperty*>(&Property)
+		|| dynamic_cast<const FTextureAssetProperty*>(&Property)
+		|| dynamic_cast<const FMaterialAssetProperty*>(&Property)
+		|| dynamic_cast<const FAnimationSequenceAssetProperty*>(&Property)
+		|| dynamic_cast<const FCurveAssetProperty*>(&Property)
+		|| dynamic_cast<const FSceneAssetProperty*>(&Property)
+		|| dynamic_cast<const FSoundAssetProperty*>(&Property))
+	{
         FString Value;
         if (!GetReflectionAssetValue(Object, Property, Value))
         {
@@ -2787,7 +2933,7 @@ void FEditorPropertyWidget::RenderReflectionProperties(UObject* Object, const FP
                 ImGui::CloseCurrentPopup();
             }
 
-            const TArray<FString> AssetPaths = GetReflectionAssetPickerPaths(EditorEngine, Property.Type);
+            const TArray<FString> AssetPaths = GetReflectionAssetPickerPaths(EditorEngine, Property);
             for (const FString& AssetPath : AssetPaths)
             {
                 if (!ContainsCaseInsensitive(AssetPath, Filter))
@@ -2815,10 +2961,9 @@ void FEditorPropertyWidget::RenderReflectionProperties(UObject* Object, const FP
         }
 
         ImGui::PopID();
-        break;
     }
-    case EReflectedPropertyType::Name:
-    {
+	else if (dynamic_cast<const FNameProperty*>(&Property))
+	{
         FName Value;
         if (!Property.GetPropertyValue_InContainer(Object, Value))
         {
@@ -2834,11 +2979,9 @@ void FEditorPropertyWidget::RenderReflectionProperties(UObject* Object, const FP
         {
             Property.SetPropertyValue_InContainer(Object, FName(Buffer));
         }
-
-        break;
     }
-    case EReflectedPropertyType::Object:
-    {
+	else if (const FObjectProperty* ObjectProperty = dynamic_cast<const FObjectProperty*>(&Property))
+	{
         UObject* Value = nullptr;
         if (!Property.GetPropertyValue_InContainer(Object, Value))
         {
@@ -2863,7 +3006,7 @@ void FEditorPropertyWidget::RenderReflectionProperties(UObject* Object, const FP
 
             ImGui::InputText("##filter", Filter, sizeof(Filter));
 
-            UClass* TargetClass = Property.GetObjectClass();
+            UClass* TargetClass = ObjectProperty->GetObjectClass();
             if (!TargetClass)
             {
                 TargetClass = UObject::StaticClass();
@@ -2902,13 +3045,111 @@ void FEditorPropertyWidget::RenderReflectionProperties(UObject* Object, const FP
 
             ImGui::EndPopup();
         }
-
-        break;
     }
+	else if (const FArrayProperty* ArrayProperty = dynamic_cast<const FArrayProperty*>(&Property))
+	{
+		ImGui::PushID(Property.Name);
 
+        int ArrayNum = static_cast<int>(ArrayProperty->GetArrayNum(Object));
+        int NewArrayNum = ArrayNum;
+        const bool bCanWrite = HasPropertyFlag(Property.Flags, EPropertyFlags::Write);
 
-    default:
-        break;
+        ImGui::SetNextItemWidth(72.0f);
+        if (ImGui::InputInt("Size", &NewArrayNum, 0, 0))
+        {
+            if (NewArrayNum < 0)
+            {
+                NewArrayNum = 0;
+            }
+
+            if (bCanWrite && NewArrayNum != ArrayNum && ArrayProperty->Resize(Object, static_cast<size_t>(NewArrayNum)))
+            {
+                bChanged = true;
+                ArrayNum = NewArrayNum;
+            }
+        }
+
+        ImGui::SameLine();
+        if (!bCanWrite)
+        {
+            ImGui::BeginDisabled();
+        }
+
+        if (ImGui::SmallButton("+"))
+        {
+            if (ArrayProperty->Resize(Object, static_cast<size_t>(ArrayNum + 1)))
+            {
+                bChanged = true;
+                ++ArrayNum;
+            }
+        }
+
+        ImGui::SameLine();
+        if (ImGui::SmallButton("-"))
+        {
+            if (ArrayNum > 0 && ArrayProperty->Resize(Object, static_cast<size_t>(ArrayNum - 1)))
+            {
+                bChanged = true;
+                --ArrayNum;
+            }
+        }
+
+        if (!bCanWrite)
+        {
+            ImGui::EndDisabled();
+        }
+
+        ImGui::SameLine();
+        const FString HeaderLabel = FString(Property.Name) + " [" + std::to_string(ArrayNum) + "]";
+        const bool bOpen = ImGui::TreeNodeEx(HeaderLabel.c_str(), ImGuiTreeNodeFlags_DefaultOpen);
+
+        if (bOpen)
+        {
+            for (int32 Index = 0; Index < ArrayNum; ++Index)
+            {
+                ImGui::PushID(Index);
+                ImGui::Text("[%d]", Index);
+                ImGui::SameLine();
+
+                if (!bCanWrite)
+                {
+                    ImGui::BeginDisabled();
+                }
+
+                ImGui::SetNextItemWidth(std::max(120.0f, ImGui::GetContentRegionAvail().x - 34.0f));
+                if (DrawReflectionArrayElement(Object, *ArrayProperty, static_cast<size_t>(Index)))
+                {
+                    bChanged = true;
+                }
+
+                ImGui::SameLine();
+                if (ImGui::SmallButton("x"))
+                {
+                    if (ArrayProperty->RemoveArrayElement(Object, static_cast<size_t>(Index)))
+                    {
+                        bChanged = true;
+                        --ArrayNum;
+                        if (!bCanWrite)
+                        {
+                            ImGui::EndDisabled();
+                        }
+                        ImGui::PopID();
+                        break;
+                    }
+                }
+
+                if (!bCanWrite)
+                {
+                    ImGui::EndDisabled();
+                }
+
+                ImGui::PopID();
+            }
+
+            ImGui::TreePop();
+        }
+
+        ImGui::PopID();
 	}
 
     if (bChanged)

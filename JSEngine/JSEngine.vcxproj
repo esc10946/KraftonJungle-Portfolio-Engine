@@ -312,6 +312,9 @@
   <Target Name="BuildRmlUiStaticLibrary" BeforeTargets="ClCompile">
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\BuildTools\Scripts\BuildRmlUiLib.ps1&quot; -ProjectDir &quot;$(MSBuildProjectDirectory)&quot; -Configuration &quot;$(ThirdPartyBinaryConfiguration)&quot; -Platform &quot;$(Platform)&quot;" />
   </Target>
+  <Target Name="GenerateReflectionCode" BeforeTargets="ClCompile">
+    <Exec Command="python &quot;$(MSBuildProjectDirectory)\BuildTools\Scripts\GenerateReflection.py&quot;" />
+  </Target>
   <Target Name="BuildSoLoudStaticLibrary" BeforeTargets="ClCompile">
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\BuildTools\Scripts\BuildSoLoudLib.ps1&quot; -ProjectDir &quot;$(MSBuildProjectDirectory)&quot; -Configuration &quot;$(ThirdPartyBinaryConfiguration)&quot; -Platform &quot;$(Platform)&quot;" />
   </Target>

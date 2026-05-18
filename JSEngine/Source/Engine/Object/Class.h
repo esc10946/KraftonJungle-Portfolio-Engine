@@ -25,9 +25,9 @@ public:
     UObject* CreateObject() const;
     void GetAllProperties(TArray<const FProperty*>& OutProperties) const;
 
-    void AddProperty(const FProperty& Property);
+    void AddProperty(std::unique_ptr<FProperty> Property);
     const FProperty* FindProperty(const char* PropertyName) const;
-    const TArray<FProperty>& GetProperties() const { return Properties; }
+    const TArray<std::unique_ptr<FProperty>>& GetProperties() const { return Properties; }
 
 private:
     const char* Name = nullptr;
@@ -36,5 +36,5 @@ private:
     uint32 ClassFlags = 0;
     FCreateObjectFunc CreateFunc = nullptr;
 
-    TArray<FProperty> Properties;
+    TArray<std::unique_ptr<FProperty>> Properties;
 };

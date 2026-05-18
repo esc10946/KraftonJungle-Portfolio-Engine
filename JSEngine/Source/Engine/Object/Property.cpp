@@ -1,11 +1,24 @@
-﻿#include "Property.h"
+#include "Property.h"
+
 #include "Class.h"
 #include "Object.h"
 
+std::unique_ptr<FObjectProperty> MakeObjectProperty(
+    const char* Name,
+    size_t Offset,
+    size_t Size,
+    EPropertyFlags Flags,
+    UClass* ObjectClass)
+{
+    return std::make_unique<FObjectProperty>(Name, Offset, Size, Flags, ObjectClass);
+}
+
 void FProperty::SerializeItem(FArchive& Ar, UObject* Container) const
 {
-    if (HasPropertyFlag(Flags, EPropertyFlags::Transient))
+    if (!Container || HasPropertyFlag(Flags, EPropertyFlags::Transient))
+    {
         return;
+    }
 
     const FString PropertyKey(Name);
     if (Ar.IsLoading() && !Ar.HasKey(PropertyKey))
@@ -14,65 +27,92 @@ void FProperty::SerializeItem(FArchive& Ar, UObject* Container) const
     }
 
     Ar.SetCurrentKey(PropertyKey);
+    SerializeValue(Ar, ContainerPtrToRawValuePtr(Container));
+}
 
-    switch (Type)
+void FObjectProperty::SerializeValue(FArchive& Ar, void* ValuePtr) const
+{
+    UObject** ObjectPtr = static_cast<UObject**>(ValuePtr);
+    if (!ObjectPtr)
     {
-    case EReflectedPropertyType::Float:
-        Ar << *ContainerPtrToValuePtr<float>(Container);
-        break;
-    case EReflectedPropertyType::Bool:
-        Ar << *ContainerPtrToValuePtr<bool>(Container);
-        break;
-    case EReflectedPropertyType::Int32:
-        Ar << *ContainerPtrToValuePtr<int32>(Container);
-        break;
-    case EReflectedPropertyType::String:
-        Ar << *ContainerPtrToValuePtr<FString>(Container);
-        break;
-    case EReflectedPropertyType::StaticMeshAsset:
-        Ar << ContainerPtrToValuePtr<FStaticMeshAssetRef>(Container)->Path;
-        break;
-    case EReflectedPropertyType::SkeletalMeshAsset:
-        Ar << ContainerPtrToValuePtr<FSkeletalMeshAssetRef>(Container)->Path;
-        break;
-    case EReflectedPropertyType::TextureAsset:
-        Ar << ContainerPtrToValuePtr<FTextureAssetRef>(Container)->Path;
-        break;
-    case EReflectedPropertyType::MaterialAsset:
-        Ar << ContainerPtrToValuePtr<FMaterialAssetRef>(Container)->Path;
-        break;
-    case EReflectedPropertyType::AnimationSequenceAsset:
-        Ar << ContainerPtrToValuePtr<FAnimationSequenceAssetRef>(Container)->Path;
-        break;
-    case EReflectedPropertyType::CurveAsset:
-        Ar << ContainerPtrToValuePtr<FCurveAssetRef>(Container)->Path;
-        break;
-    case EReflectedPropertyType::SceneAsset:
-        Ar << ContainerPtrToValuePtr<FSceneAssetRef>(Container)->Path;
-        break;
-    case EReflectedPropertyType::SoundAsset:
-        Ar << ContainerPtrToValuePtr<FSoundAssetRef>(Container)->Path;
-        break;
-    case EReflectedPropertyType::Name:
-        Ar << *ContainerPtrToValuePtr<FName>(Container);
-        break;
-    case EReflectedPropertyType::Object:
+        return;
+    }
+
+    uint32 ObjectUUID = (Ar.IsSaving() && *ObjectPtr) ? (*ObjectPtr)->GetUUID() : 0;
+    Ar << ObjectUUID;
+
+    if (Ar.IsLoading())
     {
-        UObject** ObjectPtr = ContainerPtrToValuePtr<UObject*>(Container);
-        if (!ObjectPtr)
-        {
-            break;
-        }
-
-        uint32 ObjectUUID = (Ar.IsSaving() && *ObjectPtr) ? (*ObjectPtr)->GetUUID() : 0;
-        Ar << ObjectUUID;
-
-        if (Ar.IsLoading())
-        {
-            *ObjectPtr = nullptr;
-            UObjectManager::Get().RegisterPendingObjectReference(ObjectPtr, ObjectUUID, ObjectClass);
-        }
-        break;
+        *ObjectPtr = nullptr;
+        UObjectManager::Get().RegisterPendingObjectReference(ObjectPtr, ObjectUUID, ObjectClass);
     }
+}
+
+size_t FArrayProperty::GetArrayNum(UObject* Container) const
+{
+    if (!Container || !ArrayOps || !HasPropertyFlag(Flags, EPropertyFlags::Read))
+    {
+        return 0;
     }
+
+    void* ArrayPtr = ContainerPtrToRawValuePtr(Container);
+    return ArrayPtr ? ArrayOps->Num(ArrayPtr) : 0;
+}
+
+bool FArrayProperty::Resize(UObject* Container, size_t NewSize) const
+{
+    if (!Container || !ArrayOps || !HasPropertyFlag(Flags, EPropertyFlags::Write))
+    {
+        return false;
+    }
+
+    void* ArrayPtr = ContainerPtrToRawValuePtr(Container);
+    if (!ArrayPtr)
+    {
+        return false;
+    }
+
+    ArrayOps->Resize(ArrayPtr, NewSize);
+    return true;
+}
+
+bool FArrayProperty::RemoveArrayElement(UObject* Container, size_t Index) const
+{
+    if (!Container || !ArrayOps || !HasPropertyFlag(Flags, EPropertyFlags::Write))
+    {
+        return false;
+    }
+
+    void* ArrayPtr = ContainerPtrToRawValuePtr(Container);
+    if (!ArrayPtr || Index >= ArrayOps->Num(ArrayPtr))
+    {
+        return false;
+    }
+
+    ArrayOps->RemoveAt(ArrayPtr, Index);
+    return true;
+}
+
+void FArrayProperty::SerializeValue(FArchive& Ar, void* ArrayPtr) const
+{
+    if (!ArrayPtr || !ArrayOps || !InnerProperty)
+    {
+        return;
+    }
+
+    int32 Num = Ar.IsSaving() ? static_cast<int32>(ArrayOps->Num(ArrayPtr)) : 0;
+    Ar.BeginArray(Name ? Name : "", Num);
+
+    if (Ar.IsLoading())
+    {
+        ArrayOps->Resize(ArrayPtr, static_cast<size_t>(Num));
+    }
+
+    for (int32 Index = 0; Index < Num; ++Index)
+    {
+        void* ElementPtr = ArrayOps->GetElementPtr(ArrayPtr, static_cast<size_t>(Index));
+        InnerProperty->SerializeValue(Ar, ElementPtr);
+    }
+
+    Ar.EndArray();
 }

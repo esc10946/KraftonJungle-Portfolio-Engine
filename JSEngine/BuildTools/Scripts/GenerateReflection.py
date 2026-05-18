@@ -10,20 +10,20 @@ PROJECT_DIR = SCRIPT_DIR.parents[1]
 GENERATED_DIR = PROJECT_DIR / "Generated"
 GENERATED_CPP = GENERATED_DIR / "JSEngine.generated.cpp"
 
-TYPE_MAP = {
-    "bool": "EReflectedPropertyType::Bool",
-    "int32": "EReflectedPropertyType::Int32",
-    "float": "EReflectedPropertyType::Float",
-    "FName": "EReflectedPropertyType::Name",
-    "FString": "EReflectedPropertyType::String",
-    "FStaticMeshAssetRef": "EReflectedPropertyType::StaticMeshAsset",
-    "FSkeletalMeshAssetRef": "EReflectedPropertyType::SkeletalMeshAsset",
-    "FTextureAssetRef": "EReflectedPropertyType::TextureAsset",
-    "FMaterialAssetRef": "EReflectedPropertyType::MaterialAsset",
-    "FAnimationSequenceAssetRef": "EReflectedPropertyType::AnimationSequenceAsset",
-    "FCurveAssetRef": "EReflectedPropertyType::CurveAsset",
-    "FSceneAssetRef": "EReflectedPropertyType::SceneAsset",
-    "FSoundAssetRef": "EReflectedPropertyType::SoundAsset",
+PROPERTY_CLASS_MAP = {
+    "bool": "FBoolProperty",
+    "int32": "FInt32Property",
+    "float": "FFloatProperty",
+    "FName": "FNameProperty",
+    "FString": "FStringProperty",
+    "FStaticMeshAssetRef": "FStaticMeshAssetProperty",
+    "FSkeletalMeshAssetRef": "FSkeletalMeshAssetProperty",
+    "FTextureAssetRef": "FTextureAssetProperty",
+    "FMaterialAssetRef": "FMaterialAssetProperty",
+    "FAnimationSequenceAssetRef": "FAnimationSequenceAssetProperty",
+    "FCurveAssetRef": "FCurveAssetProperty",
+    "FSceneAssetRef": "FSceneAssetProperty",
+    "FSoundAssetRef": "FSoundAssetProperty",
 }
 
 ABSTRACT_CLASSES = {
@@ -46,7 +46,7 @@ CLASS_PATTERN = re.compile(
 
 PROPERTY_PATTERN = re.compile(
     r"UPROPERTY\s*\((?P<flags>[^)]*)\)\s*\n\s*"
-    r"(?P<type>[\w:]+(?:\s*\*)?)\s+"
+    r"(?P<type>TArray\s*<\s*[\w:]+(?:\s*\*)?\s*>|[\w:]+(?:\s*\*)?)\s+"
     r"(?P<name>\w+)\s*(?:=[^;]*)?;",
     re.MULTILINE,
 )
@@ -61,9 +61,13 @@ GENERATED_BODY_PATTERN = re.compile(
 class ReflectedProperty:
     name: str
     cpp_type: str
-    reflected_type: str
+    property_class: str
     flags: str
     object_class: str | None = None
+    inner_property_class: str | None = None
+    inner_class: str | None = None
+    inner_cpp_type: str | None = None
+    array_ops_type: str | None = None
 
 
 @dataclass
@@ -109,15 +113,44 @@ def normalize_cpp_type(cpp_type: str) -> str:
 
 
 def reflected_type(cpp_type: str) -> tuple[str | None, str | None]:
-    if cpp_type in TYPE_MAP:
-        return TYPE_MAP[cpp_type], None
+    if cpp_type in PROPERTY_CLASS_MAP:
+        return PROPERTY_CLASS_MAP[cpp_type], None
 
     if cpp_type.endswith("*"):
         class_name = cpp_type[:-1]
         if class_name.startswith(("U", "A")):
-            return "EReflectedPropertyType::Object", class_name
+            return "FObjectProperty", class_name
 
     return None, None
+
+def parse_array_cpp_type(cpp_type: str) -> str | None:
+    match = re.fullmatch(r"TArray<(?P<inner>[\w:]+\*?)>", cpp_type)
+    if not match:
+        return None
+    return match.group("inner")
+
+
+def reflected_array_type(
+    path: Path,
+    content: str,
+    offset: int,
+    cpp_type: str,
+) -> tuple[str, str | None, str, str]:
+    inner_cpp_type = parse_array_cpp_type(cpp_type)
+    if not inner_cpp_type:
+        fail(path, content, offset, f"failed to parse TArray property type '{cpp_type}'")
+
+    if inner_cpp_type == "bool":
+        fail(path, content, offset, "TArray<bool> is not supported because std::vector<bool> does not expose bool* elements")
+
+    if parse_array_cpp_type(inner_cpp_type):
+        fail(path, content, offset, "nested TArray properties are not supported")
+
+    inner_property_class, inner_class = reflected_type(inner_cpp_type)
+    if not inner_property_class:
+        fail(path, content, offset, f"unsupported TArray inner type '{inner_cpp_type}'")
+
+    return inner_property_class, inner_class, inner_cpp_type, f"GetArrayPropertyOps<{inner_cpp_type}>()"
 
 def skip_ws_and_comments(text: str, offset: int) -> int:
     while offset < len(text):
@@ -181,7 +214,7 @@ def parse_property_declaration(
     raw_cpp_type = decl_match.group("type").strip()
     prop_name = decl_match.group("name").strip()
 
-    if "<" in raw_cpp_type or ">" in raw_cpp_type:
+    if ("<" in raw_cpp_type or ">" in raw_cpp_type) and not parse_array_cpp_type(normalize_cpp_type(raw_cpp_type)):
         fail(
             path,
             content,
@@ -197,8 +230,26 @@ def reflected_type_for_flags(
     offset: int,
     cpp_type: str,
     flag_parts: list[str],
-) -> tuple[str | None, str | None]:
-    return reflected_type(cpp_type)
+) -> tuple[str | None, str | None, str | None, str | None, str | None, str | None]:
+    inner_cpp_type = parse_array_cpp_type(cpp_type)
+    if inner_cpp_type:
+        inner_property_class, inner_class, normalized_inner_cpp_type, array_ops_type = reflected_array_type(
+            path,
+            content,
+            offset,
+            cpp_type,
+        )
+        return (
+            "FArrayProperty",
+            None,
+            inner_property_class,
+            inner_class,
+            normalized_inner_cpp_type,
+            array_ops_type,
+        )
+
+    prop_type, object_class = reflected_type(cpp_type)
+    return prop_type, object_class, None, None, None, None
 
 
 def parse_flags(path: Path, content: str, offset: int, flag_text: str) -> str:
@@ -377,21 +428,31 @@ def parse_reflected_class(path: Path, content: str, class_match: re.Match) -> Re
             fail(path, content, absolute_offset, f"duplicate UPROPERTY name '{prop_name}'")
         property_names.add(prop_name)
 
-        if "<" in raw_cpp_type or ">" in raw_cpp_type:
+        if ("<" in raw_cpp_type or ">" in raw_cpp_type) and not parse_array_cpp_type(cpp_type):
             fail(path, content, absolute_offset, "template UPROPERTY types are not supported")
 
         flag_parts = [part.strip() for part in flag_text.split(",") if part.strip()]
-        prop_type, object_class = reflected_type_for_flags(path, content, absolute_offset, cpp_type, flag_parts)
-        if not prop_type:
+        property_class, object_class, inner_property_class, inner_class, inner_cpp_type, array_ops_type = reflected_type_for_flags(
+            path,
+            content,
+            absolute_offset,
+            cpp_type,
+            flag_parts,
+        )
+        if not property_class:
             fail(path, content, absolute_offset, f"unsupported UPROPERTY type '{raw_cpp_type.strip()}'")
 
         properties.append(
             ReflectedProperty(
                 name=prop_name,
                 cpp_type=cpp_type,
-                reflected_type=prop_type,
+                property_class=property_class,
                 flags=parse_flags(path, content, absolute_offset, flag_text),
                 object_class=object_class,
+                inner_property_class=inner_property_class,
+                inner_class=inner_class,
+                inner_cpp_type=inner_cpp_type,
+                array_ops_type=array_ops_type,
             )
         )
 
@@ -501,15 +562,41 @@ def build_generated_cpp(classes: list[ReflectedClass]) -> str:
                 if prop.object_class
                 else "nullptr"
             )
-            cpp_lines += [
-                f'        Class.AddProperty({{ "{prop.name}",',
-                f"                            {prop.reflected_type},",
-                f"                            offsetof({cls.class_name}, {prop.name}),",
-                f"                            sizeof({prop.cpp_type}),",
-                f"                            {prop.flags},",
-                f"                            {object_class_arg} }});",
-                "",
-            ]
+            inner_class_arg = (
+                f"{prop.inner_class}::StaticClass()"
+                if prop.inner_class
+                else "nullptr"
+            )
+            if prop.property_class == "FArrayProperty":
+                cpp_lines += [
+                    f"        Class.AddProperty(MakeArrayProperty<{prop.inner_property_class}>(",
+                    f'                            "{prop.name}",',
+                    f"                            offsetof({cls.class_name}, {prop.name}),",
+                    f"                            sizeof({prop.cpp_type}),",
+                    f"                            {prop.flags},",
+                    f"                            {prop.array_ops_type},",
+                    f"                            {inner_class_arg}));",
+                    "",
+                ]
+            elif prop.property_class == "FObjectProperty":
+                cpp_lines += [
+                    "        Class.AddProperty(MakeObjectProperty(",
+                    f'                            "{prop.name}",',
+                    f"                            offsetof({cls.class_name}, {prop.name}),",
+                    f"                            sizeof({prop.cpp_type}),",
+                    f"                            {prop.flags},",
+                    f"                            {object_class_arg}));",
+                    "",
+                ]
+            else:
+                cpp_lines += [
+                    f"        Class.AddProperty(MakeProperty<{prop.property_class}>(",
+                    f'                            "{prop.name}",',
+                    f"                            offsetof({cls.class_name}, {prop.name}),",
+                    f"                            sizeof({prop.cpp_type}),",
+                    f"                            {prop.flags}));",
+                    "",
+                ]
 
         cpp_lines += [
             "        FReflectionRegistry::Get().RegisterUClass(&Class);",
