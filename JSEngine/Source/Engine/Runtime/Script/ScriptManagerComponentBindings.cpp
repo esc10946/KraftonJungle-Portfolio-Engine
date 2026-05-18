@@ -421,6 +421,8 @@ void FScriptManager::BindStaticMeshTypes()
     LUA_METHOD(SetSkeletalMesh, SetSkeletalMesh);
     LUA_METHOD(UseStateMachine, UseStateMachine);
     LUA_METHOD(LoadStateMachineFromJson, LoadStateMachineFromJson);
+    LUA_METHOD(SetAutoUpdateAnimStateMachineContext, SetAutoUpdateAnimStateMachineContext);
+    LUA_METHOD(IsAutoUpdatingAnimStateMachineContext, IsAutoUpdatingAnimStateMachineContext);
     LUA_SET(RegisterStateAnimation, [](USkeletalMeshComponent& Self, const FString& AnimationName, const FString& AnimationPath)
     {
         return Self.RegisterStateAnimationPath(FName(AnimationName), AnimationPath);

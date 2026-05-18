@@ -33,6 +33,8 @@ public:
     bool LoadStateMachineFromJson(const FString& JsonPath);
     bool RegisterStateAnimationPath(const FName& AnimationName, const FString& AnimationPath);
     void SetAnimStateMachineContext(const FAnimStateMachineContext& Context);
+    void SetAutoUpdateAnimStateMachineContext(bool bEnabled) { bAutoUpdateAnimStateMachineContext = bEnabled; }
+    bool IsAutoUpdatingAnimStateMachineContext() const { return bAutoUpdateAnimStateMachineContext; }
 
     void ApplyLocalPose(const TArray<FMatrix>& InLocalPose);
 
@@ -46,8 +48,10 @@ public:
 
 private:
     UAnimSingleNodeInstance* GetOrCreateAnimSingleNodeInstance();
+    void RefreshAnimStateMachineContextFromOwner();
 
 private:
     UAnimInstance* AnimInstance = nullptr;
     UAnimSingleNodeInstance* AnimSingleNodeInstance = nullptr;
+    bool bAutoUpdateAnimStateMachineContext = true;
 };

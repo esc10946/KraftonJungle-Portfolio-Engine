@@ -2,6 +2,8 @@
 
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimationStateMachine.h"
+#include "Component/Movement/MovementComponent.h"
+#include "GameFramework/AActor.h"
 #include "Object/Object.h"
 #include "Object/ObjectFactory.h"
 
@@ -28,6 +30,7 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime)
 
     if (AnimInstance)
     {
+        RefreshAnimStateMachineContextFromOwner();
         AnimInstance->TickAnimation(DeltaTime);
     }
 
@@ -111,6 +114,59 @@ UAnimSingleNodeInstance* USkeletalMeshComponent::GetOrCreateAnimSingleNodeInstan
     }
 
     return AnimSingleNodeInstance;
+}
+
+void USkeletalMeshComponent::RefreshAnimStateMachineContextFromOwner()
+{
+    if (!bAutoUpdateAnimStateMachineContext || !AnimInstance || !AnimInstance->GetStateMachineAsset())
+    {
+        return;
+    }
+
+    AActor* OwnerActor = GetOwner();
+    if (!OwnerActor)
+    {
+        return;
+    }
+
+    UMovementComponent* MovementComponent = OwnerActor->FindComponent<UMovementComponent>();
+    if (!MovementComponent)
+    {
+        return;
+    }
+
+    FAnimStateMachineContext Context = AnimInstance->GetStateMachineContext();
+    const FVector Velocity = MovementComponent->GetVelocity();
+    Context.Speed = Velocity.Size2D();
+
+    const float MaxSpeed = MovementComponent->GetMaxSpeed();
+    if (MaxSpeed > 0.0f)
+    {
+        Context.RunSpeed = MaxSpeed;
+        if (Context.WalkSpeed <= 0.0f || Context.WalkSpeed > Context.RunSpeed)
+        {
+            Context.WalkSpeed = Context.RunSpeed * 0.5f;
+        }
+    }
+
+    float FallingSpeedThreshold = Context.IdleSpeedThreshold;
+    if (FallingSpeedThreshold <= 0.0f)
+    {
+        FallingSpeedThreshold = 1.0f;
+    }
+
+    if (Velocity.Z < -FallingSpeedThreshold)
+    {
+        Context.bIsGrounded = false;
+        Context.MovementMode = EAnimStateMachineMovementMode::Falling;
+    }
+    else
+    {
+        Context.bIsGrounded = true;
+        Context.MovementMode = EAnimStateMachineMovementMode::Walking;
+    }
+
+    AnimInstance->SetStateMachineContext(Context);
 }
 
 void USkeletalMeshComponent::ApplyLocalPose(const TArray<FMatrix>& InLocalPose)
