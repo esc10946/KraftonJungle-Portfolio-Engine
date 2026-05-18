@@ -49,6 +49,7 @@ public:
 private:
     UAnimSingleNodeInstance* GetOrCreateAnimSingleNodeInstance();
     void RefreshAnimStateMachineContextFromOwner();
+    void RegisterStateAnimationPathsFromAsset(const UAnimStateMachineAsset* StateMachineAsset);
 
 private:
     UAnimInstance* AnimInstance = nullptr;

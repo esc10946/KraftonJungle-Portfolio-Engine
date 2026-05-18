@@ -68,7 +68,11 @@ void UAnimStateMachineAsset::SetEntryState(const FName& StateName)
     EntryState = StateName;
 }
 
-bool UAnimStateMachineAsset::AddState(const FName& StateName, const FName& AnimationName, bool bLoop)
+bool UAnimStateMachineAsset::AddState(
+    const FName& StateName,
+    const FName& AnimationName,
+    bool bLoop,
+    const FString& AnimationPath)
 {
     if (!StateName.IsValid())
     {
@@ -85,9 +89,30 @@ bool UAnimStateMachineAsset::AddState(const FName& StateName, const FName& Anima
     FAnimStateDesc State;
     State.StateName = StateName;
     State.AnimationName = AnimationName;
+    State.AnimationPath = FPaths::Normalize(AnimationPath);
     State.bLoop = bLoop;
     States.push_back(State);
     return true;
+}
+
+bool UAnimStateMachineAsset::SetStateAnimationPath(const FName& StateName, const FString& AnimationPath)
+{
+    if (!StateName.IsValid() || AnimationPath.empty())
+    {
+        return false;
+    }
+
+    for (FAnimStateDesc& State : States)
+    {
+        if (State.StateName == StateName)
+        {
+            State.AnimationPath = FPaths::Normalize(AnimationPath);
+            return true;
+        }
+    }
+
+    UE_LOG_WARNING("[AnimSM] Failed to set animation path: missing state %s", StateName.ToString().c_str());
+    return false;
 }
 
 bool UAnimStateMachineAsset::AddTransition(
@@ -263,7 +288,8 @@ UAnimStateMachineAsset* UAnimStateMachineAsset::LoadFromJsonFile(const FString& 
             Asset->AddState(
                 FName(GetJsonString(StateNode, "name")),
                 FName(GetJsonString(StateNode, "animation")),
-                GetJsonBool(StateNode, "loop", true));
+                GetJsonBool(StateNode, "loop", true),
+                GetJsonString(StateNode, "animationPath"));
         }
     }
 

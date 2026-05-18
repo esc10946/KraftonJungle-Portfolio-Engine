@@ -30,6 +30,7 @@ struct FAnimStateDesc
 {
     FName StateName;
     FName AnimationName;
+    FString AnimationPath;
     bool bLoop = true;
 };
 
@@ -51,7 +52,12 @@ public:
     GENERATED_BODY(UAnimStateMachineAsset, UObject)
 
     void SetEntryState(const FName& StateName);
-    bool AddState(const FName& StateName, const FName& AnimationName, bool bLoop);
+    bool AddState(
+        const FName& StateName,
+        const FName& AnimationName,
+        bool bLoop,
+        const FString& AnimationPath = "");
+    bool SetStateAnimationPath(const FName& StateName, const FString& AnimationPath);
     bool AddTransition(
         const FName& FromState,
         const FName& ToState,

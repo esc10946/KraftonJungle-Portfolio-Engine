@@ -3,6 +3,7 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimationStateMachine.h"
 #include "Component/Movement/MovementComponent.h"
+#include "Core/Logging/Log.h"
 #include "GameFramework/AActor.h"
 #include "Object/Object.h"
 #include "Object/ObjectFactory.h"
@@ -78,6 +79,7 @@ bool USkeletalMeshComponent::LoadStateMachineFromJson(const FString& JsonPath)
         return false;
     }
 
+    RegisterStateAnimationPathsFromAsset(StateMachineAsset);
     return UseStateMachine(StateMachineAsset);
 }
 
@@ -167,6 +169,37 @@ void USkeletalMeshComponent::RefreshAnimStateMachineContextFromOwner()
     }
 
     AnimInstance->SetStateMachineContext(Context);
+}
+
+void USkeletalMeshComponent::RegisterStateAnimationPathsFromAsset(const UAnimStateMachineAsset* StateMachineAsset)
+{
+    if (!StateMachineAsset)
+    {
+        return;
+    }
+
+    UAnimSingleNodeInstance* AnimSingleNode = GetOrCreateAnimSingleNodeInstance();
+    if (!AnimSingleNode)
+    {
+        return;
+    }
+
+    for (const FAnimStateDesc& State : StateMachineAsset->GetStates())
+    {
+        if (!State.AnimationName.IsValid() || State.AnimationPath.empty())
+        {
+            continue;
+        }
+
+        if (!AnimSingleNode->RegisterAnimationPath(State.AnimationName, State.AnimationPath))
+        {
+            UE_LOG_WARNING(
+                "[AnimSM] Failed to register state animation path: state=%s animation=%s path=%s",
+                State.StateName.ToString().c_str(),
+                State.AnimationName.ToString().c_str(),
+                State.AnimationPath.c_str());
+        }
+    }
 }
 
 void USkeletalMeshComponent::ApplyLocalPose(const TArray<FMatrix>& InLocalPose)
