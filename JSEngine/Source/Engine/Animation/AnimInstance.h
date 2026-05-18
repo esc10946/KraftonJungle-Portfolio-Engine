@@ -36,6 +36,19 @@ public:
     virtual bool PlayAnimationByName(const FName& AnimationName, bool bLoop);
 
 protected:
+    void TriggerAnimNotifies(
+        UAnimationSequenceBase* AnimationSequence,
+        float PreviousTime,
+        float CurrentTime,
+        float PlayLength,
+        bool bLooped,
+        bool bForwardPlayback);
+    void TriggerAnimNotifiesInRange(
+        UAnimationSequenceBase* AnimationSequence,
+        float RangeStart,
+        float RangeEnd);
+
+protected:
     UPROPERTY(Transient, Read)
     USkeletalMeshComponent* SkelMeshComponent = nullptr;
 

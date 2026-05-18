@@ -106,6 +106,15 @@ void USkeletalMeshComponent::SetAnimStateMachineContext(const FAnimStateMachineC
     AnimSingleNode->SetStateMachineContext(Context);
 }
 
+void USkeletalMeshComponent::HandleAnimNotify(const FAnimNotifyEvent& Notify)
+{
+    AActor* OwnerActor = GetOwner();
+    if (OwnerActor)
+    {
+        OwnerActor->HandleAnimNotify(Notify);
+    }
+}
+
 UAnimSingleNodeInstance* USkeletalMeshComponent::GetOrCreateAnimSingleNodeInstance()
 {
     if (!AnimSingleNodeInstance)

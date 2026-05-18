@@ -765,3 +765,7 @@ void AActor::OnEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* Othe
         }
     }
 }
+
+void AActor::HandleAnimNotify(const FAnimNotifyEvent&)
+{
+}

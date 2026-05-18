@@ -6,6 +6,7 @@
 class UAnimStateMachineAsset;
 class UAnimInstance;
 class UAnimSingleNodeInstance;
+struct FAnimNotifyEvent;
 struct FAnimStateMachineContext;
 
 /**
@@ -35,6 +36,7 @@ public:
     void SetAnimStateMachineContext(const FAnimStateMachineContext& Context);
     void SetAutoUpdateAnimStateMachineContext(bool bEnabled) { bAutoUpdateAnimStateMachineContext = bEnabled; }
     bool IsAutoUpdatingAnimStateMachineContext() const { return bAutoUpdateAnimStateMachineContext; }
+    void HandleAnimNotify(const FAnimNotifyEvent& Notify);
 
     void ApplyLocalPose(const TArray<FMatrix>& InLocalPose);
 

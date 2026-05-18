@@ -85,6 +85,72 @@ bool UAnimInstance::PlayAnimationByName(const FName&, bool)
     return false;
 }
 
+void UAnimInstance::TriggerAnimNotifies(
+    UAnimationSequenceBase* AnimationSequence,
+    float PreviousTime,
+    float CurrentTime,
+    float PlayLength,
+    bool bLooped,
+    bool bForwardPlayback)
+{
+    if (!AnimationSequence || !SkelMeshComponent || PlayLength <= 0.0f)
+    {
+        return;
+    }
+
+    if (bLooped)
+    {
+        if (bForwardPlayback)
+        {
+            TriggerAnimNotifiesInRange(AnimationSequence, PreviousTime, PlayLength);
+            TriggerAnimNotifiesInRange(AnimationSequence, 0.0f, CurrentTime);
+        }
+        else
+        {
+            TriggerAnimNotifiesInRange(AnimationSequence, PreviousTime, 0.0f);
+            TriggerAnimNotifiesInRange(AnimationSequence, PlayLength, CurrentTime);
+        }
+        return;
+    }
+
+    TriggerAnimNotifiesInRange(AnimationSequence, PreviousTime, CurrentTime);
+}
+
+void UAnimInstance::TriggerAnimNotifiesInRange(
+    UAnimationSequenceBase* AnimationSequence,
+    float RangeStart,
+    float RangeEnd)
+{
+    if (!AnimationSequence || !SkelMeshComponent)
+    {
+        return;
+    }
+
+    const bool bForward = RangeStart <= RangeEnd;
+    for (const FAnimNotifyEvent& Notify : AnimationSequence->GetNotifies())
+    {
+        if (!Notify.NotifyName.IsValid())
+        {
+            continue;
+        }
+
+        bool bShouldTrigger = false;
+        if (bForward)
+        {
+            bShouldTrigger = Notify.TriggerTime > RangeStart && Notify.TriggerTime <= RangeEnd;
+        }
+        else
+        {
+            bShouldTrigger = Notify.TriggerTime < RangeStart && Notify.TriggerTime >= RangeEnd;
+        }
+
+        if (bShouldTrigger)
+        {
+            SkelMeshComponent->HandleAnimNotify(Notify);
+        }
+    }
+}
+
 void UAnimSingleNodeInstance::SetSequence(UAnimationSequenceBase* InSequence)
 {
     Sequence = InSequence;
@@ -173,6 +239,9 @@ void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaSeconds)
     }
 
     const float PlayLength = Sequence->GetPlayLength();
+    const float PreviousTime = CurrentTime;
+    const bool bForwardPlayback = DeltaSeconds * PlayRate >= 0.0f;
+    bool bLooped = false;
     CurrentTime += DeltaSeconds * PlayRate;
 
     if (PlayLength <= 0.0f)
@@ -186,6 +255,7 @@ void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaSeconds)
         if (bLooping)
         {
             CurrentTime = std::fmod(CurrentTime, PlayLength);
+            bLooped = true;
         }
         else
         {
@@ -198,6 +268,7 @@ void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaSeconds)
         if (bLooping)
         {
             CurrentTime = std::fmod(CurrentTime, PlayLength) + PlayLength;
+            bLooped = true;
         }
         else
         {
@@ -210,6 +281,8 @@ void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaSeconds)
     {
         ApplyCurrentPoseToSkeletalMesh();
     }
+
+    TriggerAnimNotifies(Sequence, PreviousTime, CurrentTime, PlayLength, bLooped, bForwardPlayback);
 }
 
 bool UAnimSingleNodeInstance::SampleCurrentPose()
