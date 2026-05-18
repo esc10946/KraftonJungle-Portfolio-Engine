@@ -128,6 +128,7 @@ void UEditorEngine::Init(FWindowsWindow* InWindow)
     UndoSystem.SetOwner(this);
     CommandSystem.Initialize(this);
     AssetService.Initialize(this);
+    AssetEditorSubsystem.Initialize(this);
     NotificationService.Initialize(this);
     SceneService.Initialize(this);
     GetRmlUiSystem().Initialize(GetRenderer(), "EditorPIE", 1, 1);

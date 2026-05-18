@@ -133,9 +133,7 @@ static bool IsAnimationCompatibleWithMesh(const USkeletalMesh* Mesh, const UAnim
     const std::filesystem::path MeshPath(FPaths::ToWide(FPaths::Normalize(Mesh->GetAssetPathFileName())));
     const std::filesystem::path AnimPath(FPaths::ToWide(FPaths::Normalize(AnimationPath)));
 
-    return ToLowerNormalizedPath(FPaths::ToUtf8(MeshPath.parent_path().generic_wstring()))
-        == ToLowerNormalizedPath(FPaths::ToUtf8(AnimPath.parent_path().generic_wstring()))
-        && GetImportedFbxStem(Mesh->GetAssetPathFileName()) == GetImportedFbxStem(AnimationPath);
+    return ToLowerNormalizedPath(FPaths::ToUtf8(MeshPath.parent_path().generic_wstring())) == ToLowerNormalizedPath(FPaths::ToUtf8(AnimPath.parent_path().generic_wstring())) && GetImportedFbxStem(Mesh->GetAssetPathFileName()) == GetImportedFbxStem(AnimationPath);
 }
 
 float DistanceSquaredRaySegment(const FRay& Ray, const FVector& SegmentStart, const FVector& SegmentEnd, float& OutRayT)
@@ -244,7 +242,7 @@ bool ProjectWorldToViewport(
     OutDepth = NdcZ;
     return true;
 }
-}
+} // namespace
 
 void FEditorViewer::Init(
     FWindowsWindow* InWindow,
@@ -263,9 +261,7 @@ void FEditorViewer::Init(
     Client.SetViewport(&Viewport);
     Client.SetState(&Viewport.GetState());
     Client.SetBonePickHandler([this](float LocalX, float LocalY)
-    {
-        return HandleBonePick(LocalX, LocalY);
-    });
+                              { return HandleBonePick(LocalX, LocalY); });
 
     Client.SetViewportType(EEditorViewportType::EVT_Perspective);
     Client.CreateCamera();
@@ -273,7 +269,7 @@ void FEditorViewer::Init(
     Viewport.GetState().ViewMode = EViewMode::Lit_BlinnPhong;
     Viewport.GetState().LightCullMode = ELightCullMode::None;
 
-	FViewportRect Rect = { 0, 0, 300, 300 };
+    FViewportRect Rect = { 0, 0, 300, 300 };
     Viewport.SetRect(Rect);
 
     ViewTarget = InWorld->SpawnActor<ASkeletalMeshActor>();
@@ -297,7 +293,7 @@ void FEditorViewer::Init(
         AmbientLight->SetFName(FName("Viewer Ambient Light"));
         AmbientLight->SetActorLocation(FVector(100000.0f, 100000.0f, 100000.0f));
     }
-    
+
     AmbientLight->FindComponent<UAmbientLightComponent>()->Intensity = 0.7f;
 
     InWorld->SyncSpatialIndex();
@@ -568,16 +564,19 @@ bool FEditorViewer::TryPickBone(float LocalX, float LocalY, int32& OutBoneIndex)
 
 void FEditorViewer::SetSocketPreviewMesh(const FName& SocketName, const FString& StaticMeshPath)
 {
-    if (!ViewTarget) return;
+    if (!ViewTarget)
+        return;
 
     // 같은 socket에 이미 preview가 있으면 먼저 제거 (덮어쓰기 동작)
     ClearSocketPreview(SocketName);
 
     UStaticMesh* Mesh = FResourceManager::Get().LoadStaticMesh(StaticMeshPath);
-    if (!Mesh) return;
+    if (!Mesh)
+        return;
 
     UStaticMeshComponent* Preview = ViewTarget->AddComponent<UStaticMeshComponent>();
-    if (!Preview) return;
+    if (!Preview)
+        return;
 
     // 휘발성 + 에디터 전용. Scene 저장에 안 들어가고, 게임 빌드 render에 안 잡힘.
     Preview->SetTransient(true);
@@ -595,7 +594,8 @@ void FEditorViewer::SetSocketPreviewMesh(const FName& SocketName, const FString&
 void FEditorViewer::ClearSocketPreview(const FName& SocketName)
 {
     auto It = SocketPreviewMeshes.find(SocketName);
-    if (It == SocketPreviewMeshes.end()) return;
+    if (It == SocketPreviewMeshes.end())
+        return;
 
     if (ViewTarget && It->second)
     {
@@ -632,7 +632,7 @@ void FEditorViewer::ChangeTarget(const FString& InFileName)
     USkeletalMesh* SkelMesh = FResourceManager::Get().LoadSkeletalMesh(InFileName.c_str());
     if (SkelMesh)
     {
-	    ViewTarget->GetSkeletalMeshComponent()->SetSkeletalMesh(SkelMesh);
+        ViewTarget->GetSkeletalMeshComponent()->SetSkeletalMesh(SkelMesh);
     }
 
     UE_LOG(

@@ -61,6 +61,9 @@
     <Filter Include="Source\Editor\Selection">
       <UniqueIdentifier>{32cef874-6e19-055b-d275-6f75611e3360}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Editor\Subsystems">
+      <UniqueIdentifier>{99d81e1e-56aa-4a5b-a6f7-9f44b92b5ab4}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source\Editor\Settings">
       <UniqueIdentifier>{b1dfd584-4d36-815a-235b-55c990686b88}</UniqueIdentifier>
     </Filter>
@@ -278,6 +281,9 @@
     </ClCompile>
     <ClCompile Include="Source\Editor\Selection\SelectionManager.cpp">
       <Filter>Source\Editor\Selection</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Editor\Subsystems\AssetEditorSubsystem.cpp">
+      <Filter>Source\Editor\Subsystems</Filter>
     </ClCompile>
     <ClCompile Include="Source\Editor\Settings\EditorSettings.cpp">
       <Filter>Source\Editor\Settings</Filter>
@@ -1259,6 +1265,9 @@
     </ClInclude>
     <ClInclude Include="Source\Editor\Selection\SelectionManager.h">
       <Filter>Source\Editor\Selection</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\Subsystems\AssetEditorSubsystem.h">
+      <Filter>Source\Editor\Subsystems</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\Settings\EditorSettings.h">
       <Filter>Source\Editor\Settings</Filter>

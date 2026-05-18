@@ -1,7 +1,9 @@
 #include "Runtime/Script/ScriptManager.h"
 
 #include "Animation/ActorSequence.h"
+#include "Animation/AnimationStateMachine.h"
 #include "Asset/CurveFloatAsset.h"
+#include "Object/Object.h"
 #include "Runtime/Script/ScriptComponent.h"
 #include "Runtime/Script/ScriptUtils.h"
 
@@ -39,4 +41,39 @@ void FScriptManager::BindAnimationTypes()
     LUA_METHOD(AddFloatTrack, AddFloatTrack);
     LUA_METHOD(ClearTracks, ClearTracks);
     LUA_END_TYPE();
+
+    LUA_BEGIN_TYPE_NO_CTOR_BASE(GLuaState, UAnimStateMachineAsset, "AnimStateMachineAsset", UObject)
+    LUA_SET(SetEntryState, [](UAnimStateMachineAsset& Self, const FString& StateName)
+    {
+        Self.SetEntryState(FName(StateName));
+    });
+    LUA_SET(AddState, [](UAnimStateMachineAsset& Self, const FString& StateName, const FString& AnimationName, bool bLoop)
+    {
+        return Self.AddState(FName(StateName), FName(AnimationName), bLoop);
+    });
+    LUA_SET(AddTransition, [](
+        UAnimStateMachineAsset& Self,
+        const FString& FromState,
+        const FString& ToState,
+        const FString& ConditionName,
+        float BlendTime,
+        int32 Priority)
+    {
+        return Self.AddTransition(
+            FName(FromState),
+            FName(ToState),
+            FName(ConditionName),
+            BlendTime,
+            Priority);
+    });
+    LUA_SET(Validate, [](const UAnimStateMachineAsset& Self)
+    {
+        return Self.Validate();
+    });
+    LUA_END_TYPE();
+
+    GLuaState->set_function("CreateAnimStateMachineAsset", []() -> UAnimStateMachineAsset*
+    {
+        return UObjectManager::Get().CreateObject<UAnimStateMachineAsset>();
+    });
 }

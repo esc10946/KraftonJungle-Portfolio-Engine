@@ -2201,19 +2201,10 @@ void FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 						{
 							if (USkeletalMeshComponent* SkeletalComp = Cast<USkeletalMeshComponent>(SelectedComponent))
 							{
-								if (USkeletalMesh* LoadedMesh = FResourceManager::Get().LoadSkeletalMesh(Path))
-								{
-									SkeletalComp->SetSkeletalMesh(LoadedMesh);
-									*Val = SkeletalComp->GetSkeletalMesh()
-										? SkeletalComp->GetSkeletalMesh()->GetAssetPathFileName()
-										: Path;
-									bChanged = true;
-									bPostEditHandled = true;
-								}
-								else
-								{
-									UE_LOG_WARNING("[EditorPropertyWidget] Failed to load skeletal mesh: %s", Path.c_str());
-								}
+								EditorEngine->GetAssetEditorSubsystem().RequestApplySkeletalMeshToComponent(SkeletalComp, Path);
+								*Val = Path;
+								bChanged = true;
+								bPostEditHandled = true;
 							}
 							else
 							{

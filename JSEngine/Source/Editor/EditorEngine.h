@@ -14,6 +14,7 @@
 #include "Editor/Command/EditorCommandSystem.h"
 #include "Editor/Notification/EditorNotificationService.h"
 #include "Editor/Scene/EditorSceneService.h"
+#include "Editor/Subsystems/AssetEditorSubsystem.h"
 #include "Editor/Undo/EditorUndoSystem.h"
 #include "Camera/ViewportCamera.h"
 #include "Editor/Viewport/ViewportLayout.h"
@@ -23,7 +24,8 @@ class UGizmoComponent;
 class FEditorRenderPipeline;
 class AActor;
 class APlayerController;
-class FViewport;
+class FViewport; 
+class USkeletalMeshComponent;
 
 class UEditorEngine : public UEngine
 {
@@ -66,6 +68,8 @@ public:
 	const FEditorCommandSystem& GetCommandSystem() const { return CommandSystem; }
 	FEditorAssetService& GetAssetService() { return AssetService; }
 	const FEditorAssetService& GetAssetService() const { return AssetService; }
+	FAssetEditorSubsystem& GetAssetEditorSubsystem() { return AssetEditorSubsystem; }
+	const FAssetEditorSubsystem& GetAssetEditorSubsystem() const { return AssetEditorSubsystem; }
 	FEditorNotificationService& GetNotificationService() { return NotificationService; }
 	const FEditorNotificationService& GetNotificationService() const { return NotificationService; }
 	FEditorSceneService& GetSceneService() { return SceneService; }
@@ -132,10 +136,11 @@ private:
 	FPIESession PIESession;
 	FEditorCommandSystem CommandSystem;
 	FEditorAssetService AssetService;
+	FAssetEditorSubsystem AssetEditorSubsystem;
 	FEditorNotificationService NotificationService;
 	FEditorSceneService SceneService;
 
-    FEditorUndoSystem UndoSystem;
+	FEditorUndoSystem UndoSystem;
 
 	bool bStartPlaySessionQueued = false;
 	bool bStopPlaySessionQueued = false;

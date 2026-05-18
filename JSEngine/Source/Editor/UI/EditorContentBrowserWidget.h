@@ -72,8 +72,6 @@ private:
 	void DrawContentTile(const FContentItem& Item, const ImVec2& TileSize);
 	void DrawContentContextMenu(bool bHasSelectedItem);
 	void RequestOpenFbxAsset(const std::filesystem::path& Path);
-	void ProcessPendingFbxOpen();
-	void DrawFbxOpenModal();
 	bool CreateFolder();
 	bool CreateTextFile();
 	bool CreateLuaScriptFile();
@@ -127,7 +125,6 @@ private:
 	bool bNeedsRefresh = true;
 	bool bPendingMaterialPreviewCacheClear = false;
 	bool bRenamePopupRequested = false;
-	bool bFbxOpenModalRequested = false;
 	bool bMouseOverBrowser = false;
 	bool bHasBrowserScreenRect = false;
 	bool bOpenContentContextMenu = false;
@@ -137,9 +134,6 @@ private:
 	EPresentationMode PresentationMode = EPresentationMode::Drawer;
 	UStaticMesh* MaterialPreviewMesh = nullptr;
 	std::filesystem::path RenameSourcePath;
-	FString PendingFbxOpenPath;
-	FString PendingFbxImportPath;
-	int32 PendingFbxOpenDelayFrames = 0;
 	FString ActiveDragPayloadType;
 	FString ActiveDragPayloadPath;
 };

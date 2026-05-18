@@ -17,12 +17,54 @@ void UAnimInstance::NativeUpdateAnimation(float)
 
 void UAnimInstance::TickAnimation(float DeltaSeconds)
 {
-    if (StateMachine)
-    {
-        StateMachine->TickStateMachine(DeltaSeconds);
-    }
+    StateMachineInstance.Update(DeltaSeconds, StateMachineContext);
 
     NativeUpdateAnimation(DeltaSeconds);
+}
+
+void UAnimInstance::SetStateMachineAsset(UAnimStateMachineAsset* InStateMachineAsset)
+{
+    StateMachineInstance.Initialize(InStateMachineAsset, this);
+}
+
+void UAnimInstance::RegisterAnimation(const FName& AnimationName, UAnimationSequenceBase* Sequence)
+{
+    if (!AnimationName.IsValid())
+    {
+        return;
+    }
+
+    for (FNamedAnimation& RegisteredAnimation : RegisteredAnimations)
+    {
+        if (RegisteredAnimation.AnimationName == AnimationName)
+        {
+            RegisteredAnimation.Sequence = Sequence;
+            return;
+        }
+    }
+
+    FNamedAnimation RegisteredAnimation;
+    RegisteredAnimation.AnimationName = AnimationName;
+    RegisteredAnimation.Sequence = Sequence;
+    RegisteredAnimations.push_back(RegisteredAnimation);
+}
+
+UAnimationSequenceBase* UAnimInstance::FindRegisteredAnimation(const FName& AnimationName) const
+{
+    for (const FNamedAnimation& RegisteredAnimation : RegisteredAnimations)
+    {
+        if (RegisteredAnimation.AnimationName == AnimationName)
+        {
+            return RegisteredAnimation.Sequence;
+        }
+    }
+
+    return nullptr;
+}
+
+bool UAnimInstance::PlayAnimationByName(const FName&, bool)
+{
+    return false;
 }
 
 void UAnimSingleNodeInstance::SetSequence(UAnimationSequenceBase* InSequence)
@@ -30,6 +72,24 @@ void UAnimSingleNodeInstance::SetSequence(UAnimationSequenceBase* InSequence)
     Sequence = InSequence;
     CurrentTime = 0.0f;
     CurrentLocalPose.clear();
+}
+
+bool UAnimSingleNodeInstance::PlayAnimationByName(const FName& AnimationName, bool bLoop)
+{
+    UAnimationSequenceBase* TargetSequence = FindRegisteredAnimation(AnimationName);
+    if (!TargetSequence)
+    {
+        return false;
+    }
+
+    if (Sequence != TargetSequence)
+    {
+        SetSequence(TargetSequence);
+    }
+
+    SetLooping(bLoop);
+    Play();
+    return true;
 }
 
 void UAnimSingleNodeInstance::Play()
