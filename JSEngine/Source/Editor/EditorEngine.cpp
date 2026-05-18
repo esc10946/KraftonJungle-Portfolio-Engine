@@ -13,6 +13,7 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/World.h"
 #include "Editor/EditorRenderPipeline.h"
+#include "Editor/Viewer/AnimationViewer.h"
 #include "Core/Logging/Log.h"
 #include "Core/Logging/Stats.h"
 #include "Runtime/Script/ScriptManager.h"
@@ -627,7 +628,7 @@ FEditorViewer* UEditorEngine::CreateViewer(FString InFileName)
     FWorldContext& ViewerCtx = CreateWorldContext(EWorldType::ViewerPreview, Handle, "Viewer Preview");
     ApplySpatialIndexMaintenanceSettings(ViewerCtx.World);
 
-    auto NewViewer = std::make_unique<FEditorViewer>();
+    auto NewViewer = std::make_unique<FAnimationViewer>();
     NewViewer->Init(Window, this, ViewerCtx.World, ViewerCtx.SelectionManager);
     NewViewer->ChangeTarget(InFileName);
     MainPanel.OpenViewer(NewViewer.get());
@@ -1251,6 +1252,7 @@ void UEditorEngine::CloseScene()
             ViewportClient->DestroyCamera();
             ViewportClient->SetWorld(nullptr);
         }
+        ViewerPtr->Shutdown();
     }
 
 	Viewers.clear();
