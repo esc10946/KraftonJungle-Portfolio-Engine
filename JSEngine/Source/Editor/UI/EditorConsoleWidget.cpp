@@ -916,7 +916,7 @@ void FEditorConsoleWidget::CmdSkinMode(const TArray<FString>& Args)
 	{
 		FSkinningRuntimeSettings::SetMode(ESkinningMode::GPUVertexShader);
 		AddLog("Skinning mode changed to: %s\n", FSkinningRuntimeSettings::ToString(FSkinningRuntimeSettings::GetMode()));
-		AddLog("Skin Cache mode remains reserved for a later compute path.\n");
+		AddLog("Skin Cache is enabled per component through Use Skin Cache.\n");
 		return;
 	}
 
@@ -924,7 +924,54 @@ void FEditorConsoleWidget::CmdSkinMode(const TArray<FString>& Args)
 	{
 		AddLog("Skinning.Mode: %s\n", FSkinningRuntimeSettings::ToString(FSkinningRuntimeSettings::GetMode()));
 		AddLog("Skinning.Revision: %llu\n", static_cast<unsigned long long>(FSkinningRuntimeSettings::GetRevision()));
-		AddLog("Skinning.GPUComputeSkinCache: reserved\n");
+		if (EditorEngine)
+		{
+			const FSkinCacheManager& SkinCacheManager = EditorEngine->GetRenderer().GetSkinCacheManager();
+			AddLog(
+				"SkinCache.Entries: %u active, %u valid, %u pending dispatch\n",
+				SkinCacheManager.GetEntryCount(),
+				SkinCacheManager.GetValidOutputCount(),
+				SkinCacheManager.GetPendingDispatchCount());
+			AddLog(
+				"SkinCache.Memory: Output=%s Metadata=%s\n",
+				FormatBytes(SkinCacheManager.GetOutputBytes()).c_str(),
+				FormatBytes(SkinCacheManager.GetMetadataBytes()).c_str());
+			AddLog(
+				"SkinCache.Fallbacks: MissingInput=%u FailedAllocation=%u\n",
+				SkinCacheManager.GetMissingInputCount(),
+				SkinCacheManager.GetFailedAllocationCount());
+
+			uint32 PrintedEntries = 0;
+			static constexpr uint32 MaxPrintedEntries = 8;
+			for (const auto& Pair : SkinCacheManager.GetEntries())
+			{
+				if (PrintedEntries >= MaxPrintedEntries)
+				{
+					break;
+				}
+
+				const FSkinCacheEntry& Entry = Pair.second;
+				AddLog(
+					"  Component=%u Vertices=%u Output=%s Revision=%llu/%llu%s%s\n",
+					Entry.ComponentUUID,
+					Entry.VertexCount,
+					Entry.OutputBuffer.IsValid() ? "valid" : "invalid",
+					static_cast<unsigned long long>(Entry.CachedRevision),
+					static_cast<unsigned long long>(Entry.RequestedRevision),
+					Entry.FailureReason.empty() ? "" : " Failure=",
+					Entry.FailureReason.empty() ? "" : Entry.FailureReason.c_str());
+				++PrintedEntries;
+			}
+
+			if (SkinCacheManager.GetEntryCount() > PrintedEntries)
+			{
+				AddLog("  ... %u more SkinCache entries\n", SkinCacheManager.GetEntryCount() - PrintedEntries);
+			}
+		}
+		else
+		{
+			AddLog("SkinCache.Status: EditorEngine unavailable\n");
+		}
 		return;
 	}
 

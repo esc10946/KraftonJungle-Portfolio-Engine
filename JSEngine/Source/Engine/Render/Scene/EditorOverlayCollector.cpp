@@ -111,7 +111,7 @@ namespace
     void ApplySkeletalGpuPayload(FRenderCommand& Cmd, USkeletalMeshComponent* SkeletalMeshComp, FStructuredBuffer* BoneMatrixBuffer, ESkinningMode Mode)
     {
         Cmd.SkeletalGpuSkinning.Mode = Mode;
-        if (Mode == ESkinningMode::GPUVertexShader && BoneMatrixBuffer)
+        if ((Mode == ESkinningMode::GPUVertexShader || Mode == ESkinningMode::GPUComputeSkinCache) && BoneMatrixBuffer)
         {
             Cmd.SkeletalGpuSkinning.BoneMatrixSRV = BoneMatrixBuffer->GetSRV();
             Cmd.SkeletalGpuSkinning.BoneCount = BoneMatrixBuffer->GetCount();

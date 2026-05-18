@@ -72,6 +72,15 @@ struct SkeletalVSInput
     float4 BoneWeights : BLENDWEIGHT;
 };
 
+struct SkinCacheVSInput
+{
+    float3 Position : POSITION;
+    float3 Normal : NORMAL;
+    float2 UV : TEXCOORD;
+    float4 Tangent : TANGENT;
+    float4 Color : COLOR;
+};
+
 struct PSInput
 {
     float4 ClipPos : SV_POSITION;
@@ -146,6 +155,17 @@ PSInput SkeletalMeshVS(SkeletalVSInput input)
     passThrough.Normal = Skinned.Normal;
     passThrough.UV = input.UV;
     passThrough.Tangent = Skinned.Tangent;
+    return mainVS(passThrough);
+}
+
+PSInput SkinCacheSkeletalMeshVS(SkinCacheVSInput input)
+{
+    VSInput passThrough;
+    passThrough.Position = input.Position;
+    passThrough.Color = input.Color;
+    passThrough.Normal = input.Normal;
+    passThrough.UV = input.UV;
+    passThrough.Tangent = input.Tangent;
     return mainVS(passThrough);
 }
 

@@ -37,6 +37,23 @@ struct FSkeletalMeshVertex
     float BoneWeights[4];
 };
 
+static_assert(offsetof(FSkeletalMeshVertex, BoneIndices) == 64, "FSkeletalMeshVertex layout must match SkinCache source HLSL");
+static_assert(offsetof(FSkeletalMeshVertex, BoneWeights) == 68, "FSkeletalMeshVertex layout must match SkinCache source HLSL");
+static_assert(sizeof(FSkeletalMeshVertex) == 84, "FSkeletalMeshVertex stride must match SkinCache source HLSL");
+
+// SkinCache는 현재 GPU skinning 결과를 캐시하고 추후 morph target deformation까지 포괄함
+// 이미 변형된 vertex stream이라 bone influence는 보관하지 않음
+struct FDeformedVertex
+{
+    FVector Position;
+    FColor Color;
+    FVector Normal;
+    FVector2 UVs;
+    FVector4 Tangent;
+};
+
+static_assert(sizeof(FDeformedVertex) == sizeof(FNormalVertex), "FDeformedVertex must stay render-input compatible with FNormalVertex layout size");
+
 struct FOverlayVertex
 {
 	float X, Y;

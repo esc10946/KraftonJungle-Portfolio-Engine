@@ -36,6 +36,16 @@ struct FRenderResources
 	FStructuredBuffer LightTileBuffer;				// t6 (LightTile) (uint2) 
 	FStructuredBuffer MPLightStructuredBuffer;		// t13 Light (Multipass)
 
+	void AppendGpuMemoryStats(FGpuResourceMemoryStats& OutStats) const
+	{
+		LightShadowIndexBuffer.AppendGpuMemoryStats(OutStats, "RenderResources");
+		AtlasShadowBuffer.AppendGpuMemoryStats(OutStats, "RenderResources");
+		DecalStructuredBuffer.AppendGpuMemoryStats(OutStats, "RenderResources");
+		LightStructuredBuffer.AppendGpuMemoryStats(OutStats, "RenderResources");
+		LightCulledIndexBuffer.AppendGpuMemoryStats(OutStats, "RenderResources");
+		LightTileBuffer.AppendGpuMemoryStats(OutStats, "RenderResources");
+		MPLightStructuredBuffer.AppendGpuMemoryStats(OutStats, "RenderResources");
+	}
 };
 
 enum class ESamplerType

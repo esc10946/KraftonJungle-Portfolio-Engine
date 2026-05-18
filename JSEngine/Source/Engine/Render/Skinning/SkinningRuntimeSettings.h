@@ -48,7 +48,7 @@ public:
         case ESkinningMode::CPU:
             return "CPU";
         case ESkinningMode::GPUVertexShader:
-            return "GPUVertexShader";
+            return "GPU";
         case ESkinningMode::GPUComputeSkinCache:
             return "GPUComputeSkinCache";
         default:

@@ -47,6 +47,9 @@ public:
     void EnsureCPUSkinnedVerticesUpdated();
     void EnsureGPUSkinningResourcesDirty();
     ESkinningMode GetEffectiveSkinningMode() const;
+    bool ShouldUseSkinCache() const { return bUseSkinCache; }
+    void SetUseSkinCache(bool bInUseSkinCache);
+    uint64 GetDeformationRevision() const { return DeformationRevision; }
 
     // Socket API override — mesh asset의 Sockets 정의를 사용.
     bool       HasSocket(const FName& SocketName) const override;
@@ -67,6 +70,7 @@ protected:
     void EnsureBoundsUpdated() const;
     void SyncSkinningModeState() const;
     void NotifyPoseDependentsDirty();
+    void AdvanceDeformationRevision() { ++DeformationRevision; }
 
 protected:
     USkeletalMesh* SkeletalMesh = nullptr;
@@ -79,6 +83,7 @@ protected:
     TArray<FSkeletalMeshVertex> SkinnedVertices;
 
     bool bEnableCPUSkinning = true;
+    bool bUseSkinCache = false;
     bool bPoseDirty = true;
     bool bSkinningMatricesDirty = true;
     bool bCPUSkinnedVerticesDirty = true;
@@ -88,4 +93,5 @@ protected:
     bool bRenderStateDirty = true;
     mutable ESkinningMode CachedSkinningMode = ESkinningMode::CPU;
     mutable uint64 CachedSkinningModeRevision = static_cast<uint64>(-1);
+    uint64 DeformationRevision = 1;
 };

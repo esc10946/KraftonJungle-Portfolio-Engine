@@ -40,6 +40,15 @@ struct VSInputSkeletalMesh
     float4 BoneWeights : BLENDWEIGHT;
 };
 
+struct VSInputSkinCacheSkeletalMesh
+{
+    float3 Position : POSITION;
+    float3 Normal : NORMAL;
+    float2 UV : TEXCOORD;
+    float4 Tangent : TANGENT;
+    float4 Color : COLOR;
+};
+
 struct VSOutputPrimitive
 {
     float4 Position : SV_POSITION;
@@ -86,6 +95,14 @@ VSOutputTextured VSSkeletalMesh(VSInputSkeletalMesh Input)
 
     VSOutputTextured Output;
     Output.Position = ApplyMVP(ApplySkeletalSkinning(SkinInput).Position);
+    Output.UV = UVOffset + Input.UV * UVScale;
+    return Output;
+}
+
+VSOutputTextured VSSkinCacheSkeletalMesh(VSInputSkinCacheSkeletalMesh Input)
+{
+    VSOutputTextured Output;
+    Output.Position = ApplyMVP(Input.Position);
     Output.UV = UVOffset + Input.UV * UVScale;
     return Output;
 }

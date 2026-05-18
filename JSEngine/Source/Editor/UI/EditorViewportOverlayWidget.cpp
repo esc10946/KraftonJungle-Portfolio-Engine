@@ -1,6 +1,7 @@
 ﻿#include "Editor/UI/EditorViewportOverlayWidget.h"
 
 #include "Core/ResourceManager.h"
+#include "Core/ResourceMemoryReporter.h"
 #include "Editor/EditorEngine.h"
 #include "Editor/EditorRenderPipeline.h"
 #include "Editor/Settings/EditorSettings.h"
@@ -50,6 +51,71 @@ namespace
 			return;
 		}
 		Client->SetMoveSpeed(ClampFloat(GetCameraBaseSpeed() * Multiplier, 0.1f, 5000.0f));
+	}
+
+	FGpuResourceMemoryStats CollectGpuMemoryStats(UEditorEngine* EditorEngine, const FEditorRenderPipeline* RenderPipeline)
+	{
+		FGpuResourceMemoryStats Stats;
+		if (EditorEngine != nullptr)
+		{
+			EditorEngine->GetRenderer().AppendGpuMemoryStats(Stats);
+		}
+		if (RenderPipeline != nullptr)
+		{
+			RenderPipeline->AppendGpuMemoryStats(Stats);
+		}
+		FResourceMemoryReporter::AppendKnownGlobalGpuMemoryStats(Stats);
+		return Stats;
+	}
+
+	void DrawGpuMemoryStatsColored(const FGpuResourceMemoryStats& Stats, const ImVec4& Color)
+	{
+		static constexpr EGpuResourceCategory Categories[] =
+		{
+			EGpuResourceCategory::Mesh,
+			EGpuResourceCategory::Skeletal,
+			EGpuResourceCategory::SkinCache,
+			EGpuResourceCategory::Shadow,
+			EGpuResourceCategory::Lighting,
+			EGpuResourceCategory::Particles,
+			EGpuResourceCategory::Other
+		};
+
+		ImGui::TextColored(Color, "GPU Memory Stat");
+		ImGui::TextColored(Color, "- GPU.Total: %.2f KB", Stats.TotalBytes / 1024.0f);
+		for (EGpuResourceCategory Category : Categories)
+		{
+			ImGui::TextColored(
+				Color,
+				"- %s: %.2f KB (%u)",
+				FResourceMemoryReporter::GetGpuResourceCategoryName(Category),
+				Stats.GetCategoryBytes(Category) / 1024.0f,
+				Stats.GetCategoryRecordCount(Category));
+		}
+	}
+
+	void DrawGpuMemoryStatsPlain(const FGpuResourceMemoryStats& Stats)
+	{
+		static constexpr EGpuResourceCategory Categories[] =
+		{
+			EGpuResourceCategory::Mesh,
+			EGpuResourceCategory::Skeletal,
+			EGpuResourceCategory::SkinCache,
+			EGpuResourceCategory::Shadow,
+			EGpuResourceCategory::Lighting,
+			EGpuResourceCategory::Particles,
+			EGpuResourceCategory::Other
+		};
+
+		ImGui::Text("GPU Total: %.2f KB", Stats.TotalBytes / 1024.0f);
+		for (EGpuResourceCategory Category : Categories)
+		{
+			ImGui::Text(
+				"%s : %.2f KB (%u)",
+				FResourceMemoryReporter::GetGpuResourceCategoryName(Category),
+				Stats.GetCategoryBytes(Category) / 1024.0f,
+				Stats.GetCategoryRecordCount(Category));
+		}
 	}
 
 	ImVec2 Add(const ImVec2& A, const ImVec2& B)
@@ -706,11 +772,13 @@ void FEditorViewportOverlayWidget::RenderDebugStats(float DeltaTime)
 				}
 
 				const size_t MatMemoryBytes   = FResourceManager::Get().GetMaterialMemorySize();
-				const size_t TotalMemoryBytes = MeshMemoryBytes + MatMemoryBytes;
+				const FGpuResourceMemoryStats GpuMemoryStats = CollectGpuMemoryStats(EditorEngine, RenderPipeline);
 
 				ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "Memory Stat");
 				ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "- Mesh: %.2f KB",     MeshMemoryBytes / 1024.f);
 				ImGui::TextColored(ImVec4(1.f, 1.f, 0.f, 1.f), "- Material: %.2f KB", MatMemoryBytes  / 1024.f);
+				ImGui::Separator();
+				DrawGpuMemoryStatsColored(GpuMemoryStats, ImVec4(0.65f, 0.90f, 1.0f, 1.0f));
 				ImGui::Separator();
 
 				FNamePool& Pool = FNamePool::Get();
@@ -865,11 +933,14 @@ void FEditorViewportOverlayWidget::RenderGroupedStatOverlay(float DeltaTime)
         }
 
         const size_t MaterialMemoryBytes = FResourceManager::Get().GetMaterialMemorySize();
+        const FGpuResourceMemoryStats GpuMemoryStats = CollectGpuMemoryStats(EditorEngine, RenderPipeline);
         ImGui::Spacing();
         ImGui::Separator();
         ImGui::TextUnformatted("[ Memory ]");
         ImGui::Text("Mesh     : %.2f KB", MeshMemoryBytes / 1024.0f);
         ImGui::Text("Material : %.2f KB", MaterialMemoryBytes / 1024.0f);
+        ImGui::Separator();
+        DrawGpuMemoryStatsPlain(GpuMemoryStats);
         ImGui::Text("FName    : %.2f KB", FNamePool::Get().GetTotalBytes() / 1024.0f);
         ImGui::Text("Objects  : %d / %.2f KB",
             EngineStatics::GetTotalAllocationCount(),

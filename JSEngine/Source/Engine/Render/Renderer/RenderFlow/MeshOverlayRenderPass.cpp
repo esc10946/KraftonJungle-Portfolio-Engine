@@ -89,20 +89,8 @@ bool FMeshOverlayRenderPass::DrawCommand(const FRenderPassContext* Context)
             continue;
         }
 
-        if (Cmd.MeshBuffer == nullptr || !Cmd.MeshBuffer->IsValid())
-        {
-            continue;
-        }
-
-        ID3D11Buffer* VertexBuffer = Cmd.MeshBuffer->GetVertexBuffer().GetBuffer();
-        if (VertexBuffer == nullptr)
-        {
-            continue;
-        }
-
-        const uint32 VertexCount = Cmd.MeshBuffer->GetVertexBuffer().GetVertexCount();
-        const uint32 Stride = Cmd.MeshBuffer->GetVertexBuffer().GetStride();
-        if (VertexCount == 0 || Stride == 0)
+        FMeshDrawBinding DrawBinding;
+        if (!BuildMeshDrawBinding(Cmd, DrawBinding, false))
         {
             continue;
         }
@@ -126,18 +114,15 @@ bool FMeshOverlayRenderPass::DrawCommand(const FRenderPassContext* Context)
         Context->DeviceContext->VSSetConstantBuffers(12, 1, &OverlayCB);
         Context->DeviceContext->PSSetConstantBuffers(12, 1, &OverlayCB);
 
-        uint32 Offset = 0;
-        Context->DeviceContext->IASetVertexBuffers(0, 1, &VertexBuffer, &Stride, &Offset);
+        BindMeshDrawBinding(Context->DeviceContext, DrawBinding);
 
-        ID3D11Buffer* IndexBuffer = Cmd.MeshBuffer->GetIndexBuffer().GetBuffer();
-        if (IndexBuffer != nullptr)
+        if (DrawBinding.HasIndexBuffer())
         {
-            Context->DeviceContext->IASetIndexBuffer(IndexBuffer, DXGI_FORMAT_R32_UINT, 0);
-            Context->DeviceContext->DrawIndexed(Cmd.SectionIndexCount, Cmd.SectionIndexStart, 0);
+            Context->DeviceContext->DrawIndexed(DrawBinding.IndexCount, DrawBinding.IndexStart, 0);
         }
         else
         {
-            Context->DeviceContext->Draw(VertexCount, 0);
+            Context->DeviceContext->Draw(DrawBinding.VertexCount, 0);
         }
     }
 

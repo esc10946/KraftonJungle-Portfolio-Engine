@@ -13,6 +13,7 @@
 #include "Render/LineBatcher.h"
 #include "Render/FontBatcher.h"
 #include "Render/SubUVBatcher.h"
+#include "Render/Skinning/SkinCacheManager.h"
 
 #include <cstddef>
 #include <functional>
@@ -166,6 +167,12 @@ public:
 
 	FD3DDevice& GetFD3DDevice() { return Device; }
 	FRenderResources& GetResources() { return Resources; }
+	FSkinCacheManager& GetSkinCacheManager() { return SkinCacheManager; }
+	void AppendGpuMemoryStats(FGpuResourceMemoryStats& OutStats) const
+	{
+		Resources.AppendGpuMemoryStats(OutStats);
+		SkinCacheManager.AppendGpuMemoryStats(OutStats);
+	}
 
 	const ID3D11RenderTargetView*   GetCurrentSceneRTV() const { return SceneFinalRTV.Get(); }
     const ID3D11ShaderResourceView* GetCurrentSceneSRV() const { return SceneFinalSRV.Get(); }
@@ -194,6 +201,7 @@ private:
 	void DrawCommand(ID3D11DeviceContext* InDeviceContext, const FRenderCommand& InCommand);
 	void DrawPostProcessOutline(ID3D11DeviceContext* InDeviceContext);
 	void UpdateFrameBuffer(ID3D11DeviceContext* Context, const FRenderBus& InRenderBus);
+	void ResolveSkinCacheCommands(FRenderBus& InOutRenderBus, bool bRequireDispatchedOutput);
 
 	// 기본 패스 실행기 — SetupRenderState + DrawCommand 루프
     void ExecuteDefaultPass(ERenderPass Pass, const TArray<FRenderCommand>& Commands, const FRenderBus& Bus,
@@ -208,11 +216,13 @@ private:
 	FD3DDevice Device;
 	FRenderTargetSet CurrentRenderTargets;
 	FRenderResources Resources;
+	FRenderBus SkinCacheResolvedRenderBus;
 	FLineBatcher   EditorLineBatcher;
 	FLineBatcher   EditorOverlayLineBatcher;   // 깊이 무시 — ERenderPass::EditorOverlay 전용
 	FLineBatcher   GridLineBatcher;
 	FFontBatcher   FontBatcher;
 	FSubUVBatcher  SubUVBatcher;
+	FSkinCacheManager SkinCacheManager;
 
 	/** 모든 Render Pass 를 관리할 객체 */
 	FRenderPipeline RenderPipeline;
