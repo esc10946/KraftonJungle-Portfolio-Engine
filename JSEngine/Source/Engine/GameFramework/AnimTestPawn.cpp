@@ -122,6 +122,10 @@ void AAnimTestPawn::Serialize(FArchive& Ar)
     Ar << "LightAttackSoundPath2" << LightAttackSoundPath2;
     Ar << "LightAttackSoundPath3" << LightAttackSoundPath3;
     Ar << "HeavyAttackSoundPath" << HeavyAttackSoundPath;
+    Ar << "VoiceSoundPath1" << VoiceSoundPath1;
+    Ar << "VoiceSoundPath2" << VoiceSoundPath1;
+    Ar << "VoiceSoundPath3" << VoiceSoundPath1;
+    Ar << "VoiceSoundPath4" << VoiceSoundPath1;
     Ar << "MoveSpeed" << MoveSpeed;
     Ar << "SprintSpeedMultiplier" << SprintSpeedMultiplier;
     Ar << "LookSensitivityDegrees" << LookSensitivityDegrees;
@@ -166,6 +170,10 @@ void AAnimTestPawn::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
     OutProps.push_back({ "Light Attack Sound 2", EPropertyType::String, &LightAttackSoundPath2 });
     OutProps.push_back({ "Light Attack Sound 3", EPropertyType::String, &LightAttackSoundPath3 });
     OutProps.push_back({ "Heavy Attack Sound", EPropertyType::String, &HeavyAttackSoundPath });
+    OutProps.push_back({ "Voice Sound 1", EPropertyType::String, &VoiceSoundPath1 });
+    OutProps.push_back({ "Voice Sound 2", EPropertyType::String, &VoiceSoundPath2 });
+    OutProps.push_back({ "Voice Sound 3", EPropertyType::String, &VoiceSoundPath3 });
+    OutProps.push_back({ "Voice Sound 4", EPropertyType::String, &VoiceSoundPath4 });
     OutProps.push_back({ "Move Speed", EPropertyType::Float, &MoveSpeed, 0.0f, 100.0f, 0.1f });
     OutProps.push_back({ "Sprint Speed Multiplier", EPropertyType::Float, &SprintSpeedMultiplier, 1.0f, 10.0f, 0.05f });
     OutProps.push_back({ "Look Sensitivity", EPropertyType::Float, &LookSensitivityDegrees, 0.0f, 5.0f, 0.01f });
@@ -533,6 +541,27 @@ void AAnimTestPawn::UpdateLocomotion(float DeltaTime)
                 MeshRotation.Z = FRotator::NormalizeAxis(YawDegrees - GetActorRotation().Z);
                 SkeletalMeshComp->SetRelativeRotation(MeshRotation);
             }
+        }
+
+        VoiceTimer -= DeltaTime;
+        if (VoiceTimer <= 0.0f)
+        {
+            TArray<FString> Voices;
+            if (!VoiceSoundPath1.empty()) Voices.push_back(VoiceSoundPath1);
+            if (!VoiceSoundPath2.empty()) Voices.push_back(VoiceSoundPath2);
+            if (!VoiceSoundPath3.empty()) Voices.push_back(VoiceSoundPath3);
+            if (!VoiceSoundPath4.empty()) Voices.push_back(VoiceSoundPath4);
+
+            if (!Voices.empty())
+            {
+                if (CurrentVoiceIndex >= static_cast<int32>(Voices.size()))
+                {
+                    CurrentVoiceIndex = 0;
+                }
+                PlaySoundAtActor(Voices[CurrentVoiceIndex]);
+                CurrentVoiceIndex++;
+            }
+            VoiceTimer = 3.0f + static_cast<float>(std::rand()) / (static_cast<float>(RAND_MAX / 5.0f));
         }
     }
 

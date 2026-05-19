@@ -64,6 +64,10 @@ private:
     FString LightAttackSoundPath2 = "Asset/Audio/Gwen_Original_BasicAttack_2.ogg";
     FString LightAttackSoundPath3 = "Asset/Audio/Gwen_Original_BasicAttack_3.ogg";
     FString HeavyAttackSoundPath = "Asset/Audio/Gwen_Original_BasicAttack_0.ogg";
+    FString VoiceSoundPath1 = "Asset/Audio/Gwen_Original_Move_6.ogg";
+    FString VoiceSoundPath2 = "Asset/Audio/Gwen_Original_Move_8.ogg";
+    FString VoiceSoundPath3 = "Asset/Audio/Gwen_Original_Move_10.ogg";
+    FString VoiceSoundPath4 = "Asset/Audio/Gwen_Original_Move_20.ogg";
 
     float MoveSpeed = 7.0f;
     float SprintSpeedMultiplier = 1.5f;
@@ -75,4 +79,7 @@ private:
     float MoveStartSpeedThreshold = 0.1f;
     bool bRotateToMovement = true;
     bool bAutoConfigureAnimation = true;
+
+    float VoiceTimer = 0.0f;
+    int32 CurrentVoiceIndex = 0;
 };

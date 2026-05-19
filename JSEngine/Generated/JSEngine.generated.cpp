@@ -1661,10 +1661,7 @@ UClass* AAnimTestPawn::StaticClass()
         Super::StaticClass(),
         sizeof(AAnimTestPawn),
         CF_Actor,
-        []() -> UObject*
-        {
-            return UObjectManager::Get().CreateObject<AAnimTestPawn>();
-        });
+        nullptr);
 
     static bool bRegistered = false;
     if (!bRegistered)
