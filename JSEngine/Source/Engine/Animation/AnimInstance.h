@@ -5,6 +5,7 @@
 #include "Object/Object.h"
 
 class USkeletalMeshComponent;
+class FAnimSequencePlayer;
 
 #include "UAnimInstance.generated.h"
 
@@ -41,6 +42,8 @@ public:
         EAnimBlendEaseOption EaseOption);
 
 protected:
+    friend class FAnimSequencePlayer;
+
     void TriggerAnimNotifies(
         UAnimationSequenceBase* AnimationSequence,
         float PreviousTime,

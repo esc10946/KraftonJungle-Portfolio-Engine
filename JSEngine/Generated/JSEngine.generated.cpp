@@ -399,61 +399,6 @@ UClass* UAnimSingleNodeInstance::StaticClass()
     {
         bRegistered = true;
 
-        Class.AddProperty(MakeObjectProperty(
-                            "Sequence",
-                            offsetof(UAnimSingleNodeInstance, Sequence),
-                            sizeof(UAnimationSequenceBase*),
-                            EPropertyFlags::Read |
-                                EPropertyFlags::Write |
-                                EPropertyFlags::Edit |
-                                EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite,
-                            UAnimationSequenceBase::StaticClass()));
-
-        Class.AddProperty(MakeProperty<FFloatProperty>(
-                            "CurrentTime",
-                            offsetof(UAnimSingleNodeInstance, CurrentTime),
-                            sizeof(float),
-                            EPropertyFlags::Read |
-                                EPropertyFlags::Write |
-                                EPropertyFlags::Edit |
-                                EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite));
-
-        Class.AddProperty(MakeProperty<FFloatProperty>(
-                            "PlayRate",
-                            offsetof(UAnimSingleNodeInstance, PlayRate),
-                            sizeof(float),
-                            EPropertyFlags::Read |
-                                EPropertyFlags::Write |
-                                EPropertyFlags::Edit |
-                                EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite));
-
-        Class.AddProperty(MakeProperty<FBoolProperty>(
-                            "bPlaying",
-                            offsetof(UAnimSingleNodeInstance, bPlaying),
-                            sizeof(bool),
-                            EPropertyFlags::Read |
-                                EPropertyFlags::LuaRead));
-
-        Class.AddProperty(MakeProperty<FBoolProperty>(
-                            "bPaused",
-                            offsetof(UAnimSingleNodeInstance, bPaused),
-                            sizeof(bool),
-                            EPropertyFlags::Read |
-                                EPropertyFlags::LuaRead));
-
-        Class.AddProperty(MakeProperty<FBoolProperty>(
-                            "bLooping",
-                            offsetof(UAnimSingleNodeInstance, bLooping),
-                            sizeof(bool),
-                            EPropertyFlags::Read |
-                                EPropertyFlags::Write |
-                                EPropertyFlags::Edit |
-                                EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite));
-
         FReflectionRegistry::Get().RegisterUClass(&Class);
     }
 
@@ -475,7 +420,7 @@ namespace
 
 const FTypeInfo UStateMachineAnimInstance::s_TypeInfo = {
     "UStateMachineAnimInstance",
-    &UAnimSingleNodeInstance::s_TypeInfo,
+    &UAnimInstance::s_TypeInfo,
     sizeof(UStateMachineAnimInstance)
 };
 
