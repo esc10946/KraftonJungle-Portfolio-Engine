@@ -73,15 +73,15 @@ bool USkeletalMeshComponent::UseStateMachine(UAnimStateMachineAsset* StateMachin
         return false;
     }
 
-    UStateMachineAnimInstance* StateMachineAnimInstanceObject = GetOrCreateStateMachineAnimInstance();
-    if (!StateMachineAnimInstanceObject)
+    UStateMachineAnimInstance* StateAnimInstance = GetOrCreateStateMachineAnimInstance();
+    if (!StateAnimInstance)
     {
         return false;
     }
 
-    SetAnimInstance(StateMachineAnimInstanceObject);
-    StateMachineAnimInstanceObject->SetStateMachineAsset(StateMachineAsset);
-    return StateMachineAnimInstanceObject->GetStateMachineAsset() == StateMachineAsset;
+    SetAnimInstance(StateAnimInstance);
+    StateAnimInstance->SetStateMachineAsset(StateMachineAsset);
+    return StateAnimInstance->GetStateMachineAsset() == StateMachineAsset;
 }
 
 bool USkeletalMeshComponent::LoadStateMachineFromJson(const FString& JsonPath)
@@ -98,25 +98,25 @@ bool USkeletalMeshComponent::LoadStateMachineFromJson(const FString& JsonPath)
 
 bool USkeletalMeshComponent::RegisterStateAnimationPath(const FName& AnimationName, const FString& AnimationPath)
 {
-    UStateMachineAnimInstance* StateMachineAnimInstanceObject = GetOrCreateStateMachineAnimInstance();
-    if (!StateMachineAnimInstanceObject)
+    UStateMachineAnimInstance* StateAnimInstance = GetOrCreateStateMachineAnimInstance();
+    if (!StateAnimInstance)
     {
         return false;
     }
 
-    SetAnimInstance(StateMachineAnimInstanceObject);
-    return StateMachineAnimInstanceObject->RegisterAnimationPath(AnimationName, AnimationPath);
+    SetAnimInstance(StateAnimInstance);
+    return StateAnimInstance->RegisterAnimationPath(AnimationName, AnimationPath);
 }
 
 void USkeletalMeshComponent::SetAnimStateMachineContext(const FAnimStateMachineContext& Context)
 {
-    UStateMachineAnimInstance* StateMachineAnimInstanceObject = GetOrCreateStateMachineAnimInstance();
-    if (!StateMachineAnimInstanceObject)
+    UStateMachineAnimInstance* StateAnimInstance = GetOrCreateStateMachineAnimInstance();
+    if (!StateAnimInstance)
     {
         return;
     }
 
-    StateMachineAnimInstanceObject->SetStateMachineContext(Context);
+    StateAnimInstance->SetStateMachineContext(Context);
 }
 
 void USkeletalMeshComponent::HandleAnimNotify(const FAnimNotifyEvent& Notify)
@@ -213,8 +213,8 @@ void USkeletalMeshComponent::RegisterStateAnimationPathsFromAsset(const UAnimSta
         return;
     }
 
-    UStateMachineAnimInstance* StateMachineAnimInstanceObject = GetOrCreateStateMachineAnimInstance();
-    if (!StateMachineAnimInstanceObject)
+    UStateMachineAnimInstance* StateAnimInstance = GetOrCreateStateMachineAnimInstance();
+    if (!StateAnimInstance)
     {
         return;
     }
@@ -226,7 +226,7 @@ void USkeletalMeshComponent::RegisterStateAnimationPathsFromAsset(const UAnimSta
             continue;
         }
 
-        if (!StateMachineAnimInstanceObject->RegisterAnimationPath(State.AnimationName, State.AnimationPath))
+        if (!StateAnimInstance->RegisterAnimationPath(State.AnimationName, State.AnimationPath))
         {
             UE_LOG_WARNING(
                 "[AnimSM] Failed to register state animation path: state=%s animation=%s path=%s",
