@@ -1,4 +1,4 @@
-#include "GameFramework/AnimTestPawn.h"
+﻿#include "GameFramework/AnimTestPawn.h"
 
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimStateMachineAsset.h"
@@ -18,7 +18,7 @@
 #include <cmath>
 #include <cstring>
 
-DEFINE_CLASS(AAnimTestPawn, APawn)
+DEFINE_CLASS(AAnimTestPawn, APawn)  
 REGISTER_FACTORY(AAnimTestPawn)
 
 namespace
