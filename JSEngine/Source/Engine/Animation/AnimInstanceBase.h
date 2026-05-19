@@ -7,13 +7,13 @@
 class USkeletalMeshComponent;
 class FAnimSequencePlayer;
 
-#include "UAnimInstance.generated.h"
+#include "UAnimInstanceBase.generated.h"
 
 UCLASS()
-class UAnimInstance : public UObject
+class UAnimInstanceBase : public UObject
 {
 public:
-    GENERATED_BODY(UAnimInstance, UObject)
+    GENERATED_BODY(UAnimInstanceBase, UObject)
 
     virtual void Initialize(USkeletalMeshComponent* InSkelMeshComponent);
     virtual void NativeUpdateAnimation(float DeltaSeconds);

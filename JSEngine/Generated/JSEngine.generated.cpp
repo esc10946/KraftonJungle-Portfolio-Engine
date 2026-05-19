@@ -3,7 +3,7 @@
 #include "../Source/Engine/Animation/ActorSequence.h"
 #include "../Source/Engine/Animation/AnimationSequenceBase.h"
 #include "../Source/Engine/Animation/AnimationStateMachine.h"
-#include "../Source/Engine/Animation/AnimInstance.h"
+#include "../Source/Engine/Animation/AnimInstanceBase.h"
 #include "../Source/Engine/Animation/AnimSingleNodeInstance.h"
 #include "../Source/Engine/Animation/StateMachineAnimInstance.h"
 #include "../Source/Engine/Asset/AnimationSequence.h"
@@ -326,22 +326,22 @@ namespace
     static FAutoRegisterUAnimStateMachineAsset GAutoRegisterUAnimStateMachineAsset;
 }
 
-const FTypeInfo UAnimInstance::s_TypeInfo = {
-    "UAnimInstance",
+const FTypeInfo UAnimInstanceBase::s_TypeInfo = {
+    "UAnimInstanceBase",
     &UObject::s_TypeInfo,
-    sizeof(UAnimInstance)
+    sizeof(UAnimInstanceBase)
 };
 
-UClass* UAnimInstance::StaticClass()
+UClass* UAnimInstanceBase::StaticClass()
 {
     static UClass Class(
-        "UAnimInstance",
+        "UAnimInstanceBase",
         Super::StaticClass(),
-        sizeof(UAnimInstance),
+        sizeof(UAnimInstanceBase),
         CF_None,
         []() -> UObject*
         {
-            return UObjectManager::Get().CreateObject<UAnimInstance>();
+            return UObjectManager::Get().CreateObject<UAnimInstanceBase>();
         });
 
     static bool bRegistered = false;
@@ -351,7 +351,7 @@ UClass* UAnimInstance::StaticClass()
 
         Class.AddProperty(MakeObjectProperty(
                             "SkelMeshComponent",
-                            offsetof(UAnimInstance, SkelMeshComponent),
+                            offsetof(UAnimInstanceBase, SkelMeshComponent),
                             sizeof(USkeletalMeshComponent*),
                             EPropertyFlags::Transient |
                                 EPropertyFlags::Read,
@@ -365,20 +365,20 @@ UClass* UAnimInstance::StaticClass()
 
 namespace
 {
-    struct FAutoRegisterUAnimInstance
+    struct FAutoRegisterUAnimInstanceBase
     {
-        FAutoRegisterUAnimInstance()
+        FAutoRegisterUAnimInstanceBase()
         {
-            UAnimInstance::StaticClass();
+            UAnimInstanceBase::StaticClass();
         }
     };
 
-    static FAutoRegisterUAnimInstance GAutoRegisterUAnimInstance;
+    static FAutoRegisterUAnimInstanceBase GAutoRegisterUAnimInstanceBase;
 }
 
 const FTypeInfo UAnimSingleNodeInstance::s_TypeInfo = {
     "UAnimSingleNodeInstance",
-    &UAnimInstance::s_TypeInfo,
+    &UAnimInstanceBase::s_TypeInfo,
     sizeof(UAnimSingleNodeInstance)
 };
 
@@ -420,7 +420,7 @@ namespace
 
 const FTypeInfo UStateMachineAnimInstance::s_TypeInfo = {
     "UStateMachineAnimInstance",
-    &UAnimInstance::s_TypeInfo,
+    &UAnimInstanceBase::s_TypeInfo,
     sizeof(UStateMachineAnimInstance)
 };
 

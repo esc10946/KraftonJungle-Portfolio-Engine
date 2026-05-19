@@ -4,7 +4,7 @@
 
 #include "USkeletalMeshComponent.generated.h"
 class UAnimStateMachineAsset;
-class UAnimInstance;
+class UAnimInstanceBase;
 class UAnimSingleNodeInstance;
 class UStateMachineAnimInstance;
 struct FAnimNotifyEvent;
@@ -28,8 +28,8 @@ public:
 
     EPrimitiveType GetPrimitiveType() const override { return EPrimitiveType::EPT_SkeletalMesh; }
 
-    void SetAnimInstance(UAnimInstance* InAnimInstance);
-    UAnimInstance* GetAnimInstance() const { return AnimInstance; }
+    void SetAnimInstance(UAnimInstanceBase* InAnimInstance);
+    UAnimInstanceBase* GetAnimInstance() const { return AnimInstance; }
 
     bool UseStateMachine(UAnimStateMachineAsset* StateMachineAsset);
     bool LoadStateMachineFromJson(const FString& JsonPath);
@@ -56,7 +56,7 @@ private:
     void RegisterStateAnimationPathsFromAsset(const UAnimStateMachineAsset* StateMachineAsset);
 
 private:
-    UAnimInstance* AnimInstance = nullptr;
+    UAnimInstanceBase* AnimInstance = nullptr;
     UAnimSingleNodeInstance* AnimSingleNodeInstance = nullptr;
     UStateMachineAnimInstance* StateMachineAnimInstance = nullptr;
     bool bAutoUpdateAnimStateMachineContext = true;

@@ -2,7 +2,7 @@
 
 void UAnimSingleNodeInstance::Initialize(USkeletalMeshComponent* InSkelMeshComponent)
 {
-    UAnimInstance::Initialize(InSkelMeshComponent);
+    UAnimInstanceBase::Initialize(InSkelMeshComponent);
     SequencePlayer.Initialize(this);
 }
 

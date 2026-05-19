@@ -1,23 +1,23 @@
-﻿#include "Animation/AnimInstance.h"
+﻿#include "Animation/AnimInstanceBase.h"
 
 #include "Component/SkeletalMeshComponent.h"
 #include "Core/ResourceManager.h"
 
-void UAnimInstance::Initialize(USkeletalMeshComponent* InSkelMeshComponent)
+void UAnimInstanceBase::Initialize(USkeletalMeshComponent* InSkelMeshComponent)
 {
     SkelMeshComponent = InSkelMeshComponent;
 }
 
-void UAnimInstance::NativeUpdateAnimation(float)
+void UAnimInstanceBase::NativeUpdateAnimation(float)
 {
 }
 
-void UAnimInstance::TickAnimation(float DeltaSeconds)
+void UAnimInstanceBase::TickAnimation(float DeltaSeconds)
 {
     NativeUpdateAnimation(DeltaSeconds);
 }
 
-void UAnimInstance::RegisterAnimation(const FName& AnimationName, UAnimationSequenceBase* Sequence)
+void UAnimInstanceBase::RegisterAnimation(const FName& AnimationName, UAnimationSequenceBase* Sequence)
 {
     if (!AnimationName.IsValid())
     {
@@ -39,7 +39,7 @@ void UAnimInstance::RegisterAnimation(const FName& AnimationName, UAnimationSequ
     RegisteredAnimations.push_back(RegisteredAnimation);
 }
 
-bool UAnimInstance::RegisterAnimationPath(const FName& AnimationName, const FString& AnimationPath)
+bool UAnimInstanceBase::RegisterAnimationPath(const FName& AnimationName, const FString& AnimationPath)
 {
     if (!AnimationName.IsValid() || AnimationPath.empty())
     {
@@ -56,7 +56,7 @@ bool UAnimInstance::RegisterAnimationPath(const FName& AnimationName, const FStr
     return true;
 }
 
-UAnimationSequenceBase* UAnimInstance::FindRegisteredAnimation(const FName& AnimationName) const
+UAnimationSequenceBase* UAnimInstanceBase::FindRegisteredAnimation(const FName& AnimationName) const
 {
     for (const FNamedAnimation& RegisteredAnimation : RegisteredAnimations)
     {
@@ -69,12 +69,12 @@ UAnimationSequenceBase* UAnimInstance::FindRegisteredAnimation(const FName& Anim
     return nullptr;
 }
 
-bool UAnimInstance::PlayAnimationByName(const FName&, bool)
+bool UAnimInstanceBase::PlayAnimationByName(const FName&, bool)
 {
     return false;
 }
 
-bool UAnimInstance::BlendToAnimationByName(
+bool UAnimInstanceBase::BlendToAnimationByName(
     const FName& AnimationName,
     bool bLoop,
     float,
@@ -83,7 +83,7 @@ bool UAnimInstance::BlendToAnimationByName(
     return PlayAnimationByName(AnimationName, bLoop);
 }
 
-void UAnimInstance::TriggerAnimNotifies(
+void UAnimInstanceBase::TriggerAnimNotifies(
     UAnimationSequenceBase* AnimationSequence,
     float PreviousTime,
     float CurrentTime,
@@ -114,7 +114,7 @@ void UAnimInstance::TriggerAnimNotifies(
     TriggerAnimNotifiesInRange(AnimationSequence, PreviousTime, CurrentTime);
 }
 
-void UAnimInstance::TriggerAnimNotifiesInRange(
+void UAnimInstanceBase::TriggerAnimNotifiesInRange(
     UAnimationSequenceBase* AnimationSequence,
     float RangeStart,
     float RangeEnd)

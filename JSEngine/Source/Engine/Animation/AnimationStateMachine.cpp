@@ -1,6 +1,6 @@
 ﻿#include "Animation/AnimationStateMachine.h"
 
-#include "Animation/AnimInstance.h"
+#include "Animation/AnimInstanceBase.h"
 #include "Core/Logging/Log.h"
 #include "Core/Paths.h"
 #include "Object/Object.h"
@@ -55,7 +55,7 @@ int32 GetJsonInt(json::JSON& Object, const char* Key, int32 DefaultValue)
 
 EAnimBlendEaseOption GetJsonEaseOption(json::JSON& Object, const char* Key)
 {
-    const FString EaseOption = GetJsonString(Object, Key, "Linear");
+    const FString EaseOption = GetJsonString(Object, Key, "Linear");   
     if (EaseOption == "EaseIn")
     {
         return EAnimBlendEaseOption::EaseIn;
@@ -360,7 +360,7 @@ bool UAnimStateMachineAsset::HasDuplicateTransition(
     return false;
 }
 
-void FAnimStateMachineNode::Initialize(UAnimStateMachineAsset* InAsset, UAnimInstance* InAnimInstance)
+void FAnimStateMachineNode::Initialize(UAnimStateMachineAsset* InAsset, UAnimInstanceBase* InAnimInstance)
 {
     Asset = InAsset;
     AnimInstance = InAnimInstance;
@@ -412,7 +412,7 @@ void FAnimStateMachineNode::Update(float DeltaSeconds, const FAnimStateMachineCo
 void FAnimStateMachineNode::Reset()
 {
     UAnimStateMachineAsset* ExistingAsset = Asset;
-    UAnimInstance* ExistingAnimInstance = AnimInstance;
+    UAnimInstanceBase* ExistingAnimInstance = AnimInstance;
     Asset = nullptr;
     AnimInstance = nullptr;
     CurrentState = FName();

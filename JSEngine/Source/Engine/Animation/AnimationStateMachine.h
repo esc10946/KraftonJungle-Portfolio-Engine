@@ -6,7 +6,7 @@
 #include "Object/FName.h"
 #include "Object/Object.h"
 
-class UAnimInstance;
+class UAnimInstanceBase;
 
 enum class EAnimStateMachineMovementMode : uint8
 {
@@ -101,7 +101,7 @@ private:
 class FAnimStateMachineNode
 {
 public:
-    void Initialize(UAnimStateMachineAsset* InAsset, UAnimInstance* InAnimInstance);
+    void Initialize(UAnimStateMachineAsset* InAsset, UAnimInstanceBase* InAnimInstance);
     void Update(float DeltaSeconds, const FAnimStateMachineContext& Context);
     void Reset();
 
@@ -118,7 +118,7 @@ private:
 
 private:
     UAnimStateMachineAsset* Asset = nullptr;
-    UAnimInstance* AnimInstance = nullptr;
+    UAnimInstanceBase* AnimInstance = nullptr;
     FName CurrentState;
     FName PreviousState;
     float StateElapsedTime = 0.0f;

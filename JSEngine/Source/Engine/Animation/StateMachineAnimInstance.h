@@ -1,15 +1,15 @@
 ﻿#pragma once
 
-#include "Animation/AnimInstance.h"
+#include "Animation/AnimInstanceBase.h"
 #include "Animation/AnimSequencePlayer.h"
 
 #include "UStateMachineAnimInstance.generated.h"
 
 UCLASS()
-class UStateMachineAnimInstance : public UAnimInstance
+class UStateMachineAnimInstance : public UAnimInstanceBase
 {
 public:
-    GENERATED_BODY(UStateMachineAnimInstance, UAnimInstance)
+    GENERATED_BODY(UStateMachineAnimInstance, UAnimInstanceBase)
 
     void Initialize(USkeletalMeshComponent* InSkelMeshComponent) override;
     void TickAnimation(float DeltaSeconds) override;

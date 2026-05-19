@@ -1,6 +1,6 @@
 ﻿#include "SkeletalMeshComponent.h"
 
-#include "Animation/AnimInstance.h"
+#include "Animation/AnimInstanceBase.h"
 #include "Animation/AnimSingleNodeInstance.h"
 #include "Animation/AnimationStateMachine.h"
 #include "Animation/StateMachineAnimInstance.h"
@@ -52,7 +52,7 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime)
     EnsureSkinningUpdated();
 }
 
-void USkeletalMeshComponent::SetAnimInstance(UAnimInstance* InAnimInstance)
+void USkeletalMeshComponent::SetAnimInstance(UAnimInstanceBase* InAnimInstance)
 {
     if (AnimInstance == InAnimInstance)
     {
