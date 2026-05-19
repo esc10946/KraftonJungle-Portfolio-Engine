@@ -2147,6 +2147,12 @@ void FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 	bool bChanged = false;
 	bool bPostEditHandled = false;
 
+	if (strcmp(Prop.Name, "Animation Mode") == 0)
+	{
+		DrawDetailsSeparator();
+		DrawDetailsSectionLabel("Animations");
+	}
+
 	switch (Prop.Type)
 	{
 	case EPropertyType::Bool:
@@ -2247,6 +2253,53 @@ void FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 								*Val = Path;
 								bChanged = true;
 							}
+						}
+						if (bSelected)
+						{
+							ImGui::SetItemDefaultFocus();
+						}
+					}
+					ImGui::EndCombo();
+				}
+			}
+			else
+			{
+				char Buf[256];
+				strncpy_s(Buf, sizeof(Buf), Val->c_str(), _TRUNCATE);
+				if (ImGui::InputText(Prop.Name, Buf, sizeof(Buf)))
+				{
+					*Val = Buf;
+					bChanged = true;
+				}
+			}
+		}
+		else if (strcmp(Prop.Name, "Animation Sequence") == 0)
+		{
+			if (EditorEngine)
+			{
+				EditorEngine->GetAssetService().RefreshAssetDatabase();
+				const TArray<FString>& AnimationPaths = EditorEngine->GetAssetService().GetAnimationSequenceAssetPaths();
+				const FString Current = *Val;
+				if (ImGui::BeginCombo(Prop.Name, Current.empty() ? "<None>" : Current.c_str()))
+				{
+					const bool bNoneSelected = Current.empty();
+					if (ImGui::Selectable("<None>", bNoneSelected))
+					{
+						Val->clear();
+						bChanged = true;
+					}
+					if (bNoneSelected)
+					{
+						ImGui::SetItemDefaultFocus();
+					}
+
+					for (const FString& Path : AnimationPaths)
+					{
+						const bool bSelected = (Current == Path);
+						if (ImGui::Selectable(Path.c_str(), bSelected))
+						{
+							*Val = Path;
+							bChanged = true;
 						}
 						if (bSelected)
 						{

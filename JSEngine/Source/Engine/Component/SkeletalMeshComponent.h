@@ -1,12 +1,27 @@
 #pragma once
 
+#include "Object/Property.h"
 #include "Component/SkinnedMeshComponent.h"
 
 #include "USkeletalMeshComponent.generated.h"
 class UAnimStateMachineAsset;
 class UAnimInstance;
+class UAnimSingleNodeInstance;
+class UAnimationSequenceBase;
 struct FAnimNotifyEvent;
-struct FVector;
+
+enum class ESkeletalMeshAnimationMode : int32
+{
+    SingleAnimation = 0,
+    AnimInstance = 1
+};
+
+enum class EAnimInstanceSource : int32
+{
+    EmptyStateMachine = 0,
+    CustomCpp = 1,
+    StateMachineAsset = 2
+};
 
 /**
  * @brief Unreal Engine 스타일에서는 skinned mesh가 skeleton을 이용하는 mesh를 표현하고,
@@ -26,17 +41,35 @@ public:
 
     EPrimitiveType GetPrimitiveType() const override { return EPrimitiveType::EPT_SkeletalMesh; }
 
+    void Serialize(FArchive& Ar) override;
+    void GetEditableProperties(TArray<FPropertyDescriptor>& OutProps) override;
+    void PostEditProperty(const char* PropertyName) override;
+
     void SetAnimInstance(UAnimInstance* InAnimInstance);
     UAnimInstance* GetAnimInstance() const { return AnimInstance; }
+    UAnimInstance* GetOrCreateDefaultAnimInstance();
+
+    bool SetAnimationMode(ESkeletalMeshAnimationMode InAnimationMode);
+    bool SetAnimationModeByName(const FString& InAnimationMode);
+    ESkeletalMeshAnimationMode GetAnimationMode() const { return AnimationMode; }
+    bool SetAnimInstanceSource(EAnimInstanceSource InAnimInstanceSource);
+    EAnimInstanceSource GetAnimInstanceSource() const { return AnimInstanceSource; }
+
+    // NOTE: 해당 함수는 AnimationMode를 SingleAnimation로 강제로 바꿀 수 있으므로 주의
+    bool SetAnimationSequence(const FString& AnimationPath);
+    UAnimationSequenceBase* GetAnimationSequence() const;
+    const FString& GetAnimationSequencePath() const { return AnimationSequence.Path; }
+    void SetSingleAnimationLooping(bool bInLooping);
+    bool IsSingleAnimationLooping() const { return bSingleAnimationLoop; }
+    void SetSingleAnimationPlayRate(float InPlayRate);
+    float GetSingleAnimationPlayRate() const { return SingleAnimationPlayRate; }
+    bool PlaySingleAnimation();
+    void PauseSingleAnimation();
+    void StopSingleAnimation();
+    bool UseDefaultAnimInstance();
 
     bool UseStateMachine(UAnimStateMachineAsset* StateMachineAsset);
     bool LoadStateMachineFromJson(const FString& JsonPath);
-    bool RegisterStateAnimationPath(const FName& AnimationName, const FString& AnimationPath);
-    void SetAnimBoolParameter(const FName& Name, bool Value);
-    void SetAnimIntParameter(const FName& Name, int32 Value);
-    void SetAnimFloatParameter(const FName& Name, float Value);
-    void SetAnimVectorParameter(const FName& Name, const FVector& Value);
-    void SetAnimTriggerParameter(const FName& Name);
     void HandleAnimNotify(const FAnimNotifyEvent& Notify);
 
     void ApplyLocalPose(const TArray<FMatrix>& InLocalPose);
@@ -50,10 +83,30 @@ public:
     void SetBoneGlobalTransform(int32 BoneIndex, const FMatrix& NewGlobalTransform);
 
 private:
-    UAnimInstance* GetOrCreateDefaultAnimInstance();
+    bool RefreshAnimInstanceFromOptions(bool bKeepCurrentOnFailure);
+    UAnimSingleNodeInstance* GetOrCreateSingleNodeAnimInstance();
+    bool ActivateSingleAnimationInstance();
+    bool ActivateDefaultAnimInstance();
+    bool ActivateCustomAnimInstance(bool bKeepCurrentOnFailure);
+    bool ActivateStateMachineAssetInstance();
+    bool IsComponentOwnedAnimInstance(const UAnimInstance* InAnimInstance) const;
+    void DestroyOwnedAnimInstance(UAnimInstance*& InOutAnimInstance);
+    void DestroyOwnedAnimInstance(UAnimSingleNodeInstance*& InOutAnimInstance);
+    void DestroyInactiveOwnedAnimInstances(UAnimInstance* InstanceToKeep);
+    UAnimationSequenceBase* LoadConfiguredAnimationSequence() const;
     void RegisterStateAnimationPathsFromAsset(const UAnimStateMachineAsset* StateMachineAsset);
 
 private:
     UAnimInstance* AnimInstance = nullptr;
     UAnimInstance* DefaultAnimInstance = nullptr;
+    UAnimSingleNodeInstance* SingleNodeAnimInstance = nullptr;
+    UAnimInstance* CustomAnimInstance = nullptr;
+
+    ESkeletalMeshAnimationMode AnimationMode = ESkeletalMeshAnimationMode::AnimInstance;
+    EAnimInstanceSource AnimInstanceSource = EAnimInstanceSource::EmptyStateMachine;
+    FAnimationSequenceAssetRef AnimationSequence;
+    bool bSingleAnimationLoop = true;
+    float SingleAnimationPlayRate = 1.0f;
+    FString CustomAnimInstanceClassName;
+    FString StateMachineAssetPath;
 };

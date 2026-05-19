@@ -401,6 +401,78 @@ function ActorSequencePlayer:GetCurrentTime() end
 ---@return boolean
 function ActorSequencePlayer:IsPlaying() end
 
+---@class AnimStateMachineAsset: Object
+local AnimStateMachineAsset = {}
+---@param stateName string
+function AnimStateMachineAsset:SetEntryState(stateName) end
+---@param stateName string
+---@param animationName string
+---@param loop boolean
+---@return boolean
+function AnimStateMachineAsset:AddState(stateName, animationName, loop) end
+---@param stateName string
+---@param animationName string
+---@param animationPath string
+---@param loop boolean
+---@return boolean
+function AnimStateMachineAsset:AddStateWithPath(stateName, animationName, animationPath, loop) end
+---@param stateName string
+---@param animationPath string
+---@return boolean
+function AnimStateMachineAsset:SetStateAnimationPath(stateName, animationPath) end
+---@param fromState string
+---@param toState string
+---@param conditionName string
+---@param blendTime number
+---@param priority integer
+---@param easeOption? "'Linear'"|"'EaseIn'"|"'EaseOut'"|"'EaseInOut'"|string
+---@return boolean
+function AnimStateMachineAsset:AddTransition(fromState, toState, conditionName, blendTime, priority, easeOption) end
+---@return boolean
+function AnimStateMachineAsset:Validate() end
+
+---@class AnimInstance: Object
+local AnimInstance = {}
+---@param name string
+---@param path string
+---@return boolean
+function AnimInstance:RegisterAnimationPath(name, path) end
+---@param asset AnimStateMachineAsset
+function AnimInstance:SetStateMachineAsset(asset) end
+---@param name string
+---@param loop boolean
+---@return boolean
+function AnimInstance:PlayAnimationByName(name, loop) end
+---@param name string
+---@param loop boolean
+---@param blendTime number
+---@param easeOption? "'Linear'"|"'EaseIn'"|"'EaseOut'"|"'EaseInOut'"|string
+---@return boolean
+function AnimInstance:BlendToAnimationByName(name, loop, blendTime, easeOption) end
+---@param loop boolean
+function AnimInstance:SetLooping(loop) end
+---@return boolean
+function AnimInstance:IsLooping() end
+---@param name string
+---@param value boolean
+function AnimInstance:SetAnimBoolParameter(name, value) end
+---@param name string
+---@param value integer
+function AnimInstance:SetAnimIntParameter(name, value) end
+---@param name string
+---@param value number
+function AnimInstance:SetAnimFloatParameter(name, value) end
+---@param name string
+---@param value FVector
+function AnimInstance:SetAnimVectorParameter(name, value) end
+---@param name string
+function AnimInstance:SetAnimTriggerParameter(name) end
+---@return SkeletalMeshComponent|nil
+function AnimInstance:GetSkelMeshComponent() end
+
+---@return AnimStateMachineAsset
+function CreateAnimStateMachineAsset() end
+
 ---@class MainSceneDestructibleComponent: ActorComponent
 ---@field PresentationTrigger number
 local MainSceneDestructibleComponent = {}
@@ -431,6 +503,39 @@ function StaticMeshComponent:HasValidMesh() end
 
 ---@return integer
 function StaticMeshComponent:GetPrimitiveType() end
+
+---@class SkeletalMeshComponent: ActorComponent
+local SkeletalMeshComponent = {}
+---@return AnimInstance|nil
+function SkeletalMeshComponent:GetAnimInstance() end
+---@return boolean
+function SkeletalMeshComponent:UseDefaultAnimInstance() end
+---@param mode "'SingleAnimation'"|"'AnimInstance'"|string
+---@return boolean
+function SkeletalMeshComponent:SetAnimationMode(mode) end
+---@param path string
+---@return boolean
+function SkeletalMeshComponent:SetAnimationSequence(path) end
+---@return string
+function SkeletalMeshComponent:GetAnimationSequencePath() end
+---@param loop boolean
+function SkeletalMeshComponent:SetSingleAnimationLooping(loop) end
+---@return boolean
+function SkeletalMeshComponent:IsSingleAnimationLooping() end
+---@param playRate number
+function SkeletalMeshComponent:SetSingleAnimationPlayRate(playRate) end
+---@return number
+function SkeletalMeshComponent:GetSingleAnimationPlayRate() end
+---@return boolean
+function SkeletalMeshComponent:PlaySingleAnimation() end
+function SkeletalMeshComponent:PauseSingleAnimation() end
+function SkeletalMeshComponent:StopSingleAnimation() end
+---@param asset AnimStateMachineAsset
+---@return boolean
+function SkeletalMeshComponent:UseStateMachine(asset) end
+---@param jsonPath string
+---@return boolean
+function SkeletalMeshComponent:LoadStateMachineFromJson(jsonPath) end
 
 ---@class BillboardComponent: SceneComponent
 local BillboardComponent = {}
