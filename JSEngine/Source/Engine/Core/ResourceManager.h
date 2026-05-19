@@ -94,6 +94,7 @@ public:
 	UMaterial* GetOrCreateMaterial(const FString& Path, EMaterialShaderType ShaderType = EMaterialShaderType::SurfaceLit);
 	UMaterial* GetOrCreateMaterial(const FString& Name, const FString& Path, EMaterialShaderType ShaderType = EMaterialShaderType::SurfaceLit);
 	bool LoadMaterial(const FString& Path, EMaterialShaderType ShaderType = EMaterialShaderType::SurfaceLit, ID3D11Device* Device = nullptr);
+	bool ImportMaterialFromFbx(const FString& SourceFbxPath, EMaterialShaderType ShaderType = EMaterialShaderType::SurfaceLit, ID3D11Device* Device = nullptr);
 
 	bool SerializeMaterial(const FString& Path, const UMaterial* Material);
 	bool SerializeMaterialInstance(const FString& Path, const UMaterialInstance* MaterialInstance);
@@ -116,6 +117,7 @@ public:
 	TArray<FString> GetParticleNames() const;
 
 	UStaticMesh* LoadStaticMesh(const FString& Path);
+	UStaticMesh* ImportStaticMeshFromFbx(const FString& SourceFbxPath);
 	UStaticMesh* FindStaticMesh(const FString& Path) const;
 	TArray<FString> GetStaticMeshPaths() const;
 
@@ -130,6 +132,7 @@ public:
 	 */
 	USkeletalMesh* LoadSkeletalMesh(const FString& Path);
 	USkeletalMesh* LoadSkeletalMesh(const FString& Path, const FString& SkeletonName);
+	USkeletalMesh* ImportSkeletalMeshFromFbx(const FString& SourceFbxPath, const FString& SkeletonName = FString());
     USkeletalMesh* FindSkeletalMesh(const FString& Path) const;
 	TArray<FString> GetSkeletalMeshPaths() const;
 	FFbxMeshContentInfo InspectFbxMeshContent(const FString& Path);
@@ -145,6 +148,7 @@ public:
 	TArray<FString> GetCurvePaths() const;
 
 	UAnimationSequence* LoadAnimationSequence(const FString& Path);
+	UAnimationSequence* ImportAnimationSequencesFromFbx(const FString& SourceFbxPath);
 	UAnimationSequence* FindAnimationSequence(const FString& Path) const;
 	bool SaveAnimationSequence(UAnimationSequence* Sequence);
 	TArray<FString> GetAnimationSequencePaths() const;

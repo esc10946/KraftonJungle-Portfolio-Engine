@@ -551,7 +551,15 @@ def parse_header(path: Path) -> list[ReflectedClass]:
     return [parse_reflected_class(path, content, class_match) for class_match in class_matches]
 
 
-def write_generated_header(cls: ReflectedClass) -> None:
+def write_text_if_changed(path: Path, content: str) -> bool:
+    if path.exists() and path.read_text(encoding="utf-8") == content:
+        return False
+
+    path.write_text(content, encoding="utf-8")
+    return True
+
+
+def write_generated_header(cls: ReflectedClass) -> bool:
     generated_h = f"""#pragma once
 
 class {cls.class_name};
@@ -564,7 +572,8 @@ struct TIsUClassReflected<{cls.class_name}>
 """
 
     generated_path = GENERATED_DIR / f"{cls.class_name}.generated.h"
-    generated_path.write_text(generated_h, encoding="utf-8")
+    return write_text_if_changed(generated_path, generated_h)
+
 
 def build_generated_cpp(classes: list[ReflectedClass]) -> str:
     cpp_lines = [
@@ -717,6 +726,7 @@ def build_generated_cpp(classes: list[ReflectedClass]) -> str:
 def main() -> int:
     classes: list[ReflectedClass] = []
     class_names: dict[str, Path] = {}
+    updated_file_count = 0
 
     GENERATED_DIR.mkdir(parents=True, exist_ok=True)
     for file_path in sorted(PROJECT_DIR.rglob("*.h")):
@@ -734,11 +744,16 @@ def main() -> int:
                 )
             class_names[reflected_class.class_name] = file_path
             classes.append(reflected_class)
-            write_generated_header(reflected_class)
+            if write_generated_header(reflected_class):
+                updated_file_count += 1
 
-    GENERATED_CPP.write_text(build_generated_cpp(classes), encoding="utf-8")
+    if write_text_if_changed(GENERATED_CPP, build_generated_cpp(classes)):
+        updated_file_count += 1
 
-    print(f"[GenerateReflection] Generated {len(classes)} reflected classes")
+    print(
+        f"[GenerateReflection] Generated {len(classes)} reflected classes "
+        f"({updated_file_count} files updated)"
+    )
     return 0
 
 if __name__ == "__main__":

@@ -75,10 +75,32 @@ void FAssetEditorSubsystem::RequestOpenEditorForAsset(const FString& AssetPath)
 
 	if (IsFbxAssetPath(AssetPath))
 	{
-		FString SkeletalMeshBinaryPath;
-		if (FindExistingSkeletalMeshBinaryForFbx(AssetPath, SkeletalMeshBinaryPath))
+		const TArray<FImportedFbxAssetRecord> Records = FResourceManager::Get().DiscoverImportedFbxAssets(AssetPath);
+		auto SkeletalMeshRecordIt = std::find_if(
+			Records.begin(),
+			Records.end(),
+			[](const FImportedFbxAssetRecord& Record)
+			{
+				return Record.Type == EImportedFbxAssetType::SkeletalMesh;
+			});
+
+		if (SkeletalMeshRecordIt != Records.end())
 		{
-			RequestOpenEditorForAsset(SkeletalMeshBinaryPath);
+			RequestOpenEditorForAsset(SkeletalMeshRecordIt->AssetPath);
+			return;
+		}
+
+		auto StaticMeshRecordIt = std::find_if(
+			Records.begin(),
+			Records.end(),
+			[](const FImportedFbxAssetRecord& Record)
+			{
+				return Record.Type == EImportedFbxAssetType::StaticMesh;
+			});
+
+		if (StaticMeshRecordIt != Records.end())
+		{
+			EditorEngine->GetNotificationService().Info("FBX already imported as static mesh binary.");
 			return;
 		}
 
@@ -240,9 +262,19 @@ void FAssetEditorSubsystem::ExecutePendingRequest()
 		{
 			OpenEditorForAsset(MeshRecordIt->AssetPath);
 		}
+		else if (std::any_of(
+			Records.begin(),
+			Records.end(),
+			[](const FImportedFbxAssetRecord& Record)
+			{
+				return Record.Type == EImportedFbxAssetType::StaticMesh;
+			}))
+		{
+			EditorEngine->GetNotificationService().Info("FBX imported as static mesh binary.");
+		}
 		else
 		{
-			EditorEngine->GetNotificationService().Warning("No imported skeletal mesh was produced for this FBX.");
+			EditorEngine->GetNotificationService().Warning("No imported mesh was produced for this FBX.");
 		}
 		break;
 	}

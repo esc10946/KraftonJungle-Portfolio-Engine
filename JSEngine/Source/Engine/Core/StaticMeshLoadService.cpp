@@ -11,6 +11,22 @@
 
 namespace fs = std::filesystem;
 
+namespace
+{
+std::wstring GetLowerExtension(const FString& Path)
+{
+	fs::path FsPath(FPaths::ToWide(FPaths::Normalize(Path)));
+	std::wstring Extension = FsPath.extension().wstring();
+	std::transform(Extension.begin(), Extension.end(), Extension.begin(), ::towlower);
+	return Extension;
+}
+
+bool IsFbxPath(const FString& Path)
+{
+	return GetLowerExtension(Path) == L".fbx";
+}
+}
+
 FStaticMeshLoadService::FStaticMeshLoadService(FResourceManager& InResourceManager)
 	: ResourceManager(InResourceManager)
 {
@@ -24,9 +40,7 @@ UStaticMesh* FStaticMeshLoadService::Load(const FString& Path)
 		return FoundMesh;
 	}
 
-	fs::path RequestedFsPath(FPaths::ToWide(NormalizedPath));
-	std::wstring RequestedExt = RequestedFsPath.extension().wstring();
-	std::transform(RequestedExt.begin(), RequestedExt.end(), RequestedExt.begin(), ::towlower);
+	const std::wstring RequestedExt = GetLowerExtension(NormalizedPath);
 
 	if (RequestedExt == L".obj" && !FAssetPathPolicy::FileExists(NormalizedPath))
 	{
@@ -59,11 +73,65 @@ UStaticMesh* FStaticMeshLoadService::Load(const FString& Path)
 
 	if (RequestedExt == L".obj" || RequestedExt == L".fbx")
 	{
-		return LoadSourceOrCachedBinary(NormalizedPath);
+		return RequestedExt == L".fbx"
+			? LoadImportedFbxBinary(NormalizedPath)
+			: LoadObjSourceOrCachedBinary(NormalizedPath);
 	}
 
 	UE_LOG_WARNING("[StaticMeshLoad] Unsupported mesh extension | Path=%s", NormalizedPath.c_str());
 	return nullptr;
+}
+
+UStaticMesh* FStaticMeshLoadService::ImportFbxSource(const FString& Path)
+{
+	const FString NormalizedPath = FPaths::Normalize(Path);
+	if (!IsFbxPath(NormalizedPath))
+	{
+		UE_LOG_WARNING("[StaticMeshLoad] ImportFbxSource only supports FBX | Path=%s", NormalizedPath.c_str());
+		return nullptr;
+	}
+
+	ResourceManager.LoadMaterial(NormalizedPath, EMaterialShaderType::SurfaceLit);
+
+	FStaticMeshLoadOptions LoadOptions = ResourceManager.StaticMeshCache.GetLoadOptions(NormalizedPath);
+	const FString BinaryPath = FAssetPathPolicy::MakeWritableStaticMeshCacheBinaryPath(NormalizedPath);
+
+	const auto SourceStart = std::chrono::steady_clock::now();
+	FStaticMesh* LoadedMeshData = ResourceManager.FbxImporter.Load(NormalizedPath, LoadOptions);
+	const auto SourceEnd = std::chrono::steady_clock::now();
+	const double SourceLoadSec = std::chrono::duration<double>(SourceEnd - SourceStart).count();
+
+	if (!LoadedMeshData)
+	{
+		UE_LOG_ERROR("[StaticMeshLoad] Failed import | Path=%s | FbxSec=%.6f", NormalizedPath.c_str(), SourceLoadSec);
+		return nullptr;
+	}
+
+	const bool bSaveBinaryOk = ResourceManager.BinarySerializer.SaveStaticMesh(BinaryPath, NormalizedPath, *LoadedMeshData);
+	if (bSaveBinaryOk)
+	{
+		UE_LOG(
+			"[StaticMeshLoad] Source=FBX | Path=%s | FbxSec=%.6f | BinarySave=OK | BinaryPath=%s",
+			NormalizedPath.c_str(),
+			SourceLoadSec,
+			BinaryPath.c_str());
+	}
+	else
+	{
+		UE_LOG_WARNING(
+			"[StaticMeshLoad] Source=FBX | Path=%s | FbxSec=%.6f | BinarySave=FAIL | BinaryPath=%s",
+			NormalizedPath.c_str(),
+			SourceLoadSec,
+			BinaryPath.c_str());
+	}
+
+	return FinalizeLoadedMesh(
+		LoadedMeshData,
+		NormalizedPath,
+		NormalizedPath,
+		/*SecondaryCacheKey=*/ FString{},
+		/*bLogLodTiming=*/ true,
+		/*bLogLodSkipped=*/ true);
 }
 
 UStaticMesh* FStaticMeshLoadService::LoadMissingObjBinaryFallback(const FString& RequestedPath, const FString& BinaryPath)
@@ -142,18 +210,28 @@ UStaticMesh* FStaticMeshLoadService::LoadBinaryDrop(const FString& NormalizedPat
 	return LoadedMesh;
 }
 
-UStaticMesh* FStaticMeshLoadService::LoadSourceOrCachedBinary(const FString& NormalizedPath)
+UStaticMesh* FStaticMeshLoadService::LoadImportedFbxBinary(const FString& NormalizedPath)
 {
-	ResourceManager.LoadMaterial(NormalizedPath, EMaterialShaderType::SurfaceLit);
+	const FString BinaryPath = FAssetPathPolicy::MakeStaticMeshCacheBinaryPath(NormalizedPath);
+	if (!FAssetPathPolicy::FileExists(BinaryPath))
+	{
+		UE_LOG_WARNING(
+			"[StaticMeshLoad] Imported FBX binary missing. Explicit import is required. | Source=%s | Binary=%s",
+			NormalizedPath.c_str(),
+			BinaryPath.c_str());
+		return nullptr;
+	}
 
+	return LoadBinaryDrop(BinaryPath);
+}
+
+UStaticMesh* FStaticMeshLoadService::LoadObjSourceOrCachedBinary(const FString& NormalizedPath)
+{
 	FStaticMeshLoadOptions LoadOptions = ResourceManager.StaticMeshCache.GetLoadOptions(NormalizedPath);
 	const FString BinaryPath = FAssetPathPolicy::MakeWritableStaticMeshCacheBinaryPath(NormalizedPath);
 
-	fs::path SourceFsPath(FPaths::ToWide(NormalizedPath));
-	std::wstring SourceExt = SourceFsPath.extension().wstring();
-	std::transform(SourceExt.begin(), SourceExt.end(), SourceExt.begin(), ::towlower);
-	const bool bIsFbx = (SourceExt == L".fbx");
-	const char* const SourceTag = bIsFbx ? "FBX" : "OBJ";
+	const char* const SourceTag = "OBJ";
+	ResourceManager.LoadMaterial(NormalizedPath, EMaterialShaderType::SurfaceLit);
 
 	FStaticMesh* LoadedMeshData = nullptr;
 	double BinaryLoadSec = 0.0;
@@ -177,14 +255,7 @@ UStaticMesh* FStaticMeshLoadService::LoadSourceOrCachedBinary(const FString& Nor
 	if (LoadedMeshData == nullptr)
 	{
 		const auto SourceStart = std::chrono::steady_clock::now();
-		if (bIsFbx)
-		{
-			LoadedMeshData = ResourceManager.FbxImporter.Load(NormalizedPath, LoadOptions);
-		}
-		else
-		{
-			LoadedMeshData = ResourceManager.ObjLoader.Load(NormalizedPath, LoadOptions);
-		}
+		LoadedMeshData = ResourceManager.ObjLoader.Load(NormalizedPath, LoadOptions);
 		const auto SourceEnd = std::chrono::steady_clock::now();
 		SourceLoadSec = std::chrono::duration<double>(SourceEnd - SourceStart).count();
 
