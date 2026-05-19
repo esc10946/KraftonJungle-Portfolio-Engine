@@ -99,6 +99,11 @@ void AAnimTestPawn::BeginPlay()
     {
         ConfigureLocomotionStateMachine();
     }
+
+	if (GEngine && !BGMPath.empty())
+	{
+        GEngine->GetAudioSystem().PlayBGM(BGMPath);
+	}
 }
 
 void AAnimTestPawn::Tick(float DeltaTime)
@@ -126,6 +131,7 @@ void AAnimTestPawn::Serialize(FArchive& Ar)
     Ar << "VoiceSoundPath2" << VoiceSoundPath1;
     Ar << "VoiceSoundPath3" << VoiceSoundPath1;
     Ar << "VoiceSoundPath4" << VoiceSoundPath1;
+    Ar << "BGMPath" << BGMPath;
     Ar << "MoveSpeed" << MoveSpeed;
     Ar << "SprintSpeedMultiplier" << SprintSpeedMultiplier;
     Ar << "LookSensitivityDegrees" << LookSensitivityDegrees;
@@ -174,6 +180,7 @@ void AAnimTestPawn::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
     OutProps.push_back({ "Voice Sound 2", EPropertyType::String, &VoiceSoundPath2 });
     OutProps.push_back({ "Voice Sound 3", EPropertyType::String, &VoiceSoundPath3 });
     OutProps.push_back({ "Voice Sound 4", EPropertyType::String, &VoiceSoundPath4 });
+    OutProps.push_back({ "BGM Path", EPropertyType::String, &BGMPath });
     OutProps.push_back({ "Move Speed", EPropertyType::Float, &MoveSpeed, 0.0f, 100.0f, 0.1f });
     OutProps.push_back({ "Sprint Speed Multiplier", EPropertyType::Float, &SprintSpeedMultiplier, 1.0f, 10.0f, 0.05f });
     OutProps.push_back({ "Look Sensitivity", EPropertyType::Float, &LookSensitivityDegrees, 0.0f, 5.0f, 0.01f });

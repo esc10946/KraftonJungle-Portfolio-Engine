@@ -68,6 +68,7 @@ private:
     FString VoiceSoundPath2 = "Asset/Audio/Gwen_Original_Move_8.ogg";
     FString VoiceSoundPath3 = "Asset/Audio/Gwen_Original_Move_10.ogg";
     FString VoiceSoundPath4 = "Asset/Audio/Gwen_Original_Move_20.ogg";
+    FString BGMPath = "Asset/Audio/StarGuardian_2017_SpawnMusic.ogg";
 
     float MoveSpeed = 7.0f;
     float SprintSpeedMultiplier = 1.5f;
