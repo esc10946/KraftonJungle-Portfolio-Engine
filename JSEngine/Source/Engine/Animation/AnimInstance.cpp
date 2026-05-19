@@ -107,6 +107,7 @@ void UAnimInstance::SetStateMachineAsset(UAnimStateMachineAsset* InStateMachineA
     if (StateMachineNode)
     {
         StateMachineNode->SetStateMachineAsset(InStateMachineAsset);
+        StateMachineNode->InitializeStateMachine();
     }
 }
 

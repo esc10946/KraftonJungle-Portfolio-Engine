@@ -102,19 +102,23 @@ void FAnimStateMachineNode::SetStateMachineAsset(UAnimStateMachineAsset* InAsset
     SequencePlayer->Stop();
     SequencePlayer->SetSequence(nullptr);
 
+}
+
+bool FAnimStateMachineNode::InitializeStateMachine()
+{
     if (!Asset)
     {
-        return;
+        return false;
     }
 
     FString ValidationMessage;
     if (!Asset->Validate(&ValidationMessage))
     {
         UE_LOG_WARNING("[AnimSM] Runtime initialize failed: %s", ValidationMessage.c_str());
-        return;
+        return false;
     }
 
-    ChangeState(Asset->GetEntryState(), 0.0f, EAnimBlendEaseOption::Linear);
+    return EnterState(Asset->GetEntryState(), 0.0f, EAnimBlendEaseOption::Linear);
 }
 
 void FAnimStateMachineNode::Update(const FAnimNodeUpdateContext& Context)
@@ -133,7 +137,7 @@ void FAnimStateMachineNode::Update(const FAnimNodeUpdateContext& Context)
 
             if (EvaluateTransition(*Transition, *Context.Parameters))
             {
-                ChangeState(Transition->ToState, Transition->BlendTime, Transition->EaseOption);
+                EnterState(Transition->ToState, Transition->BlendTime, Transition->EaseOption);
                 break;
             }
         }
@@ -150,6 +154,7 @@ void FAnimStateMachineNode::Reset()
     if (ExistingAsset)
     {
         SetStateMachineAsset(ExistingAsset);
+        InitializeStateMachine();
     }
 }
 
@@ -177,48 +182,59 @@ bool FAnimStateMachineNode::IsLooping() const
     return SequencePlayer->IsLooping();
 }
 
-void FAnimStateMachineNode::ChangeState(
+bool FAnimStateMachineNode::EnterState(
     const FName& NewState,
     float BlendTime,
     EAnimBlendEaseOption EaseOption)
 {
     if (!Asset || !OwnerAnimInstance || !NewState.IsValid() || CurrentState == NewState)
     {
-        return;
+        return false;
     }
 
     const FAnimStateDesc* State = Asset->FindState(NewState);
     if (!State)
     {
         UE_LOG_WARNING("[AnimSM] Missing state: %s", NewState.ToString().c_str());
-        return;
-    }
-
-    if (!State->AnimationName.IsValid())
-    {
-        UE_LOG_WARNING("[AnimSM] Missing animation for state: %s", NewState.ToString().c_str());
-        return;
+        return false;
     }
 
     const FName OldState = CurrentState;
-    if (!SequencePlayer->BlendToAnimationByName(State->AnimationName, State->bLoop, BlendTime, EaseOption))
-    {
-        UE_LOG_WARNING(
-            "[AnimSM] Missing animation mapping: state=%s animation=%s",
-            State->StateName.ToString().c_str(),
-            State->AnimationName.ToString().c_str());
-        return;
-    }
-
     PreviousState = CurrentState;
     CurrentState = NewState;
     StateElapsedTime = 0.0f;
+
+    const bool bPlayedAnimation = PlayStateAnimation(*State, BlendTime, EaseOption);
 
     UE_LOG(
         "[AnimSM] State change: %s -> %s (BlendTime=%.3f)",
         OldState.IsValid() ? OldState.ToString().c_str() : "<None>",
         CurrentState.ToString().c_str(),
         BlendTime);
+    return bPlayedAnimation;
+}
+
+bool FAnimStateMachineNode::PlayStateAnimation(
+    const FAnimStateDesc& State,
+    float BlendTime,
+    EAnimBlendEaseOption EaseOption)
+{
+    if (!State.AnimationName.IsValid())
+    {
+        UE_LOG_WARNING("[AnimSM] Missing animation for state: %s", State.StateName.ToString().c_str());
+        return false;
+    }
+
+    if (!SequencePlayer->BlendToAnimationByName(State.AnimationName, State.bLoop, BlendTime, EaseOption))
+    {
+        UE_LOG_WARNING(
+            "[AnimSM] Missing animation mapping: state=%s animation=%s",
+            State.StateName.ToString().c_str(),
+            State.AnimationName.ToString().c_str());
+        return false;
+    }
+
+    return true;
 }
 
 bool FAnimStateMachineNode::EvaluateTransition(

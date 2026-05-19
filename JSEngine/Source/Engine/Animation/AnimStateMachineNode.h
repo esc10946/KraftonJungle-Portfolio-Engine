@@ -23,6 +23,7 @@ public:
     const FAnimStateMachineNode* AsStateMachineNode() const override { return this; }
 
     void SetStateMachineAsset(UAnimStateMachineAsset* InAsset);
+    bool InitializeStateMachine();
 
     FName GetCurrentState() const { return CurrentState; }
     FName GetPreviousState() const { return PreviousState; }
@@ -40,7 +41,8 @@ public:
         EAnimBlendEaseOption EaseOption);
 
 private:
-    void ChangeState(const FName& NewState, float BlendTime, EAnimBlendEaseOption EaseOption);
+    bool EnterState(const FName& NewState, float BlendTime, EAnimBlendEaseOption EaseOption);
+    bool PlayStateAnimation(const FAnimStateDesc& State, float BlendTime, EAnimBlendEaseOption EaseOption);
     bool EvaluateTransition(const FAnimTransitionDesc& Transition, FAnimStateMachineParameterStore& Parameters) const;
     bool EvaluateCondition(const FAnimTransitionCondition& Condition, FAnimStateMachineParameterStore& Parameters) const;
     bool HasWarnedMissingParameter(const FName& ParameterName) const;
