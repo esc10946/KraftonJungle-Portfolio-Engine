@@ -65,6 +65,51 @@ namespace
         std::sort(Result.begin(), Result.end());
         return Result;
     }
+
+    TArray<FString> FindSiblingAnimationAssets(const FString& SourceFbxPath)
+    {
+        TArray<FString> Result;
+
+        const FString NormalizedSourcePath = FPaths::Normalize(SourceFbxPath);
+        const std::filesystem::path SourceFsPath(FPaths::ToWide(NormalizedSourcePath));
+        const std::filesystem::path ParentPath = SourceFsPath.parent_path();
+
+        std::error_code Ec;
+        if (ParentPath.empty() || !std::filesystem::exists(ParentPath, Ec) || Ec)
+        {
+            return Result;
+        }
+
+        const FString Prefix = FPaths::ToUtf8(SourceFsPath.stem().generic_wstring()) + "_anim_";
+        for (const std::filesystem::directory_entry& Entry : std::filesystem::directory_iterator(ParentPath, Ec))
+        {
+            if (Ec)
+            {
+                break;
+            }
+
+            if (!Entry.is_regular_file(Ec) || Ec)
+            {
+                continue;
+            }
+
+            std::wstring Extension = Entry.path().extension().wstring();
+            std::transform(Extension.begin(), Extension.end(), Extension.begin(), ::towlower);
+            if (Extension != L".anim")
+            {
+                continue;
+            }
+
+            const FString FileName = FPaths::ToUtf8(Entry.path().filename().generic_wstring());
+            if (FileName.rfind(Prefix, 0) == 0)
+            {
+                Result.push_back(FPaths::Normalize(FPaths::ToUtf8(Entry.path().generic_wstring())));
+            }
+        }
+
+        std::sort(Result.begin(), Result.end());
+        return Result;
+    }
 }
 
 FAnimationSequenceLoadService::FAnimationSequenceLoadService(FResourceManager& InResourceManager)
@@ -81,6 +126,17 @@ UAnimationSequence* FAnimationSequenceLoadService::Load(const FString& Path)
         return FoundSequence;
     }
 
+    if (FAssetPathPolicy::IsAnimationSequenceAssetPath(NormalizedPath))
+    {
+        return LoadAnimationAsset(NormalizedPath);
+    }
+
+    if (UAnimationSequence* ImportedAssetSequence = LoadSiblingAnimationAsset(NormalizedPath))
+    {
+        ResourceManager.AnimationSequenceMap[NormalizedPath] = ImportedAssetSequence;
+        return ImportedAssetSequence;
+    }
+
     if (IsBinaryPath(NormalizedPath))
     {
         return LoadBinary(NormalizedPath, NormalizedPath);
@@ -93,6 +149,46 @@ UAnimationSequence* FAnimationSequenceLoadService::Load(const FString& Path)
     }
 
     return LoadSourceOrCachedBinary(NormalizedPath);
+}
+
+UAnimationSequence* FAnimationSequenceLoadService::LoadAnimationAsset(const FString& AssetPath)
+{
+    UAnimationSequence* LoadedSequence = UObjectManager::Get().CreateObject<UAnimationSequence>();
+    if (!ResourceManager.AnimationSequenceSerializer.LoadAnimationSequenceAsset(AssetPath, *LoadedSequence))
+    {
+        UObjectManager::Get().DestroyObject(LoadedSequence);
+        return nullptr;
+    }
+
+    ResourceManager.AnimationSequenceMap[AssetPath] = LoadedSequence;
+    if (std::find(ResourceManager.AnimationSequenceFilePaths.begin(), ResourceManager.AnimationSequenceFilePaths.end(), AssetPath)
+        == ResourceManager.AnimationSequenceFilePaths.end())
+    {
+        ResourceManager.AnimationSequenceFilePaths.push_back(AssetPath);
+    }
+
+    const FAnimationSequence* Sequence = LoadedSequence->GetSequenceData();
+    UE_LOG("[AnimationSequenceLoad] Source=AnimAsset | Path=%s | Name=%s | Notifies=%zu | Duration=%.3f",
+           AssetPath.c_str(),
+           Sequence ? Sequence->Name.c_str() : "",
+           LoadedSequence->GetNotifies().size(),
+           Sequence ? Sequence->DurationSeconds : 0.0f);
+
+    return LoadedSequence;
+}
+
+UAnimationSequence* FAnimationSequenceLoadService::LoadSiblingAnimationAsset(const FString& NormalizedPath)
+{
+    const TArray<FString> AssetPaths = FindSiblingAnimationAssets(NormalizedPath);
+    for (const FString& AssetPath : AssetPaths)
+    {
+        if (UAnimationSequence* Sequence = LoadAnimationAsset(AssetPath))
+        {
+            return Sequence;
+        }
+    }
+
+    return nullptr;
 }
 
 UAnimationSequence* FAnimationSequenceLoadService::LoadBinary(const FString& BinaryPath, const FString& CacheKey)
@@ -178,21 +274,30 @@ UAnimationSequence* FAnimationSequenceLoadService::LoadSourceOrCachedBinary(cons
 
             const FString SequenceToken = Sequence->Name.empty() ? FString("anim") : Sequence->Name;
             const FString SaveBinaryPath = FAssetPathPolicy::MakeSiblingAnimationSequenceBinaryPath(NormalizedPath, SequenceToken);
+            const FString SaveAssetPath = FAssetPathPolicy::MakeSiblingAnimationSequenceAssetPath(NormalizedPath, SequenceToken);
 
             if (TargetSkeleton)
             {
                 Sequence->SkeletonSourcePath = FAssetPathPolicy::MakeAssetRelativePath(
-                    SaveBinaryPath,
+                    SaveAssetPath,
                     TargetSkeleton->GetAssetPathFileName());
             }
 
             const bool bSaveBinaryOk = ResourceManager.AnimationSequenceSerializer.SaveAnimationSequence(SaveBinaryPath, NormalizedPath, *Sequence);
             if (bSaveBinaryOk)
             {
-                UE_LOG("[AnimationSequenceLoad] Source=FBX | Path=%s | FbxSec=%.6f | BinarySave=OK | BinaryPath=%s",
-                       NormalizedPath.c_str(), SourceLoadSec, SaveBinaryPath.c_str());
+                UAnimationSequence* LoadedSequence = FinalizeLoadedSequence(Sequence, SaveAssetPath);
+                LoadedSequence->SetAssetPath(SaveAssetPath);
+                LoadedSequence->SetSourceImportPath(NormalizedPath);
 
-                UAnimationSequence* LoadedSequence = FinalizeLoadedSequence(Sequence, SaveBinaryPath);
+                const bool bSaveAssetOk = ResourceManager.AnimationSequenceSerializer.SaveAnimationSequenceAsset(SaveAssetPath, *LoadedSequence);
+                UE_LOG("[AnimationSequenceLoad] Source=FBX | Path=%s | FbxSec=%.6f | BinarySave=OK | BinaryPath=%s | AnimSave=%s | AnimPath=%s",
+                       NormalizedPath.c_str(),
+                       SourceLoadSec,
+                       SaveBinaryPath.c_str(),
+                       bSaveAssetOk ? "OK" : "FAIL",
+                       SaveAssetPath.c_str());
+
                 if (!FirstLoadedSequence)
                 {
                     FirstLoadedSequence = LoadedSequence;

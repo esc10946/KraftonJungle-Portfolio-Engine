@@ -21,14 +21,17 @@ public:
     FAnimationSequence* GetSequenceData();
     const FAnimationSequence* GetSequenceData() const;
 
-    const FString& GetAssetPathFileName() const;
-    const FString& GetSourcePath() const;
+    const FString& GetResolvedPath() const;
+
+    void SetAssetPath(const FString& InAssetPath) {AssetPath = InAssetPath;}
+    void SetSourceImportPath(const FString& InSourceImportPath) {SourceImportPath = InSourceImportPath;}
+
+	const FString& GetAssetPath() const { return AssetPath;}
+    const FString& GetSourceImportPath() const { return SourceImportPath;}
 
     bool HasValidSequenceData() const;
-
     float GetPlayLength() const override;
     bool SamplePose(const USkeletalMesh* TargetMesh, float Time, TArray<FMatrix>& OutLocalPose) const override;
-
 private:
     void RebuildTrackCache(const USkeletalMesh* TargetMesh) const;
 
@@ -36,5 +39,8 @@ private:
     FAnimationSequence* SequenceData = nullptr;
     mutable const USkeletalMesh* CachedTargetMesh = nullptr;
     mutable TArray<int32> CachedTrackIndexByBoneIndex;
+
+    FString AssetPath;			// anim 에셋의 경로
+    FString SourceImportPath;	// 원본의 경로
 };
 

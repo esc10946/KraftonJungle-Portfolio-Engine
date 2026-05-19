@@ -1142,6 +1142,11 @@ bool FResourceManager::SaveAnimationSequence(UAnimationSequence* Sequence)
 		return false;
 	}
 
+	if (!Sequence->GetAssetPath().empty())
+	{
+		return AnimationSequenceSerializer.SaveAnimationSequenceAsset(Sequence->GetAssetPath(), *Sequence);
+	}
+
 	FAnimationSequence* Data = Sequence->GetSequenceData();
 	if (!Data || Data->SourcePath.empty())
 	{

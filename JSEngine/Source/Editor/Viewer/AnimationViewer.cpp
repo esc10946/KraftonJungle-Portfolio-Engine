@@ -1,4 +1,5 @@
 ﻿#include "AnimationViewer.h"
+
 #include "Animation/AnimSingleNodeInstance.h"
 #include "Asset/AnimationSequence.h"
 #include "Asset/SkeletonAsset.h"
@@ -7,7 +8,9 @@
 #include "Core/Logging/Log.h"
 #include "Core/Paths.h"
 #include "Core/ResourceManager.h"
+#include "Editor/Selection/SelectionManager.h"
 #include "GameFramework/PrimitiveActors.h"
+#include "GameFramework/World.h"
 #include "Object/Object.h"
 
 #include <algorithm>
@@ -63,19 +66,14 @@ static FString ResolveSkeletonPathFromMesh(const USkeletalMesh* Mesh)
 
 static FString ResolveSkeletonPathFromAnimation(const UAnimationSequence* Sequence)
 {
-    const FAnimationSequence* SequenceData = nullptr;
-    if (Sequence)
-    {
-        SequenceData = Sequence->GetSequenceData();
-    }
-
+    const FAnimationSequence* SequenceData = Sequence ? Sequence->GetSequenceData() : nullptr;
     if (!SequenceData || SequenceData->SkeletonSourcePath.empty())
     {
         return FString();
     }
 
     return ToLowerNormalizedPath(FAssetPathPolicy::ResolveAssetRelativePath(
-        Sequence->GetAssetPathFileName(),
+        Sequence->GetResolvedPath(),
         SequenceData->SkeletonSourcePath));
 }
 
@@ -127,33 +125,98 @@ FAnimationViewer::~FAnimationViewer()
     Shutdown();
 }
 
+void FAnimationViewer::Init(
+    FWindowsWindow* InWindow,
+    UEditorEngine* InEditor,
+    UWorld* InWorld,
+    FSelectionManager* InSelectionManager)
+{
+    FEditorViewer::Init(InWindow, InEditor, InWorld, InSelectionManager);
+
+    Viewport.SetClient(&Client);
+    Client.Initialize(InWindow, InEditor);
+    Client.SetWorld(InWorld);
+    Client.SetGizmo(InSelectionManager->GetGizmo());
+    Client.SetSelectionManager(InSelectionManager);
+    Client.SetSceneEditingShortcutsEnabled(false);
+
+    Client.SetViewport(&Viewport);
+    Client.SetState(&Viewport.GetState());
+
+    Client.SetViewportType(EEditorViewportType::EVT_Perspective);
+    Client.CreateCamera();
+    Client.ApplyCameraMode();
+
+    PreviewActor = InWorld->SpawnActor<ASkeletalMeshActor>();
+    if (PreviewActor)
+    {
+        PreviewActor->InitDefaultComponents();
+        PreviewActor->SetFName(FName("AnimationViewerActor"));
+        PreviewActor->SetActorLocation(FVector(0.0f, 0.0f, 0.0f));
+    }
+
+    InWorld->SyncSpatialIndex();
+}
+
 void FAnimationViewer::Shutdown()
 {
-    FEditorViewer::Shutdown();
     if (PreviewAnimInstance)
     {
         UObjectManager::Get().DestroyObject(PreviewAnimInstance);
         PreviewAnimInstance = nullptr;
     }
     CurrentAnimationSequence = nullptr;
-    AnimationSequencePath.clear();
+    PreviewActor = nullptr;
+    Viewport.SetClient(nullptr);
+}
+
+void FAnimationViewer::Tick(float DeltaTime)
+{
+    Client.Tick(DeltaTime);
 }
 
 void FAnimationViewer::ChangeTarget(const FString& InFileName)
 {
     FEditorViewer::ChangeTarget(InFileName);
     ClearAnimationSequence();
+
+    if (FAssetPathPolicy::IsAnimationSequenceAssetPath(InFileName))
+    {
+        SetAnimationSequence(InFileName);
+    }
 }
 
-bool FAnimationViewer::IsAnimationSequenceCompatible(const FString& AnimationPath) const
+bool FAnimationViewer::SetPreviewSkeletalMesh(const FString& SkeletalMeshPath)
 {
-    ASkeletalMeshActor* ViewTarget = GetViewTarget();
-    if (!ViewTarget)
+    if (!PreviewActor)
     {
         return false;
     }
 
-    USkeletalMeshComponent* SkelMeshComp = ViewTarget->GetSkeletalMeshComponent();
+    USkeletalMesh* Mesh = FResourceManager::Get().LoadSkeletalMesh(SkeletalMeshPath);
+    if (!Mesh)
+    {
+        return false;
+    }
+
+    USkeletalMeshComponent* SkelComp = PreviewActor->GetSkeletalMeshComponent();
+    if (!SkelComp)
+    {
+        return false;
+    }
+
+    PreviewSkeletalMeshPath = SkeletalMeshPath;
+    SkelComp->SetSkeletalMesh(Mesh);
+    if (UWorld* World = Client.GetFocusedWorld())
+    {
+        World->RebuildSpatialIndex();
+    }
+    return true;
+}
+
+bool FAnimationViewer::IsAnimationSequenceCompatible(const FString& AnimationPath) const
+{
+    USkeletalMeshComponent* SkelMeshComp = PreviewActor ? PreviewActor->GetSkeletalMeshComponent() : nullptr;
     USkeletalMesh* SkelMesh = SkelMeshComp ? SkelMeshComp->GetSkeletalMesh() : nullptr;
     if (!SkelMesh)
     {
@@ -166,43 +229,29 @@ bool FAnimationViewer::IsAnimationSequenceCompatible(const FString& AnimationPat
 
 bool FAnimationViewer::SetAnimationSequence(const FString& AnimationPath)
 {
-    ASkeletalMeshActor* ViewTarget = GetViewTarget();
-    if (!ViewTarget)
-    {
-        return false;
-    }
-
-    USkeletalMeshComponent* SkelComp = ViewTarget->GetSkeletalMeshComponent();
-    if (!SkelComp || !SkelComp->GetSkeletalMesh())
-    {
-        return false;
-    }
-
-    if (!GetFileName().empty())
-    {
-        if (USkeletalMesh* TargetMesh = FResourceManager::Get().LoadSkeletalMesh(GetFileName()))
-        {
-            SkelComp->SetSkeletalMesh(TargetMesh);
-        }
-    }
-
     UAnimationSequence* Sequence = FResourceManager::Get().LoadAnimationSequence(AnimationPath);
     if (!Sequence)
     {
         return false;
     }
+	
+    USkeletalMeshComponent* SkelComp = PreviewActor ? PreviewActor->GetSkeletalMeshComponent() : nullptr;
+    if (!SkelComp || !SkelComp->GetSkeletalMesh())
+    {
+        return false;
+    }
 
+    SetPreviewSkeletalMesh(Sequence->GetSourceImportPath());
     if (!IsAnimationCompatibleWithMesh(SkelComp->GetSkeletalMesh(), Sequence, AnimationPath))
     {
-        const FAnimationSequence* SequenceData = Sequence->GetSequenceData();
-        FString AnimationSkeletonPath = "<None>";
-        if (SequenceData)
+        FString AnimationSkeletonPath = ResolveSkeletonPathFromAnimation(Sequence);
+        if (AnimationSkeletonPath.empty())
         {
-            AnimationSkeletonPath = ResolveSkeletonPathFromAnimation(Sequence);
+            AnimationSkeletonPath = "<None>";
         }
 
         UE_LOG_WARNING(
-            "[AnimationViewer] RejectAnimationSequence | ViewerMesh=%s | MeshSkeleton=%s | Animation=%s | AnimationSkeleton=%s",
+            "[AnimationViewer] RejectAnimationSequence | PreviewMesh=%s | MeshSkeleton=%s | Animation=%s | AnimationSkeleton=%s",
             GetSkeletalMeshPath(SkelComp->GetSkeletalMesh()),
             ResolveSkeletonPathFromMesh(SkelComp->GetSkeletalMesh()).c_str(),
             AnimationPath.c_str(),
@@ -239,13 +288,11 @@ void FAnimationViewer::ClearAnimationSequence()
         PreviewAnimInstance->SetSequence(nullptr);
     }
 
-    if (ASkeletalMeshActor* ViewTarget = GetViewTarget())
+    USkeletalMeshComponent* SkelComp = PreviewActor ? PreviewActor->GetSkeletalMeshComponent() : nullptr;
+    if (SkelComp)
     {
-        if (USkeletalMeshComponent* SkelComp = ViewTarget->GetSkeletalMeshComponent())
-        {
-            SkelComp->SetAnimInstance(nullptr);
-            SkelComp->ResetToBindPose();
-        }
+        SkelComp->SetAnimInstance(nullptr);
+        SkelComp->ResetToBindPose();
     }
 }
 
@@ -272,12 +319,10 @@ void FAnimationViewer::StopAnimation()
         PreviewAnimInstance->Stop();
     }
 
-    if (ASkeletalMeshActor* ViewTarget = GetViewTarget())
+    USkeletalMeshComponent* SkelComp = PreviewActor ? PreviewActor->GetSkeletalMeshComponent() : nullptr;
+    if (SkelComp)
     {
-        if (USkeletalMeshComponent* SkelComp = ViewTarget->GetSkeletalMeshComponent())
-        {
-            SkelComp->ResetToBindPose();
-        }
+        SkelComp->ResetToBindPose();
     }
 }
 

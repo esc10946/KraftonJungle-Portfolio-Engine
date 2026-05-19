@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "Editor/UI/EditorWidget.h"
 #include "Asset/SkeletalMeshTypes.h"
+#include <Viewer/FSkeletalMeshViewer.h>
 
 class USkeletalMeshComponent;
 class FEditorViewer;

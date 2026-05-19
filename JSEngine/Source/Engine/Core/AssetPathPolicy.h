@@ -11,6 +11,7 @@ public:
 	static bool IsAnimationSequenceAssetPath(const FString& Path);
 	static bool IsSequenceAssetPath(const FString& Path);
 	static bool IsSerializedMaterialAssetPath(const FString& Path);
+
 	static FString MakeCookedStaticMeshBinaryPath(const FString& SourcePath);
 	static FString MakeSiblingStaticMeshBinaryPath(const FString& SourcePath);
 	static FString MakeStaticMeshCacheBinaryPath(const FString& SourcePath);
@@ -20,6 +21,7 @@ public:
 	static FString MakeSiblingSkeletonBinaryPath(const FString& SourceFbxPath, const FString& SkeletonRootName);
 	static FString MakeSiblingSkeletalMeshBinaryPath(const FString& SourceFbxPath, const FString& MeshOrSkeletonToken);
 	static FString MakeSiblingAnimationSequenceBinaryPath(const FString& SourceFbxPath, const FString& SequenceName);
+	static FString MakeSiblingAnimationSequenceAssetPath(const FString& SourceFbxPath, const FString& SequenceName);
 	static FString MakeAssetRelativePath(const FString& FromAssetPath, const FString& ToAssetPath);
 	static FString ResolveAssetRelativePath(const FString& FromAssetPath, const FString& RelativeTargetPath);
 

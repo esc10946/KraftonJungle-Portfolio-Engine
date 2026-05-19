@@ -1,4 +1,4 @@
-#include "Editor/Packaging/GamePackager.h"
+﻿#include "Editor/Packaging/GamePackager.h"
 
 #include "Asset/AnimationSequenceSerializer.h"
 #include "Asset/BinarySerializer.h"
@@ -990,6 +990,7 @@ namespace
             || Extension == ".curve"
             || Extension == ".sequence"
             || Extension == ".animsequence"
+            || Extension == ".anim"
             || Extension == ".rml"
             || Extension == ".rcss"
             || Extension == ".meta"
@@ -1712,7 +1713,7 @@ namespace
         {
             return false;
         }
-        if (!AddRuntimeFilesByExtension(Context, "Asset/Sequence", { ".sequence", ".animsequence" }, OutMessage))
+        if (!AddRuntimeFilesByExtension(Context, "Asset/Sequence", { ".sequence", ".animsequence", ".anim" }, OutMessage))
         {
             return false;
         }

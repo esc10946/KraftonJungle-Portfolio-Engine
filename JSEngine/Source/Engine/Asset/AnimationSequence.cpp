@@ -147,6 +147,12 @@ void UAnimationSequence::SetSequenceData(FAnimationSequence* InSequenceData)
 
     delete SequenceData;
     SequenceData = InSequenceData;
+
+    if (SequenceData && SourceImportPath.empty())
+    {
+        SourceImportPath = SequenceData->SourcePath;
+    }
+
     CachedTargetMesh = nullptr;
     CachedTrackIndexByBoneIndex.clear();
 }
@@ -161,15 +167,9 @@ const FAnimationSequence* UAnimationSequence::GetSequenceData() const
     return SequenceData;
 }
 
-const FString& UAnimationSequence::GetAssetPathFileName() const
+const FString& UAnimationSequence::GetResolvedPath() const
 {
-    return GetSourcePath();
-}
-
-const FString& UAnimationSequence::GetSourcePath() const
-{
-    static FString Empty = {};
-    return SequenceData ? SequenceData->SourcePath : Empty;
+    return !AssetPath.empty() ? AssetPath : SourceImportPath;
 }
 
 bool UAnimationSequence::HasValidSequenceData() const

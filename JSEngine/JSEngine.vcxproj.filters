@@ -444,6 +444,9 @@
     <ClCompile Include="Source\Editor\Viewer\EditorViewer.cpp">
       <Filter>Source\Editor\Viewer</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Editor\Viewer\FSkeletalMeshViewer.cpp">
+      <Filter>Source\Editor\Viewer</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Editor\Viewport\EditorBoxSelectionService.cpp">
       <Filter>Source\Editor\Viewport</Filter>
     </ClCompile>
@@ -1387,6 +1390,9 @@
       <Filter>Source\Editor\Viewer</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\Viewer\EditorViewer.h">
+      <Filter>Source\Editor\Viewer</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\Viewer\FSkeletalMeshViewer.h">
       <Filter>Source\Editor\Viewer</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\Viewport\CursorOverlayState.h">

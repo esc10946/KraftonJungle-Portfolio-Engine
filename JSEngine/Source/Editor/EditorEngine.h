@@ -22,6 +22,8 @@
 
 class UGizmoComponent;
 class FEditorRenderPipeline;
+class FSkeletalMeshViewer;
+class FAnimationViewer;
 class AActor;
 class APlayerController;
 class FViewport; 
@@ -42,7 +44,8 @@ public:
 	bool CanCloseApplication() override;
 	void WorldTick(float DeltaTime) override;
 
-    FEditorViewer* CreateViewer(FString InFileName);
+    FSkeletalMeshViewer* CreateSkeletalViewer(FString InFileName);
+    FAnimationViewer* CreateAnimationViewer(FString InFileName);
     void RemoveViewer(FEditorViewer* InViewer);
 
 	// 퍼스펙티브 카메라(인덱스 0)를 반환합니다.
@@ -105,6 +108,7 @@ public:
 		const FString& Name
 	);
 	void UnregisterWorld(const FName& Handle);
+	void UnregisterWorld(UWorld* World);
 	FName GetEditorWorldHandle() const;
 
 	const TArray<std::unique_ptr<FEditorViewer>>& GetViewers() const { return Viewers; }

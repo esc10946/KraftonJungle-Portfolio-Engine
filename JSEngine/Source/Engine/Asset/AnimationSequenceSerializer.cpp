@@ -1,5 +1,6 @@
 #include "Asset/AnimationSequenceSerializer.h"
 
+#include "Asset/AnimationSequence.h"
 #include "Core/Paths.h"
 
 #include <algorithm>
@@ -16,6 +17,9 @@ constexpr uint32 MAX_ANIMATION_SHAPE_KEY_TRACK_COUNT = 1'000'000;
 constexpr uint32 MAX_ANIMATION_CURVE_COUNT = 2'000'000;
 constexpr uint32 MAX_ANIMATION_KEY_COUNT = 20'000'000;
 constexpr uint32 MAX_ANIMATION_STRING_LENGTH = 16'384;
+constexpr uint32 ANIMATION_SEQUENCE_ASSET_MAGIC = 0x494E414A; // 'JANI'
+constexpr uint32 ANIMATION_SEQUENCE_ASSET_VERSION = 1;
+constexpr uint32 MAX_ANIMATION_NOTIFY_COUNT = 1'000'000;
 
 static uint64 GetFileWriteTimeTicks(const FString& Path)
 {
@@ -482,6 +486,148 @@ bool FAnimationSequenceSerializer::SaveAnimationSequence(const FString& BinaryPa
         return false;
     }
 
+    return WriteAnimationSequence(Out, SourcePath, Data);
+}
+bool FAnimationSequenceSerializer::LoadAnimationSequence(const FString& FbxOrBinaryPath, FAnimationSequence& OutData)
+{
+    std::ifstream In(std::filesystem::path(FPaths::ToAbsolute(FPaths::ToWide(FbxOrBinaryPath))), std::ios::binary);
+    if (!In.is_open())
+    {
+        return false;
+    }
+    return ReadAnimationSequence(In, OutData);
+}
+
+bool FAnimationSequenceSerializer::ReadAnimationSequenceHeader(const FString& BinaryPath, FAnimationSequenceBinaryHeader& OutHeader) const
+{
+    std::ifstream In(std::filesystem::path(FPaths::ToAbsolute(FPaths::ToWide(BinaryPath))), std::ios::binary);
+    if (!In.is_open())
+    {
+        return false;
+    }
+
+    return ReadHeader(In, OutHeader) && IsValidHeader(OutHeader);
+}
+
+bool FAnimationSequenceSerializer::SaveAnimationSequenceAsset(const FString& AssetPath, const UAnimationSequence& Sequence)
+{
+    const FAnimationSequence* Data = Sequence.GetSequenceData();
+    if (!Data)
+    {
+        return false;
+    }
+
+    std::ofstream Out(std::filesystem::path(FPaths::ToAbsolute(FPaths::ToWide(AssetPath))), std::ios::binary);
+    if (!Out.is_open())
+    {
+        return false;
+    }
+
+    const FString SourceImportPath = !Sequence.GetSourceImportPath().empty()
+        ? Sequence.GetSourceImportPath()
+        : Data->SourcePath;
+
+    // .anim is the authored asset. The track payload uses the existing
+    // animation serializer, so .bin cache data and .anim asset data stay aligned.
+    WriteUInt32LE(Out, ANIMATION_SEQUENCE_ASSET_MAGIC);
+    WriteUInt32LE(Out, ANIMATION_SEQUENCE_ASSET_VERSION);
+    WriteString(Out, SourceImportPath);
+
+    if (!WriteAnimationSequence(Out, SourceImportPath, *Data))
+    {
+        return false;
+    }
+
+    const TArray<FAnimNotifyEvent>& Notifies = Sequence.GetNotifies();
+    WriteUInt32LE(Out, static_cast<uint32>(Notifies.size()));
+    for (const FAnimNotifyEvent& Notify : Notifies)
+    {
+        WriteFloatLE(Out, Notify.TriggerTime);
+        WriteFloatLE(Out, Notify.Duration);
+        WriteString(Out, Notify.NotifyName.ToString());
+    }
+
+    return Out.good();
+}
+
+bool FAnimationSequenceSerializer::LoadAnimationSequenceAsset(const FString& AssetPath, UAnimationSequence& OutSequence)
+{
+    std::ifstream In(std::filesystem::path(FPaths::ToAbsolute(FPaths::ToWide(AssetPath))), std::ios::binary);
+    if (!In.is_open())
+    {
+        return false;
+    }
+
+    uint32 Magic = 0;
+    uint32 Version = 0;
+    if (!ReadUInt32LE(In, Magic) || Magic != ANIMATION_SEQUENCE_ASSET_MAGIC)
+    {
+        return false;
+    }
+
+    if (!ReadUInt32LE(In, Version) || Version != ANIMATION_SEQUENCE_ASSET_VERSION)
+    {
+        return false;
+    }
+
+    FString SourceImportPath;
+    if (!ReadString(In, SourceImportPath))
+    {
+        return false;
+    }
+
+    FAnimationSequence* Data = new FAnimationSequence();
+    if (!ReadAnimationSequence(In, *Data))
+    {
+        delete Data;
+        return false;
+    }
+
+    uint32 NotifyCount = 0;
+    if (!ReadUInt32LE(In, NotifyCount) || NotifyCount > MAX_ANIMATION_NOTIFY_COUNT)
+    {
+        delete Data;
+        return false;
+    }
+
+    TArray<FAnimNotifyEvent> LoadedNotifies;
+    LoadedNotifies.reserve(NotifyCount);
+    for (uint32 NotifyIndex = 0; NotifyIndex < NotifyCount; ++NotifyIndex)
+    {
+        FAnimNotifyEvent Notify;
+        FString NotifyName;
+        if (!ReadFloatLE(In, Notify.TriggerTime)
+            || !ReadFloatLE(In, Notify.Duration)
+            || !ReadString(In, NotifyName))
+        {
+            delete Data;
+            return false;
+        }
+
+        Notify.NotifyName = FName(NotifyName.c_str());
+        LoadedNotifies.push_back(Notify);
+    }
+
+    if (!In.good())
+    {
+        delete Data;
+        return false;
+    }
+
+    OutSequence.SetAssetPath(AssetPath);
+    OutSequence.SetSourceImportPath(SourceImportPath);
+    OutSequence.SetSequenceData(Data);
+    OutSequence.ClearNotifies();
+    for (const FAnimNotifyEvent& Notify : LoadedNotifies)
+    {
+        OutSequence.AddNotify(Notify);
+    }
+
+    return true;
+}
+
+bool FAnimationSequenceSerializer::WriteAnimationSequence(std::ofstream& Out, const FString& SourcePath, const FAnimationSequence& Data)
+{
     uint32 CurveCount = 0;
     uint32 KeyCount = 0;
     CountSequenceData(Data, CurveCount, KeyCount);
@@ -521,19 +667,12 @@ bool FAnimationSequenceSerializer::SaveAnimationSequence(const FString& BinaryPa
     for (const FShapeKeyAnimationTrack& Track : Data.ShapeKeyTracks)
     {
         WriteShapeKeyTrack(Out, Track);
-    }
-
+    }    
     return Out.good();
 }
 
-bool FAnimationSequenceSerializer::LoadAnimationSequence(const FString& FbxOrBinaryPath, FAnimationSequence& OutData)
+bool FAnimationSequenceSerializer::ReadAnimationSequence(std::ifstream& In, FAnimationSequence& OutData)
 {
-    std::ifstream In(std::filesystem::path(FPaths::ToAbsolute(FPaths::ToWide(FbxOrBinaryPath))), std::ios::binary);
-    if (!In.is_open())
-    {
-        return false;
-    }
-
     FAnimationSequenceBinaryHeader Header;
     if (!ReadHeader(In, Header) || !IsValidHeader(Header))
     {
@@ -584,15 +723,4 @@ bool FAnimationSequenceSerializer::LoadAnimationSequence(const FString& FbxOrBin
     }
 
     return In.good();
-}
-
-bool FAnimationSequenceSerializer::ReadAnimationSequenceHeader(const FString& BinaryPath, FAnimationSequenceBinaryHeader& OutHeader) const
-{
-    std::ifstream In(std::filesystem::path(FPaths::ToAbsolute(FPaths::ToWide(BinaryPath))), std::ios::binary);
-    if (!In.is_open())
-    {
-        return false;
-    }
-
-    return ReadHeader(In, OutHeader) && IsValidHeader(OutHeader);
 }

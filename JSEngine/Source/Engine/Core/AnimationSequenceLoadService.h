@@ -14,6 +14,8 @@ public:
     UAnimationSequence* Load(const FString& Path);
 
 private:
+    UAnimationSequence* LoadAnimationAsset(const FString& AssetPath);
+    UAnimationSequence* LoadSiblingAnimationAsset(const FString& NormalizedPath);
     UAnimationSequence* LoadBinary(const FString& BinaryPath, const FString& CacheKey);
     UAnimationSequence* LoadSiblingImportedBinary(const FString& NormalizedPath);
     UAnimationSequence* LoadSourceOrCachedBinary(const FString& NormalizedPath);

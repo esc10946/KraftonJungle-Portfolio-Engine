@@ -14,6 +14,7 @@
 #include "GameFramework/World.h"
 #include "Editor/EditorRenderPipeline.h"
 #include "Editor/Viewer/AnimationViewer.h"
+#include "Editor/Viewer/FSkeletalMeshViewer.h"
 #include "Core/Logging/Log.h"
 #include "Core/Logging/Stats.h"
 #include "Runtime/Script/ScriptManager.h"
@@ -58,6 +59,13 @@ namespace
         case EWorldType::Game: return "Game";
         default: return "Unknown";
         }
+    }
+
+    FName MakeUniqueViewerPreviewWorldHandle()
+    {
+        static int32 ViewerCounter = 0;
+        const FString HandleStr = "__ViewerPreview_" + std::to_string(ViewerCounter++);
+        return FName(HandleStr.c_str());
     }
 
     bool HasPlayerStart(UWorld* World)
@@ -610,20 +618,61 @@ void UEditorEngine::WorldTick(float DeltaTime)
     ProcessPendingSceneOpen();
 }
 
-FEditorViewer* UEditorEngine::CreateViewer(FString InFileName)
+FSkeletalMeshViewer* UEditorEngine::CreateSkeletalViewer(FString InFileName)
 {
-    for (const auto& Viewer : Viewers)
+    for(const auto& Viewer : Viewers)
     {
-        if (Viewer->GetFileName() == InFileName)
+        FSkeletalMeshViewer* SkeletalViewer =
+            dynamic_cast<FSkeletalMeshViewer*>(Viewer.get());
+
+        if (!SkeletalViewer)
         {
-            MainPanel.OpenViewer(Viewer.get());
-            return Viewer.get();
+            continue;
+        }
+
+        if (SkeletalViewer->GetFileName() == InFileName)
+        {
+            MainPanel.OpenViewer(SkeletalViewer);
+            return SkeletalViewer;
         }
     }
 
-    static int32 ViewerCounter = 0;
-    FString HandleStr = "__ViewerPreview_" + std::to_string(ViewerCounter++);
-    FName Handle(HandleStr.c_str());
+    const FName Handle = MakeUniqueViewerPreviewWorldHandle();
+
+    FWorldContext& ViewerCtx = CreateWorldContext(EWorldType::ViewerPreview, Handle, "Viewer Preview");
+    ApplySpatialIndexMaintenanceSettings(ViewerCtx.World);
+
+    auto NewViewer = std::make_unique<FSkeletalMeshViewer>();
+    NewViewer->Init(Window, this, ViewerCtx.World, ViewerCtx.SelectionManager);
+    NewViewer->ChangeTarget(InFileName);
+    MainPanel.OpenViewer(NewViewer.get());
+
+    FSkeletalMeshViewer* Result = NewViewer.get();
+    Viewers.push_back(std::move(NewViewer));
+
+    return Result;
+}
+
+FAnimationViewer* UEditorEngine::CreateAnimationViewer(FString InFileName)
+{
+    for (const auto& Viewer : Viewers)
+    {
+        FAnimationViewer* AnimationViewer =
+            dynamic_cast<FAnimationViewer*>(Viewer.get());
+
+        if (!AnimationViewer)
+        {
+            continue;
+        }
+
+        if (AnimationViewer->GetFileName() == InFileName)
+        {
+            MainPanel.OpenViewer(AnimationViewer);
+            return AnimationViewer;
+        }
+    }
+
+    const FName Handle = MakeUniqueViewerPreviewWorldHandle();
 
     FWorldContext& ViewerCtx = CreateWorldContext(EWorldType::ViewerPreview, Handle, "Viewer Preview");
     ApplySpatialIndexMaintenanceSettings(ViewerCtx.World);
@@ -633,9 +682,10 @@ FEditorViewer* UEditorEngine::CreateViewer(FString InFileName)
     NewViewer->ChangeTarget(InFileName);
     MainPanel.OpenViewer(NewViewer.get());
 
-    FEditorViewer* Result = NewViewer.get();
+    FAnimationViewer* Result = NewViewer.get();
     Viewers.push_back(std::move(NewViewer));
 
+	Result->SetAnimationSequence(InFileName);
     return Result;
 }
 
@@ -647,19 +697,14 @@ void UEditorEngine::RemoveViewer(FEditorViewer* InViewer)
         {
             MainPanel.CloseViewer(InViewer);
 			
-            // Find world handle and unregister
+            UWorld* ViewerWorld = nullptr;
             if (FEditorViewportClient* Client = static_cast<FEditorViewportClient*>((*it)->GetViewport().GetClient()))
             {
-                if (UWorld* World = Client->GetFocusedWorld())
-                {
-                    if (FWorldContext* Ctx = GetWorldContextFromWorld(World))
-                    {
-                        UnregisterWorld(Ctx->ContextHandle);
-                    }
-                }
+                ViewerWorld = Client->GetFocusedWorld();
             }
 
             (*it)->Shutdown();
+            UnregisterWorld(ViewerWorld);
             Viewers.erase(it);
             return;
         }
@@ -1475,6 +1520,43 @@ void UEditorEngine::UnregisterWorld(const FName& Handle)
 			}
             WorldList.erase(it);
             return; // 찾아서 지웠으므로 즉시 종료
+        }
+    }
+}
+
+void UEditorEngine::UnregisterWorld(UWorld* World)
+{
+    if (!World)
+    {
+        return;
+    }
+
+    for (auto it = WorldList.begin(); it != WorldList.end(); ++it)
+    {
+        if (it->World == World)
+        {
+            if (!UndoSystem.IsRestoring())
+            {
+                UndoSystem.ClearHistory(it->ContextHandle);
+            }
+            if (it->World)
+            {
+                if (it->World == ActorDestroyedListenerWorld)
+                {
+                    UnbindActorDestroyedListener(it->World);
+                }
+                it->World->EndPlay(EEndPlayReason::Type::EndPlayInEditor);
+                UObjectManager::Get().DestroyObject(it->World);
+            }
+
+            if (it->SelectionManager)
+            {
+                it->SelectionManager->Shutdown();
+                delete it->SelectionManager;
+                it->SelectionManager = nullptr;
+            }
+            WorldList.erase(it);
+            return;
         }
     }
 }

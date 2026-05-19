@@ -5,6 +5,8 @@
 
 #include <fstream>
 
+class UAnimationSequence;
+
 struct FAnimationSequenceBinaryHeader
 {
     uint32 MagicNumber = 0x4D494E41; // 'ANIM'
@@ -22,6 +24,12 @@ public:
     bool SaveAnimationSequence(const FString& BinaryPath, const FString& SourcePath, const FAnimationSequence& Data);
     bool LoadAnimationSequence(const FString& FbxOrBinaryPath, FAnimationSequence& OutData);
     bool ReadAnimationSequenceHeader(const FString& BinaryPath, FAnimationSequenceBinaryHeader& OutHeader) const;
+
+    bool SaveAnimationSequenceAsset(const FString& AssetPath, const UAnimationSequence& Sequence);
+    bool LoadAnimationSequenceAsset(const FString& AssetPath, UAnimationSequence& OutSequence);
+
+	bool WriteAnimationSequence(std::ofstream& Out, const FString& SourcePath, const FAnimationSequence& Data);
+    bool ReadAnimationSequence(std::ifstream& In, FAnimationSequence& OutData);
 
 private:
     void WriteBool(std::ofstream& Out, bool Value);

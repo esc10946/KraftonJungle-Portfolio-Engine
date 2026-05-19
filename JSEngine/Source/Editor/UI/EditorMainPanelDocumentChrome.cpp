@@ -3,13 +3,34 @@
 #include "Editor/EditorEngine.h"
 #include "Editor/UI/EditorChromeConstants.h"
 #include "Editor/UI/EditorMainPanelViewportToolbarHelpers.h"
+#include "Editor/Viewer/AnimationViewer.h"
 #include "Editor/Viewer/EditorViewer.h"
+#include "Editor/Viewer/FSkeletalMeshViewer.h"
 #include "Editor/Viewport/EditorViewportClient.h"
 
 #include "ImGui/imgui.h"
 
 #include <algorithm>
 #include <cstdio>
+#include <Viewport/SkeletalMeshViewportClient.h>
+
+namespace
+{
+FSkeletalViewerShowFlags* GetViewerShowFlags(FEditorViewer* Viewer)
+{
+	if (FSkeletalMeshViewer* SkeletalViewer = dynamic_cast<FSkeletalMeshViewer*>(Viewer))
+	{
+		return &SkeletalViewer->GetClient().GetShowFlags();
+	}
+
+	if (FAnimationViewer* AnimationViewer = dynamic_cast<FAnimationViewer*>(Viewer))
+	{
+		return &AnimationViewer->GetClient().GetShowFlags();
+	}
+
+	return nullptr;
+}
+}
 
 void FEditorMainPanel::RenderActiveDocumentToolbar()
 {
@@ -76,9 +97,15 @@ void FEditorMainPanel::RenderViewerToolbarControls(FEditorViewer* Viewer)
 		return;
 	}
 
-	FEditorViewportClient* Client = &Viewer->GetClient();
+	FEditorViewportClient* Client = Viewer->GetViewportClient();
+	if (!Client)
+	{
+		ImGui::TextDisabled("Viewer is not ready.");
+		return;
+	}
+
 	FEditorViewportState* ViewportState = Client ? Client->GetViewportState() : nullptr;
-	FSkeletalViewerShowFlags& ShowFlags = Viewer->GetClient().GetShowFlags();
+	FSkeletalViewerShowFlags* ShowFlags = GetViewerShowFlags(Viewer);
 
 	ImGui::PushID(Viewer);
 	if (DrawViewportIconButton(
@@ -245,22 +272,29 @@ void FEditorMainPanel::RenderViewerToolbarControls(FEditorViewer* Viewer)
 	}
 	if (ImGui::BeginPopup("##ViewerShowFlagsPopupShared"))
 	{
-		ImGui::MenuItem("Skeletal Mesh", nullptr, &ShowFlags.bShowSkeletalMesh);
-		ImGui::MenuItem("Bones", nullptr, &ShowFlags.bShowBones);
-		ImGui::BeginDisabled(!ShowFlags.bShowBones);
-		ImGui::MenuItem("Selected Bone Only", nullptr, &ShowFlags.bShowOnlySelectedBone);
-		ImGui::EndDisabled();
-		ImGui::Separator();
-		ImGui::MenuItem("Bounding Box", nullptr, &ShowFlags.bShowBoundingBox);
-		ImGui::MenuItem("Outline", nullptr, &ShowFlags.bShowOutline);
-		ImGui::Separator();
-		ImGui::MenuItem("Bone Weight Heatmap", nullptr, &ShowFlags.bShowBoneWeightHeatmap);
-		ImGui::BeginDisabled(!ShowFlags.bShowBoneWeightHeatmap);
-		if (ImGui::SliderFloat("Opacity", &ShowFlags.BoneWeightHeatmapOpacity, 0.05f, 1.0f, "%.2f"))
+		if (ShowFlags)
 		{
-			ShowFlags.BoneWeightHeatmapOpacity = std::clamp(ShowFlags.BoneWeightHeatmapOpacity, 0.05f, 1.0f);
+			ImGui::MenuItem("Skeletal Mesh", nullptr, &ShowFlags->bShowSkeletalMesh);
+			ImGui::MenuItem("Bones", nullptr, &ShowFlags->bShowBones);
+			ImGui::BeginDisabled(!ShowFlags->bShowBones);
+			ImGui::MenuItem("Selected Bone Only", nullptr, &ShowFlags->bShowOnlySelectedBone);
+			ImGui::EndDisabled();
+			ImGui::Separator();
+			ImGui::MenuItem("Bounding Box", nullptr, &ShowFlags->bShowBoundingBox);
+			ImGui::MenuItem("Outline", nullptr, &ShowFlags->bShowOutline);
+			ImGui::Separator();
+			ImGui::MenuItem("Bone Weight Heatmap", nullptr, &ShowFlags->bShowBoneWeightHeatmap);
+			ImGui::BeginDisabled(!ShowFlags->bShowBoneWeightHeatmap);
+			if (ImGui::SliderFloat("Opacity", &ShowFlags->BoneWeightHeatmapOpacity, 0.05f, 1.0f, "%.2f"))
+			{
+				ShowFlags->BoneWeightHeatmapOpacity = std::clamp(ShowFlags->BoneWeightHeatmapOpacity, 0.05f, 1.0f);
+			}
+			ImGui::EndDisabled();
 		}
-		ImGui::EndDisabled();
+		else
+		{
+			ImGui::TextDisabled("No show flags");
+		}
 		ImGui::EndPopup();
 	}
 
@@ -300,13 +334,17 @@ bool FEditorMainPanel::RenderActiveDocumentMainMenu()
 		ImGui::EndMenu();
 	};
 
-	if (ActiveTab->Id.Kind == EEditorTabKind::SkeletalMeshViewer ||
+	if (ActiveTab->Id.Kind == EEditorTabKind::AnimationViewer ||
+		ActiveTab->Id.Kind == EEditorTabKind::SkeletalMeshViewer ||
 		ActiveTab->Id.Kind == EEditorTabKind::StaticMeshViewer)
 	{
 		FEditorViewerWindowWidget* ViewerWidget = FindViewerWidgetForTab(ActiveTab->Id);
 		FEditorViewer* Viewer = ViewerWidget ? ViewerWidget->GetViewer() : nullptr;
-		const bool bCanSaveMesh = ViewerWidget && ViewerWidget->CanSaveMesh();
-		const char* SaveLabel = ViewerWidget && ViewerWidget->IsMeshDirty() ? "Save Mesh *" : "Save Mesh";
+		const bool bAnimationViewer = ActiveTab->Id.Kind == EEditorTabKind::AnimationViewer;
+		const bool bCanSaveMesh = !bAnimationViewer && ViewerWidget && ViewerWidget->CanSaveMesh();
+		const char* SaveLabel = bAnimationViewer
+			? "Save Animation"
+			: (ViewerWidget && ViewerWidget->IsMeshDirty() ? "Save Mesh *" : "Save Mesh");
 
 		if (ImGui::BeginMenu("File"))
 		{
@@ -335,7 +373,7 @@ bool FEditorMainPanel::RenderActiveDocumentMainMenu()
 			{
 				ViewerWidget->RequestSaveMesh();
 			}
-			ImGui::MenuItem("Reimport Mesh", nullptr, false, false);
+			ImGui::MenuItem(bAnimationViewer ? "Reimport Animation" : "Reimport Mesh", nullptr, false, false);
 			if (Viewer)
 			{
 				ImGui::Separator();
@@ -350,46 +388,58 @@ bool FEditorMainPanel::RenderActiveDocumentMainMenu()
 		{
 			if (Viewer)
 			{
-				FSkeletalMeshViewportClient& Client = Viewer->GetClient();
-				FSkeletalViewerShowFlags& ShowFlags = Client.GetShowFlags();
-				if (ImGui::MenuItem("Select", "Q / 1", Client.GetTransformMode() == FEditorViewportClient::ETransformMode::Select))
+				FEditorViewportClient* Client = Viewer->GetViewportClient();
+				FSkeletalViewerShowFlags* ShowFlags = GetViewerShowFlags(Viewer);
+				if (!Client)
 				{
-					Client.RequestSetSelectMode();
+					ImGui::TextDisabled("Viewer is not ready.");
+					ImGui::EndMenu();
+					RenderDocumentHelpMenu();
+					return true;
 				}
-				if (ImGui::MenuItem("Translate", "W / 2", Client.GetTransformMode() == FEditorViewportClient::ETransformMode::Translate))
+
+				if (ImGui::MenuItem("Select", "Q / 1", Client->GetTransformMode() == FEditorViewportClient::ETransformMode::Select))
 				{
-					Client.RequestSetTranslateMode();
+					Client->RequestSetSelectMode();
 				}
-				if (ImGui::MenuItem("Rotate", "E / 3", Client.GetTransformMode() == FEditorViewportClient::ETransformMode::Rotate))
+				if (ImGui::MenuItem("Translate", "W / 2", Client->GetTransformMode() == FEditorViewportClient::ETransformMode::Translate))
 				{
-					Client.RequestSetRotateMode();
+					Client->RequestSetTranslateMode();
 				}
-				if (ImGui::MenuItem("Scale", "R / 4", Client.GetTransformMode() == FEditorViewportClient::ETransformMode::Scale))
+				if (ImGui::MenuItem("Rotate", "E / 3", Client->GetTransformMode() == FEditorViewportClient::ETransformMode::Rotate))
 				{
-					Client.RequestSetScaleMode();
+					Client->RequestSetRotateMode();
+				}
+				if (ImGui::MenuItem("Scale", "R / 4", Client->GetTransformMode() == FEditorViewportClient::ETransformMode::Scale))
+				{
+					Client->RequestSetScaleMode();
 				}
 				ImGui::Separator();
 				if (ImGui::MenuItem("Reset Preview Camera"))
 				{
-					Client.ResetCamera();
-					Client.ApplyCameraMode();
+					Client->ResetCamera();
+					Client->ApplyCameraMode();
 				}
-				ImGui::Separator();
-				ImGui::MenuItem("Skeletal Mesh", nullptr, &ShowFlags.bShowSkeletalMesh);
-				ImGui::MenuItem("Bones", nullptr, &ShowFlags.bShowBones);
-				ImGui::BeginDisabled(!ShowFlags.bShowBones);
-				ImGui::MenuItem("Selected Bone Only", nullptr, &ShowFlags.bShowOnlySelectedBone);
-				ImGui::EndDisabled();
-				ImGui::MenuItem("Bounding Box", nullptr, &ShowFlags.bShowBoundingBox);
-				ImGui::MenuItem("Outline", nullptr, &ShowFlags.bShowOutline);
-				ImGui::Separator();
-				ImGui::MenuItem("Bone Weight Heatmap", nullptr, &ShowFlags.bShowBoneWeightHeatmap);
-				ImGui::BeginDisabled(!ShowFlags.bShowBoneWeightHeatmap);
-				if (ImGui::SliderFloat("Opacity", &ShowFlags.BoneWeightHeatmapOpacity, 0.05f, 1.0f, "%.2f"))
+
+				if (ShowFlags)
 				{
-					ShowFlags.BoneWeightHeatmapOpacity = std::clamp(ShowFlags.BoneWeightHeatmapOpacity, 0.05f, 1.0f);
+					ImGui::Separator();
+					ImGui::MenuItem("Skeletal Mesh", nullptr, &ShowFlags->bShowSkeletalMesh);
+					ImGui::MenuItem("Bones", nullptr, &ShowFlags->bShowBones);
+					ImGui::BeginDisabled(!ShowFlags->bShowBones);
+					ImGui::MenuItem("Selected Bone Only", nullptr, &ShowFlags->bShowOnlySelectedBone);
+					ImGui::EndDisabled();
+					ImGui::MenuItem("Bounding Box", nullptr, &ShowFlags->bShowBoundingBox);
+					ImGui::MenuItem("Outline", nullptr, &ShowFlags->bShowOutline);
+					ImGui::Separator();
+					ImGui::MenuItem("Bone Weight Heatmap", nullptr, &ShowFlags->bShowBoneWeightHeatmap);
+					ImGui::BeginDisabled(!ShowFlags->bShowBoneWeightHeatmap);
+					if (ImGui::SliderFloat("Opacity", &ShowFlags->BoneWeightHeatmapOpacity, 0.05f, 1.0f, "%.2f"))
+					{
+						ShowFlags->BoneWeightHeatmapOpacity = std::clamp(ShowFlags->BoneWeightHeatmapOpacity, 0.05f, 1.0f);
+					}
+					ImGui::EndDisabled();
 				}
-				ImGui::EndDisabled();
 			}
 			else
 			{

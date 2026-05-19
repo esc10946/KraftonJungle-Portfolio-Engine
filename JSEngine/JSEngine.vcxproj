@@ -584,6 +584,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientDebug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientRelease|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="Source\Editor\Viewer\FSkeletalMeshViewer.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientDebug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientRelease|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="Source\Editor\Viewport\EditorBoxSelectionService.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientDebug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientRelease|x64'">true</ExcludedFromBuild>
@@ -624,10 +628,10 @@
     <ClCompile Include="Source\Engine\Animation\AnimInstance.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimSequencePlayer.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimSingleNodeInstance.cpp" />
-    <ClCompile Include="Source\Engine\Animation\AnimationSequenceBase.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimStateMachineAsset.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimStateMachineNode.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimStateMachineParameterStore.cpp" />
+    <ClCompile Include="Source\Engine\Animation\AnimationSequenceBase.cpp" />
     <ClCompile Include="Source\Engine\Animation\CurvePlayback.cpp" />
     <ClCompile Include="Source\Engine\Animation\TimelinePlayer.cpp" />
     <ClCompile Include="Source\Engine\Asset\AnimationSequence.cpp" />
@@ -954,6 +958,7 @@
     <ClInclude Include="Source\Editor\Undo\EditorUndoSystem.h" />
     <ClInclude Include="Source\Editor\Viewer\AnimationViewer.h" />
     <ClInclude Include="Source\Editor\Viewer\EditorViewer.h" />
+    <ClInclude Include="Source\Editor\Viewer\FSkeletalMeshViewer.h" />
     <ClInclude Include="Source\Editor\Viewport\CursorOverlayState.h" />
     <ClInclude Include="Source\Editor\Viewport\EditorBoxSelectionService.h" />
     <ClInclude Include="Source\Editor\Viewport\EditorPickingService.h" />
@@ -970,11 +975,11 @@
     <ClInclude Include="Source\Engine\Animation\AnimNode.h" />
     <ClInclude Include="Source\Engine\Animation\AnimSequencePlayer.h" />
     <ClInclude Include="Source\Engine\Animation\AnimSingleNodeInstance.h" />
-    <ClInclude Include="Source\Engine\Animation\AnimationSequenceBase.h" />
     <ClInclude Include="Source\Engine\Animation\AnimStateMachineAsset.h" />
     <ClInclude Include="Source\Engine\Animation\AnimStateMachineNode.h" />
     <ClInclude Include="Source\Engine\Animation\AnimStateMachineParameterStore.h" />
     <ClInclude Include="Source\Engine\Animation\AnimStateMachineTypes.h" />
+    <ClInclude Include="Source\Engine\Animation\AnimationSequenceBase.h" />
     <ClInclude Include="Source\Engine\Animation\CurvePlayback.h" />
     <ClInclude Include="Source\Engine\Animation\TimelinePlayer.h" />
     <ClInclude Include="Source\Engine\Asset\AnimationSequence.h" />
