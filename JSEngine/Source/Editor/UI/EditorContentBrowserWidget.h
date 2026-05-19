@@ -71,7 +71,7 @@ private:
 	void DrawContentGrid();
 	void DrawContentTile(const FContentItem& Item, const ImVec2& TileSize);
 	void DrawContentContextMenu(bool bHasSelectedItem);
-	void RequestOpenFbxAsset(const std::filesystem::path& Path);
+	void RequestOpenAsset(const std::filesystem::path& Path);
 	bool CreateFolder();
 	bool CreateTextFile();
 	bool CreateLuaScriptFile();

@@ -1,4 +1,4 @@
-#include "Editor/UI/EditorMainPanel.h"
+﻿#include "Editor/UI/EditorMainPanel.h"
 
 #include "Editor/EditorEngine.h"
 #include "Editor/UI/EditorChromeConstants.h"
@@ -31,6 +31,8 @@ namespace
 			return { ImVec4(0.22f, 0.78f, 0.45f, 1.0f), "Static Mesh Viewer" };
 		case EEditorTabKind::SkeletalMeshViewer:
 			return { ImVec4(0.18f, 0.70f, 0.95f, 1.0f), "Skeletal Mesh Viewer" };
+		case EEditorTabKind::AnimationViewer:
+			return { ImVec4(0.92f, 0.58f, 0.20f, 1.0f), "Animation Viewer" };
 		case EEditorTabKind::MaterialEditor:
 			return { ImVec4(0.19f, 0.72f, 0.24f, 1.0f), "Material Editor" };
 		case EEditorTabKind::CurveEditor:
@@ -53,7 +55,9 @@ namespace
 		case EEditorTabKind::StaticMeshViewer:
 			return "StaticMesh";
 		case EEditorTabKind::SkeletalMeshViewer:
-			return "SkeletalMesh";
+            return "SkeletalMesh";
+		case EEditorTabKind::AnimationViewer:
+			return "AnimationViewer";
 		case EEditorTabKind::MaterialEditor:
 			return "Material";
 		case EEditorTabKind::CurveEditor:
@@ -409,7 +413,8 @@ bool FEditorMainPanel::RequestCloseEditorTab(const FEditorTabId& TabId)
 		return false;
 	}
 
-	if (TabId.Kind == EEditorTabKind::SkeletalMeshViewer && EditorEngine)
+	if ((TabId.Kind == EEditorTabKind::SkeletalMeshViewer ||
+		 TabId.Kind == EEditorTabKind::AnimationViewer) && EditorEngine)
 	{
 		for (auto& Viewer : EditorEngine->GetViewers())
 		{

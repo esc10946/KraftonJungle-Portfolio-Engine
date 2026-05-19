@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "Editor/UI/EditorWidget.h"
 #include "Asset/SkeletalMeshTypes.h"
+#include <Viewer/FSkeletalMeshViewer.h>
 
 class USkeletalMeshComponent;
 class FEditorViewer;
@@ -67,7 +68,8 @@ private:
     bool    IsSocketNameUnique(const FString& Candidate, int32 IgnoreIdx) const;
 
 	void RenderBoneDetails(USkeletalMeshComponent* SkelComp);
-    void RenderContent(float DeltaTime);
+    void RenderSkeletalMeshContent(float DeltaTime);
+    void RenderAnimationContent(float DeltaTime);
 	void RenderDetachedDocumentChrome(bool& bDockRequested, bool& bCloseRequested);
 	void RenderDetachedDocumentToolbar(bool& bDockRequested);
     void Shutdown();
@@ -80,6 +82,7 @@ private:
 		FAnimationViewer* AnimationViewer,
 		FAnimTimelineUIState& State);
 
+	void DrawSelectedNotifyDetails(FAnimationViewer* AnimationViewer);
     TArray<TArray<int32>> Children;             // bone idx → child bone indices
     TArray<TArray<int32>> BoneToSocketIndices;  // bone idx → socket array indices
     FSkeletalMesh* CachedMesh = nullptr;
@@ -91,7 +94,7 @@ private:
     bool bPendingBoneTreeOpenStateValue = false;
     char  RenameBuffer[256] = {};
     bool  bMeshDirty = false;         // socket 등 mesh asset 데이터 변경 후 Save 트리거용
-	uint64 CleanMeshEditSignature = 0;
+    uint64 CleanMeshEditSignature = 0;
 	bool bHasCleanMeshEditSignature = false;
 
 	FEditorViewer* Viewer = nullptr;

@@ -3,6 +3,7 @@
 #include "Asset/AnimationSequenceSerializer.h"
 #include "Asset/BinarySerializer.h"
 #include "Asset/SkeletalMeshTypes.h"
+#include "Asset/StaticMeshTypes.h"
 #include "Asset/SkeletonSerializer.h"
 #include "Core/AssetPathPolicy.h"
 #include "Core/Paths.h"
@@ -25,18 +26,39 @@ namespace
         return FPaths::Normalize(FPaths::ToUtf8(Path.generic_wstring()));
     }
 
-    bool IsSiblingImportedAssetForSource(const std::filesystem::path& BinaryPath, const std::filesystem::path& SourceFbxPath)
-    {
-        if (BinaryPath.parent_path() != SourceFbxPath.parent_path())
-        {
+	bool IsSiblingImportedAssetForSource(const std::filesystem::path& BinaryPath, const std::filesystem::path& SourceFbxPath)
+	{
+		if (BinaryPath.parent_path() != SourceFbxPath.parent_path())
+		{
             return false;
         }
 
         const FString Stem = FPaths::ToUtf8(SourceFbxPath.stem().generic_wstring());
         const FString FileName = FPaths::ToUtf8(BinaryPath.filename().generic_wstring());
-        return FileName.rfind(Stem + "_skeleton_", 0) == 0
-            || FileName.rfind(Stem + "_skeletalmesh_", 0) == 0
-            || FileName.rfind(Stem + "_anim_", 0) == 0;
+		return FileName.rfind(Stem + "_skeleton_", 0) == 0
+			|| FileName.rfind(Stem + "_skeletalmesh_", 0) == 0
+			|| FileName.rfind(Stem + "_anim_", 0) == 0;
+	}
+
+    void AddRecordIfUnique(TArray<FImportedFbxAssetRecord>& Records, const FImportedFbxAssetRecord& Record)
+    {
+        if (Record.AssetPath.empty())
+        {
+            return;
+        }
+
+        auto ExistingIt = std::find_if(
+            Records.begin(),
+            Records.end(),
+            [&Record](const FImportedFbxAssetRecord& Existing)
+            {
+                return Existing.AssetPath == Record.AssetPath;
+            });
+
+        if (ExistingIt == Records.end())
+        {
+            Records.push_back(Record);
+        }
     }
 }
 
@@ -54,6 +76,20 @@ bool FImportedFbxAssetDiscovery::ReadImportedAssetRecord(const FString& BinaryPa
             OutRecord.AssetPath = NormalizedBinaryPath;
             OutRecord.Name = Skeleton.RootNodeName;
             OutRecord.BoneCount = static_cast<uint32>(Skeleton.Bones.size());
+            return true;
+        }
+    }
+
+    {
+        FBinarySerializer Serializer;
+        FStaticMesh Mesh;
+        if (Serializer.LoadStaticMesh(NormalizedBinaryPath, Mesh))
+        {
+            OutRecord = {};
+            OutRecord.Type = EImportedFbxAssetType::StaticMesh;
+            OutRecord.AssetPath = NormalizedBinaryPath;
+            OutRecord.SourcePath = Mesh.PathFileName;
+            OutRecord.Name = FPaths::ToUtf8(std::filesystem::path(FPaths::ToWide(NormalizedBinaryPath)).stem().wstring());
             return true;
         }
     }
@@ -136,7 +172,8 @@ TArray<FImportedFbxAssetRecord> FImportedFbxAssetDiscovery::DiscoverForSourceFbx
 {
     TArray<FImportedFbxAssetRecord> Result;
 
-    const std::filesystem::path SourcePath(FPaths::ToWide(FPaths::Normalize(SourceFbxPath)));
+    const FString NormalizedSourceFbxPath = FPaths::Normalize(SourceFbxPath);
+    const std::filesystem::path SourcePath(FPaths::ToWide(NormalizedSourceFbxPath));
     const std::filesystem::path ParentPath = SourcePath.parent_path();
 
     std::error_code Ec;
@@ -165,8 +202,17 @@ TArray<FImportedFbxAssetRecord> FImportedFbxAssetDiscovery::DiscoverForSourceFbx
         FImportedFbxAssetRecord Record;
         if (ReadImportedAssetRecord(NormalizePath(Entry.path()), Record))
         {
-            Result.push_back(Record);
+            AddRecordIfUnique(Result, Record);
         }
+    }
+
+    const FString StaticMeshBinaryPath = FAssetPathPolicy::MakeStaticMeshCacheBinaryPath(NormalizedSourceFbxPath);
+    FImportedFbxAssetRecord StaticMeshRecord;
+    if (ReadImportedAssetRecord(StaticMeshBinaryPath, StaticMeshRecord) &&
+        StaticMeshRecord.Type == EImportedFbxAssetType::StaticMesh &&
+        FPaths::Normalize(StaticMeshRecord.SourcePath) == NormalizedSourceFbxPath)
+    {
+        AddRecordIfUnique(Result, StaticMeshRecord);
     }
 
     std::sort(

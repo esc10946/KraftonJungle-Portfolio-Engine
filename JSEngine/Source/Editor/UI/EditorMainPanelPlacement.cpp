@@ -85,6 +85,26 @@ FString ResolveStaticMeshDropLoadPath(const FString& PayloadPath)
     return {};
 }
 
+bool ResolveImportedFbxStaticMeshPath(const FString& SourceFbxPath, FString& OutStaticMeshPath)
+{
+    TArray<FImportedFbxAssetRecord> Records = FResourceManager::Get().DiscoverImportedFbxAssets(SourceFbxPath);
+    auto MeshRecordIt = std::find_if(
+        Records.begin(),
+        Records.end(),
+        [](const FImportedFbxAssetRecord& Record)
+        {
+            return Record.Type == EImportedFbxAssetType::StaticMesh;
+        });
+
+    if (MeshRecordIt == Records.end())
+    {
+        return false;
+    }
+
+    OutStaticMeshPath = MeshRecordIt->AssetPath;
+    return true;
+}
+
 FString ResolveSkeletalMeshDropLoadPath(const FString& PayloadPath)
 {
     std::filesystem::path Path;
@@ -108,22 +128,6 @@ FString ResolveSkeletalMeshDropLoadPath(const FString& PayloadPath)
     return FPaths::Normalize(FPaths::ToUtf8(RelativePath.generic_wstring()));
 }
 
-FString ResolveFbxDropInspectPath(const FString& PayloadPath)
-{
-    std::filesystem::path Path;
-    std::filesystem::path RelativePath;
-    if (!ResolveProjectDropPath(PayloadPath, Path, RelativePath))
-    {
-        return {};
-    }
-
-    if (GetLowerExtension(Path) != L".fbx")
-    {
-        return {};
-    }
-
-    return FPaths::Normalize(FPaths::ToUtf8(Path.generic_wstring()));
-}
 }
 
 bool FEditorMainPanel::SpawnStaticMeshFromContentPath(
@@ -152,7 +156,17 @@ bool FEditorMainPanel::SpawnStaticMeshFromContentPath(
         return false;
     }
 
-    UStaticMesh* Mesh = FResourceManager::Get().LoadStaticMesh(MeshLoadPath);
+    FString FinalMeshLoadPath = MeshLoadPath;
+    if (GetLowerExtension(std::filesystem::path(FPaths::ToWide(MeshLoadPath))) == L".fbx")
+    {
+        if (!ResolveImportedFbxStaticMeshPath(MeshLoadPath, FinalMeshLoadPath))
+        {
+            PushFooterLog("Import FBX before placing static mesh");
+            return false;
+        }
+    }
+
+    UStaticMesh* Mesh = FResourceManager::Get().LoadStaticMesh(FinalMeshLoadPath);
     if (!Mesh || !Mesh->HasValidMeshData())
     {
         PushFooterLog("Failed to load dropped static mesh");
@@ -218,8 +232,8 @@ bool FEditorMainPanel::SpawnSkeletalMeshFromContentPath(
         TArray<FImportedFbxAssetRecord> Records = FResourceManager::Get().DiscoverImportedFbxAssets(MeshLoadPath);
         if (Records.empty())
         {
-            Records = FResourceManager::Get().ImportFbxAssets(MeshLoadPath);
-            EditorEngine->GetAssetService().RefreshAssetDatabase();
+            PushFooterLog("Import FBX before placing skeletal mesh");
+            return false;
         }
 
         auto MeshRecordIt = std::find_if(

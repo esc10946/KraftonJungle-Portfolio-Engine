@@ -18,11 +18,14 @@
 #include "Render/Resource/Material.h"
 #include "Render/Scene/RenderCommand.h"
 #include "Math/Utils.h"
+#include "Editor/Viewer/AnimationViewer.h"
+#include "Editor/Viewer/FSkeletalMeshViewer.h"
 
 #include <algorithm>
 #include <chrono>
 #include <cstring>
 #include <utility>
+#include <Viewport/SkeletalMeshViewportClient.h>
 
 namespace
 {
@@ -55,6 +58,46 @@ namespace
             OverlayCmd.MeshOverlay.Opacity = std::clamp(Opacity, 0.05f, 1.0f);
             Bus.AddCommand(ERenderPass::MeshOverlay, std::move(OverlayCmd));
         }
+    }
+
+    const FSkeletalViewerShowFlags* GetViewerShowFlags(const FEditorViewer* Viewer)
+    {
+        if (const FSkeletalMeshViewer* SkeletalViewer = dynamic_cast<const FSkeletalMeshViewer*>(Viewer))
+        {
+            return &SkeletalViewer->GetClient().GetShowFlags();
+        }
+
+        if (const FAnimationViewer* AnimationViewer = dynamic_cast<const FAnimationViewer*>(Viewer))
+        {
+            return &AnimationViewer->GetClient().GetShowFlags();
+        }
+
+        return nullptr;
+    }
+
+    ASkeletalMeshActor* GetViewerPreviewActor(FEditorViewer* Viewer)
+    {
+        if (FSkeletalMeshViewer* SkeletalViewer = dynamic_cast<FSkeletalMeshViewer*>(Viewer))
+        {
+            return SkeletalViewer->GetViewTarget();
+        }
+
+        if (FAnimationViewer* AnimationViewer = dynamic_cast<FAnimationViewer*>(Viewer))
+        {
+            return AnimationViewer->GetPreviewActor();
+        }
+
+        return nullptr;
+    }
+
+    int32 GetViewerSelectedBoneIndex(const FEditorViewer* Viewer)
+    {
+        if (const FSkeletalMeshViewer* SkeletalViewer = dynamic_cast<const FSkeletalMeshViewer*>(Viewer))
+        {
+            return SkeletalViewer->GetSelectedBoneIndex();
+        }
+
+        return -1;
     }
 
     void ApplyPIECameraViewEffectsToBus(APlayerController* PlayerController, FRenderBus& Bus)
@@ -333,7 +376,7 @@ void FEditorRenderPipeline::RenderViewport(FRenderer& Renderer, int32 ViewportIn
 	
 	const FFrustum& ViewFrustum = SceneView.CameraFrustum;
 	const bool bDrawEditorViewportHelpers = VC->AllowsEditorWorldControl();
-	Collector.CollectWorld(World, ShowFlags, ViewMode, Bus, &ViewFrustum, bDrawEditorViewportHelpers);
+    Collector.CollectWorld(World, ShowFlags, ViewMode, Bus, &ViewFrustum, bDrawEditorViewportHelpers);
     ViewportCullingStats[ViewportIndex] = Collector.GetLastCullingStats();
     ViewportDecalStats[ViewportIndex] = Collector.GetLastDecalStats();
     ViewportLightStats[ViewportIndex] = Collector.GetLastLightStats();
@@ -430,7 +473,15 @@ void FEditorRenderPipeline::RenderViewerViewport(FRenderer& Renderer)
             continue;
 
         const FEditorSettings& Settings = Editor->GetSettings();
-        const FSkeletalViewerShowFlags& VFlags = Viewers[i]->GetClient().GetShowFlags();
+        const FSkeletalViewerShowFlags* ViewerFlags = GetViewerShowFlags(Viewers[i].get());
+        if (!ViewerFlags)
+        {
+            continue;
+        }
+
+        const FSkeletalViewerShowFlags& VFlags = *ViewerFlags;
+        ASkeletalMeshActor* ViewerActor = GetViewerPreviewActor(Viewers[i].get());
+        const int32 SelectedBoneIndex = GetViewerSelectedBoneIndex(Viewers[i].get());
 
         // ViewerPreview는 Level Editor의 전역 표시 상태를 상속하지 않는다.
         // Asset 검사 도구로서 필요한 표면/오버레이만 명시적으로 켠다.
@@ -497,12 +548,12 @@ void FEditorRenderPipeline::RenderViewerViewport(FRenderer& Renderer)
 
         if (VFlags.bShowSkeletalMesh && VFlags.bShowBoneWeightHeatmap)
         {
-            if (ASkeletalMeshActor* ViewTarget = Viewers[i]->GetViewTarget())
+            if (ViewerActor)
             {
                 CollectBoneWeightHeatmapOverlay(
                     Bus,
-                    ViewTarget->GetSkeletalMeshComponent(),
-                    Viewers[i]->GetSelectedBoneIndex(),
+                    ViewerActor->GetSkeletalMeshComponent(),
+                    SelectedBoneIndex,
                     VFlags.BoneWeightHeatmapOpacity);
             }
         }
@@ -546,17 +597,16 @@ void FEditorRenderPipeline::RenderViewerViewport(FRenderer& Renderer)
         {
             if (VFlags.bShowBones)
             {
-                if (ASkeletalMeshActor* ViewTarget = Viewers[i]->GetViewTarget())
+                if (ViewerActor)
                 {
-                    if (USkeletalMeshComponent* SkComp = ViewTarget->GetSkeletalMeshComponent())
+                    if (USkeletalMeshComponent* SkComp = ViewerActor->GetSkeletalMeshComponent())
                     {
                         SkComp->EnsureSkinningUpdated();   // 본 자세 최신화 보장
                         if (VFlags.bShowOnlySelectedBone)
                         {
-                            const int32 BoneIdx = Viewers[i]->GetSelectedBoneIndex();
-                            if (BoneIdx >= 0)
+                            if (SelectedBoneIndex >= 0)
                             {
-                                Collector.CollectSingleBone(SkComp, BoneIdx, Bus);
+                                Collector.CollectSingleBone(SkComp, SelectedBoneIndex, Bus);
                             }
                         }
                         else
@@ -570,9 +620,9 @@ void FEditorRenderPipeline::RenderViewerViewport(FRenderer& Renderer)
 
         if (VFlags.bShowBoundingBox)
         {
-            if (ASkeletalMeshActor* ViewTarget = Viewers[i]->GetViewTarget())
+            if (ViewerActor)
             {
-                if (USkeletalMeshComponent* SkComp = ViewTarget->GetSkeletalMeshComponent())
+                if (USkeletalMeshComponent* SkComp = ViewerActor->GetSkeletalMeshComponent())
                 {
                     FRenderCommand BoundsCmd = {};
                     const FAABB Bounds = SkComp->GetWorldAABB();

@@ -29,8 +29,14 @@ FFbxMaterialLoadService::FFbxMaterialLoadService(FResourceManager& InResourceMan
 {
 }
 
-bool FFbxMaterialLoadService::Load(const FString& FbxFilePath, EMaterialShaderType ShaderType, ID3D11Device* Device)
+bool FFbxMaterialLoadService::Load(
+    const FString& FbxFilePath,
+    EMaterialShaderType ShaderType,
+    ID3D11Device* Device)
 {
+    (void)ShaderType;
+    (void)Device;
+
     const FString NormalizedFbxPath = FPaths::Normalize(FbxFilePath);
     if (NormalizedFbxPath.empty())
     {
@@ -84,6 +90,28 @@ bool FFbxMaterialLoadService::Load(const FString& FbxFilePath, EMaterialShaderTy
         UE_LOG_WARNING("[FbxMaterialLoadService] Cached material exists but could not be loaded. Automatic FBX material reimport is disabled: %s",
             NormalizedFbxPath.c_str());
         return false;
+    }
+
+    UE_LOG_WARNING("[FbxMaterialLoadService] Cached material missing. Explicit FBX import is required: %s",
+        NormalizedFbxPath.c_str());
+    return false;
+}
+
+bool FFbxMaterialLoadService::ImportFromFbx(
+    const FString& FbxFilePath,
+    EMaterialShaderType ShaderType,
+    ID3D11Device* Device)
+{
+    const FString NormalizedFbxPath = FPaths::Normalize(FbxFilePath);
+    if (NormalizedFbxPath.empty())
+    {
+        return false;
+    }
+
+    const FString FirstMaterialKey = MakeFbxMaterialAssetPath(NormalizedFbxPath, 0);
+    if (ResourceManager.MaterialCache.ContainsMaterialKey(FirstMaterialKey) || FAssetPathPolicy::FileExists(FirstMaterialKey))
+    {
+        return Load(NormalizedFbxPath, ShaderType, Device);
     }
 
     TMap<FString, UMaterial*> Parsed;

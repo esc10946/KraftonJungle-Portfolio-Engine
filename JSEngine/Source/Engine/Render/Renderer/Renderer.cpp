@@ -373,12 +373,7 @@ void FRenderer::Release()
     SceneFinalRTV.Reset();
     SceneFinalSRV.Reset();
 	
-	for (int i = 0; i < ViewerViewportResources.size(); i++)
-	{
-        ViewerViewportResources[i].reset();
-	}
-
-	ViewerViewportResources.clear();
+    ReleaseViewerViewportResources();
 
 	EditorLineBatcher.Release();
 	EditorOverlayLineBatcher.Release();
@@ -1027,6 +1022,35 @@ FViewportRenderResource& FRenderer::AcquireViewerViewportResource(uint32 Index, 
     InitializeRenderResource(Resource, W, H);
     InitializeEditorIdPickResource(Resource, W, H);
     return Resource;
+}
+
+void FRenderer::ReleaseViewerViewportResources()
+{
+    for (std::unique_ptr<FViewportRenderResource>& Resource : ViewerViewportResources)
+    {
+        if (Resource)
+        {
+            ReleaseRenderResource(*Resource);
+        }
+    }
+
+    ViewerViewportResources.clear();
+}
+
+void FRenderer::ReleaseViewerViewportResource(uint32 Index)
+{
+    if (Index >= static_cast<uint32>(ViewerViewportResources.size()))
+    {
+        return;
+    }
+
+    std::unique_ptr<FViewportRenderResource>& Resource = ViewerViewportResources[Index];
+    if (Resource)
+    {
+        ReleaseRenderResource(*Resource);
+    }
+
+    ViewerViewportResources.erase(ViewerViewportResources.begin() + Index);
 }
 
 void FRenderer::InitializeViewportResource(uint32 Width, uint32 Height, int32 Index)

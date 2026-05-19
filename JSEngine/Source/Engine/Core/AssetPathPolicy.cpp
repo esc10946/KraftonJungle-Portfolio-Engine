@@ -1,4 +1,4 @@
-#include "Core/AssetPathPolicy.h"
+﻿#include "Core/AssetPathPolicy.h"
 
 #include "Core/Paths.h"
 
@@ -60,8 +60,9 @@ bool FAssetPathPolicy::IsAnimationSequenceAssetPath(const FString& Path)
 {
 	std::filesystem::path FsPath(FPaths::ToWide(FPaths::Normalize(Path)));
 	std::wstring Extension = FsPath.extension().wstring();
-	std::transform(Extension.begin(), Extension.end(), Extension.begin(), ::towlower);
-	return Extension == L".animsequence";
+    std::transform(Extension.begin(), Extension.end(), Extension.begin(), ::towlower);
+    // Keep .animsequence accepted while .anim becomes the authored asset format.
+	return Extension == L".anim" || Extension == L".animsequence";
 }
 
 bool FAssetPathPolicy::IsSequenceAssetPath(const FString& Path)
@@ -202,6 +203,15 @@ FString FAssetPathPolicy::MakeSiblingAnimationSequenceBinaryPath(const FString& 
 	return PathToNormalizedString(MakeSiblingBinaryPath(SourceFbxPath, "anim", SequenceName));
 }
 
+FString FAssetPathPolicy::MakeSiblingAnimationSequenceAssetPath(const FString& SourceFbxPath, const FString& SequenceName)
+{
+	std::filesystem::path SourceFsPath(FPaths::ToWide(FPaths::Normalize(SourceFbxPath)));
+	std::filesystem::path AssetFileName = SourceFsPath.stem();
+	AssetFileName += FPaths::ToWide("_anim_" + SanitizeImportedAssetToken(SequenceName));
+	AssetFileName += L".anim";
+	return PathToNormalizedString(SourceFsPath.parent_path() / AssetFileName);
+}
+
 FString FAssetPathPolicy::MakeAssetRelativePath(const FString& FromAssetPath, const FString& ToAssetPath)
 {
 	std::filesystem::path FromPath(FPaths::ToWide(FPaths::Normalize(FromAssetPath)));
@@ -240,7 +250,7 @@ FString FAssetPathPolicy::ResolveAssetRelativePath(const FString& FromAssetPath,
 
 FString FAssetPathPolicy::MakeWritableSkeletalMeshCacheBinaryPath(const FString& SourcePath)
 {
-	// StaticMesh?� stem ??겹칠 ???�어 SkeletalMesh ?�용 루트�?분리.
+	// Keep skeletal mesh cache files in a separate root from static mesh cache files.
 	const FString NormalizedSourcePath = FPaths::Normalize(SourcePath);
 	std::filesystem::path SourceFsPath(FPaths::ToWide(NormalizedSourcePath));
 

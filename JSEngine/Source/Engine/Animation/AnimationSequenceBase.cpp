@@ -1,4 +1,4 @@
-#include "Animation/AnimationSequenceBase.h"
+﻿#include "Animation/AnimationSequenceBase.h"
 
 void UAnimationSequenceBase::AddNotify(const FAnimNotifyEvent& Notify)
 {
@@ -8,6 +8,13 @@ void UAnimationSequenceBase::AddNotify(const FAnimNotifyEvent& Notify)
     }
 
     Notifies.push_back(Notify);
+    bIsDirty = true;
+}
+
+void UAnimationSequenceBase::ClearNotifies()
+{
+    Notifies.clear();
+	bIsDirty = true;
 }
 
 bool UAnimationSequenceBase::RemoveNotifyAt(int32 NotifyIndex)
@@ -18,5 +25,6 @@ bool UAnimationSequenceBase::RemoveNotifyAt(int32 NotifyIndex)
     }
 
     Notifies.erase(Notifies.begin() + NotifyIndex);
+    bIsDirty = true;
     return true;
 }

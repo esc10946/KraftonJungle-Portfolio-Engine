@@ -1,10 +1,11 @@
-#include "Asset/CurveFloatAsset.h"
+﻿#include "Asset/CurveFloatAsset.h"
 
 #include "Math/Utils.h"
 #include "Object/ObjectFactory.h"
 #include "Serialization/Archive.h"
 
 #include <algorithm>
+#include "AnimationSequence.h"
 
 DEFINE_CLASS(UCurveFloatAsset, UObject)
 REGISTER_FACTORY(UCurveFloatAsset)

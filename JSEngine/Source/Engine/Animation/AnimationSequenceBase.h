@@ -26,9 +26,16 @@ public:
     virtual bool SamplePose(const USkeletalMesh* TargetMesh, float Time, TArray<FMatrix>& OutLocalPose) const { return false; }
 
     void AddNotify(const FAnimNotifyEvent& Notify);
+    void ClearNotifies();
     bool RemoveNotifyAt(int32 NotifyIndex);
     const TArray<FAnimNotifyEvent>& GetNotifies() const { return Notifies; }
+    TArray<FAnimNotifyEvent>& GetNotifies() { return Notifies; }
+
+	bool GetDirtyFlag() {return bIsDirty;}
+    void ResetDirty() { bIsDirty = false; }
+    void MarkDirty() {bIsDirty = true; }
 
 protected:
     TArray<FAnimNotifyEvent> Notifies;
+	bool bIsDirty = false;
 };

@@ -1,5 +1,7 @@
 #include "Editor/UI/EditorTabManager.h"
 
+#include "Core/AssetPathPolicy.h"
+
 #include <algorithm>
 #include <cstdio>
 #include <utility>
@@ -12,7 +14,9 @@ bool FEditorTabId::Matches(const FEditorTabId& Other) const
 FEditorTabId MakeEditorViewerTabId(const FString& ViewerFileName, const void* FallbackAddress)
 {
 	FEditorTabId TabId;
-	TabId.Kind = EEditorTabKind::SkeletalMeshViewer;
+	TabId.Kind = FAssetPathPolicy::IsAnimationSequenceAssetPath(ViewerFileName)
+		? EEditorTabKind::AnimationViewer
+		: EEditorTabKind::SkeletalMeshViewer;
 	TabId.PayloadId = ViewerFileName;
 	if (TabId.PayloadId.empty() && FallbackAddress)
 	{
@@ -27,11 +31,14 @@ FString MakeEditorViewerTabLabel(const FString& ViewerFileName)
 {
 	if (ViewerFileName.empty())
 	{
-		return "Skeletal Mesh Viewer";
+		return "Viewer";
 	}
 
 	const size_t SlashIndex = ViewerFileName.find_last_of("/\\");
-	return SlashIndex == FString::npos ? ViewerFileName : ViewerFileName.substr(SlashIndex + 1);
+	const FString FileName = SlashIndex == FString::npos ? ViewerFileName : ViewerFileName.substr(SlashIndex + 1);
+	return FAssetPathPolicy::IsAnimationSequenceAssetPath(ViewerFileName)
+		? "Animation: " + FileName
+		: FileName;
 }
 
 FEditorTabId MakeRuntimeUIPreviewTabId()

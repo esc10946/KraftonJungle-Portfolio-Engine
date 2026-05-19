@@ -137,7 +137,11 @@ void FEditorAssetService::RefreshAssetDatabase()
 	const std::filesystem::path AssetRoot = std::filesystem::path(FPaths::RootDir()) / L"Asset";
 	for (const FImportedFbxAssetRecord& Record : ImportedFbxDiscovery.DiscoverInDirectory(FPaths::ToUtf8(AssetRoot.generic_wstring())))
 	{
-		if (Record.Type == EImportedFbxAssetType::SkeletalMesh)
+		if (Record.Type == EImportedFbxAssetType::StaticMesh)
+		{
+			FEditorAssetService::AddUniquePath(StaticMeshPaths, ToProjectRelativePathIfAbsolute(Record.AssetPath));
+		}
+		else if (Record.Type == EImportedFbxAssetType::SkeletalMesh)
 		{
 			FEditorAssetService::AddUniquePath(SkeletalMeshPaths, ToProjectRelativePathIfAbsolute(Record.AssetPath));
 		}

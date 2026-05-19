@@ -1140,9 +1140,9 @@ void FEditorContentBrowserWidget::DrawContentTile(const FContentItem& Item, cons
 		{
 			EditorEngine->GetNotificationService().Info("Prefab selected. Drag to viewport or right-click to spawn.");
 		}
-		else if (Item.Extension == ".fbx")
+		else if (Item.Extension == ".anim" || Item.Extension == ".animsequence" || Item.Extension == ".fbx")
 		{
-			RequestOpenFbxAsset(Item.Path);
+			RequestOpenAsset(Item.Path);
 		}
 		else if (Item.Extension == ".rml")
 		{
@@ -1168,7 +1168,7 @@ void FEditorContentBrowserWidget::DrawContentTile(const FContentItem& Item, cons
 	ImGui::PopID();
 }
 
-void FEditorContentBrowserWidget::RequestOpenFbxAsset(const std::filesystem::path& Path)
+void FEditorContentBrowserWidget::RequestOpenAsset(const std::filesystem::path& Path)
 {
 	if (EditorEngine)
 	{
