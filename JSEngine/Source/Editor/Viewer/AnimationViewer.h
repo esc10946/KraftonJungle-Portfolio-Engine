@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "EditorViewer.h"
 #include "Editor/Viewport/SkeletalMeshViewportClient.h"
@@ -39,6 +39,7 @@ public:
     void PlayAnimation();
     void PauseAnimation();
     void StopAnimation();
+    bool SaveAnimation();
 
     void SetAnimationTime(float Time);
     void SetLooping(bool bInLooping);

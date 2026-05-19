@@ -27,6 +27,7 @@
 #include <chrono>
 #endif
 #include <filesystem>
+#include <iterator>
 #include <unordered_set>
 #include <utility>
 #include "ImGui/imgui.h"
@@ -685,7 +686,6 @@ FAnimationViewer* UEditorEngine::CreateAnimationViewer(FString InFileName)
     FAnimationViewer* Result = NewViewer.get();
     Viewers.push_back(std::move(NewViewer));
 
-	Result->SetAnimationSequence(InFileName);
     return Result;
 }
 
@@ -695,6 +695,8 @@ void UEditorEngine::RemoveViewer(FEditorViewer* InViewer)
     {
         if (it->get() == InViewer)
         {
+            const uint32 ViewerIndex = static_cast<uint32>(std::distance(Viewers.begin(), it));
+
             MainPanel.CloseViewer(InViewer);
 			
             UWorld* ViewerWorld = nullptr;
@@ -706,6 +708,7 @@ void UEditorEngine::RemoveViewer(FEditorViewer* InViewer)
             (*it)->Shutdown();
             UnregisterWorld(ViewerWorld);
             Viewers.erase(it);
+            GetRenderer().ReleaseViewerViewportResource(ViewerIndex);
             return;
         }
     }

@@ -1,4 +1,4 @@
-#include "Core/AnimationSequenceLoadService.h"
+﻿#include "Core/AnimationSequenceLoadService.h"
 
 #include "Asset/AnimationSequence.h"
 #include "Core/AssetPathPolicy.h"
@@ -173,7 +173,8 @@ UAnimationSequence* FAnimationSequenceLoadService::LoadAnimationAsset(const FStr
            Sequence ? Sequence->Name.c_str() : "",
            LoadedSequence->GetNotifies().size(),
            Sequence ? Sequence->DurationSeconds : 0.0f);
-
+	
+	LoadedSequence->ResetDirty();
     return LoadedSequence;
 }
 

@@ -183,6 +183,8 @@ public:
     FViewportRenderResource& AcquireViewerViewportResource(uint32 Index, uint32 W, uint32 H);
     void InitializeViewportResource(uint32 Width, uint32 Height, int32 Index);
     void ReleaseViewportResource(int32 Index);
+    void ReleaseViewerViewportResource(uint32 Index);
+    void ReleaseViewerViewportResources();
 	FViewportRenderResource& AcquirePreviewResource(uint32 W, uint32 H);
 	void ReleasePreviewResource();
 

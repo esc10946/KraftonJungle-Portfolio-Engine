@@ -179,11 +179,6 @@ void FAnimationViewer::ChangeTarget(const FString& InFileName)
 {
     FEditorViewer::ChangeTarget(InFileName);
     ClearAnimationSequence();
-
-    if (FAssetPathPolicy::IsAnimationSequenceAssetPath(InFileName))
-    {
-        SetAnimationSequence(InFileName);
-    }
 }
 
 bool FAnimationViewer::SetPreviewSkeletalMesh(const FString& SkeletalMeshPath)
@@ -324,6 +319,21 @@ void FAnimationViewer::StopAnimation()
     {
         SkelComp->ResetToBindPose();
     }
+}
+
+bool FAnimationViewer::SaveAnimation()
+{
+    if (!CurrentAnimationSequence)
+    {
+        return false;
+    }
+
+    const bool bSaved = FResourceManager::Get().SaveAnimationSequence(CurrentAnimationSequence);
+    if (bSaved)
+    {
+        CurrentAnimationSequence->ResetDirty();
+    }
+    return bSaved;
 }
 
 void FAnimationViewer::SetLooping(bool bInLooping)

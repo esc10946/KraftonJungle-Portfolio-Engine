@@ -29,7 +29,13 @@ public:
     void ClearNotifies();
     bool RemoveNotifyAt(int32 NotifyIndex);
     const TArray<FAnimNotifyEvent>& GetNotifies() const { return Notifies; }
+    TArray<FAnimNotifyEvent>& GetNotifies() { return Notifies; }
+
+	bool GetDirtyFlag() {return bIsDirty;}
+    void ResetDirty() { bIsDirty = false; }
+    void MarkDirty() {bIsDirty = true; }
 
 protected:
     TArray<FAnimNotifyEvent> Notifies;
+	bool bIsDirty = false;
 };
