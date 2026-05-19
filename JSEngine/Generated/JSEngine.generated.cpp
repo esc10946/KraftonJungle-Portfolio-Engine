@@ -3,7 +3,9 @@
 #include "../Source/Engine/Animation/ActorSequence.h"
 #include "../Source/Engine/Animation/AnimationSequenceBase.h"
 #include "../Source/Engine/Animation/AnimationStateMachine.h"
-#include "../Source/Engine/Animation/AnimInstance.h"
+#include "../Source/Engine/Animation/AnimInstanceBase.h"
+#include "../Source/Engine/Animation/AnimSingleNodeInstance.h"
+#include "../Source/Engine/Animation/StateMachineAnimInstance.h"
 #include "../Source/Engine/Asset/AnimationSequence.h"
 #include "../Source/Engine/Component/ActorSequenceComponent.h"
 #include "../Source/Engine/Component/BillboardComponent.h"
@@ -324,22 +326,22 @@ namespace
     static FAutoRegisterUAnimStateMachineAsset GAutoRegisterUAnimStateMachineAsset;
 }
 
-const FTypeInfo UAnimInstance::s_TypeInfo = {
-    "UAnimInstance",
+const FTypeInfo UAnimInstanceBase::s_TypeInfo = {
+    "UAnimInstanceBase",
     &UObject::s_TypeInfo,
-    sizeof(UAnimInstance)
+    sizeof(UAnimInstanceBase)
 };
 
-UClass* UAnimInstance::StaticClass()
+UClass* UAnimInstanceBase::StaticClass()
 {
     static UClass Class(
-        "UAnimInstance",
+        "UAnimInstanceBase",
         Super::StaticClass(),
-        sizeof(UAnimInstance),
+        sizeof(UAnimInstanceBase),
         CF_None,
         []() -> UObject*
         {
-            return UObjectManager::Get().CreateObject<UAnimInstance>();
+            return UObjectManager::Get().CreateObject<UAnimInstanceBase>();
         });
 
     static bool bRegistered = false;
@@ -349,7 +351,7 @@ UClass* UAnimInstance::StaticClass()
 
         Class.AddProperty(MakeObjectProperty(
                             "SkelMeshComponent",
-                            offsetof(UAnimInstance, SkelMeshComponent),
+                            offsetof(UAnimInstanceBase, SkelMeshComponent),
                             sizeof(USkeletalMeshComponent*),
                             EPropertyFlags::Transient |
                                 EPropertyFlags::Read,
@@ -363,20 +365,20 @@ UClass* UAnimInstance::StaticClass()
 
 namespace
 {
-    struct FAutoRegisterUAnimInstance
+    struct FAutoRegisterUAnimInstanceBase
     {
-        FAutoRegisterUAnimInstance()
+        FAutoRegisterUAnimInstanceBase()
         {
-            UAnimInstance::StaticClass();
+            UAnimInstanceBase::StaticClass();
         }
     };
 
-    static FAutoRegisterUAnimInstance GAutoRegisterUAnimInstance;
+    static FAutoRegisterUAnimInstanceBase GAutoRegisterUAnimInstanceBase;
 }
 
 const FTypeInfo UAnimSingleNodeInstance::s_TypeInfo = {
     "UAnimSingleNodeInstance",
-    &UAnimInstance::s_TypeInfo,
+    &UAnimInstanceBase::s_TypeInfo,
     sizeof(UAnimSingleNodeInstance)
 };
 
@@ -397,61 +399,6 @@ UClass* UAnimSingleNodeInstance::StaticClass()
     {
         bRegistered = true;
 
-        Class.AddProperty(MakeObjectProperty(
-                            "Sequence",
-                            offsetof(UAnimSingleNodeInstance, Sequence),
-                            sizeof(UAnimationSequenceBase*),
-                            EPropertyFlags::Read |
-                                EPropertyFlags::Write |
-                                EPropertyFlags::Edit |
-                                EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite,
-                            UAnimationSequenceBase::StaticClass()));
-
-        Class.AddProperty(MakeProperty<FFloatProperty>(
-                            "CurrentTime",
-                            offsetof(UAnimSingleNodeInstance, CurrentTime),
-                            sizeof(float),
-                            EPropertyFlags::Read |
-                                EPropertyFlags::Write |
-                                EPropertyFlags::Edit |
-                                EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite));
-
-        Class.AddProperty(MakeProperty<FFloatProperty>(
-                            "PlayRate",
-                            offsetof(UAnimSingleNodeInstance, PlayRate),
-                            sizeof(float),
-                            EPropertyFlags::Read |
-                                EPropertyFlags::Write |
-                                EPropertyFlags::Edit |
-                                EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite));
-
-        Class.AddProperty(MakeProperty<FBoolProperty>(
-                            "bPlaying",
-                            offsetof(UAnimSingleNodeInstance, bPlaying),
-                            sizeof(bool),
-                            EPropertyFlags::Read |
-                                EPropertyFlags::LuaRead));
-
-        Class.AddProperty(MakeProperty<FBoolProperty>(
-                            "bPaused",
-                            offsetof(UAnimSingleNodeInstance, bPaused),
-                            sizeof(bool),
-                            EPropertyFlags::Read |
-                                EPropertyFlags::LuaRead));
-
-        Class.AddProperty(MakeProperty<FBoolProperty>(
-                            "bLooping",
-                            offsetof(UAnimSingleNodeInstance, bLooping),
-                            sizeof(bool),
-                            EPropertyFlags::Read |
-                                EPropertyFlags::Write |
-                                EPropertyFlags::Edit |
-                                EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite));
-
         FReflectionRegistry::Get().RegisterUClass(&Class);
     }
 
@@ -469,6 +416,48 @@ namespace
     };
 
     static FAutoRegisterUAnimSingleNodeInstance GAutoRegisterUAnimSingleNodeInstance;
+}
+
+const FTypeInfo UStateMachineAnimInstance::s_TypeInfo = {
+    "UStateMachineAnimInstance",
+    &UAnimInstanceBase::s_TypeInfo,
+    sizeof(UStateMachineAnimInstance)
+};
+
+UClass* UStateMachineAnimInstance::StaticClass()
+{
+    static UClass Class(
+        "UStateMachineAnimInstance",
+        Super::StaticClass(),
+        sizeof(UStateMachineAnimInstance),
+        CF_None,
+        []() -> UObject*
+        {
+            return UObjectManager::Get().CreateObject<UStateMachineAnimInstance>();
+        });
+
+    static bool bRegistered = false;
+    if (!bRegistered)
+    {
+        bRegistered = true;
+
+        FReflectionRegistry::Get().RegisterUClass(&Class);
+    }
+
+    return &Class;
+}
+
+namespace
+{
+    struct FAutoRegisterUStateMachineAnimInstance
+    {
+        FAutoRegisterUStateMachineAnimInstance()
+        {
+            UStateMachineAnimInstance::StaticClass();
+        }
+    };
+
+    static FAutoRegisterUStateMachineAnimInstance GAutoRegisterUStateMachineAnimInstance;
 }
 
 const FTypeInfo UAnimationSequence::s_TypeInfo = {

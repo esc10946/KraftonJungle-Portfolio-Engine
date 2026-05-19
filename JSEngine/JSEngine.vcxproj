@@ -619,10 +619,13 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientRelease|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="Source\Engine\Animation\ActorSequence.cpp" />
-    <ClCompile Include="Source\Engine\Animation\AnimInstance.cpp" />
+    <ClCompile Include="Source\Engine\Animation\AnimInstanceBase.cpp" />
+    <ClCompile Include="Source\Engine\Animation\AnimSequencePlayer.cpp" />
+    <ClCompile Include="Source\Engine\Animation\AnimSingleNodeInstance.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimationSequenceBase.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimationStateMachine.cpp" />
     <ClCompile Include="Source\Engine\Animation\CurvePlayback.cpp" />
+    <ClCompile Include="Source\Engine\Animation\StateMachineAnimInstance.cpp" />
     <ClCompile Include="Source\Engine\Animation\TimelinePlayer.cpp" />
     <ClCompile Include="Source\Engine\Asset\AnimationSequence.cpp" />
     <ClCompile Include="Source\Engine\Asset\AnimationSequenceSerializer.cpp" />
@@ -962,10 +965,13 @@
     <ClInclude Include="Source\Editor\Viewport\SkeletalMeshViewportClient.h" />
     <ClInclude Include="Source\Editor\Viewport\ViewportLayout.h" />
     <ClInclude Include="Source\Engine\Animation\ActorSequence.h" />
-    <ClInclude Include="Source\Engine\Animation\AnimInstance.h" />
+    <ClInclude Include="Source\Engine\Animation\AnimInstanceBase.h" />
+    <ClInclude Include="Source\Engine\Animation\AnimSequencePlayer.h" />
+    <ClInclude Include="Source\Engine\Animation\AnimSingleNodeInstance.h" />
     <ClInclude Include="Source\Engine\Animation\AnimationSequenceBase.h" />
     <ClInclude Include="Source\Engine\Animation\AnimationStateMachine.h" />
     <ClInclude Include="Source\Engine\Animation\CurvePlayback.h" />
+    <ClInclude Include="Source\Engine\Animation\StateMachineAnimInstance.h" />
     <ClInclude Include="Source\Engine\Animation\TimelinePlayer.h" />
     <ClInclude Include="Source\Engine\Asset\AnimationSequence.h" />
     <ClInclude Include="Source\Engine\Asset\AnimationSequenceSerializer.h" />

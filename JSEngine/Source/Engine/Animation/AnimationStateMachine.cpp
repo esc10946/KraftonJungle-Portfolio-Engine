@@ -1,6 +1,6 @@
 ﻿#include "Animation/AnimationStateMachine.h"
 
-#include "Animation/AnimInstance.h"
+#include "Animation/AnimInstanceBase.h"
 #include "Core/Logging/Log.h"
 #include "Core/Paths.h"
 #include "Object/Object.h"
@@ -51,6 +51,27 @@ int32 GetJsonInt(json::JSON& Object, const char* Key, int32 DefaultValue)
     }
 
     return static_cast<int32>(Object[Key].ToInt());
+}
+
+EAnimBlendEaseOption GetJsonEaseOption(json::JSON& Object, const char* Key)
+{
+    const FString EaseOption = GetJsonString(Object, Key, "Linear");   
+    if (EaseOption == "EaseIn")
+    {
+        return EAnimBlendEaseOption::EaseIn;
+    }
+
+    if (EaseOption == "EaseOut")
+    {
+        return EAnimBlendEaseOption::EaseOut;
+    }
+
+    if (EaseOption == "EaseInOut")
+    {
+        return EAnimBlendEaseOption::EaseInOut;
+    }
+
+    return EAnimBlendEaseOption::Linear;
 }
 
 bool IsConditionNameKnown(const FName& ConditionName)
@@ -120,7 +141,8 @@ bool UAnimStateMachineAsset::AddTransition(
     const FName& ToState,
     const FName& ConditionName,
     float BlendTime,
-    int32 Priority)
+    int32 Priority,
+    EAnimBlendEaseOption EaseOption)
 {
     if (!FromState.IsValid() || !ToState.IsValid() || !ConditionName.IsValid())
     {
@@ -143,6 +165,7 @@ bool UAnimStateMachineAsset::AddTransition(
     Transition.ToState = ToState;
     Transition.ConditionName = ConditionName;
     Transition.BlendTime = std::max(0.0f, BlendTime);
+    Transition.EaseOption = EaseOption;
     Transition.Priority = Priority;
     Transitions.push_back(Transition);
     return true;
@@ -172,7 +195,7 @@ TArray<const FAnimTransitionDesc*> UAnimStateMachineAsset::GetTransitionsFrom(co
         }
     }
 
-    std::sort(
+    std::stable_sort(
         Result.begin(),
         Result.end(),
         [](const FAnimTransitionDesc* A, const FAnimTransitionDesc* B)
@@ -302,7 +325,8 @@ UAnimStateMachineAsset* UAnimStateMachineAsset::LoadFromJsonFile(const FString& 
                 FName(GetJsonString(TransitionNode, "to")),
                 FName(GetJsonString(TransitionNode, "condition")),
                 GetJsonFloat(TransitionNode, "blendTime", 0.0f),
-                GetJsonInt(TransitionNode, "priority", 0));
+                GetJsonInt(TransitionNode, "priority", 0),
+                GetJsonEaseOption(TransitionNode, "easeOption"));
         }
     }
 
@@ -336,13 +360,14 @@ bool UAnimStateMachineAsset::HasDuplicateTransition(
     return false;
 }
 
-void FAnimStateMachineInstance::Initialize(UAnimStateMachineAsset* InAsset, UAnimInstance* InAnimInstance)
+void FAnimStateMachineNode::Initialize(UAnimStateMachineAsset* InAsset, UAnimInstanceBase* InAnimInstance)
 {
     Asset = InAsset;
     AnimInstance = InAnimInstance;
     CurrentState = FName();
     PreviousState = FName();
     StateElapsedTime = 0.0f;
+    WarnedMissingConditions.clear();
 
     if (!Asset)
     {
@@ -356,10 +381,10 @@ void FAnimStateMachineInstance::Initialize(UAnimStateMachineAsset* InAsset, UAni
         return;
     }
 
-    ChangeState(Asset->GetEntryState(), 0.0f);
+    ChangeState(Asset->GetEntryState(), 0.0f, EAnimBlendEaseOption::Linear);
 }
 
-void FAnimStateMachineInstance::Update(float DeltaSeconds, const FAnimStateMachineContext& Context)
+void FAnimStateMachineNode::Update(float DeltaSeconds, const FAnimStateMachineContext& Context)
 {
     if (!Asset || !AnimInstance || !CurrentState.IsValid())
     {
@@ -378,21 +403,22 @@ void FAnimStateMachineInstance::Update(float DeltaSeconds, const FAnimStateMachi
 
         if (EvaluateCondition(Transition->ConditionName, Context))
         {
-            ChangeState(Transition->ToState, Transition->BlendTime);
+            ChangeState(Transition->ToState, Transition->BlendTime, Transition->EaseOption);
             return;
         }
     }
 }
 
-void FAnimStateMachineInstance::Reset()
+void FAnimStateMachineNode::Reset()
 {
     UAnimStateMachineAsset* ExistingAsset = Asset;
-    UAnimInstance* ExistingAnimInstance = AnimInstance;
+    UAnimInstanceBase* ExistingAnimInstance = AnimInstance;
     Asset = nullptr;
     AnimInstance = nullptr;
     CurrentState = FName();
     PreviousState = FName();
     StateElapsedTime = 0.0f;
+    WarnedMissingConditions.clear();
 
     if (ExistingAsset && ExistingAnimInstance)
     {
@@ -400,7 +426,10 @@ void FAnimStateMachineInstance::Reset()
     }
 }
 
-void FAnimStateMachineInstance::ChangeState(const FName& NewState, float BlendTime)
+void FAnimStateMachineNode::ChangeState(
+    const FName& NewState,
+    float BlendTime,
+    EAnimBlendEaseOption EaseOption)
 {
     if (!Asset || !AnimInstance || !NewState.IsValid() || CurrentState == NewState)
     {
@@ -421,7 +450,7 @@ void FAnimStateMachineInstance::ChangeState(const FName& NewState, float BlendTi
     }
 
     const FName OldState = CurrentState;
-    if (!AnimInstance->PlayAnimationByName(State->AnimationName, State->bLoop))
+    if (!AnimInstance->BlendToAnimationByName(State->AnimationName, State->bLoop, BlendTime, EaseOption))
     {
         UE_LOG_WARNING(
             "[AnimSM] Missing animation mapping: state=%s animation=%s",
@@ -441,7 +470,7 @@ void FAnimStateMachineInstance::ChangeState(const FName& NewState, float BlendTi
         BlendTime);
 }
 
-bool FAnimStateMachineInstance::EvaluateCondition(
+bool FAnimStateMachineNode::EvaluateCondition(
     const FName& ConditionName,
     const FAnimStateMachineContext& Context) const
 {
@@ -473,10 +502,32 @@ bool FAnimStateMachineInstance::EvaluateCondition(
         return Context.MovementMode == EAnimStateMachineMovementMode::Flying;
     }
 
-    if (!IsConditionNameKnown(ConditionName))
+    if (!IsConditionNameKnown(ConditionName) && !HasWarnedMissingCondition(ConditionName))
     {
         UE_LOG_WARNING("[AnimSM] Missing condition: %s", ConditionName.ToString().c_str());
+        MarkMissingConditionWarned(ConditionName);
     }
 
     return false;
+}
+
+bool FAnimStateMachineNode::HasWarnedMissingCondition(const FName& ConditionName) const
+{
+    for (const FName& WarnedCondition : WarnedMissingConditions)
+    {
+        if (WarnedCondition == ConditionName)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void FAnimStateMachineNode::MarkMissingConditionWarned(const FName& ConditionName) const
+{
+    if (ConditionName.IsValid())
+    {
+        WarnedMissingConditions.push_back(ConditionName);
+    }
 }
