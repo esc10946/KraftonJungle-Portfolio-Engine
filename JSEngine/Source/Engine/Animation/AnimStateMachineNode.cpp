@@ -1,4 +1,4 @@
-#include "Animation/AnimStateMachineNode.h"
+﻿#include "Animation/AnimStateMachineNode.h"
 
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimSequencePlayer.h"
@@ -180,6 +180,16 @@ void FAnimStateMachineNode::SetLooping(bool bInLooping)
 bool FAnimStateMachineNode::IsLooping() const
 {
     return SequencePlayer->IsLooping();
+}
+
+void FAnimStateMachineNode::SetReversePlay(bool bInReversePlay)
+{
+    SequencePlayer->SetReversePlay(bInReversePlay);
+}
+
+bool FAnimStateMachineNode::IsReversePlaying() const
+{
+    return SequencePlayer->IsReversePlaying();
 }
 
 bool FAnimStateMachineNode::EnterState(

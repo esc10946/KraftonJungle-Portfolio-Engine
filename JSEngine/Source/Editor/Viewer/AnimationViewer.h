@@ -46,6 +46,8 @@ public:
     bool IsLooping() const;
     void SetPlayRate(float InPlayRate);
     float GetPlayRate() const;
+    void SetReversePlay(bool bInReversePlay);
+    bool IsReversePlaying() const;
 
     const FString& GetAnimationSequencePath() const { return AnimationSequencePath; }
     UAnimationSequence* GetAnimationSequence() const { return CurrentAnimationSequence; }
@@ -63,4 +65,5 @@ private:
     FString PreviewSkeletalMeshPath;
     float PlayRate = 1.0f;
     bool bLooping = true;
+    bool bReversePlay = false;
 };

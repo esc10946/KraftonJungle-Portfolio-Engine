@@ -190,6 +190,21 @@ bool UAnimInstance::IsLooping() const
     return StateMachineNode ? StateMachineNode->IsLooping() : false;
 }
 
+void UAnimInstance::SetReversePlay(bool bInReversePlay)
+{
+    FAnimStateMachineNode* StateMachineNode = GetOrCreateStateMachineRootNode();
+    if (StateMachineNode)
+    {
+        StateMachineNode->SetReversePlay(bInReversePlay);
+    }
+}
+
+bool UAnimInstance::IsReversePlaying() const
+{
+    const FAnimStateMachineNode* StateMachineNode = GetStateMachine();
+    return StateMachineNode ? StateMachineNode->IsReversePlaying() : false;
+}
+
 FAnimStateMachineNode* UAnimInstance::GetOrCreateStateMachineRootNode()
 {
     FAnimStateMachineNode* StateMachineNode = GetStateMachine();

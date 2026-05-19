@@ -14,6 +14,7 @@
 #include "Object/Object.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cwctype>
 #include <filesystem>
 
@@ -259,6 +260,7 @@ bool FAnimationViewer::SetAnimationSequence(const FString& AnimationPath)
         PreviewAnimInstance = UObjectManager::Get().CreateObject<UAnimSingleNodeInstance>();
         PreviewAnimInstance->SetLooping(bLooping);
         PreviewAnimInstance->SetPlayRate(PlayRate);
+        PreviewAnimInstance->SetReversePlay(bReversePlay);
     }
 
     CurrentAnimationSequence = Sequence;
@@ -268,6 +270,7 @@ bool FAnimationViewer::SetAnimationSequence(const FString& AnimationPath)
     PreviewAnimInstance->SetSequence(Sequence);
     PreviewAnimInstance->SetLooping(bLooping);
     PreviewAnimInstance->SetPlayRate(PlayRate);
+    PreviewAnimInstance->SetReversePlay(bReversePlay);
     PreviewAnimInstance->SetCurrentTime(0.0f);
     return true;
 }
@@ -352,16 +355,36 @@ bool FAnimationViewer::IsLooping() const
 
 void FAnimationViewer::SetPlayRate(float InPlayRate)
 {
-    PlayRate = std::max(0.001f, InPlayRate);
+    if (InPlayRate < 0.0f)
+    {
+        bReversePlay = true;
+    }
+
+    PlayRate = std::max(0.001f, std::fabs(InPlayRate));
     if (PreviewAnimInstance)
     {
         PreviewAnimInstance->SetPlayRate(PlayRate);
+        PreviewAnimInstance->SetReversePlay(bReversePlay);
     }
 }
 
 float FAnimationViewer::GetPlayRate() const
 {
     return PreviewAnimInstance ? PreviewAnimInstance->GetPlayRate() : PlayRate;
+}
+
+void FAnimationViewer::SetReversePlay(bool bInReversePlay)
+{
+    bReversePlay = bInReversePlay;
+    if (PreviewAnimInstance)
+    {
+        PreviewAnimInstance->SetReversePlay(bReversePlay);
+    }
+}
+
+bool FAnimationViewer::IsReversePlaying() const
+{
+    return PreviewAnimInstance ? PreviewAnimInstance->IsReversePlaying() : bReversePlay;
 }
 
 void FAnimationViewer::SetAnimationTime(float Time)

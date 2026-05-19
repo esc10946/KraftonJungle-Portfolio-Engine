@@ -102,6 +102,22 @@ bool FAnimSequencePlayer::BlendToAnimationByName(
 
 void FAnimSequencePlayer::Play()
 {
+    if (Sequence)
+    {
+        const float PlayLength = Sequence->GetPlayLength();
+        if (PlayLength > 0.0f)
+        {
+            if (bReversePlay && CurrentTime <= 0.0f)
+            {
+                CurrentTime = PlayLength;
+            }
+            else if (!bReversePlay && CurrentTime >= PlayLength)
+            {
+                CurrentTime = 0.0f;
+            }
+        }
+    }
+
     bPlaying = true;
     bPaused = false;
 }
@@ -135,7 +151,7 @@ void FAnimSequencePlayer::Tick(float DeltaSeconds)
         const float SourcePlayLength = BlendSourceSequence->GetPlayLength();
         const float TargetPlayLength = BlendTargetSequence->GetPlayLength();
         const float PreviousTargetTime = BlendTargetTime;
-        const bool bForwardPlayback = DeltaSeconds * PlayRate >= 0.0f;
+        const bool bForwardPlayback = DeltaSeconds * GetEffectivePlayRate() >= 0.0f;
         bool bSourceLooped = false;
         bool bTargetLooped = false;
 
@@ -177,7 +193,7 @@ void FAnimSequencePlayer::Tick(float DeltaSeconds)
 
     const float PlayLength = Sequence->GetPlayLength();
     const float PreviousTime = CurrentTime;
-    const bool bForwardPlayback = DeltaSeconds * PlayRate >= 0.0f;
+    const bool bForwardPlayback = DeltaSeconds * GetEffectivePlayRate() >= 0.0f;
     bool bLooped = false;
 
     if (PlayLength <= 0.0f)
@@ -228,6 +244,21 @@ void FAnimSequencePlayer::SetCurrentTime(float InCurrentTime)
     }
 }
 
+void FAnimSequencePlayer::SetPlayRate(float InPlayRate)
+{
+    if (InPlayRate < 0.0f)
+    {
+        bReversePlay = true;
+    }
+
+    PlayRate = std::max(0.001f, std::fabs(InPlayRate));
+}
+
+void FAnimSequencePlayer::SetReversePlay(bool bInReversePlay)
+{
+    bReversePlay = bInReversePlay;
+}
+
 UAnimationSequenceBase* FAnimSequencePlayer::ResolveAnimationByName(const FName& AnimationName)
 {
     if (!OwnerAnimInstance)
@@ -256,7 +287,7 @@ bool FAnimSequencePlayer::AdvanceTime(
     bool& bOutLooped)
 {
     bOutLooped = false;
-    InOutTime += DeltaSeconds * PlayRate;
+    InOutTime += DeltaSeconds * GetEffectivePlayRate();
 
     if (InOutTime > PlayLength)
     {
@@ -390,4 +421,14 @@ void FAnimSequencePlayer::FinishBlend()
     BlendEaseOption = EAnimBlendEaseOption::Linear;
     bBlendSourceLooping = false;
     bBlending = false;
+}
+
+float FAnimSequencePlayer::GetEffectivePlayRate() const
+{
+    if (bReversePlay)
+    {
+        return -PlayRate;
+    }
+
+    return PlayRate;
 }

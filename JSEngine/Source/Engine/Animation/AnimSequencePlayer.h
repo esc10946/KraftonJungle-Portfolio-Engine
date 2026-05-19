@@ -27,11 +27,13 @@ public:
     void Stop();
     void Tick(float DeltaSeconds);
 
-    void SetLooping(bool bInLooping) { bLooping = bInLooping; }
+    void SetLooping(bool bInLooping) { bLooping = bInLooping; }   
     bool IsLooping() const { return bLooping; }
 
-    void SetPlayRate(float InPlayRate) { PlayRate = InPlayRate; }
+    void SetPlayRate(float InPlayRate);
     float GetPlayRate() const { return PlayRate; }
+    void SetReversePlay(bool bInReversePlay);
+    bool IsReversePlaying() const { return bReversePlay; }
 
     void SetCurrentTime(float InCurrentTime);
     float GetCurrentTime() const { return CurrentTime; }
@@ -50,6 +52,7 @@ private:
     float ApplyBlendEase(float Alpha) const;
     bool ApplyCurrentPoseToSkeletalMesh();
     void FinishBlend();
+    float GetEffectivePlayRate() const;
 
 private:
     UAnimInstance* OwnerAnimInstance = nullptr;
@@ -57,6 +60,7 @@ private:
     TArray<FMatrix> CurrentLocalPose;
     float CurrentTime = 0.0f;
     float PlayRate = 1.0f;
+    bool bReversePlay = false;
     bool bPlaying = false;
     bool bPaused = false;
     bool bLooping = false;
