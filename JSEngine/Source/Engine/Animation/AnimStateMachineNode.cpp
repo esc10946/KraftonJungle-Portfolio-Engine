@@ -1,365 +1,83 @@
-﻿#include "Animation/AnimStateMachineNode.h"
+#include "Animation/AnimStateMachineNode.h"
 
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimSequencePlayer.h"
 #include "Core/Logging/Log.h"
-#include "Core/Paths.h"
-#include "Object/Object.h"
-#include "SimpleJSON/json.hpp"
-
-#include <algorithm>
-#include <filesystem>
-#include <fstream>
-#include <iterator>
 
 namespace
 {
-FString GetJsonString(json::JSON& Object, const char* Key, const FString& DefaultValue = "")
+bool CompareFloat(float Left, float Right, EAnimCompareOp Op)
 {
-    if (!Object.hasKey(Key))
+    switch (Op)
     {
-        return DefaultValue;
+    case EAnimCompareOp::Equal:
+        return Left == Right;
+    case EAnimCompareOp::NotEqual:
+        return Left != Right;
+    case EAnimCompareOp::Greater:
+        return Left > Right;
+    case EAnimCompareOp::GreaterEqual:
+        return Left >= Right;
+    case EAnimCompareOp::Less:
+        return Left < Right;
+    case EAnimCompareOp::LessEqual:
+        return Left <= Right;
+    default:
+        return false;
     }
-
-    return Object[Key].ToString();
 }
 
-bool GetJsonBool(json::JSON& Object, const char* Key, bool bDefaultValue)
+bool CompareInt(int32 Left, int32 Right, EAnimCompareOp Op)
 {
-    if (!Object.hasKey(Key))
+    switch (Op)
     {
-        return bDefaultValue;
+    case EAnimCompareOp::Equal:
+        return Left == Right;
+    case EAnimCompareOp::NotEqual:
+        return Left != Right;
+    case EAnimCompareOp::Greater:
+        return Left > Right;
+    case EAnimCompareOp::GreaterEqual:
+        return Left >= Right;
+    case EAnimCompareOp::Less:
+        return Left < Right;
+    case EAnimCompareOp::LessEqual:
+        return Left <= Right;
+    default:
+        return false;
     }
-
-    return Object[Key].ToBool();
 }
 
-float GetJsonFloat(json::JSON& Object, const char* Key, float DefaultValue)
+bool CompareBool(bool Left, bool Right, EAnimCompareOp Op)
 {
-    if (!Object.hasKey(Key))
+    switch (Op)
     {
-        return DefaultValue;
+    case EAnimCompareOp::Equal:
+        return Left == Right;
+    case EAnimCompareOp::NotEqual:
+        return Left != Right;
+    case EAnimCompareOp::IsTrue:
+        return Left;
+    case EAnimCompareOp::IsFalse:
+        return !Left;
+    default:
+        return false;
     }
-
-    return static_cast<float>(Object[Key].ToFloat());
 }
 
-int32 GetJsonInt(json::JSON& Object, const char* Key, int32 DefaultValue)
+bool CompareVector(const FVector& Left, const FVector& Right, EAnimCompareOp Op)
 {
-    if (!Object.hasKey(Key))
+    switch (Op)
     {
-        return DefaultValue;
+    case EAnimCompareOp::Equal:
+        return Left == Right;
+    case EAnimCompareOp::NotEqual:
+        return Left != Right;
+    default:
+        return false;
     }
-
-    return static_cast<int32>(Object[Key].ToInt());
-}
-
-EAnimBlendEaseOption GetJsonEaseOption(json::JSON& Object, const char* Key)
-{
-    const FString EaseOption = GetJsonString(Object, Key, "Linear");   
-    if (EaseOption == "EaseIn")
-    {
-        return EAnimBlendEaseOption::EaseIn;
-    }
-
-    if (EaseOption == "EaseOut")
-    {
-        return EAnimBlendEaseOption::EaseOut;
-    }
-
-    if (EaseOption == "EaseInOut")
-    {
-        return EAnimBlendEaseOption::EaseInOut;
-    }
-
-    return EAnimBlendEaseOption::Linear;
-}
-
-bool IsConditionNameKnown(const FName& ConditionName)
-{
-    return ConditionName == FName("CanWalk") ||
-           ConditionName == FName("ShouldIdle") ||
-           ConditionName == FName("CanRun") ||
-           ConditionName == FName("IsFalling") ||
-           ConditionName == FName("IsFlying");
 }
 } // namespace
-
-void UAnimStateMachineAsset::SetEntryState(const FName& StateName)
-{
-    EntryState = StateName;
-}
-
-bool UAnimStateMachineAsset::AddState(
-    const FName& StateName,
-    const FName& AnimationName,
-    bool bLoop,
-    const FString& AnimationPath)
-{
-    if (!StateName.IsValid())
-    {
-        UE_LOG_WARNING("[AnimSM] Invalid state: empty state name");
-        return false;
-    }
-
-    if (FindState(StateName))
-    {
-        UE_LOG_WARNING("[AnimSM] Invalid state: duplicate state %s", StateName.ToString().c_str());
-        return false;
-    }
-
-    FAnimStateDesc State;
-    State.StateName = StateName;
-    State.AnimationName = AnimationName;
-    State.AnimationPath = FPaths::Normalize(AnimationPath);
-    State.bLoop = bLoop;
-    States.push_back(State);
-    return true;
-}
-
-bool UAnimStateMachineAsset::SetStateAnimationPath(const FName& StateName, const FString& AnimationPath)
-{
-    if (!StateName.IsValid() || AnimationPath.empty())
-    {
-        return false;
-    }
-
-    for (FAnimStateDesc& State : States)
-    {
-        if (State.StateName == StateName)
-        {
-            State.AnimationPath = FPaths::Normalize(AnimationPath);
-            return true;
-        }
-    }
-
-    UE_LOG_WARNING("[AnimSM] Failed to set animation path: missing state %s", StateName.ToString().c_str());
-    return false;
-}
-
-bool UAnimStateMachineAsset::AddTransition(
-    const FName& FromState,
-    const FName& ToState,
-    const FName& ConditionName,
-    float BlendTime,
-    int32 Priority,
-    EAnimBlendEaseOption EaseOption)
-{
-    if (!FromState.IsValid() || !ToState.IsValid() || !ConditionName.IsValid())
-    {
-        UE_LOG_WARNING("[AnimSM] Invalid transition: empty from/to/condition");
-        return false;
-    }
-
-    if (HasDuplicateTransition(FromState, ToState, ConditionName))
-    {
-        UE_LOG_WARNING(
-            "[AnimSM] Invalid transition: duplicate %s -> %s (%s)",
-            FromState.ToString().c_str(),
-            ToState.ToString().c_str(),
-            ConditionName.ToString().c_str());
-        return false;
-    }
-
-    FAnimTransitionDesc Transition;
-    Transition.FromState = FromState;
-    Transition.ToState = ToState;
-    Transition.ConditionName = ConditionName;
-    Transition.BlendTime = std::max(0.0f, BlendTime);
-    Transition.EaseOption = EaseOption;
-    Transition.Priority = Priority;
-    Transitions.push_back(Transition);
-    return true;
-}
-
-const FAnimStateDesc* UAnimStateMachineAsset::FindState(const FName& StateName) const
-{
-    for (const FAnimStateDesc& State : States)
-    {
-        if (State.StateName == StateName)
-        {
-            return &State;
-        }
-    }
-
-    return nullptr;
-}
-
-TArray<const FAnimTransitionDesc*> UAnimStateMachineAsset::GetTransitionsFrom(const FName& StateName) const
-{
-    TArray<const FAnimTransitionDesc*> Result;
-    for (const FAnimTransitionDesc& Transition : Transitions)
-    {
-        if (Transition.FromState == StateName)
-        {
-            Result.push_back(&Transition);
-        }
-    }
-
-    std::stable_sort(
-        Result.begin(),
-        Result.end(),
-        [](const FAnimTransitionDesc* A, const FAnimTransitionDesc* B)
-        {
-            return A->Priority > B->Priority;
-        });
-    return Result;
-}
-
-bool UAnimStateMachineAsset::Validate(FString* OutMessage) const
-{
-    auto SetMessage = [OutMessage](const FString& Message)
-    {
-        if (OutMessage)
-        {
-            *OutMessage = Message;
-        }
-    };
-
-    if (!EntryState.IsValid() || !FindState(EntryState))
-    {
-        SetMessage("Entry state is missing or does not exist");
-        UE_LOG_WARNING("[AnimSM] Invalid asset: entry state is missing or does not exist");
-        return false;
-    }
-
-    for (size_t StateIndex = 0; StateIndex < States.size(); ++StateIndex)
-    {
-        if (!States[StateIndex].StateName.IsValid())
-        {
-            SetMessage("State name is empty");
-            UE_LOG_WARNING("[AnimSM] Invalid asset: state name is empty");
-            return false;
-        }
-
-        for (size_t OtherIndex = StateIndex + 1; OtherIndex < States.size(); ++OtherIndex)
-        {
-            if (States[StateIndex].StateName == States[OtherIndex].StateName)
-            {
-                SetMessage("Duplicate state name");
-                UE_LOG_WARNING("[AnimSM] Invalid asset: duplicate state %s", States[StateIndex].StateName.ToString().c_str());
-                return false;
-            }
-        }
-    }
-
-    for (const FAnimTransitionDesc& Transition : Transitions)
-    {
-        if (!FindState(Transition.FromState))
-        {
-            SetMessage("Transition from-state does not exist");
-            UE_LOG_WARNING("[AnimSM] Invalid asset: from-state does not exist %s", Transition.FromState.ToString().c_str());
-            return false;
-        }
-
-        if (!FindState(Transition.ToState))
-        {
-            SetMessage("Transition to-state does not exist");
-            UE_LOG_WARNING("[AnimSM] Invalid asset: to-state does not exist %s", Transition.ToState.ToString().c_str());
-            return false;
-        }
-
-        if (!Transition.ConditionName.IsValid())
-        {
-            SetMessage("Transition condition name is empty");
-            UE_LOG_WARNING("[AnimSM] Invalid asset: transition condition name is empty");
-            return false;
-        }
-    }
-
-    if (OutMessage)
-    {
-        OutMessage->clear();
-    }
-    return true;
-}
-
-UAnimStateMachineAsset* UAnimStateMachineAsset::LoadFromJsonFile(const FString& Path)
-{
-    const FString NormalizedPath = FPaths::Normalize(Path);
-    if (NormalizedPath.empty())
-    {
-        return nullptr;
-    }
-
-    std::ifstream File(FPaths::ToWide(NormalizedPath));
-    if (!File.is_open())
-    {
-        UE_LOG_ERROR("[AnimSM] Failed to open state machine asset: %s", NormalizedPath.c_str());
-        return nullptr;
-    }
-
-    FString FileContent((std::istreambuf_iterator<char>(File)), std::istreambuf_iterator<char>());
-    json::JSON Root = json::JSON::Load(FileContent);
-    if (Root.JSONType() != json::JSON::Class::Object)
-    {
-        UE_LOG_ERROR("[AnimSM] Invalid state machine json: %s", NormalizedPath.c_str());
-        return nullptr;
-    }
-
-    UAnimStateMachineAsset* Asset = UObjectManager::Get().CreateObject<UAnimStateMachineAsset>();
-    if (Root.hasKey("name"))
-    {
-        Asset->SetFName(FName(GetJsonString(Root, "name")));
-    }
-
-    Asset->SetEntryState(FName(GetJsonString(Root, "entryState")));
-
-    if (Root.hasKey("states"))
-    {
-        for (json::JSON& StateNode : Root["states"].ArrayRange())
-        {
-            Asset->AddState(
-                FName(GetJsonString(StateNode, "name")),
-                FName(GetJsonString(StateNode, "animation")),
-                GetJsonBool(StateNode, "loop", true),
-                GetJsonString(StateNode, "animationPath"));
-        }
-    }
-
-    if (Root.hasKey("transitions"))
-    {
-        for (json::JSON& TransitionNode : Root["transitions"].ArrayRange())
-        {
-            Asset->AddTransition(
-                FName(GetJsonString(TransitionNode, "from")),
-                FName(GetJsonString(TransitionNode, "to")),
-                FName(GetJsonString(TransitionNode, "condition")),
-                GetJsonFloat(TransitionNode, "blendTime", 0.0f),
-                GetJsonInt(TransitionNode, "priority", 0),
-                GetJsonEaseOption(TransitionNode, "easeOption"));
-        }
-    }
-
-    FString ValidationMessage;
-    if (!Asset->Validate(&ValidationMessage))
-    {
-        UE_LOG_ERROR("[AnimSM] Failed to validate state machine asset %s: %s", NormalizedPath.c_str(), ValidationMessage.c_str());
-        UObjectManager::Get().DestroyObject(Asset);
-        return nullptr;
-    }
-
-    UE_LOG("[AnimSM] Loaded state machine asset: %s", NormalizedPath.c_str());
-    return Asset;
-}
-
-bool UAnimStateMachineAsset::HasDuplicateTransition(
-    const FName& FromState,
-    const FName& ToState,
-    const FName& ConditionName) const
-{
-    for (const FAnimTransitionDesc& Transition : Transitions)
-    {
-        if (Transition.FromState == FromState &&
-            Transition.ToState == ToState &&
-            Transition.ConditionName == ConditionName)
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
 
 FAnimStateMachineNode::FAnimStateMachineNode()
     : SequencePlayer(std::make_unique<FAnimSequencePlayer>())
@@ -380,7 +98,7 @@ void FAnimStateMachineNode::SetStateMachineAsset(UAnimStateMachineAsset* InAsset
     CurrentState = FName();
     PreviousState = FName();
     StateElapsedTime = 0.0f;
-    WarnedMissingConditions.clear();
+    WarnedMissingParameters.clear();
     SequencePlayer->Stop();
     SequencePlayer->SetSequence(nullptr);
 
@@ -401,7 +119,7 @@ void FAnimStateMachineNode::SetStateMachineAsset(UAnimStateMachineAsset* InAsset
 
 void FAnimStateMachineNode::Update(const FAnimNodeUpdateContext& Context)
 {
-    if (Asset && OwnerAnimInstance && CurrentState.IsValid() && Context.StateMachineContext)
+    if (Asset && OwnerAnimInstance && CurrentState.IsValid() && Context.Parameters)
     {
         StateElapsedTime += Context.DeltaSeconds;
 
@@ -413,7 +131,7 @@ void FAnimStateMachineNode::Update(const FAnimNodeUpdateContext& Context)
                 continue;
             }
 
-            if (EvaluateCondition(Transition->ConditionName, *Context.StateMachineContext))
+            if (EvaluateTransition(*Transition, *Context.Parameters))
             {
                 ChangeState(Transition->ToState, Transition->BlendTime, Transition->EaseOption);
                 break;
@@ -503,52 +221,104 @@ void FAnimStateMachineNode::ChangeState(
         BlendTime);
 }
 
-bool FAnimStateMachineNode::EvaluateCondition(
-    const FName& ConditionName,
-    const FAnimStateMachineContext& Context) const
+bool FAnimStateMachineNode::EvaluateTransition(
+    const FAnimTransitionDesc& Transition,
+    FAnimStateMachineParameterStore& Parameters) const
 {
-    if (ConditionName == FName("ShouldIdle"))
+    for (const FAnimTransitionCondition& Condition : Transition.Conditions)
     {
-        return Context.bIsGrounded && Context.Speed < Context.IdleSpeedThreshold;
+        if (!EvaluateCondition(Condition, Parameters))
+        {
+            return false;
+        }
     }
 
-    if (ConditionName == FName("CanWalk"))
+    return !Transition.Conditions.empty();
+}
+
+bool FAnimStateMachineNode::EvaluateCondition(
+    const FAnimTransitionCondition& Condition,
+    FAnimStateMachineParameterStore& Parameters) const
+{
+    if (Condition.ParameterType == EAnimParameterType::Trigger)
     {
-        return Context.bIsGrounded &&
-               Context.Speed >= Context.IdleSpeedThreshold &&
-               Context.Speed <= Context.WalkSpeed;
+        const bool bTriggered = Parameters.ConsumeTrigger(Condition.ParameterName);
+        if (!bTriggered && !HasWarnedMissingParameter(Condition.ParameterName))
+        {
+            UE_LOG_WARNING("[AnimSM] Missing or inactive trigger parameter: %s", Condition.ParameterName.ToString().c_str());
+            MarkMissingParameterWarned(Condition.ParameterName);
+        }
+        return bTriggered;
     }
 
-    if (ConditionName == FName("CanRun"))
+    if (Condition.ParameterType == EAnimParameterType::Bool)
     {
-        return Context.bIsGrounded && Context.Speed > Context.WalkSpeed;
+        bool Value = false;
+        if (!Parameters.GetBool(Condition.ParameterName, Value))
+        {
+            if (!HasWarnedMissingParameter(Condition.ParameterName))
+            {
+                UE_LOG_WARNING("[AnimSM] Missing bool parameter: %s", Condition.ParameterName.ToString().c_str());
+                MarkMissingParameterWarned(Condition.ParameterName);
+            }
+            return false;
+        }
+        return CompareBool(Value, Condition.CompareValue.BoolValue, Condition.CompareOp);
     }
 
-    if (ConditionName == FName("IsFalling"))
+    if (Condition.ParameterType == EAnimParameterType::Int)
     {
-        return !Context.bIsGrounded ||
-               Context.MovementMode == EAnimStateMachineMovementMode::Falling;
+        int32 Value = 0;
+        if (!Parameters.GetInt(Condition.ParameterName, Value))
+        {
+            if (!HasWarnedMissingParameter(Condition.ParameterName))
+            {
+                UE_LOG_WARNING("[AnimSM] Missing int parameter: %s", Condition.ParameterName.ToString().c_str());
+                MarkMissingParameterWarned(Condition.ParameterName);
+            }
+            return false;
+        }
+        return CompareInt(Value, Condition.CompareValue.IntValue, Condition.CompareOp);
     }
 
-    if (ConditionName == FName("IsFlying"))
+    if (Condition.ParameterType == EAnimParameterType::Float)
     {
-        return Context.MovementMode == EAnimStateMachineMovementMode::Flying;
+        float Value = 0.0f;
+        if (!Parameters.GetFloat(Condition.ParameterName, Value))
+        {
+            if (!HasWarnedMissingParameter(Condition.ParameterName))
+            {
+                UE_LOG_WARNING("[AnimSM] Missing float parameter: %s", Condition.ParameterName.ToString().c_str());
+                MarkMissingParameterWarned(Condition.ParameterName);
+            }
+            return false;
+        }
+        return CompareFloat(Value, Condition.CompareValue.FloatValue, Condition.CompareOp);
     }
 
-    if (!IsConditionNameKnown(ConditionName) && !HasWarnedMissingCondition(ConditionName))
+    if (Condition.ParameterType == EAnimParameterType::Vector)
     {
-        UE_LOG_WARNING("[AnimSM] Missing condition: %s", ConditionName.ToString().c_str());
-        MarkMissingConditionWarned(ConditionName);
+        FVector Value = FVector::ZeroVector;
+        if (!Parameters.GetVector(Condition.ParameterName, Value))
+        {
+            if (!HasWarnedMissingParameter(Condition.ParameterName))
+            {
+                UE_LOG_WARNING("[AnimSM] Missing vector parameter: %s", Condition.ParameterName.ToString().c_str());
+                MarkMissingParameterWarned(Condition.ParameterName);
+            }
+            return false;
+        }
+        return CompareVector(Value, Condition.CompareValue.VectorValue, Condition.CompareOp);
     }
 
     return false;
 }
 
-bool FAnimStateMachineNode::HasWarnedMissingCondition(const FName& ConditionName) const
+bool FAnimStateMachineNode::HasWarnedMissingParameter(const FName& ParameterName) const
 {
-    for (const FName& WarnedCondition : WarnedMissingConditions)
+    for (const FName& WarnedParameter : WarnedMissingParameters)
     {
-        if (WarnedCondition == ConditionName)
+        if (WarnedParameter == ParameterName)
         {
             return true;
         }
@@ -557,10 +327,10 @@ bool FAnimStateMachineNode::HasWarnedMissingCondition(const FName& ConditionName
     return false;
 }
 
-void FAnimStateMachineNode::MarkMissingConditionWarned(const FName& ConditionName) const
+void FAnimStateMachineNode::MarkMissingParameterWarned(const FName& ParameterName) const
 {
-    if (ConditionName.IsValid())
+    if (ParameterName.IsValid())
     {
-        WarnedMissingConditions.push_back(ConditionName);
+        WarnedMissingParameters.push_back(ParameterName);
     }
 }

@@ -2,9 +2,9 @@
 
 #include "../Source/Engine/Animation/ActorSequence.h"
 #include "../Source/Engine/Animation/AnimationSequenceBase.h"
-#include "../Source/Engine/Animation/AnimationStateMachine.h"
 #include "../Source/Engine/Animation/AnimInstance.h"
 #include "../Source/Engine/Animation/AnimSingleNodeInstance.h"
+#include "../Source/Engine/Animation/AnimStateMachineAsset.h"
 #include "../Source/Engine/Asset/AnimationSequence.h"
 #include "../Source/Engine/Component/ActorSequenceComponent.h"
 #include "../Source/Engine/Component/BillboardComponent.h"
@@ -44,7 +44,6 @@
 #include "../Source/Engine/GameFramework/Pawn.h"
 #include "../Source/Engine/GameFramework/PlayerController.h"
 #include "../Source/Engine/GameFramework/PrimitiveActors.h"
-#include "../TestComponent.h"
 
 #include "Object/Class.h"
 #include "Object/ObjectFactory.h"
@@ -283,48 +282,6 @@ namespace
     static FAutoRegisterUAnimationSequenceBase GAutoRegisterUAnimationSequenceBase;
 }
 
-const FTypeInfo UAnimStateMachineAsset::s_TypeInfo = {
-    "UAnimStateMachineAsset",
-    &UObject::s_TypeInfo,
-    sizeof(UAnimStateMachineAsset)
-};
-
-UClass* UAnimStateMachineAsset::StaticClass()
-{
-    static UClass Class(
-        "UAnimStateMachineAsset",
-        Super::StaticClass(),
-        sizeof(UAnimStateMachineAsset),
-        CF_None,
-        []() -> UObject*
-        {
-            return UObjectManager::Get().CreateObject<UAnimStateMachineAsset>();
-        });
-
-    static bool bRegistered = false;
-    if (!bRegistered)
-    {
-        bRegistered = true;
-
-        FReflectionRegistry::Get().RegisterUClass(&Class);
-    }
-
-    return &Class;
-}
-
-namespace
-{
-    struct FAutoRegisterUAnimStateMachineAsset
-    {
-        FAutoRegisterUAnimStateMachineAsset()
-        {
-            UAnimStateMachineAsset::StaticClass();
-        }
-    };
-
-    static FAutoRegisterUAnimStateMachineAsset GAutoRegisterUAnimStateMachineAsset;
-}
-
 const FTypeInfo UAnimInstance::s_TypeInfo = {
     "UAnimInstance",
     &UObject::s_TypeInfo,
@@ -415,6 +372,48 @@ namespace
     };
 
     static FAutoRegisterUAnimSingleNodeInstance GAutoRegisterUAnimSingleNodeInstance;
+}
+
+const FTypeInfo UAnimStateMachineAsset::s_TypeInfo = {
+    "UAnimStateMachineAsset",
+    &UObject::s_TypeInfo,
+    sizeof(UAnimStateMachineAsset)
+};
+
+UClass* UAnimStateMachineAsset::StaticClass()
+{
+    static UClass Class(
+        "UAnimStateMachineAsset",
+        Super::StaticClass(),
+        sizeof(UAnimStateMachineAsset),
+        CF_None,
+        []() -> UObject*
+        {
+            return UObjectManager::Get().CreateObject<UAnimStateMachineAsset>();
+        });
+
+    static bool bRegistered = false;
+    if (!bRegistered)
+    {
+        bRegistered = true;
+
+        FReflectionRegistry::Get().RegisterUClass(&Class);
+    }
+
+    return &Class;
+}
+
+namespace
+{
+    struct FAutoRegisterUAnimStateMachineAsset
+    {
+        FAutoRegisterUAnimStateMachineAsset()
+        {
+            UAnimStateMachineAsset::StaticClass();
+        }
+    };
+
+    static FAutoRegisterUAnimStateMachineAsset GAutoRegisterUAnimStateMachineAsset;
 }
 
 const FTypeInfo UAnimationSequence::s_TypeInfo = {
@@ -2791,117 +2790,4 @@ namespace
     };
 
     static FAutoRegisterAMainSceneDestructibleActor GAutoRegisterAMainSceneDestructibleActor;
-}
-
-const FTypeInfo TestComponent::s_TypeInfo = {
-    "TestComponent",
-    &UActorComponent::s_TypeInfo,
-    sizeof(TestComponent)
-};
-
-UClass* TestComponent::StaticClass()
-{
-    static UClass Class(
-        "TestComponent",
-        Super::StaticClass(),
-        sizeof(TestComponent),
-        CF_Component,
-        []() -> UObject*
-        {
-            return UObjectManager::Get().CreateObject<TestComponent>();
-        });
-
-    static bool bRegistered = false;
-    if (!bRegistered)
-    {
-        bRegistered = true;
-
-        Class.AddProperty(MakeProperty<FFloatProperty>(
-                            "Speed",
-                            offsetof(TestComponent, Speed),
-                            sizeof(float),
-                            EPropertyFlags::Read |
-                                EPropertyFlags::Write |
-                                EPropertyFlags::Edit |
-                                EPropertyFlags::LuaRead |
-                                EPropertyFlags::LuaWrite));
-
-        Class.AddProperty(MakeProperty<FBoolProperty>(
-                            "bEnabled",
-                            offsetof(TestComponent, bEnabled),
-                            sizeof(bool),
-                            EPropertyFlags::Read |
-                                EPropertyFlags::Write |
-                                EPropertyFlags::Edit));
-
-        Class.AddProperty(MakeProperty<FStaticMeshAssetProperty>(
-                            "WalkAnimation",
-                            offsetof(TestComponent, WalkAnimation),
-                            sizeof(FStaticMeshAssetRef),
-                            EPropertyFlags::Read |
-                                EPropertyFlags::Write |
-                                EPropertyFlags::Edit));
-
-        Class.AddProperty(MakeArrayProperty<FObjectProperty>(
-                            "Objects",
-                            offsetof(TestComponent, Objects),
-                            sizeof(TArray<UObject*>),
-                            EPropertyFlags::Read |
-                                EPropertyFlags::Write |
-                                EPropertyFlags::Edit,
-                            GetArrayPropertyOps<UObject*>(),
-                            UObject::StaticClass()));
-
-        Class.AddProperty(MakeArrayProperty<FInt32Property>(
-                            "aa",
-                            offsetof(TestComponent, aa),
-                            sizeof(TArray<int32>),
-                            EPropertyFlags::Read |
-                                EPropertyFlags::Write |
-                                EPropertyFlags::Edit,
-                            GetArrayPropertyOps<int32>(),
-                            nullptr));
-
-        Class.AddProperty(MakeArrayProperty<FFloatProperty>(
-                            "ss",
-                            offsetof(TestComponent, ss),
-                            sizeof(TArray<float>),
-                            EPropertyFlags::Read |
-                                EPropertyFlags::Write |
-                                EPropertyFlags::Edit,
-                            GetArrayPropertyOps<float>(),
-                            nullptr));
-
-        Class.AddFunction(MakeFunction(
-                            "PrintLog",
-                            EFunctionFlags::Native |
-                            EFunctionFlags::EditorCall,
-                            [](UObject* Object)
-                            {
-                                TestComponent* TypedObject = Cast<TestComponent>(Object);
-                                if (!TypedObject)
-                                {
-                                    return;
-                                }
-
-                                TypedObject->PrintLog();
-                            }));
-
-        FReflectionRegistry::Get().RegisterUClass(&Class);
-    }
-
-    return &Class;
-}
-
-namespace
-{
-    struct FAutoRegisterTestComponent
-    {
-        FAutoRegisterTestComponent()
-        {
-            TestComponent::StaticClass();
-        }
-    };
-
-    static FAutoRegisterTestComponent GAutoRegisterTestComponent;
 }

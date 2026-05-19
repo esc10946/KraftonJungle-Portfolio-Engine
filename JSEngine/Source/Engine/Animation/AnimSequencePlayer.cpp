@@ -1,7 +1,7 @@
 ﻿#include "Animation/AnimSequencePlayer.h"
 
 #include "Animation/AnimInstance.h"
-#include "Animation/AnimStateMachineNode.h"
+#include "Animation/AnimStateMachineTypes.h"
 #include "Component/SkeletalMeshComponent.h"
 #include "Core/ResourceManager.h"
 #include "Math/Quat.h"

@@ -6,7 +6,7 @@
 class UAnimStateMachineAsset;
 class UAnimInstance;
 struct FAnimNotifyEvent;
-struct FAnimStateMachineContext;
+struct FVector;
 
 /**
  * @brief Unreal Engine 스타일에서는 skinned mesh가 skeleton을 이용하는 mesh를 표현하고,
@@ -32,9 +32,11 @@ public:
     bool UseStateMachine(UAnimStateMachineAsset* StateMachineAsset);
     bool LoadStateMachineFromJson(const FString& JsonPath);
     bool RegisterStateAnimationPath(const FName& AnimationName, const FString& AnimationPath);
-    void SetAnimStateMachineContext(const FAnimStateMachineContext& Context);
-    void SetAutoUpdateAnimStateMachineContext(bool bEnabled) { bAutoUpdateAnimStateMachineContext = bEnabled; }
-    bool IsAutoUpdatingAnimStateMachineContext() const { return bAutoUpdateAnimStateMachineContext; }
+    void SetAnimBoolParameter(const FName& Name, bool Value);
+    void SetAnimIntParameter(const FName& Name, int32 Value);
+    void SetAnimFloatParameter(const FName& Name, float Value);
+    void SetAnimVectorParameter(const FName& Name, const FVector& Value);
+    void SetAnimTriggerParameter(const FName& Name);
     void HandleAnimNotify(const FAnimNotifyEvent& Notify);
 
     void ApplyLocalPose(const TArray<FMatrix>& InLocalPose);
@@ -49,11 +51,9 @@ public:
 
 private:
     UAnimInstance* GetOrCreateDefaultAnimInstance();
-    void RefreshAnimStateMachineContextFromOwner();
     void RegisterStateAnimationPathsFromAsset(const UAnimStateMachineAsset* StateMachineAsset);
 
 private:
     UAnimInstance* AnimInstance = nullptr;
     UAnimInstance* DefaultAnimInstance = nullptr;
-    bool bAutoUpdateAnimStateMachineContext = true;
 };

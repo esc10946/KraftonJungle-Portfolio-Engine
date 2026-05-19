@@ -22,7 +22,7 @@ void UAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
     FAnimNodeUpdateContext Context;
     Context.DeltaSeconds = DeltaSeconds;
     Context.OwnerAnimInstance = this;
-    Context.StateMachineContext = &StateMachineContext;
+    Context.Parameters = &AnimParameters;
     RootNode->Update(Context);
 }
 
@@ -124,6 +124,31 @@ FAnimStateMachineNode* UAnimInstance::GetStateMachine()
 const FAnimStateMachineNode* UAnimInstance::GetStateMachine() const
 {
     return RootNode ? RootNode->AsStateMachineNode() : nullptr;
+}
+
+void UAnimInstance::SetAnimBoolParameter(const FName& Name, bool Value)
+{
+    AnimParameters.SetBool(Name, Value);
+}
+
+void UAnimInstance::SetAnimIntParameter(const FName& Name, int32 Value)
+{
+    AnimParameters.SetInt(Name, Value);
+}
+
+void UAnimInstance::SetAnimFloatParameter(const FName& Name, float Value)
+{
+    AnimParameters.SetFloat(Name, Value);
+}
+
+void UAnimInstance::SetAnimVectorParameter(const FName& Name, const FVector& Value)
+{
+    AnimParameters.SetVector(Name, Value);
+}
+
+void UAnimInstance::SetAnimTriggerParameter(const FName& Name)
+{
+    AnimParameters.SetTrigger(Name);
 }
 
 void UAnimInstance::SetLooping(bool bInLooping)

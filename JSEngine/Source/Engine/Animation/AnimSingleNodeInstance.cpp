@@ -1,4 +1,4 @@
-#include "Animation/AnimSingleNodeInstance.h"
+﻿#include "Animation/AnimSingleNodeInstance.h"
 
 void UAnimSingleNodeInstance::Initialize(USkeletalMeshComponent* InSkelMeshComponent)
 {

@@ -1,8 +1,7 @@
 #include "SkeletalMeshComponent.h"
 
 #include "Animation/AnimInstance.h"
-#include "Animation/AnimStateMachineNode.h"
-#include "Component/Movement/MovementComponent.h"
+#include "Animation/AnimStateMachineAsset.h"
 #include "Core/Logging/Log.h"
 #include "GameFramework/AActor.h"
 #include "Object/Object.h"
@@ -31,7 +30,6 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime)
 
     if (AnimInstance)
     {
-        RefreshAnimStateMachineContextFromOwner();
         AnimInstance->TickAnimation(DeltaTime);
     }
 
@@ -94,18 +92,48 @@ bool USkeletalMeshComponent::RegisterStateAnimationPath(const FName& AnimationNa
     return StateAnimInstance->RegisterAnimationPath(AnimationName, AnimationPath);
 }
 
-void USkeletalMeshComponent::SetAnimStateMachineContext(const FAnimStateMachineContext& Context)
+void USkeletalMeshComponent::SetAnimBoolParameter(const FName& Name, bool Value)
 {
-    if (AnimInstance && AnimInstance->GetStateMachineAsset())
+    UAnimInstance* TargetAnimInstance = AnimInstance ? AnimInstance : GetOrCreateDefaultAnimInstance();
+    if (TargetAnimInstance)
     {
-        AnimInstance->SetStateMachineContext(Context);
-        return;
+        TargetAnimInstance->SetAnimBoolParameter(Name, Value);
     }
+}
 
-    UAnimInstance* StateAnimInstance = GetOrCreateDefaultAnimInstance();
-    if (StateAnimInstance)
+void USkeletalMeshComponent::SetAnimIntParameter(const FName& Name, int32 Value)
+{
+    UAnimInstance* TargetAnimInstance = AnimInstance ? AnimInstance : GetOrCreateDefaultAnimInstance();
+    if (TargetAnimInstance)
     {
-        StateAnimInstance->SetStateMachineContext(Context);
+        TargetAnimInstance->SetAnimIntParameter(Name, Value);
+    }
+}
+
+void USkeletalMeshComponent::SetAnimFloatParameter(const FName& Name, float Value)
+{
+    UAnimInstance* TargetAnimInstance = AnimInstance ? AnimInstance : GetOrCreateDefaultAnimInstance();
+    if (TargetAnimInstance)
+    {
+        TargetAnimInstance->SetAnimFloatParameter(Name, Value);
+    }
+}
+
+void USkeletalMeshComponent::SetAnimVectorParameter(const FName& Name, const FVector& Value)
+{
+    UAnimInstance* TargetAnimInstance = AnimInstance ? AnimInstance : GetOrCreateDefaultAnimInstance();
+    if (TargetAnimInstance)
+    {
+        TargetAnimInstance->SetAnimVectorParameter(Name, Value);
+    }
+}
+
+void USkeletalMeshComponent::SetAnimTriggerParameter(const FName& Name)
+{
+    UAnimInstance* TargetAnimInstance = AnimInstance ? AnimInstance : GetOrCreateDefaultAnimInstance();
+    if (TargetAnimInstance)
+    {
+        TargetAnimInstance->SetAnimTriggerParameter(Name);
     }
 }
 
@@ -128,59 +156,6 @@ UAnimInstance* USkeletalMeshComponent::GetOrCreateDefaultAnimInstance()
     }
 
     return DefaultAnimInstance;
-}
-
-void USkeletalMeshComponent::RefreshAnimStateMachineContextFromOwner()
-{
-    if (!bAutoUpdateAnimStateMachineContext || !AnimInstance || !AnimInstance->GetStateMachineAsset())
-    {
-        return;
-    }
-
-    AActor* OwnerActor = GetOwner();
-    if (!OwnerActor)
-    {
-        return;
-    }
-
-    UMovementComponent* MovementComponent = OwnerActor->FindComponent<UMovementComponent>();
-    if (!MovementComponent)
-    {
-        return;
-    }
-
-    FAnimStateMachineContext Context = AnimInstance->GetStateMachineContext();
-    const FVector Velocity = MovementComponent->GetVelocity();
-    Context.Speed = Velocity.Size2D();
-
-    const float MaxSpeed = MovementComponent->GetMaxSpeed();
-    if (MaxSpeed > 0.0f)
-    {
-        Context.RunSpeed = MaxSpeed;
-        if (Context.WalkSpeed <= 0.0f || Context.WalkSpeed > Context.RunSpeed)
-        {
-            Context.WalkSpeed = Context.RunSpeed * 0.5f;
-        }
-    }
-
-    float FallingSpeedThreshold = Context.IdleSpeedThreshold;
-    if (FallingSpeedThreshold <= 0.0f)
-    {
-        FallingSpeedThreshold = 1.0f;
-    }
-
-    if (Velocity.Z < -FallingSpeedThreshold)
-    {
-        Context.bIsGrounded = false;
-        Context.MovementMode = EAnimStateMachineMovementMode::Falling;
-    }
-    else
-    {
-        Context.bIsGrounded = true;
-        Context.MovementMode = EAnimStateMachineMovementMode::Walking;
-    }
-
-    AnimInstance->SetStateMachineContext(Context);
 }
 
 void USkeletalMeshComponent::RegisterStateAnimationPathsFromAsset(const UAnimStateMachineAsset* StateMachineAsset)

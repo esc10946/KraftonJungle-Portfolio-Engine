@@ -39,8 +39,13 @@ public:
     FAnimStateMachineNode* GetStateMachine();
     const FAnimStateMachineNode* GetStateMachine() const;
 
-    void SetStateMachineContext(const FAnimStateMachineContext& InContext) { StateMachineContext = InContext; }
-    const FAnimStateMachineContext& GetStateMachineContext() const { return StateMachineContext; }
+    void SetAnimBoolParameter(const FName& Name, bool Value);
+    void SetAnimIntParameter(const FName& Name, int32 Value);
+    void SetAnimFloatParameter(const FName& Name, float Value);
+    void SetAnimVectorParameter(const FName& Name, const FVector& Value);
+    void SetAnimTriggerParameter(const FName& Name);
+    FAnimStateMachineParameterStore& GetAnimParameters() { return AnimParameters; }
+    const FAnimStateMachineParameterStore& GetAnimParameters() const { return AnimParameters; }
 
     void SetLooping(bool bInLooping);
     bool IsLooping() const;
@@ -75,7 +80,7 @@ protected:
     // Root animation node placeholder. Today it can be a state machine node,
     // but the base instance owns it through the generic AnimNode boundary.
     std::unique_ptr<FAnimNodeBase> RootNode;
-    FAnimStateMachineContext StateMachineContext;
+    FAnimStateMachineParameterStore AnimParameters;
 
 private:
     FAnimStateMachineNode* GetOrCreateStateMachineRootNode();

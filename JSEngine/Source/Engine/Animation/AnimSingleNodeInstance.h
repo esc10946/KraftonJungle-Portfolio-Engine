@@ -1,13 +1,9 @@
-#pragma once
+﻿#pragma once
 
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimSequencePlayer.h"
 
 #include "UAnimSingleNodeInstance.generated.h"
-
-// Single animation evaluation node instance.
-// This is not a one-state state machine.
-// It owns one FAnimSequencePlayer and plays a single animation sequence.
 
 UCLASS()
 class UAnimSingleNodeInstance : public UAnimInstance
