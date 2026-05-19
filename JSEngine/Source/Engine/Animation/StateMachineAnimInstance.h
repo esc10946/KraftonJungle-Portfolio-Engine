@@ -12,6 +12,16 @@ public:
     GENERATED_BODY(UStateMachineAnimInstance, UAnimInstance)
 
     void Initialize(USkeletalMeshComponent* InSkelMeshComponent) override;
+    void TickAnimation(float DeltaSeconds) override;
+
+    void SetStateMachineAsset(UAnimStateMachineAsset* InStateMachineAsset);
+    UAnimStateMachineAsset* GetStateMachineAsset() const { return StateMachineInstance.GetAsset(); }
+
+    FAnimStateMachineInstance& GetStateMachineInstance() { return StateMachineInstance; }
+    const FAnimStateMachineInstance& GetStateMachineInstance() const { return StateMachineInstance; }
+
+    void SetStateMachineContext(const FAnimStateMachineContext& InContext) { StateMachineContext = InContext; }
+    const FAnimStateMachineContext& GetStateMachineContext() const { return StateMachineContext; }
 
     void SetLooping(bool bInLooping) { SequencePlayer.SetLooping(bInLooping); }
     bool IsLooping() const { return SequencePlayer.IsLooping(); }
@@ -26,5 +36,7 @@ public:
     void NativeUpdateAnimation(float DeltaSeconds) override;
 
 private:
+    FAnimStateMachineContext StateMachineContext;
+    FAnimStateMachineInstance StateMachineInstance;
     FAnimSequencePlayer SequencePlayer;
 };

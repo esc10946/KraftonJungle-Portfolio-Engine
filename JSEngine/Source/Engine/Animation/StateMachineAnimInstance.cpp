@@ -1,9 +1,20 @@
-#include "Animation/StateMachineAnimInstance.h"
+﻿#include "Animation/StateMachineAnimInstance.h"
 
 void UStateMachineAnimInstance::Initialize(USkeletalMeshComponent* InSkelMeshComponent)
 {
     UAnimInstance::Initialize(InSkelMeshComponent);
     SequencePlayer.Initialize(this);
+}
+
+void UStateMachineAnimInstance::TickAnimation(float DeltaSeconds)
+{
+    StateMachineInstance.Update(DeltaSeconds, StateMachineContext);
+    NativeUpdateAnimation(DeltaSeconds);
+}
+
+void UStateMachineAnimInstance::SetStateMachineAsset(UAnimStateMachineAsset* InStateMachineAsset)
+{
+    StateMachineInstance.Initialize(InStateMachineAsset, this);
 }
 
 bool UStateMachineAnimInstance::PlayAnimationByName(const FName& AnimationName, bool bLoop)

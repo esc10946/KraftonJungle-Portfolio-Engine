@@ -154,7 +154,8 @@ UStateMachineAnimInstance* USkeletalMeshComponent::GetOrCreateStateMachineAnimIn
 
 void USkeletalMeshComponent::RefreshAnimStateMachineContextFromOwner()
 {
-    if (!bAutoUpdateAnimStateMachineContext || !AnimInstance || !AnimInstance->GetStateMachineAsset())
+    if (!bAutoUpdateAnimStateMachineContext || !StateMachineAnimInstance ||
+        AnimInstance != StateMachineAnimInstance || !StateMachineAnimInstance->GetStateMachineAsset())
     {
         return;
     }
@@ -171,7 +172,7 @@ void USkeletalMeshComponent::RefreshAnimStateMachineContextFromOwner()
         return;
     }
 
-    FAnimStateMachineContext Context = AnimInstance->GetStateMachineContext();
+    FAnimStateMachineContext Context = StateMachineAnimInstance->GetStateMachineContext();
     const FVector Velocity = MovementComponent->GetVelocity();
     Context.Speed = Velocity.Size2D();
 
@@ -202,7 +203,7 @@ void USkeletalMeshComponent::RefreshAnimStateMachineContextFromOwner()
         Context.MovementMode = EAnimStateMachineMovementMode::Walking;
     }
 
-    AnimInstance->SetStateMachineContext(Context);
+    StateMachineAnimInstance->SetStateMachineContext(Context);
 }
 
 void USkeletalMeshComponent::RegisterStateAnimationPathsFromAsset(const UAnimStateMachineAsset* StateMachineAsset)

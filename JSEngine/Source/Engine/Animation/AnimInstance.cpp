@@ -14,14 +14,7 @@ void UAnimInstance::NativeUpdateAnimation(float)
 
 void UAnimInstance::TickAnimation(float DeltaSeconds)
 {
-    StateMachineInstance.Update(DeltaSeconds, StateMachineContext);
-
     NativeUpdateAnimation(DeltaSeconds);
-}
-
-void UAnimInstance::SetStateMachineAsset(UAnimStateMachineAsset* InStateMachineAsset)
-{
-    StateMachineInstance.Initialize(InStateMachineAsset, this);
 }
 
 void UAnimInstance::RegisterAnimation(const FName& AnimationName, UAnimationSequenceBase* Sequence)

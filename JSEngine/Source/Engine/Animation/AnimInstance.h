@@ -18,18 +18,9 @@ public:
     virtual void Initialize(USkeletalMeshComponent* InSkelMeshComponent);
     virtual void NativeUpdateAnimation(float DeltaSeconds);
 
-    void TickAnimation(float DeltaSeconds);
+    virtual void TickAnimation(float DeltaSeconds);
 
     USkeletalMeshComponent* GetSkelMeshComponent() const { return SkelMeshComponent; }
-
-    void SetStateMachineAsset(UAnimStateMachineAsset* InStateMachineAsset);
-    UAnimStateMachineAsset* GetStateMachineAsset() const { return StateMachineInstance.GetAsset(); }
-    
-	FAnimStateMachineInstance& GetStateMachineInstance() { return StateMachineInstance; }
-    const FAnimStateMachineInstance& GetStateMachineInstance() const { return StateMachineInstance; }
-
-    void SetStateMachineContext(const FAnimStateMachineContext& InContext) { StateMachineContext = InContext; }
-    const FAnimStateMachineContext& GetStateMachineContext() const { return StateMachineContext; }
 
     void RegisterAnimation(const FName& AnimationName, UAnimationSequenceBase* Sequence);
     bool RegisterAnimationPath(const FName& AnimationName, const FString& AnimationPath);
@@ -67,6 +58,4 @@ protected:
     };
 
     TArray<FNamedAnimation> RegisteredAnimations;
-    FAnimStateMachineContext StateMachineContext;
-    FAnimStateMachineInstance StateMachineInstance;
 };
