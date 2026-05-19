@@ -11,8 +11,6 @@ class UAnimSingleNodeInstance : public UAnimInstance
 public:
     GENERATED_BODY(UAnimSingleNodeInstance, UAnimInstance)
 
-    void Initialize(USkeletalMeshComponent* InSkelMeshComponent) override;
-
     void SetSequence(UAnimationSequenceBase* InSequence) { SequencePlayer.SetSequence(InSequence); }
     UAnimationSequenceBase* GetSequence() const { return SequencePlayer.GetSequence(); }
 
@@ -41,7 +39,11 @@ public:
 
     const TArray<FMatrix>& GetCurrentLocalPose() const { return SequencePlayer.GetCurrentLocalPose(); }
 
-    void NativeUpdateAnimation(float DeltaSeconds) override;
+protected:
+    // root graph를 사용하지 않는 단일 sequence player 전용 내부 초기화
+    void InitializeAnimationNodes() override;
+    // root graph 대신 단일 sequence player만 평가하는 특수 AnimInstance
+    void UpdateAnimationGraph(float DeltaSeconds) override;
 
 private:
     FAnimSequencePlayer SequencePlayer;

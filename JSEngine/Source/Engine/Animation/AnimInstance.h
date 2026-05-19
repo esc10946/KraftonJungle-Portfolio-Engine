@@ -18,6 +18,11 @@ public:
     GENERATED_BODY(UAnimInstance, UObject)
 
     virtual void Initialize(USkeletalMeshComponent* InSkelMeshComponent);
+    // 파생 AnimInstance가 상속해서 초기화 로직을 넣는 hook
+    // root node owner 연결 같은 내부 초기화는 InitializeAnimationNodes 단계가 담당하므로 직접 건드리지 않음
+    virtual void NativeInitializeAnimation();
+    // 파생 AnimInstance가 상속해서 매 프레임 상태 변수를 갱신하는 hook
+    // AnimGraph/root node 평가는 UpdateAnimationGraph 단계가 담당하므로 override 구현자가 직접 호출하지 않아도 됨
     virtual void NativeUpdateAnimation(float DeltaSeconds);
 
     virtual void TickAnimation(float DeltaSeconds);
@@ -53,6 +58,11 @@ public:
 protected:
     friend class FAnimSequencePlayer;
 
+    // 사용자 hook이 아니라 Initialize 내부 runtime node owner 연결 단계
+    virtual void InitializeAnimationNodes();
+    // 사용자 hook이 아니라 TickAnimation 내부 graph evaluation 단계
+    virtual void UpdateAnimationGraph(float DeltaSeconds);
+
     void TriggerAnimNotifies(
         UAnimationSequenceBase* AnimationSequence,
         float PreviousTime,
@@ -84,4 +94,6 @@ protected:
 
 private:
     FAnimStateMachineNode* GetOrCreateStateMachineRootNode();
+
+    bool bAnimationInitialized = false;
 };

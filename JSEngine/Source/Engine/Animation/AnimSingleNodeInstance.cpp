@@ -1,11 +1,5 @@
 ﻿#include "Animation/AnimSingleNodeInstance.h"
 
-void UAnimSingleNodeInstance::Initialize(USkeletalMeshComponent* InSkelMeshComponent)
-{
-    UAnimInstance::Initialize(InSkelMeshComponent);
-    SequencePlayer.Initialize(this);
-}
-
 bool UAnimSingleNodeInstance::PlayAnimationByName(const FName& AnimationName, bool bLoop)
 {
     return SequencePlayer.PlayAnimationByName(AnimationName, bLoop);
@@ -20,7 +14,13 @@ bool UAnimSingleNodeInstance::BlendToAnimationByName(
     return SequencePlayer.BlendToAnimationByName(AnimationName, bLoop, BlendTime, EaseOption);
 }
 
-void UAnimSingleNodeInstance::NativeUpdateAnimation(float DeltaSeconds)
+void UAnimSingleNodeInstance::InitializeAnimationNodes()
+{
+    UAnimInstance::InitializeAnimationNodes();
+    SequencePlayer.Initialize(this);
+}
+
+void UAnimSingleNodeInstance::UpdateAnimationGraph(float DeltaSeconds)
 {
     SequencePlayer.Tick(DeltaSeconds);
 }
