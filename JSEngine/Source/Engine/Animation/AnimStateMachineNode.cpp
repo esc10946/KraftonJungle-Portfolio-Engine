@@ -182,6 +182,16 @@ bool FAnimStateMachineNode::IsLooping() const
     return SequencePlayer->IsLooping();
 }
 
+void FAnimStateMachineNode::SetReversePlay(bool bInReversePlay)
+{
+    SequencePlayer->SetReversePlay(bInReversePlay);
+}
+
+bool FAnimStateMachineNode::IsReversePlaying() const
+{
+    return SequencePlayer->IsReversePlaying();
+}
+
 bool FAnimStateMachineNode::EnterState(
     const FName& NewState,
     float BlendTime,
