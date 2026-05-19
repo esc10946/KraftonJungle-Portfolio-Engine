@@ -1,0 +1,239 @@
+{
+  "Actors" : [{
+      "ClassName" : "APlayerStart",
+      "Components" : [{
+          "AttachSocket" : "StateElapsedTime",
+          "ClassName" : "USceneComponent",
+          "Editor Only" : false,
+          "Enable Tick" : true,
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "ObjectName" : "USceneComponent_1",
+          "PersistentGuid" : "EB2BE7B7-2A6D45BD-BA61B0E5-E2E532DF",
+          "Properties" : {
+
+          },
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Tags" : [],
+          "Type" : "USceneComponent",
+          "UUID" : 1001
+        }, {
+          "AttachSocket" : "Name_None",
+          "Cast Decal" : true,
+          "ClassName" : "UBillboardComponent",
+          "Editor Only" : true,
+          "Enable Cull" : true,
+          "Enable Tick" : true,
+          "GenerateOverlapEvents" : false,
+          "Height" : 1.000000,
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "ObjectName" : "UBillboardComponent_1",
+          "ParentUUID" : 1001,
+          "Particle" : "Resources/Editor/Icons/PlayerStart_64x.PNG",
+          "PersistentGuid" : "61FD13C3-3A484DAD-817B6917-01BA2BEB",
+          "PlayRate" : 30.000000,
+          "Properties" : {
+
+          },
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Tags" : [],
+          "Type" : "UBillboardComponent",
+          "UUID" : 1002,
+          "Visible" : true,
+          "Width" : 1.000000,
+          "bInheritOwnerScale" : false,
+          "bLoop" : true
+        }],
+      "EditorOnly" : false,
+      "Name" : "PlayerStart_AnimationTest",
+      "Properties" : {
+
+      },
+      "RootComponent" : 1001,
+      "Tags" : [],
+      "UUID" : 101,
+      "Visible" : true
+    }, {
+      "ClassName" : "ADirectionalLightActor",
+      "Components" : [{
+          "AttachSocket" : "StateElapsedTime",
+          "CastShadows" : true,
+          "ClassName" : "UDirectionalLightComponent",
+          "Color" : [1.000000, 1.000000, 1.000000, 1.000000],
+          "ConstantBias" : 0.003000,
+          "Editor Only" : false,
+          "Enable Tick" : true,
+          "Intensity" : 1.000000,
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "ObjectName" : "UDirectionalLightComponent_1",
+          "PersistentGuid" : "012060FD-A0144481-948BFC74-9BD392B0",
+          "Properties" : {
+
+          },
+          "Rotation" : [-0.000000, 48.175247, -0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "ShadowMapType" : 0,
+          "ShadowResolutionScale" : 2048,
+          "ShadowSharpen" : 0.500000,
+          "SlopeScaledBias" : 0.120000,
+          "Tags" : [],
+          "Type" : "UDirectionalLightComponent",
+          "UUID" : 1004
+        }, {
+          "AttachSocket" : "Name_None",
+          "Cast Decal" : true,
+          "ClassName" : "UBillboardComponent",
+          "Editor Only" : true,
+          "Enable Cull" : true,
+          "Enable Tick" : true,
+          "GenerateOverlapEvents" : false,
+          "Height" : 1.000000,
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "ObjectName" : "UBillboardComponent_1",
+          "ParentUUID" : 1004,
+          "Particle" : "Resources/Editor/Icons/DirectionalLight_64x.png",
+          "PersistentGuid" : "32DCCE61-60F3402B-8477BEEF-02F85560",
+          "PlayRate" : 30.000000,
+          "Properties" : {
+
+          },
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Tags" : [],
+          "Type" : "UBillboardComponent",
+          "UUID" : 1005,
+          "Visible" : true,
+          "Width" : 1.000000,
+          "bInheritOwnerScale" : false,
+          "bLoop" : true
+        }],
+      "EditorOnly" : false,
+      "Name" : "DirectionalLight_AnimationTest",
+      "Properties" : {
+
+      },
+      "RootComponent" : 1004,
+      "Tags" : [],
+      "UUID" : 102,
+      "Visible" : true
+    }, {
+      "ClassName" : "AAmbientLightActor",
+      "Components" : [{
+          "AttachSocket" : "StateElapsedTime",
+          "CastShadows" : true,
+          "ClassName" : "UAmbientLightComponent",
+          "Color" : [1.000000, 1.000000, 1.000000, 1.000000],
+          "ConstantBias" : 0.003000,
+          "Editor Only" : false,
+          "Enable Tick" : true,
+          "Intensity" : 0.200000,
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "ObjectName" : "UAmbientLightComponent_1",
+          "PersistentGuid" : "4FEA104D-C57B4051-A5103660-1FD8F57E",
+          "Properties" : {
+
+          },
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "ShadowMapType" : 0,
+          "ShadowResolutionScale" : 2048,
+          "ShadowSharpen" : 0.500000,
+          "SlopeScaledBias" : 0.120000,
+          "Tags" : [],
+          "Type" : "UAmbientLightComponent",
+          "UUID" : 1007
+        }, {
+          "AttachSocket" : "Name_None",
+          "Cast Decal" : true,
+          "ClassName" : "UBillboardComponent",
+          "Editor Only" : true,
+          "Enable Cull" : true,
+          "Enable Tick" : true,
+          "GenerateOverlapEvents" : false,
+          "Height" : 1.000000,
+          "Location" : [0.000000, 0.000000, 0.000000],
+          "ObjectName" : "UBillboardComponent_1",
+          "ParentUUID" : 1007,
+          "Particle" : "Resources/Editor/Icons/SkyLight_64x.png",
+          "PersistentGuid" : "36E8F2B6-DE5D4D88-881D2097-23714387",
+          "PlayRate" : 30.000000,
+          "Properties" : {
+
+          },
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [1.000000, 1.000000, 1.000000],
+          "Tags" : [],
+          "Type" : "UBillboardComponent",
+          "UUID" : 1008,
+          "Visible" : true,
+          "Width" : 1.000000,
+          "bInheritOwnerScale" : false,
+          "bLoop" : true
+        }],
+      "EditorOnly" : false,
+      "Name" : "AmbientLight_AnimationTest",
+      "Properties" : {
+
+      },
+      "RootComponent" : 1007,
+      "Tags" : [],
+      "UUID" : 103,
+      "Visible" : true
+    }, {
+      "ClassName" : "AStaticMeshActor",
+      "Components" : [{
+          "AttachSocket" : "StateElapsedTime",
+          "Cast Decal" : true,
+          "ClassName" : "UStaticMeshComponent",
+          "Editor Only" : false,
+          "Enable Cull" : true,
+          "Enable Tick" : true,
+          "GenerateOverlapEvents" : false,
+          "Location" : [0.000000, 0.000000, -0.529128],
+          "Materials" : ["DefaultWhite"],
+          "ObjStaticMeshAsset" : "Asset/Mesh/Dice/Dice.obj",
+          "ObjectName" : "UStaticMeshComponent_1",
+          "PersistentGuid" : "E5B1A5A9-080B48FA-A14265CB-874B4E23",
+          "Properties" : {
+
+          },
+          "Rotation" : [0.000000, 0.000000, 0.000000],
+          "Scale" : [100.000000, 100.000000, 1.000000],
+          "Scroll U" : 0.000000,
+          "Scroll V" : 0.000000,
+          "Tags" : [],
+          "Type" : "UStaticMeshComponent",
+          "UUID" : 1050,
+          "Visible" : true
+        }],
+      "EditorOnly" : false,
+      "Name" : "AStaticMeshActor_0",
+      "Properties" : {
+
+      },
+      "RootComponent" : 1050,
+      "Tags" : [],
+      "UUID" : 1049,
+      "Visible" : true
+    }],
+  "ClassName" : "UWorld",
+  "Name" : "AnimationTest",
+  "NextUUID" : 1371,
+  "PerspectiveCamera" : {
+    "FOV" : 60.000000,
+    "FarClip" : 1000.000000,
+    "Location" : [-5.312685, 18.718554, 9.238023],
+    "NearClip" : 0.100000,
+    "Rotation" : [26.768074, 4.056932, -82.016296]
+  },
+  "Version" : 6,
+  "WorldSettings" : {
+    "DefaultPawnClass" : "AAnimTestPawn",
+    "DefaultPawnPrefabPath" : "",
+    "GameModeClass" : "AGameModeBase",
+    "OverrideGameMode" : true,
+    "PlayerControllerClass" : "APlayerController"
+  },
+  "WorldType" : "Editor"
+}

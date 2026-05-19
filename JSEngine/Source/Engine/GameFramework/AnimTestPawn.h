@@ -44,14 +44,21 @@ private:
     UCameraComponent* CameraComp = nullptr;
     UAnimStateMachineAsset* LocomotionStateMachine = nullptr;
 
-    FString SkeletalMeshPath = "Asset/SkeletalMesh/GwenFBX/Gwen.fbx";
+    FString SkeletalMeshPath = "Asset/SkeletalMesh/GwenFBX/gwen_skeletalmesh_Buffbone_Cstm_Healthbar.bin";
     FString IdleAnimationPath = "Asset/SkeletalMesh/GwenFBX/gwen_anim_Skeleton_Idle.anm.bin";
+    FString IntoRunAnimationPath = "Asset/SkeletalMesh/GwenFBX/gwen_anim_Skeleton_Into_Run.bin";
     FString RunAnimationPath = "Asset/SkeletalMesh/GwenFBX/gwen_anim_Skeleton_Run.anm.bin";
+    FString HomeguardAnimationPath = "Asset/SkeletalMesh/GwenFBX/gwen_anim_Skeleton_Gwen_Homeguard.anm.bin";
+    FString LightAttackAnimationPath = "Asset/SkeletalMesh/GwenFBX/gwen_anim_Skeleton_Attack1.bin";
+    FString HeavyAttackAnimationPath = "Asset/SkeletalMesh/GwenFBX/gwen_anim_Skeleton_Attack2.bin";
 
-    float WalkSpeed = 4.0f;
-    float SprintSpeedMultiplier = 1.75f;
+    float MoveSpeed = 7.0f;
+    float SprintSpeedMultiplier = 1.5f;
     float LookSensitivityDegrees = 0.12f;
-    float IdleRunBlendTime = 0.18f;
+    float LocomotionBlendTime = 0.12f;
+    float IntoRunDuration = 0.25f;
+    float LightAttackDuration = 0.55f;
+    float HeavyAttackDuration = 0.75f;
     float MoveStartSpeedThreshold = 0.1f;
     bool bRotateToMovement = true;
     bool bAutoConfigureAnimation = true;

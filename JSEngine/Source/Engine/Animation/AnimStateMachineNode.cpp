@@ -6,6 +6,8 @@
 
 namespace
 {
+const FName NAME_StateElapsedTime("StateElapsedTime");
+
 bool CompareFloat(float Left, float Right, EAnimCompareOp Op)
 {
     switch (Op)
@@ -309,6 +311,11 @@ bool FAnimStateMachineNode::EvaluateCondition(
 
     if (Condition.ParameterType == EAnimParameterType::Float)
     {
+        if (Condition.ParameterName == NAME_StateElapsedTime)
+        {
+            return CompareFloat(StateElapsedTime, Condition.CompareValue.FloatValue, Condition.CompareOp);
+        }
+
         float Value = 0.0f;
         if (!Parameters.GetFloat(Condition.ParameterName, Value))
         {
