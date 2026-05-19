@@ -5,14 +5,42 @@
 
 void UAnimInstance::Initialize(USkeletalMeshComponent* InSkelMeshComponent)
 {
+    // 같은 component 반복 연결은 사용자 초기화 hook 중복 실행 방지
+    if (bAnimationInitialized && SkelMeshComponent == InSkelMeshComponent)
+    {
+        return;
+    }
+
+    // component 재바인딩 시 등록 animation/context는 유지하고 내부 node owner 연결 후 사용자 hook 호출
     SkelMeshComponent = InSkelMeshComponent;
+    InitializeAnimationNodes();
+    NativeInitializeAnimation();
+    bAnimationInitialized = true;
+}
+
+void UAnimInstance::NativeInitializeAnimation()
+{
+}
+
+void UAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
+{
+}
+
+void UAnimInstance::TickAnimation(float DeltaSeconds)
+{
+    NativeUpdateAnimation(DeltaSeconds);
+    UpdateAnimationGraph(DeltaSeconds);
+}
+
+void UAnimInstance::InitializeAnimationNodes()
+{
     if (RootNode)
     {
         RootNode->Initialize(this);
     }
 }
 
-void UAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
+void UAnimInstance::UpdateAnimationGraph(float DeltaSeconds)
 {
     if (!RootNode)
     {
@@ -24,11 +52,6 @@ void UAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
     Context.OwnerAnimInstance = this;
     Context.StateMachineContext = &StateMachineContext;
     RootNode->Update(Context);
-}
-
-void UAnimInstance::TickAnimation(float DeltaSeconds)
-{
-    NativeUpdateAnimation(DeltaSeconds);
 }
 
 void UAnimInstance::RegisterAnimation(const FName& AnimationName, UAnimationSequenceBase* Sequence)

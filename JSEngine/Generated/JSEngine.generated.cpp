@@ -2,9 +2,9 @@
 
 #include "../Source/Engine/Animation/ActorSequence.h"
 #include "../Source/Engine/Animation/AnimationSequenceBase.h"
-#include "../Source/Engine/Animation/AnimationStateMachine.h"
 #include "../Source/Engine/Animation/AnimInstance.h"
 #include "../Source/Engine/Animation/AnimSingleNodeInstance.h"
+#include "../Source/Engine/Animation/AnimStateMachineNode.h"
 #include "../Source/Engine/Asset/AnimationSequence.h"
 #include "../Source/Engine/Component/ActorSequenceComponent.h"
 #include "../Source/Engine/Component/BillboardComponent.h"
@@ -283,48 +283,6 @@ namespace
     static FAutoRegisterUAnimationSequenceBase GAutoRegisterUAnimationSequenceBase;
 }
 
-const FTypeInfo UAnimStateMachineAsset::s_TypeInfo = {
-    "UAnimStateMachineAsset",
-    &UObject::s_TypeInfo,
-    sizeof(UAnimStateMachineAsset)
-};
-
-UClass* UAnimStateMachineAsset::StaticClass()
-{
-    static UClass Class(
-        "UAnimStateMachineAsset",
-        Super::StaticClass(),
-        sizeof(UAnimStateMachineAsset),
-        CF_None,
-        []() -> UObject*
-        {
-            return UObjectManager::Get().CreateObject<UAnimStateMachineAsset>();
-        });
-
-    static bool bRegistered = false;
-    if (!bRegistered)
-    {
-        bRegistered = true;
-
-        FReflectionRegistry::Get().RegisterUClass(&Class);
-    }
-
-    return &Class;
-}
-
-namespace
-{
-    struct FAutoRegisterUAnimStateMachineAsset
-    {
-        FAutoRegisterUAnimStateMachineAsset()
-        {
-            UAnimStateMachineAsset::StaticClass();
-        }
-    };
-
-    static FAutoRegisterUAnimStateMachineAsset GAutoRegisterUAnimStateMachineAsset;
-}
-
 const FTypeInfo UAnimInstance::s_TypeInfo = {
     "UAnimInstance",
     &UObject::s_TypeInfo,
@@ -415,6 +373,48 @@ namespace
     };
 
     static FAutoRegisterUAnimSingleNodeInstance GAutoRegisterUAnimSingleNodeInstance;
+}
+
+const FTypeInfo UAnimStateMachineAsset::s_TypeInfo = {
+    "UAnimStateMachineAsset",
+    &UObject::s_TypeInfo,
+    sizeof(UAnimStateMachineAsset)
+};
+
+UClass* UAnimStateMachineAsset::StaticClass()
+{
+    static UClass Class(
+        "UAnimStateMachineAsset",
+        Super::StaticClass(),
+        sizeof(UAnimStateMachineAsset),
+        CF_None,
+        []() -> UObject*
+        {
+            return UObjectManager::Get().CreateObject<UAnimStateMachineAsset>();
+        });
+
+    static bool bRegistered = false;
+    if (!bRegistered)
+    {
+        bRegistered = true;
+
+        FReflectionRegistry::Get().RegisterUClass(&Class);
+    }
+
+    return &Class;
+}
+
+namespace
+{
+    struct FAutoRegisterUAnimStateMachineAsset
+    {
+        FAutoRegisterUAnimStateMachineAsset()
+        {
+            UAnimStateMachineAsset::StaticClass();
+        }
+    };
+
+    static FAutoRegisterUAnimStateMachineAsset GAutoRegisterUAnimStateMachineAsset;
 }
 
 const FTypeInfo UAnimationSequence::s_TypeInfo = {
