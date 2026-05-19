@@ -32,6 +32,8 @@ public:
 
     void SetLooping(bool bInLooping);
     bool IsLooping() const;
+    void SetReversePlay(bool bInReversePlay);
+    bool IsReversePlaying() const;
 
     bool PlayAnimationByName(const FName& AnimationName, bool bLoop);
     bool BlendToAnimationByName(

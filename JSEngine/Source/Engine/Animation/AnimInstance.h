@@ -54,6 +54,8 @@ public:
 
     void SetLooping(bool bInLooping);
     bool IsLooping() const;
+    virtual void SetReversePlay(bool bInReversePlay);
+    virtual bool IsReversePlaying() const;
 
 protected:
     friend class FAnimSequencePlayer;

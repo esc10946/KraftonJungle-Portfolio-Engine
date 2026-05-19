@@ -1016,6 +1016,13 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
         }
 
         ImGui::SameLine();
+        bool bReversePlay = AnimationViewer ? AnimationViewer->IsReversePlaying() : false;
+        if (ImGui::Checkbox("Reverse", &bReversePlay) && AnimationViewer)
+        {
+            AnimationViewer->SetReversePlay(bReversePlay);
+        }
+
+        ImGui::SameLine();
         float PlayRate = AnimationViewer ? AnimationViewer->GetPlayRate() : 1.0f;
         ImGui::SetNextItemWidth(90.0f);
         if (ImGui::DragFloat("SpeedRate", &PlayRate, 0.01f, 0.001f, 4.0f, "%.2fx") && AnimationViewer)

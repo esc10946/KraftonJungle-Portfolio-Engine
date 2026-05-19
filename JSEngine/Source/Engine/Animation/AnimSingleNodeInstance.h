@@ -30,6 +30,8 @@ public:
 
     void SetPlayRate(float InPlayRate) { SequencePlayer.SetPlayRate(InPlayRate); }
     float GetPlayRate() const { return SequencePlayer.GetPlayRate(); }
+    void SetReversePlay(bool bInReversePlay) override { SequencePlayer.SetReversePlay(bInReversePlay); }
+    bool IsReversePlaying() const override { return SequencePlayer.IsReversePlaying(); }
 
     void SetCurrentTime(float InCurrentTime) { SequencePlayer.SetCurrentTime(InCurrentTime); }
     float GetCurrentTime() const { return SequencePlayer.GetCurrentTime(); }
