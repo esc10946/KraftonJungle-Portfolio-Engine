@@ -1,6 +1,5 @@
 ﻿#include "Runtime/Script/ScriptManager.h"
 
-#include "Animation/AnimStateMachineNode.h"
 #include "Asset/CurveFloatAsset.h"
 #include "Asset/StaticMesh.h"
 #include "Camera/CameraShakeBase.h"
@@ -421,41 +420,29 @@ void FScriptManager::BindStaticMeshTypes()
     LUA_METHOD(SetSkeletalMesh, SetSkeletalMesh);
     LUA_METHOD(UseStateMachine, UseStateMachine);
     LUA_METHOD(LoadStateMachineFromJson, LoadStateMachineFromJson);
-    LUA_METHOD(SetAutoUpdateAnimStateMachineContext, SetAutoUpdateAnimStateMachineContext);
-    LUA_METHOD(IsAutoUpdatingAnimStateMachineContext, IsAutoUpdatingAnimStateMachineContext);
     LUA_SET(RegisterStateAnimation, [](USkeletalMeshComponent& Self, const FString& AnimationName, const FString& AnimationPath)
     {
         return Self.RegisterStateAnimationPath(FName(AnimationName), AnimationPath);
     });
-    LUA_SET(SetAnimStateMachineContext, [](
-        USkeletalMeshComponent& Self,
-        float Speed,
-        bool bIsGrounded,
-        sol::optional<FString> MovementMode,
-        sol::optional<float> WalkSpeed,
-        sol::optional<float> RunSpeed)
+    LUA_SET(SetAnimBoolParameter, [](USkeletalMeshComponent& Self, const FString& Name, bool Value)
     {
-        FAnimStateMachineContext Context;
-        Context.Speed = Speed;
-        Context.bIsGrounded = bIsGrounded;
-        Context.WalkSpeed = WalkSpeed.value_or(Context.WalkSpeed);
-        Context.RunSpeed = RunSpeed.value_or(Context.RunSpeed);
-
-        const FString Mode = MovementMode.value_or("Walking");
-        if (Mode == "Falling")
-        {
-            Context.MovementMode = EAnimStateMachineMovementMode::Falling;
-        }
-        else if (Mode == "Flying")
-        {
-            Context.MovementMode = EAnimStateMachineMovementMode::Flying;
-        }
-        else
-        {
-            Context.MovementMode = EAnimStateMachineMovementMode::Walking;
-        }
-
-        Self.SetAnimStateMachineContext(Context);
+        Self.SetAnimBoolParameter(FName(Name), Value);
+    });
+    LUA_SET(SetAnimIntParameter, [](USkeletalMeshComponent& Self, const FString& Name, int32 Value)
+    {
+        Self.SetAnimIntParameter(FName(Name), Value);
+    });
+    LUA_SET(SetAnimFloatParameter, [](USkeletalMeshComponent& Self, const FString& Name, float Value)
+    {
+        Self.SetAnimFloatParameter(FName(Name), Value);
+    });
+    LUA_SET(SetAnimVectorParameter, [](USkeletalMeshComponent& Self, const FString& Name, const FVector& Value)
+    {
+        Self.SetAnimVectorParameter(FName(Name), Value);
+    });
+    LUA_SET(SetAnimTriggerParameter, [](USkeletalMeshComponent& Self, const FString& Name)
+    {
+        Self.SetAnimTriggerParameter(FName(Name));
     });
     LUA_END_TYPE();
 }

@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Animation/AnimStateMachineNode.h"
+#include "Animation/AnimStateMachineTypes.h"
 #include "Animation/AnimationSequenceBase.h"
 #include "Core/Containers/Array.h"
 #include "Math/Matrix.h"

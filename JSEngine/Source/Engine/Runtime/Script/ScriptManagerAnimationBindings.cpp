@@ -1,11 +1,74 @@
 ﻿#include "Runtime/Script/ScriptManager.h"
 
 #include "Animation/ActorSequence.h"
-#include "Animation/AnimStateMachineNode.h"
+#include "Animation/AnimStateMachineAsset.h"
 #include "Asset/CurveFloatAsset.h"
 #include "Object/Object.h"
 #include "Runtime/Script/ScriptComponent.h"
 #include "Runtime/Script/ScriptUtils.h"
+
+namespace
+{
+EAnimBlendEaseOption LuaParseAnimBlendEaseOption(const FString& EaseOptionName)
+{
+    if (EaseOptionName == "EaseIn")
+    {
+        return EAnimBlendEaseOption::EaseIn;
+    }
+
+    if (EaseOptionName == "EaseOut")
+    {
+        return EAnimBlendEaseOption::EaseOut;
+    }
+
+    if (EaseOptionName == "EaseInOut")
+    {
+        return EAnimBlendEaseOption::EaseInOut;
+    }
+
+    return EAnimBlendEaseOption::Linear;
+}
+
+EAnimCompareOp LuaParseAnimCompareOp(const FString& OpName)
+{
+    if (OpName == "NotEqual" || OpName == "!=")
+    {
+        return EAnimCompareOp::NotEqual;
+    }
+
+    if (OpName == "Greater" || OpName == ">")
+    {
+        return EAnimCompareOp::Greater;
+    }
+
+    if (OpName == "GreaterEqual" || OpName == ">=")
+    {
+        return EAnimCompareOp::GreaterEqual;
+    }
+
+    if (OpName == "Less" || OpName == "<")
+    {
+        return EAnimCompareOp::Less;
+    }
+
+    if (OpName == "LessEqual" || OpName == "<=")
+    {
+        return EAnimCompareOp::LessEqual;
+    }
+
+    if (OpName == "IsTrue")
+    {
+        return EAnimCompareOp::IsTrue;
+    }
+
+    if (OpName == "IsFalse")
+    {
+        return EAnimCompareOp::IsFalse;
+    }
+
+    return EAnimCompareOp::Equal;
+}
+} // namespace
 
 void FScriptManager::BindAnimationTypes()
 {
@@ -71,33 +134,136 @@ void FScriptManager::BindAnimationTypes()
         UAnimStateMachineAsset& Self,
         const FString& FromState,
         const FString& ToState,
-        const FString& ConditionName,
+        const FString& ParameterName,
+        const FString& ParameterType,
+        const FString& CompareOp,
+        sol::object Value,
         float BlendTime,
         int32 Priority,
         sol::optional<FString> EaseOption)
     {
-        EAnimBlendEaseOption BlendEaseOption = EAnimBlendEaseOption::Linear;
-        const FString EaseOptionName = EaseOption.value_or("Linear");
-        if (EaseOptionName == "EaseIn")
+        const EAnimBlendEaseOption BlendEaseOption = LuaParseAnimBlendEaseOption(EaseOption.value_or("Linear"));
+        const EAnimCompareOp ParsedCompareOp = LuaParseAnimCompareOp(CompareOp);
+        if (ParameterType == "Trigger")
         {
-            BlendEaseOption = EAnimBlendEaseOption::EaseIn;
-        }
-        else if (EaseOptionName == "EaseOut")
-        {
-            BlendEaseOption = EAnimBlendEaseOption::EaseOut;
-        }
-        else if (EaseOptionName == "EaseInOut")
-        {
-            BlendEaseOption = EAnimBlendEaseOption::EaseInOut;
+            return Self.AddTriggerTransition(FName(FromState), FName(ToState), FName(ParameterName), BlendTime, Priority, BlendEaseOption);
         }
 
-        return Self.AddTransition(
+        if (ParameterType == "Int")
+        {
+            return Self.AddIntTransition(
+                FName(FromState),
+                FName(ToState),
+                FName(ParameterName),
+                ParsedCompareOp,
+                Value.as<int32>(),
+                BlendTime,
+                Priority,
+                BlendEaseOption);
+        }
+
+        if (ParameterType == "Float")
+        {
+            return Self.AddFloatTransition(
+                FName(FromState),
+                FName(ToState),
+                FName(ParameterName),
+                ParsedCompareOp,
+                Value.as<float>(),
+                BlendTime,
+                Priority,
+                BlendEaseOption);
+        }
+
+        return Self.AddBoolTransition(
             FName(FromState),
             FName(ToState),
-            FName(ConditionName),
+            FName(ParameterName),
+            ParsedCompareOp,
+            Value.as<bool>(),
             BlendTime,
             Priority,
             BlendEaseOption);
+    });
+    LUA_SET(AddBoolTransition, [](
+        UAnimStateMachineAsset& Self,
+        const FString& FromState,
+        const FString& ToState,
+        const FString& ParameterName,
+        const FString& CompareOp,
+        bool Value,
+        float BlendTime,
+        int32 Priority,
+        sol::optional<FString> EaseOption)
+    {
+        return Self.AddBoolTransition(
+            FName(FromState),
+            FName(ToState),
+            FName(ParameterName),
+            LuaParseAnimCompareOp(CompareOp),
+            Value,
+            BlendTime,
+            Priority,
+            LuaParseAnimBlendEaseOption(EaseOption.value_or("Linear")));
+    });
+    LUA_SET(AddIntTransition, [](
+        UAnimStateMachineAsset& Self,
+        const FString& FromState,
+        const FString& ToState,
+        const FString& ParameterName,
+        const FString& CompareOp,
+        int32 Value,
+        float BlendTime,
+        int32 Priority,
+        sol::optional<FString> EaseOption)
+    {
+        return Self.AddIntTransition(
+            FName(FromState),
+            FName(ToState),
+            FName(ParameterName),
+            LuaParseAnimCompareOp(CompareOp),
+            Value,
+            BlendTime,
+            Priority,
+            LuaParseAnimBlendEaseOption(EaseOption.value_or("Linear")));
+    });
+    LUA_SET(AddFloatTransition, [](
+        UAnimStateMachineAsset& Self,
+        const FString& FromState,
+        const FString& ToState,
+        const FString& ParameterName,
+        const FString& CompareOp,
+        float Value,
+        float BlendTime,
+        int32 Priority,
+        sol::optional<FString> EaseOption)
+    {
+        return Self.AddFloatTransition(
+            FName(FromState),
+            FName(ToState),
+            FName(ParameterName),
+            LuaParseAnimCompareOp(CompareOp),
+            Value,
+            BlendTime,
+            Priority,
+            LuaParseAnimBlendEaseOption(EaseOption.value_or("Linear")));
+    });
+    LUA_SET(AddTriggerTransition, [](
+        UAnimStateMachineAsset& Self,
+        const FString& FromState,
+        const FString& ToState,
+        const FString& ParameterName,
+        float BlendTime,
+        int32 Priority,
+        sol::optional<FString> EaseOption)
+    {
+        return Self.AddTriggerTransition(
+            FName(FromState),
+            FName(ToState),
+            FName(ParameterName),
+            BlendTime,
+            Priority,
+            LuaParseAnimBlendEaseOption(EaseOption.value_or("Linear")));
     });
     LUA_SET(Validate, [](const UAnimStateMachineAsset& Self)
     {

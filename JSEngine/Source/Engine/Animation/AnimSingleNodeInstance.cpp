@@ -1,4 +1,4 @@
-#include "Animation/AnimSingleNodeInstance.h"
+﻿#include "Animation/AnimSingleNodeInstance.h"
 
 bool UAnimSingleNodeInstance::PlayAnimationByName(const FName& AnimationName, bool bLoop)
 {

@@ -483,10 +483,16 @@
     <ClCompile Include="Source\Engine\Animation\AnimSingleNodeInstance.cpp">
       <Filter>Source\Engine\Animation</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Animation\AnimationSequenceBase.cpp">
+    <ClCompile Include="Source\Engine\Animation\AnimStateMachineAsset.cpp">
       <Filter>Source\Engine\Animation</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Animation\AnimationStateMachine.cpp">
+    <ClCompile Include="Source\Engine\Animation\AnimStateMachineNode.cpp">
+      <Filter>Source\Engine\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Animation\AnimStateMachineParameterStore.cpp">
+      <Filter>Source\Engine\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Animation\AnimationSequenceBase.cpp">
       <Filter>Source\Engine\Animation</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Animation\CurvePlayback.cpp">
@@ -1203,7 +1209,6 @@
     <ClCompile Include="Source\Misc\ObjViewer\Viewport\ObjViewerViewportClient.cpp">
       <Filter>Source\Misc\ObjViewer\Viewport</Filter>
     </ClCompile>
-    <ClCompile Include="TestComponent.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui.cpp">
       <Filter>ThirdParty\ImGui</Filter>
     </ClCompile>
@@ -1432,10 +1437,19 @@
     <ClInclude Include="Source\Engine\Animation\AnimSingleNodeInstance.h">
       <Filter>Source\Engine\Animation</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Animation\AnimationSequenceBase.h">
+    <ClInclude Include="Source\Engine\Animation\AnimStateMachineAsset.h">
       <Filter>Source\Engine\Animation</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Animation\AnimationStateMachine.h">
+    <ClInclude Include="Source\Engine\Animation\AnimStateMachineNode.h">
+      <Filter>Source\Engine\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Animation\AnimStateMachineParameterStore.h">
+      <Filter>Source\Engine\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Animation\AnimStateMachineTypes.h">
+      <Filter>Source\Engine\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Animation\AnimationSequenceBase.h">
       <Filter>Source\Engine\Animation</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Animation\CurvePlayback.h">
@@ -2311,7 +2325,6 @@
     <ClInclude Include="Source\Misc\ObjViewer\Viewport\ObjViewerViewportClient.h">
       <Filter>Source\Misc\ObjViewer\Viewport</Filter>
     </ClInclude>
-    <ClInclude Include="TestComponent.h" />
     <ClInclude Include="ThirdParty\ImGui\imconfig.h">
       <Filter>ThirdParty\ImGui</Filter>
     </ClInclude>

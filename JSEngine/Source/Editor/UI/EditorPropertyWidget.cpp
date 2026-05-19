@@ -44,7 +44,6 @@
 #include "Runtime/Script/ScriptManager.h"
 #include <Runtime/Script/ScriptComponent.h>
 #include <commdlg.h>
-#include "TestComponent.h"
 
 #define SEPARATOR(); ImGui::Spacing(); ImGui::Spacing(); ImGui::Separator(); ImGui::Spacing(); ImGui::Spacing();
 
@@ -676,7 +675,7 @@ static const TArray<FComponentMenuEntry> ComponentMenuRegistry = {
 	{
 		"Scene Component",
 		[](AActor* Actor) -> UActorComponent* {
-			return Actor->AddComponent<TestComponent>();
+			return Actor->AddComponent<USceneComponent>();
 		}
 	},
 	{

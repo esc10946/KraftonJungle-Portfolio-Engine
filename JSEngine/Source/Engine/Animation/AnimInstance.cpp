@@ -50,7 +50,7 @@ void UAnimInstance::UpdateAnimationGraph(float DeltaSeconds)
     FAnimNodeUpdateContext Context;
     Context.DeltaSeconds = DeltaSeconds;
     Context.OwnerAnimInstance = this;
-    Context.StateMachineContext = &StateMachineContext;
+    Context.Parameters = &AnimParameters;
     RootNode->Update(Context);
 }
 
@@ -130,6 +130,7 @@ void UAnimInstance::SetStateMachineAsset(UAnimStateMachineAsset* InStateMachineA
     if (StateMachineNode)
     {
         StateMachineNode->SetStateMachineAsset(InStateMachineAsset);
+        StateMachineNode->InitializeStateMachine();
     }
 }
 
@@ -147,6 +148,31 @@ FAnimStateMachineNode* UAnimInstance::GetStateMachine()
 const FAnimStateMachineNode* UAnimInstance::GetStateMachine() const
 {
     return RootNode ? RootNode->AsStateMachineNode() : nullptr;
+}
+
+void UAnimInstance::SetAnimBoolParameter(const FName& Name, bool Value)
+{
+    AnimParameters.SetBool(Name, Value);
+}
+
+void UAnimInstance::SetAnimIntParameter(const FName& Name, int32 Value)
+{
+    AnimParameters.SetInt(Name, Value);
+}
+
+void UAnimInstance::SetAnimFloatParameter(const FName& Name, float Value)
+{
+    AnimParameters.SetFloat(Name, Value);
+}
+
+void UAnimInstance::SetAnimVectorParameter(const FName& Name, const FVector& Value)
+{
+    AnimParameters.SetVector(Name, Value);
+}
+
+void UAnimInstance::SetAnimTriggerParameter(const FName& Name)
+{
+    AnimParameters.SetTrigger(Name);
 }
 
 void UAnimInstance::SetLooping(bool bInLooping)

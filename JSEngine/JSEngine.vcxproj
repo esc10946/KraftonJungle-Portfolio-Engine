@@ -625,7 +625,9 @@
     <ClCompile Include="Source\Engine\Animation\AnimSequencePlayer.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimSingleNodeInstance.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimationSequenceBase.cpp" />
+    <ClCompile Include="Source\Engine\Animation\AnimStateMachineAsset.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimStateMachineNode.cpp" />
+    <ClCompile Include="Source\Engine\Animation\AnimStateMachineParameterStore.cpp" />
     <ClCompile Include="Source\Engine\Animation\CurvePlayback.cpp" />
     <ClCompile Include="Source\Engine\Animation\TimelinePlayer.cpp" />
     <ClCompile Include="Source\Engine\Asset\AnimationSequence.cpp" />
@@ -890,7 +892,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientDebug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientRelease|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="TestComponent.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui_demo.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui_draw.cpp" />
@@ -970,7 +971,10 @@
     <ClInclude Include="Source\Engine\Animation\AnimSequencePlayer.h" />
     <ClInclude Include="Source\Engine\Animation\AnimSingleNodeInstance.h" />
     <ClInclude Include="Source\Engine\Animation\AnimationSequenceBase.h" />
+    <ClInclude Include="Source\Engine\Animation\AnimStateMachineAsset.h" />
     <ClInclude Include="Source\Engine\Animation\AnimStateMachineNode.h" />
+    <ClInclude Include="Source\Engine\Animation\AnimStateMachineParameterStore.h" />
+    <ClInclude Include="Source\Engine\Animation\AnimStateMachineTypes.h" />
     <ClInclude Include="Source\Engine\Animation\CurvePlayback.h" />
     <ClInclude Include="Source\Engine\Animation\TimelinePlayer.h" />
     <ClInclude Include="Source\Engine\Asset\AnimationSequence.h" />
@@ -1262,7 +1266,6 @@
     <ClInclude Include="Source\Misc\ObjViewer\UI\ObjViewerStatWidget.h" />
     <ClInclude Include="Source\Misc\ObjViewer\UI\ObjViewerWidget.h" />
     <ClInclude Include="Source\Misc\ObjViewer\Viewport\ObjViewerViewportClient.h" />
-    <ClInclude Include="TestComponent.h" />
     <ClInclude Include="ThirdParty\ImGui\imconfig.h" />
     <ClInclude Include="ThirdParty\ImGui\imgui.h" />
     <ClInclude Include="ThirdParty\ImGui\imgui_impl_dx11.h" />
