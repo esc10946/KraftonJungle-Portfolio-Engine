@@ -38,6 +38,7 @@
 #include "../Source/Engine/Component/StaticMeshComponent.h"
 #include "../Source/Engine/Component/SubUVComponent.h"
 #include "../Source/Engine/Component/TextRenderComponent.h"
+#include "../Source/Engine/GameFramework/AnimTestPawn.h"
 #include "../Source/Engine/GameFramework/AReflectionTestActor.h"
 #include "../Source/Engine/GameFramework/DefaultPawn.h"
 #include "../Source/Engine/GameFramework/GameModeBase.h"
@@ -1651,6 +1652,42 @@ namespace
     };
 
     static FAutoRegisterUTextRenderComponent GAutoRegisterUTextRenderComponent;
+}
+
+UClass* AAnimTestPawn::StaticClass()
+{
+    static UClass Class(
+        "AAnimTestPawn",
+        Super::StaticClass(),
+        sizeof(AAnimTestPawn),
+        CF_Actor,
+        []() -> UObject*
+        {
+            return UObjectManager::Get().CreateObject<AAnimTestPawn>();
+        });
+
+    static bool bRegistered = false;
+    if (!bRegistered)
+    {
+        bRegistered = true;
+
+        FReflectionRegistry::Get().RegisterUClass(&Class);
+    }
+
+    return &Class;
+}
+
+namespace
+{
+    struct FAutoRegisterAAnimTestPawn
+    {
+        FAutoRegisterAAnimTestPawn()
+        {
+            AAnimTestPawn::StaticClass();
+        }
+    };
+
+    static FAutoRegisterAAnimTestPawn GAutoRegisterAAnimTestPawn;
 }
 
 const FTypeInfo AReflectionTestActor::s_TypeInfo = {
