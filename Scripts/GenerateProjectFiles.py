@@ -56,11 +56,13 @@ SOLUTION_CONFIGURATIONS = [
 # BuildTools/Scripts/*.ps1에서 정적 라이브러리로 빌드한 뒤 vcxproj에서 링크
 SOURCE_SCAN_DIRS = ["Source", "ThirdParty\\ImGui"]
 SHADER_SCAN_DIRS = ["Shaders"]
-ROOT_SOURCE_FILES = ["main.cpp"]
+ROOT_SOURCE_FILES = ["main.cpp", "TestComponent.cpp"]
+GENERATED_SOURCE_FILES = ["Generated\\JSEngine.generated.cpp"]
 
 # 전체 디렉터리를 가져오지 않고 Solution Explorer에만 표시할 header-only 또는
 # 외부 빌드 ThirdParty 진입점
 EXPLICIT_HEADER_FILES = [
+    "TestComponent.h",
     "ThirdParty\\luajit\\src\\lua.h",
     "ThirdParty\\SimpleJSON\\json.hpp",
 ]
@@ -73,6 +75,7 @@ NONE_EXTS = {".natstepfilter", ".config"}
 RESOURCE_EXTS = {".rc"}
 
 BASE_INCLUDE_PATHS = [
+    "Generated",
     "Source\\Engine",
     "Source",
     "ThirdParty",
@@ -86,6 +89,7 @@ BASE_INCLUDE_PATHS = [
 # GameClient는 대부분의 에디터 소스를 컴파일에서 제외하지만, 일부 런타임 파일은
 # 공유 선언 때문에 에디터 헤더를 include함
 GAME_CLIENT_INCLUDE_PATHS = [
+    "Generated",
     "Source\\Engine",
     "Source",
     "ThirdParty",
@@ -196,7 +200,7 @@ def scan_files(project_dir: Path) -> dict[str, list[str]]:
                 if full_path.suffix.lower() in SHADER_EXTS:
                     result["None"].append(normalize_rel(full_path.relative_to(project_dir)))
 
-    for source_file in ROOT_SOURCE_FILES:
+    for source_file in [*GENERATED_SOURCE_FILES, *ROOT_SOURCE_FILES]:
         if (project_dir / source_file).exists():
             result["ClCompile"].append(source_file.replace("/", "\\"))
 
@@ -458,6 +462,13 @@ def generate_vcxproj(files: dict[str, list[str]]) -> None:
         rml_target,
         "Exec",
         Command='powershell -NoProfile -ExecutionPolicy Bypass -File "$(MSBuildProjectDirectory)\\BuildTools\\Scripts\\BuildRmlUiLib.ps1" -ProjectDir "$(MSBuildProjectDirectory)" -Configuration "$(ThirdPartyBinaryConfiguration)" -Platform "$(Platform)"',
+    )
+
+    reflection_target = add_text(project, "Target", Name="GenerateReflectionCode", BeforeTargets="ClCompile")
+    add_text(
+        reflection_target,
+        "Exec",
+        Command='python "$(MSBuildProjectDirectory)\\BuildTools\\Scripts\\GenerateReflection.py"',
     )
 
     soloud_target = add_text(project, "Target", Name="BuildSoLoudStaticLibrary", BeforeTargets="ClCompile")
