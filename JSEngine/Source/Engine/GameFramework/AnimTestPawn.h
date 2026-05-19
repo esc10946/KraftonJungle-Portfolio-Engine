@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "GameFramework/Pawn.h"
 #include "Math/Vector2.h"
@@ -41,7 +41,10 @@ private:
     void AddDefaultAnimationNotifies(UAnimInstance* AnimInstance);
     void AddNotifyToAnimation(UAnimInstance* AnimInstance, const FName& AnimationName, const FName& NotifyName, float TriggerTime);
     bool IsInAttackState() const;
-    void PlayNotifySound(const FAnimNotifyEvent& Notify);
+    void PlayAttackNotifySound(const FAnimNotifyEvent& Notify);
+    void PlayLightAttackSound();
+    void PlayHeavyAttackSound();
+    void PlaySoundAtActor(const FString& SoundPath);
 
 private:
     USceneComponent* SceneRoot = nullptr;
@@ -57,16 +60,18 @@ private:
     FString HomeguardAnimationPath = "Asset/SkeletalMesh/GwenFBX/gwen_anim_Skeleton_Gwen_Homeguard.anm.bin";
     FString LightAttackAnimationPath = "Asset/SkeletalMesh/GwenFBX/gwen_anim_Skeleton_Attack1.bin";
     FString HeavyAttackAnimationPath = "Asset/SkeletalMesh/GwenFBX/gwen_anim_Skeleton_Attack2.bin";
-    FString LightAttackSoundPath;
-    FString HeavyAttackSoundPath;
+    FString LightAttackSoundPath1 = "Asset/Audio/Gwen_Original_BasicAttack_1.ogg";
+    FString LightAttackSoundPath2 = "Asset/Audio/Gwen_Original_BasicAttack_2.ogg";
+    FString LightAttackSoundPath3 = "Asset/Audio/Gwen_Original_BasicAttack_3.ogg";
+    FString HeavyAttackSoundPath = "Asset/Audio/Gwen_Original_BasicAttack_0.ogg";
 
     float MoveSpeed = 7.0f;
     float SprintSpeedMultiplier = 1.5f;
     float LookSensitivityDegrees = 0.12f;
     float LocomotionBlendTime = 0.12f;
     float IntoRunDuration = 0.25f;
-    float LightAttackDuration = 0.55f;
-    float HeavyAttackDuration = 0.75f;
+    float LightAttackDuration = 0.8f;
+    float HeavyAttackDuration = 1.2f;
     float MoveStartSpeedThreshold = 0.1f;
     bool bRotateToMovement = true;
     bool bAutoConfigureAnimation = true;

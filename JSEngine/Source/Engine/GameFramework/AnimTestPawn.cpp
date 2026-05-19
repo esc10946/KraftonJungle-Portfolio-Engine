@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <cstdlib>
 
 DEFINE_CLASS(AAnimTestPawn, APawn)  
 REGISTER_FACTORY(AAnimTestPawn)
@@ -28,8 +29,8 @@ namespace
 {
     const FName NAME_LightAttack("LightAttack");
     const FName NAME_HeavyAttack("HeavyAttack");
-    const FName NAME_LightAttackSwing("GwenLightAttackSwing");
-    const FName NAME_HeavyAttackSwing("GwenHeavyAttackSwing");
+    const FName NAME_LightAttackStart("GwenLightAttackStart");
+    const FName NAME_HeavyAttackStart("GwenHeavyAttackStart");
 
     bool IsActionActive(const FInputActionState* Action)
     {
@@ -117,7 +118,9 @@ void AAnimTestPawn::Serialize(FArchive& Ar)
     Ar << "HomeguardAnimationPath" << HomeguardAnimationPath;
     Ar << "LightAttackAnimationPath" << LightAttackAnimationPath;
     Ar << "HeavyAttackAnimationPath" << HeavyAttackAnimationPath;
-    Ar << "LightAttackSoundPath" << LightAttackSoundPath;
+    Ar << "LightAttackSoundPath1" << LightAttackSoundPath1;
+    Ar << "LightAttackSoundPath2" << LightAttackSoundPath2;
+    Ar << "LightAttackSoundPath3" << LightAttackSoundPath3;
     Ar << "HeavyAttackSoundPath" << HeavyAttackSoundPath;
     Ar << "MoveSpeed" << MoveSpeed;
     Ar << "SprintSpeedMultiplier" << SprintSpeedMultiplier;
@@ -159,7 +162,9 @@ void AAnimTestPawn::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
     OutProps.push_back({ "Homeguard Animation", EPropertyType::String, &HomeguardAnimationPath });
     OutProps.push_back({ "Light Attack Animation", EPropertyType::String, &LightAttackAnimationPath });
     OutProps.push_back({ "Heavy Attack Animation", EPropertyType::String, &HeavyAttackAnimationPath });
-    OutProps.push_back({ "Light Attack Sound", EPropertyType::String, &LightAttackSoundPath });
+    OutProps.push_back({ "Light Attack Sound 1", EPropertyType::String, &LightAttackSoundPath1 });
+    OutProps.push_back({ "Light Attack Sound 2", EPropertyType::String, &LightAttackSoundPath2 });
+    OutProps.push_back({ "Light Attack Sound 3", EPropertyType::String, &LightAttackSoundPath3 });
     OutProps.push_back({ "Heavy Attack Sound", EPropertyType::String, &HeavyAttackSoundPath });
     OutProps.push_back({ "Move Speed", EPropertyType::Float, &MoveSpeed, 0.0f, 100.0f, 0.1f });
     OutProps.push_back({ "Sprint Speed Multiplier", EPropertyType::Float, &SprintSpeedMultiplier, 1.0f, 10.0f, 0.05f });
@@ -549,10 +554,33 @@ void AAnimTestPawn::UpdateLocomotion(float DeltaTime)
     }
 }
 
+bool AAnimTestPawn::IsInAttackState() const
+{
+    if (!SkeletalMeshComp)
+    {
+        return false;
+    }
+
+    const UAnimInstance* AnimInstance = SkeletalMeshComp->GetAnimInstance();
+    if (!AnimInstance)
+    {
+        return false;
+    }
+
+    const FAnimStateMachineNode* StateMachine = AnimInstance->GetStateMachine();
+    if (!StateMachine)
+    {
+        return false;
+    }
+
+    const FName CurrentState = StateMachine->GetCurrentState();
+    return CurrentState == NAME_LightAttack || CurrentState == NAME_HeavyAttack;
+}
+
 void AAnimTestPawn::AddDefaultAnimationNotifies(UAnimInstance* AnimInstance)
 {
-    AddNotifyToAnimation(AnimInstance, NAME_LightAttack, NAME_LightAttackSwing, 0.18f);
-    AddNotifyToAnimation(AnimInstance, NAME_HeavyAttack, NAME_HeavyAttackSwing, 0.28f);
+    AddNotifyToAnimation(AnimInstance, NAME_LightAttack, NAME_LightAttackStart, 0.01f);
+    AddNotifyToAnimation(AnimInstance, NAME_HeavyAttack, NAME_HeavyAttackStart, 0.01f);
 }
 
 void AAnimTestPawn::AddNotifyToAnimation(
@@ -587,53 +615,57 @@ void AAnimTestPawn::AddNotifyToAnimation(
     Sequence->AddNotify(Notify);
 }
 
-bool AAnimTestPawn::IsInAttackState() const
-{
-    if (!SkeletalMeshComp)
-    {
-        return false;
-    }
-
-    const UAnimInstance* AnimInstance = SkeletalMeshComp->GetAnimInstance();
-    if (!AnimInstance)
-    {
-        return false;
-    }
-
-    const FAnimStateMachineNode* StateMachine = AnimInstance->GetStateMachine();
-    if (!StateMachine)
-    {
-        return false;
-    }
-
-    const FName CurrentState = StateMachine->GetCurrentState();
-    return CurrentState == NAME_LightAttack || CurrentState == NAME_HeavyAttack;
-}
-
 void AAnimTestPawn::HandleAnimNotify(const FAnimNotifyEvent& Notify)
 {
     APawn::HandleAnimNotify(Notify);
-    PlayNotifySound(Notify);
+    PlayAttackNotifySound(Notify);
 }
 
-void AAnimTestPawn::PlayNotifySound(const FAnimNotifyEvent& Notify)
+void AAnimTestPawn::PlayAttackNotifySound(const FAnimNotifyEvent& Notify)
 {
-    if (!GEngine || !Notify.NotifyName.IsValid())
+    if (Notify.NotifyName == NAME_LightAttackStart)
+    {
+        PlayLightAttackSound();
+    }
+    else if (Notify.NotifyName == NAME_HeavyAttackStart)
+    {
+        PlayHeavyAttackSound();
+    }
+}
+
+void AAnimTestPawn::PlayLightAttackSound()
+{
+    TArray<FString> SoundPaths;
+    if (!LightAttackSoundPath1.empty())
+    {
+        SoundPaths.push_back(LightAttackSoundPath1);
+    }
+    if (!LightAttackSoundPath2.empty())
+    {
+        SoundPaths.push_back(LightAttackSoundPath2);
+    }
+    if (!LightAttackSoundPath3.empty())
+    {
+        SoundPaths.push_back(LightAttackSoundPath3);
+    }
+
+    if (SoundPaths.empty())
     {
         return;
     }
 
-    FString SoundPath;
-    if (Notify.NotifyName == NAME_LightAttackSwing)
-    {
-        SoundPath = LightAttackSoundPath;
-    }
-    else if (Notify.NotifyName == NAME_HeavyAttackSwing)
-    {
-        SoundPath = HeavyAttackSoundPath;
-    }
+    const int32 RandomIndex = static_cast<int32>(std::rand() % SoundPaths.size());
+    PlaySoundAtActor(SoundPaths[RandomIndex]);
+}
 
-    if (!SoundPath.empty())
+void AAnimTestPawn::PlayHeavyAttackSound()
+{
+    PlaySoundAtActor(HeavyAttackSoundPath);
+}
+
+void AAnimTestPawn::PlaySoundAtActor(const FString& SoundPath)
+{
+    if (GEngine && !SoundPath.empty())
     {
         GEngine->GetAudioSystem().PlaySFX3D(SoundPath, GetActorLocation());
     }
