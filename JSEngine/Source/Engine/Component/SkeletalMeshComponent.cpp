@@ -322,62 +322,6 @@ bool USkeletalMeshComponent::LoadStateMachineFromJson(const FString& JsonPath)
     return UseStateMachine(StateMachineAsset);
 }
 
-bool USkeletalMeshComponent::RegisterStateAnimationPath(const FName& AnimationName, const FString& AnimationPath)
-{
-    UAnimInstance* StateAnimInstance = GetOrCreateDefaultAnimInstance();
-    if (!StateAnimInstance)
-    {
-        return false;
-    }
-
-    return StateAnimInstance->RegisterAnimationPath(AnimationName, AnimationPath);
-}
-
-void USkeletalMeshComponent::SetAnimBoolParameter(const FName& Name, bool Value)
-{
-    UAnimInstance* TargetAnimInstance = AnimInstance ? AnimInstance : GetOrCreateDefaultAnimInstance();
-    if (TargetAnimInstance)
-    {
-        TargetAnimInstance->SetAnimBoolParameter(Name, Value);
-    }
-}
-
-void USkeletalMeshComponent::SetAnimIntParameter(const FName& Name, int32 Value)
-{
-    UAnimInstance* TargetAnimInstance = AnimInstance ? AnimInstance : GetOrCreateDefaultAnimInstance();
-    if (TargetAnimInstance)
-    {
-        TargetAnimInstance->SetAnimIntParameter(Name, Value);
-    }
-}
-
-void USkeletalMeshComponent::SetAnimFloatParameter(const FName& Name, float Value)
-{
-    UAnimInstance* TargetAnimInstance = AnimInstance ? AnimInstance : GetOrCreateDefaultAnimInstance();
-    if (TargetAnimInstance)
-    {
-        TargetAnimInstance->SetAnimFloatParameter(Name, Value);
-    }
-}
-
-void USkeletalMeshComponent::SetAnimVectorParameter(const FName& Name, const FVector& Value)
-{
-    UAnimInstance* TargetAnimInstance = AnimInstance ? AnimInstance : GetOrCreateDefaultAnimInstance();
-    if (TargetAnimInstance)
-    {
-        TargetAnimInstance->SetAnimVectorParameter(Name, Value);
-    }
-}
-
-void USkeletalMeshComponent::SetAnimTriggerParameter(const FName& Name)
-{
-    UAnimInstance* TargetAnimInstance = AnimInstance ? AnimInstance : GetOrCreateDefaultAnimInstance();
-    if (TargetAnimInstance)
-    {
-        TargetAnimInstance->SetAnimTriggerParameter(Name);
-    }
-}
-
 void USkeletalMeshComponent::HandleAnimNotify(const FAnimNotifyEvent& Notify)
 {
     AActor* OwnerActor = GetOwner();

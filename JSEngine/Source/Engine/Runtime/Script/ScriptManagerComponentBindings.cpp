@@ -1,6 +1,5 @@
 ﻿#include "Runtime/Script/ScriptManager.h"
 
-#include "Animation/AnimStateMachineNode.h"
 #include "Animation/AnimInstance.h"
 #include "Asset/CurveFloatAsset.h"
 #include "Asset/StaticMesh.h"
@@ -440,30 +439,6 @@ void FScriptManager::BindStaticMeshTypes()
     LUA_METHOD(PlaySingleAnimation, PlaySingleAnimation);
     LUA_METHOD(PauseSingleAnimation, PauseSingleAnimation);
     LUA_METHOD(StopSingleAnimation, StopSingleAnimation);
-    LUA_SET(RegisterStateAnimation, [](USkeletalMeshComponent& Self, const FString& AnimationName, const FString& AnimationPath)
-    {
-        return Self.RegisterStateAnimationPath(FName(AnimationName), AnimationPath);
-    });
-    LUA_SET(SetAnimBoolParameter, [](USkeletalMeshComponent& Self, const FString& Name, bool Value)
-    {
-        Self.SetAnimBoolParameter(FName(Name), Value);
-    });
-    LUA_SET(SetAnimIntParameter, [](USkeletalMeshComponent& Self, const FString& Name, int32 Value)
-    {
-        Self.SetAnimIntParameter(FName(Name), Value);
-    });
-    LUA_SET(SetAnimFloatParameter, [](USkeletalMeshComponent& Self, const FString& Name, float Value)
-    {
-        Self.SetAnimFloatParameter(FName(Name), Value);
-    });
-    LUA_SET(SetAnimVectorParameter, [](USkeletalMeshComponent& Self, const FString& Name, const FVector& Value)
-    {
-        Self.SetAnimVectorParameter(FName(Name), Value);
-    });
-    LUA_SET(SetAnimTriggerParameter, [](USkeletalMeshComponent& Self, const FString& Name)
-    {
-        Self.SetAnimTriggerParameter(FName(Name));
-    });
     LUA_END_TYPE();
 }
 

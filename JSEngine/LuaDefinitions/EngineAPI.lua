@@ -283,6 +283,22 @@ function AnimInstance:BlendToAnimationByName(name, loop, blendTime, easeOption) 
 function AnimInstance:SetLooping(loop) end
 ---@return boolean
 function AnimInstance:IsLooping() end
+---@param name string
+---@param value boolean
+function AnimInstance:SetAnimBoolParameter(name, value) end
+---@param name string
+---@param value integer
+function AnimInstance:SetAnimIntParameter(name, value) end
+---@param name string
+---@param value number
+function AnimInstance:SetAnimFloatParameter(name, value) end
+---@param name string
+---@param value FVector
+function AnimInstance:SetAnimVectorParameter(name, value) end
+---@param name string
+function AnimInstance:SetAnimTriggerParameter(name) end
+---@return SkeletalMeshComponent|nil
+function AnimInstance:GetSkelMeshComponent() end
 
 ---@return AnimStateMachineAsset
 function CreateAnimStateMachineAsset() end
@@ -319,10 +335,6 @@ function SkeletalMeshComponent:UseStateMachine(asset) end
 ---@param jsonPath string
 ---@return boolean
 function SkeletalMeshComponent:LoadStateMachineFromJson(jsonPath) end
----@param name string
----@param path string
----@return boolean
-function SkeletalMeshComponent:RegisterStateAnimation(name, path) end
 
 ---@class MainSceneDestructibleComponent: ActorComponent
 ---@field PresentationTrigger number

@@ -313,6 +313,26 @@ void FScriptManager::BindAnimationTypes()
     });
     LUA_METHOD(SetLooping, SetLooping);
     LUA_METHOD(IsLooping, IsLooping);
+    LUA_SET(SetAnimBoolParameter, [](UAnimInstance& Self, const FString& Name, bool Value)
+    {
+        Self.SetAnimBoolParameter(FName(Name), Value);
+    });
+    LUA_SET(SetAnimIntParameter, [](UAnimInstance& Self, const FString& Name, int32 Value)
+    {
+        Self.SetAnimIntParameter(FName(Name), Value);
+    });
+    LUA_SET(SetAnimFloatParameter, [](UAnimInstance& Self, const FString& Name, float Value)
+    {
+        Self.SetAnimFloatParameter(FName(Name), Value);
+    });
+    LUA_SET(SetAnimVectorParameter, [](UAnimInstance& Self, const FString& Name, const FVector& Value)
+    {
+        Self.SetAnimVectorParameter(FName(Name), Value);
+    });
+    LUA_SET(SetAnimTriggerParameter, [](UAnimInstance& Self, const FString& Name)
+    {
+        Self.SetAnimTriggerParameter(FName(Name));
+    });
     LUA_METHOD(GetSkelMeshComponent, GetSkelMeshComponent);
     LUA_END_TYPE();
 

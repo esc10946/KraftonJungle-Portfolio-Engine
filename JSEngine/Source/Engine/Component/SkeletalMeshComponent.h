@@ -9,7 +9,6 @@ class UAnimInstance;
 class UAnimSingleNodeInstance;
 class UAnimationSequenceBase;
 struct FAnimNotifyEvent;
-struct FVector;
 
 enum class ESkeletalMeshAnimationMode : int32
 {
@@ -56,6 +55,7 @@ public:
     bool SetAnimInstanceSource(EAnimInstanceSource InAnimInstanceSource);
     EAnimInstanceSource GetAnimInstanceSource() const { return AnimInstanceSource; }
 
+    // NOTE: 해당 함수는 AnimationMode를 SingleAnimation로 강제로 바꿀 수 있으므로 주의
     bool SetAnimationSequence(const FString& AnimationPath);
     UAnimationSequenceBase* GetAnimationSequence() const;
     const FString& GetAnimationSequencePath() const { return AnimationSequence.Path; }
@@ -70,12 +70,6 @@ public:
 
     bool UseStateMachine(UAnimStateMachineAsset* StateMachineAsset);
     bool LoadStateMachineFromJson(const FString& JsonPath);
-    bool RegisterStateAnimationPath(const FName& AnimationName, const FString& AnimationPath);
-    void SetAnimBoolParameter(const FName& Name, bool Value);
-    void SetAnimIntParameter(const FName& Name, int32 Value);
-    void SetAnimFloatParameter(const FName& Name, float Value);
-    void SetAnimVectorParameter(const FName& Name, const FVector& Value);
-    void SetAnimTriggerParameter(const FName& Name);
     void HandleAnimNotify(const FAnimNotifyEvent& Notify);
 
     void ApplyLocalPose(const TArray<FMatrix>& InLocalPose);
