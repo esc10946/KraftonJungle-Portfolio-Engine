@@ -16,6 +16,14 @@ enum class EAnimStateMachineMovementMode : uint8
     Flying,
 };
 
+enum class EAnimBlendEaseOption : uint8
+{
+    Linear = 0,
+    EaseIn,
+    EaseOut,
+    EaseInOut,
+};
+
 struct FAnimStateMachineContext
 {
     float Speed = 0.0f;
@@ -40,6 +48,7 @@ struct FAnimTransitionDesc
     FName ToState;
     FName ConditionName;
     float BlendTime = 0.0f;
+    EAnimBlendEaseOption EaseOption = EAnimBlendEaseOption::Linear;
     int32 Priority = 0;
 };
 
@@ -63,7 +72,8 @@ public:
         const FName& ToState,
         const FName& ConditionName,
         float BlendTime,
-        int32 Priority);
+        int32 Priority,
+        EAnimBlendEaseOption EaseOption = EAnimBlendEaseOption::Linear);
 
     const FName& GetEntryState() const { return EntryState; }
     const TArray<FAnimStateDesc>& GetStates() const { return States; }
@@ -101,8 +111,10 @@ public:
     UAnimStateMachineAsset* GetAsset() const { return Asset; }
 
 private:
-    void ChangeState(const FName& NewState, float BlendTime);
+    void ChangeState(const FName& NewState, float BlendTime, EAnimBlendEaseOption EaseOption);
     bool EvaluateCondition(const FName& ConditionName, const FAnimStateMachineContext& Context) const;
+    bool HasWarnedMissingCondition(const FName& ConditionName) const;
+    void MarkMissingConditionWarned(const FName& ConditionName) const;
 
 private:
     UAnimStateMachineAsset* Asset = nullptr;
@@ -110,4 +122,5 @@ private:
     FName CurrentState;
     FName PreviousState;
     float StateElapsedTime = 0.0f;
+    mutable TArray<FName> WarnedMissingConditions;
 };

@@ -1,4 +1,4 @@
-#include "Runtime/Script/ScriptManager.h"
+﻿#include "Runtime/Script/ScriptManager.h"
 
 #include "Animation/ActorSequence.h"
 #include "Animation/AnimationStateMachine.h"
@@ -73,14 +73,31 @@ void FScriptManager::BindAnimationTypes()
         const FString& ToState,
         const FString& ConditionName,
         float BlendTime,
-        int32 Priority)
+        int32 Priority,
+        sol::optional<FString> EaseOption)
     {
+        EAnimBlendEaseOption BlendEaseOption = EAnimBlendEaseOption::Linear;
+        const FString EaseOptionName = EaseOption.value_or("Linear");
+        if (EaseOptionName == "EaseIn")
+        {
+            BlendEaseOption = EAnimBlendEaseOption::EaseIn;
+        }
+        else if (EaseOptionName == "EaseOut")
+        {
+            BlendEaseOption = EAnimBlendEaseOption::EaseOut;
+        }
+        else if (EaseOptionName == "EaseInOut")
+        {
+            BlendEaseOption = EAnimBlendEaseOption::EaseInOut;
+        }
+
         return Self.AddTransition(
             FName(FromState),
             FName(ToState),
             FName(ConditionName),
             BlendTime,
-            Priority);
+            Priority,
+            BlendEaseOption);
     });
     LUA_SET(Validate, [](const UAnimStateMachineAsset& Self)
     {

@@ -1,5 +1,5 @@
 ﻿#include "AnimationViewer.h"
-#include "Animation/AnimInstance.h"
+#include "Animation/AnimSingleNodeInstance.h"
 #include "Asset/AnimationSequence.h"
 #include "Asset/SkeletonAsset.h"
 #include "Component/SkeletalMeshComponent.h"

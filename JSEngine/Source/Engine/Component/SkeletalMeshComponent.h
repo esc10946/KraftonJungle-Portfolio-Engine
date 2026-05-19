@@ -6,6 +6,7 @@
 class UAnimStateMachineAsset;
 class UAnimInstance;
 class UAnimSingleNodeInstance;
+class UStateMachineAnimInstance;
 struct FAnimNotifyEvent;
 struct FAnimStateMachineContext;
 
@@ -50,11 +51,13 @@ public:
 
 private:
     UAnimSingleNodeInstance* GetOrCreateAnimSingleNodeInstance();
+    UStateMachineAnimInstance* GetOrCreateStateMachineAnimInstance();
     void RefreshAnimStateMachineContextFromOwner();
     void RegisterStateAnimationPathsFromAsset(const UAnimStateMachineAsset* StateMachineAsset);
 
 private:
     UAnimInstance* AnimInstance = nullptr;
     UAnimSingleNodeInstance* AnimSingleNodeInstance = nullptr;
+    UStateMachineAnimInstance* StateMachineAnimInstance = nullptr;
     bool bAutoUpdateAnimStateMachineContext = true;
 };

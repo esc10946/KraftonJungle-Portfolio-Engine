@@ -4,6 +4,8 @@
 #include "../Source/Engine/Animation/AnimationSequenceBase.h"
 #include "../Source/Engine/Animation/AnimationStateMachine.h"
 #include "../Source/Engine/Animation/AnimInstance.h"
+#include "../Source/Engine/Animation/AnimSingleNodeInstance.h"
+#include "../Source/Engine/Animation/StateMachineAnimInstance.h"
 #include "../Source/Engine/Asset/AnimationSequence.h"
 #include "../Source/Engine/Component/ActorSequenceComponent.h"
 #include "../Source/Engine/Component/BillboardComponent.h"
@@ -469,6 +471,48 @@ namespace
     };
 
     static FAutoRegisterUAnimSingleNodeInstance GAutoRegisterUAnimSingleNodeInstance;
+}
+
+const FTypeInfo UStateMachineAnimInstance::s_TypeInfo = {
+    "UStateMachineAnimInstance",
+    &UAnimSingleNodeInstance::s_TypeInfo,
+    sizeof(UStateMachineAnimInstance)
+};
+
+UClass* UStateMachineAnimInstance::StaticClass()
+{
+    static UClass Class(
+        "UStateMachineAnimInstance",
+        Super::StaticClass(),
+        sizeof(UStateMachineAnimInstance),
+        CF_None,
+        []() -> UObject*
+        {
+            return UObjectManager::Get().CreateObject<UStateMachineAnimInstance>();
+        });
+
+    static bool bRegistered = false;
+    if (!bRegistered)
+    {
+        bRegistered = true;
+
+        FReflectionRegistry::Get().RegisterUClass(&Class);
+    }
+
+    return &Class;
+}
+
+namespace
+{
+    struct FAutoRegisterUStateMachineAnimInstance
+    {
+        FAutoRegisterUStateMachineAnimInstance()
+        {
+            UStateMachineAnimInstance::StaticClass();
+        }
+    };
+
+    static FAutoRegisterUStateMachineAnimInstance GAutoRegisterUStateMachineAnimInstance;
 }
 
 const FTypeInfo UAnimationSequence::s_TypeInfo = {

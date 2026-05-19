@@ -1,7 +1,9 @@
 ﻿#include "SkeletalMeshComponent.h"
 
 #include "Animation/AnimInstance.h"
+#include "Animation/AnimSingleNodeInstance.h"
 #include "Animation/AnimationStateMachine.h"
+#include "Animation/StateMachineAnimInstance.h"
 #include "Component/Movement/MovementComponent.h"
 #include "Core/Logging/Log.h"
 #include "GameFramework/AActor.h"
@@ -13,6 +15,17 @@ REGISTER_FACTORY(USkeletalMeshComponent)
 
 USkeletalMeshComponent::~USkeletalMeshComponent()
 {
+    if (StateMachineAnimInstance)
+    {
+        if (AnimInstance == StateMachineAnimInstance)
+        {
+            AnimInstance = nullptr;
+        }
+
+        UObjectManager::Get().DestroyObject(StateMachineAnimInstance);
+        StateMachineAnimInstance = nullptr;
+    }
+
     if (AnimSingleNodeInstance)
     {
         if (AnimInstance == AnimSingleNodeInstance)
@@ -60,15 +73,15 @@ bool USkeletalMeshComponent::UseStateMachine(UAnimStateMachineAsset* StateMachin
         return false;
     }
 
-    UAnimSingleNodeInstance* AnimSingleNode = GetOrCreateAnimSingleNodeInstance();
-    if (!AnimSingleNode)
+    UStateMachineAnimInstance* StateMachineInstance = GetOrCreateStateMachineAnimInstance();
+    if (!StateMachineInstance)
     {
         return false;
     }
 
-    SetAnimInstance(AnimSingleNode);
-    AnimSingleNode->SetStateMachineAsset(StateMachineAsset);
-    return AnimSingleNode->GetStateMachineAsset() == StateMachineAsset;
+    SetAnimInstance(StateMachineInstance);
+    StateMachineInstance->SetStateMachineAsset(StateMachineAsset);
+    return StateMachineInstance->GetStateMachineAsset() == StateMachineAsset;
 }
 
 bool USkeletalMeshComponent::LoadStateMachineFromJson(const FString& JsonPath)
@@ -85,25 +98,25 @@ bool USkeletalMeshComponent::LoadStateMachineFromJson(const FString& JsonPath)
 
 bool USkeletalMeshComponent::RegisterStateAnimationPath(const FName& AnimationName, const FString& AnimationPath)
 {
-    UAnimSingleNodeInstance* AnimSingleNode = GetOrCreateAnimSingleNodeInstance();
-    if (!AnimSingleNode)
+    UStateMachineAnimInstance* StateMachineInstance = GetOrCreateStateMachineAnimInstance();
+    if (!StateMachineInstance)
     {
         return false;
     }
 
-    SetAnimInstance(AnimSingleNode);
-    return AnimSingleNode->RegisterAnimationPath(AnimationName, AnimationPath);
+    SetAnimInstance(StateMachineInstance);
+    return StateMachineInstance->RegisterAnimationPath(AnimationName, AnimationPath);
 }
 
 void USkeletalMeshComponent::SetAnimStateMachineContext(const FAnimStateMachineContext& Context)
 {
-    UAnimSingleNodeInstance* AnimSingleNode = GetOrCreateAnimSingleNodeInstance();
-    if (!AnimSingleNode)
+    UStateMachineAnimInstance* StateMachineInstance = GetOrCreateStateMachineAnimInstance();
+    if (!StateMachineInstance)
     {
         return;
     }
 
-    AnimSingleNode->SetStateMachineContext(Context);
+    StateMachineInstance->SetStateMachineContext(Context);
 }
 
 void USkeletalMeshComponent::HandleAnimNotify(const FAnimNotifyEvent& Notify)
@@ -125,6 +138,18 @@ UAnimSingleNodeInstance* USkeletalMeshComponent::GetOrCreateAnimSingleNodeInstan
     }
 
     return AnimSingleNodeInstance;
+}
+
+UStateMachineAnimInstance* USkeletalMeshComponent::GetOrCreateStateMachineAnimInstance()
+{
+    if (!StateMachineAnimInstance)
+    {
+        StateMachineAnimInstance = UObjectManager::Get().CreateObject<UStateMachineAnimInstance>();
+        StateMachineAnimInstance->SetLooping(true);
+        StateMachineAnimInstance->Initialize(this);
+    }
+
+    return StateMachineAnimInstance;
 }
 
 void USkeletalMeshComponent::RefreshAnimStateMachineContextFromOwner()
@@ -187,8 +212,8 @@ void USkeletalMeshComponent::RegisterStateAnimationPathsFromAsset(const UAnimSta
         return;
     }
 
-    UAnimSingleNodeInstance* AnimSingleNode = GetOrCreateAnimSingleNodeInstance();
-    if (!AnimSingleNode)
+    UStateMachineAnimInstance* StateMachineInstance = GetOrCreateStateMachineAnimInstance();
+    if (!StateMachineInstance)
     {
         return;
     }
@@ -200,7 +225,7 @@ void USkeletalMeshComponent::RegisterStateAnimationPathsFromAsset(const UAnimSta
             continue;
         }
 
-        if (!AnimSingleNode->RegisterAnimationPath(State.AnimationName, State.AnimationPath))
+        if (!StateMachineInstance->RegisterAnimationPath(State.AnimationName, State.AnimationPath))
         {
             UE_LOG_WARNING(
                 "[AnimSM] Failed to register state animation path: state=%s animation=%s path=%s",
