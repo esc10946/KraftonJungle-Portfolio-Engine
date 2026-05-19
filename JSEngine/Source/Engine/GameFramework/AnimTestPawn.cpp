@@ -667,7 +667,7 @@ void AAnimTestPawn::PlaySoundAtActor(const FString& SoundPath)
 {
     if (GEngine && !SoundPath.empty())
     {
-        GEngine->GetAudioSystem().PlaySFX3D(SoundPath, GetActorLocation());
+        GEngine->GetAudioSystem().PlaySFX(SoundPath);
     }
 }
 
