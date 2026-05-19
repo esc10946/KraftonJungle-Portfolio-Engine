@@ -1,6 +1,7 @@
 ﻿#include "Animation/AnimSequencePlayer.h"
 
-#include "Animation/AnimInstanceBase.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimStateMachineNode.h"
 #include "Component/SkeletalMeshComponent.h"
 #include "Core/ResourceManager.h"
 #include "Math/Quat.h"
@@ -34,7 +35,7 @@ FMatrix BlendBoneTransform(const FMatrix& A, const FMatrix& B, float Alpha)
 }
 } // namespace
 
-void FAnimSequencePlayer::Initialize(UAnimInstanceBase* InOwnerAnimInstance)
+void FAnimSequencePlayer::Initialize(UAnimInstance* InOwnerAnimInstance)
 {
     OwnerAnimInstance = InOwnerAnimInstance;
 }

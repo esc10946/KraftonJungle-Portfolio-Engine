@@ -1,12 +1,10 @@
-﻿#pragma once
+#pragma once
 
 #include "Component/SkinnedMeshComponent.h"
 
 #include "USkeletalMeshComponent.generated.h"
 class UAnimStateMachineAsset;
-class UAnimInstanceBase;
-class UAnimSingleNodeInstance;
-class UStateMachineAnimInstance;
+class UAnimInstance;
 struct FAnimNotifyEvent;
 struct FAnimStateMachineContext;
 
@@ -28,8 +26,8 @@ public:
 
     EPrimitiveType GetPrimitiveType() const override { return EPrimitiveType::EPT_SkeletalMesh; }
 
-    void SetAnimInstance(UAnimInstanceBase* InAnimInstance);
-    UAnimInstanceBase* GetAnimInstance() const { return AnimInstance; }
+    void SetAnimInstance(UAnimInstance* InAnimInstance);
+    UAnimInstance* GetAnimInstance() const { return AnimInstance; }
 
     bool UseStateMachine(UAnimStateMachineAsset* StateMachineAsset);
     bool LoadStateMachineFromJson(const FString& JsonPath);
@@ -50,14 +48,12 @@ public:
     void SetBoneGlobalTransform(int32 BoneIndex, const FMatrix& NewGlobalTransform);
 
 private:
-    UAnimSingleNodeInstance* GetOrCreateAnimSingleNodeInstance();
-    UStateMachineAnimInstance* GetOrCreateStateMachineAnimInstance();
+    UAnimInstance* GetOrCreateDefaultAnimInstance();
     void RefreshAnimStateMachineContextFromOwner();
     void RegisterStateAnimationPathsFromAsset(const UAnimStateMachineAsset* StateMachineAsset);
 
 private:
-    UAnimInstanceBase* AnimInstance = nullptr;
-    UAnimSingleNodeInstance* AnimSingleNodeInstance = nullptr;
-    UStateMachineAnimInstance* StateMachineAnimInstance = nullptr;
+    UAnimInstance* AnimInstance = nullptr;
+    UAnimInstance* DefaultAnimInstance = nullptr;
     bool bAutoUpdateAnimStateMachineContext = true;
 };

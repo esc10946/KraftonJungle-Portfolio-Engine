@@ -1,8 +1,8 @@
-﻿#include "Animation/AnimSingleNodeInstance.h"
+#include "Animation/AnimSingleNodeInstance.h"
 
 void UAnimSingleNodeInstance::Initialize(USkeletalMeshComponent* InSkelMeshComponent)
 {
-    UAnimInstanceBase::Initialize(InSkelMeshComponent);
+    UAnimInstance::Initialize(InSkelMeshComponent);
     SequencePlayer.Initialize(this);
 }
 

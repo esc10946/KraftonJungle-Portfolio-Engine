@@ -319,8 +319,6 @@
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\BuildTools\Scripts\BuildSoLoudLib.ps1&quot; -ProjectDir &quot;$(MSBuildProjectDirectory)&quot; -Configuration &quot;$(ThirdPartyBinaryConfiguration)&quot; -Platform &quot;$(Platform)&quot;" />
   </Target>
   <ItemGroup>
-    <ClCompile Include="Source\Engine\Object\Function.cpp" />
-    <ClCompile Include="Source\Editor\Viewer\AnimationViewer.cpp" />
     <ClCompile Include="Generated\JSEngine.generated.cpp" />
     <ClCompile Include="Source\Editor\Asset\EditorAssetService.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientDebug|x64'">true</ExcludedFromBuild>
@@ -378,15 +376,15 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientDebug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientRelease|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="Source\Editor\Subsystems\AssetEditorSubsystem.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientDebug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientRelease|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="Source\Editor\Settings\EditorSettings.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientDebug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientRelease|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="Source\Editor\Settings\ProjectSettings.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientDebug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientRelease|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="Source\Editor\Subsystems\AssetEditorSubsystem.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientDebug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientRelease|x64'">true</ExcludedFromBuild>
     </ClCompile>
@@ -578,6 +576,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientDebug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientRelease|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="Source\Editor\Viewer\AnimationViewer.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientDebug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientRelease|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="Source\Editor\Viewer\EditorViewer.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientDebug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientRelease|x64'">true</ExcludedFromBuild>
@@ -619,13 +621,12 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientRelease|x64'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="Source\Engine\Animation\ActorSequence.cpp" />
-    <ClCompile Include="Source\Engine\Animation\AnimInstanceBase.cpp" />
+    <ClCompile Include="Source\Engine\Animation\AnimInstance.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimSequencePlayer.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimSingleNodeInstance.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimationSequenceBase.cpp" />
-    <ClCompile Include="Source\Engine\Animation\AnimationStateMachine.cpp" />
+    <ClCompile Include="Source\Engine\Animation\AnimStateMachineNode.cpp" />
     <ClCompile Include="Source\Engine\Animation\CurvePlayback.cpp" />
-    <ClCompile Include="Source\Engine\Animation\StateMachineAnimInstance.cpp" />
     <ClCompile Include="Source\Engine\Animation\TimelinePlayer.cpp" />
     <ClCompile Include="Source\Engine\Asset\AnimationSequence.cpp" />
     <ClCompile Include="Source\Engine\Asset\AnimationSequenceSerializer.cpp" />
@@ -748,6 +749,7 @@
     <ClCompile Include="Source\Engine\Object\Class.cpp" />
     <ClCompile Include="Source\Engine\Object\EngineStatics.cpp" />
     <ClCompile Include="Source\Engine\Object\FName.cpp" />
+    <ClCompile Include="Source\Engine\Object\Function.cpp" />
     <ClCompile Include="Source\Engine\Object\Object.cpp" />
     <ClCompile Include="Source\Engine\Object\Property.cpp" />
     <ClCompile Include="Source\Engine\Object\ReflectionRegistry.cpp" />
@@ -899,9 +901,6 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Source\Engine\Object\Function.h" />
-    <ClInclude Include="Source\Editor\Viewer\AnimationViewer.h" />
-    <ClInclude Include="TestComponent.h" />
     <ClInclude Include="Source\Editor\Asset\EditorAssetService.h" />
     <ClInclude Include="Source\Editor\Command\EditorCommandSystem.h" />
     <ClInclude Include="Source\Editor\EditorEngine.h" />
@@ -920,9 +919,9 @@
     <ClInclude Include="Source\Editor\Packaging\GamePackager.h" />
     <ClInclude Include="Source\Editor\Scene\EditorSceneService.h" />
     <ClInclude Include="Source\Editor\Selection\SelectionManager.h" />
-    <ClInclude Include="Source\Editor\Subsystems\AssetEditorSubsystem.h" />
     <ClInclude Include="Source\Editor\Settings\EditorSettings.h" />
     <ClInclude Include="Source\Editor\Settings\ProjectSettings.h" />
+    <ClInclude Include="Source\Editor\Subsystems\AssetEditorSubsystem.h" />
     <ClInclude Include="Source\Editor\UI\EditorActorSequenceDetails.h" />
     <ClInclude Include="Source\Editor\UI\EditorActorSequenceEditModel.h" />
     <ClInclude Include="Source\Editor\UI\EditorActorSequenceTimeUtils.h" />
@@ -952,6 +951,7 @@
     <ClInclude Include="Source\Editor\UI\EditorViewportOverlayWidget.h" />
     <ClInclude Include="Source\Editor\UI\EditorWidget.h" />
     <ClInclude Include="Source\Editor\Undo\EditorUndoSystem.h" />
+    <ClInclude Include="Source\Editor\Viewer\AnimationViewer.h" />
     <ClInclude Include="Source\Editor\Viewer\EditorViewer.h" />
     <ClInclude Include="Source\Editor\Viewport\CursorOverlayState.h" />
     <ClInclude Include="Source\Editor\Viewport\EditorBoxSelectionService.h" />
@@ -965,13 +965,13 @@
     <ClInclude Include="Source\Editor\Viewport\SkeletalMeshViewportClient.h" />
     <ClInclude Include="Source\Editor\Viewport\ViewportLayout.h" />
     <ClInclude Include="Source\Engine\Animation\ActorSequence.h" />
-    <ClInclude Include="Source\Engine\Animation\AnimInstanceBase.h" />
+    <ClInclude Include="Source\Engine\Animation\AnimInstance.h" />
+    <ClInclude Include="Source\Engine\Animation\AnimNode.h" />
     <ClInclude Include="Source\Engine\Animation\AnimSequencePlayer.h" />
     <ClInclude Include="Source\Engine\Animation\AnimSingleNodeInstance.h" />
     <ClInclude Include="Source\Engine\Animation\AnimationSequenceBase.h" />
-    <ClInclude Include="Source\Engine\Animation\AnimationStateMachine.h" />
+    <ClInclude Include="Source\Engine\Animation\AnimStateMachineNode.h" />
     <ClInclude Include="Source\Engine\Animation\CurvePlayback.h" />
-    <ClInclude Include="Source\Engine\Animation\StateMachineAnimInstance.h" />
     <ClInclude Include="Source\Engine\Animation\TimelinePlayer.h" />
     <ClInclude Include="Source\Engine\Asset\AnimationSequence.h" />
     <ClInclude Include="Source\Engine\Asset\AnimationSequenceSerializer.h" />
@@ -1131,6 +1131,7 @@
     <ClInclude Include="Source\Engine\Object\Class.h" />
     <ClInclude Include="Source\Engine\Object\EngineStatics.h" />
     <ClInclude Include="Source\Engine\Object\FName.h" />
+    <ClInclude Include="Source\Engine\Object\Function.h" />
     <ClInclude Include="Source\Engine\Object\Object.h" />
     <ClInclude Include="Source\Engine\Object\ObjectFactory.h" />
     <ClInclude Include="Source\Engine\Object\ObjectIterator.h" />
@@ -1169,6 +1170,7 @@
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\SandervistanRenderPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\SelectionMaskRenderPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\ShadowPass.h" />
+    <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\SkinCachePass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\SubUVRenderPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\TranslucentRenderPass.h" />
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\VSMConversionRenderPass.h" />
@@ -1202,6 +1204,7 @@
     <ClInclude Include="Source\Engine\Render\Scene\RenderBus.h" />
     <ClInclude Include="Source\Engine\Render\Scene\RenderCollector.h" />
     <ClInclude Include="Source\Engine\Render\Scene\RenderCommand.h" />
+    <ClInclude Include="Source\Engine\Render\Skinning\SkinCacheManager.h" />
     <ClInclude Include="Source\Engine\Render\Skinning\SkinningRuntimeSettings.h" />
     <ClInclude Include="Source\Engine\Render\SubUVBatcher.h" />
     <ClInclude Include="Source\Engine\Runtime\Engine.h" />
@@ -1259,6 +1262,7 @@
     <ClInclude Include="Source\Misc\ObjViewer\UI\ObjViewerStatWidget.h" />
     <ClInclude Include="Source\Misc\ObjViewer\UI\ObjViewerWidget.h" />
     <ClInclude Include="Source\Misc\ObjViewer\Viewport\ObjViewerViewportClient.h" />
+    <ClInclude Include="TestComponent.h" />
     <ClInclude Include="ThirdParty\ImGui\imconfig.h" />
     <ClInclude Include="ThirdParty\ImGui\imgui.h" />
     <ClInclude Include="ThirdParty\ImGui\imgui_impl_dx11.h" />
@@ -1289,9 +1293,11 @@
     <None Include="Shaders\Common\Lighting.hlsli" />
     <None Include="Shaders\Common\ShadowFunction.hlsli" />
     <None Include="Shaders\Common\SkeletalSkinning.hlsli" />
+    <None Include="Shaders\Common\SkinCacheVertexLayouts.hlsli" />
     <None Include="Shaders\Compute\HiZDownsample.hlsl" />
     <None Include="Shaders\Compute\LightCullingCS.hlsl" />
     <None Include="Shaders\Compute\OcclusionCull.hlsl" />
+    <None Include="Shaders\Compute\SkinCacheCS.hlsl" />
     <None Include="Shaders\Depth\DepthPrepass.hlsl" />
     <None Include="Shaders\EditorDebug\BoneWeightHeatmap.hlsl" />
     <None Include="Shaders\EditorDebug\Editor.hlsl" />

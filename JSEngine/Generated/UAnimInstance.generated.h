@@ -1,9 +1,9 @@
-﻿#pragma once
+#pragma once
 
-class UAnimInstanceBase;
+class UAnimInstance;
 
 template<>
-struct TIsUClassReflected<UAnimInstanceBase>
+struct TIsUClassReflected<UAnimInstance>
 {
     static constexpr bool Value = true;
 };

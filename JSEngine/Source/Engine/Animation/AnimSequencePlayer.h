@@ -1,16 +1,16 @@
 ﻿#pragma once
 
+#include "Animation/AnimStateMachineNode.h"
 #include "Animation/AnimationSequenceBase.h"
-#include "Animation/AnimationStateMachine.h"
 #include "Core/Containers/Array.h"
 #include "Math/Matrix.h"
 
-class UAnimInstanceBase;
+class UAnimInstance;
 
 class FAnimSequencePlayer
 {
 public:
-    void Initialize(UAnimInstanceBase* InOwnerAnimInstance);
+    void Initialize(UAnimInstance* InOwnerAnimInstance);
 
     void SetSequence(UAnimationSequenceBase* InSequence);
     UAnimationSequenceBase* GetSequence() const { return Sequence; }
@@ -52,7 +52,7 @@ private:
     void FinishBlend();
 
 private:
-    UAnimInstanceBase* OwnerAnimInstance = nullptr;
+    UAnimInstance* OwnerAnimInstance = nullptr;
     UAnimationSequenceBase* Sequence = nullptr;
     TArray<FMatrix> CurrentLocalPose;
     float CurrentTime = 0.0f;

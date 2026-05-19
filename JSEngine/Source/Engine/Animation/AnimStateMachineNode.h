@@ -1,12 +1,16 @@
-﻿#pragma once
+#pragma once
 
+#include "Animation/AnimNode.h"
 #include "Core/Containers/Array.h"
 #include "Core/Containers/String.h"
 #include "Core/CoreTypes.h"
 #include "Object/FName.h"
 #include "Object/Object.h"
 
-class UAnimInstanceBase;
+#include <memory>
+
+class UAnimInstance;
+class FAnimSequencePlayer;
 
 enum class EAnimStateMachineMovementMode : uint8
 {
@@ -98,17 +102,35 @@ private:
     TArray<FAnimTransitionDesc> Transitions;
 };
 
-class FAnimStateMachineNode
+class FAnimStateMachineNode : public FAnimNodeBase
 {
 public:
-    void Initialize(UAnimStateMachineAsset* InAsset, UAnimInstanceBase* InAnimInstance);
-    void Update(float DeltaSeconds, const FAnimStateMachineContext& Context);
-    void Reset();
+    FAnimStateMachineNode();
+    ~FAnimStateMachineNode() override;
+
+    void Initialize(UAnimInstance* InOwnerAnimInstance) override;
+    void Update(const FAnimNodeUpdateContext& Context) override;
+    void Reset() override;
+
+    FAnimStateMachineNode* AsStateMachineNode() override { return this; }
+    const FAnimStateMachineNode* AsStateMachineNode() const override { return this; }
+
+    void SetStateMachineAsset(UAnimStateMachineAsset* InAsset);
 
     FName GetCurrentState() const { return CurrentState; }
     FName GetPreviousState() const { return PreviousState; }
     float GetStateElapsedTime() const { return StateElapsedTime; }
     UAnimStateMachineAsset* GetAsset() const { return Asset; }
+
+    void SetLooping(bool bInLooping);
+    bool IsLooping() const;
+
+    bool PlayAnimationByName(const FName& AnimationName, bool bLoop);
+    bool BlendToAnimationByName(
+        const FName& AnimationName,
+        bool bLoop,
+        float BlendTime,
+        EAnimBlendEaseOption EaseOption);
 
 private:
     void ChangeState(const FName& NewState, float BlendTime, EAnimBlendEaseOption EaseOption);
@@ -118,7 +140,7 @@ private:
 
 private:
     UAnimStateMachineAsset* Asset = nullptr;
-    UAnimInstanceBase* AnimInstance = nullptr;
+    std::unique_ptr<FAnimSequencePlayer> SequencePlayer;
     FName CurrentState;
     FName PreviousState;
     float StateElapsedTime = 0.0f;

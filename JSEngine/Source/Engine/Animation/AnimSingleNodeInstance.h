@@ -1,6 +1,6 @@
-﻿#pragma once
+#pragma once
 
-#include "Animation/AnimInstanceBase.h"
+#include "Animation/AnimInstance.h"
 #include "Animation/AnimSequencePlayer.h"
 
 #include "UAnimSingleNodeInstance.generated.h"
@@ -10,10 +10,10 @@
 // It owns one FAnimSequencePlayer and plays a single animation sequence.
 
 UCLASS()
-class UAnimSingleNodeInstance : public UAnimInstanceBase
+class UAnimSingleNodeInstance : public UAnimInstance
 {
 public:
-    GENERATED_BODY(UAnimSingleNodeInstance, UAnimInstanceBase)
+    GENERATED_BODY(UAnimSingleNodeInstance, UAnimInstance)
 
     void Initialize(USkeletalMeshComponent* InSkelMeshComponent) override;
 

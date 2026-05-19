@@ -1,9 +1,7 @@
-﻿#include "SkeletalMeshComponent.h"
+#include "SkeletalMeshComponent.h"
 
-#include "Animation/AnimInstanceBase.h"
-#include "Animation/AnimSingleNodeInstance.h"
-#include "Animation/AnimationStateMachine.h"
-#include "Animation/StateMachineAnimInstance.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimStateMachineNode.h"
 #include "Component/Movement/MovementComponent.h"
 #include "Core/Logging/Log.h"
 #include "GameFramework/AActor.h"
@@ -15,26 +13,15 @@ REGISTER_FACTORY(USkeletalMeshComponent)
 
 USkeletalMeshComponent::~USkeletalMeshComponent()
 {
-    if (StateMachineAnimInstance)
+    if (DefaultAnimInstance)
     {
-        if (AnimInstance == StateMachineAnimInstance)
+        if (AnimInstance == DefaultAnimInstance)
         {
             AnimInstance = nullptr;
         }
 
-        UObjectManager::Get().DestroyObject(StateMachineAnimInstance);
-        StateMachineAnimInstance = nullptr;
-    }
-
-    if (AnimSingleNodeInstance)
-    {
-        if (AnimInstance == AnimSingleNodeInstance)
-        {
-            AnimInstance = nullptr;
-        }
-
-        UObjectManager::Get().DestroyObject(AnimSingleNodeInstance);
-        AnimSingleNodeInstance = nullptr;
+        UObjectManager::Get().DestroyObject(DefaultAnimInstance);
+        DefaultAnimInstance = nullptr;
     }
 }
 
@@ -52,7 +39,7 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime)
     EnsureSkinningUpdated();
 }
 
-void USkeletalMeshComponent::SetAnimInstance(UAnimInstanceBase* InAnimInstance)
+void USkeletalMeshComponent::SetAnimInstance(UAnimInstance* InAnimInstance)
 {
     if (AnimInstance == InAnimInstance)
     {
@@ -73,7 +60,7 @@ bool USkeletalMeshComponent::UseStateMachine(UAnimStateMachineAsset* StateMachin
         return false;
     }
 
-    UStateMachineAnimInstance* StateAnimInstance = GetOrCreateStateMachineAnimInstance();
+    UAnimInstance* StateAnimInstance = GetOrCreateDefaultAnimInstance();
     if (!StateAnimInstance)
     {
         return false;
@@ -98,25 +85,28 @@ bool USkeletalMeshComponent::LoadStateMachineFromJson(const FString& JsonPath)
 
 bool USkeletalMeshComponent::RegisterStateAnimationPath(const FName& AnimationName, const FString& AnimationPath)
 {
-    UStateMachineAnimInstance* StateAnimInstance = GetOrCreateStateMachineAnimInstance();
+    UAnimInstance* StateAnimInstance = GetOrCreateDefaultAnimInstance();
     if (!StateAnimInstance)
     {
         return false;
     }
 
-    SetAnimInstance(StateAnimInstance);
     return StateAnimInstance->RegisterAnimationPath(AnimationName, AnimationPath);
 }
 
 void USkeletalMeshComponent::SetAnimStateMachineContext(const FAnimStateMachineContext& Context)
 {
-    UStateMachineAnimInstance* StateAnimInstance = GetOrCreateStateMachineAnimInstance();
-    if (!StateAnimInstance)
+    if (AnimInstance && AnimInstance->GetStateMachineAsset())
     {
+        AnimInstance->SetStateMachineContext(Context);
         return;
     }
 
-    StateAnimInstance->SetStateMachineContext(Context);
+    UAnimInstance* StateAnimInstance = GetOrCreateDefaultAnimInstance();
+    if (StateAnimInstance)
+    {
+        StateAnimInstance->SetStateMachineContext(Context);
+    }
 }
 
 void USkeletalMeshComponent::HandleAnimNotify(const FAnimNotifyEvent& Notify)
@@ -128,34 +118,21 @@ void USkeletalMeshComponent::HandleAnimNotify(const FAnimNotifyEvent& Notify)
     }
 }
 
-UAnimSingleNodeInstance* USkeletalMeshComponent::GetOrCreateAnimSingleNodeInstance()
+UAnimInstance* USkeletalMeshComponent::GetOrCreateDefaultAnimInstance()
 {
-    if (!AnimSingleNodeInstance)
+    if (!DefaultAnimInstance)
     {
-        AnimSingleNodeInstance = UObjectManager::Get().CreateObject<UAnimSingleNodeInstance>();
-        AnimSingleNodeInstance->SetLooping(true);
-        AnimSingleNodeInstance->Initialize(this);
+        DefaultAnimInstance = UObjectManager::Get().CreateObject<UAnimInstance>();
+        DefaultAnimInstance->SetLooping(true);
+        DefaultAnimInstance->Initialize(this);
     }
 
-    return AnimSingleNodeInstance;
-}
-
-UStateMachineAnimInstance* USkeletalMeshComponent::GetOrCreateStateMachineAnimInstance()
-{
-    if (!StateMachineAnimInstance)
-    {
-        StateMachineAnimInstance = UObjectManager::Get().CreateObject<UStateMachineAnimInstance>();
-        StateMachineAnimInstance->SetLooping(true);
-        StateMachineAnimInstance->Initialize(this);
-    }
-
-    return StateMachineAnimInstance;
+    return DefaultAnimInstance;
 }
 
 void USkeletalMeshComponent::RefreshAnimStateMachineContextFromOwner()
 {
-    if (!bAutoUpdateAnimStateMachineContext || !StateMachineAnimInstance ||
-        AnimInstance != StateMachineAnimInstance || !StateMachineAnimInstance->GetStateMachineAsset())
+    if (!bAutoUpdateAnimStateMachineContext || !AnimInstance || !AnimInstance->GetStateMachineAsset())
     {
         return;
     }
@@ -172,7 +149,7 @@ void USkeletalMeshComponent::RefreshAnimStateMachineContextFromOwner()
         return;
     }
 
-    FAnimStateMachineContext Context = StateMachineAnimInstance->GetStateMachineContext();
+    FAnimStateMachineContext Context = AnimInstance->GetStateMachineContext();
     const FVector Velocity = MovementComponent->GetVelocity();
     Context.Speed = Velocity.Size2D();
 
@@ -203,7 +180,7 @@ void USkeletalMeshComponent::RefreshAnimStateMachineContextFromOwner()
         Context.MovementMode = EAnimStateMachineMovementMode::Walking;
     }
 
-    StateMachineAnimInstance->SetStateMachineContext(Context);
+    AnimInstance->SetStateMachineContext(Context);
 }
 
 void USkeletalMeshComponent::RegisterStateAnimationPathsFromAsset(const UAnimStateMachineAsset* StateMachineAsset)
@@ -213,7 +190,7 @@ void USkeletalMeshComponent::RegisterStateAnimationPathsFromAsset(const UAnimSta
         return;
     }
 
-    UStateMachineAnimInstance* StateAnimInstance = GetOrCreateStateMachineAnimInstance();
+    UAnimInstance* StateAnimInstance = GetOrCreateDefaultAnimInstance();
     if (!StateAnimInstance)
     {
         return;

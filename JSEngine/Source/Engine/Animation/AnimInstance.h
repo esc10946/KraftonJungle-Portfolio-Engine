@@ -1,19 +1,21 @@
-﻿#pragma once
+#pragma once
 
 #include "Animation/AnimationSequenceBase.h"
-#include "Animation/AnimationStateMachine.h"
+#include "Animation/AnimStateMachineNode.h"
 #include "Object/Object.h"
+
+#include <memory>
 
 class USkeletalMeshComponent;
 class FAnimSequencePlayer;
 
-#include "UAnimInstanceBase.generated.h"
+#include "UAnimInstance.generated.h"
 
 UCLASS()
-class UAnimInstanceBase : public UObject
+class UAnimInstance : public UObject
 {
 public:
-    GENERATED_BODY(UAnimInstanceBase, UObject)
+    GENERATED_BODY(UAnimInstance, UObject)
 
     virtual void Initialize(USkeletalMeshComponent* InSkelMeshComponent);
     virtual void NativeUpdateAnimation(float DeltaSeconds);
@@ -31,6 +33,17 @@ public:
         bool bLoop,
         float BlendTime,
         EAnimBlendEaseOption EaseOption);
+
+    void SetStateMachineAsset(UAnimStateMachineAsset* InStateMachineAsset);
+    UAnimStateMachineAsset* GetStateMachineAsset() const;
+    FAnimStateMachineNode* GetStateMachine();
+    const FAnimStateMachineNode* GetStateMachine() const;
+
+    void SetStateMachineContext(const FAnimStateMachineContext& InContext) { StateMachineContext = InContext; }
+    const FAnimStateMachineContext& GetStateMachineContext() const { return StateMachineContext; }
+
+    void SetLooping(bool bInLooping);
+    bool IsLooping() const;
 
 protected:
     friend class FAnimSequencePlayer;
@@ -58,4 +71,12 @@ protected:
     };
 
     TArray<FNamedAnimation> RegisteredAnimations;
+
+    // Root animation node placeholder. Today it can be a state machine node,
+    // but the base instance owns it through the generic AnimNode boundary.
+    std::unique_ptr<FAnimNodeBase> RootNode;
+    FAnimStateMachineContext StateMachineContext;
+
+private:
+    FAnimStateMachineNode* GetOrCreateStateMachineRootNode();
 };

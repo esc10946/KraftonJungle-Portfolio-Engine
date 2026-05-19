@@ -1,6 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
+    <Filter Include="Generated">
+      <UniqueIdentifier>{b1f90625-ce3a-9791-7cd1-d57c2d8827b1}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Shaders">
       <UniqueIdentifier>{141aeab4-cb26-e346-6b8c-1b010c4dc39b}</UniqueIdentifier>
     </Filter>
@@ -61,11 +64,11 @@
     <Filter Include="Source\Editor\Selection">
       <UniqueIdentifier>{32cef874-6e19-055b-d275-6f75611e3360}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\Editor\Subsystems">
-      <UniqueIdentifier>{99d81e1e-56aa-4a5b-a6f7-9f44b92b5ab4}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source\Editor\Settings">
       <UniqueIdentifier>{b1dfd584-4d36-815a-235b-55c990686b88}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Editor\Subsystems">
+      <UniqueIdentifier>{fd303874-e1ac-dc39-fad9-e9f6bb534b62}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Editor\UI">
       <UniqueIdentifier>{c46a2efe-64db-4a90-e9d0-dc20e9a91a49}</UniqueIdentifier>
@@ -240,6 +243,9 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Generated\JSEngine.generated.cpp">
+      <Filter>Generated</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Editor\Asset\EditorAssetService.cpp">
       <Filter>Source\Editor\Asset</Filter>
     </ClCompile>
@@ -282,14 +288,14 @@
     <ClCompile Include="Source\Editor\Selection\SelectionManager.cpp">
       <Filter>Source\Editor\Selection</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Editor\Subsystems\AssetEditorSubsystem.cpp">
-      <Filter>Source\Editor\Subsystems</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Editor\Settings\EditorSettings.cpp">
       <Filter>Source\Editor\Settings</Filter>
     </ClCompile>
     <ClCompile Include="Source\Editor\Settings\ProjectSettings.cpp">
       <Filter>Source\Editor\Settings</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Editor\Subsystems\AssetEditorSubsystem.cpp">
+      <Filter>Source\Editor\Subsystems</Filter>
     </ClCompile>
     <ClCompile Include="Source\Editor\UI\EditorActorSequenceDetails.cpp">
       <Filter>Source\Editor\UI</Filter>
@@ -432,6 +438,9 @@
     <ClCompile Include="Source\Editor\Undo\EditorUndoSystem.cpp">
       <Filter>Source\Editor\Undo</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Editor\Viewer\AnimationViewer.cpp">
+      <Filter>Source\Editor\Viewer</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Editor\Viewer\EditorViewer.cpp">
       <Filter>Source\Editor\Viewer</Filter>
     </ClCompile>
@@ -465,7 +474,7 @@
     <ClCompile Include="Source\Engine\Animation\ActorSequence.cpp">
       <Filter>Source\Engine\Animation</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Animation\AnimInstanceBase.cpp">
+    <ClCompile Include="Source\Engine\Animation\AnimInstance.cpp">
       <Filter>Source\Engine\Animation</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Animation\AnimSequencePlayer.cpp">
@@ -481,9 +490,6 @@
       <Filter>Source\Engine\Animation</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Animation\CurvePlayback.cpp">
-      <Filter>Source\Engine\Animation</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Animation\StateMachineAnimInstance.cpp">
       <Filter>Source\Engine\Animation</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Animation\TimelinePlayer.cpp">
@@ -852,6 +858,9 @@
     <ClCompile Include="Source\Engine\Object\FName.cpp">
       <Filter>Source\Engine\Object</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Object\Function.cpp">
+      <Filter>Source\Engine\Object</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\Object\Object.cpp">
       <Filter>Source\Engine\Object</Filter>
     </ClCompile>
@@ -1194,6 +1203,7 @@
     <ClCompile Include="Source\Misc\ObjViewer\Viewport\ObjViewerViewportClient.cpp">
       <Filter>Source\Misc\ObjViewer\Viewport</Filter>
     </ClCompile>
+    <ClCompile Include="TestComponent.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui.cpp">
       <Filter>ThirdParty\ImGui</Filter>
     </ClCompile>
@@ -1216,13 +1226,8 @@
       <Filter>ThirdParty\ImGui</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Generated\JSEngine.generated.cpp" />
-    <ClCompile Include="TestComponent.cpp" />
-    <ClCompile Include="Source\Editor\Viewer\AnimationViewer.cpp" />
-    <ClCompile Include="Source\Engine\Object\Function.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="TestComponent.h" />
     <ClInclude Include="Source\Editor\Asset\EditorAssetService.h">
       <Filter>Source\Editor\Asset</Filter>
     </ClInclude>
@@ -1277,14 +1282,14 @@
     <ClInclude Include="Source\Editor\Selection\SelectionManager.h">
       <Filter>Source\Editor\Selection</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Editor\Subsystems\AssetEditorSubsystem.h">
-      <Filter>Source\Editor\Subsystems</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Editor\Settings\EditorSettings.h">
       <Filter>Source\Editor\Settings</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\Settings\ProjectSettings.h">
       <Filter>Source\Editor\Settings</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\Subsystems\AssetEditorSubsystem.h">
+      <Filter>Source\Editor\Subsystems</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\UI\EditorActorSequenceDetails.h">
       <Filter>Source\Editor\UI</Filter>
@@ -1373,6 +1378,9 @@
     <ClInclude Include="Source\Editor\Undo\EditorUndoSystem.h">
       <Filter>Source\Editor\Undo</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Editor\Viewer\AnimationViewer.h">
+      <Filter>Source\Editor\Viewer</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Editor\Viewer\EditorViewer.h">
       <Filter>Source\Editor\Viewer</Filter>
     </ClInclude>
@@ -1412,7 +1420,10 @@
     <ClInclude Include="Source\Engine\Animation\ActorSequence.h">
       <Filter>Source\Engine\Animation</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Animation\AnimInstanceBase.h">
+    <ClInclude Include="Source\Engine\Animation\AnimInstance.h">
+      <Filter>Source\Engine\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Animation\AnimNode.h">
       <Filter>Source\Engine\Animation</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Animation\AnimSequencePlayer.h">
@@ -1428,9 +1439,6 @@
       <Filter>Source\Engine\Animation</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Animation\CurvePlayback.h">
-      <Filter>Source\Engine\Animation</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Animation\StateMachineAnimInstance.h">
       <Filter>Source\Engine\Animation</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Animation\TimelinePlayer.h">
@@ -1910,6 +1918,9 @@
     <ClInclude Include="Source\Engine\Object\FName.h">
       <Filter>Source\Engine\Object</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\Object\Function.h">
+      <Filter>Source\Engine\Object</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Engine\Object\Object.h">
       <Filter>Source\Engine\Object</Filter>
     </ClInclude>
@@ -2024,6 +2035,9 @@
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\ShadowPass.h">
       <Filter>Source\Engine\Render\Renderer\RenderFlow</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\SkinCachePass.h">
+      <Filter>Source\Engine\Render\Renderer\RenderFlow</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Engine\Render\Renderer\RenderFlow\SubUVRenderPass.h">
       <Filter>Source\Engine\Render\Renderer\RenderFlow</Filter>
     </ClInclude>
@@ -2122,6 +2136,9 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Render\Scene\RenderCommand.h">
       <Filter>Source\Engine\Render\Scene</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Render\Skinning\SkinCacheManager.h">
+      <Filter>Source\Engine\Render\Skinning</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Render\Skinning\SkinningRuntimeSettings.h">
       <Filter>Source\Engine\Render\Skinning</Filter>
@@ -2294,6 +2311,7 @@
     <ClInclude Include="Source\Misc\ObjViewer\Viewport\ObjViewerViewportClient.h">
       <Filter>Source\Misc\ObjViewer\Viewport</Filter>
     </ClInclude>
+    <ClInclude Include="TestComponent.h" />
     <ClInclude Include="ThirdParty\ImGui\imconfig.h">
       <Filter>ThirdParty\ImGui</Filter>
     </ClInclude>
@@ -2324,8 +2342,6 @@
     <ClInclude Include="ThirdParty\luajit\src\lua.h">
       <Filter>ThirdParty\luajit\src</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Editor\Viewer\AnimationViewer.h" />
-    <ClInclude Include="Source\Engine\Object\Function.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Source\Engine\Runtime\AppIcon.rc">
@@ -2351,6 +2367,9 @@
     <None Include="Shaders\Common\SkeletalSkinning.hlsli">
       <Filter>Shaders\Common</Filter>
     </None>
+    <None Include="Shaders\Common\SkinCacheVertexLayouts.hlsli">
+      <Filter>Shaders\Common</Filter>
+    </None>
     <None Include="Shaders\Compute\HiZDownsample.hlsl">
       <Filter>Shaders\Compute</Filter>
     </None>
@@ -2358,6 +2377,9 @@
       <Filter>Shaders\Compute</Filter>
     </None>
     <None Include="Shaders\Compute\OcclusionCull.hlsl">
+      <Filter>Shaders\Compute</Filter>
+    </None>
+    <None Include="Shaders\Compute\SkinCacheCS.hlsl">
       <Filter>Shaders\Compute</Filter>
     </None>
     <None Include="Shaders\Depth\DepthPrepass.hlsl">

@@ -1,6 +1,7 @@
-﻿#include "Animation/AnimationStateMachine.h"
+﻿#include "Animation/AnimStateMachineNode.h"
 
-#include "Animation/AnimInstanceBase.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimSequencePlayer.h"
 #include "Core/Logging/Log.h"
 #include "Core/Paths.h"
 #include "Object/Object.h"
@@ -360,14 +361,28 @@ bool UAnimStateMachineAsset::HasDuplicateTransition(
     return false;
 }
 
-void FAnimStateMachineNode::Initialize(UAnimStateMachineAsset* InAsset, UAnimInstanceBase* InAnimInstance)
+FAnimStateMachineNode::FAnimStateMachineNode()
+    : SequencePlayer(std::make_unique<FAnimSequencePlayer>())
+{
+}
+
+FAnimStateMachineNode::~FAnimStateMachineNode() = default;
+
+void FAnimStateMachineNode::Initialize(UAnimInstance* InOwnerAnimInstance)
+{
+    FAnimNodeBase::Initialize(InOwnerAnimInstance);
+    SequencePlayer->Initialize(InOwnerAnimInstance);
+}
+
+void FAnimStateMachineNode::SetStateMachineAsset(UAnimStateMachineAsset* InAsset)
 {
     Asset = InAsset;
-    AnimInstance = InAnimInstance;
     CurrentState = FName();
     PreviousState = FName();
     StateElapsedTime = 0.0f;
     WarnedMissingConditions.clear();
+    SequencePlayer->Stop();
+    SequencePlayer->SetSequence(nullptr);
 
     if (!Asset)
     {
@@ -384,46 +399,64 @@ void FAnimStateMachineNode::Initialize(UAnimStateMachineAsset* InAsset, UAnimIns
     ChangeState(Asset->GetEntryState(), 0.0f, EAnimBlendEaseOption::Linear);
 }
 
-void FAnimStateMachineNode::Update(float DeltaSeconds, const FAnimStateMachineContext& Context)
+void FAnimStateMachineNode::Update(const FAnimNodeUpdateContext& Context)
 {
-    if (!Asset || !AnimInstance || !CurrentState.IsValid())
+    if (Asset && OwnerAnimInstance && CurrentState.IsValid() && Context.StateMachineContext)
     {
-        return;
-    }
+        StateElapsedTime += Context.DeltaSeconds;
 
-    StateElapsedTime += DeltaSeconds;
-
-    TArray<const FAnimTransitionDesc*> TransitionsFromCurrent = Asset->GetTransitionsFrom(CurrentState);
-    for (const FAnimTransitionDesc* Transition : TransitionsFromCurrent)
-    {
-        if (!Transition)
+        TArray<const FAnimTransitionDesc*> TransitionsFromCurrent = Asset->GetTransitionsFrom(CurrentState);
+        for (const FAnimTransitionDesc* Transition : TransitionsFromCurrent)
         {
-            continue;
-        }
+            if (!Transition)
+            {
+                continue;
+            }
 
-        if (EvaluateCondition(Transition->ConditionName, Context))
-        {
-            ChangeState(Transition->ToState, Transition->BlendTime, Transition->EaseOption);
-            return;
+            if (EvaluateCondition(Transition->ConditionName, *Context.StateMachineContext))
+            {
+                ChangeState(Transition->ToState, Transition->BlendTime, Transition->EaseOption);
+                break;
+            }
         }
     }
+
+    SequencePlayer->Tick(Context.DeltaSeconds);
 }
 
 void FAnimStateMachineNode::Reset()
 {
     UAnimStateMachineAsset* ExistingAsset = Asset;
-    UAnimInstanceBase* ExistingAnimInstance = AnimInstance;
-    Asset = nullptr;
-    AnimInstance = nullptr;
-    CurrentState = FName();
-    PreviousState = FName();
-    StateElapsedTime = 0.0f;
-    WarnedMissingConditions.clear();
+    SetStateMachineAsset(nullptr);
 
-    if (ExistingAsset && ExistingAnimInstance)
+    if (ExistingAsset)
     {
-        Initialize(ExistingAsset, ExistingAnimInstance);
+        SetStateMachineAsset(ExistingAsset);
     }
+}
+
+bool FAnimStateMachineNode::PlayAnimationByName(const FName& AnimationName, bool bLoop)
+{
+    return SequencePlayer->PlayAnimationByName(AnimationName, bLoop);
+}
+
+bool FAnimStateMachineNode::BlendToAnimationByName(
+    const FName& AnimationName,
+    bool bLoop,
+    float BlendTime,
+    EAnimBlendEaseOption EaseOption)
+{
+    return SequencePlayer->BlendToAnimationByName(AnimationName, bLoop, BlendTime, EaseOption);
+}
+
+void FAnimStateMachineNode::SetLooping(bool bInLooping)
+{
+    SequencePlayer->SetLooping(bInLooping);
+}
+
+bool FAnimStateMachineNode::IsLooping() const
+{
+    return SequencePlayer->IsLooping();
 }
 
 void FAnimStateMachineNode::ChangeState(
@@ -431,7 +464,7 @@ void FAnimStateMachineNode::ChangeState(
     float BlendTime,
     EAnimBlendEaseOption EaseOption)
 {
-    if (!Asset || !AnimInstance || !NewState.IsValid() || CurrentState == NewState)
+    if (!Asset || !OwnerAnimInstance || !NewState.IsValid() || CurrentState == NewState)
     {
         return;
     }
@@ -450,7 +483,7 @@ void FAnimStateMachineNode::ChangeState(
     }
 
     const FName OldState = CurrentState;
-    if (!AnimInstance->BlendToAnimationByName(State->AnimationName, State->bLoop, BlendTime, EaseOption))
+    if (!SequencePlayer->BlendToAnimationByName(State->AnimationName, State->bLoop, BlendTime, EaseOption))
     {
         UE_LOG_WARNING(
             "[AnimSM] Missing animation mapping: state=%s animation=%s",
