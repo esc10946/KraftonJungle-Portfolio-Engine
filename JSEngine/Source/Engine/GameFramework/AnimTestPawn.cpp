@@ -1,7 +1,9 @@
 ﻿#include "GameFramework/AnimTestPawn.h"
 
 #include "Animation/AnimInstance.h"
+#include "Animation/AnimationSequenceBase.h"
 #include "Animation/AnimStateMachineAsset.h"
+#include "Animation/AnimStateMachineNode.h"
 #include "Component/CameraComponent.h"
 #include "Component/SceneComponent.h"
 #include "Component/SkeletalMeshComponent.h"
@@ -13,6 +15,7 @@
 #include "Math/Rotator.h"
 #include "Math/Utils.h"
 #include "Object/Object.h"
+#include "Runtime/Engine.h"
 
 #include <algorithm>
 #include <cmath>
@@ -23,6 +26,11 @@ REGISTER_FACTORY(AAnimTestPawn)
 
 namespace
 {
+    const FName NAME_LightAttack("LightAttack");
+    const FName NAME_HeavyAttack("HeavyAttack");
+    const FName NAME_LightAttackSwing("GwenLightAttackSwing");
+    const FName NAME_HeavyAttackSwing("GwenHeavyAttackSwing");
+
     bool IsActionActive(const FInputActionState* Action)
     {
         return Action &&
@@ -109,6 +117,8 @@ void AAnimTestPawn::Serialize(FArchive& Ar)
     Ar << "HomeguardAnimationPath" << HomeguardAnimationPath;
     Ar << "LightAttackAnimationPath" << LightAttackAnimationPath;
     Ar << "HeavyAttackAnimationPath" << HeavyAttackAnimationPath;
+    Ar << "LightAttackSoundPath" << LightAttackSoundPath;
+    Ar << "HeavyAttackSoundPath" << HeavyAttackSoundPath;
     Ar << "MoveSpeed" << MoveSpeed;
     Ar << "SprintSpeedMultiplier" << SprintSpeedMultiplier;
     Ar << "LookSensitivityDegrees" << LookSensitivityDegrees;
@@ -149,6 +159,8 @@ void AAnimTestPawn::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
     OutProps.push_back({ "Homeguard Animation", EPropertyType::String, &HomeguardAnimationPath });
     OutProps.push_back({ "Light Attack Animation", EPropertyType::String, &LightAttackAnimationPath });
     OutProps.push_back({ "Heavy Attack Animation", EPropertyType::String, &HeavyAttackAnimationPath });
+    OutProps.push_back({ "Light Attack Sound", EPropertyType::String, &LightAttackSoundPath });
+    OutProps.push_back({ "Heavy Attack Sound", EPropertyType::String, &HeavyAttackSoundPath });
     OutProps.push_back({ "Move Speed", EPropertyType::Float, &MoveSpeed, 0.0f, 100.0f, 0.1f });
     OutProps.push_back({ "Sprint Speed Multiplier", EPropertyType::Float, &SprintSpeedMultiplier, 1.0f, 10.0f, 0.05f });
     OutProps.push_back({ "Look Sensitivity", EPropertyType::Float, &LookSensitivityDegrees, 0.0f, 5.0f, 0.01f });
@@ -227,8 +239,9 @@ void AAnimTestPawn::ConfigureLocomotionStateMachine()
     AnimInstance->RegisterAnimationPath(FName("IntoRun"), IntoRunAnimationPath);
     AnimInstance->RegisterAnimationPath(FName("Run"), RunAnimationPath);
     AnimInstance->RegisterAnimationPath(FName("Homeguard"), HomeguardAnimationPath);
-    AnimInstance->RegisterAnimationPath(FName("LightAttack"), LightAttackAnimationPath);
-    AnimInstance->RegisterAnimationPath(FName("HeavyAttack"), HeavyAttackAnimationPath);
+    AnimInstance->RegisterAnimationPath(NAME_LightAttack, LightAttackAnimationPath);
+    AnimInstance->RegisterAnimationPath(NAME_HeavyAttack, HeavyAttackAnimationPath);
+    AddDefaultAnimationNotifies(AnimInstance);
     AnimInstance->SetAnimFloatParameter(FName("Speed"), 0.0f);
     AnimInstance->SetAnimFloatParameter(FName("GroundSpeed"), 0.0f);
     AnimInstance->SetAnimBoolParameter(FName("bMoving"), false);
@@ -479,6 +492,9 @@ void AAnimTestPawn::UpdateLocomotion(float DeltaTime)
     const FInputActionState* SprintAction = Snapshot ? Snapshot->FindAction("Sprint") : nullptr;
     const FInputActionState* LightAttackAction = Snapshot ? Snapshot->FindAction("Attack") : nullptr;
     const FInputActionState* HeavyAttackAction = Snapshot ? Snapshot->FindAction("HeavyAttack") : nullptr;
+    const bool bLightAttackStarted = IsActionStarted(LightAttackAction);
+    const bool bHeavyAttackStarted = IsActionStarted(HeavyAttackAction);
+    const bool bLockMovement = IsInAttackState() || bLightAttackStarted || bHeavyAttackStarted;
 
     if (SpringArmComp && LookAction)
     {
@@ -498,7 +514,7 @@ void AAnimTestPawn::UpdateLocomotion(float DeltaTime)
     const float GroundSpeed = MoveAxisLength * MoveSpeed * (bSprinting ? SprintSpeedMultiplier : 1.0f);
     const bool bMoving = GroundSpeed > MoveStartSpeedThreshold;
 
-    if (bMoving)
+    if (bMoving && !bLockMovement)
     {
         const FVector MoveDirection = BuildCameraRelativeMoveDirection(MoveAxis);
         AddActorWorldOffset(MoveDirection * (GroundSpeed * DeltaTime));
@@ -521,15 +537,105 @@ void AAnimTestPawn::UpdateLocomotion(float DeltaTime)
     {
         if (UAnimInstance* AnimInstance = SkeletalMeshComp->GetAnimInstance())
         {
-            if (IsActionStarted(HeavyAttackAction))
+            if (bHeavyAttackStarted)
             {
-                AnimInstance->SetAnimTriggerParameter(FName("HeavyAttack"));
+                AnimInstance->SetAnimTriggerParameter(NAME_HeavyAttack);
             }
-            else if (IsActionStarted(LightAttackAction))
+            else if (bLightAttackStarted)
             {
-                AnimInstance->SetAnimTriggerParameter(FName("LightAttack"));
+                AnimInstance->SetAnimTriggerParameter(NAME_LightAttack);
             }
         }
+    }
+}
+
+void AAnimTestPawn::AddDefaultAnimationNotifies(UAnimInstance* AnimInstance)
+{
+    AddNotifyToAnimation(AnimInstance, NAME_LightAttack, NAME_LightAttackSwing, 0.18f);
+    AddNotifyToAnimation(AnimInstance, NAME_HeavyAttack, NAME_HeavyAttackSwing, 0.28f);
+}
+
+void AAnimTestPawn::AddNotifyToAnimation(
+    UAnimInstance* AnimInstance,
+    const FName& AnimationName,
+    const FName& NotifyName,
+    float TriggerTime)
+{
+    if (!AnimInstance || !AnimationName.IsValid() || !NotifyName.IsValid())
+    {
+        return;
+    }
+
+    UAnimationSequenceBase* Sequence = AnimInstance->FindRegisteredAnimation(AnimationName);
+    if (!Sequence)
+    {
+        return;
+    }
+
+    for (const FAnimNotifyEvent& ExistingNotify : Sequence->GetNotifies())
+    {
+        if (ExistingNotify.NotifyName == NotifyName)
+        {
+            return;
+        }
+    }
+
+    FAnimNotifyEvent Notify;
+    Notify.TriggerTime = std::max(0.0f, TriggerTime);
+    Notify.Duration = 0.0f;
+    Notify.NotifyName = NotifyName;
+    Sequence->AddNotify(Notify);
+}
+
+bool AAnimTestPawn::IsInAttackState() const
+{
+    if (!SkeletalMeshComp)
+    {
+        return false;
+    }
+
+    const UAnimInstance* AnimInstance = SkeletalMeshComp->GetAnimInstance();
+    if (!AnimInstance)
+    {
+        return false;
+    }
+
+    const FAnimStateMachineNode* StateMachine = AnimInstance->GetStateMachine();
+    if (!StateMachine)
+    {
+        return false;
+    }
+
+    const FName CurrentState = StateMachine->GetCurrentState();
+    return CurrentState == NAME_LightAttack || CurrentState == NAME_HeavyAttack;
+}
+
+void AAnimTestPawn::HandleAnimNotify(const FAnimNotifyEvent& Notify)
+{
+    APawn::HandleAnimNotify(Notify);
+    PlayNotifySound(Notify);
+}
+
+void AAnimTestPawn::PlayNotifySound(const FAnimNotifyEvent& Notify)
+{
+    if (!GEngine || !Notify.NotifyName.IsValid())
+    {
+        return;
+    }
+
+    FString SoundPath;
+    if (Notify.NotifyName == NAME_LightAttackSwing)
+    {
+        SoundPath = LightAttackSoundPath;
+    }
+    else if (Notify.NotifyName == NAME_HeavyAttackSwing)
+    {
+        SoundPath = HeavyAttackSoundPath;
+    }
+
+    if (!SoundPath.empty())
+    {
+        GEngine->GetAudioSystem().PlaySFX3D(SoundPath, GetActorLocation());
     }
 }
 

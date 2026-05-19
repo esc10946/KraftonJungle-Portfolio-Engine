@@ -6,6 +6,7 @@
 #include "AAnimTestPawn.generated.h"
 
 class UAnimStateMachineAsset;
+class UAnimInstance;
 class UCameraComponent;
 class USceneComponent;
 class USkeletalMeshComponent;
@@ -26,6 +27,7 @@ public:
     void Serialize(FArchive& Ar) override;
     void GetEditableProperties(TArray<FPropertyDescriptor>& OutProps) override;
     void PostEditProperty(const char* PropertyName) override;
+    void HandleAnimNotify(const FAnimNotifyEvent& Notify) override;
 
     USkeletalMeshComponent* GetSkeletalMeshComponent() const { return SkeletalMeshComp; }
     UCameraComponent* GetCameraComponent() const { return CameraComp; }
@@ -36,6 +38,10 @@ private:
     void UpdateLocomotion(float DeltaTime);
     FVector BuildCameraRelativeMoveDirection(const FVector2& MoveAxis) const;
     void UpdateAnimationParameters(float GroundSpeed, bool bMoving, bool bSprinting);
+    void AddDefaultAnimationNotifies(UAnimInstance* AnimInstance);
+    void AddNotifyToAnimation(UAnimInstance* AnimInstance, const FName& AnimationName, const FName& NotifyName, float TriggerTime);
+    bool IsInAttackState() const;
+    void PlayNotifySound(const FAnimNotifyEvent& Notify);
 
 private:
     USceneComponent* SceneRoot = nullptr;
@@ -51,6 +57,8 @@ private:
     FString HomeguardAnimationPath = "Asset/SkeletalMesh/GwenFBX/gwen_anim_Skeleton_Gwen_Homeguard.anm.bin";
     FString LightAttackAnimationPath = "Asset/SkeletalMesh/GwenFBX/gwen_anim_Skeleton_Attack1.bin";
     FString HeavyAttackAnimationPath = "Asset/SkeletalMesh/GwenFBX/gwen_anim_Skeleton_Attack2.bin";
+    FString LightAttackSoundPath;
+    FString HeavyAttackSoundPath;
 
     float MoveSpeed = 7.0f;
     float SprintSpeedMultiplier = 1.5f;
