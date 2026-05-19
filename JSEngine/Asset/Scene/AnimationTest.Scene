@@ -190,9 +190,9 @@
           "Enable Cull" : true,
           "Enable Tick" : true,
           "GenerateOverlapEvents" : false,
-          "Location" : [0.000000, 0.000000, -0.529128],
-          "Materials" : ["DefaultWhite"],
-          "ObjStaticMeshAsset" : "Asset/Mesh/Dice/Dice.obj",
+          "Location" : [0.000000, 0.000000, -0.212786],
+          "Materials" : ["Asset/Material/Auto/cottage_Mat_0.mat"],
+          "ObjStaticMeshAsset" : "Asset/Mesh/cottage/cottage.obj",
           "ObjectName" : "UStaticMeshComponent_1",
           "PersistentGuid" : "E5B1A5A9-080B48FA-A14265CB-874B4E23",
           "Properties" : {
@@ -219,13 +219,13 @@
     }],
   "ClassName" : "UWorld",
   "Name" : "AnimationTest",
-  "NextUUID" : 1371,
+  "NextUUID" : 1533,
   "PerspectiveCamera" : {
     "FOV" : 60.000000,
     "FarClip" : 1000.000000,
-    "Location" : [-5.312685, 18.718554, 9.238023],
+    "Location" : [-2.846489, -0.881379, 0.545525],
     "NearClip" : 0.100000,
-    "Rotation" : [26.768074, 4.056932, -82.016296]
+    "Rotation" : [-5.630127, 21.406986, 15.114635]
   },
   "Version" : 6,
   "WorldSettings" : {
