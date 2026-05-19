@@ -2,7 +2,10 @@
 
 #include "Animation/ActorSequence.h"
 #include "Animation/AnimStateMachineAsset.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimStateMachineNode.h"
 #include "Asset/CurveFloatAsset.h"
+#include "Component/SkeletalMeshComponent.h"
 #include "Object/Object.h"
 #include "Runtime/Script/ScriptComponent.h"
 #include "Runtime/Script/ScriptUtils.h"
@@ -269,6 +272,48 @@ void FScriptManager::BindAnimationTypes()
     {
         return Self.Validate();
     });
+    LUA_END_TYPE();
+
+    LUA_BEGIN_TYPE_NO_CTOR_BASE(GLuaState, UAnimInstance, "AnimInstance", UObject)
+    LUA_SET(RegisterAnimationPath, [](UAnimInstance& Self, const FString& AnimationName, const FString& AnimationPath)
+    {
+        return Self.RegisterAnimationPath(FName(AnimationName), AnimationPath);
+    });
+    LUA_SET(SetStateMachineAsset, [](UAnimInstance& Self, UAnimStateMachineAsset* StateMachineAsset)
+    {
+        Self.SetStateMachineAsset(StateMachineAsset);
+    });
+    LUA_SET(PlayAnimationByName, [](UAnimInstance& Self, const FString& AnimationName, bool bLoop)
+    {
+        return Self.PlayAnimationByName(FName(AnimationName), bLoop);
+    });
+    LUA_SET(BlendToAnimationByName, [](
+        UAnimInstance& Self,
+        const FString& AnimationName,
+        bool bLoop,
+        float BlendTime,
+        sol::optional<FString> EaseOption)
+    {
+        EAnimBlendEaseOption BlendEaseOption = EAnimBlendEaseOption::Linear;
+        const FString EaseOptionName = EaseOption.value_or("Linear");
+        if (EaseOptionName == "EaseIn")
+        {
+            BlendEaseOption = EAnimBlendEaseOption::EaseIn;
+        }
+        else if (EaseOptionName == "EaseOut")
+        {
+            BlendEaseOption = EAnimBlendEaseOption::EaseOut;
+        }
+        else if (EaseOptionName == "EaseInOut")
+        {
+            BlendEaseOption = EAnimBlendEaseOption::EaseInOut;
+        }
+
+        return Self.BlendToAnimationByName(FName(AnimationName), bLoop, BlendTime, BlendEaseOption);
+    });
+    LUA_METHOD(SetLooping, SetLooping);
+    LUA_METHOD(IsLooping, IsLooping);
+    LUA_METHOD(GetSkelMeshComponent, GetSkelMeshComponent);
     LUA_END_TYPE();
 
     GLuaState->set_function("CreateAnimStateMachineAsset", []() -> UAnimStateMachineAsset*

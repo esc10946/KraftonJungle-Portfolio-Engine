@@ -1,5 +1,7 @@
 ﻿#include "Runtime/Script/ScriptManager.h"
 
+#include "Animation/AnimStateMachineNode.h"
+#include "Animation/AnimInstance.h"
 #include "Asset/CurveFloatAsset.h"
 #include "Asset/StaticMesh.h"
 #include "Camera/CameraShakeBase.h"
@@ -418,8 +420,26 @@ void FScriptManager::BindStaticMeshTypes()
     LUA_BEGIN_TYPE_NO_CTOR_BASE(GLuaState, USkeletalMeshComponent, "SkeletalMeshComponent", USkinnedMeshComponent, UMeshComponent, UPrimitiveComponent, USceneComponent, UActorComponent, UObject)
     LUA_METHOD(GetSkeletalMesh, GetSkeletalMesh);
     LUA_METHOD(SetSkeletalMesh, SetSkeletalMesh);
+    LUA_METHOD(GetAnimInstance, GetAnimInstance);
+    LUA_METHOD(UseDefaultAnimInstance, UseDefaultAnimInstance);
     LUA_METHOD(UseStateMachine, UseStateMachine);
     LUA_METHOD(LoadStateMachineFromJson, LoadStateMachineFromJson);
+    LUA_SET(SetAnimationMode, [](USkeletalMeshComponent& Self, const FString& AnimationMode)
+    {
+        return Self.SetAnimationModeByName(AnimationMode);
+    });
+    LUA_SET(SetAnimationSequence, [](USkeletalMeshComponent& Self, const FString& AnimationPath)
+    {
+        return Self.SetAnimationSequence(AnimationPath);
+    });
+    LUA_METHOD(GetAnimationSequencePath, GetAnimationSequencePath);
+    LUA_METHOD(SetSingleAnimationLooping, SetSingleAnimationLooping);
+    LUA_METHOD(IsSingleAnimationLooping, IsSingleAnimationLooping);
+    LUA_METHOD(SetSingleAnimationPlayRate, SetSingleAnimationPlayRate);
+    LUA_METHOD(GetSingleAnimationPlayRate, GetSingleAnimationPlayRate);
+    LUA_METHOD(PlaySingleAnimation, PlaySingleAnimation);
+    LUA_METHOD(PauseSingleAnimation, PauseSingleAnimation);
+    LUA_METHOD(StopSingleAnimation, StopSingleAnimation);
     LUA_SET(RegisterStateAnimation, [](USkeletalMeshComponent& Self, const FString& AnimationName, const FString& AnimationPath)
     {
         return Self.RegisterStateAnimationPath(FName(AnimationName), AnimationPath);
