@@ -1,4 +1,4 @@
-#include "Animation/AnimStateMachineParameterStore.h"
+﻿#include "Animation/AnimStateMachineParameterStore.h"
 
 void FAnimStateMachineParameterStore::SetBool(const FName& Name, bool Value)
 {

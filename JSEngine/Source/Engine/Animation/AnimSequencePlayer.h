@@ -27,7 +27,7 @@ public:
     void Stop();
     void Tick(float DeltaSeconds);
 
-    void SetLooping(bool bInLooping) { bLooping = bInLooping; }
+    void SetLooping(bool bInLooping) { bLooping = bInLooping; }   
     bool IsLooping() const { return bLooping; }
 
     void SetPlayRate(float InPlayRate) { PlayRate = InPlayRate; }
