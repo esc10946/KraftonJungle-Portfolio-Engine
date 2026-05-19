@@ -5,6 +5,7 @@
 enum class EImportedFbxAssetType : uint8
 {
     Unknown = 0,
+    StaticMesh,
     Skeleton,
     SkeletalMesh,
     AnimationSequence

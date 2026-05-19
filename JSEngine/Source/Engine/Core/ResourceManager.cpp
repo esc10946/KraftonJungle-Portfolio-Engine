@@ -4,6 +4,7 @@
 #include "Core/AnimationSequenceLoadService.h"
 #include "Core/AssetPathPolicy.h"
 #include "Core/ExplicitFbxImportService.h"
+#include "Core/FbxMaterialLoadService.h"
 #include "Core/ImportedMaterialPolicy.h"
 #include "Core/MaterialLoadService.h"
 #include "Core/MaterialSerializationService.h"
@@ -261,7 +262,7 @@ void FResourceManager::RegisterDiscoveredAssetFile(const std::filesystem::path& 
 	{
 		AnimationSequenceFilePaths.push_back(RelativePath);
 	}
-	else if (Extension == L".obj" || Extension == L".fbx")
+	else if (Extension == L".obj")
 	{
 		ObjFilePaths.push_back(RelativePath);
 
@@ -271,16 +272,6 @@ void FResourceManager::RegisterDiscoveredAssetFile(const std::filesystem::path& 
 		Resource.bPreload = false;
 		Resource.bNormalizeToUnitCube = false;
 		StaticMeshCache.RegisterResource(Resource);
-
-		if (Extension == L".fbx")
-		{
-			const FString AbsolutePath = FPaths::Normalize(FPaths::ToUtf8(FilePath.wstring()));
-			const FFbxMeshContentInfo ContentInfo = FbxImporter.InspectMeshContent(AbsolutePath);
-			if (ContentInfo.bHasSkeletalMesh)
-			{
-				SkeletalMeshFilePaths.push_back(RelativePath);
-			}
-		}
 	}
 	else if (Extension == L".mtl" || Extension == L".mat" || Extension == L".matinst")
 	{
@@ -709,6 +700,16 @@ bool FResourceManager::LoadMaterial(const FString& MtlFilePath, EMaterialShaderT
 	return FMaterialLoadService(*this).Load(MtlFilePath, ShaderType, Device);
 }
 
+bool FResourceManager::ImportMaterialFromFbx(const FString& SourceFbxPath, EMaterialShaderType ShaderType, ID3D11Device* Device)
+{
+	if (!Device)
+	{
+		Device = CachedDevice.Get();
+	}
+
+	return FFbxMaterialLoadService(*this).ImportFromFbx(SourceFbxPath, ShaderType, Device);
+}
+
 void FResourceManager::RegisterObjMaterialSlotAliases(const FString& ObjPath, const FString& MtlPath)
 {
 	const FString NormalizedObjPath = FPaths::Normalize(ObjPath);
@@ -920,6 +921,12 @@ UStaticMesh* FResourceManager::LoadStaticMesh(const FString& Path)
 	return FStaticMeshLoadService(*this).Load(Path);
 }
 
+UStaticMesh* FResourceManager::ImportStaticMeshFromFbx(const FString& SourceFbxPath)
+{
+	ImportMaterialFromFbx(SourceFbxPath);
+	return FStaticMeshLoadService(*this).ImportFbxSource(SourceFbxPath);
+}
+
 UStaticMesh* FResourceManager::FindStaticMesh(const FString& Path) const
 {
 	const FString NormalizedPath = FPaths::Normalize(Path);
@@ -1033,6 +1040,12 @@ USkeletalMesh* FResourceManager::LoadSkeletalMesh(const FString& Path, const FSt
 	return FSkeletalMeshLoadService(*this).Load(Path, SkeletonName);
 }
 
+USkeletalMesh* FResourceManager::ImportSkeletalMeshFromFbx(const FString& SourceFbxPath, const FString& SkeletonName)
+{
+	ImportMaterialFromFbx(SourceFbxPath);
+	return FSkeletalMeshLoadService(*this).ImportFbxSource(SourceFbxPath, SkeletonName);
+}
+
 USkeletalMesh* FResourceManager::FindSkeletalMesh(const FString& Path) const
 {
     const FString NormalizedPath = FPaths::Normalize(Path);
@@ -1126,6 +1139,11 @@ TArray<FString> FResourceManager::GetCurvePaths() const
 UAnimationSequence* FResourceManager::LoadAnimationSequence(const FString& Path)
 {
 	return FAnimationSequenceLoadService(*this).Load(Path);
+}
+
+UAnimationSequence* FResourceManager::ImportAnimationSequencesFromFbx(const FString& SourceFbxPath)
+{
+	return FAnimationSequenceLoadService(*this).ImportFbxSource(SourceFbxPath);
 }
 
 UAnimationSequence* FResourceManager::FindAnimationSequence(const FString& Path) const

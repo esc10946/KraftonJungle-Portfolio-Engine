@@ -12,11 +12,12 @@ public:
     explicit FAnimationSequenceLoadService(FResourceManager& InResourceManager);
 
     UAnimationSequence* Load(const FString& Path);
+    UAnimationSequence* ImportFbxSource(const FString& Path);
 
 private:
     UAnimationSequence* LoadBinary(const FString& BinaryPath, const FString& CacheKey);
     UAnimationSequence* LoadSiblingImportedBinary(const FString& NormalizedPath);
-    UAnimationSequence* LoadSourceOrCachedBinary(const FString& NormalizedPath);
+    UAnimationSequence* ImportFbxSourceToBinary(const FString& NormalizedPath);
     UAnimationSequence* FinalizeLoadedSequence(FAnimationSequence* SequenceData, const FString& CacheKey);
 
     FResourceManager& ResourceManager;
