@@ -8,13 +8,13 @@ void UStateMachineAnimInstance::Initialize(USkeletalMeshComponent* InSkelMeshCom
 
 void UStateMachineAnimInstance::TickAnimation(float DeltaSeconds)
 {
-    StateMachineInstance.Update(DeltaSeconds, StateMachineContext);
+    StateMachineNode.Update(DeltaSeconds, StateMachineContext);
     NativeUpdateAnimation(DeltaSeconds);
 }
 
 void UStateMachineAnimInstance::SetStateMachineAsset(UAnimStateMachineAsset* InStateMachineAsset)
 {
-    StateMachineInstance.Initialize(InStateMachineAsset, this);
+    StateMachineNode.Initialize(InStateMachineAsset, this);
 }
 
 bool UStateMachineAnimInstance::PlayAnimationByName(const FName& AnimationName, bool bLoop)

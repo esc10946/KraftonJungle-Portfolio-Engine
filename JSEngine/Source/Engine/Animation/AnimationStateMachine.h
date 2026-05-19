@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Core/Containers/Array.h"
 #include "Core/Containers/String.h"
@@ -98,7 +98,7 @@ private:
     TArray<FAnimTransitionDesc> Transitions;
 };
 
-class FAnimStateMachineInstance
+class FAnimStateMachineNode
 {
 public:
     void Initialize(UAnimStateMachineAsset* InAsset, UAnimInstance* InAnimInstance);

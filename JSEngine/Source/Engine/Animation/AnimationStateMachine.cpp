@@ -360,7 +360,7 @@ bool UAnimStateMachineAsset::HasDuplicateTransition(
     return false;
 }
 
-void FAnimStateMachineInstance::Initialize(UAnimStateMachineAsset* InAsset, UAnimInstance* InAnimInstance)
+void FAnimStateMachineNode::Initialize(UAnimStateMachineAsset* InAsset, UAnimInstance* InAnimInstance)
 {
     Asset = InAsset;
     AnimInstance = InAnimInstance;
@@ -384,7 +384,7 @@ void FAnimStateMachineInstance::Initialize(UAnimStateMachineAsset* InAsset, UAni
     ChangeState(Asset->GetEntryState(), 0.0f, EAnimBlendEaseOption::Linear);
 }
 
-void FAnimStateMachineInstance::Update(float DeltaSeconds, const FAnimStateMachineContext& Context)
+void FAnimStateMachineNode::Update(float DeltaSeconds, const FAnimStateMachineContext& Context)
 {
     if (!Asset || !AnimInstance || !CurrentState.IsValid())
     {
@@ -409,7 +409,7 @@ void FAnimStateMachineInstance::Update(float DeltaSeconds, const FAnimStateMachi
     }
 }
 
-void FAnimStateMachineInstance::Reset()
+void FAnimStateMachineNode::Reset()
 {
     UAnimStateMachineAsset* ExistingAsset = Asset;
     UAnimInstance* ExistingAnimInstance = AnimInstance;
@@ -426,7 +426,7 @@ void FAnimStateMachineInstance::Reset()
     }
 }
 
-void FAnimStateMachineInstance::ChangeState(
+void FAnimStateMachineNode::ChangeState(
     const FName& NewState,
     float BlendTime,
     EAnimBlendEaseOption EaseOption)
@@ -470,7 +470,7 @@ void FAnimStateMachineInstance::ChangeState(
         BlendTime);
 }
 
-bool FAnimStateMachineInstance::EvaluateCondition(
+bool FAnimStateMachineNode::EvaluateCondition(
     const FName& ConditionName,
     const FAnimStateMachineContext& Context) const
 {
@@ -511,7 +511,7 @@ bool FAnimStateMachineInstance::EvaluateCondition(
     return false;
 }
 
-bool FAnimStateMachineInstance::HasWarnedMissingCondition(const FName& ConditionName) const
+bool FAnimStateMachineNode::HasWarnedMissingCondition(const FName& ConditionName) const
 {
     for (const FName& WarnedCondition : WarnedMissingConditions)
     {
@@ -524,7 +524,7 @@ bool FAnimStateMachineInstance::HasWarnedMissingCondition(const FName& Condition
     return false;
 }
 
-void FAnimStateMachineInstance::MarkMissingConditionWarned(const FName& ConditionName) const
+void FAnimStateMachineNode::MarkMissingConditionWarned(const FName& ConditionName) const
 {
     if (ConditionName.IsValid())
     {

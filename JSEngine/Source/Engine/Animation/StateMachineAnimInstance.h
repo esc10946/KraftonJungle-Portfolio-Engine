@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimSequencePlayer.h"
@@ -15,10 +15,10 @@ public:
     void TickAnimation(float DeltaSeconds) override;
 
     void SetStateMachineAsset(UAnimStateMachineAsset* InStateMachineAsset);
-    UAnimStateMachineAsset* GetStateMachineAsset() const { return StateMachineInstance.GetAsset(); }
+    UAnimStateMachineAsset* GetStateMachineAsset() const { return StateMachineNode.GetAsset(); }
 
-    FAnimStateMachineInstance& GetStateMachineInstance() { return StateMachineInstance; }
-    const FAnimStateMachineInstance& GetStateMachineInstance() const { return StateMachineInstance; }
+    FAnimStateMachineNode& GetStateMachineNode() { return StateMachineNode; }
+    const FAnimStateMachineNode& GetStateMachineNode() const { return StateMachineNode; }
 
     void SetStateMachineContext(const FAnimStateMachineContext& InContext) { StateMachineContext = InContext; }
     const FAnimStateMachineContext& GetStateMachineContext() const { return StateMachineContext; }
@@ -37,6 +37,6 @@ public:
 
 private:
     FAnimStateMachineContext StateMachineContext;
-    FAnimStateMachineInstance StateMachineInstance;
+    FAnimStateMachineNode StateMachineNode;
     FAnimSequencePlayer SequencePlayer;
 };
