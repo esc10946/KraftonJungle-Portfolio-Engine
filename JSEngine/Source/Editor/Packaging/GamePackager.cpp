@@ -1,5 +1,6 @@
 ﻿#include "Editor/Packaging/GamePackager.h"
 
+#include "Animation/AnimStateMachineAsset.h"
 #include "Asset/AnimationSequenceSerializer.h"
 #include "Asset/BinarySerializer.h"
 #include "Asset/ObjLoader.h"
@@ -972,6 +973,12 @@ namespace
         return std::filesystem::exists(Resolved) && std::filesystem::is_regular_file(Resolved);
     }
 
+    bool IsProjectRelativeAssetPath(const FString& Path)
+    {
+        const FString NormalizedPath = FPaths::Normalize(Path);
+        return NormalizedPath.rfind("Asset/", 0) == 0 || NormalizedPath.rfind("asset/", 0) == 0;
+    }
+
     bool IsRuntimeCopyExtension(const FString& Extension)
     {
         return Extension == ".bin"
@@ -991,6 +998,7 @@ namespace
             || Extension == ".sequence"
             || Extension == ".animsequence"
             || Extension == ".anim"
+            || Extension == ".animsm"
             || Extension == ".rml"
             || Extension == ".rcss"
             || Extension == ".meta"
@@ -1147,6 +1155,57 @@ namespace
     bool AddFileDependency(FPackageCookContext& Context, const FString& Path, FString& OutMessage);
     std::filesystem::path ResolveStartupSceneForValidation(const FString& StartupScene);
 
+    FString ResolveAnimStateMachineDependencyPath(const FString& StateMachinePath, const FString& DependencyPath)
+    {
+        const FString NormalizedDependencyPath = FPaths::Normalize(DependencyPath);
+        if (NormalizedDependencyPath.empty())
+        {
+            return FString();
+        }
+
+        std::filesystem::path DependencyFsPath(FPaths::ToWide(NormalizedDependencyPath));
+        if (DependencyFsPath.is_absolute() || IsProjectRelativeAssetPath(NormalizedDependencyPath))
+        {
+            return NormalizeAssetPathForPackage(NormalizedDependencyPath);
+        }
+
+        return NormalizeAssetPathForPackage(FAssetPathPolicy::ResolveAssetRelativePath(StateMachinePath, NormalizedDependencyPath));
+    }
+
+    bool AddAnimStateMachineDependency(
+        FPackageCookContext& Context,
+        const FString& StateMachinePath,
+        const FString& DependencyPath,
+        FString& OutMessage)
+    {
+        const FString ResolvedDependency = ResolveAnimStateMachineDependencyPath(StateMachinePath, DependencyPath);
+        if (ResolvedDependency.empty())
+        {
+            return true;
+        }
+
+        const FString Extension = GetLowerExtension(ResolvedDependency);
+        if (Extension != ".obj" && Extension != ".bin" && !IsRuntimeCopyExtension(Extension))
+        {
+            OutMessage = "Unsupported state machine animation dependency: " + ResolvedDependency;
+            return false;
+        }
+
+        if (!FileExistsForPackage(ResolvedDependency))
+        {
+            OutMessage = "State machine animation dependency not found: " + ResolvedDependency;
+            return false;
+        }
+
+        if (!AddFileDependency(Context, ResolvedDependency, OutMessage))
+        {
+            OutMessage = "Failed to include state machine animation dependency: " + ResolvedDependency + " | " + OutMessage;
+            return false;
+        }
+
+        return true;
+    }
+
     bool TryResolveImportedSkeletalMeshBinaryForFbx(const FString& SourceFbxPath, FString& OutBinaryPath)
     {
         const std::filesystem::path SourceAbs = ResolveProjectFilePath(SourceFbxPath);
@@ -1168,6 +1227,20 @@ namespace
 
         OutBinaryPath = MeshRecordIt->AssetPath;
         return !OutBinaryPath.empty();
+    }
+
+    bool ResolveNativeSkeletalMeshBinaryForFbx(const FString& SourceFbxPath, FString& OutBinaryPath, FString& OutMessage)
+    {
+        // FBX는 원본 소스 식별자이며 패키지 런타임은 native binary만 사용
+        const FString NormalizedSourcePath = NormalizeAssetPathForPackage(SourceFbxPath);
+        if (TryResolveImportedSkeletalMeshBinaryForFbx(NormalizedSourcePath, OutBinaryPath))
+        {
+            OutBinaryPath = NormalizeAssetPathForPackage(OutBinaryPath);
+            return true;
+        }
+
+        OutMessage = "FBX source has no imported native skeletal mesh binary: " + NormalizedSourcePath;
+        return false;
     }
 
     bool AddImportedBinaryDependencies(FPackageCookContext& Context, const FString& BinaryPath, FString& OutMessage)
@@ -1437,18 +1510,22 @@ namespace
             const FString Extension = GetLowerExtension(Value);
             if (Extension == ".fbx")
             {
+                // 만에 하나 씬/프리팹에 남은 FBX 참조는 패키징 중 binary cache file 경로로 치환
                 FString ImportedBinaryPath;
-                if (TryResolveImportedSkeletalMeshBinaryForFbx(Value, ImportedBinaryPath))
+                if (!ResolveNativeSkeletalMeshBinaryForFbx(Value, ImportedBinaryPath, OutMessage))
                 {
-                    FString CookedPath;
-                    if (!CookStaticMeshDependency(Context, ImportedBinaryPath, CookedPath, OutMessage))
-                    {
-                        return false;
-                    }
-                    Node = CookedPath;
-                    AddManifest(Context, "Rewrote imported skeletal FBX reference: " + Value + " -> " + CookedPath);
-                    return true;
+                    return false;
                 }
+
+                if (!AddFileDependency(Context, ImportedBinaryPath, OutMessage))
+                {
+                    OutMessage = "Failed to include native skeletal mesh binary: " + ImportedBinaryPath + " | " + OutMessage;
+                    return false;
+                }
+
+                Node = ImportedBinaryPath;
+                AddManifest(Context, "Rewrote FBX source reference to native skeletal mesh binary: " + Value + " -> " + ImportedBinaryPath);
+                return true;
             }
 
             if (Extension == ".obj" || Extension == ".bin")
@@ -1502,6 +1579,25 @@ namespace
         const FString NormalizedPath = NormalizeAssetPathForPackage(Path);
         const FString Extension = GetLowerExtension(NormalizedPath);
 
+        if (Extension == ".fbx")
+        {
+            // FBX 파일 자체는 복사하지 않고 대응되는 native binary만 dependency로 포함
+            FString ImportedBinaryPath;
+            if (!ResolveNativeSkeletalMeshBinaryForFbx(NormalizedPath, ImportedBinaryPath, OutMessage))
+            {
+                return false;
+            }
+
+            if (!AddFileDependency(Context, ImportedBinaryPath, OutMessage))
+            {
+                OutMessage = "Failed to include native skeletal mesh binary: " + ImportedBinaryPath + " | " + OutMessage;
+                return false;
+            }
+
+            AddManifest(Context, "Resolved FBX source dependency to native skeletal mesh binary: " + NormalizedPath + " -> " + ImportedBinaryPath);
+            return true;
+        }
+
         if (Extension == ".obj" || Extension == ".bin")
         {
             FString IgnoredCookedPath;
@@ -1525,6 +1621,26 @@ namespace
         }
 
         const std::filesystem::path SourceAbs = ResolveProjectFilePath(NormalizedPath);
+        if (Extension == ".animsm")
+        {
+            TArray<FString> AnimationDependencies;
+            if (!UAnimStateMachineAsset::ReadAnimationDependenciesFromFile(NormalizedPath, AnimationDependencies))
+            {
+                OutMessage = "Failed to read animation state machine dependencies: " + NormalizedPath;
+                return false;
+            }
+
+            for (const FString& AnimationDependency : AnimationDependencies)
+            {
+                if (!AddAnimStateMachineDependency(Context, NormalizedPath, AnimationDependency, OutMessage))
+                {
+                    return false;
+                }
+            }
+
+            AddManifest(Context, "Included anim state machine: " + NormalizedPath);
+        }
+
         if (Extension == ".mat" || Extension == ".matinst" || Extension == ".prefab")
         {
             std::ifstream In(SourceAbs);
@@ -1554,7 +1670,8 @@ namespace
         constexpr const char* Dependencies[] =
         {
             "Asset/Material/DecalMat.mat",
-            "Asset/Mesh/Dice/Dice.obj"
+            "Asset/Mesh/Dice/Dice.obj",
+            "Asset/SkeletalMesh/GwenFBX/Gwen_skeletalmesh_Buffbone_Cstm_Healthbar.bin"
         };
 
         for (const char* Dependency : Dependencies)
@@ -1705,15 +1822,15 @@ namespace
         {
             return false;
         }
-        if (!AddRuntimeFilesByExtension(Context, "Asset/Mesh", { ".matinst" }, OutMessage))
-        {
-            return false;
-        }
         if (!AddRuntimeFilesByExtension(Context, "Asset/Curve", { ".curve" }, OutMessage))
         {
             return false;
         }
         if (!AddRuntimeFilesByExtension(Context, "Asset/Sequence", { ".sequence", ".animsequence", ".anim" }, OutMessage))
+        {
+            return false;
+        }
+        if (!AddRuntimeFilesByExtension(Context, "Asset/Animation", { ".animsm" }, OutMessage))
         {
             return false;
         }

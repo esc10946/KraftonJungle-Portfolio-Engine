@@ -38,6 +38,7 @@ class FStaticMeshLoadService;
 class FSkeletalMeshLoadService;
 class FSkeletonLoadService;
 class FFbxMaterialLoadService;
+class UAnimStateMachineAsset;
 
 //   .
 class FResourceManager : public TSingleton<FResourceManager>
@@ -159,6 +160,11 @@ public:
 	bool SaveAnimationSequence(UAnimationSequence* Sequence);
 	TArray<FString> GetAnimationSequencePaths() const;
 
+	UAnimStateMachineAsset* LoadAnimStateMachineAsset(const FString& Path);
+	UAnimStateMachineAsset* FindAnimStateMachineAsset(const FString& Path) const;
+	bool SaveAnimStateMachineAsset(const FString& Path, const UAnimStateMachineAsset* Asset);
+	TArray<FString> GetAnimStateMachineAssetPaths() const;
+
 	ID3D11SamplerState* GetOrCreateSamplerState(ESamplerType Type, ID3D11Device* Device = nullptr);
 	ID3D11DepthStencilState* GetOrCreateDepthStencilState(EDepthStencilType Type, ID3D11Device* Device = nullptr);
 	ID3D11BlendState* GetOrCreateBlendState(EBlendType Type, ID3D11Device* Device = nullptr);
@@ -214,6 +220,7 @@ private:
 	TMap<FString, USkeletalMesh*> SkeletalMeshMap;
 	TMap<FString, USkeletonAsset*> SkeletonMap;
 	TMap<FString, UAnimationSequence*> AnimationSequenceMap;
+	TMap<FString, UAnimStateMachineAsset*> AnimStateMachineMap;
 
 	/* Paths */
 	TArray<FString> ObjFilePaths;
@@ -225,4 +232,5 @@ private:
 	TArray<FString> SkeletalMeshFilePaths;
 	TArray<FString> CurveFilePaths;
 	TArray<FString> AnimationSequenceFilePaths;
+	TArray<FString> AnimStateMachineFilePaths;
 };

@@ -441,7 +441,7 @@ void FScriptManager::BindStaticMeshTypes()
     LUA_METHOD(GetAnimInstance, GetAnimInstance);
     LUA_METHOD(UseDefaultAnimInstance, UseDefaultAnimInstance);
     LUA_METHOD(UseStateMachine, UseStateMachine);
-    LUA_METHOD(LoadStateMachineFromJson, LoadStateMachineFromJson);
+    LUA_METHOD(LoadStateMachineAsset, LoadStateMachineAsset);
     LUA_SET(SetAnimationMode, [](USkeletalMeshComponent& Self, const FString& AnimationMode)
     {
         return Self.SetAnimationModeByName(AnimationMode);

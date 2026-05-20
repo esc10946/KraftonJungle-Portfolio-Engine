@@ -5,6 +5,7 @@
 #include "../Source/Engine/Animation/AnimInstance.h"
 #include "../Source/Engine/Animation/AnimSingleNodeInstance.h"
 #include "../Source/Engine/Animation/AnimStateMachineAsset.h"
+#include "../Source/Engine/Animation/AnimStateMachineAssetInstance.h"
 #include "../Source/Engine/Asset/AnimationSequence.h"
 #include "../Source/Engine/Component/ActorSequenceComponent.h"
 #include "../Source/Engine/Component/BillboardComponent.h"
@@ -416,6 +417,58 @@ namespace
     };
 
     static FAutoRegisterUAnimStateMachineAsset GAutoRegisterUAnimStateMachineAsset;
+}
+
+const FTypeInfo UAnimStateMachineAssetInstance::s_TypeInfo = {
+    "UAnimStateMachineAssetInstance",
+    &UAnimInstance::s_TypeInfo,
+    sizeof(UAnimStateMachineAssetInstance)
+};
+
+UClass* UAnimStateMachineAssetInstance::StaticClass()
+{
+    static UClass Class(
+        "UAnimStateMachineAssetInstance",
+        Super::StaticClass(),
+        sizeof(UAnimStateMachineAssetInstance),
+        CF_None,
+        []() -> UObject*
+        {
+            return UObjectManager::Get().CreateObject<UAnimStateMachineAssetInstance>();
+        });
+
+    static bool bRegistered = false;
+    if (!bRegistered)
+    {
+        bRegistered = true;
+
+        Class.AddProperty(MakeProperty<FAnimStateMachineAssetProperty>(
+                            "StateMachineAsset",
+                            offsetof(UAnimStateMachineAssetInstance, StateMachineAsset),
+                            sizeof(FAnimStateMachineAssetRef),
+                            EPropertyFlags::Read |
+                                EPropertyFlags::Write |
+                                EPropertyFlags::Edit |
+                                EPropertyFlags::LuaRead |
+                                EPropertyFlags::LuaWrite));
+
+        FReflectionRegistry::Get().RegisterUClass(&Class);
+    }
+
+    return &Class;
+}
+
+namespace
+{
+    struct FAutoRegisterUAnimStateMachineAssetInstance
+    {
+        FAutoRegisterUAnimStateMachineAssetInstance()
+        {
+            UAnimStateMachineAssetInstance::StaticClass();
+        }
+    };
+
+    static FAutoRegisterUAnimStateMachineAssetInstance GAutoRegisterUAnimStateMachineAssetInstance;
 }
 
 const FTypeInfo UAnimationSequence::s_TypeInfo = {

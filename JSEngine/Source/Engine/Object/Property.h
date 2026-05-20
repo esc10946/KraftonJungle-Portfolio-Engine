@@ -73,6 +73,7 @@ struct FSkeletalMeshAssetRef : FAssetReference { using FAssetReference::FAssetRe
 struct FTextureAssetRef : FAssetReference { using FAssetReference::FAssetReference; };
 struct FMaterialAssetRef : FAssetReference { using FAssetReference::FAssetReference; };
 struct FAnimationSequenceAssetRef : FAssetReference { using FAssetReference::FAssetReference; };
+struct FAnimStateMachineAssetRef : FAssetReference { using FAssetReference::FAssetReference; };
 struct FCurveAssetRef : FAssetReference { using FAssetReference::FAssetReference; };
 struct FSceneAssetRef : FAssetReference { using FAssetReference::FAssetReference; };
 struct FSoundAssetRef : FAssetReference { using FAssetReference::FAssetReference; };
@@ -203,6 +204,7 @@ using FSkeletalMeshAssetProperty = TAssetPathProperty<FSkeletalMeshAssetRef>;
 using FTextureAssetProperty = TAssetPathProperty<FTextureAssetRef>;
 using FMaterialAssetProperty = TAssetPathProperty<FMaterialAssetRef>;
 using FAnimationSequenceAssetProperty = TAssetPathProperty<FAnimationSequenceAssetRef>;
+using FAnimStateMachineAssetProperty = TAssetPathProperty<FAnimStateMachineAssetRef>;
 using FCurveAssetProperty = TAssetPathProperty<FCurveAssetRef>;
 using FSceneAssetProperty = TAssetPathProperty<FSceneAssetRef>;
 using FSoundAssetProperty = TAssetPathProperty<FSoundAssetRef>;
@@ -361,6 +363,10 @@ bool FProperty::IsCompatibleValueType() const
     else if constexpr (std::is_same_v<RawT, FAnimationSequenceAssetRef>)
     {
         return dynamic_cast<const FAnimationSequenceAssetProperty*>(this) != nullptr && Size == sizeof(RawT);
+    }
+    else if constexpr (std::is_same_v<RawT, FAnimStateMachineAssetRef>)
+    {
+        return dynamic_cast<const FAnimStateMachineAssetProperty*>(this) != nullptr && Size == sizeof(RawT);
     }
     else if constexpr (std::is_same_v<RawT, FCurveAssetRef>)
     {

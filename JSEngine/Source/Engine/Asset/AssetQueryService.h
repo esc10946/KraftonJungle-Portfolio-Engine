@@ -13,6 +13,7 @@ public:
     static TArray<FString> GetMaterialPaths();
     static TArray<FString> GetCurvePaths();
     static TArray<FString> GetAnimationSequencePaths();
+    static TArray<FString> GetAnimStateMachineAssetPaths();
     static TArray<FString> GetScenePaths();
     static TArray<FString> GetSoundPaths();
 };

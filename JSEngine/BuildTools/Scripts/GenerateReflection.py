@@ -21,6 +21,7 @@ PROPERTY_CLASS_MAP = {
     "FTextureAssetRef": "FTextureAssetProperty",
     "FMaterialAssetRef": "FMaterialAssetProperty",
     "FAnimationSequenceAssetRef": "FAnimationSequenceAssetProperty",
+    "FAnimStateMachineAssetRef": "FAnimStateMachineAssetProperty",
     "FCurveAssetRef": "FCurveAssetProperty",
     "FSceneAssetRef": "FSceneAssetProperty",
     "FSoundAssetRef": "FSoundAssetProperty",

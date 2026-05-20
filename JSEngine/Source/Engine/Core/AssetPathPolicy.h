@@ -9,6 +9,7 @@ public:
 	static bool FileExists(const FString& Path);
 	static bool IsCurveAssetPath(const FString& Path);
 	static bool IsAnimationSequenceAssetPath(const FString& Path);
+	static bool IsAnimStateMachineAssetPath(const FString& Path);
 	static bool IsSequenceAssetPath(const FString& Path);
 	static bool IsSerializedMaterialAssetPath(const FString& Path);
 

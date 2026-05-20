@@ -139,6 +139,10 @@ namespace
 			{
 				SourcePaths = &AssetService.GetAnimationSequenceAssetPaths();
 			}
+			else if (dynamic_cast<const FAnimStateMachineAssetProperty*>(&Property))
+			{
+				SourcePaths = &AssetService.GetAnimStateMachineAssetPaths();
+			}
 
 			if (SourcePaths)
 			{
@@ -195,6 +199,7 @@ namespace
 			|| TryGetReflectionAssetValue<FTextureAssetRef>(Object, Property, OutPath)
 			|| TryGetReflectionAssetValue<FMaterialAssetRef>(Object, Property, OutPath)
 			|| TryGetReflectionAssetValue<FAnimationSequenceAssetRef>(Object, Property, OutPath)
+			|| TryGetReflectionAssetValue<FAnimStateMachineAssetRef>(Object, Property, OutPath)
 			|| TryGetReflectionAssetValue<FCurveAssetRef>(Object, Property, OutPath)
 			|| TryGetReflectionAssetValue<FSceneAssetRef>(Object, Property, OutPath)
 			|| TryGetReflectionAssetValue<FSoundAssetRef>(Object, Property, OutPath);
@@ -221,6 +226,10 @@ namespace
 		if (dynamic_cast<const FAnimationSequenceAssetProperty*>(&Property))
 		{
 			return Property.SetPropertyValue_InContainer(Object, FAnimationSequenceAssetRef(Path));
+		}
+		if (dynamic_cast<const FAnimStateMachineAssetProperty*>(&Property))
+		{
+			return Property.SetPropertyValue_InContainer(Object, FAnimStateMachineAssetRef(Path));
 		}
 		if (dynamic_cast<const FCurveAssetProperty*>(&Property))
 		{
@@ -641,6 +650,10 @@ namespace
 		else if (dynamic_cast<const FAnimationSequenceAssetProperty*>(InnerProperty))
 		{
 			bChanged = DrawAssetRefTextElement(Label.c_str(), Property.GetArrayElementPtr<FAnimationSequenceAssetRef>(Object, Index));
+		}
+		else if (dynamic_cast<const FAnimStateMachineAssetProperty*>(InnerProperty))
+		{
+			bChanged = DrawAssetRefTextElement(Label.c_str(), Property.GetArrayElementPtr<FAnimStateMachineAssetRef>(Object, Index));
 		}
 		else if (dynamic_cast<const FCurveAssetProperty*>(InnerProperty))
 		{
@@ -2311,6 +2324,53 @@ void FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 				}
 			}
 		}
+		else if (strcmp(Prop.Name, "StateMachine Asset") == 0)
+		{
+			if (EditorEngine)
+			{
+				EditorEngine->GetAssetService().RefreshAssetDatabase();
+				const TArray<FString>& StateMachinePaths = EditorEngine->GetAssetService().GetAnimStateMachineAssetPaths();
+				const FString Current = *Val;
+				if (ImGui::BeginCombo(Prop.Name, Current.empty() ? "<None>" : Current.c_str()))
+				{
+					const bool bNoneSelected = Current.empty();
+					if (ImGui::Selectable("<None>", bNoneSelected))
+					{
+						Val->clear();
+						bChanged = true;
+					}
+					if (bNoneSelected)
+					{
+						ImGui::SetItemDefaultFocus();
+					}
+
+					for (const FString& Path : StateMachinePaths)
+					{
+						const bool bSelected = (Current == Path);
+						if (ImGui::Selectable(Path.c_str(), bSelected))
+						{
+							*Val = Path;
+							bChanged = true;
+						}
+						if (bSelected)
+						{
+							ImGui::SetItemDefaultFocus();
+						}
+					}
+					ImGui::EndCombo();
+				}
+			}
+			else
+			{
+				char Buf[256];
+				strncpy_s(Buf, sizeof(Buf), Val->c_str(), _TRUNCATE);
+				if (ImGui::InputText(Prop.Name, Buf, sizeof(Buf)))
+				{
+					*Val = Buf;
+					bChanged = true;
+				}
+			}
+		}
         else if (strcmp(Prop.Name, "ScriptName") == 0)
         {
             if (!Val)
@@ -2924,6 +2984,7 @@ void FEditorPropertyWidget::RenderReflectionProperties(UObject* Object, const FP
 		|| dynamic_cast<const FTextureAssetProperty*>(&Property)
 		|| dynamic_cast<const FMaterialAssetProperty*>(&Property)
 		|| dynamic_cast<const FAnimationSequenceAssetProperty*>(&Property)
+		|| dynamic_cast<const FAnimStateMachineAssetProperty*>(&Property)
 		|| dynamic_cast<const FCurveAssetProperty*>(&Property)
 		|| dynamic_cast<const FSceneAssetProperty*>(&Property)
 		|| dynamic_cast<const FSoundAssetProperty*>(&Property))
