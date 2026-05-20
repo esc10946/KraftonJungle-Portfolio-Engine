@@ -408,7 +408,7 @@ bool UAnimStateMachineAsset::AddTransitionWithId(
     if (HasDuplicateTransition(FromStateId, ToStateId, Conditions))
     {
         UE_LOG_WARNING(
-            "[AnimSM] Invalid transition: duplicate %s -> %s",
+            "[AnimSM] Invalid transition: duplicate %s -> %s with identical conditions",
             FromStateDesc->StateName.ToString().c_str(),
             ToStateDesc->StateName.ToString().c_str());
         return false;
@@ -476,7 +476,7 @@ bool UAnimStateMachineAsset::ReconnectTransition(
     if (HasDuplicateTransition(FromStateId, ToStateId, Transition->Conditions, TransitionId))
     {
         UE_LOG_WARNING(
-            "[AnimSM] Reconnect transition failed: duplicate %s -> %s",
+            "[AnimSM] Reconnect transition failed: duplicate %s -> %s with identical conditions",
             FromStateDesc->StateName.ToString().c_str(),
             ToStateDesc->StateName.ToString().c_str());
         return false;
@@ -535,7 +535,7 @@ bool UAnimStateMachineAsset::SetTransitionConditions(
         Conditions,
         TransitionId))
     {
-        UE_LOG_WARNING("[AnimSM] Set transition conditions failed: duplicate transition");
+        UE_LOG_WARNING("[AnimSM] Set transition conditions failed: duplicate from/to with identical conditions");
         return false;
     }
 

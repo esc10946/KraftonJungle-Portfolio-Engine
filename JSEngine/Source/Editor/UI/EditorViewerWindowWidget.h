@@ -116,6 +116,8 @@ private:
     uint32 GraphTransitionTargetStateId = 0;
     uint32 GraphTransitionFromStateId = 0;
     uint32 GraphTransitionToStateId = 0;
+    uint32 GraphContextStateId = 0;
+    uint32 GraphContextTransitionId = 0;
     int32 GraphTransitionParameterIndex = 0;
     int32 GraphTransitionCompareOpIndex = 0;
     int32 GraphTransitionEaseIndex = 0;
