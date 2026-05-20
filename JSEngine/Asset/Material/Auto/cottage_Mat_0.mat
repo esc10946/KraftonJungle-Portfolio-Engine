@@ -1,10 +1,10 @@
 {
-        "ImportedName" : "睫",
-        "Name" : "Furina_Mat_3",
+        "ImportedName" : "cottage_texture.001",
+        "Name" : "cottage_Mat_0",
         "Params" : [{
             "Name" : "AmbientColor",
             "Type" : "Vector3",
-            "Value" : [0.000000, 0.000000, 0.000000]
+            "Value" : [1.000000, 1.000000, 1.000000]
           }, {
             "Name" : "DiffuseColor",
             "Type" : "Vector3",
@@ -16,11 +16,11 @@
           }, {
             "Name" : "SpecularColor",
             "Type" : "Vector3",
-            "Value" : [0.000000, 0.000000, 0.000000]
+            "Value" : [1.000000, 1.000000, 1.000000]
           }, {
             "Name" : "DiffuseMap",
             "Type" : "Texture",
-            "Value" : "Asset/SkeletalMesh/FurinaFBX/Furina.fbm/颜.png"
+            "Value" : "Asset/Mesh/cottage/cottage_textures/cottage_diffuse.png"
           }, {
             "Name" : "EmissiveColor",
             "Type" : "Vector3",
@@ -32,7 +32,7 @@
           }, {
             "Name" : "Shininess",
             "Type" : "Float",
-            "Value" : 100.000000
+            "Value" : 200.000000
           }, {
             "Name" : "Opacity",
             "Type" : "Float",
@@ -54,11 +54,11 @@
             "Type" : "Bool",
             "Value" : true
           }, {
-            "Name" : "bHasAmbientMap",
+            "Name" : "bHasSpecularMap",
             "Type" : "Bool",
             "Value" : false
           }, {
-            "Name" : "bHasSpecularMap",
+            "Name" : "bHasAmbientMap",
             "Type" : "Bool",
             "Value" : false
           }, {

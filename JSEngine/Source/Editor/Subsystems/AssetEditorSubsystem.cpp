@@ -59,6 +59,12 @@ FAnimationViewer* FindCompatibleAnimationViewer(UEditorEngine* EditorEngine, con
 
     return nullptr;
 }
+
+bool HasSkeletalMeshContent(const FString& FbxPath)
+{
+    const FFbxMeshContentInfo ContentInfo = FResourceManager::Get().InspectFbxMeshContent(FbxPath);
+    return ContentInfo.bHasSkeletalMesh;
+}
 }
 
 void FAssetEditorSubsystem::Initialize(UEditorEngine* InEditorEngine)
@@ -98,7 +104,7 @@ void FAssetEditorSubsystem::RequestOpenEditorForAsset(const FString& AssetPath)
 				return Record.Type == EImportedFbxAssetType::StaticMesh;
 			});
 
-		if (StaticMeshRecordIt != Records.end())
+		if (StaticMeshRecordIt != Records.end() && !HasSkeletalMeshContent(AssetPath))
 		{
 			EditorEngine->GetNotificationService().Info("FBX already imported as static mesh binary.");
 			return;

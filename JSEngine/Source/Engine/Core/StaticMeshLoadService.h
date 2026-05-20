@@ -14,7 +14,7 @@ public:
 	// Load => binary
 	UStaticMesh* Load(const FString& Path);
 	// Import => Source (Obj, Fbx, ...)
-	UStaticMesh* ImportFbxSource(const FString& Path);
+	UStaticMesh* ImportFbxSource(const FString& Path, bool bImportMaterials = true);
 
 private:
 	UStaticMesh* LoadMissingObjBinaryFallback(const FString& RequestedPath, const FString& BinaryPath);

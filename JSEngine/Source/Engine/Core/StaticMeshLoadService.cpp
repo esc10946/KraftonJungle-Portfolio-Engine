@@ -82,7 +82,7 @@ UStaticMesh* FStaticMeshLoadService::Load(const FString& Path)
 	return nullptr;
 }
 
-UStaticMesh* FStaticMeshLoadService::ImportFbxSource(const FString& Path)
+UStaticMesh* FStaticMeshLoadService::ImportFbxSource(const FString& Path, bool bImportMaterials)
 {
 	const FString NormalizedPath = FPaths::Normalize(Path);
 	if (!IsFbxPath(NormalizedPath))
@@ -91,7 +91,10 @@ UStaticMesh* FStaticMeshLoadService::ImportFbxSource(const FString& Path)
 		return nullptr;
 	}
 
-	ResourceManager.LoadMaterial(NormalizedPath, EMaterialShaderType::SurfaceLit);
+	if (bImportMaterials)
+	{
+		ResourceManager.LoadMaterial(NormalizedPath, EMaterialShaderType::SurfaceLit);
+	}
 
 	FStaticMeshLoadOptions LoadOptions = ResourceManager.StaticMeshCache.GetLoadOptions(NormalizedPath);
 	const FString BinaryPath = FAssetPathPolicy::MakeWritableStaticMeshCacheBinaryPath(NormalizedPath);
