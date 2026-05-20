@@ -25,6 +25,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <cmath>
+#include <cfloat>
 #include <cstring>
 #include <functional>
 
@@ -139,19 +140,213 @@ ed::NodeId MakeStateNodeId(FAnimStateId StateId)
     return ed::NodeId(static_cast<uintptr_t>(StateId));
 }
 
-ed::PinId MakeStateInputPinId(FAnimStateId StateId)
+ImVec2 Add(const ImVec2& A, const ImVec2& B)
 {
-    return ed::PinId(static_cast<uintptr_t>(StateId) * 2u + 1u);
+    return ImVec2(A.x + B.x, A.y + B.y);
 }
 
-ed::PinId MakeStateOutputPinId(FAnimStateId StateId)
+ImVec2 Subtract(const ImVec2& A, const ImVec2& B)
 {
-    return ed::PinId(static_cast<uintptr_t>(StateId) * 2u + 2u);
+    return ImVec2(A.x - B.x, A.y - B.y);
 }
 
-ed::LinkId MakeTransitionLinkId(FAnimTransitionId TransitionId)
+ImVec2 Scale(const ImVec2& Value, float Factor)
 {
-    return ed::LinkId(static_cast<uintptr_t>(TransitionId));
+    return ImVec2(Value.x * Factor, Value.y * Factor);
+}
+
+float Dot(const ImVec2& A, const ImVec2& B)
+{
+    return A.x * B.x + A.y * B.y;
+}
+
+float LengthSquared(const ImVec2& Value)
+{
+    return Dot(Value, Value);
+}
+
+ImVec2 Normalize(const ImVec2& Value)
+{
+    const float Length = std::sqrt(LengthSquared(Value));
+    if (Length <= 0.0001f)
+    {
+        return ImVec2(1.0f, 0.0f);
+    }
+
+    return ImVec2(Value.x / Length, Value.y / Length);
+}
+
+float DistanceToSegment(const ImVec2& Point, const ImVec2& Start, const ImVec2& End)
+{
+    const ImVec2 Segment = Subtract(End, Start);
+    const float SegmentLengthSquared = LengthSquared(Segment);
+    if (SegmentLengthSquared <= 0.0001f)
+    {
+        return std::sqrt(LengthSquared(Subtract(Point, Start)));
+    }
+
+    const float T = std::clamp(Dot(Subtract(Point, Start), Segment) / SegmentLengthSquared, 0.0f, 1.0f);
+    const ImVec2 Projection = Add(Start, Scale(Segment, T));
+    return std::sqrt(LengthSquared(Subtract(Point, Projection)));
+}
+
+ImVec2 GetRectBoundaryPoint(const ImVec2& Center, const ImVec2& HalfSize, const ImVec2& Direction)
+{
+    const float Tx = std::abs(Direction.x) > 0.0001f ? HalfSize.x / std::abs(Direction.x) : FLT_MAX;
+    const float Ty = std::abs(Direction.y) > 0.0001f ? HalfSize.y / std::abs(Direction.y) : FLT_MAX;
+    return Add(Center, Scale(Direction, std::min(Tx, Ty)));
+}
+
+constexpr float TransitionLaneSpacing = 14.0f;
+constexpr float OppositeDirectionLaneOffset = 12.0f;
+constexpr float TransitionHitRadiusPx = 10.0f;
+
+struct FTransitionDrawSegment
+{
+    FAnimTransitionId TransitionId = InvalidAnimTransitionId;
+    ed::NodeId FromNodeId;
+    ImVec2 StartCanvas;
+    ImVec2 EndCanvas;
+    ImVec2 StartScreen;
+    ImVec2 EndScreen;
+};
+
+float ComputeTransitionLaneOffset(
+    const UAnimStateMachineAsset* Asset,
+    const FAnimTransitionDesc& Transition,
+    int32 TransitionIndex)
+{
+    if (!Asset)
+    {
+        return 0.0f;
+    }
+
+    int32 SameDirectionBefore = 0;
+    int32 SameDirectionTotal = 0;
+    int32 ReverseDirectionTotal = 0;
+    const TArray<FAnimTransitionDesc>& Transitions = Asset->GetTransitions();
+    for (int32 OtherIndex = 0; OtherIndex < static_cast<int32>(Transitions.size()); ++OtherIndex)
+    {
+        const FAnimTransitionDesc& Other = Transitions[OtherIndex];
+        if (Other.FromStateId == Transition.FromStateId && Other.ToStateId == Transition.ToStateId)
+        {
+            if (OtherIndex < TransitionIndex)
+            {
+                ++SameDirectionBefore;
+            }
+            ++SameDirectionTotal;
+        }
+        else if (Other.FromStateId == Transition.ToStateId && Other.ToStateId == Transition.FromStateId)
+        {
+            ++ReverseDirectionTotal;
+        }
+    }
+
+    if (SameDirectionTotal <= 1 && ReverseDirectionTotal == 0)
+    {
+        return 0.0f;
+    }
+
+    float LaneOffset =
+        (static_cast<float>(SameDirectionBefore) - (static_cast<float>(SameDirectionTotal - 1) * 0.5f)) *
+        TransitionLaneSpacing;
+    if (ReverseDirectionTotal > 0)
+    {
+        LaneOffset += OppositeDirectionLaneOffset;
+    }
+    return LaneOffset;
+}
+
+bool BuildTransitionDrawSegment(
+    const UAnimStateMachineAsset* Asset,
+    const FAnimTransitionDesc& Transition,
+    int32 TransitionIndex,
+    FTransitionDrawSegment& OutSegment)
+{
+    const FAnimStateDesc* FromState = Asset ? Asset->FindStateById(Transition.FromStateId) : nullptr;
+    const FAnimStateDesc* ToState = Asset ? Asset->FindStateById(Transition.ToStateId) : nullptr;
+    if (!FromState || !ToState)
+    {
+        return false;
+    }
+
+    const ed::NodeId FromNodeId = MakeStateNodeId(FromState->Id);
+    const ed::NodeId ToNodeId = MakeStateNodeId(ToState->Id);
+    const ImVec2 FromPosition = ed::GetNodePosition(FromNodeId);
+    const ImVec2 ToPosition = ed::GetNodePosition(ToNodeId);
+    const ImVec2 FromSize = ed::GetNodeSize(FromNodeId);
+    const ImVec2 ToSize = ed::GetNodeSize(ToNodeId);
+    const ImVec2 FromCenter = Add(FromPosition, Scale(FromSize, 0.5f));
+    const ImVec2 ToCenter = Add(ToPosition, Scale(ToSize, 0.5f));
+    const ImVec2 Direction = Normalize(Subtract(ToCenter, FromCenter));
+    const ImVec2 Normal(-Direction.y, Direction.x);
+    const float LaneOffset = ComputeTransitionLaneOffset(Asset, Transition, TransitionIndex);
+
+    ImVec2 Start = GetRectBoundaryPoint(FromCenter, Scale(FromSize, 0.5f), Direction);
+    ImVec2 End = GetRectBoundaryPoint(ToCenter, Scale(ToSize, 0.5f), Scale(Direction, -1.0f));
+    Start = Add(Start, Scale(Normal, LaneOffset));
+    End = Add(End, Scale(Normal, LaneOffset));
+
+    OutSegment.TransitionId = Transition.Id;
+    OutSegment.FromNodeId = FromNodeId;
+    OutSegment.StartCanvas = Start;
+    OutSegment.EndCanvas = End;
+    OutSegment.StartScreen = ed::CanvasToScreen(Start);
+    OutSegment.EndScreen = ed::CanvasToScreen(End);
+    return true;
+}
+
+FAnimTransitionId PickTransitionAtScreenPosition(
+    const TArray<FTransitionDrawSegment>& Segments,
+    const ImVec2& ScreenPosition)
+{
+    float BestDistance = TransitionHitRadiusPx;
+    FAnimTransitionId BestTransitionId = InvalidAnimTransitionId;
+    for (const FTransitionDrawSegment& Segment : Segments)
+    {
+        const float Distance = DistanceToSegment(ScreenPosition, Segment.StartScreen, Segment.EndScreen);
+        if (Distance <= BestDistance)
+        {
+            BestDistance = Distance;
+            BestTransitionId = Segment.TransitionId;
+        }
+    }
+    return BestTransitionId;
+}
+
+void DrawStraightTransition(
+    ImDrawList* DrawList,
+    const ImVec2& Start,
+    const ImVec2& End,
+    ImU32 Color,
+    float Thickness,
+    bool bHovered,
+    bool bSelected)
+{
+    if (!DrawList)
+    {
+        return;
+    }
+
+    const ImVec2 Direction = Normalize(Subtract(End, Start));
+    DrawList->AddLine(Start, End, Color, Thickness);
+
+    const float ArrowLength = bSelected ? 13.0f : 11.0f;
+    const float ArrowWidth = bSelected ? 6.5f : 5.5f;
+    const ImVec2 Normal(-Direction.y, Direction.x);
+    const ImVec2 ArrowBase = Subtract(End, Scale(Direction, ArrowLength));
+    const ImVec2 ArrowA = Add(ArrowBase, Scale(Normal, ArrowWidth));
+    const ImVec2 ArrowB = Subtract(ArrowBase, Scale(Normal, ArrowWidth));
+    DrawList->AddTriangleFilled(End, ArrowA, ArrowB, Color);
+
+    if (bHovered || bSelected)
+    {
+        const ImU32 AccentColor = bSelected
+            ? IM_COL32(255, 202, 93, 255)
+            : IM_COL32(180, 205, 255, 210);
+        DrawList->AddLine(Start, End, AccentColor, Thickness + 2.0f);
+        DrawList->AddTriangleFilled(End, ArrowA, ArrowB, AccentColor);
+    }
 }
 
 const FAnimStateEditorMetadata* FindStateEditorMetadata(
@@ -423,15 +618,6 @@ void DrawConditionValueEditor(
     default:
         break;
     }
-}
-
-void DrawReadOnlyPin(FAnimStateId StateId, bool bOutput)
-{
-    ed::BeginPin(bOutput ? MakeStateOutputPinId(StateId) : MakeStateInputPinId(StateId), bOutput ? ed::PinKind::Output : ed::PinKind::Input);
-    ed::PinPivotSize(ImVec2(1.0f, 1.0f));
-    ed::PinPivotAlignment(bOutput ? ImVec2(1.0f, 0.5f) : ImVec2(0.0f, 0.5f));
-    ImGui::Dummy(ImVec2(1.0f, 1.0f));
-    ed::EndPin();
 }
 
 void CopyToBuffer(char* Buffer, size_t BufferSize, const FString& Value)
@@ -1177,6 +1363,13 @@ void FEditorViewerWindowWidget::RenderAnimStateMachineGraphContent(float DeltaTi
     const float GraphWidth = std::max(220.0f, FullSize.x - InspectorWidth - ImGui::GetStyle().ItemSpacing.x);
 
     ImGui::BeginChild("AnimStateMachineGraphCanvas", ImVec2(GraphWidth, 0), true);
+    const ImVec2 GraphCanvasMin = ImGui::GetWindowPos();
+    const ImVec2 GraphCanvasMax = Add(GraphCanvasMin, ImGui::GetWindowSize());
+    // imgui-node-editor rewrites ImGuiIO mouse positions to canvas-local space during ed::Begin().
+    // Keep screen-space input here so custom transition hit-testing matches CanvasToScreen() output.
+    const ImVec2 GraphMouseScreenPosition = ImGui::GetIO().MousePos;
+    const bool bGraphHoveredScreen = ImGui::IsMouseHoveringRect(GraphCanvasMin, GraphCanvasMax, true);
+    const bool bGraphMouseClicked = ImGui::GetIO().MouseClicked[ImGuiMouseButton_Left];
     if (!Asset)
     {
         ImGui::TextDisabled("State machine asset is not loaded.");
@@ -1195,8 +1388,6 @@ void FEditorViewerWindowWidget::RenderAnimStateMachineGraphContent(float DeltaTi
     ed::SetCurrentEditor(GraphViewer->GetNodeEditorContext());
     ed::PushStyleColor(ed::StyleColor_Bg, ImVec4(0.08f, 0.085f, 0.10f, 1.0f));
     ed::PushStyleColor(ed::StyleColor_Grid, ImVec4(0.18f, 0.20f, 0.23f, 0.28f));
-    ed::PushStyleColor(ed::StyleColor_PinRect, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
-    ed::PushStyleColor(ed::StyleColor_PinRectBorder, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
     ed::Begin("AnimStateMachineGraph", ImVec2(0, 0));
 
     int32 DefaultPositionIndex = 0;
@@ -1221,8 +1412,6 @@ void FEditorViewerWindowWidget::RenderAnimStateMachineGraphContent(float DeltaTi
         }
 
         ed::BeginNode(MakeStateNodeId(State.Id));
-        DrawReadOnlyPin(State.Id, false);
-        ImGui::SameLine();
         ImGui::BeginGroup();
         const bool bEntryState = State.Id == Asset->GetEntryStateId();
         if (bEntryState)
@@ -1248,19 +1437,41 @@ void FEditorViewerWindowWidget::RenderAnimStateMachineGraphContent(float DeltaTi
         }
         ImGui::Dummy(ImVec2(180.0f, 4.0f));
         ImGui::EndGroup();
-        ImGui::SameLine();
-        DrawReadOnlyPin(State.Id, true);
         ed::EndNode();
     }
 
-    for (const FAnimTransitionDesc& Transition : Asset->GetTransitions())
+    TArray<FTransitionDrawSegment> TransitionSegments;
+
+    for (int32 TransitionIndex = 0; TransitionIndex < static_cast<int32>(Asset->GetTransitions().size()); ++TransitionIndex)
     {
-        ed::Link(
-            MakeTransitionLinkId(Transition.Id),
-            MakeStateOutputPinId(Transition.FromStateId),
-            MakeStateInputPinId(Transition.ToStateId),
-            ImVec4(0.72f, 0.78f, 0.88f, 1.0f),
-            2.0f);
+        const FAnimTransitionDesc& Transition = Asset->GetTransitions()[TransitionIndex];
+        FTransitionDrawSegment Segment;
+        if (!BuildTransitionDrawSegment(Asset, Transition, TransitionIndex, Segment))
+        {
+            continue;
+        }
+
+        ImDrawList* GraphDrawList = ed::GetNodeBackgroundDrawList(Segment.FromNodeId);
+        if (!GraphDrawList)
+        {
+            continue;
+        }
+
+        TransitionSegments.push_back(Segment);
+
+        const bool bHoveredTransition =
+            bGraphHoveredScreen &&
+            DistanceToSegment(GraphMouseScreenPosition, Segment.StartScreen, Segment.EndScreen) <= TransitionHitRadiusPx;
+        const bool bSelectedTransition = GraphViewer->GetSelectedTransitionId() == Transition.Id;
+        const ImU32 Color = IM_COL32(184, 199, 224, bSelectedTransition ? 255 : 210);
+        DrawStraightTransition(
+            GraphDrawList,
+            Segment.StartCanvas,
+            Segment.EndCanvas,
+            Color,
+            bSelectedTransition ? 3.0f : 2.0f,
+            bHoveredTransition,
+            bSelectedTransition);
     }
 
     if (!GraphViewer->IsLayoutInitialized())
@@ -1269,6 +1480,26 @@ void FEditorViewerWindowWidget::RenderAnimStateMachineGraphContent(float DeltaTi
     }
 
     ed::End();
+
+    bool bClickedCustomTransition = false;
+    FAnimTransitionId ClickedTransitionId = InvalidAnimTransitionId;
+    if (bGraphMouseClicked)
+    {
+        ClickedTransitionId = PickTransitionAtScreenPosition(TransitionSegments, GraphMouseScreenPosition);
+        bClickedCustomTransition = ClickedTransitionId != InvalidAnimTransitionId;
+    }
+
+    if (bClickedCustomTransition)
+    {
+        ed::ClearSelection();
+        GraphViewer->SetSelectedTransitionId(ClickedTransitionId);
+        GraphViewer->SetSelectedStateId(InvalidAnimStateId);
+    }
+    else if (bGraphMouseClicked && ed::IsBackgroundClicked())
+    {
+        GraphViewer->SetSelectedTransitionId(InvalidAnimTransitionId);
+        GraphViewer->SetSelectedStateId(InvalidAnimStateId);
+    }
 
     for (const FAnimStateDesc& State : Asset->GetStates())
     {
@@ -1288,28 +1519,22 @@ void FEditorViewerWindowWidget::RenderAnimStateMachineGraphContent(float DeltaTi
         GraphViewer->MarkFitToViewDone();
     }
 
-    if (ed::HasSelectionChanged())
+    if (!bClickedCustomTransition && ed::HasSelectionChanged())
     {
         ed::NodeId SelectedNodes[1] = { ed::NodeId(0) };
-        ed::LinkId SelectedLinks[1] = { ed::LinkId(0) };
         if (ed::GetSelectedNodes(SelectedNodes, 1) > 0)
         {
             GraphViewer->SetSelectedStateId(static_cast<uint32>(SelectedNodes[0].Get()));
             GraphViewer->SetSelectedTransitionId(InvalidAnimTransitionId);
         }
-        else if (ed::GetSelectedLinks(SelectedLinks, 1) > 0)
-        {
-            GraphViewer->SetSelectedTransitionId(static_cast<uint32>(SelectedLinks[0].Get()));
-            GraphViewer->SetSelectedStateId(InvalidAnimStateId);
-        }
-        else
+        else if (GraphViewer->GetSelectedTransitionId() == InvalidAnimTransitionId)
         {
             GraphViewer->SetSelectedStateId(InvalidAnimStateId);
             GraphViewer->SetSelectedTransitionId(InvalidAnimTransitionId);
         }
     }
 
-    ed::PopStyleColor(4);
+    ed::PopStyleColor(2);
     ed::SetCurrentEditor(nullptr);
     ImGui::EndChild();
 
