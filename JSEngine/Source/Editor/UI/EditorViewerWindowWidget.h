@@ -6,6 +6,33 @@
 class USkeletalMeshComponent;
 class FEditorViewer;
 class FAnimationViewer;
+struct ID3D11ShaderResourceView;
+
+enum class EEditorViewerIcon : uint8
+{
+    JumpToNextKey,
+    JumpToPreviousKey,
+    Looping,
+    LoopingSelectionRange,
+    NoLooping,
+    Pause,
+    PlayForward,
+    PlayReverse,
+    Record,
+    SetPlaybackEnd,
+    SetPlaybackStart,
+    Stop,
+    ToEnd,
+    ToFront,
+    ToNext,
+    ToPrevious,
+    Count
+};
+
+struct FEditorViewerIconResources
+{
+    ID3D11ShaderResourceView* Icons[static_cast<int32>(EEditorViewerIcon::Count)] = {};
+};
 
 struct FAnimTimelineUIState
 {
@@ -14,13 +41,17 @@ struct FAnimTimelineUIState
     int32 CurrentFrame = 16;
     int32 SelectedNotifyIndex = -1;
     char NotifyNameBuffer[64] = "Notify";
+    char TrackFilter[128] = {};
 };
 
 class FEditorViewerWindowWidget : public FEditorWidget
 {
 public:
+    ~FEditorViewerWindowWidget() override;
+
     void Initialize(UEditorEngine* InEditorEngine) override;
     void Render(float DeltaTime) override;
+    void Shutdown();
     void RenderEmbedded(float DeltaTime);
     void DrawBoneNode(
         int32 BoneIndex,
@@ -68,15 +99,17 @@ private:
     bool    IsSocketNameUnique(const FString& Candidate, int32 IgnoreIdx) const;
 
 	void RenderBoneDetails(USkeletalMeshComponent* SkelComp);
-    void RenderSkeletalMeshContent(float DeltaTime);
+	void RenderSkeletalMeshContent(float DeltaTime);
     void RenderAnimationContent(float DeltaTime);
 	void RenderDetachedDocumentChrome(bool& bDockRequested, bool& bCloseRequested);
 	void RenderDetachedDocumentToolbar(bool& bDockRequested);
-    void Shutdown();
 	FSkeletalMesh* ResolveCurrentMeshData() const;
 	uint64 ComputeEditableMeshSignature(const FSkeletalMesh* MeshData) const;
 	void ResetMeshDirtyBaseline();
 	bool HasMeshAssetEdits() const;
+    void LoadViewerIcons();
+    void ReleaseViewerIcons();
+    ID3D11ShaderResourceView* GetViewerIcon(EEditorViewerIcon Icon) const;
 
 	void RenderAnimationSequencePanelContent(
 		FAnimationViewer* AnimationViewer,
@@ -98,11 +131,12 @@ private:
 	bool bHasCleanMeshEditSignature = false;
 
 	FEditorViewer* Viewer = nullptr;
+    FEditorViewerIconResources ViewerIconResources;
     FAnimTimelineUIState TimelineState;
 
     bool bOpen = false;
 
     float LeftPanelWidth = 250.0f;
     float RightPanelWidth = 250.0f;
-    float DownPanelHeight = 500.0f;
+    float DownPanelHeight = 340.0f;
 };

@@ -1,4 +1,4 @@
-#include "Asset/AssetQueryService.h"
+﻿#include "Asset/AssetQueryService.h"
 
 #include "Core/Paths.h"
 
@@ -211,7 +211,7 @@ TArray<FString> FAssetQueryService::GetCurvePaths()
 
 TArray<FString> FAssetQueryService::GetAnimationSequencePaths()
 {
-    return ListAssetFiles(L"Animation", { ".animsequence" });
+    return ListAssetFiles(L"Animation", { ".anim" });
 }
 
 TArray<FString> FAssetQueryService::GetScenePaths()

@@ -1,4 +1,4 @@
-#include "Asset/AnimationSequenceSerializer.h"
+﻿#include "Asset/AnimationSequenceSerializer.h"
 
 #include "Asset/AnimationSequence.h"
 #include "Core/Paths.h"
@@ -516,8 +516,10 @@ bool FAnimationSequenceSerializer::SaveAnimationSequenceAsset(const FString& Ass
     {
         return false;
     }
+    const std::filesystem::path AbsolutePath = FPaths::ToAbsolute(FPaths::ToWide(AssetPath));
+    std::filesystem::create_directories(AbsolutePath.parent_path());
 
-    std::ofstream Out(std::filesystem::path(FPaths::ToAbsolute(FPaths::ToWide(AssetPath))), std::ios::binary);
+    std::ofstream Out(AbsolutePath, std::ios::binary);
     if (!Out.is_open())
     {
         return false;
@@ -543,7 +545,6 @@ bool FAnimationSequenceSerializer::SaveAnimationSequenceAsset(const FString& Ass
     for (const FAnimNotifyEvent& Notify : Notifies)
     {
         WriteFloatLE(Out, Notify.TriggerTime);
-        WriteFloatLE(Out, Notify.Duration);
         WriteString(Out, Notify.NotifyName.ToString());
     }
 
@@ -597,7 +598,6 @@ bool FAnimationSequenceSerializer::LoadAnimationSequenceAsset(const FString& Ass
         FAnimNotifyEvent Notify;
         FString NotifyName;
         if (!ReadFloatLE(In, Notify.TriggerTime)
-            || !ReadFloatLE(In, Notify.Duration)
             || !ReadString(In, NotifyName))
         {
             delete Data;

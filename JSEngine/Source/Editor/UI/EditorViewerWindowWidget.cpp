@@ -6,6 +6,7 @@
 #include "Editor/Viewer/FSkeletalMeshViewer.h"
 #include "Animation/AnimationSequenceBase.h"
 #include "Asset/AnimationSequence.h"
+#include "Engine/Core/EditorResourcePaths.h"
 #include "Viewport/ViewportLayout.h"
 #include "GameFramework/PrimitiveActors.h"
 #include "Component/SkeletalMeshComponent.h"
@@ -17,10 +18,12 @@
 #include "Engine/Runtime/WindowsWindow.h"
 #include "imgui.h"
 #include "ImGui/imgui_impl_win32.h"
+#include "WICTextureLoader.h"
 
 #include <algorithm>
 #include <cstdio>
 #include <cmath>
+#include <cctype>
 #include <functional>
 
 namespace
@@ -91,6 +94,47 @@ FString GetViewerAssetLabel(FEditorViewer* Viewer)
         return "Skeletal Mesh: " + BaseLabel;
     }
     return BaseLabel;
+}
+
+FString ToLowerCopy(FString Value)
+{
+    std::transform(Value.begin(), Value.end(), Value.begin(),
+        [](unsigned char Ch) { return static_cast<char>(std::tolower(Ch)); });
+    return Value;
+}
+
+bool MatchesFilter(const FString& Text, const char* Filter)
+{
+    if (!Filter || Filter[0] == '\0')
+    {
+        return true;
+    }
+
+    return ToLowerCopy(Text).find(ToLowerCopy(FString(Filter))) != FString::npos;
+}
+
+const wchar_t* GetViewerIconFileName(EEditorViewerIcon Icon)
+{
+    switch (Icon)
+    {
+    case EEditorViewerIcon::JumpToNextKey: return L"PlayControlsJumpToNextKey.png";
+    case EEditorViewerIcon::JumpToPreviousKey: return L"PlayControlsJumpToPreviousKey.png";
+    case EEditorViewerIcon::Looping: return L"PlayControlsLooping.png";
+    case EEditorViewerIcon::LoopingSelectionRange: return L"PlayControlsLoopingSelectionRange.png";
+    case EEditorViewerIcon::NoLooping: return L"PlayControlsNoLooping.png";
+    case EEditorViewerIcon::Pause: return L"PlayControlsPause.png";
+    case EEditorViewerIcon::PlayForward: return L"PlayControlsPlayForward.png";
+    case EEditorViewerIcon::PlayReverse: return L"PlayControlsPlayReverse.png";
+    case EEditorViewerIcon::Record: return L"PlayControlsRecord.png";
+    case EEditorViewerIcon::SetPlaybackEnd: return L"PlayControlsSetPlaybackEnd.png";
+    case EEditorViewerIcon::SetPlaybackStart: return L"PlayControlsSetPlaybackStart.png";
+    case EEditorViewerIcon::Stop: return L"PlayControlsStop.png";
+    case EEditorViewerIcon::ToEnd: return L"PlayControlsToEnd.png";
+    case EEditorViewerIcon::ToFront: return L"PlayControlsToFront.png";
+    case EEditorViewerIcon::ToNext: return L"PlayControlsToNext.png";
+    case EEditorViewerIcon::ToPrevious: return L"PlayControlsToPrevious.png";
+    default: return L"";
+    }
 }
 
 FSkeletalMeshViewer* AsSkeletalMeshViewer(FEditorViewer* Viewer)
@@ -238,15 +282,189 @@ uint64 HashMatrix(uint64 Seed, const FMatrix& Matrix)
 {
     return HashBytes(Seed, Matrix.M, sizeof(Matrix.M));
 }
+
+ImU32 AnimColorPanel()
+{
+    return IM_COL32(21, 24, 30, 255);
+}
+
+ImU32 AnimColorPanelAlt()
+{
+    return IM_COL32(27, 31, 38, 255);
+}
+
+ImU32 AnimColorBorder()
+{
+    return IM_COL32(58, 66, 78, 255);
+}
+
+ImU32 AnimColorAccent()
+{
+    return IM_COL32(96, 168, 255, 255);
+}
+
+ImU32 AnimColorNotify()
+{
+    return IM_COL32(255, 150, 72, 255);
+}
+
+bool DrawAnimButton(const char* Label, const ImVec2& Size, bool bPrimary, bool bActive, bool bEnabled = true)
+{
+    const ImVec4 Normal = bPrimary
+        ? ImVec4(0.23f, 0.42f, 0.70f, 1.0f)
+        : ImVec4(0.13f, 0.16f, 0.21f, 1.0f);
+    const ImVec4 Hover = bPrimary
+        ? ImVec4(0.30f, 0.52f, 0.84f, 1.0f)
+        : ImVec4(0.18f, 0.22f, 0.29f, 1.0f);
+    const ImVec4 Active = bActive
+        ? ImVec4(0.38f, 0.58f, 0.86f, 1.0f)
+        : (bPrimary ? ImVec4(0.20f, 0.36f, 0.60f, 1.0f) : ImVec4(0.10f, 0.13f, 0.18f, 1.0f));
+
+    ImGui::PushStyleColor(ImGuiCol_Button, Normal);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Hover);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, Active);
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 5.0f);
+    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(10.0f, 5.0f));
+
+    if (!bEnabled)
+    {
+        ImGui::BeginDisabled();
+    }
+    const bool bClicked = ImGui::Button(Label, Size) && bEnabled;
+    if (!bEnabled)
+    {
+        ImGui::EndDisabled();
+    }
+
+    ImGui::PopStyleVar(2);
+    ImGui::PopStyleColor(3);
+    return bClicked;
+}
+
+bool DrawAnimIconButton(
+    ID3D11ShaderResourceView* Icon,
+    const char* FallbackLabel,
+    const char* Tooltip,
+    const ImVec2& Size,
+    bool bPrimary,
+    bool bActive,
+    bool bEnabled = true)
+{
+    ImGui::PushID(Tooltip ? Tooltip : FallbackLabel);
+    if (!bEnabled)
+    {
+        ImGui::BeginDisabled();
+    }
+
+    const bool bClicked = ImGui::InvisibleButton("##AnimIconButton", Size) && bEnabled;
+    const bool bHovered = bEnabled && ImGui::IsItemHovered();
+    const bool bPressed = bEnabled && ImGui::IsItemActive();
+    const ImVec2 Min = ImGui::GetItemRectMin();
+    const ImVec2 Max = ImGui::GetItemRectMax();
+
+    const ImVec4 Normal = bPrimary
+        ? ImVec4(0.22f, 0.39f, 0.65f, 1.0f)
+        : ImVec4(0.12f, 0.15f, 0.19f, 1.0f);
+    const ImVec4 Hover = bPrimary
+        ? ImVec4(0.30f, 0.52f, 0.84f, 1.0f)
+        : ImVec4(0.17f, 0.21f, 0.27f, 1.0f);
+    const ImVec4 Active = bActive || bPressed
+        ? ImVec4(0.35f, 0.54f, 0.80f, 1.0f)
+        : Normal;
+
+    ImDrawList* DrawList = ImGui::GetWindowDrawList();
+    const ImU32 Bg = ImGui::GetColorU32(bPressed || bActive ? Active : (bHovered ? Hover : Normal));
+    const ImU32 Border = ImGui::GetColorU32(bActive ? ImVec4(0.62f, 0.78f, 1.0f, 1.0f) : ImVec4(0.24f, 0.28f, 0.35f, 1.0f));
+    DrawList->AddRectFilled(Min, Max, Bg, 5.0f);
+    DrawList->AddRect(Min, Max, Border, 5.0f);
+
+    if (Icon)
+    {
+        const float IconSize = std::min(Size.x, Size.y) - 8.0f;
+        const ImVec2 IconMin(
+            Min.x + (Size.x - IconSize) * 0.5f,
+            Min.y + (Size.y - IconSize) * 0.5f);
+        const ImVec2 IconMax(IconMin.x + IconSize, IconMin.y + IconSize);
+        DrawList->AddImage(reinterpret_cast<ImTextureID>(Icon), IconMin, IconMax);
+    }
+    else if (FallbackLabel)
+    {
+        const ImVec2 TextSize = ImGui::CalcTextSize(FallbackLabel);
+        DrawList->AddText(
+            ImVec2((Min.x + Max.x - TextSize.x) * 0.5f, (Min.y + Max.y - TextSize.y) * 0.5f),
+            ImGui::GetColorU32(ImVec4(0.90f, 0.94f, 1.0f, 1.0f)),
+            FallbackLabel);
+    }
+
+    if (!bEnabled)
+    {
+        ImGui::EndDisabled();
+    }
+    if (bHovered && Tooltip)
+    {
+        ImGui::SetTooltip("%s", Tooltip);
+    }
+    ImGui::PopID();
+    return bClicked;
+}
+
+bool DrawAnimToggle(const char* Label, bool bValue, bool bEnabled = true)
+{
+    ImGui::PushStyleColor(ImGuiCol_Button, bValue ? ImVec4(0.22f, 0.34f, 0.50f, 1.0f) : ImVec4(0.12f, 0.15f, 0.19f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, bValue ? ImVec4(0.28f, 0.43f, 0.62f, 1.0f) : ImVec4(0.17f, 0.21f, 0.27f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0.20f, 0.31f, 0.46f, 1.0f));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 999.0f);
+
+    if (!bEnabled)
+    {
+        ImGui::BeginDisabled();
+    }
+    const bool bClicked = ImGui::Button(Label, ImVec2(78.0f, 26.0f)) && bEnabled;
+    if (!bEnabled)
+    {
+        ImGui::EndDisabled();
+    }
+
+    ImGui::PopStyleVar();
+    ImGui::PopStyleColor(3);
+    return bClicked;
+}
+
+void DrawAnimMetric(const char* Label, const char* Value, float Width)
+{
+    const ImVec2 Pos = ImGui::GetCursorScreenPos();
+    const ImVec2 Size(Width, 34.0f);
+    ImGui::Dummy(Size);
+
+    ImDrawList* DrawList = ImGui::GetWindowDrawList();
+    DrawList->AddRectFilled(Pos, ImVec2(Pos.x + Size.x, Pos.y + Size.y), IM_COL32(14, 17, 22, 255), 5.0f);
+    DrawList->AddRect(Pos, ImVec2(Pos.x + Size.x, Pos.y + Size.y), AnimColorBorder(), 5.0f);
+    DrawList->AddText(ImVec2(Pos.x + 9.0f, Pos.y + 5.0f), IM_COL32(128, 138, 152, 255), Label);
+    DrawList->AddText(ImVec2(Pos.x + 9.0f, Pos.y + 18.0f), IM_COL32(230, 236, 244, 255), Value);
+}
+
+void DrawTrackLabel(ImDrawList* DrawList, const ImVec2& Min, const ImVec2& Max, const char* Label, ImU32 Accent)
+{
+    DrawList->AddRectFilled(Min, Max, IM_COL32(24, 28, 35, 255));
+    DrawList->AddRectFilled(ImVec2(Min.x, Min.y), ImVec2(Min.x + 3.0f, Max.y), Accent);
+    DrawList->AddText(ImVec2(Min.x + 10.0f, Min.y + 5.0f), IM_COL32(200, 208, 218, 255), Label);
+}
 }
 
 void FEditorViewerWindowWidget::Initialize(UEditorEngine* InEditorEngine)
 {
     FEditorWidget::Initialize(InEditorEngine);
+    LoadViewerIcons();
+}
+
+FEditorViewerWindowWidget::~FEditorViewerWindowWidget()
+{
+    Shutdown();
 }
 
 void FEditorViewerWindowWidget::Shutdown()
 {
+    ReleaseViewerIcons();
     Children.clear();
     BoneToSocketIndices.clear();
     CachedMesh = nullptr;
@@ -260,6 +478,56 @@ void FEditorViewerWindowWidget::Shutdown()
 
     Viewer = nullptr;
     bOpen = false;
+}
+
+void FEditorViewerWindowWidget::LoadViewerIcons()
+{
+    if (!EditorEngine)
+    {
+        return;
+    }
+
+    ID3D11Device* Device = EditorEngine->GetRenderer().GetFD3DDevice().GetDevice();
+    if (!Device)
+    {
+        return;
+    }
+
+    const std::wstring IconDir = FEditorResourcePaths::ViewerIconsAbsoluteDir();
+    for (int32 Index = 0; Index < static_cast<int32>(EEditorViewerIcon::Count); ++Index)
+    {
+        ID3D11ShaderResourceView*& SRV = ViewerIconResources.Icons[Index];
+        if (SRV)
+        {
+            continue;
+        }
+
+        const std::wstring IconPath = IconDir + GetViewerIconFileName(static_cast<EEditorViewerIcon>(Index));
+        DirectX::CreateWICTextureFromFile(Device, IconPath.c_str(), nullptr, &SRV);
+    }
+}
+
+void FEditorViewerWindowWidget::ReleaseViewerIcons()
+{
+    for (int32 Index = 0; Index < static_cast<int32>(EEditorViewerIcon::Count); ++Index)
+    {
+        if (ViewerIconResources.Icons[Index])
+        {
+            ViewerIconResources.Icons[Index]->Release();
+            ViewerIconResources.Icons[Index] = nullptr;
+        }
+    }
+}
+
+ID3D11ShaderResourceView* FEditorViewerWindowWidget::GetViewerIcon(EEditorViewerIcon Icon) const
+{
+    const int32 Index = static_cast<int32>(Icon);
+    if (Index < 0 || Index >= static_cast<int32>(EEditorViewerIcon::Count))
+    {
+        return nullptr;
+    }
+
+    return ViewerIconResources.Icons[Index];
 }
 
 FString FEditorViewerWindowWidget::GetWindowName() const
@@ -936,8 +1204,15 @@ void FEditorViewerWindowWidget::RenderAnimationContent(float DeltaTime)
 
     ImVec2 FullSize = ImGui::GetContentRegionAvail();
 
+    if (AnimationViewer)
+    {
+        const float MaxTimelineHeight = std::max(220.0f, FullSize.y - 220.0f);
+        DownPanelHeight = std::clamp(DownPanelHeight, 220.0f, MaxTimelineHeight);
+    }
+
+    const float TimelineSplitterHeight = AnimationViewer ? 5.0f : 0.0f;
     float CenterWidth = std::max(160.0f, FullSize.x - RightPanelWidth - (ImGui::GetStyle().ItemSpacing.x * 2.0f));
-    float CenterHeight = std::max(160.0f, FullSize.y - DownPanelHeight - (ImGui::GetStyle().ItemSpacing.y));
+    float CenterHeight = std::max(180.0f, FullSize.y - DownPanelHeight - TimelineSplitterHeight - (ImGui::GetStyle().ItemSpacing.y * 2.0f));
     CenterHeight = AnimationViewer ? CenterHeight : FullSize.y;
 
     // =====================================================
@@ -991,9 +1266,58 @@ void FEditorViewerWindowWidget::RenderAnimationContent(float DeltaTime)
         DrawList->AddImage((ImTextureID)SRV, Min, Max);
         DrawList->AddCallback(ImDrawCallback_ResetRenderState, nullptr);
 
+        if (AnimationViewer)
+        {
+            const FString& AnimationPath = AnimationViewer->GetAnimationSequencePath();
+            const FString AnimationLabel = AnimationPath.empty()
+                ? FString("No Animation")
+                : GetBaseFileNameWithoutExtension(AnimationPath);
+            const float CurrentTime = AnimationViewer->GetAnimationTime();
+            const float Duration = AnimationViewer->GetAnimationLength();
+            const bool bPlaying = AnimationViewer->IsAnimationPlaying() && !AnimationViewer->IsAnimationPaused();
+
+            char TimeBuffer[64];
+            std::snprintf(TimeBuffer, sizeof(TimeBuffer), "%.2fs / %.2fs", CurrentTime, Duration);
+
+            const ImVec2 OverlayMin(Min.x + 14.0f, Min.y + 14.0f);
+            const ImVec2 OverlayMax(OverlayMin.x + 260.0f, OverlayMin.y + 58.0f);
+            DrawList->AddRectFilled(OverlayMin, OverlayMax, IM_COL32(8, 11, 16, 186), 7.0f);
+            DrawList->AddRect(OverlayMin, OverlayMax, IM_COL32(78, 91, 110, 190), 7.0f);
+            DrawList->AddCircleFilled(ImVec2(OverlayMin.x + 18.0f, OverlayMin.y + 18.0f), 5.0f,
+                bPlaying ? IM_COL32(96, 220, 150, 255) : IM_COL32(170, 180, 192, 255), 16);
+            DrawList->AddText(ImVec2(OverlayMin.x + 32.0f, OverlayMin.y + 9.0f), IM_COL32(235, 240, 248, 255), AnimationLabel.c_str());
+            DrawList->AddText(ImVec2(OverlayMin.x + 32.0f, OverlayMin.y + 31.0f), IM_COL32(150, 162, 178, 255), TimeBuffer);
+
+            const float NormalizedTime = Duration > 0.0f ? std::clamp(CurrentTime / Duration, 0.0f, 1.0f) : 0.0f;
+            const ImVec2 BarMin(Min.x + 18.0f, Max.y - 22.0f);
+            const ImVec2 BarMax(Max.x - 18.0f, Max.y - 16.0f);
+            DrawList->AddRectFilled(BarMin, BarMax, IM_COL32(10, 13, 18, 210), 3.0f);
+            DrawList->AddRectFilled(BarMin, ImVec2(BarMin.x + (BarMax.x - BarMin.x) * NormalizedTime, BarMax.y), AnimColorAccent(), 3.0f);
+        }
+
         ImGui::EndChild();
         if (AnimationViewer)
         {
+            const ImVec2 SplitterMin = ImGui::GetCursorScreenPos();
+            const float SplitterWidth = ImGui::GetContentRegionAvail().x;
+            ImGui::InvisibleButton("##AnimViewportTimelineSplitter", ImVec2(SplitterWidth, TimelineSplitterHeight));
+            const ImVec2 SplitterMax(SplitterMin.x + SplitterWidth, SplitterMin.y + TimelineSplitterHeight);
+            ImDrawList* SplitterDrawList = ImGui::GetWindowDrawList();
+            const bool bSplitterHovered = ImGui::IsItemHovered();
+            SplitterDrawList->AddRectFilled(
+                SplitterMin,
+                SplitterMax,
+                bSplitterHovered || ImGui::IsItemActive() ? IM_COL32(79, 103, 135, 255) : IM_COL32(44, 50, 61, 255),
+                2.0f);
+            if (ImGui::IsItemActive())
+            {
+                DownPanelHeight -= ImGui::GetIO().MouseDelta.y;
+                const float MaxTimelineHeight = std::max(220.0f, FullSize.y - 220.0f);
+                DownPanelHeight = std::clamp(DownPanelHeight, 220.0f, MaxTimelineHeight);
+            }
+
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.08f, 0.10f, 0.13f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.23f, 0.27f, 0.34f, 1.0f));
             ImGui::BeginChild("AnimationSequencePanel", ImVec2(0, DownPanelHeight), true);
             {
                 RenderAnimationSequencePanelContent(
@@ -1001,6 +1325,7 @@ void FEditorViewerWindowWidget::RenderAnimationContent(float DeltaTime)
                     TimelineState);
             }
             ImGui::EndChild();
+            ImGui::PopStyleColor(2);
         }
     }
     ImGui::EndChild();
@@ -1019,14 +1344,20 @@ void FEditorViewerWindowWidget::RenderAnimationContent(float DeltaTime)
     // =====================================================
     // RIGHT: Bone Details
     // =====================================================
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.08f, 0.10f, 0.13f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.23f, 0.27f, 0.34f, 1.0f));
     ImGui::BeginChild("DetailsPanel", ImVec2(RightPanelWidth, 0), true);
     {
+        ImGui::TextDisabled("INSPECTOR");
         ImGui::Text("Notify Details");
+        ImGui::Spacing();
         ImGui::Separator();
+        ImGui::Spacing();
 
         DrawSelectedNotifyDetails(AnimationViewer);
     }
     ImGui::EndChild();
+    ImGui::PopStyleColor(2);
 }
 
 void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
@@ -1036,11 +1367,9 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
     ImDrawList* DrawList = ImGui::GetWindowDrawList();
 
     const float PanelWidth = ImGui::GetContentRegionAvail().x;
-    const float PanelHeight = ImGui::GetContentRegionAvail().y;
-
-    const float TopBarHeight = 58.0f;
-    const float HeaderHeight = 24.0f;
-    const float RowHeight = 24.0f;
+    const float TopBarHeight = 92.0f;
+    const float HeaderHeight = 30.0f;
+    const float RowHeight = 30.0f;
     constexpr float FPS = 30.0f;
 
     const FString EmptyAnimPath;
@@ -1056,6 +1385,24 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
     const bool bHasAnimation = AnimationViewer && Duration > 0.0f;
     const bool bCanSaveAnimation = CurrentSequence != nullptr;
     const bool bAnimationDirty = CurrentSequence && CurrentSequence->GetDirtyFlag();
+    const int32 NotifyCount = Notifies ? static_cast<int32>(Notifies->size()) : 0;
+    const bool bIsPlaying = AnimationViewer && AnimationViewer->IsAnimationPlaying() && !AnimationViewer->IsAnimationPaused();
+    const bool bIsPaused = AnimationViewer && AnimationViewer->IsAnimationPlaying() && AnimationViewer->IsAnimationPaused();
+    const char* PlaybackState = bIsPlaying ? "Playing" : (bIsPaused ? "Paused" : "Stopped");
+    auto SetTimelineTime = [&](float NewTime)
+    {
+        if (!AnimationViewer || !bHasAnimation)
+        {
+            return;
+        }
+
+        const float ClampedTime = std::clamp(NewTime, 0.0f, Duration);
+        AnimationViewer->SetAnimationTime(ClampedTime);
+        State.CurrentFrame = std::clamp(
+            static_cast<int32>(std::round(ClampedTime * FPS)),
+            0,
+            TotalFrames);
+    };
     if (bHasAnimation && !ImGui::IsMouseDragging(ImGuiMouseButton_Left))
     {
         State.CurrentFrame = std::clamp(
@@ -1069,11 +1416,22 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
     // =====================================================
     ImGui::BeginChild("AnimSeqTopBar", ImVec2(0, TopBarHeight), false);
     {
-        ImGui::Text("Preview:");
+        const ImVec2 HeaderMin = ImGui::GetCursorScreenPos();
+        const ImVec2 HeaderMax(HeaderMin.x + PanelWidth, HeaderMin.y + TopBarHeight - 4.0f);
+        DrawList->AddRectFilled(HeaderMin, HeaderMax, AnimColorPanelAlt(), 7.0f);
+        DrawList->AddRect(HeaderMin, HeaderMax, AnimColorBorder(), 7.0f);
+        DrawList->AddRectFilled(HeaderMin, ImVec2(HeaderMin.x + 4.0f, HeaderMax.y), AnimColorAccent(), 7.0f, ImDrawFlags_RoundCornersLeft);
 
+        ImGui::SetCursorScreenPos(ImVec2(HeaderMin.x + 14.0f, HeaderMin.y + 8.0f));
+        ImGui::TextDisabled("ANIMATION");
         ImGui::SameLine();
+
         const char* AnimationLabel = AnimName;
-        ImGui::SetNextItemWidth(std::max(180.0f, ImGui::CalcTextSize(AnimationLabel).x + 42.0f));
+        ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.06f, 0.08f, 0.11f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.10f, 0.13f, 0.18f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.12f, 0.16f, 0.22f, 1.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 5.0f);
+        ImGui::SetNextItemWidth(std::min(std::max(220.0f, ImGui::CalcTextSize(AnimationLabel).x + 46.0f), std::max(240.0f, PanelWidth * 0.42f)));
         if (ImGui::BeginCombo("##AnimationSequenceCombo", AnimationLabel))
         {
             const TArray<FString>& AnimationPaths = EditorEngine->GetAssetService().GetAnimationSequenceAssetPaths();
@@ -1116,26 +1474,34 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
             }
             ImGui::EndCombo();
         }
+        ImGui::PopStyleVar();
+        ImGui::PopStyleColor(3);
+
+        const ImVec2 TransportButtonSize(30.0f, 28.0f);
 
         ImGui::SameLine();
-        ImGui::Text("Frame: %d / %d", State.CurrentFrame, TotalFrames);
-
-        ImGui::SameLine();
-        ImGui::Text("Time: %.3f / %.3f", CurrentTime, Duration);
-
-        ImGui::SameLine();
-        ImGui::Text("FPS: %.1f", FPS);
-
-        ImGui::SameLine();
-
-        if (!bHasAnimation)
+        if (DrawAnimIconButton(GetViewerIcon(EEditorViewerIcon::ToFront), "|<", "To Front", TransportButtonSize, false, false, bHasAnimation))
         {
-            ImGui::BeginDisabled();
+            SetTimelineTime(0.0f);
         }
 
-        if (ImGui::Button(AnimationViewer && AnimationViewer->IsAnimationPlaying() && !AnimationViewer->IsAnimationPaused() ? "Pause" : "Play"))
+        ImGui::SameLine();
+        if (DrawAnimIconButton(GetViewerIcon(EEditorViewerIcon::ToPrevious), "<", "Previous Frame", TransportButtonSize, false, false, bHasAnimation))
         {
-            if (AnimationViewer && AnimationViewer->IsAnimationPlaying() && !AnimationViewer->IsAnimationPaused())
+            SetTimelineTime(CurrentTime - (1.0f / FPS));
+        }
+
+        ImGui::SameLine();
+        if (DrawAnimIconButton(
+            GetViewerIcon(bIsPlaying ? EEditorViewerIcon::Pause : EEditorViewerIcon::PlayForward),
+            bIsPlaying ? "II" : ">",
+            bIsPlaying ? "Pause" : "Play",
+            TransportButtonSize,
+            true,
+            bIsPlaying,
+            bHasAnimation))
+        {
+            if (bIsPlaying)
             {
                 AnimationViewer->PauseAnimation();
             }
@@ -1146,7 +1512,19 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
         }
 
         ImGui::SameLine();
-        if (ImGui::Button("Stop"))
+        if (DrawAnimIconButton(GetViewerIcon(EEditorViewerIcon::ToNext), ">", "Next Frame", TransportButtonSize, false, false, bHasAnimation))
+        {
+            SetTimelineTime(CurrentTime + (1.0f / FPS));
+        }
+
+        ImGui::SameLine();
+        if (DrawAnimIconButton(GetViewerIcon(EEditorViewerIcon::ToEnd), ">|", "To End", TransportButtonSize, false, false, bHasAnimation))
+        {
+            SetTimelineTime(Duration);
+        }
+
+        ImGui::SameLine();
+        if (DrawAnimIconButton(GetViewerIcon(EEditorViewerIcon::Stop), "S", "Stop", TransportButtonSize, false, false, bHasAnimation))
         {
             if (AnimationViewer)
             {
@@ -1154,15 +1532,9 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
             }
             State.CurrentFrame = 0;
         }
-        ImGui::SetNextItemWidth(std::max(40.0f, ImGui::CalcTextSize(AnimationLabel).x + 21.0f));
 
         ImGui::SameLine();
-        if (!bCanSaveAnimation)
-        {
-            ImGui::BeginDisabled();
-        }
-
-        if (ImGui::Button(bAnimationDirty ? "* Save" : "Save"))
+        if (DrawAnimButton(bAnimationDirty ? "* Save" : "Save", ImVec2(68.0f, 28.0f), bAnimationDirty, false, bCanSaveAnimation))
         {
             if (AnimationViewer)
             {
@@ -1170,80 +1542,98 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
             }
         }
 
-        if (!bCanSaveAnimation)
-        {
-            ImGui::EndDisabled();
-        }
-
-        if (!bHasAnimation)
-        {
-            ImGui::EndDisabled();
-        }
-
-        if (!AnimationViewer)
-        {
-            ImGui::BeginDisabled();
-        }
-
         ImGui::SameLine();
         bool bLooping = AnimationViewer ? AnimationViewer->IsLooping() : false;
-        if (ImGui::Checkbox("Loop", &bLooping) && AnimationViewer)
+        if (DrawAnimIconButton(
+            GetViewerIcon(bLooping ? EEditorViewerIcon::Looping : EEditorViewerIcon::NoLooping),
+            "Loop",
+            bLooping ? "Loop On" : "Loop Off",
+            TransportButtonSize,
+            false,
+            bLooping,
+            AnimationViewer != nullptr) && AnimationViewer)
         {
-            AnimationViewer->SetLooping(bLooping);
+            AnimationViewer->SetLooping(!bLooping);
         }
 
         ImGui::SameLine();
         bool bReversePlay = AnimationViewer ? AnimationViewer->IsReversePlaying() : false;
-        if (ImGui::Checkbox("Reverse", &bReversePlay) && AnimationViewer)
+        if (DrawAnimIconButton(
+            GetViewerIcon(bReversePlay ? EEditorViewerIcon::PlayReverse : EEditorViewerIcon::PlayForward),
+            bReversePlay ? "Rev" : "Fwd",
+            bReversePlay ? "Reverse" : "Forward",
+            TransportButtonSize,
+            false,
+            bReversePlay,
+            AnimationViewer != nullptr) && AnimationViewer)
         {
-            AnimationViewer->SetReversePlay(bReversePlay);
+            AnimationViewer->SetReversePlay(!bReversePlay);
         }
+
+        ImGui::SetCursorScreenPos(ImVec2(HeaderMin.x + 14.0f, HeaderMin.y + 50.0f));
+        char FrameBuffer[48];
+        std::snprintf(FrameBuffer, sizeof(FrameBuffer), "%d / %d", State.CurrentFrame, TotalFrames);
+        char TimeBuffer[64];
+        std::snprintf(TimeBuffer, sizeof(TimeBuffer), "%.3f / %.3f", CurrentTime, Duration);
+        char NotifyBuffer[32];
+        std::snprintf(NotifyBuffer, sizeof(NotifyBuffer), "%d", NotifyCount);
+        DrawAnimMetric("STATE", PlaybackState, 96.0f);
+        ImGui::SameLine();
+        DrawAnimMetric("FRAME", FrameBuffer, 100.0f);
+        ImGui::SameLine();
+        DrawAnimMetric("TIME", TimeBuffer, 136.0f);
+        ImGui::SameLine();
+        DrawAnimMetric("FPS", "30.0", 74.0f);
+        ImGui::SameLine();
+        DrawAnimMetric("NOTIFY", NotifyBuffer, 82.0f);
 
         ImGui::SameLine();
         float PlayRate = AnimationViewer ? AnimationViewer->GetPlayRate() : 1.0f;
-        ImGui::SetNextItemWidth(90.0f);
-        if (ImGui::DragFloat("SpeedRate", &PlayRate, 0.01f, 0.001f, 4.0f, "%.2fx") && AnimationViewer)
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 4.0f);
+        ImGui::TextDisabled("Speed");
+        ImGui::SameLine();
+        ImGui::PushItemWidth(116.0f);
+        ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.06f, 0.08f, 0.11f, 1.0f));
+        if (ImGui::DragFloat("##AnimSpeedRate", &PlayRate, 0.01f, 0.001f, 4.0f, "%.2fx") && AnimationViewer)
         {
             AnimationViewer->SetPlayRate(PlayRate);
         }
-
-        if (!AnimationViewer)
-        {
-            ImGui::EndDisabled();
-        }
+        ImGui::PopStyleColor();
+        ImGui::PopItemWidth();
     }
     ImGui::EndChild();
 
-    ImGui::Separator();
+    ImGui::Spacing();
 
     // =====================================================
     // LEFT TRACK LIST
     // =====================================================
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.08f, 0.10f, 0.13f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.23f, 0.27f, 0.34f, 1.0f));
     ImGui::BeginChild("AnimTrackList", ImVec2(State.TrackListWidth, 0), true);
     {
         ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(4.0f, 4.0f));
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 5.0f);
 
-        char Filter[128] = {};
+        ImGui::TextDisabled("TRACKS");
         ImGui::SetNextItemWidth(-1.0f);
-        ImGui::InputTextWithHint("##AnimTrackFilter", "Filter", Filter, sizeof(Filter));
+        ImGui::InputTextWithHint("##AnimTrackFilter", "Filter notifies", State.TrackFilter, sizeof(State.TrackFilter));
 
+        ImGui::Spacing();
         ImGui::Separator();
+        ImGui::Spacing();
 
-        if (ImGui::CollapsingHeader("Notifies", ImGuiTreeNodeFlags_DefaultOpen))
+        char NotifyHeader[64];
+        std::snprintf(NotifyHeader, sizeof(NotifyHeader), "Notifies (%d)", NotifyCount);
+        if (ImGui::CollapsingHeader(NotifyHeader, ImGuiTreeNodeFlags_DefaultOpen))
         {
             ImGui::SetNextItemWidth(-1.0f);
             ImGui::InputTextWithHint("##AnimNotifyName", "Notify name", State.NotifyNameBuffer, sizeof(State.NotifyNameBuffer));
 
-            if (!CurrentSequence)
-            {
-                ImGui::BeginDisabled();
-            }
-
-            if (ImGui::Button("Add Notify At Current Time", ImVec2(-1.0f, 0.0f)) && CurrentSequence)
+            if (DrawAnimButton("Add At Current Time", ImVec2(-1.0f, 28.0f), true, false, CurrentSequence != nullptr))
             {
                 FAnimNotifyEvent Notify;
                 Notify.TriggerTime = std::clamp(CurrentTime, 0.0f, Duration);
-                Notify.Duration = 0.0f;
                 Notify.NotifyName = FName(State.NotifyNameBuffer);
                 CurrentSequence->AddNotify(Notify);
                 if (Notifies)
@@ -1252,26 +1642,13 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
                 }
             }
 
-            if (!CurrentSequence)
-            {
-                ImGui::EndDisabled();
-            }
-
-            ImGui::Separator();
-
-            const int32 NotifyCount = Notifies ? static_cast<int32>(Notifies->size()) : 0;
             if (State.SelectedNotifyIndex >= NotifyCount)
             {
                 State.SelectedNotifyIndex = -1;
             }
 
             const bool bDeleteNotifyDisabled = State.SelectedNotifyIndex < 0 || !CurrentSequence;
-            if (bDeleteNotifyDisabled)
-            {
-                ImGui::BeginDisabled();
-            }
-
-            if (ImGui::Button("Delete Selected Notify", ImVec2(-1.0f, 0.0f)) && CurrentSequence)
+            if (DrawAnimButton("Delete Selected", ImVec2(-1.0f, 26.0f), false, false, !bDeleteNotifyDisabled))
             {
                 if (CurrentSequence->RemoveNotifyAt(State.SelectedNotifyIndex))
                 {
@@ -1279,26 +1656,43 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
                 }
             }
 
-            if (bDeleteNotifyDisabled)
-            {
-                ImGui::EndDisabled();
-            }
-
-            ImGui::Separator();
+            ImGui::Spacing();
 
             if (Notifies && !Notifies->empty())
             {
+                ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.18f, 0.24f, 0.34f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.22f, 0.30f, 0.42f, 1.0f));
+                ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.25f, 0.36f, 0.52f, 1.0f));
                 for (int32 NotifyIndex = 0; NotifyIndex < static_cast<int32>(Notifies->size()); ++NotifyIndex)
                 {
                     const FAnimNotifyEvent& Notify = (*Notifies)[NotifyIndex];
                     FString NotifyLabel = Notify.NotifyName.IsValid() ? Notify.NotifyName.ToString() : "<None>";
-                    NotifyLabel += " @ ";
-                    NotifyLabel += std::to_string(Notify.TriggerTime);
-                    if (ImGui::Selectable(NotifyLabel.c_str(), State.SelectedNotifyIndex == NotifyIndex))
+                    if (!MatchesFilter(NotifyLabel, State.TrackFilter))
+                    {
+                        continue;
+                    }
+
+                    char TimeLabel[64];
+                    std::snprintf(TimeLabel, sizeof(TimeLabel), "  %.3fs", Notify.TriggerTime);
+                    NotifyLabel += TimeLabel;
+
+                    ImGui::PushID(NotifyIndex);
+                    const bool bSelected = State.SelectedNotifyIndex == NotifyIndex;
+                    if (ImGui::Selectable("##NotifyRow", bSelected, 0, ImVec2(0.0f, 28.0f)))
                     {
                         State.SelectedNotifyIndex = NotifyIndex;
                     }
+                    const ImVec2 RowMin = ImGui::GetItemRectMin();
+                    const ImVec2 RowMax = ImGui::GetItemRectMax();
+                    ImDrawList* RowDrawList = ImGui::GetWindowDrawList();
+                    RowDrawList->AddCircleFilled(ImVec2(RowMin.x + 10.0f, (RowMin.y + RowMax.y) * 0.5f), 4.0f,
+                        bSelected ? IM_COL32(255, 205, 92, 255) : AnimColorNotify(), 12);
+                    RowDrawList->AddText(ImVec2(RowMin.x + 22.0f, RowMin.y + 6.0f),
+                        bSelected ? IM_COL32(255, 245, 220, 255) : IM_COL32(220, 226, 235, 255),
+                        NotifyLabel.c_str());
+                    ImGui::PopID();
                 }
+                ImGui::PopStyleColor(3);
             }
             else
             {
@@ -1308,24 +1702,23 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
 
         if (ImGui::CollapsingHeader("Curves", ImGuiTreeNodeFlags_DefaultOpen))
         {
-            ImGui::Selectable("Curve_0", false);
+            ImGui::TextDisabled("No curve tracks in this viewer.");
         }
 
         if (ImGui::CollapsingHeader("Additive Layer Tracks", ImGuiTreeNodeFlags_DefaultOpen))
         {
+            ImGui::TextDisabled("No additive layers.");
         }
 
         if (ImGui::CollapsingHeader("Attributes", ImGuiTreeNodeFlags_DefaultOpen))
         {
-            if (ImGui::TreeNodeEx("pelvis", ImGuiTreeNodeFlags_DefaultOpen))
-            {
-                ImGui::TreePop();
-            }
+            ImGui::TextDisabled("No animation attributes.");
         }
 
-        ImGui::PopStyleVar();
+        ImGui::PopStyleVar(2);
     }
     ImGui::EndChild();
+    ImGui::PopStyleColor(2);
 
     // =====================================================
     // SPLITTER
@@ -1344,6 +1737,8 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
     // =====================================================
     // RIGHT TIMELINE
     // =====================================================
+    ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.07f, 0.08f, 0.11f, 1.0f));
+    ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.23f, 0.27f, 0.34f, 1.0f));
     ImGui::BeginChild(
         "AnimTimeline",
         ImVec2(0, 0),
@@ -1352,9 +1747,10 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
     {
         ImVec2 TimelineOrigin = ImGui::GetCursorScreenPos();
         ImVec2 Available = ImGui::GetContentRegionAvail();
+        constexpr float TimelineGutter = 96.0f;
 
         const float TimelineContentWidth =
-            std::max(Available.x, TotalFrames * State.FrameWidth + 80.0f);
+            std::max(Available.x, TimelineGutter + TotalFrames * State.FrameWidth + 80.0f);
 
         const float TimelineContentHeight =
             std::max(Available.y, HeaderHeight + RowHeight * 8.0f);
@@ -1376,23 +1772,38 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
         DrawList->AddRectFilled(
             CanvasMin,
             CanvasMax,
-            IM_COL32(24, 24, 24, 255));
+            AnimColorPanel(),
+            6.0f);
+        DrawList->AddRect(CanvasMin, CanvasMax, AnimColorBorder(), 6.0f);
 
         // Header background
         DrawList->AddRectFilled(
             CanvasMin,
             ImVec2(CanvasMax.x, CanvasMin.y + HeaderHeight),
-            IM_COL32(34, 34, 34, 255));
+            IM_COL32(30, 35, 43, 255),
+            6.0f,
+            ImDrawFlags_RoundCornersTop);
 
         // Rows
+        const char* TrackLabels[8] = {
+            "Notifies",
+            "Curves",
+            "Events",
+            "Montage",
+            "Blend",
+            "Root",
+            "Attrs",
+            "Meta"
+        };
+
         for (int32 Row = 0; Row < 8; ++Row)
         {
             float Y0 = CanvasMin.y + HeaderHeight + Row * RowHeight;
             float Y1 = Y0 + RowHeight;
 
             ImU32 RowColor = (Row % 2 == 0)
-                                 ? IM_COL32(28, 28, 28, 255)
-                                 : IM_COL32(32, 32, 32, 255);
+                                 ? IM_COL32(23, 27, 34, 255)
+                                 : IM_COL32(27, 31, 39, 255);
 
             DrawList->AddRectFilled(
                 ImVec2(CanvasMin.x, Y0),
@@ -1402,13 +1813,20 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
             DrawList->AddLine(
                 ImVec2(CanvasMin.x, Y1),
                 ImVec2(CanvasMax.x, Y1),
-                IM_COL32(48, 48, 48, 255));
+                IM_COL32(45, 52, 64, 255));
+
+            DrawTrackLabel(
+                DrawList,
+                ImVec2(CanvasMin.x, Y0),
+                ImVec2(CanvasMin.x + TimelineGutter, Y1),
+                TrackLabels[Row],
+                Row == 0 ? AnimColorNotify() : IM_COL32(75, 94, 118, 255));
         }
 
         // Frame grid + numbers
         for (int32 Frame = 0; Frame <= TotalFrames; ++Frame)
         {
-            const float X = CanvasMin.x + Frame * State.FrameWidth;
+            const float X = CanvasMin.x + TimelineGutter + Frame * State.FrameWidth;
 
             const bool bMajorFrame = Frame % 5 == 0;
 
@@ -1417,8 +1835,8 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
                 State.FrameWidth >= 24.0f || bMajorFrame;
 
             ImU32 LineColor = bMajorFrame
-                                  ? IM_COL32(82, 82, 82, 255)
-                                  : IM_COL32(45, 45, 45, 255);
+                                  ? IM_COL32(78, 88, 104, 255)
+                                  : IM_COL32(43, 50, 61, 255);
 
             const float LineThickness = bMajorFrame ? 1.2f : 1.0f;
 
@@ -1434,7 +1852,7 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
             DrawList->AddLine(
                 ImVec2(X, CanvasMin.y),
                 ImVec2(X, CanvasMin.y + TickHeight),
-                IM_COL32(180, 180, 180, 255),
+                bMajorFrame ? IM_COL32(174, 190, 212, 255) : IM_COL32(104, 116, 132, 255),
                 1.0f);
 
             if (bShowFrameNumber)
@@ -1444,7 +1862,7 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
 
                 DrawList->AddText(
                     ImVec2(X + 4.0f, CanvasMin.y + 4.0f),
-                    IM_COL32(220, 220, 220, 255),
+                    bMajorFrame ? IM_COL32(220, 230, 244, 255) : IM_COL32(140, 150, 164, 255),
                     Buffer);
             }
         }
@@ -1462,27 +1880,46 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
             }
         };
 
-        auto DrawKey = [&](float Time, int32 Row, ImU32 Color, const char* Label) -> FTimelineKeyRect
+        auto DrawKey = [&](float Time, float DurationSeconds, int32 Row, ImU32 Color, bool bSelected, const char* Label) -> FTimelineKeyRect
         {
             float Frame = Time * SafeFPS;
-            float X = CanvasMin.x + Frame * State.FrameWidth;
+            float X = CanvasMin.x + TimelineGutter + Frame * State.FrameWidth;
             float Y = CanvasMin.y + HeaderHeight + Row * RowHeight;
             FTimelineKeyRect KeyRect{
-                ImVec2(X - 5.0f, Y + 4.0f),
-                ImVec2(X + 5.0f, Y + RowHeight - 4.0f)
+                ImVec2(X - 8.0f, Y + 5.0f),
+                ImVec2(X + 8.0f, Y + RowHeight - 5.0f)
             };
 
-            DrawList->AddRectFilled(
-                KeyRect.Min,
-                KeyRect.Max,
-                Color,
-                3.0f);
+            const float CenterY = Y + RowHeight * 0.5f;
+            if (DurationSeconds > 0.0f)
+            {
+                const float EndX = CanvasMin.x + TimelineGutter + (Time + DurationSeconds) * SafeFPS * State.FrameWidth;
+                DrawList->AddRectFilled(
+                    ImVec2(X, CenterY - 5.0f),
+                    ImVec2(std::max(X + 4.0f, EndX), CenterY + 5.0f),
+                    bSelected ? IM_COL32(255, 196, 80, 92) : IM_COL32(255, 150, 72, 70),
+                    3.0f);
+            }
+
+            const ImVec2 Diamond[4] = {
+                ImVec2(X, CenterY - 9.0f),
+                ImVec2(X + 8.0f, CenterY),
+                ImVec2(X, CenterY + 9.0f),
+                ImVec2(X - 8.0f, CenterY)
+            };
+            DrawList->AddConvexPolyFilled(Diamond, 4, Color);
+            DrawList->AddPolyline(Diamond, 4, IM_COL32(20, 24, 30, 255), ImDrawFlags_Closed, 1.4f);
 
             if (Label && State.FrameWidth >= 16.0f)
             {
+                const ImVec2 TextSize = ImGui::CalcTextSize(Label);
+                const ImVec2 LabelMin(X + 12.0f, Y + 5.0f);
+                const ImVec2 LabelMax(LabelMin.x + TextSize.x + 10.0f, LabelMin.y + 20.0f);
+                DrawList->AddRectFilled(LabelMin, LabelMax, IM_COL32(11, 14, 19, bSelected ? 220 : 175), 4.0f);
+                DrawList->AddRect(LabelMin, LabelMax, bSelected ? IM_COL32(255, 205, 92, 180) : IM_COL32(88, 99, 116, 150), 4.0f);
                 DrawList->AddText(
-                    ImVec2(X + 7.0f, Y + 4.0f),
-                    IM_COL32(235, 205, 160, 255),
+                    ImVec2(LabelMin.x + 5.0f, LabelMin.y + 3.0f),
+                    bSelected ? IM_COL32(255, 240, 210, 255) : IM_COL32(235, 205, 160, 255),
                     Label);
             }
 
@@ -1503,8 +1940,10 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
                 const bool bSelectedNotify = State.SelectedNotifyIndex == NotifyIndex;
                 const FTimelineKeyRect KeyRect = DrawKey(
                     std::clamp(Notify.TriggerTime, 0.0f, Duration),
+                    0.0f,
                     0,
                     bSelectedNotify ? IM_COL32(255, 195, 76, 255) : IM_COL32(220, 120, 64, 255),
+                    bSelectedNotify,
                     Notify.NotifyName.ToString().c_str());
 
                 if (bHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && KeyRect.Contains(ImGui::GetIO().MousePos))
@@ -1522,21 +1961,26 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
         const int32 DisplayFrame = static_cast<int32>(std::floor(CurrentFrameFloat));
         const float FrameAlpha = CurrentFrameFloat - static_cast<float>(DisplayFrame);
 
-        const float X0 = CanvasMin.x + DisplayFrame * State.FrameWidth;
-        const float X1 = CanvasMin.x + (DisplayFrame + 1) * State.FrameWidth;
+        const float X0 = CanvasMin.x + TimelineGutter + DisplayFrame * State.FrameWidth;
+        const float X1 = CanvasMin.x + TimelineGutter + (DisplayFrame + 1) * State.FrameWidth;
         const float PlayheadX = std::lerp(X0, X1, FrameAlpha);
 
+        DrawList->AddLine(
+            ImVec2(PlayheadX + 2.0f, CanvasMin.y),
+            ImVec2(PlayheadX + 2.0f, CanvasMax.y),
+            IM_COL32(0, 0, 0, 110),
+            3.0f);
         DrawList->AddRectFilled(
-            ImVec2(PlayheadX - 6.0f, CanvasMin.y),
-            ImVec2(PlayheadX + 6.0f, CanvasMin.y + HeaderHeight),
-            IM_COL32(200, 90, 40, 255),
-            2.0f);
+            ImVec2(PlayheadX - 8.0f, CanvasMin.y + 3.0f),
+            ImVec2(PlayheadX + 8.0f, CanvasMin.y + HeaderHeight - 3.0f),
+            AnimColorAccent(),
+            4.0f);
 
         DrawList->AddLine(
             ImVec2(PlayheadX, CanvasMin.y),
             ImVec2(PlayheadX, CanvasMax.y),
-            IM_COL32(230, 230, 230, 255),
-            1.5f);
+            IM_COL32(190, 220, 255, 255),
+            2.0f);
 
         char FrameText[64];
         snprintf(
@@ -1547,8 +1991,8 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
             FrameAlpha);
 
         DrawList->AddText(
-            ImVec2(PlayheadX + 8.0f, CanvasMin.y - 6.0f),
-            IM_COL32(255, 255, 255, 255),
+            ImVec2(PlayheadX + 10.0f, CanvasMin.y + HeaderHeight + 4.0f),
+            IM_COL32(230, 242, 255, 255),
             FrameText);
 
         auto SetTimeFromMouseX = [&]()
@@ -1560,7 +2004,7 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
 
             const float MouseX = ImGui::GetIO().MousePos.x;
 
-            float NewFrameFloat = (MouseX - CanvasMin.x) / State.FrameWidth;
+            float NewFrameFloat = (MouseX - CanvasMin.x - TimelineGutter) / State.FrameWidth;
             NewFrameFloat = std::clamp(NewFrameFloat, 0.0f, static_cast<float>(TotalFrames));
 
             const float NewTime = NewFrameFloat / SafeFPS;
@@ -1586,6 +2030,7 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
         }
     }
     ImGui::EndChild();
+    ImGui::PopStyleColor(2);
 }
 
 void FEditorViewerWindowWidget::DrawSelectedNotifyDetails(FAnimationViewer* AnimationViewer)
@@ -1599,7 +2044,8 @@ void FEditorViewerWindowWidget::DrawSelectedNotifyDetails(FAnimationViewer* Anim
     UAnimationSequence* AnimationSequence = AnimationViewer->GetAnimationSequence();
     if (!AnimationSequence)
     {
-        ImGui::TextDisabled("No animation sequence.");
+        ImGui::Spacing();
+        ImGui::TextDisabled("No animation sequence loaded.");
         return;
     }
 
@@ -1608,7 +2054,10 @@ void FEditorViewerWindowWidget::DrawSelectedNotifyDetails(FAnimationViewer* Anim
     const int32 NotifyIndex = TimelineState.SelectedNotifyIndex;
     if (NotifyIndex < 0 || NotifyIndex >= static_cast<int32>(Notifies.size()))
     {
-        ImGui::TextDisabled("No notify selected.");
+        ImGui::Spacing();
+        ImGui::TextDisabled("Select a notify marker or row.");
+        ImGui::Spacing();
+        ImGui::Text("Notify Count: %d", static_cast<int32>(Notifies.size()));
         return;
     }
 
@@ -1616,34 +2065,50 @@ void FEditorViewerWindowWidget::DrawSelectedNotifyDetails(FAnimationViewer* Anim
 
     bool bChanged = false;
 
-    ImGui::Text("Selected Notify");
-    ImGui::Separator();
+    const FString NotifyNameString = Notify.NotifyName.ToString();
+    const FString HeaderName = NotifyNameString.empty() ? FString("<None>") : NotifyNameString;
+    const ImVec2 HeaderMin = ImGui::GetCursorScreenPos();
+    const ImVec2 HeaderMax(HeaderMin.x + ImGui::GetContentRegionAvail().x, HeaderMin.y + 56.0f);
+    ImDrawList* DrawList = ImGui::GetWindowDrawList();
+    DrawList->AddRectFilled(HeaderMin, HeaderMax, AnimColorPanelAlt(), 6.0f);
+    DrawList->AddRect(HeaderMin, HeaderMax, AnimColorBorder(), 6.0f);
+    DrawList->AddCircleFilled(ImVec2(HeaderMin.x + 18.0f, HeaderMin.y + 20.0f), 5.0f, AnimColorNotify(), 16);
+    DrawList->AddText(ImVec2(HeaderMin.x + 32.0f, HeaderMin.y + 10.0f), IM_COL32(238, 242, 248, 255), HeaderName.c_str());
 
-    ImGui::Text("Index: %d", NotifyIndex);
+    char SubLabel[96];
+    std::snprintf(SubLabel, sizeof(SubLabel), "Index %d | %.3fs", NotifyIndex, Notify.TriggerTime);
+    DrawList->AddText(ImVec2(HeaderMin.x + 32.0f, HeaderMin.y + 31.0f), IM_COL32(145, 156, 172, 255), SubLabel);
+    ImGui::Dummy(ImVec2(0.0f, 62.0f));
+
+    ImGui::TextDisabled("TIMING");
 
     float TriggerTime = Notify.TriggerTime;
-    if (ImGui::DragFloat("Trigger Time", &TriggerTime, 0.01f, 0.0f, FLT_MAX, "%.3f"))
+    ImGui::SetNextItemWidth(-1.0f);
+    if (ImGui::DragFloat("Trigger Time", &TriggerTime, 0.01f, 0.0f, AnimationViewer->GetAnimationLength(), "%.3f s"))
     {
         Notify.TriggerTime = std::max(0.0f, TriggerTime);
         bChanged = true;
     }
 
-    float Duration = Notify.Duration;
-    if (ImGui::DragFloat("Duration", &Duration, 0.01f, 0.0f, FLT_MAX, "%.3f"))
+    if (DrawAnimButton("Jump To Notify", ImVec2(-1.0f, 28.0f), false, false, true))
     {
-        Notify.Duration = std::max(0.0f, Duration);
-        bChanged = true;
+        AnimationViewer->SetAnimationTime(Notify.TriggerTime);
     }
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+    ImGui::TextDisabled("IDENTITY");
 
     static char NotifyNameBuffer[128] = {};
 
-    const FString NotifyNameString = Notify.NotifyName.ToString();
     std::snprintf(
         NotifyNameBuffer,
         sizeof(NotifyNameBuffer),
         "%s",
         NotifyNameString.c_str());
 
+    ImGui::SetNextItemWidth(-1.0f);
     if (ImGui::InputText("Notify Name", NotifyNameBuffer, sizeof(NotifyNameBuffer)))
     {
         Notify.NotifyName = FName(NotifyNameBuffer);

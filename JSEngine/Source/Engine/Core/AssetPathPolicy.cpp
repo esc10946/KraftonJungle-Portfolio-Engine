@@ -209,7 +209,7 @@ FString FAssetPathPolicy::MakeSiblingAnimationSequenceAssetPath(const FString& S
 	std::filesystem::path AssetFileName = SourceFsPath.stem();
 	AssetFileName += FPaths::ToWide("_anim_" + SanitizeImportedAssetToken(SequenceName));
 	AssetFileName += L".anim";
-	return PathToNormalizedString(SourceFsPath.parent_path() / AssetFileName);
+    return PathToNormalizedString(SourceFsPath.parent_path() / L"Animation" / AssetFileName);
 }
 
 FString FAssetPathPolicy::MakeAssetRelativePath(const FString& FromAssetPath, const FString& ToAssetPath)
