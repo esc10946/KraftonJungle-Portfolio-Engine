@@ -30,6 +30,8 @@ namespace
     const FName NAME_LightAttack1("LightAttack1");
     const FName NAME_LightAttack3("LightAttack3");
     const FName NAME_HeavyAttack("HeavyAttack");
+    const FName NAME_WalkToIdle("WalkToIdle");
+    const FName NAME_RunToIdle("RunToIdle");
     const FName NAME_Attack1ToIdle("Attack1ToIdle");
     const FName NAME_Attack2ToIdle("Attack2ToIdle");
     const FName NAME_Attack3ToIdle("Attack3ToIdle");
@@ -128,6 +130,8 @@ void AAnimTestPawn::Serialize(FArchive& Ar)
     Ar << "IntoRunAnimationPath" << IntoRunAnimationPath;
     Ar << "RunAnimationPath" << RunAnimationPath;
     Ar << "HomeguardAnimationPath" << HomeguardAnimationPath;
+    Ar << "WalkToIdleAnimationPath" << WalkToIdleAnimationPath;
+    Ar << "RunToIdleAnimationPath" << RunToIdleAnimationPath;
     Ar << "LightAttackAnimationPath" << LightAttackAnimationPath;
     Ar << "HeavyAttackAnimationPath" << HeavyAttackAnimationPath;
     Ar << "LightAttack3AnimationPath" << LightAttack3AnimationPath;
@@ -148,6 +152,8 @@ void AAnimTestPawn::Serialize(FArchive& Ar)
     Ar << "LookSensitivityDegrees" << LookSensitivityDegrees;
     Ar << "LocomotionBlendTime" << LocomotionBlendTime;
     Ar << "IntoRunDuration" << IntoRunDuration;
+    Ar << "WalkToIdleDuration" << WalkToIdleDuration;
+    Ar << "RunToIdleDuration" << RunToIdleDuration;
     Ar << "LightAttackDuration" << LightAttackDuration;
     Ar << "HeavyAttackDuration" << HeavyAttackDuration;
     Ar << "LightAttack3Duration" << LightAttack3Duration;
@@ -165,6 +171,8 @@ void AAnimTestPawn::Serialize(FArchive& Ar)
         LookSensitivityDegrees = std::max(0.0f, LookSensitivityDegrees);
         LocomotionBlendTime = std::max(0.0f, LocomotionBlendTime);
         IntoRunDuration = std::max(0.0f, IntoRunDuration);
+        WalkToIdleDuration = std::max(0.0f, WalkToIdleDuration);
+        RunToIdleDuration = std::max(0.0f, RunToIdleDuration);
         LightAttackDuration = std::max(0.0f, LightAttackDuration);
         HeavyAttackDuration = std::max(0.0f, HeavyAttackDuration);
         LightAttack3Duration = std::max(0.0f, LightAttack3Duration);
@@ -189,6 +197,8 @@ void AAnimTestPawn::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
     OutProps.push_back({ "Into Run Animation", EPropertyType::String, &IntoRunAnimationPath });
     OutProps.push_back({ "Run Animation", EPropertyType::String, &RunAnimationPath });
     OutProps.push_back({ "Homeguard Animation", EPropertyType::String, &HomeguardAnimationPath });
+    OutProps.push_back({ "Walk To Idle Animation", EPropertyType::String, &WalkToIdleAnimationPath });
+    OutProps.push_back({ "Run To Idle Animation", EPropertyType::String, &RunToIdleAnimationPath });
     OutProps.push_back({ "Light Attack 1 Animation", EPropertyType::String, &LightAttackAnimationPath });
     OutProps.push_back({ "Light Attack 3 Animation", EPropertyType::String, &LightAttack3AnimationPath });
     OutProps.push_back({ "Heavy Attack Animation", EPropertyType::String, &HeavyAttackAnimationPath });
@@ -209,6 +219,8 @@ void AAnimTestPawn::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
     OutProps.push_back({ "Look Sensitivity", EPropertyType::Float, &LookSensitivityDegrees, 0.0f, 5.0f, 0.01f });
     OutProps.push_back({ "Locomotion Blend Time", EPropertyType::Float, &LocomotionBlendTime, 0.0f, 5.0f, 0.01f });
     OutProps.push_back({ "Into Run Duration", EPropertyType::Float, &IntoRunDuration, 0.0f, 5.0f, 0.01f });
+    OutProps.push_back({ "Walk To Idle Duration", EPropertyType::Float, &WalkToIdleDuration, 0.0f, 5.0f, 0.01f });
+    OutProps.push_back({ "Run To Idle Duration", EPropertyType::Float, &RunToIdleDuration, 0.0f, 5.0f, 0.01f });
     OutProps.push_back({ "Light Attack 1 Duration", EPropertyType::Float, &LightAttackDuration, 0.0f, 5.0f, 0.01f });
     OutProps.push_back({ "Light Attack 3 Duration", EPropertyType::Float, &LightAttack3Duration, 0.0f, 5.0f, 0.01f });
     OutProps.push_back({ "Heavy Attack Duration", EPropertyType::Float, &HeavyAttackDuration, 0.0f, 5.0f, 0.01f });
@@ -237,6 +249,8 @@ void AAnimTestPawn::PostEditProperty(const char* PropertyName)
         std::strcmp(PropertyName, "Into Run Animation") == 0 ||
         std::strcmp(PropertyName, "Run Animation") == 0 ||
         std::strcmp(PropertyName, "Homeguard Animation") == 0 ||
+        std::strcmp(PropertyName, "Walk To Idle Animation") == 0 ||
+        std::strcmp(PropertyName, "Run To Idle Animation") == 0 ||
         std::strcmp(PropertyName, "Light Attack Animation") == 0 ||
         std::strcmp(PropertyName, "Light Attack 1 Animation") == 0 ||
         std::strcmp(PropertyName, "Light Attack 3 Animation") == 0 ||
@@ -246,6 +260,8 @@ void AAnimTestPawn::PostEditProperty(const char* PropertyName)
         std::strcmp(PropertyName, "Attack 3 To Idle Animation") == 0 ||
         std::strcmp(PropertyName, "Locomotion Blend Time") == 0 ||
         std::strcmp(PropertyName, "Into Run Duration") == 0 ||
+        std::strcmp(PropertyName, "Walk To Idle Duration") == 0 ||
+        std::strcmp(PropertyName, "Run To Idle Duration") == 0 ||
         std::strcmp(PropertyName, "Light Attack Duration") == 0 ||
         std::strcmp(PropertyName, "Light Attack 1 Duration") == 0 ||
         std::strcmp(PropertyName, "Light Attack 3 Duration") == 0 ||
@@ -281,6 +297,8 @@ void AAnimTestPawn::ConfigureLocomotionStateMachine()
         IntoRunAnimationPath.empty() ||
         RunAnimationPath.empty() ||
         HomeguardAnimationPath.empty() ||
+        WalkToIdleAnimationPath.empty() ||
+        RunToIdleAnimationPath.empty() ||
         LightAttackAnimationPath.empty() ||
         LightAttack3AnimationPath.empty() ||
         HeavyAttackAnimationPath.empty() ||
@@ -301,6 +319,8 @@ void AAnimTestPawn::ConfigureLocomotionStateMachine()
     AnimInstance->RegisterAnimationPath(FName("IntoRun"), IntoRunAnimationPath);
     AnimInstance->RegisterAnimationPath(FName("Run"), RunAnimationPath);
     AnimInstance->RegisterAnimationPath(FName("Homeguard"), HomeguardAnimationPath);
+    AnimInstance->RegisterAnimationPath(NAME_WalkToIdle, WalkToIdleAnimationPath);
+    AnimInstance->RegisterAnimationPath(NAME_RunToIdle, RunToIdleAnimationPath);
     AnimInstance->RegisterAnimationPath(NAME_LightAttack1, LightAttackAnimationPath);
     AnimInstance->RegisterAnimationPath(NAME_LightAttack3, LightAttack3AnimationPath);
     AnimInstance->RegisterAnimationPath(NAME_HeavyAttack, HeavyAttackAnimationPath);
@@ -330,6 +350,8 @@ void AAnimTestPawn::ConfigureLocomotionStateMachine()
     LocomotionStateMachine->AddState(FName("IntoRun"), FName("IntoRun"), false, IntoRunAnimationPath);
     LocomotionStateMachine->AddState(FName("Run"), FName("Run"), true, RunAnimationPath);
     LocomotionStateMachine->AddState(FName("Homeguard"), FName("Homeguard"), true, HomeguardAnimationPath);
+    LocomotionStateMachine->AddState(NAME_WalkToIdle, NAME_WalkToIdle, false, WalkToIdleAnimationPath);
+    LocomotionStateMachine->AddState(NAME_RunToIdle, NAME_RunToIdle, false, RunToIdleAnimationPath);
     LocomotionStateMachine->AddState(NAME_LightAttack1, NAME_LightAttack1, false, LightAttackAnimationPath);
     LocomotionStateMachine->AddState(NAME_LightAttack3, NAME_LightAttack3, false, LightAttack3AnimationPath);
     LocomotionStateMachine->AddState(NAME_HeavyAttack, NAME_HeavyAttack, false, HeavyAttackAnimationPath);
@@ -366,7 +388,7 @@ void AAnimTestPawn::ConfigureLocomotionStateMachine()
         EAnimBlendEaseOption::EaseInOut);
     LocomotionStateMachine->AddBoolTransition(
         FName("IntoRun"),
-        FName("Idle"),
+        NAME_WalkToIdle,
         FName("bMoving"),
         EAnimCompareOp::IsFalse,
         false,
@@ -393,7 +415,7 @@ void AAnimTestPawn::ConfigureLocomotionStateMachine()
         EAnimBlendEaseOption::EaseInOut);
     LocomotionStateMachine->AddBoolTransition(
         FName("Run"),
-        FName("Idle"),
+        NAME_WalkToIdle,
         FName("bMoving"),
         EAnimCompareOp::IsFalse,
         false,
@@ -402,7 +424,7 @@ void AAnimTestPawn::ConfigureLocomotionStateMachine()
         EAnimBlendEaseOption::EaseInOut);
     LocomotionStateMachine->AddBoolTransition(
         FName("Homeguard"),
-        FName("Idle"),
+        NAME_RunToIdle,
         FName("bMoving"),
         EAnimCompareOp::IsFalse,
         false,
@@ -419,11 +441,69 @@ void AAnimTestPawn::ConfigureLocomotionStateMachine()
         90,
         EAnimBlendEaseOption::EaseInOut);
 
+    LocomotionStateMachine->AddBoolTransition(
+        NAME_WalkToIdle,
+        FName("Homeguard"),
+        FName("bSprinting"),
+        EAnimCompareOp::IsTrue,
+        true,
+        LocomotionBlendTime,
+        120,
+        EAnimBlendEaseOption::EaseInOut);
+    LocomotionStateMachine->AddBoolTransition(
+        NAME_WalkToIdle,
+        FName("Run"),
+        FName("bMoving"),
+        EAnimCompareOp::IsTrue,
+        true,
+        LocomotionBlendTime,
+        110,
+        EAnimBlendEaseOption::EaseInOut);
+    LocomotionStateMachine->AddFloatTransition(
+        NAME_WalkToIdle,
+        FName("Idle"),
+        FName("StateElapsedTime"),
+        EAnimCompareOp::GreaterEqual,
+        WalkToIdleDuration,
+        LocomotionBlendTime,
+        100,
+        EAnimBlendEaseOption::EaseInOut);
+
+    LocomotionStateMachine->AddBoolTransition(
+        NAME_RunToIdle,
+        FName("Homeguard"),
+        FName("bSprinting"),
+        EAnimCompareOp::IsTrue,
+        true,
+        LocomotionBlendTime,
+        120,
+        EAnimBlendEaseOption::EaseInOut);
+    LocomotionStateMachine->AddBoolTransition(
+        NAME_RunToIdle,
+        FName("Run"),
+        FName("bMoving"),
+        EAnimCompareOp::IsTrue,
+        true,
+        LocomotionBlendTime,
+        110,
+        EAnimBlendEaseOption::EaseInOut);
+    LocomotionStateMachine->AddFloatTransition(
+        NAME_RunToIdle,
+        FName("Idle"),
+        FName("StateElapsedTime"),
+        EAnimCompareOp::GreaterEqual,
+        RunToIdleDuration,
+        LocomotionBlendTime,
+        100,
+        EAnimBlendEaseOption::EaseInOut);
+
     const FName LocomotionStates[] = {
         FName("Idle"),
         FName("IntoRun"),
         FName("Run"),
         FName("Homeguard"),
+        NAME_WalkToIdle,
+        NAME_RunToIdle,
     };
 
     for (const FName& StateName : LocomotionStates)

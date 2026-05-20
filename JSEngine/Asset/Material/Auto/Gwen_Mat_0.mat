@@ -1,6 +1,6 @@
 {
         "ImportedName" : "Material",
-        "Name" : "gwen_Mat_0",
+        "Name" : "Gwen_Mat_0",
         "Params" : [{
             "Name" : "AmbientColor",
             "Type" : "Vector3",

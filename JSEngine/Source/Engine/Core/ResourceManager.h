@@ -117,7 +117,7 @@ public:
 	TArray<FString> GetParticleNames() const;
 
 	UStaticMesh* LoadStaticMesh(const FString& Path);
-	UStaticMesh* ImportStaticMeshFromFbx(const FString& SourceFbxPath);
+	UStaticMesh* ImportStaticMeshFromFbx(const FString& SourceFbxPath, bool bImportMaterials = true);
 	UStaticMesh* FindStaticMesh(const FString& Path) const;
 	TArray<FString> GetStaticMeshPaths() const;
 
@@ -132,7 +132,11 @@ public:
 	 */
 	USkeletalMesh* LoadSkeletalMesh(const FString& Path);
 	USkeletalMesh* LoadSkeletalMesh(const FString& Path, const FString& SkeletonName);
-	USkeletalMesh* ImportSkeletalMeshFromFbx(const FString& SourceFbxPath, const FString& SkeletonName = FString());
+	USkeletalMesh* ImportSkeletalMeshFromFbx(
+		const FString& SourceFbxPath,
+		const FString& SkeletonName = FString(),
+		bool bImportMaterials = true,
+		const TArray<USkeletonAsset*>* ImportedSkeletonsOverride = nullptr);
     USkeletalMesh* FindSkeletalMesh(const FString& Path) const;
 	TArray<FString> GetSkeletalMeshPaths() const;
 	FFbxMeshContentInfo InspectFbxMeshContent(const FString& Path);
@@ -148,7 +152,9 @@ public:
 	TArray<FString> GetCurvePaths() const;
 
 	UAnimationSequence* LoadAnimationSequence(const FString& Path);
-	UAnimationSequence* ImportAnimationSequencesFromFbx(const FString& SourceFbxPath);
+	UAnimationSequence* ImportAnimationSequencesFromFbx(
+		const FString& SourceFbxPath,
+		const TArray<USkeletonAsset*>* ImportedSkeletonsOverride = nullptr);
 	UAnimationSequence* FindAnimationSequence(const FString& Path) const;
 	bool SaveAnimationSequence(UAnimationSequence* Sequence);
 	TArray<FString> GetAnimationSequencePaths() const;

@@ -2268,11 +2268,11 @@ void FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 		{
 			if (EditorEngine)
 			{
-				EditorEngine->GetAssetService().RefreshAssetDatabase();
-				const TArray<FString>& AnimationPaths = EditorEngine->GetAssetService().GetAnimationSequenceAssetPaths();
 				const FString Current = *Val;
 				if (ImGui::BeginCombo(Prop.Name, Current.empty() ? "<None>" : Current.c_str()))
 				{
+					EditorEngine->GetAssetService().RefreshAssetDatabase();
+					const TArray<FString>& AnimationPaths = EditorEngine->GetAssetService().GetAnimationSequenceAssetPaths();
 					const bool bNoneSelected = Current.empty();
 					if (ImGui::Selectable("<None>", bNoneSelected))
 					{

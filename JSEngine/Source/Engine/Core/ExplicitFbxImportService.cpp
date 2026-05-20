@@ -14,21 +14,27 @@ TArray<FImportedFbxAssetRecord> FExplicitFbxImportService::Import(const FString&
     const FString NormalizedSourcePath = FPaths::Normalize(SourceFbxPath);
     const FFbxMeshContentInfo ContentInfo = ResourceManager.InspectFbxMeshContent(NormalizedSourcePath);
 
-    if (ContentInfo.bHasStaticMesh || ContentInfo.bHasSkeletalMesh)
+    const bool bHasMesh = ContentInfo.bHasStaticMesh || ContentInfo.bHasSkeletalMesh;
+    if (bHasMesh)
     {
         ResourceManager.ImportMaterialFromFbx(NormalizedSourcePath);
     }
 
+    TArray<USkeletonAsset*> ImportedSkeletons;
+    if (ContentInfo.bHasSkeletalMesh)
+    {
+        ImportedSkeletons = ResourceManager.ImportSkeletonsFromFbx(NormalizedSourcePath);
+    }
+
     if (ContentInfo.bHasStaticMesh)
     {
-        ResourceManager.ImportStaticMeshFromFbx(NormalizedSourcePath);
+        ResourceManager.ImportStaticMeshFromFbx(NormalizedSourcePath, false);
     }
 
     if (ContentInfo.bHasSkeletalMesh)
     {
-        ResourceManager.ImportSkeletonsFromFbx(NormalizedSourcePath);
-        ResourceManager.ImportSkeletalMeshFromFbx(NormalizedSourcePath);
-        ResourceManager.ImportAnimationSequencesFromFbx(NormalizedSourcePath);
+        ResourceManager.ImportSkeletalMeshFromFbx(NormalizedSourcePath, FString(), false, &ImportedSkeletons);
+        ResourceManager.ImportAnimationSequencesFromFbx(NormalizedSourcePath, &ImportedSkeletons);
     }
 
     FImportedFbxAssetDiscovery Discovery;

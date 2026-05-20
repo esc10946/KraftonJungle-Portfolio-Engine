@@ -1,6 +1,6 @@
 {
         "ImportedName" : "Scissors_A_Smear",
-        "Name" : "gwen_Mat_2",
+        "Name" : "Gwen_Mat_2",
         "Params" : [{
             "Name" : "AmbientColor",
             "Type" : "Vector3",
