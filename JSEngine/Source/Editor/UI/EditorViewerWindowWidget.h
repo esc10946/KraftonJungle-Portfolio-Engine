@@ -19,8 +19,11 @@ struct FAnimTimelineUIState
 class FEditorViewerWindowWidget : public FEditorWidget
 {
 public:
+    ~FEditorViewerWindowWidget() override;
+
     void Initialize(UEditorEngine* InEditorEngine) override;
     void Render(float DeltaTime) override;
+    void Shutdown();
     void RenderEmbedded(float DeltaTime);
     void DrawBoneNode(
         int32 BoneIndex,
@@ -72,7 +75,6 @@ private:
     void RenderAnimationContent(float DeltaTime);
 	void RenderDetachedDocumentChrome(bool& bDockRequested, bool& bCloseRequested);
 	void RenderDetachedDocumentToolbar(bool& bDockRequested);
-    void Shutdown();
 	FSkeletalMesh* ResolveCurrentMeshData() const;
 	uint64 ComputeEditableMeshSignature(const FSkeletalMesh* MeshData) const;
 	void ResetMeshDirtyBaseline();

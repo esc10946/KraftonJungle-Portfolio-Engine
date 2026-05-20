@@ -245,6 +245,11 @@ void FEditorViewerWindowWidget::Initialize(UEditorEngine* InEditorEngine)
     FEditorWidget::Initialize(InEditorEngine);
 }
 
+FEditorViewerWindowWidget::~FEditorViewerWindowWidget()
+{
+    Shutdown();
+}
+
 void FEditorViewerWindowWidget::Shutdown()
 {
     Children.clear();

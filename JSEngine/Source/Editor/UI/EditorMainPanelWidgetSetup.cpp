@@ -119,8 +119,7 @@ void FEditorMainPanel::CloseViewer(FEditorViewer* Viewer)
     for (auto& Widget : Widgets.ViewerWindowWidgets)
 		if (Widget->GetViewer() == Viewer)
 		{
-            Widget->SetOpen(false);
-			Widget->SetViewer(nullptr);
+            Widget->Shutdown();
             break;
 		}
 }
@@ -131,7 +130,20 @@ void FEditorMainPanel::FlushClosedViewerWidgets()
     V.erase(
         std::remove_if(V.begin(), V.end(),
                        [](const std::unique_ptr<FEditorViewerWindowWidget>& W)
-                       { return !W || !W->IsOpen() || !W->GetViewer(); }),
+                       {
+                           if (!W)
+                           {
+                               return true;
+                           }
+
+                           if (!W->IsOpen() || !W->GetViewer())
+                           {
+                               W->Shutdown();
+                               return true;
+                           }
+
+                           return false;
+                       }),
         V.end());
 }
 
