@@ -109,11 +109,27 @@ void AAnimTestPawn::BeginPlay()
 	{
         GEngine->GetAudioSystem().PlayBGM(BGMPath);
 	}
+
+    IntroSoundTimer = std::max(0.0f, IntroSoundDelay);
+    bIntroSoundPlayed = false;
 }
 
 void AAnimTestPawn::Tick(float DeltaTime)
 {
     APawn::Tick(DeltaTime);
+    if (!bIntroSoundPlayed)
+    {
+        IntroSoundTimer -= std::max(0.0f, DeltaTime);
+        if (IntroSoundTimer <= 0.0f)
+        {
+            if (GEngine && !IntroSoundPath.empty())
+            {
+                GEngine->GetAudioSystem().PlaySFX(IntroSoundPath, IntroSoundVolumeScale);
+            }
+            bIntroSoundPlayed = true;
+        }
+    }
+
     UpdateLocomotion(DeltaTime);
 }
 
@@ -143,6 +159,7 @@ void AAnimTestPawn::Serialize(FArchive& Ar)
     Ar << "VoiceSoundPath3" << VoiceSoundPath1;
     Ar << "VoiceSoundPath4" << VoiceSoundPath1;
     Ar << "BGMPath" << BGMPath;
+    Ar << "IntroSoundPath" << IntroSoundPath;
     Ar << "MoveSpeed" << MoveSpeed;
     Ar << "SprintSpeedMultiplier" << SprintSpeedMultiplier;
     Ar << "LookSensitivityDegrees" << LookSensitivityDegrees;
@@ -162,6 +179,8 @@ void AAnimTestPawn::Serialize(FArchive& Ar)
     Ar << "Attack1ToIdleDuration" << Attack1ToIdleDuration;
     Ar << "Attack2ToIdleDuration" << Attack2ToIdleDuration;
     Ar << "Attack3ToIdleDuration" << Attack3ToIdleDuration;
+    Ar << "IntroSoundDelay" << IntroSoundDelay;
+    Ar << "IntroSoundVolumeScale" << IntroSoundVolumeScale;
     Ar << "MoveStartSpeedThreshold" << MoveStartSpeedThreshold;
     Ar << "RotateToMovement" << bRotateToMovement;
     Ar << "AutoConfigureAnimation" << bAutoConfigureAnimation;
@@ -185,6 +204,8 @@ void AAnimTestPawn::Serialize(FArchive& Ar)
         Attack1ToIdleDuration = std::max(0.0f, Attack1ToIdleDuration);
         Attack2ToIdleDuration = std::max(0.0f, Attack2ToIdleDuration);
         Attack3ToIdleDuration = std::max(0.0f, Attack3ToIdleDuration);
+        IntroSoundDelay = std::max(0.0f, IntroSoundDelay);
+        IntroSoundVolumeScale = std::max(0.0f, IntroSoundVolumeScale);
         MoveStartSpeedThreshold = std::max(0.0f, MoveStartSpeedThreshold);
 
         LoadConfiguredSkeletalMesh();
@@ -221,6 +242,9 @@ void AAnimTestPawn::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
     OutProps.push_back({ "Voice Sound 3", EPropertyType::String, &VoiceSoundPath3 });
     OutProps.push_back({ "Voice Sound 4", EPropertyType::String, &VoiceSoundPath4 });
     OutProps.push_back({ "BGM Path", EPropertyType::String, &BGMPath });
+    OutProps.push_back({ "Intro Sound Path", EPropertyType::String, &IntroSoundPath });
+    OutProps.push_back({ "Intro Sound Delay", EPropertyType::Float, &IntroSoundDelay, 0.0f, 30.0f, 0.1f });
+    OutProps.push_back({ "Intro Sound Volume", EPropertyType::Float, &IntroSoundVolumeScale, 0.0f, 5.0f, 0.1f });
     OutProps.push_back({ "Move Speed", EPropertyType::Float, &MoveSpeed, 0.0f, 100.0f, 0.1f });
     OutProps.push_back({ "Sprint Speed Multiplier", EPropertyType::Float, &SprintSpeedMultiplier, 1.0f, 10.0f, 0.05f });
     OutProps.push_back({ "Look Sensitivity", EPropertyType::Float, &LookSensitivityDegrees, 0.0f, 5.0f, 0.01f });
@@ -273,6 +297,16 @@ void AAnimTestPawn::PostEditProperty(const char* PropertyName)
     if (std::strcmp(PropertyName, "Mesh Turn Speed") == 0)
     {
         MeshTurnSpeedDegreesPerSecond = std::max(0.0f, MeshTurnSpeedDegreesPerSecond);
+    }
+
+    if (std::strcmp(PropertyName, "Intro Sound Delay") == 0)
+    {
+        IntroSoundDelay = std::max(0.0f, IntroSoundDelay);
+    }
+
+    if (std::strcmp(PropertyName, "Intro Sound Volume") == 0)
+    {
+        IntroSoundVolumeScale = std::max(0.0f, IntroSoundVolumeScale);
     }
 
     if (std::strcmp(PropertyName, "Idle Animation") == 0 ||
