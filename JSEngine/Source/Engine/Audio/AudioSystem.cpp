@@ -22,6 +22,11 @@ namespace
         return std::clamp(Volume, 0.0f, 1.0f);
     }
 
+    float ClampPlaybackVolume(float Volume)
+    {
+        return std::clamp(Volume, 0.0f, 5.0f);
+    }
+
     FString NormalizeAudioPath(const FString& Path)
     {
         if (Path.empty())
@@ -542,7 +547,7 @@ FAudioHandle FAudioSystem::PlaySoundCue(
         return 0;
     }
 
-    const float TargetVolume = ClampVolume(Impl->SFXVolume * VolumeScale);
+    const float TargetVolume = ClampPlaybackVolume(Impl->SFXVolume * VolumeScale);
     const float StartVolume = FadeInSeconds > 0.0f ? 0.0f : TargetVolume;
     const SoLoud::handle Handle = bSpatialized
         ? Impl->Engine.play3d(*Clip, Position.X, Position.Y, Position.Z, 0.0f, 0.0f, 0.0f, StartVolume)

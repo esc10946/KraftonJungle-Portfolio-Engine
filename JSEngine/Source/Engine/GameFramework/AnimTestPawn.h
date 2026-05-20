@@ -77,6 +77,7 @@ private:
     FString VoiceSoundPath3 = "Asset/Audio/Gwen_Original_Move_10.ogg";
     FString VoiceSoundPath4 = "Asset/Audio/Gwen_Original_Move_20.ogg";
     FString BGMPath = "Asset/Audio/StarGuardian_2017_SpawnMusic.ogg";
+    FString IntroSoundPath = "Asset/Audio/league-of-legends-original-sounds-welcome-to-summoners-rift.mp3";
 
     float MoveSpeed = 7.0f;
     float SprintSpeedMultiplier = 1.5f;
@@ -97,11 +98,15 @@ private:
     float Attack1ToIdleDuration = 2.1f;
     float Attack2ToIdleDuration = 1.967f;
     float Attack3ToIdleDuration = 2.633f;
+    float IntroSoundDelay = 10.0f;
+    float IntroSoundVolumeScale = 2.0f;
     float MoveStartSpeedThreshold = 0.1f;
     bool bRotateToMovement = true;
     bool bAutoConfigureAnimation = true;
     bool bNextLightAttackUsesAttack1 = true;
 
     float VoiceTimer = 0.0f;
+    float IntroSoundTimer = 0.0f;
     int32 CurrentVoiceIndex = 0;
+    bool bIntroSoundPlayed = false;
 };
