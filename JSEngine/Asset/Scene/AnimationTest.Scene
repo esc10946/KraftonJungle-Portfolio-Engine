@@ -64,7 +64,7 @@
           "ConstantBias" : 0.003000,
           "Editor Only" : false,
           "Enable Tick" : true,
-          "Intensity" : 1.000000,
+          "Intensity" : 1.500000,
           "Location" : [0.000000, 0.000000, 0.000000],
           "ObjectName" : "UDirectionalLightComponent_1",
           "PersistentGuid" : "012060FD-A0144481-948BFC74-9BD392B0",
@@ -219,13 +219,13 @@
     }],
   "ClassName" : "UWorld",
   "Name" : "AnimationTest",
-  "NextUUID" : 1533,
+  "NextUUID" : 1675,
   "PerspectiveCamera" : {
     "FOV" : 60.000000,
     "FarClip" : 1000.000000,
     "Location" : [-2.846489, -0.881379, 0.545525],
     "NearClip" : 0.100000,
-    "Rotation" : [-5.630127, 21.406986, 15.114635]
+    "Rotation" : [-5.630127, 21.406990, 15.114635]
   },
   "Version" : 6,
   "WorldSettings" : {

@@ -597,7 +597,7 @@ void AAnimTestPawn::ConfigureLocomotionStateMachine()
     AttackTimeCondition.CompareValue.FloatValue = Attack1ToIdleDuration;
     Attack1ToIdleFinishConditions.push_back(AttackTimeCondition);
 
-    TArray<FAnimTransitionCondition> Attack1ToHomeguardConditions = Attack1ToIdleFinishConditions;
+    TArray<FAnimTransitionCondition> Attack1ToHomeguardConditions;
     Attack1ToHomeguardConditions.push_back(RecoverySprintingCondition);
     LocomotionStateMachine->AddTransition(
         NAME_Attack1ToIdle,
@@ -607,7 +607,7 @@ void AAnimTestPawn::ConfigureLocomotionStateMachine()
         120,
         EAnimBlendEaseOption::EaseInOut);
 
-    TArray<FAnimTransitionCondition> Attack1ToRunConditions = Attack1ToIdleFinishConditions;
+    TArray<FAnimTransitionCondition> Attack1ToRunConditions;
     Attack1ToRunConditions.push_back(RecoveryMovingCondition);
     LocomotionStateMachine->AddTransition(
         NAME_Attack1ToIdle,
@@ -629,7 +629,7 @@ void AAnimTestPawn::ConfigureLocomotionStateMachine()
     AttackTimeCondition.CompareValue.FloatValue = Attack2ToIdleDuration;
     Attack2ToIdleFinishConditions.push_back(AttackTimeCondition);
 
-    TArray<FAnimTransitionCondition> Attack2ToHomeguardConditions = Attack2ToIdleFinishConditions;
+    TArray<FAnimTransitionCondition> Attack2ToHomeguardConditions;
     Attack2ToHomeguardConditions.push_back(RecoverySprintingCondition);
     LocomotionStateMachine->AddTransition(
         NAME_Attack2ToIdle,
@@ -639,7 +639,7 @@ void AAnimTestPawn::ConfigureLocomotionStateMachine()
         120,
         EAnimBlendEaseOption::EaseInOut);
 
-    TArray<FAnimTransitionCondition> Attack2ToRunConditions = Attack2ToIdleFinishConditions;
+    TArray<FAnimTransitionCondition> Attack2ToRunConditions;
     Attack2ToRunConditions.push_back(RecoveryMovingCondition);
     LocomotionStateMachine->AddTransition(
         NAME_Attack2ToIdle,
@@ -661,7 +661,7 @@ void AAnimTestPawn::ConfigureLocomotionStateMachine()
     AttackTimeCondition.CompareValue.FloatValue = Attack3ToIdleDuration;
     Attack3ToIdleFinishConditions.push_back(AttackTimeCondition);
 
-    TArray<FAnimTransitionCondition> Attack3ToHomeguardConditions = Attack3ToIdleFinishConditions;
+    TArray<FAnimTransitionCondition> Attack3ToHomeguardConditions;
     Attack3ToHomeguardConditions.push_back(RecoverySprintingCondition);
     LocomotionStateMachine->AddTransition(
         NAME_Attack3ToIdle,
@@ -671,7 +671,7 @@ void AAnimTestPawn::ConfigureLocomotionStateMachine()
         120,
         EAnimBlendEaseOption::EaseInOut);
 
-    TArray<FAnimTransitionCondition> Attack3ToRunConditions = Attack3ToIdleFinishConditions;
+    TArray<FAnimTransitionCondition> Attack3ToRunConditions;
     Attack3ToRunConditions.push_back(RecoveryMovingCondition);
     LocomotionStateMachine->AddTransition(
         NAME_Attack3ToIdle,
