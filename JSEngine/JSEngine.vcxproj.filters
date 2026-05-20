@@ -792,6 +792,9 @@
     <ClCompile Include="Source\Engine\GameFramework\AReflectionTestActor.cpp">
       <Filter>Source\Engine\GameFramework</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\GameFramework\AnimLuaTestPawn.cpp">
+      <Filter>Source\Engine\GameFramework</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\GameFramework\AnimTestPawn.cpp">
       <Filter>Source\Engine\GameFramework</Filter>
     </ClCompile>
@@ -1831,6 +1834,9 @@
       <Filter>Source\Engine\GameFramework</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\GameFramework\AReflectionTestActor.h">
+      <Filter>Source\Engine\GameFramework</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\GameFramework\AnimLuaTestPawn.h">
       <Filter>Source\Engine\GameFramework</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\GameFramework\AnimTestPawn.h">

@@ -730,6 +730,7 @@
     <ClCompile Include="Source\Engine\Core\TextureResourceCache.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\AActor.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\AReflectionTestActor.cpp" />
+    <ClCompile Include="Source\Engine\GameFramework\AnimLuaTestPawn.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\AnimTestPawn.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\DefaultPawn.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\GameModeBase.cpp" />
@@ -1105,6 +1106,7 @@
     <ClInclude Include="Source\Engine\Core\TextureResourceCache.h" />
     <ClInclude Include="Source\Engine\GameFramework\AActor.h" />
     <ClInclude Include="Source\Engine\GameFramework\AReflectionTestActor.h" />
+    <ClInclude Include="Source\Engine\GameFramework\AnimLuaTestPawn.h" />
     <ClInclude Include="Source\Engine\GameFramework\AnimTestPawn.h" />
     <ClInclude Include="Source\Engine\GameFramework\DefaultPawn.h" />
     <ClInclude Include="Source\Engine\GameFramework\GameModeBase.h" />

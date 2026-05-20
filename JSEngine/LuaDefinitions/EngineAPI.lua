@@ -109,6 +109,8 @@ function ActorComponent:GetTags() end
 ---@class SceneComponent: ActorComponent
 ---@field Location Vector
 ---@field Forward Vector
+---@field Right Vector
+---@field Up Vector
 local SceneComponent = {}
 ---@return SceneComponent
 function SceneComponent:GetParent() end
@@ -118,6 +120,39 @@ function SceneComponent:AttachToComponent(parent) end
 function SceneComponent:GetRelativeLocation() end
 ---@param location Vector
 function SceneComponent:SetRelativeLocation(location) end
+---@return Vector
+function SceneComponent:GetForwardVector() end
+---@return Vector
+function SceneComponent:GetRightVector() end
+---@return Vector
+function SceneComponent:GetUpVector() end
+
+---@class SpringArmComponent: SceneComponent
+---@field TargetArmLength number
+---@field SocketOffset Vector
+---@field CameraLagEnabled boolean
+---@field CameraLagSpeed number
+local SpringArmComponent = {}
+---@param deltaYawDegrees number
+function SpringArmComponent:AddYawInput(deltaYawDegrees) end
+---@param deltaPitchDegrees number
+function SpringArmComponent:AddPitchInput(deltaPitchDegrees) end
+---@return number
+function SpringArmComponent:GetTargetArmLength() end
+---@param targetArmLength number
+function SpringArmComponent:SetTargetArmLength(targetArmLength) end
+---@return Vector
+function SpringArmComponent:GetSocketOffset() end
+---@param socketOffset Vector
+function SpringArmComponent:SetSocketOffset(socketOffset) end
+---@return boolean
+function SpringArmComponent:IsCameraLagEnabled() end
+---@param enabled boolean
+function SpringArmComponent:SetCameraLagEnabled(enabled) end
+---@return number
+function SpringArmComponent:GetCameraLagSpeed() end
+---@param speed number
+function SpringArmComponent:SetCameraLagSpeed(speed) end
 
 ---@class PrimitiveComponent: SceneComponent
 ---@field Visible boolean
@@ -416,6 +451,12 @@ function Actor:GetActorForwardVector() end
 function Actor:GetActorRightVector() end
 ---@return Vector
 function Actor:GetActorUpVector() end
+---@return SkeletalMeshComponent|nil
+function Actor:GetSkeletalMeshComponent() end
+---@return SpringArmComponent|nil
+function Actor:GetSpringArmComponent() end
+---@return CameraComponent|nil
+function Actor:GetCameraComponent() end
 ---@param delta Vector
 function Actor:Add_Actor_World_Offset(delta) end
 function Actor:MarkPendingKill() end
