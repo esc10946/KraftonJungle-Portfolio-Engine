@@ -38,6 +38,8 @@ public:
     USkeletalMeshComponent() = default;
     ~USkeletalMeshComponent() override;
 
+    void PostDuplicate(UObject* Original) override;
+    void BeginPlay() override;
     void TickComponent(float DeltaTime) override;
 
     EPrimitiveType GetPrimitiveType() const override { return EPrimitiveType::EPT_SkeletalMesh; }

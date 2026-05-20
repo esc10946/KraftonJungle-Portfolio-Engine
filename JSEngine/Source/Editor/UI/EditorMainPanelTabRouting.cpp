@@ -88,6 +88,7 @@ FEditorViewerWindowWidget* FEditorMainPanel::FindViewerWidgetForTab(const FEdito
 {
 	if (TabId.Kind != EEditorTabKind::SkeletalMeshViewer &&
 		TabId.Kind != EEditorTabKind::AnimationViewer &&
+		TabId.Kind != EEditorTabKind::AnimStateMachineGraphViewer &&
 		TabId.Kind != EEditorTabKind::StaticMeshViewer)
 	{
 		return nullptr;

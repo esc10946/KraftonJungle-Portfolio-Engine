@@ -13,6 +13,7 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/World.h"
 #include "Editor/EditorRenderPipeline.h"
+#include "Editor/Viewer/AnimStateMachineGraphViewer.h"
 #include "Editor/Viewer/AnimationViewer.h"
 #include "Editor/Viewer/FSkeletalMeshViewer.h"
 #include "Core/Logging/Log.h"
@@ -684,6 +685,41 @@ FAnimationViewer* UEditorEngine::CreateAnimationViewer(FString InFileName)
     MainPanel.OpenViewer(NewViewer.get());
 
     FAnimationViewer* Result = NewViewer.get();
+    Viewers.push_back(std::move(NewViewer));
+
+    return Result;
+}
+
+FAnimStateMachineGraphViewer* UEditorEngine::CreateAnimStateMachineGraphViewer(FString InFileName)
+{
+    for (const auto& Viewer : Viewers)
+    {
+        FAnimStateMachineGraphViewer* GraphViewer =
+            dynamic_cast<FAnimStateMachineGraphViewer*>(Viewer.get());
+
+        if (!GraphViewer)
+        {
+            continue;
+        }
+
+        if (GraphViewer->GetFileName() == InFileName)
+        {
+            MainPanel.OpenViewer(GraphViewer);
+            return GraphViewer;
+        }
+    }
+
+    const FName Handle = MakeUniqueViewerPreviewWorldHandle();
+
+    FWorldContext& ViewerCtx = CreateWorldContext(EWorldType::ViewerPreview, Handle, "Viewer Preview");
+    ApplySpatialIndexMaintenanceSettings(ViewerCtx.World);
+
+    auto NewViewer = std::make_unique<FAnimStateMachineGraphViewer>();
+    NewViewer->Init(Window, this, ViewerCtx.World, ViewerCtx.SelectionManager);
+    NewViewer->ChangeTarget(InFileName);
+    MainPanel.OpenViewer(NewViewer.get());
+
+    FAnimStateMachineGraphViewer* Result = NewViewer.get();
     Viewers.push_back(std::move(NewViewer));
 
     return Result;

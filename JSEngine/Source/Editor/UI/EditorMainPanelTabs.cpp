@@ -33,6 +33,8 @@ namespace
 			return { ImVec4(0.18f, 0.70f, 0.95f, 1.0f), "Skeletal Mesh Viewer" };
 		case EEditorTabKind::AnimationViewer:
 			return { ImVec4(0.92f, 0.58f, 0.20f, 1.0f), "Animation Viewer" };
+		case EEditorTabKind::AnimStateMachineGraphViewer:
+			return { ImVec4(0.75f, 0.54f, 0.95f, 1.0f), "Animation State Machine Graph" };
 		case EEditorTabKind::MaterialEditor:
 			return { ImVec4(0.19f, 0.72f, 0.24f, 1.0f), "Material Editor" };
 		case EEditorTabKind::CurveEditor:
@@ -58,6 +60,8 @@ namespace
             return "SkeletalMesh";
 		case EEditorTabKind::AnimationViewer:
 			return "AnimationViewer";
+		case EEditorTabKind::AnimStateMachineGraphViewer:
+			return "AnimStateMachineGraph";
 		case EEditorTabKind::MaterialEditor:
 			return "Material";
 		case EEditorTabKind::CurveEditor:
@@ -414,7 +418,8 @@ bool FEditorMainPanel::RequestCloseEditorTab(const FEditorTabId& TabId)
 	}
 
 	if ((TabId.Kind == EEditorTabKind::SkeletalMeshViewer ||
-		 TabId.Kind == EEditorTabKind::AnimationViewer) && EditorEngine)
+		 TabId.Kind == EEditorTabKind::AnimationViewer ||
+		 TabId.Kind == EEditorTabKind::AnimStateMachineGraphViewer) && EditorEngine)
 	{
 		for (auto& Viewer : EditorEngine->GetViewers())
 		{

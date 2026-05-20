@@ -24,6 +24,7 @@ class UGizmoComponent;
 class FEditorRenderPipeline;
 class FSkeletalMeshViewer;
 class FAnimationViewer;
+class FAnimStateMachineGraphViewer;
 class AActor;
 class APlayerController;
 class FViewport; 
@@ -46,6 +47,7 @@ public:
 
     FSkeletalMeshViewer* CreateSkeletalViewer(FString InFileName);
     FAnimationViewer* CreateAnimationViewer(FString InFileName);
+    FAnimStateMachineGraphViewer* CreateAnimStateMachineGraphViewer(FString InFileName);
     void RemoveViewer(FEditorViewer* InViewer);
 
 	// 퍼스펙티브 카메라(인덱스 0)를 반환합니다.

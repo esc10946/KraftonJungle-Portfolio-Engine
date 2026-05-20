@@ -21,7 +21,6 @@ bool AreConditionsEqual(
     for (size_t Index = 0; Index < A.size(); ++Index)
     {
         if (A[Index].ParameterName != B[Index].ParameterName ||
-            A[Index].ParameterType != B[Index].ParameterType ||
             A[Index].CompareOp != B[Index].CompareOp ||
             A[Index].CompareValue.BoolValue != B[Index].CompareValue.BoolValue ||
             A[Index].CompareValue.IntValue != B[Index].CompareValue.IntValue ||
@@ -34,12 +33,51 @@ bool AreConditionsEqual(
 
     return true;
 }
+
+bool IsCompareOpValidForParameterType(EAnimParameterType ParameterType, EAnimCompareOp CompareOp)
+{
+    switch (ParameterType)
+    {
+    case EAnimParameterType::Bool:
+        return CompareOp == EAnimCompareOp::Equal ||
+            CompareOp == EAnimCompareOp::NotEqual ||
+            CompareOp == EAnimCompareOp::IsTrue ||
+            CompareOp == EAnimCompareOp::IsFalse;
+    case EAnimParameterType::Int:
+    case EAnimParameterType::Float:
+        return CompareOp == EAnimCompareOp::Equal ||
+            CompareOp == EAnimCompareOp::NotEqual ||
+            CompareOp == EAnimCompareOp::Greater ||
+            CompareOp == EAnimCompareOp::GreaterEqual ||
+            CompareOp == EAnimCompareOp::Less ||
+            CompareOp == EAnimCompareOp::LessEqual;
+    case EAnimParameterType::Vector:
+        return CompareOp == EAnimCompareOp::Equal ||
+            CompareOp == EAnimCompareOp::NotEqual;
+    case EAnimParameterType::Trigger:
+        return CompareOp == EAnimCompareOp::IsTrue;
+    default:
+        return false;
+    }
+}
+
+EAnimCompareOp GetDefaultCompareOpForParameterType(EAnimParameterType ParameterType)
+{
+    return ParameterType == EAnimParameterType::Trigger ? EAnimCompareOp::IsTrue : EAnimCompareOp::Equal;
+}
+
+void ResetConditionForParameterType(FAnimTransitionCondition& Condition, EAnimParameterType ParameterType)
+{
+    Condition.CompareOp = GetDefaultCompareOpForParameterType(ParameterType);
+    Condition.CompareValue = FAnimParameterValue();
+}
 } // namespace
 
 void UAnimStateMachineAsset::Clear()
 {
     EntryState = FName();
     EntryStateId = InvalidAnimStateId;
+    Parameters.clear();
     States.clear();
     Transitions.clear();
     StateEditorMetadata.clear();
@@ -119,6 +157,132 @@ bool UAnimStateMachineAsset::AddStateWithId(
     return true;
 }
 
+bool UAnimStateMachineAsset::RenameState(FAnimStateId StateId, const FName& NewName)
+{
+    FAnimStateDesc* State = FindStateById(StateId);
+    if (!State || !NewName.IsValid())
+    {
+        UE_LOG_WARNING("[AnimSM] Rename state failed: invalid state or name");
+        return false;
+    }
+
+    if (State->StateName == NewName)
+    {
+        return true;
+    }
+
+    if (FindState(NewName))
+    {
+        UE_LOG_WARNING("[AnimSM] Rename state failed: duplicate state %s", NewName.ToString().c_str());
+        return false;
+    }
+
+    State->StateName = NewName;
+    if (EntryStateId == StateId)
+    {
+        EntryState = NewName;
+    }
+
+    for (FAnimTransitionDesc& Transition : Transitions)
+    {
+        if (Transition.FromStateId == StateId)
+        {
+            Transition.FromState = NewName;
+        }
+        if (Transition.ToStateId == StateId)
+        {
+            Transition.ToState = NewName;
+        }
+    }
+
+    return true;
+}
+
+bool UAnimStateMachineAsset::RemoveState(FAnimStateId StateId)
+{
+    if (StateId == InvalidAnimStateId || !FindStateById(StateId))
+    {
+        UE_LOG_WARNING("[AnimSM] Remove state failed: missing state id %u", StateId);
+        return false;
+    }
+
+    if (States.size() <= 1)
+    {
+        UE_LOG_WARNING("[AnimSM] Remove state failed: cannot remove the last state");
+        return false;
+    }
+
+    if (EntryStateId == StateId)
+    {
+        UE_LOG_WARNING("[AnimSM] Remove state failed: cannot remove entry state");
+        return false;
+    }
+
+    TArray<FAnimTransitionId> RemovedTransitionIds;
+    Transitions.erase(
+        std::remove_if(
+            Transitions.begin(),
+            Transitions.end(),
+            [StateId, &RemovedTransitionIds](const FAnimTransitionDesc& Transition)
+            {
+                if (Transition.FromStateId == StateId || Transition.ToStateId == StateId)
+                {
+                    RemovedTransitionIds.push_back(Transition.Id);
+                    return true;
+                }
+                return false;
+            }),
+        Transitions.end());
+
+    States.erase(
+        std::remove_if(
+            States.begin(),
+            States.end(),
+            [StateId](const FAnimStateDesc& State)
+            {
+                return State.Id == StateId;
+            }),
+        States.end());
+
+    StateEditorMetadata.erase(
+        std::remove_if(
+            StateEditorMetadata.begin(),
+            StateEditorMetadata.end(),
+            [StateId](const FAnimStateEditorMetadata& Metadata)
+            {
+                return Metadata.StateId == StateId;
+            }),
+        StateEditorMetadata.end());
+
+    TransitionEditorMetadata.erase(
+        std::remove_if(
+            TransitionEditorMetadata.begin(),
+            TransitionEditorMetadata.end(),
+            [&RemovedTransitionIds](const FAnimTransitionEditorMetadata& Metadata)
+            {
+                return std::find(
+                    RemovedTransitionIds.begin(),
+                    RemovedTransitionIds.end(),
+                    Metadata.TransitionId) != RemovedTransitionIds.end();
+            }),
+        TransitionEditorMetadata.end());
+
+    return true;
+}
+
+bool UAnimStateMachineAsset::SetStateLoop(FAnimStateId StateId, bool bLoop)
+{
+    FAnimStateDesc* State = FindStateById(StateId);
+    if (!State)
+    {
+        UE_LOG_WARNING("[AnimSM] Set state loop failed: missing state id %u", StateId);
+        return false;
+    }
+
+    State->bLoop = bLoop;
+    return true;
+}
+
 bool UAnimStateMachineAsset::SetStateAnimationPath(const FName& StateName, const FString& AnimationPath)
 {
     if (!StateName.IsValid() || AnimationPath.empty())
@@ -134,6 +298,49 @@ bool UAnimStateMachineAsset::SetStateAnimationPath(const FName& StateName, const
 
     UE_LOG_WARNING("[AnimSM] Failed to set animation path: missing state %s", StateName.ToString().c_str());
     return false;
+}
+
+bool UAnimStateMachineAsset::SetStateAnimationPathById(FAnimStateId StateId, const FString& AnimationPath)
+{
+    if (AnimationPath.empty())
+    {
+        return false;
+    }
+
+    if (FAnimStateDesc* State = FindStateById(StateId))
+    {
+        State->AnimationPath = FPaths::Normalize(AnimationPath);
+        return true;
+    }
+
+    UE_LOG_WARNING("[AnimSM] Failed to set animation path: missing state id %u", StateId);
+    return false;
+}
+
+bool UAnimStateMachineAsset::SetStateEditorPosition(FAnimStateId StateId, float NodeX, float NodeY)
+{
+    if (!FindStateById(StateId))
+    {
+        UE_LOG_WARNING("[AnimSM] Failed to set editor position: missing state id %u", StateId);
+        return false;
+    }
+
+    for (FAnimStateEditorMetadata& Metadata : StateEditorMetadata)
+    {
+        if (Metadata.StateId == StateId)
+        {
+            Metadata.NodeX = NodeX;
+            Metadata.NodeY = NodeY;
+            return true;
+        }
+    }
+
+    FAnimStateEditorMetadata Metadata;
+    Metadata.StateId = StateId;
+    Metadata.NodeX = NodeX;
+    Metadata.NodeY = NodeY;
+    StateEditorMetadata.push_back(Metadata);
+    return true;
 }
 
 bool UAnimStateMachineAsset::AddTransition(
@@ -190,9 +397,10 @@ bool UAnimStateMachineAsset::AddTransitionWithId(
 
     for (const FAnimTransitionCondition& Condition : Conditions)
     {
-        if (!Condition.ParameterName.IsValid())
+        FString ValidationMessage;
+        if (!IsConditionCompatibleWithDeclaration(Condition, &ValidationMessage))
         {
-            UE_LOG_WARNING("[AnimSM] Invalid transition: empty condition parameter");
+            UE_LOG_WARNING("[AnimSM] Invalid transition condition: %s", ValidationMessage.c_str());
             return false;
         }
     }
@@ -200,7 +408,7 @@ bool UAnimStateMachineAsset::AddTransitionWithId(
     if (HasDuplicateTransition(FromStateId, ToStateId, Conditions))
     {
         UE_LOG_WARNING(
-            "[AnimSM] Invalid transition: duplicate %s -> %s",
+            "[AnimSM] Invalid transition: duplicate %s -> %s with identical conditions",
             FromStateDesc->StateName.ToString().c_str(),
             ToStateDesc->StateName.ToString().c_str());
         return false;
@@ -220,6 +428,121 @@ bool UAnimStateMachineAsset::AddTransitionWithId(
     return true;
 }
 
+bool UAnimStateMachineAsset::RemoveTransition(FAnimTransitionId TransitionId)
+{
+    if (!FindTransitionById(TransitionId))
+    {
+        UE_LOG_WARNING("[AnimSM] Remove transition failed: missing transition id %u", TransitionId);
+        return false;
+    }
+
+    Transitions.erase(
+        std::remove_if(
+            Transitions.begin(),
+            Transitions.end(),
+            [TransitionId](const FAnimTransitionDesc& Transition)
+            {
+                return Transition.Id == TransitionId;
+            }),
+        Transitions.end());
+
+    TransitionEditorMetadata.erase(
+        std::remove_if(
+            TransitionEditorMetadata.begin(),
+            TransitionEditorMetadata.end(),
+            [TransitionId](const FAnimTransitionEditorMetadata& Metadata)
+            {
+                return Metadata.TransitionId == TransitionId;
+            }),
+        TransitionEditorMetadata.end());
+
+    return true;
+}
+
+bool UAnimStateMachineAsset::ReconnectTransition(
+    FAnimTransitionId TransitionId,
+    FAnimStateId FromStateId,
+    FAnimStateId ToStateId)
+{
+    FAnimTransitionDesc* Transition = FindTransitionById(TransitionId);
+    const FAnimStateDesc* FromStateDesc = FindStateById(FromStateId);
+    const FAnimStateDesc* ToStateDesc = FindStateById(ToStateId);
+    if (!Transition || !FromStateDesc || !ToStateDesc)
+    {
+        UE_LOG_WARNING("[AnimSM] Reconnect transition failed: missing transition or state");
+        return false;
+    }
+
+    if (HasDuplicateTransition(FromStateId, ToStateId, Transition->Conditions, TransitionId))
+    {
+        UE_LOG_WARNING(
+            "[AnimSM] Reconnect transition failed: duplicate %s -> %s with identical conditions",
+            FromStateDesc->StateName.ToString().c_str(),
+            ToStateDesc->StateName.ToString().c_str());
+        return false;
+    }
+
+    Transition->FromStateId = FromStateId;
+    Transition->ToStateId = ToStateId;
+    Transition->FromState = FromStateDesc->StateName;
+    Transition->ToState = ToStateDesc->StateName;
+    return true;
+}
+
+bool UAnimStateMachineAsset::UpdateTransition(
+    FAnimTransitionId TransitionId,
+    float BlendTime,
+    int32 Priority,
+    EAnimBlendEaseOption EaseOption)
+{
+    FAnimTransitionDesc* Transition = FindTransitionById(TransitionId);
+    if (!Transition)
+    {
+        UE_LOG_WARNING("[AnimSM] Update transition failed: missing transition id %u", TransitionId);
+        return false;
+    }
+
+    Transition->BlendTime = std::max(0.0f, BlendTime);
+    Transition->Priority = Priority;
+    Transition->EaseOption = EaseOption;
+    return true;
+}
+
+bool UAnimStateMachineAsset::SetTransitionConditions(
+    FAnimTransitionId TransitionId,
+    const TArray<FAnimTransitionCondition>& Conditions)
+{
+    FAnimTransitionDesc* Transition = FindTransitionById(TransitionId);
+    if (!Transition || Conditions.empty())
+    {
+        UE_LOG_WARNING("[AnimSM] Set transition conditions failed: missing transition or conditions");
+        return false;
+    }
+
+    for (const FAnimTransitionCondition& Condition : Conditions)
+    {
+        FString ValidationMessage;
+        if (!IsConditionCompatibleWithDeclaration(Condition, &ValidationMessage))
+        {
+            UE_LOG_WARNING("[AnimSM] Set transition conditions failed: %s", ValidationMessage.c_str());
+            return false;
+        }
+    }
+
+    if (HasDuplicateTransition(
+        Transition->FromStateId,
+        Transition->ToStateId,
+        Conditions,
+        TransitionId))
+    {
+        UE_LOG_WARNING("[AnimSM] Set transition conditions failed: duplicate from/to with identical conditions");
+        return false;
+    }
+
+    Transition->Conditions = Conditions;
+    return true;
+}
+
 bool UAnimStateMachineAsset::AddBoolTransition(
     const FName& FromState,
     const FName& ToState,
@@ -230,9 +553,13 @@ bool UAnimStateMachineAsset::AddBoolTransition(
     int32 Priority,
     EAnimBlendEaseOption EaseOption)
 {
+    if (!EnsureParameterDeclaration(ParameterName, EAnimParameterType::Bool))
+    {
+        return false;
+    }
+
     FAnimTransitionCondition Condition;
     Condition.ParameterName = ParameterName;
-    Condition.ParameterType = EAnimParameterType::Bool;
     Condition.CompareOp = CompareOp;
     Condition.CompareValue.BoolValue = Value;
 
@@ -251,9 +578,13 @@ bool UAnimStateMachineAsset::AddIntTransition(
     int32 Priority,
     EAnimBlendEaseOption EaseOption)
 {
+    if (!EnsureParameterDeclaration(ParameterName, EAnimParameterType::Int))
+    {
+        return false;
+    }
+
     FAnimTransitionCondition Condition;
     Condition.ParameterName = ParameterName;
-    Condition.ParameterType = EAnimParameterType::Int;
     Condition.CompareOp = CompareOp;
     Condition.CompareValue.IntValue = Value;
 
@@ -272,9 +603,13 @@ bool UAnimStateMachineAsset::AddFloatTransition(
     int32 Priority,
     EAnimBlendEaseOption EaseOption)
 {
+    if (!EnsureParameterDeclaration(ParameterName, EAnimParameterType::Float))
+    {
+        return false;
+    }
+
     FAnimTransitionCondition Condition;
     Condition.ParameterName = ParameterName;
-    Condition.ParameterType = EAnimParameterType::Float;
     Condition.CompareOp = CompareOp;
     Condition.CompareValue.FloatValue = Value;
 
@@ -293,9 +628,13 @@ bool UAnimStateMachineAsset::AddVectorTransition(
     int32 Priority,
     EAnimBlendEaseOption EaseOption)
 {
+    if (!EnsureParameterDeclaration(ParameterName, EAnimParameterType::Vector))
+    {
+        return false;
+    }
+
     FAnimTransitionCondition Condition;
     Condition.ParameterName = ParameterName;
-    Condition.ParameterType = EAnimParameterType::Vector;
     Condition.CompareOp = CompareOp;
     Condition.CompareValue.VectorValue = Value;
 
@@ -312,14 +651,223 @@ bool UAnimStateMachineAsset::AddTriggerTransition(
     int32 Priority,
     EAnimBlendEaseOption EaseOption)
 {
+    if (!EnsureParameterDeclaration(ParameterName, EAnimParameterType::Trigger))
+    {
+        return false;
+    }
+
     FAnimTransitionCondition Condition;
     Condition.ParameterName = ParameterName;
-    Condition.ParameterType = EAnimParameterType::Trigger;
     Condition.CompareOp = EAnimCompareOp::IsTrue;
 
     TArray<FAnimTransitionCondition> Conditions;
     Conditions.push_back(Condition);
     return AddTransition(FromState, ToState, Conditions, BlendTime, Priority, EaseOption);
+}
+
+bool UAnimStateMachineAsset::AddParameter(const FName& ParameterName, EAnimParameterType ParameterType)
+{
+    if (!ParameterName.IsValid())
+    {
+        UE_LOG_WARNING("[AnimSM] Invalid parameter: empty name");
+        return false;
+    }
+
+    if (FAnimStateMachineParameterDesc* ExistingParameter = FindParameter(ParameterName))
+    {
+        if (ExistingParameter->Type == ParameterType)
+        {
+            return true;
+        }
+
+        UE_LOG_WARNING(
+            "[AnimSM] Invalid parameter: type conflict for %s",
+            ParameterName.ToString().c_str());
+        return false;
+    }
+
+    FAnimStateMachineParameterDesc Parameter;
+    Parameter.Name = ParameterName;
+    Parameter.Type = ParameterType;
+    Parameters.push_back(Parameter);
+    return true;
+}
+
+bool UAnimStateMachineAsset::RenameParameter(const FName& OldParameterName, const FName& NewParameterName)
+{
+    if (!OldParameterName.IsValid() || !NewParameterName.IsValid() || OldParameterName == NewParameterName)
+    {
+        return false;
+    }
+
+    FAnimStateMachineParameterDesc* Parameter = FindParameter(OldParameterName);
+    if (!Parameter || FindParameter(NewParameterName))
+    {
+        return false;
+    }
+
+    Parameter->Name = NewParameterName;
+    for (FAnimTransitionDesc& Transition : Transitions)
+    {
+        for (FAnimTransitionCondition& Condition : Transition.Conditions)
+        {
+            if (Condition.ParameterName == OldParameterName)
+            {
+                Condition.ParameterName = NewParameterName;
+            }
+        }
+    }
+
+    return true;
+}
+
+bool UAnimStateMachineAsset::SetParameterType(const FName& ParameterName, EAnimParameterType ParameterType)
+{
+    FAnimStateMachineParameterDesc* Parameter = FindParameter(ParameterName);
+    if (!Parameter)
+    {
+        return false;
+    }
+
+    if (Parameter->Type == ParameterType)
+    {
+        return true;
+    }
+
+    Parameter->Type = ParameterType;
+    for (FAnimTransitionDesc& Transition : Transitions)
+    {
+        for (FAnimTransitionCondition& Condition : Transition.Conditions)
+        {
+            if (Condition.ParameterName == ParameterName)
+            {
+                ResetConditionForParameterType(Condition, ParameterType);
+            }
+        }
+    }
+
+    return true;
+}
+
+bool UAnimStateMachineAsset::RemoveParameter(const FName& ParameterName)
+{
+    if (IsParameterReferenced(ParameterName))
+    {
+        UE_LOG_WARNING(
+            "[AnimSM] Remove parameter failed: parameter is referenced %s",
+            ParameterName.ToString().c_str());
+        return false;
+    }
+
+    const auto OldSize = Parameters.size();
+    Parameters.erase(
+        std::remove_if(
+            Parameters.begin(),
+            Parameters.end(),
+            [&ParameterName](const FAnimStateMachineParameterDesc& Parameter)
+            {
+                return Parameter.Name == ParameterName;
+            }),
+        Parameters.end());
+    return Parameters.size() != OldSize;
+}
+
+bool UAnimStateMachineAsset::RemoveParameterAndConditions(const FName& ParameterName)
+{
+    if (!FindParameter(ParameterName))
+    {
+        return false;
+    }
+
+    Parameters.erase(
+        std::remove_if(
+            Parameters.begin(),
+            Parameters.end(),
+            [&ParameterName](const FAnimStateMachineParameterDesc& ExistingParameter)
+            {
+                return ExistingParameter.Name == ParameterName;
+            }),
+        Parameters.end());
+
+    TArray<FAnimTransitionId> RemovedTransitionIds;
+    for (FAnimTransitionDesc& Transition : Transitions)
+    {
+        Transition.Conditions.erase(
+            std::remove_if(
+                Transition.Conditions.begin(),
+                Transition.Conditions.end(),
+                [&ParameterName](const FAnimTransitionCondition& Condition)
+                {
+                    return Condition.ParameterName == ParameterName;
+                }),
+            Transition.Conditions.end());
+        if (Transition.Conditions.empty())
+        {
+            RemovedTransitionIds.push_back(Transition.Id);
+        }
+    }
+
+    Transitions.erase(
+        std::remove_if(
+            Transitions.begin(),
+            Transitions.end(),
+            [](const FAnimTransitionDesc& Transition)
+            {
+                return Transition.Conditions.empty();
+            }),
+        Transitions.end());
+    TransitionEditorMetadata.erase(
+        std::remove_if(
+            TransitionEditorMetadata.begin(),
+            TransitionEditorMetadata.end(),
+            [&RemovedTransitionIds](const FAnimTransitionEditorMetadata& Metadata)
+            {
+                return std::find(
+                    RemovedTransitionIds.begin(),
+                    RemovedTransitionIds.end(),
+                    Metadata.TransitionId) != RemovedTransitionIds.end();
+            }),
+        TransitionEditorMetadata.end());
+    return true;
+}
+
+uint32 UAnimStateMachineAsset::RemoveUnusedParameters()
+{
+    const auto OldSize = Parameters.size();
+    Parameters.erase(
+        std::remove_if(
+            Parameters.begin(),
+            Parameters.end(),
+            [this](const FAnimStateMachineParameterDesc& Parameter)
+            {
+                return !IsParameterReferenced(Parameter.Name);
+            }),
+        Parameters.end());
+    return static_cast<uint32>(OldSize - Parameters.size());
+}
+
+const FAnimStateMachineParameterDesc* UAnimStateMachineAsset::FindParameter(const FName& ParameterName) const
+{
+    if (!ParameterName.IsValid())
+    {
+        return nullptr;
+    }
+
+    for (const FAnimStateMachineParameterDesc& Parameter : Parameters)
+    {
+        if (Parameter.Name == ParameterName)
+        {
+            return &Parameter;
+        }
+    }
+
+    return nullptr;
+}
+
+FAnimStateMachineParameterDesc* UAnimStateMachineAsset::FindParameter(const FName& ParameterName)
+{
+    return const_cast<FAnimStateMachineParameterDesc*>(
+        static_cast<const UAnimStateMachineAsset*>(this)->FindParameter(ParameterName));
 }
 
 const FAnimStateDesc* UAnimStateMachineAsset::FindState(const FName& StateName) const
@@ -379,6 +927,12 @@ const FAnimTransitionDesc* UAnimStateMachineAsset::FindTransitionById(FAnimTrans
     }
 
     return nullptr;
+}
+
+FAnimTransitionDesc* UAnimStateMachineAsset::FindTransitionById(FAnimTransitionId TransitionId)
+{
+    return const_cast<FAnimTransitionDesc*>(
+        static_cast<const UAnimStateMachineAsset*>(this)->FindTransitionById(TransitionId));
 }
 
 TArray<const FAnimTransitionDesc*> UAnimStateMachineAsset::GetTransitionsFrom(const FName& StateName) const
@@ -452,6 +1006,27 @@ bool UAnimStateMachineAsset::Validate(FString* OutMessage) const
         }
     }
 
+    for (size_t ParameterIndex = 0; ParameterIndex < Parameters.size(); ++ParameterIndex)
+    {
+        const FAnimStateMachineParameterDesc& Parameter = Parameters[ParameterIndex];
+        if (!Parameter.Name.IsValid())
+        {
+            SetMessage("Parameter name is empty");
+            UE_LOG_WARNING("[AnimSM] Invalid asset: parameter name is empty");
+            return false;
+        }
+
+        for (size_t OtherIndex = ParameterIndex + 1; OtherIndex < Parameters.size(); ++OtherIndex)
+        {
+            if (Parameter.Name == Parameters[OtherIndex].Name)
+            {
+                SetMessage("Duplicate parameter name");
+                UE_LOG_WARNING("[AnimSM] Invalid asset: duplicate parameter %s", Parameter.Name.ToString().c_str());
+                return false;
+            }
+        }
+    }
+
     for (size_t TransitionIndex = 0; TransitionIndex < Transitions.size(); ++TransitionIndex)
     {
         const FAnimTransitionDesc& Transition = Transitions[TransitionIndex];
@@ -495,10 +1070,11 @@ bool UAnimStateMachineAsset::Validate(FString* OutMessage) const
 
         for (const FAnimTransitionCondition& Condition : Transition.Conditions)
         {
-            if (!Condition.ParameterName.IsValid())
+            FString ConditionMessage;
+            if (!IsConditionCompatibleWithDeclaration(Condition, &ConditionMessage))
             {
-                SetMessage("Transition condition parameter name is empty");
-                UE_LOG_WARNING("[AnimSM] Invalid asset: transition condition parameter name is empty");
+                SetMessage(ConditionMessage);
+                UE_LOG_WARNING("[AnimSM] Invalid asset: %s", ConditionMessage.c_str());
                 return false;
             }
         }
@@ -561,8 +1137,26 @@ bool UAnimStateMachineAsset::HasDuplicateTransition(
     FAnimStateId ToStateId,
     const TArray<FAnimTransitionCondition>& Conditions) const
 {
+    return HasDuplicateTransition(
+        FromStateId,
+        ToStateId,
+        Conditions,
+        InvalidAnimTransitionId);
+}
+
+bool UAnimStateMachineAsset::HasDuplicateTransition(
+    FAnimStateId FromStateId,
+    FAnimStateId ToStateId,
+    const TArray<FAnimTransitionCondition>& Conditions,
+    FAnimTransitionId IgnoredTransitionId) const
+{
     for (const FAnimTransitionDesc& Transition : Transitions)
     {
+        if (Transition.Id == IgnoredTransitionId)
+        {
+            continue;
+        }
+
         if (Transition.FromStateId == FromStateId &&
             Transition.ToStateId == ToStateId &&
             AreConditionsEqual(Transition.Conditions, Conditions))
@@ -572,4 +1166,64 @@ bool UAnimStateMachineAsset::HasDuplicateTransition(
     }
 
     return false;
+}
+
+bool UAnimStateMachineAsset::IsParameterReferenced(const FName& ParameterName) const
+{
+    if (!ParameterName.IsValid())
+    {
+        return false;
+    }
+
+    for (const FAnimTransitionDesc& Transition : Transitions)
+    {
+        for (const FAnimTransitionCondition& Condition : Transition.Conditions)
+        {
+            if (Condition.ParameterName == ParameterName)
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+bool UAnimStateMachineAsset::IsConditionCompatibleWithDeclaration(
+    const FAnimTransitionCondition& Condition,
+    FString* OutMessage) const
+{
+    auto SetMessage = [OutMessage](const FString& Message)
+    {
+        if (OutMessage)
+        {
+            *OutMessage = Message;
+        }
+    };
+
+    if (!Condition.ParameterName.IsValid())
+    {
+        SetMessage("Transition condition parameter name is empty");
+        return false;
+    }
+
+    const FAnimStateMachineParameterDesc* Parameter = FindParameter(Condition.ParameterName);
+    if (!Parameter)
+    {
+        SetMessage("Transition condition parameter is not declared");
+        return false;
+    }
+
+    if (!IsCompareOpValidForParameterType(Parameter->Type, Condition.CompareOp))
+    {
+        SetMessage("Transition condition compare op does not match parameter type");
+        return false;
+    }
+
+    return true;
+}
+
+bool UAnimStateMachineAsset::EnsureParameterDeclaration(const FName& ParameterName, EAnimParameterType ParameterType)
+{
+    return AddParameter(ParameterName, ParameterType);
 }

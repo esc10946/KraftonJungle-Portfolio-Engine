@@ -1,6 +1,7 @@
 ﻿#include "GameFramework/PlayerController.h"
 
 #include "Component/CameraComponent.h"
+#include "Component/SceneComponent.h"
 #include "Core/Logging/Log.h"
 #include "Engine/Input/InputSystem.h"
 #include "Engine/Runtime/Engine.h"
@@ -28,6 +29,11 @@ namespace
 		Result.Normalize();
 		return Result;
 	}
+}
+
+void APlayerController::InitDefaultComponents()
+{
+	SetRootComponent(AddComponent<USceneComponent>());
 }
 
 void APlayerController::BeginPlay()

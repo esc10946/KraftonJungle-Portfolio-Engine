@@ -335,22 +335,28 @@ bool FEditorMainPanel::RenderActiveDocumentMainMenu()
 	};
 
 	if (ActiveTab->Id.Kind == EEditorTabKind::AnimationViewer ||
+		ActiveTab->Id.Kind == EEditorTabKind::AnimStateMachineGraphViewer ||
 		ActiveTab->Id.Kind == EEditorTabKind::SkeletalMeshViewer ||
 		ActiveTab->Id.Kind == EEditorTabKind::StaticMeshViewer)
 	{
 		FEditorViewerWindowWidget* ViewerWidget = FindViewerWidgetForTab(ActiveTab->Id);
 		FEditorViewer* Viewer = ViewerWidget ? ViewerWidget->GetViewer() : nullptr;
 		const bool bAnimationViewer = ActiveTab->Id.Kind == EEditorTabKind::AnimationViewer;
-		const bool bCanSaveMesh = !bAnimationViewer && ViewerWidget && ViewerWidget->CanSaveMesh();
-		const char* SaveLabel = bAnimationViewer
+		const bool bGraphViewer = ActiveTab->Id.Kind == EEditorTabKind::AnimStateMachineGraphViewer;
+		const bool bCanSaveAsset = bGraphViewer
+			? (ViewerWidget && ViewerWidget->CanSaveGraph())
+			: (!bAnimationViewer && ViewerWidget && ViewerWidget->CanSaveMesh());
+		const char* SaveLabel = bGraphViewer
+			? (ViewerWidget && ViewerWidget->IsGraphDirty() ? "Save State Machine *" : "Save State Machine")
+			: (bAnimationViewer
 			? "Save Animation"
-			: (ViewerWidget && ViewerWidget->IsMeshDirty() ? "Save Mesh *" : "Save Mesh");
+			: (ViewerWidget && ViewerWidget->IsMeshDirty() ? "Save Mesh *" : "Save Mesh"));
 
 		if (ImGui::BeginMenu("File"))
 		{
-			if (ImGui::MenuItem(SaveLabel, "Ctrl+S", false, bCanSaveMesh))
+			if (ImGui::MenuItem(SaveLabel, "Ctrl+S", false, bCanSaveAsset))
 			{
-				ViewerWidget->RequestSaveMesh();
+				bGraphViewer ? ViewerWidget->RequestSaveGraph() : ViewerWidget->RequestSaveMesh();
 			}
 			ImGui::Separator();
 			if (ActiveTab->bCanClose && ImGui::MenuItem("Close Tab"))
@@ -369,11 +375,11 @@ bool FEditorMainPanel::RenderActiveDocumentMainMenu()
 
 		if (ImGui::BeginMenu("Asset"))
 		{
-			if (ImGui::MenuItem(SaveLabel, nullptr, false, bCanSaveMesh))
+			if (ImGui::MenuItem(SaveLabel, nullptr, false, bCanSaveAsset))
 			{
-				ViewerWidget->RequestSaveMesh();
+				bGraphViewer ? ViewerWidget->RequestSaveGraph() : ViewerWidget->RequestSaveMesh();
 			}
-			ImGui::MenuItem(bAnimationViewer ? "Reimport Animation" : "Reimport Mesh", nullptr, false, false);
+			ImGui::MenuItem(bGraphViewer ? "Validate State Machine" : (bAnimationViewer ? "Reimport Animation" : "Reimport Mesh"), nullptr, false, false);
 			if (Viewer)
 			{
 				ImGui::Separator();
@@ -386,7 +392,11 @@ bool FEditorMainPanel::RenderActiveDocumentMainMenu()
 
 		if (ImGui::BeginMenu("Tools"))
 		{
-			if (Viewer)
+			if (bGraphViewer)
+			{
+				ImGui::TextDisabled("Graph editor tools");
+			}
+			else if (Viewer)
 			{
 				FEditorViewportClient* Client = Viewer->GetViewportClient();
 				FSkeletalViewerShowFlags* ShowFlags = GetViewerShowFlags(Viewer);

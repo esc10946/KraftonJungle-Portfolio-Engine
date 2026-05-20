@@ -274,7 +274,18 @@ bool FAnimStateMachineNode::EvaluateCondition(
     const FAnimTransitionCondition& Condition,
     FAnimStateMachineParameterStore& Parameters) const
 {
-    if (Condition.ParameterType == EAnimParameterType::Trigger)
+    const FAnimStateMachineParameterDesc* Parameter = Asset ? Asset->FindParameter(Condition.ParameterName) : nullptr;
+    if (!Parameter)
+    {
+        if (!HasWarnedMissingParameter(Condition.ParameterName))
+        {
+            UE_LOG_WARNING("[AnimSM] Missing parameter declaration: %s", Condition.ParameterName.ToString().c_str());
+            MarkMissingParameterWarned(Condition.ParameterName);
+        }
+        return false;
+    }
+
+    if (Parameter->Type == EAnimParameterType::Trigger)
     {
         const bool bTriggered = Parameters.ConsumeTrigger(Condition.ParameterName);
         if (!bTriggered && !HasWarnedMissingParameter(Condition.ParameterName))
@@ -285,7 +296,7 @@ bool FAnimStateMachineNode::EvaluateCondition(
         return bTriggered;
     }
 
-    if (Condition.ParameterType == EAnimParameterType::Bool)
+    if (Parameter->Type == EAnimParameterType::Bool)
     {
         bool Value = false;
         if (!Parameters.GetBool(Condition.ParameterName, Value))
@@ -300,7 +311,7 @@ bool FAnimStateMachineNode::EvaluateCondition(
         return CompareBool(Value, Condition.CompareValue.BoolValue, Condition.CompareOp);
     }
 
-    if (Condition.ParameterType == EAnimParameterType::Int)
+    if (Parameter->Type == EAnimParameterType::Int)
     {
         int32 Value = 0;
         if (!Parameters.GetInt(Condition.ParameterName, Value))
@@ -315,7 +326,7 @@ bool FAnimStateMachineNode::EvaluateCondition(
         return CompareInt(Value, Condition.CompareValue.IntValue, Condition.CompareOp);
     }
 
-    if (Condition.ParameterType == EAnimParameterType::Float)
+    if (Parameter->Type == EAnimParameterType::Float)
     {
         if (Condition.ParameterName == NAME_StateElapsedTime)
         {
@@ -335,7 +346,7 @@ bool FAnimStateMachineNode::EvaluateCondition(
         return CompareFloat(Value, Condition.CompareValue.FloatValue, Condition.CompareOp);
     }
 
-    if (Condition.ParameterType == EAnimParameterType::Vector)
+    if (Parameter->Type == EAnimParameterType::Vector)
     {
         FVector Value = FVector::ZeroVector;
         if (!Parameters.GetVector(Condition.ParameterName, Value))
