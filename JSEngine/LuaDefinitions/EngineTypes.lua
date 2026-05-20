@@ -436,6 +436,27 @@ function ActorSequencePlayer:GetCurrentTime() end
 ---@return boolean
 function ActorSequencePlayer:IsPlaying() end
 
+---@class AnimStateMachineTransitionCondition
+---@field ParameterName string
+---@field Type "'Bool'"|"'Int'"|"'Float'"|"'Vector'"|"'Trigger'"|string
+---@field CompareOp? "'Equal'"|"'NotEqual'"|"'Greater'"|"'GreaterEqual'"|"'Less'"|"'LessEqual'"|"'IsTrue'"|"'IsFalse'"|string
+---@field Value? boolean|integer|number|FVector
+
+---@class AnimStateMachineNode
+local AnimStateMachineNode = {}
+---@return string
+function AnimStateMachineNode:GetCurrentState() end
+---@return string
+function AnimStateMachineNode:GetPreviousState() end
+---@return number
+function AnimStateMachineNode:GetStateElapsedTime() end
+---@return boolean
+function AnimStateMachineNode:IsLooping() end
+---@return boolean
+function AnimStateMachineNode:IsReversePlaying() end
+---@return AnimStateMachineAsset|nil
+function AnimStateMachineNode:GetAsset() end
+
 ---@class AnimStateMachineAsset: Object
 local AnimStateMachineAsset = {}
 ---@param stateName string
@@ -455,14 +476,101 @@ function AnimStateMachineAsset:AddStateWithPath(stateName, animationName, animat
 ---@param animationPath string
 ---@return boolean
 function AnimStateMachineAsset:SetStateAnimationPath(stateName, animationPath) end
+---@param parameterName string
+---@param parameterType "'Bool'"|"'Int'"|"'Float'"|"'Vector'"|"'Trigger'"|string
+---@return boolean
+function AnimStateMachineAsset:AddParameter(parameterName, parameterType) end
+---@param oldParameterName string
+---@param newParameterName string
+---@return boolean
+function AnimStateMachineAsset:RenameParameter(oldParameterName, newParameterName) end
+---@param parameterName string
+---@param parameterType "'Bool'"|"'Int'"|"'Float'"|"'Vector'"|"'Trigger'"|string
+---@return boolean
+function AnimStateMachineAsset:SetParameterType(parameterName, parameterType) end
+---@param parameterName string
+---@return boolean
+function AnimStateMachineAsset:RemoveParameter(parameterName) end
+---@param parameterName string
+---@return boolean
+function AnimStateMachineAsset:RemoveParameterAndConditions(parameterName) end
+---@return integer
+function AnimStateMachineAsset:RemoveUnusedParameters() end
 ---@param fromState string
 ---@param toState string
----@param conditionName string
+---@param conditions AnimStateMachineTransitionCondition[]
 ---@param blendTime number
 ---@param priority integer
 ---@param easeOption? "'Linear'"|"'EaseIn'"|"'EaseOut'"|"'EaseInOut'"|string
 ---@return boolean
-function AnimStateMachineAsset:AddTransition(fromState, toState, conditionName, blendTime, priority, easeOption) end
+function AnimStateMachineAsset:AddTransition(fromState, toState, conditions, blendTime, priority, easeOption) end
+---@param fromState string
+---@param toState string
+---@param parameterName string
+---@param parameterType "'Bool'"|"'Int'"|"'Float'"|"'Vector'"|"'Trigger'"|string
+---@param compareOp string
+---@param value any
+---@param blendTime number
+---@param priority integer
+---@param easeOption? "'Linear'"|"'EaseIn'"|"'EaseOut'"|"'EaseInOut'"|string
+---@return boolean
+function AnimStateMachineAsset:AddTransition(fromState, toState, parameterName, parameterType, compareOp, value, blendTime, priority, easeOption) end
+---@param fromState string
+---@param toState string
+---@param conditions AnimStateMachineTransitionCondition[]
+---@param blendTime number
+---@param priority integer
+---@param easeOption? "'Linear'"|"'EaseIn'"|"'EaseOut'"|"'EaseInOut'"|string
+---@return boolean
+function AnimStateMachineAsset:AddTransitionWithConditions(fromState, toState, conditions, blendTime, priority, easeOption) end
+---@param fromState string
+---@param toState string
+---@param parameterName string
+---@param compareOp string
+---@param value boolean
+---@param blendTime number
+---@param priority integer
+---@param easeOption? "'Linear'"|"'EaseIn'"|"'EaseOut'"|"'EaseInOut'"|string
+---@return boolean
+function AnimStateMachineAsset:AddBoolTransition(fromState, toState, parameterName, compareOp, value, blendTime, priority, easeOption) end
+---@param fromState string
+---@param toState string
+---@param parameterName string
+---@param compareOp string
+---@param value integer
+---@param blendTime number
+---@param priority integer
+---@param easeOption? "'Linear'"|"'EaseIn'"|"'EaseOut'"|"'EaseInOut'"|string
+---@return boolean
+function AnimStateMachineAsset:AddIntTransition(fromState, toState, parameterName, compareOp, value, blendTime, priority, easeOption) end
+---@param fromState string
+---@param toState string
+---@param parameterName string
+---@param compareOp string
+---@param value number
+---@param blendTime number
+---@param priority integer
+---@param easeOption? "'Linear'"|"'EaseIn'"|"'EaseOut'"|"'EaseInOut'"|string
+---@return boolean
+function AnimStateMachineAsset:AddFloatTransition(fromState, toState, parameterName, compareOp, value, blendTime, priority, easeOption) end
+---@param fromState string
+---@param toState string
+---@param parameterName string
+---@param compareOp string
+---@param value FVector
+---@param blendTime number
+---@param priority integer
+---@param easeOption? "'Linear'"|"'EaseIn'"|"'EaseOut'"|"'EaseInOut'"|string
+---@return boolean
+function AnimStateMachineAsset:AddVectorTransition(fromState, toState, parameterName, compareOp, value, blendTime, priority, easeOption) end
+---@param fromState string
+---@param toState string
+---@param parameterName string
+---@param blendTime number
+---@param priority integer
+---@param easeOption? "'Linear'"|"'EaseIn'"|"'EaseOut'"|"'EaseInOut'"|string
+---@return boolean
+function AnimStateMachineAsset:AddTriggerTransition(fromState, toState, parameterName, blendTime, priority, easeOption) end
 ---@return boolean
 function AnimStateMachineAsset:Validate() end
 ---@param assetPath string
@@ -505,6 +613,16 @@ function AnimInstance:SetAnimFloatParameter(name, value) end
 function AnimInstance:SetAnimVectorParameter(name, value) end
 ---@param name string
 function AnimInstance:SetAnimTriggerParameter(name) end
+---@return AnimStateMachineNode|nil
+function AnimInstance:GetStateMachine() end
+---@return AnimStateMachineAsset|nil
+function AnimInstance:GetStateMachineAsset() end
+---@return string
+function AnimInstance:GetCurrentState() end
+---@return string
+function AnimInstance:GetPreviousState() end
+---@return number
+function AnimInstance:GetStateElapsedTime() end
 ---@return SkeletalMeshComponent|nil
 function AnimInstance:GetSkelMeshComponent() end
 

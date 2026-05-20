@@ -107,6 +107,115 @@ bool LuaTryParseAnimParameterType(const FString& TypeName, EAnimParameterType& O
 
     return false;
 }
+
+FString LuaGetStringField(const sol::table& Table, const char* UpperName, const char* LowerName, const FString& DefaultValue = "")
+{
+    sol::object Value = Table[UpperName];
+    if (Value.valid() && Value != sol::nil && Value.get_type() == sol::type::string)
+    {
+        return Value.as<FString>();
+    }
+
+    Value = Table[LowerName];
+    if (Value.valid() && Value != sol::nil && Value.get_type() == sol::type::string)
+    {
+        return Value.as<FString>();
+    }
+
+    return DefaultValue;
+}
+
+sol::object LuaGetField(const sol::table& Table, const char* UpperName, const char* LowerName)
+{
+    sol::object Value = Table[UpperName];
+    if (Value.valid() && Value != sol::nil)
+    {
+        return Value;
+    }
+
+    return Table[LowerName];
+}
+
+bool LuaTryBuildAnimTransitionCondition(const sol::table& Table, FAnimTransitionCondition& OutCondition)
+{
+    const FString ParameterName = LuaGetStringField(Table, "ParameterName", "parameterName");
+    const FString ParameterTypeName = LuaGetStringField(Table, "Type", "type");
+    if (ParameterName.empty() || ParameterTypeName.empty())
+    {
+        return false;
+    }
+
+    EAnimParameterType ParameterType = EAnimParameterType::Bool;
+    if (!LuaTryParseAnimParameterType(ParameterTypeName, ParameterType))
+    {
+        return false;
+    }
+
+    OutCondition.ParameterName = FName(ParameterName);
+    OutCondition.CompareOp = LuaParseAnimCompareOp(LuaGetStringField(Table, "CompareOp", "compareOp", "Equal"));
+
+    if (ParameterType == EAnimParameterType::Trigger)
+    {
+        OutCondition.CompareOp = EAnimCompareOp::IsTrue;
+        return true;
+    }
+
+    sol::object Value = LuaGetField(Table, "Value", "value");
+    if (!Value.valid() || Value == sol::nil)
+    {
+        return false;
+    }
+
+    if (ParameterType == EAnimParameterType::Bool)
+    {
+        OutCondition.CompareValue.BoolValue = Value.as<bool>();
+        return true;
+    }
+
+    if (ParameterType == EAnimParameterType::Int)
+    {
+        OutCondition.CompareValue.IntValue = Value.as<int32>();
+        return true;
+    }
+
+    if (ParameterType == EAnimParameterType::Float)
+    {
+        OutCondition.CompareValue.FloatValue = Value.as<float>();
+        return true;
+    }
+
+    if (ParameterType == EAnimParameterType::Vector)
+    {
+        OutCondition.CompareValue.VectorValue = Value.as<FVector>();
+        return true;
+    }
+
+    return false;
+}
+
+bool LuaTryBuildAnimTransitionConditions(const sol::table& ConditionsTable, TArray<FAnimTransitionCondition>& OutConditions)
+{
+    OutConditions.clear();
+
+    for (const auto& Pair : ConditionsTable)
+    {
+        sol::object ConditionObj = Pair.second;
+        if (!ConditionObj.valid() || ConditionObj.get_type() != sol::type::table)
+        {
+            continue;
+        }
+
+        FAnimTransitionCondition Condition;
+        if (!LuaTryBuildAnimTransitionCondition(ConditionObj.as<sol::table>(), Condition))
+        {
+            return false;
+        }
+
+        OutConditions.push_back(Condition);
+    }
+
+    return !OutConditions.empty();
+}
 } // namespace
 
 void FScriptManager::BindAnimationTypes()
@@ -142,6 +251,21 @@ void FScriptManager::BindAnimationTypes()
     LUA_METHOD(GetCurrentTime, GetCurrentTime);
     LUA_METHOD(AddFloatTrack, AddFloatTrack);
     LUA_METHOD(ClearTracks, ClearTracks);
+    LUA_END_TYPE();
+
+    LUA_BEGIN_TYPE_NO_CTOR(GLuaState, FAnimStateMachineNode, "AnimStateMachineNode")
+    LUA_SET(GetCurrentState, [](const FAnimStateMachineNode& Self)
+    {
+        return Self.GetCurrentState().ToString();
+    });
+    LUA_SET(GetPreviousState, [](const FAnimStateMachineNode& Self)
+    {
+        return Self.GetPreviousState().ToString();
+    });
+    LUA_METHOD(GetStateElapsedTime, GetStateElapsedTime);
+    LUA_METHOD(IsLooping, IsLooping);
+    LUA_METHOD(IsReversePlaying, IsReversePlaying);
+    LUA_METHOD(GetAsset, GetAsset);
     LUA_END_TYPE();
 
     LUA_BEGIN_TYPE_NO_CTOR_BASE(GLuaState, UAnimStateMachineAsset, "AnimStateMachineAsset", UObject)
@@ -197,7 +321,7 @@ void FScriptManager::BindAnimationTypes()
     {
         return Self.RemoveUnusedParameters();
     });
-    LUA_SET(AddTransition, [](
+    auto AddTypedTransition = [](
         UAnimStateMachineAsset& Self,
         const FString& FromState,
         const FString& ToState,
@@ -270,7 +394,32 @@ void FScriptManager::BindAnimationTypes()
             BlendTime,
             Priority,
             BlendEaseOption);
-    });
+    };
+    auto AddConditionTableTransition = [](
+        UAnimStateMachineAsset& Self,
+        const FString& FromState,
+        const FString& ToState,
+        sol::table ConditionsTable,
+        float BlendTime,
+        int32 Priority,
+        sol::optional<FString> EaseOption)
+    {
+        TArray<FAnimTransitionCondition> Conditions;
+        if (!LuaTryBuildAnimTransitionConditions(ConditionsTable, Conditions))
+        {
+            return false;
+        }
+
+        return Self.AddTransition(
+            FName(FromState),
+            FName(ToState),
+            Conditions,
+            BlendTime,
+            Priority,
+            LuaParseAnimBlendEaseOption(EaseOption.value_or("Linear")));
+    };
+    LUA_SET(AddTransition, sol::overload(AddConditionTableTransition, AddTypedTransition));
+    LUA_SET(AddTransitionWithConditions, AddConditionTableTransition);
     LUA_SET(AddBoolTransition, [](
         UAnimStateMachineAsset& Self,
         const FString& FromState,
@@ -440,6 +589,26 @@ void FScriptManager::BindAnimationTypes()
     LUA_SET(SetAnimTriggerParameter, [](UAnimInstance& Self, const FString& Name)
     {
         Self.SetAnimTriggerParameter(FName(Name));
+    });
+    LUA_SET(GetStateMachine, [](UAnimInstance& Self)
+    {
+        return Self.GetStateMachine();
+    });
+    LUA_METHOD(GetStateMachineAsset, GetStateMachineAsset);
+    LUA_SET(GetCurrentState, [](const UAnimInstance& Self)
+    {
+        const FAnimStateMachineNode* StateMachine = Self.GetStateMachine();
+        return StateMachine ? StateMachine->GetCurrentState().ToString() : FString();
+    });
+    LUA_SET(GetPreviousState, [](const UAnimInstance& Self)
+    {
+        const FAnimStateMachineNode* StateMachine = Self.GetStateMachine();
+        return StateMachine ? StateMachine->GetPreviousState().ToString() : FString();
+    });
+    LUA_SET(GetStateElapsedTime, [](const UAnimInstance& Self)
+    {
+        const FAnimStateMachineNode* StateMachine = Self.GetStateMachine();
+        return StateMachine ? StateMachine->GetStateElapsedTime() : 0.0f;
     });
     LUA_METHOD(GetSkelMeshComponent, GetSkelMeshComponent);
     LUA_END_TYPE();
