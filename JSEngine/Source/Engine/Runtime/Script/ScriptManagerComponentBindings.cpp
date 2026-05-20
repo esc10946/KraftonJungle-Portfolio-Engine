@@ -33,6 +33,7 @@
 #include "Component/SkeletalMeshComponent.h"
 #include "Component/SoundComponent.h"
 #include "Component/SphereComponent.h"
+#include "Component/SpringArmComponent.h"
 #include "Component/StaticMeshComponent.h"
 #include "Component/SubUVComponent.h"
 #include "Component/TextRenderComponent.h"
@@ -213,10 +214,32 @@ void FScriptManager::BindComponentTypes()
     LUA_METHOD(AttachToComponent, AttachToComponent);
     LUA_METHOD(GetRelativeLocation, GetRelativeLocation);
     LUA_METHOD(SetRelativeLocation, SetRelativeLocation);
+    LUA_METHOD(GetForwardVector, GetForwardVector);
+    LUA_METHOD(GetRightVector, GetRightVector);
+    LUA_METHOD(GetUpVector, GetUpVector);
     LUA_RW_PROPERTY(Location, GetRelativeLocation, SetRelativeLocation);
     LUA_RW_PROPERTY(Rotation, GetRelativeRotation, SetRelativeRotation);
     LUA_RW_PROPERTY(Scale, GetRelativeScale, SetRelativeScale);
     LUA_RO_PROPERTY(Forward, GetForwardVector);
+    LUA_RO_PROPERTY(Right, GetRightVector);
+    LUA_RO_PROPERTY(Up, GetUpVector);
+    LUA_END_TYPE();
+
+    LUA_BEGIN_TYPE_NO_CTOR_BASE(GLuaState, USpringArmComponent, "SpringArmComponent", USceneComponent, UActorComponent, UObject)
+    LUA_METHOD(AddYawInput, AddYawInput);
+    LUA_METHOD(AddPitchInput, AddPitchInput);
+    LUA_METHOD(GetTargetArmLength, GetTargetArmLength);
+    LUA_METHOD(SetTargetArmLength, SetTargetArmLength);
+    LUA_METHOD(GetSocketOffset, GetSocketOffset);
+    LUA_METHOD(SetSocketOffset, SetSocketOffset);
+    LUA_METHOD(IsCameraLagEnabled, IsCameraLagEnabled);
+    LUA_METHOD(SetCameraLagEnabled, SetCameraLagEnabled);
+    LUA_METHOD(GetCameraLagSpeed, GetCameraLagSpeed);
+    LUA_METHOD(SetCameraLagSpeed, SetCameraLagSpeed);
+    LUA_RW_PROPERTY(TargetArmLength, GetTargetArmLength, SetTargetArmLength);
+    LUA_RW_PROPERTY(SocketOffset, GetSocketOffset, SetSocketOffset);
+    LUA_RW_PROPERTY(CameraLagEnabled, IsCameraLagEnabled, SetCameraLagEnabled);
+    LUA_RW_PROPERTY(CameraLagSpeed, GetCameraLagSpeed, SetCameraLagSpeed);
     LUA_END_TYPE();
 
     LUA_BEGIN_TYPE_NO_CTOR_BASE(GLuaState, UMovementComponent, "MovementComponent", UActorComponent, UObject)
@@ -411,14 +434,10 @@ void FScriptManager::BindStaticMeshTypes()
     LUA_END_TYPE();
 
     LUA_BEGIN_TYPE_NO_CTOR_BASE(GLuaState, USkinnedMeshComponent, "SkinnedMeshComponent", UMeshComponent, UPrimitiveComponent, USceneComponent, UActorComponent, UObject)
-    LUA_METHOD(GetSkeletalMesh, GetSkeletalMesh);
-    LUA_METHOD(SetSkeletalMesh, SetSkeletalMesh);
     LUA_METHOD(HasValidMesh, HasValidMesh);
     LUA_END_TYPE();
 
     LUA_BEGIN_TYPE_NO_CTOR_BASE(GLuaState, USkeletalMeshComponent, "SkeletalMeshComponent", USkinnedMeshComponent, UMeshComponent, UPrimitiveComponent, USceneComponent, UActorComponent, UObject)
-    LUA_METHOD(GetSkeletalMesh, GetSkeletalMesh);
-    LUA_METHOD(SetSkeletalMesh, SetSkeletalMesh);
     LUA_METHOD(GetAnimInstance, GetAnimInstance);
     LUA_METHOD(UseDefaultAnimInstance, UseDefaultAnimInstance);
     LUA_METHOD(UseStateMachine, UseStateMachine);

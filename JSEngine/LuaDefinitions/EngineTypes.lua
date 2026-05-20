@@ -241,6 +241,8 @@ function ActorComponent:GetTags() end
 ---@class SceneComponent: ActorComponent
 ---@field Location Vector
 ---@field Forward Vector
+---@field Right Vector
+---@field Up Vector
 local SceneComponent = {}
 
 ---@return SceneComponent|nil
@@ -254,6 +256,39 @@ function SceneComponent:GetRelativeLocation() end
 
 ---@param location Vector
 function SceneComponent:SetRelativeLocation(location) end
+---@return Vector
+function SceneComponent:GetForwardVector() end
+---@return Vector
+function SceneComponent:GetRightVector() end
+---@return Vector
+function SceneComponent:GetUpVector() end
+
+---@class SpringArmComponent: SceneComponent
+---@field TargetArmLength number
+---@field SocketOffset Vector
+---@field CameraLagEnabled boolean
+---@field CameraLagSpeed number
+local SpringArmComponent = {}
+---@param deltaYawDegrees number
+function SpringArmComponent:AddYawInput(deltaYawDegrees) end
+---@param deltaPitchDegrees number
+function SpringArmComponent:AddPitchInput(deltaPitchDegrees) end
+---@return number
+function SpringArmComponent:GetTargetArmLength() end
+---@param targetArmLength number
+function SpringArmComponent:SetTargetArmLength(targetArmLength) end
+---@return Vector
+function SpringArmComponent:GetSocketOffset() end
+---@param socketOffset Vector
+function SpringArmComponent:SetSocketOffset(socketOffset) end
+---@return boolean
+function SpringArmComponent:IsCameraLagEnabled() end
+---@param enabled boolean
+function SpringArmComponent:SetCameraLagEnabled(enabled) end
+---@return number
+function SpringArmComponent:GetCameraLagSpeed() end
+---@param speed number
+function SpringArmComponent:SetCameraLagSpeed(speed) end
 
 ---@class MovementComponent: ActorComponent
 ---@field Velocity Vector
@@ -734,6 +769,15 @@ function AActor:Get_Actor_Right() end
 
 ---@return Vector
 function AActor:Get_Actor_Up() end
+
+---@return SkeletalMeshComponent|nil
+function AActor:GetSkeletalMeshComponent() end
+
+---@return SpringArmComponent|nil
+function AActor:GetSpringArmComponent() end
+
+---@return CameraComponent|nil
+function AActor:GetCameraComponent() end
 
 ---@return ActorComponent[]
 function AActor:Get_Components() end
