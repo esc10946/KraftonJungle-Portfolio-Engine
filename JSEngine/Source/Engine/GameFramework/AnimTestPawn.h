@@ -82,8 +82,8 @@ private:
     float LookSensitivityDegrees = 0.12f;
     float LocomotionBlendTime = 0.0f;
     float IntoRunDuration = 1.2f;
-    float WalkToIdleDuration = 1.0f;
-    float RunToIdleDuration = 1.0f;
+    float WalkToIdleDuration = 3.533f;
+    float RunToIdleDuration = 2.233f;
     float LightAttackDuration = 0.8f;
     float HeavyAttackDuration = 1.2f;
     float LightAttack3Duration = 0.8f;
