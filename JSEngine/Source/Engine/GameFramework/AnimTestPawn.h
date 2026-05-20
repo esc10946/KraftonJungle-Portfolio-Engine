@@ -86,6 +86,7 @@ private:
     float CameraPivotHeight = 1.35f;
     float CameraArmLength = 5.0f;
     FVector CameraSocketOffset = FVector(0.0f, 0.55f, 0.25f);
+    float MeshTurnSpeedDegreesPerSecond = 540.0f;
     float LocomotionBlendTime = 0.0f;
     float IntoRunDuration = 1.2f;
     float WalkToIdleDuration = 3.533f;

@@ -151,6 +151,7 @@ void AAnimTestPawn::Serialize(FArchive& Ar)
     Ar << "CameraPivotHeight" << CameraPivotHeight;
     Ar << "CameraArmLength" << CameraArmLength;
     Ar << "CameraSocketOffset" << CameraSocketOffset;
+    Ar << "MeshTurnSpeedDegreesPerSecond" << MeshTurnSpeedDegreesPerSecond;
     Ar << "LocomotionBlendTime" << LocomotionBlendTime;
     Ar << "IntoRunDuration" << IntoRunDuration;
     Ar << "WalkToIdleDuration" << WalkToIdleDuration;
@@ -173,6 +174,7 @@ void AAnimTestPawn::Serialize(FArchive& Ar)
         CameraInitialPitchDegrees = MathUtil::Clamp(CameraInitialPitchDegrees, -89.0f, 89.0f);
         CameraPivotHeight = std::max(0.0f, CameraPivotHeight);
         CameraArmLength = std::max(0.0f, CameraArmLength);
+        MeshTurnSpeedDegreesPerSecond = std::max(0.0f, MeshTurnSpeedDegreesPerSecond);
         LocomotionBlendTime = std::max(0.0f, LocomotionBlendTime);
         IntoRunDuration = std::max(0.0f, IntoRunDuration);
         WalkToIdleDuration = std::max(0.0f, WalkToIdleDuration);
@@ -227,6 +229,7 @@ void AAnimTestPawn::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
     OutProps.push_back({ "Camera Pivot Height", EPropertyType::Float, &CameraPivotHeight, 0.0f, 10.0f, 0.05f });
     OutProps.push_back({ "Camera Arm Length", EPropertyType::Float, &CameraArmLength, 0.0f, 20.0f, 0.1f });
     OutProps.push_back({ "Camera Socket Offset", EPropertyType::Vec3, &CameraSocketOffset, 0.0f, 0.0f, 0.05f });
+    OutProps.push_back({ "Mesh Turn Speed", EPropertyType::Float, &MeshTurnSpeedDegreesPerSecond, 0.0f, 1440.0f, 10.0f });
     OutProps.push_back({ "Locomotion Blend Time", EPropertyType::Float, &LocomotionBlendTime, 0.0f, 5.0f, 0.01f });
     OutProps.push_back({ "Into Run Duration", EPropertyType::Float, &IntoRunDuration, 0.0f, 5.0f, 0.01f });
     OutProps.push_back({ "Walk To Idle Duration", EPropertyType::Float, &WalkToIdleDuration, 0.0f, 5.0f, 0.01f });
@@ -265,6 +268,11 @@ void AAnimTestPawn::PostEditProperty(const char* PropertyName)
         CameraPivotHeight = std::max(0.0f, CameraPivotHeight);
         CameraArmLength = std::max(0.0f, CameraArmLength);
         ApplyCameraSettings();
+    }
+
+    if (std::strcmp(PropertyName, "Mesh Turn Speed") == 0)
+    {
+        MeshTurnSpeedDegreesPerSecond = std::max(0.0f, MeshTurnSpeedDegreesPerSecond);
     }
 
     if (std::strcmp(PropertyName, "Idle Animation") == 0 ||
@@ -863,7 +871,11 @@ void AAnimTestPawn::UpdateLocomotion(float DeltaTime)
             if (SkeletalMeshComp)
             {
                 FVector MeshRotation = SkeletalMeshComp->GetRelativeRotation();
-                MeshRotation.Z = FRotator::NormalizeAxis(YawDegrees - GetActorRotation().Z);
+                const float TargetRelativeYaw = FRotator::NormalizeAxis(YawDegrees - GetActorRotation().Z);
+                const float DeltaYaw = FRotator::NormalizeAxis(TargetRelativeYaw - MeshRotation.Z);
+                const float MaxYawStep = MeshTurnSpeedDegreesPerSecond * DeltaTime;
+                const float YawStep = MathUtil::Clamp(DeltaYaw, -MaxYawStep, MaxYawStep);
+                MeshRotation.Z = FRotator::NormalizeAxis(MeshRotation.Z + YawStep);
                 SkeletalMeshComp->SetRelativeRotation(MeshRotation);
             }
         }
