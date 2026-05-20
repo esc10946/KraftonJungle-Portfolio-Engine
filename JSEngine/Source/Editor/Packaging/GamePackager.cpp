@@ -1231,6 +1231,7 @@ namespace
 
     bool ResolveNativeSkeletalMeshBinaryForFbx(const FString& SourceFbxPath, FString& OutBinaryPath, FString& OutMessage)
     {
+        // FBX는 원본 소스 식별자이며 패키지 런타임은 native binary만 사용
         const FString NormalizedSourcePath = NormalizeAssetPathForPackage(SourceFbxPath);
         if (TryResolveImportedSkeletalMeshBinaryForFbx(NormalizedSourcePath, OutBinaryPath))
         {
@@ -1509,6 +1510,7 @@ namespace
             const FString Extension = GetLowerExtension(Value);
             if (Extension == ".fbx")
             {
+                // 만에 하나 씬/프리팹에 남은 FBX 참조는 패키징 중 binary cache file 경로로 치환
                 FString ImportedBinaryPath;
                 if (!ResolveNativeSkeletalMeshBinaryForFbx(Value, ImportedBinaryPath, OutMessage))
                 {
@@ -1579,6 +1581,7 @@ namespace
 
         if (Extension == ".fbx")
         {
+            // FBX 파일 자체는 복사하지 않고 대응되는 native binary만 dependency로 포함
             FString ImportedBinaryPath;
             if (!ResolveNativeSkeletalMeshBinaryForFbx(NormalizedPath, ImportedBinaryPath, OutMessage))
             {
