@@ -39,7 +39,6 @@ private:
     void UpdateLocomotion(float DeltaTime);
     FVector BuildCameraRelativeMoveDirection(const FVector2& MoveAxis) const;
     void UpdateAnimationParameters(float GroundSpeed, bool bMoving, bool bSprinting);
-    void AddDefaultAnimationNotifies(UAnimInstance* AnimInstance);
     void AddNotifyToAnimation(UAnimInstance* AnimInstance, const FName& AnimationName, const FName& NotifyName, float TriggerTime);
     bool IsInAttackState() const;
     bool IsInMainAttackState() const;
@@ -56,18 +55,18 @@ private:
     UAnimStateMachineAsset* LocomotionStateMachine = nullptr;
 
     FString SkeletalMeshPath = "Asset/SkeletalMesh/GwenFBX/Gwen_skeletalmesh_Buffbone_Cstm_Healthbar.bin";
-    FString IdleAnimationPath = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_Idle.anm.bin";
-    FString IntoRunAnimationPath = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_Into_Run.bin";
-    FString RunAnimationPath = "Asset/SkeletalMesh/GwenFBX/gwen_anim_Skeleton_Run.anm.bin";
-    FString HomeguardAnimationPath = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_Gwen_Homeguard.anm.bin";
-    FString WalkToIdleAnimationPath = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_IdleIn.bin";
-    FString RunToIdleAnimationPath = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_Idlein2.bin";
-    FString LightAttackAnimationPath = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_Attack1.bin";
-    FString HeavyAttackAnimationPath = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_Attack2.bin";
-    FString LightAttack3AnimationPath = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_Attack3.bin";
-    FString Attack1ToIdleAnimationPath = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_Attack1_To_Idle.bin";
-    FString Attack2ToIdleAnimationPath = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_Attack2_To_Idle.bin";
-    FString Attack3ToIdleAnimationPath = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_Attack3_To_Idle.bin";
+    FString IdleAnimationPath = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_Idle.anm.anim";
+    FString IntoRunAnimationPath = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_Into_Run.anim";
+    FString RunAnimationPath = "Asset/SkeletalMesh/GwenFBX/gwen_anim_Skeleton_Run.anm.anim";
+    FString HomeguardAnimationPath = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_Gwen_Homeguard.anm.anim";
+    FString WalkToIdleAnimationPath = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_IdleIn.anim";
+    FString RunToIdleAnimationPath = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_Idlein2.anim";
+    FString LightAttackAnimationPath = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_Attack1.anim";
+    FString HeavyAttackAnimationPath = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_Attack2.anim";
+    FString LightAttack3AnimationPath = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_Attack3.anim";
+    FString Attack1ToIdleAnimationPath = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_Attack1_To_Idle.anim";
+    FString Attack2ToIdleAnimationPath = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_Attack2_To_Idle.anim";
+    FString Attack3ToIdleAnimationPath = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_Attack3_To_Idle.anim";
     FString LightAttackSoundPath1 = "Asset/Audio/Gwen_Original_BasicAttack_1.ogg";
     FString LightAttackSoundPath2 = "Asset/Audio/Gwen_Original_BasicAttack_2.ogg";
     FString LightAttackSoundPath3 = "Asset/Audio/Gwen_Original_BasicAttack_3.ogg";

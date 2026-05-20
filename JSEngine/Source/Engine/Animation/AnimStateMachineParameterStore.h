@@ -13,6 +13,8 @@ struct FAnimParameter
 class FAnimStateMachineParameterStore
 {
 public:
+    void EnsureDefaults(const TArray<FAnimStateMachineParameterDesc>& Declarations);
+
     void SetBool(const FName& Name, bool Value);
     void SetInt(const FName& Name, int32 Value);
     void SetFloat(const FName& Name, float Value);
@@ -29,6 +31,7 @@ private:
     FAnimParameter* FindParameter(const FName& Name);
     const FAnimParameter* FindParameter(const FName& Name) const;
     FAnimParameter& FindOrAddParameter(const FName& Name, EAnimParameterType Type);
+    static void ResetToDefault(FAnimParameter& Parameter, EAnimParameterType Type);
 
 private:
     TArray<FAnimParameter> Parameters;

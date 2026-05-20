@@ -8,6 +8,13 @@ namespace
 {
 const FName NAME_StateElapsedTime("StateElapsedTime");
 
+FName GetStateAnimationPlaybackKey(const FAnimStateDesc& State)
+{
+    return State.AnimationPath.empty()
+        ? State.AnimationName
+        : FName(State.AnimationPath);
+}
+
 bool CompareFloat(float Left, float Right, EAnimCompareOp Op)
 {
     switch (Op)
@@ -237,18 +244,19 @@ bool FAnimStateMachineNode::PlayStateAnimation(
     float BlendTime,
     EAnimBlendEaseOption EaseOption)
 {
-    if (!State.AnimationName.IsValid())
+    const FName AnimationKey = GetStateAnimationPlaybackKey(State);
+    if (!AnimationKey.IsValid())
     {
         UE_LOG_WARNING("[AnimSM] Missing animation for state: %s", State.StateName.ToString().c_str());
         return false;
     }
 
-    if (!SequencePlayer->BlendToAnimationByName(State.AnimationName, State.bLoop, BlendTime, EaseOption))
+    if (!SequencePlayer->BlendToAnimationByName(AnimationKey, State.bLoop, BlendTime, EaseOption))
     {
         UE_LOG_WARNING(
             "[AnimSM] Missing animation mapping: state=%s animation=%s",
             State.StateName.ToString().c_str(),
-            State.AnimationName.ToString().c_str());
+            AnimationKey.ToString().c_str());
         return false;
     }
 

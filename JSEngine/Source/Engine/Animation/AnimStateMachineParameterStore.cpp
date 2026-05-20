@@ -1,5 +1,31 @@
 ﻿#include "Animation/AnimStateMachineParameterStore.h"
 
+void FAnimStateMachineParameterStore::EnsureDefaults(const TArray<FAnimStateMachineParameterDesc>& Declarations)
+{
+    for (const FAnimStateMachineParameterDesc& Declaration : Declarations)
+    {
+        if (!Declaration.Name.IsValid())
+        {
+            continue;
+        }
+
+        FAnimParameter* ExistingParameter = FindParameter(Declaration.Name);
+        if (ExistingParameter)
+        {
+            if (ExistingParameter->Type != Declaration.Type)
+            {
+                ResetToDefault(*ExistingParameter, Declaration.Type);
+            }
+            continue;
+        }
+
+        FAnimParameter Parameter;
+        Parameter.Name = Declaration.Name;
+        ResetToDefault(Parameter, Declaration.Type);
+        Parameters.push_back(Parameter);
+    }
+}
+
 void FAnimStateMachineParameterStore::SetBool(const FName& Name, bool Value)
 {
     FAnimParameter& Parameter = FindOrAddParameter(Name, EAnimParameterType::Bool);
@@ -130,4 +156,11 @@ FAnimParameter& FAnimStateMachineParameterStore::FindOrAddParameter(const FName&
     Parameter.Type = Type;
     Parameters.push_back(Parameter);
     return Parameters.back();
+}
+
+void FAnimStateMachineParameterStore::ResetToDefault(FAnimParameter& Parameter, EAnimParameterType Type)
+{
+    Parameter.Type = Type;
+    Parameter.Value = FAnimParameterValue();
+    Parameter.bTriggerSet = false;
 }

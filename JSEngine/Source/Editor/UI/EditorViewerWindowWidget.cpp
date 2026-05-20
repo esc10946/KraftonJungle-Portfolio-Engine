@@ -1957,13 +1957,13 @@ void FEditorViewerWindowWidget::RenderAnimStateMachineGraphContent(float DeltaTi
             ImGui::TextDisabled("STATE");
         }
         ImGui::TextUnformatted(State.StateName.ToString().c_str());
-        if (!State.AnimationName.ToString().empty())
-        {
-            ImGui::TextDisabled("%s", State.AnimationName.ToString().c_str());
-        }
-        else if (!State.AnimationPath.empty())
+        if (!State.AnimationPath.empty())
         {
             ImGui::TextDisabled("%s", State.AnimationPath.c_str());
+        }
+        else if (!State.AnimationName.ToString().empty())
+        {
+            ImGui::TextDisabled("%s", State.AnimationName.ToString().c_str());
         }
         else
         {

@@ -34,17 +34,18 @@ bool UAnimStateMachineAssetInstance::ReloadStateMachineAsset()
 
     for (const FAnimStateDesc& State : LoadedAsset->GetStates())
     {
-        if (!State.AnimationName.IsValid() || State.AnimationPath.empty())
+        if (State.AnimationPath.empty())
         {
             continue;
         }
 
-        if (!RegisterAnimationPath(State.AnimationName, State.AnimationPath))
+        const FName AnimationKey(State.AnimationPath);
+        if (!RegisterAnimationPath(AnimationKey, State.AnimationPath))
         {
             UE_LOG_WARNING(
                 "[AnimSM] Failed to register state animation path: state=%s animation=%s path=%s",
                 State.StateName.ToString().c_str(),
-                State.AnimationName.ToString().c_str(),
+                AnimationKey.ToString().c_str(),
                 State.AnimationPath.c_str());
         }
     }

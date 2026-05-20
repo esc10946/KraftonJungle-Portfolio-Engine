@@ -293,6 +293,7 @@ bool UAnimStateMachineAsset::SetStateAnimationPath(const FName& StateName, const
     if (FAnimStateDesc* State = FindState(StateName))
     {
         State->AnimationPath = FPaths::Normalize(AnimationPath);
+        State->AnimationName = FName();
         return true;
     }
 
@@ -310,6 +311,7 @@ bool UAnimStateMachineAsset::SetStateAnimationPathById(FAnimStateId StateId, con
     if (FAnimStateDesc* State = FindStateById(StateId))
     {
         State->AnimationPath = FPaths::Normalize(AnimationPath);
+        State->AnimationName = FName();
         return true;
     }
 

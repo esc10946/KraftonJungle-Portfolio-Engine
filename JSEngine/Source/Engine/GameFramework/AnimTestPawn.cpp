@@ -31,7 +31,7 @@ namespace
     const FName NAME_LightAttack3("LightAttack3");
     const FName NAME_HeavyAttack("HeavyAttack");
     const FName NAME_WalkToIdle("WalkToIdle");
-    const FName NAME_RunToIdle("RunToIdle");
+    const FName NAME_RunToIdle("RunToIdle");    
     const FName NAME_Attack1ToIdle("Attack1ToIdle");
     const FName NAME_Attack2ToIdle("Attack2ToIdle");
     const FName NAME_Attack3ToIdle("Attack3ToIdle");
@@ -406,7 +406,6 @@ void AAnimTestPawn::ConfigureLocomotionStateMachine()
     AnimInstance->RegisterAnimationPath(NAME_Attack1ToIdle, Attack1ToIdleAnimationPath);
     AnimInstance->RegisterAnimationPath(NAME_Attack2ToIdle, Attack2ToIdleAnimationPath);
     AnimInstance->RegisterAnimationPath(NAME_Attack3ToIdle, Attack3ToIdleAnimationPath);
-    AddDefaultAnimationNotifies(AnimInstance);
     AnimInstance->SetAnimFloatParameter(FName("Speed"), 0.0f);
     AnimInstance->SetAnimFloatParameter(FName("GroundSpeed"), 0.0f);
     AnimInstance->SetAnimBoolParameter(FName("bMoving"), false);
@@ -1016,13 +1015,6 @@ bool AAnimTestPawn::IsInMainAttackState() const
     return CurrentState == NAME_LightAttack1 ||
         CurrentState == NAME_LightAttack3 ||
         CurrentState == NAME_HeavyAttack;
-}
-
-void AAnimTestPawn::AddDefaultAnimationNotifies(UAnimInstance* AnimInstance)
-{
-    AddNotifyToAnimation(AnimInstance, NAME_LightAttack1, NAME_LightAttack1Start, 0.01f);
-    AddNotifyToAnimation(AnimInstance, NAME_LightAttack3, NAME_LightAttack3Start, 0.01f);
-    AddNotifyToAnimation(AnimInstance, NAME_HeavyAttack, NAME_HeavyAttackStart, 0.01f);
 }
 
 void AAnimTestPawn::AddNotifyToAnimation(

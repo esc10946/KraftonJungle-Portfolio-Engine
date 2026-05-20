@@ -130,6 +130,10 @@ void UAnimInstance::SetStateMachineAsset(UAnimStateMachineAsset* InStateMachineA
     if (StateMachineNode)
     {
         StateMachineNode->SetStateMachineAsset(InStateMachineAsset);
+        if (InStateMachineAsset)
+        {
+            AnimParameters.EnsureDefaults(InStateMachineAsset->GetParameters());
+        }
         StateMachineNode->InitializeStateMachine();
     }
 }
@@ -270,7 +274,11 @@ void UAnimInstance::TriggerAnimNotifiesInRange(
         bool bShouldTrigger = false;
         if (bForward)
         {
-            bShouldTrigger = Notify.TriggerTime > RangeStart && Notify.TriggerTime <= RangeEnd;
+            const bool bIncludesPlaybackStart = RangeStart <= 0.0f;
+            bShouldTrigger =
+                ((Notify.TriggerTime > RangeStart) ||
+                 (bIncludesPlaybackStart && Notify.TriggerTime >= 0.0f)) &&
+                Notify.TriggerTime <= RangeEnd;
         }
         else
         {
