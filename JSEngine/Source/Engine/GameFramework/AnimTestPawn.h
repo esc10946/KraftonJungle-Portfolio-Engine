@@ -34,6 +34,7 @@ public:
 
 private:
     void LoadConfiguredSkeletalMesh();
+    void ApplyCameraSettings();
     void ConfigureLocomotionStateMachine();
     void UpdateLocomotion(float DeltaTime);
     FVector BuildCameraRelativeMoveDirection(const FVector2& MoveAxis) const;
@@ -80,6 +81,11 @@ private:
     float MoveSpeed = 7.0f;
     float SprintSpeedMultiplier = 1.5f;
     float LookSensitivityDegrees = 0.12f;
+    float CameraInitialYawDegrees = 90.0f;
+    float CameraInitialPitchDegrees = -18.0f;
+    float CameraPivotHeight = 1.35f;
+    float CameraArmLength = 5.0f;
+    FVector CameraSocketOffset = FVector(0.0f, 0.55f, 0.25f);
     float LocomotionBlendTime = 0.0f;
     float IntoRunDuration = 1.2f;
     float WalkToIdleDuration = 3.533f;

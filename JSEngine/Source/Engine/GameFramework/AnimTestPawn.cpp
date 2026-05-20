@@ -86,11 +86,7 @@ void AAnimTestPawn::InitDefaultComponents()
 
     SpringArmComp = AddComponent<USpringArmComponent>();
     SpringArmComp->AttachToComponent(SceneRoot);
-    SpringArmComp->SetRelativeLocation(FVector(0.0f, 0.0f, 1.6f));
-    SpringArmComp->AddYawInput(90.0f);
-    SpringArmComp->AddPitchInput(-60.0f);
-    SpringArmComp->SetTargetArmLength(8.0f);
-    SpringArmComp->SetSocketOffset(FVector(0.0f, 0.0f, 0.5f));
+    ApplyCameraSettings();
 
     CameraComp = AddComponent<UCameraComponent>();
     CameraComp->AttachToComponent(SpringArmComp);
@@ -150,6 +146,11 @@ void AAnimTestPawn::Serialize(FArchive& Ar)
     Ar << "MoveSpeed" << MoveSpeed;
     Ar << "SprintSpeedMultiplier" << SprintSpeedMultiplier;
     Ar << "LookSensitivityDegrees" << LookSensitivityDegrees;
+    Ar << "CameraInitialYawDegrees" << CameraInitialYawDegrees;
+    Ar << "CameraInitialPitchDegrees" << CameraInitialPitchDegrees;
+    Ar << "CameraPivotHeight" << CameraPivotHeight;
+    Ar << "CameraArmLength" << CameraArmLength;
+    Ar << "CameraSocketOffset" << CameraSocketOffset;
     Ar << "LocomotionBlendTime" << LocomotionBlendTime;
     Ar << "IntoRunDuration" << IntoRunDuration;
     Ar << "WalkToIdleDuration" << WalkToIdleDuration;
@@ -169,6 +170,9 @@ void AAnimTestPawn::Serialize(FArchive& Ar)
         MoveSpeed = std::max(0.0f, MoveSpeed);
         SprintSpeedMultiplier = std::max(1.0f, SprintSpeedMultiplier);
         LookSensitivityDegrees = std::max(0.0f, LookSensitivityDegrees);
+        CameraInitialPitchDegrees = MathUtil::Clamp(CameraInitialPitchDegrees, -89.0f, 89.0f);
+        CameraPivotHeight = std::max(0.0f, CameraPivotHeight);
+        CameraArmLength = std::max(0.0f, CameraArmLength);
         LocomotionBlendTime = std::max(0.0f, LocomotionBlendTime);
         IntoRunDuration = std::max(0.0f, IntoRunDuration);
         WalkToIdleDuration = std::max(0.0f, WalkToIdleDuration);
@@ -182,6 +186,7 @@ void AAnimTestPawn::Serialize(FArchive& Ar)
         MoveStartSpeedThreshold = std::max(0.0f, MoveStartSpeedThreshold);
 
         LoadConfiguredSkeletalMesh();
+        ApplyCameraSettings();
         if (bAutoConfigureAnimation)
         {
             ConfigureLocomotionStateMachine();
@@ -217,6 +222,11 @@ void AAnimTestPawn::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
     OutProps.push_back({ "Move Speed", EPropertyType::Float, &MoveSpeed, 0.0f, 100.0f, 0.1f });
     OutProps.push_back({ "Sprint Speed Multiplier", EPropertyType::Float, &SprintSpeedMultiplier, 1.0f, 10.0f, 0.05f });
     OutProps.push_back({ "Look Sensitivity", EPropertyType::Float, &LookSensitivityDegrees, 0.0f, 5.0f, 0.01f });
+    OutProps.push_back({ "Camera Initial Yaw", EPropertyType::Float, &CameraInitialYawDegrees, -360.0f, 360.0f, 1.0f });
+    OutProps.push_back({ "Camera Initial Pitch", EPropertyType::Float, &CameraInitialPitchDegrees, -89.0f, 89.0f, 1.0f });
+    OutProps.push_back({ "Camera Pivot Height", EPropertyType::Float, &CameraPivotHeight, 0.0f, 10.0f, 0.05f });
+    OutProps.push_back({ "Camera Arm Length", EPropertyType::Float, &CameraArmLength, 0.0f, 20.0f, 0.1f });
+    OutProps.push_back({ "Camera Socket Offset", EPropertyType::Vec3, &CameraSocketOffset, 0.0f, 0.0f, 0.05f });
     OutProps.push_back({ "Locomotion Blend Time", EPropertyType::Float, &LocomotionBlendTime, 0.0f, 5.0f, 0.01f });
     OutProps.push_back({ "Into Run Duration", EPropertyType::Float, &IntoRunDuration, 0.0f, 5.0f, 0.01f });
     OutProps.push_back({ "Walk To Idle Duration", EPropertyType::Float, &WalkToIdleDuration, 0.0f, 5.0f, 0.01f });
@@ -243,6 +253,18 @@ void AAnimTestPawn::PostEditProperty(const char* PropertyName)
     if (std::strcmp(PropertyName, "Skeletal Mesh") == 0)
     {
         LoadConfiguredSkeletalMesh();
+    }
+
+    if (std::strcmp(PropertyName, "Camera Initial Yaw") == 0 ||
+        std::strcmp(PropertyName, "Camera Initial Pitch") == 0 ||
+        std::strcmp(PropertyName, "Camera Pivot Height") == 0 ||
+        std::strcmp(PropertyName, "Camera Arm Length") == 0 ||
+        std::strcmp(PropertyName, "Camera Socket Offset") == 0)
+    {
+        CameraInitialPitchDegrees = MathUtil::Clamp(CameraInitialPitchDegrees, -89.0f, 89.0f);
+        CameraPivotHeight = std::max(0.0f, CameraPivotHeight);
+        CameraArmLength = std::max(0.0f, CameraArmLength);
+        ApplyCameraSettings();
     }
 
     if (std::strcmp(PropertyName, "Idle Animation") == 0 ||
@@ -288,6 +310,21 @@ void AAnimTestPawn::LoadConfiguredSkeletalMesh()
     }
 
     SkeletalMeshComp->SetSkeletalMesh(FResourceManager::Get().LoadSkeletalMesh(SkeletalMeshPath));
+}
+
+void AAnimTestPawn::ApplyCameraSettings()
+{
+    if (!SpringArmComp)
+    {
+        return;
+    }
+
+    SpringArmComp->SetRelativeLocation(FVector(0.0f, 0.0f, CameraPivotHeight));
+    SpringArmComp->SetRelativeRotation(FVector(0.0f, 0.0f, 0.0f));
+    SpringArmComp->AddYawInput(CameraInitialYawDegrees);
+    SpringArmComp->AddPitchInput(CameraInitialPitchDegrees);
+    SpringArmComp->SetTargetArmLength(CameraArmLength);
+    SpringArmComp->SetSocketOffset(CameraSocketOffset);
 }
 
 void AAnimTestPawn::ConfigureLocomotionStateMachine()
@@ -788,6 +825,7 @@ void AAnimTestPawn::UpdateLocomotion(float DeltaTime)
     APlayerController* PlayerController = GetController();
     const FGameplayInputSnapshot* Snapshot = PlayerController ? &PlayerController->GetInputSnapshot() : nullptr;
     const FInputActionState* MoveAction = Snapshot ? Snapshot->FindAction("Move") : nullptr;
+    const FInputActionState* LookAction = Snapshot ? Snapshot->FindAction("Look") : nullptr;
     const FInputActionState* SprintAction = Snapshot ? Snapshot->FindAction("Sprint") : nullptr;
     const FInputActionState* LightAttackAction = Snapshot ? Snapshot->FindAction("Attack") : nullptr;
     const FInputActionState* HeavyAttackAction = Snapshot ? Snapshot->FindAction("HeavyAttack") : nullptr;
@@ -806,6 +844,13 @@ void AAnimTestPawn::UpdateLocomotion(float DeltaTime)
     const bool bSprinting = MoveAxisLength > 0.0f && IsActionActive(SprintAction);
     const float GroundSpeed = MoveAxisLength * MoveSpeed * (bSprinting ? SprintSpeedMultiplier : 1.0f);
     const bool bMoving = GroundSpeed > MoveStartSpeedThreshold;
+
+    if (SpringArmComp && IsActionActive(LookAction))
+    {
+        const FVector2& LookAxis = LookAction->Value.Axis2D;
+        SpringArmComp->AddYawInput(LookAxis.X * LookSensitivityDegrees);
+        SpringArmComp->AddPitchInput(-LookAxis.Y * LookSensitivityDegrees);
+    }
 
     if (bMoving && !bLockMovement)
     {
