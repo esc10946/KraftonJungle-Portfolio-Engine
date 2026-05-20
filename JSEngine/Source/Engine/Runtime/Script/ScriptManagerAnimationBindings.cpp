@@ -6,6 +6,7 @@
 #include "Animation/AnimStateMachineNode.h"
 #include "Asset/CurveFloatAsset.h"
 #include "Component/SkeletalMeshComponent.h"
+#include "Core/ResourceManager.h"
 #include "Object/Object.h"
 #include "Runtime/Script/ScriptComponent.h"
 #include "Runtime/Script/ScriptUtils.h"
@@ -272,6 +273,10 @@ void FScriptManager::BindAnimationTypes()
     {
         return Self.Validate();
     });
+    LUA_SET(Save, [](const UAnimStateMachineAsset& Self, const FString& AssetPath)
+    {
+        return Self.SaveToFile(AssetPath);
+    });
     LUA_END_TYPE();
 
     LUA_BEGIN_TYPE_NO_CTOR_BASE(GLuaState, UAnimInstance, "AnimInstance", UObject)
@@ -339,5 +344,9 @@ void FScriptManager::BindAnimationTypes()
     GLuaState->set_function("CreateAnimStateMachineAsset", []() -> UAnimStateMachineAsset*
     {
         return UObjectManager::Get().CreateObject<UAnimStateMachineAsset>();
+    });
+    GLuaState->set_function("LoadAnimStateMachineAsset", [](const FString& AssetPath) -> UAnimStateMachineAsset*
+    {
+        return FResourceManager::Get().LoadAnimStateMachineAsset(AssetPath);
     });
 }

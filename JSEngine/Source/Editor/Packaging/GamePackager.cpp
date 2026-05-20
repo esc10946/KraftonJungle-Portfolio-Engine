@@ -1,5 +1,6 @@
 ﻿#include "Editor/Packaging/GamePackager.h"
 
+#include "Animation/AnimStateMachineAsset.h"
 #include "Asset/AnimationSequenceSerializer.h"
 #include "Asset/BinarySerializer.h"
 #include "Asset/ObjLoader.h"
@@ -991,6 +992,7 @@ namespace
             || Extension == ".sequence"
             || Extension == ".animsequence"
             || Extension == ".anim"
+            || Extension == ".animsm"
             || Extension == ".rml"
             || Extension == ".rcss"
             || Extension == ".meta"
@@ -1525,6 +1527,30 @@ namespace
         }
 
         const std::filesystem::path SourceAbs = ResolveProjectFilePath(NormalizedPath);
+        if (Extension == ".animsm")
+        {
+            TArray<FString> AnimationDependencies;
+            if (!UAnimStateMachineAsset::ReadAnimationDependenciesFromFile(NormalizedPath, AnimationDependencies))
+            {
+                OutMessage = "Failed to read animation state machine dependencies: " + NormalizedPath;
+                return false;
+            }
+
+            for (const FString& AnimationDependency : AnimationDependencies)
+            {
+                const FString ResolvedDependency = FAssetPathPolicy::ResolveAssetRelativePath(
+                    NormalizedPath,
+                    AnimationDependency);
+                if (!AddFileDependency(Context, ResolvedDependency, OutMessage))
+                {
+                    OutMessage = "Failed to include state machine animation dependency: " + ResolvedDependency + " | " + OutMessage;
+                    return false;
+                }
+            }
+
+            AddManifest(Context, "Included anim state machine: " + NormalizedPath);
+        }
+
         if (Extension == ".mat" || Extension == ".matinst" || Extension == ".prefab")
         {
             std::ifstream In(SourceAbs);
@@ -1714,6 +1740,10 @@ namespace
             return false;
         }
         if (!AddRuntimeFilesByExtension(Context, "Asset/Sequence", { ".sequence", ".animsequence", ".anim" }, OutMessage))
+        {
+            return false;
+        }
+        if (!AddRuntimeFilesByExtension(Context, "Asset/Animation", { ".animsm" }, OutMessage))
         {
             return false;
         }

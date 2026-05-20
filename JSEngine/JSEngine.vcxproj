@@ -629,8 +629,10 @@
     <ClCompile Include="Source\Engine\Animation\AnimSequencePlayer.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimSingleNodeInstance.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimStateMachineAsset.cpp" />
+    <ClCompile Include="Source\Engine\Animation\AnimStateMachineAssetInstance.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimStateMachineNode.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimStateMachineParameterStore.cpp" />
+    <ClCompile Include="Source\Engine\Animation\AnimStateMachineSerializer.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimationSequenceBase.cpp" />
     <ClCompile Include="Source\Engine\Animation\CurvePlayback.cpp" />
     <ClCompile Include="Source\Engine\Animation\TimelinePlayer.cpp" />
@@ -978,8 +980,10 @@
     <ClInclude Include="Source\Engine\Animation\AnimSequencePlayer.h" />
     <ClInclude Include="Source\Engine\Animation\AnimSingleNodeInstance.h" />
     <ClInclude Include="Source\Engine\Animation\AnimStateMachineAsset.h" />
+    <ClInclude Include="Source\Engine\Animation\AnimStateMachineAssetInstance.h" />
     <ClInclude Include="Source\Engine\Animation\AnimStateMachineNode.h" />
     <ClInclude Include="Source\Engine\Animation\AnimStateMachineParameterStore.h" />
+    <ClInclude Include="Source\Engine\Animation\AnimStateMachineSerializer.h" />
     <ClInclude Include="Source\Engine\Animation\AnimStateMachineTypes.h" />
     <ClInclude Include="Source\Engine\Animation\AnimationSequenceBase.h" />
     <ClInclude Include="Source\Engine\Animation\CurvePlayback.h" />

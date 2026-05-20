@@ -5,13 +5,17 @@
 
 #include "UAnimStateMachineAsset.generated.h"
 
+class FAnimStateMachineSerializer;
+
 UCLASS()
 class UAnimStateMachineAsset : public UObject
 {
 public:
     GENERATED_BODY(UAnimStateMachineAsset, UObject)
 
+    void Clear();
     void SetEntryState(const FName& StateName);
+    bool SetEntryStateId(FAnimStateId StateId);
     bool AddState(
         const FName& StateName,
         const FName& AnimationName,
@@ -70,24 +74,55 @@ public:
         EAnimBlendEaseOption EaseOption = EAnimBlendEaseOption::Linear);
 
     const FName& GetEntryState() const { return EntryState; }
+    FAnimStateId GetEntryStateId() const { return EntryStateId; }
     const TArray<FAnimStateDesc>& GetStates() const { return States; }
     const TArray<FAnimTransitionDesc>& GetTransitions() const { return Transitions; }
+    const TArray<FAnimStateEditorMetadata>& GetStateEditorMetadata() const { return StateEditorMetadata; }
+    const TArray<FAnimTransitionEditorMetadata>& GetTransitionEditorMetadata() const { return TransitionEditorMetadata; }
 
     const FAnimStateDesc* FindState(const FName& StateName) const;
+    FAnimStateDesc* FindState(const FName& StateName);
+    const FAnimStateDesc* FindStateById(FAnimStateId StateId) const;
+    FAnimStateDesc* FindStateById(FAnimStateId StateId);
+    const FAnimTransitionDesc* FindTransitionById(FAnimTransitionId TransitionId) const;
     TArray<const FAnimTransitionDesc*> GetTransitionsFrom(const FName& StateName) const;
+    TArray<const FAnimTransitionDesc*> GetTransitionsFrom(FAnimStateId StateId) const;
 
     bool Validate(FString* OutMessage = nullptr) const;
 
-    static UAnimStateMachineAsset* LoadFromJsonFile(const FString& Path);
+    bool SaveToFile(const FString& Path) const;
+    static UAnimStateMachineAsset* LoadFromFile(const FString& Path);
+    static bool ReadAnimationDependenciesFromFile(const FString& Path, TArray<FString>& OutAnimationPaths);
 
 private:
+    friend class FAnimStateMachineSerializer;
+
+    FAnimStateId GenerateStateId() const;
+    FAnimTransitionId GenerateTransitionId() const;
+    bool AddStateWithId(
+        FAnimStateId StateId,
+        const FName& StateName,
+        const FName& AnimationName,
+        bool bLoop,
+        const FString& AnimationPath);
+    bool AddTransitionWithId(
+        FAnimTransitionId TransitionId,
+        FAnimStateId FromStateId,
+        FAnimStateId ToStateId,
+        const TArray<FAnimTransitionCondition>& Conditions,
+        float BlendTime,
+        int32 Priority,
+        EAnimBlendEaseOption EaseOption = EAnimBlendEaseOption::Linear);
     bool HasDuplicateTransition(
-        const FName& FromState,
-        const FName& ToState,
+        FAnimStateId FromStateId,
+        FAnimStateId ToStateId,
         const TArray<FAnimTransitionCondition>& Conditions) const;
 
 private:
     FName EntryState;
+    FAnimStateId EntryStateId = InvalidAnimStateId;
     TArray<FAnimStateDesc> States;
     TArray<FAnimTransitionDesc> Transitions;
+    TArray<FAnimStateEditorMetadata> StateEditorMetadata;
+    TArray<FAnimTransitionEditorMetadata> TransitionEditorMetadata;
 };

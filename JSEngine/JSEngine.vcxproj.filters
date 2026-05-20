@@ -489,10 +489,16 @@
     <ClCompile Include="Source\Engine\Animation\AnimStateMachineAsset.cpp">
       <Filter>Source\Engine\Animation</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Animation\AnimStateMachineAssetInstance.cpp">
+      <Filter>Source\Engine\Animation</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\Animation\AnimStateMachineNode.cpp">
       <Filter>Source\Engine\Animation</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Animation\AnimStateMachineParameterStore.cpp">
+      <Filter>Source\Engine\Animation</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Animation\AnimStateMachineSerializer.cpp">
       <Filter>Source\Engine\Animation</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Animation\AnimationSequenceBase.cpp">
@@ -1452,10 +1458,16 @@
     <ClInclude Include="Source\Engine\Animation\AnimStateMachineAsset.h">
       <Filter>Source\Engine\Animation</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\Animation\AnimStateMachineAssetInstance.h">
+      <Filter>Source\Engine\Animation</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Engine\Animation\AnimStateMachineNode.h">
       <Filter>Source\Engine\Animation</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Animation\AnimStateMachineParameterStore.h">
+      <Filter>Source\Engine\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Animation\AnimStateMachineSerializer.h">
       <Filter>Source\Engine\Animation</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Animation\AnimStateMachineTypes.h">

@@ -1,6 +1,7 @@
 #include "SkeletalMeshComponent.h"
 
 #include "Animation/AnimInstance.h"
+#include "Animation/AnimStateMachineAssetInstance.h"
 #include "Animation/AnimStateMachineAsset.h"
 #include "Animation/AnimSingleNodeInstance.h"
 #include "Core/Logging/Log.h"
@@ -58,6 +59,7 @@ namespace
 USkeletalMeshComponent::~USkeletalMeshComponent()
 {
     DestroyOwnedAnimInstance(SingleNodeAnimInstance);
+    DestroyOwnedAnimInstance(StateMachineAssetInstance);
     DestroyOwnedAnimInstance(CustomAnimInstance);
     DestroyOwnedAnimInstance(DefaultAnimInstance);
     AnimInstance = nullptr;
@@ -123,7 +125,7 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
         }
         if (Ar.HasKey("StateMachineAsset"))
         {
-            Ar << "StateMachineAsset" << StateMachineAssetPath;
+            Ar << "StateMachineAsset" << StateMachineAsset.Path;
         }
 
         AnimationMode = static_cast<ESkeletalMeshAnimationMode>(AnimationModeValue);
@@ -145,7 +147,7 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
     Ar << "Loop" << bSingleAnimationLoop;
     Ar << "PlayRate" << SingleAnimationPlayRate;
     Ar << "AnimInstanceClassName" << CustomAnimInstanceClassName;
-    Ar << "StateMachineAsset" << StateMachineAssetPath;
+    Ar << "StateMachineAsset" << StateMachineAsset.Path;
 }
 
 void USkeletalMeshComponent::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
@@ -157,7 +159,7 @@ void USkeletalMeshComponent::GetEditableProperties(TArray<FPropertyDescriptor>& 
     OutProps.push_back({ "Loop", EPropertyType::Bool, &bSingleAnimationLoop });
     OutProps.push_back({ "Play Rate", EPropertyType::Float, &SingleAnimationPlayRate, 0.01f, 10.0f, 0.05f });
     OutProps.push_back({ "AnimInstance Class Name", EPropertyType::String, &CustomAnimInstanceClassName });
-    OutProps.push_back({ "StateMachine Asset", EPropertyType::String, &StateMachineAssetPath });
+    OutProps.push_back({ "StateMachine Asset", EPropertyType::String, &StateMachineAsset.Path });
 }
 
 void USkeletalMeshComponent::PostEditProperty(const char* PropertyName)
@@ -310,16 +312,17 @@ bool USkeletalMeshComponent::UseStateMachine(UAnimStateMachineAsset* StateMachin
     return StateAnimInstance->GetStateMachineAsset() == StateMachineAsset;
 }
 
-bool USkeletalMeshComponent::LoadStateMachineFromJson(const FString& JsonPath)
+bool USkeletalMeshComponent::LoadStateMachineAsset(const FString& AssetPath)
 {
-    UAnimStateMachineAsset* StateMachineAsset = UAnimStateMachineAsset::LoadFromJsonFile(JsonPath);
-    if (!StateMachineAsset)
+    if (AssetPath.empty())
     {
         return false;
     }
 
-    RegisterStateAnimationPathsFromAsset(StateMachineAsset);
-    return UseStateMachine(StateMachineAsset);
+    AnimationMode = ESkeletalMeshAnimationMode::AnimInstance;
+    AnimInstanceSource = EAnimInstanceSource::StateMachineAsset;
+    StateMachineAsset = FAnimStateMachineAssetRef(AssetPath);
+    return RefreshAnimInstanceFromOptions(true);
 }
 
 void USkeletalMeshComponent::HandleAnimNotify(const FAnimNotifyEvent& Notify)
@@ -449,23 +452,27 @@ bool USkeletalMeshComponent::ActivateCustomAnimInstance(bool bKeepCurrentOnFailu
 
 bool USkeletalMeshComponent::ActivateStateMachineAssetInstance()
 {
-    UAnimInstance* StateAnimInstance = GetOrCreateDefaultAnimInstance();
-    if (!StateAnimInstance)
+    UAnimStateMachineAssetInstance* StateAssetInstance = GetOrCreateStateMachineAssetInstance();
+    if (!StateAssetInstance)
     {
         return false;
     }
 
-    SetAnimInstance(StateAnimInstance);
-    DestroyInactiveOwnedAnimInstances(StateAnimInstance);
+    StateAssetInstance->SetStateMachineAssetRef(StateMachineAsset);
+    SetAnimInstance(StateAssetInstance);
+    DestroyInactiveOwnedAnimInstances(StateAssetInstance);
+    return true;
+}
 
-    if (!StateMachineAssetPath.empty())
+UAnimStateMachineAssetInstance* USkeletalMeshComponent::GetOrCreateStateMachineAssetInstance()
+{
+    if (!StateMachineAssetInstance)
     {
-        UE_LOG_WARNING(
-            "[SkeletalMeshComponent] StateMachine asset path is a placeholder until asset authoring is implemented: %s",
-            StateMachineAssetPath.c_str());
+        StateMachineAssetInstance = UObjectManager::Get().CreateObject<UAnimStateMachineAssetInstance>();
+        StateMachineAssetInstance->Initialize(this);
     }
 
-    return true;
+    return StateMachineAssetInstance;
 }
 
 bool USkeletalMeshComponent::IsComponentOwnedAnimInstance(const UAnimInstance* InAnimInstance) const
@@ -473,7 +480,8 @@ bool USkeletalMeshComponent::IsComponentOwnedAnimInstance(const UAnimInstance* I
     return InAnimInstance
         && (InAnimInstance == DefaultAnimInstance
             || InAnimInstance == SingleNodeAnimInstance
-            || InAnimInstance == CustomAnimInstance);
+            || InAnimInstance == CustomAnimInstance
+            || InAnimInstance == StateMachineAssetInstance);
 }
 
 void USkeletalMeshComponent::DestroyOwnedAnimInstance(UAnimInstance*& InOutAnimInstance)
@@ -508,6 +516,22 @@ void USkeletalMeshComponent::DestroyOwnedAnimInstance(UAnimSingleNodeInstance*& 
     InOutAnimInstance = nullptr;
 }
 
+void USkeletalMeshComponent::DestroyOwnedAnimInstance(UAnimStateMachineAssetInstance*& InOutAnimInstance)
+{
+    if (!InOutAnimInstance)
+    {
+        return;
+    }
+
+    if (AnimInstance == InOutAnimInstance)
+    {
+        AnimInstance = nullptr;
+    }
+
+    UObjectManager::Get().DestroyObject(InOutAnimInstance);
+    InOutAnimInstance = nullptr;
+}
+
 void USkeletalMeshComponent::DestroyInactiveOwnedAnimInstances(UAnimInstance* InstanceToKeep)
 {
     if (DefaultAnimInstance != InstanceToKeep)
@@ -521,6 +545,10 @@ void USkeletalMeshComponent::DestroyInactiveOwnedAnimInstances(UAnimInstance* In
     if (CustomAnimInstance != InstanceToKeep)
     {
         DestroyOwnedAnimInstance(CustomAnimInstance);
+    }
+    if (StateMachineAssetInstance != InstanceToKeep)
+    {
+        DestroyOwnedAnimInstance(StateMachineAssetInstance);
     }
 }
 

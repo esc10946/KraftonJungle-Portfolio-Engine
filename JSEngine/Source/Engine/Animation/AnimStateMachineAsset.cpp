@@ -1,143 +1,14 @@
 #include "Animation/AnimStateMachineAsset.h"
 
+#include "Animation/AnimStateMachineSerializer.h"
 #include "Core/Logging/Log.h"
 #include "Core/Paths.h"
 #include "Object/Object.h"
-#include "SimpleJSON/json.hpp"
 
 #include <algorithm>
-#include <filesystem>
-#include <fstream>
-#include <iterator>
 
 namespace
 {
-FString GetJsonString(json::JSON& Object, const char* Key, const FString& DefaultValue = "")
-{
-    if (!Object.hasKey(Key))
-    {
-        return DefaultValue;
-    }
-
-    return Object[Key].ToString();
-}
-
-bool GetJsonBool(json::JSON& Object, const char* Key, bool bDefaultValue)
-{
-    if (!Object.hasKey(Key))
-    {
-        return bDefaultValue;
-    }
-
-    return Object[Key].ToBool();
-}
-
-float GetJsonFloat(json::JSON& Object, const char* Key, float DefaultValue)
-{
-    if (!Object.hasKey(Key))
-    {
-        return DefaultValue;
-    }
-
-    return static_cast<float>(Object[Key].ToFloat());
-}
-
-int32 GetJsonInt(json::JSON& Object, const char* Key, int32 DefaultValue)
-{
-    if (!Object.hasKey(Key))
-    {
-        return DefaultValue;
-    }
-
-    return static_cast<int32>(Object[Key].ToInt());
-}
-
-EAnimBlendEaseOption GetJsonEaseOption(json::JSON& Object, const char* Key)
-{
-    const FString EaseOption = GetJsonString(Object, Key, "Linear");
-    if (EaseOption == "EaseIn")
-    {
-        return EAnimBlendEaseOption::EaseIn;
-    }
-
-    if (EaseOption == "EaseOut")
-    {
-        return EAnimBlendEaseOption::EaseOut;
-    }
-
-    if (EaseOption == "EaseInOut")
-    {
-        return EAnimBlendEaseOption::EaseInOut;
-    }
-
-    return EAnimBlendEaseOption::Linear;
-}
-
-EAnimParameterType ParseParameterType(const FString& TypeName)
-{
-    if (TypeName == "Int")
-    {
-        return EAnimParameterType::Int;
-    }
-
-    if (TypeName == "Float")
-    {
-        return EAnimParameterType::Float;
-    }
-
-    if (TypeName == "Vector")
-    {
-        return EAnimParameterType::Vector;
-    }
-
-    if (TypeName == "Trigger")
-    {
-        return EAnimParameterType::Trigger;
-    }
-
-    return EAnimParameterType::Bool;
-}
-
-EAnimCompareOp ParseCompareOp(const FString& OpName)
-{
-    if (OpName == "NotEqual" || OpName == "!=")
-    {
-        return EAnimCompareOp::NotEqual;
-    }
-
-    if (OpName == "Greater" || OpName == ">")
-    {
-        return EAnimCompareOp::Greater;
-    }
-
-    if (OpName == "GreaterEqual" || OpName == ">=")
-    {
-        return EAnimCompareOp::GreaterEqual;
-    }
-
-    if (OpName == "Less" || OpName == "<")
-    {
-        return EAnimCompareOp::Less;
-    }
-
-    if (OpName == "LessEqual" || OpName == "<=")
-    {
-        return EAnimCompareOp::LessEqual;
-    }
-
-    if (OpName == "IsTrue")
-    {
-        return EAnimCompareOp::IsTrue;
-    }
-
-    if (OpName == "IsFalse")
-    {
-        return EAnimCompareOp::IsFalse;
-    }
-
-    return EAnimCompareOp::Equal;
-}
-
 bool AreConditionsEqual(
     const TArray<FAnimTransitionCondition>& A,
     const TArray<FAnimTransitionCondition>& B)
@@ -163,46 +34,38 @@ bool AreConditionsEqual(
 
     return true;
 }
-
-FAnimTransitionCondition ParseJsonCondition(json::JSON& ConditionNode)
-{
-    FAnimTransitionCondition Condition;
-    Condition.ParameterName = FName(GetJsonString(ConditionNode, "parameter"));
-    if (!Condition.ParameterName.IsValid())
-    {
-        Condition.ParameterName = FName(GetJsonString(ConditionNode, "name"));
-    }
-
-    Condition.ParameterType = ParseParameterType(GetJsonString(ConditionNode, "type", "Bool"));
-    Condition.CompareOp = ParseCompareOp(GetJsonString(ConditionNode, "op", "Equal"));
-
-    if (Condition.ParameterType == EAnimParameterType::Bool)
-    {
-        Condition.CompareValue.BoolValue = GetJsonBool(ConditionNode, "value", true);
-    }
-    else if (Condition.ParameterType == EAnimParameterType::Int)
-    {
-        Condition.CompareValue.IntValue = GetJsonInt(ConditionNode, "value", 0);
-    }
-    else if (Condition.ParameterType == EAnimParameterType::Float)
-    {
-        Condition.CompareValue.FloatValue = GetJsonFloat(ConditionNode, "value", 0.0f);
-    }
-    else if (Condition.ParameterType == EAnimParameterType::Vector)
-    {
-        Condition.CompareValue.VectorValue = FVector(
-            GetJsonFloat(ConditionNode, "x", GetJsonFloat(ConditionNode, "valueX", 0.0f)),
-            GetJsonFloat(ConditionNode, "y", GetJsonFloat(ConditionNode, "valueY", 0.0f)),
-            GetJsonFloat(ConditionNode, "z", GetJsonFloat(ConditionNode, "valueZ", 0.0f)));
-    }
-
-    return Condition;
-}
 } // namespace
+
+void UAnimStateMachineAsset::Clear()
+{
+    EntryState = FName();
+    EntryStateId = InvalidAnimStateId;
+    States.clear();
+    Transitions.clear();
+    StateEditorMetadata.clear();
+    TransitionEditorMetadata.clear();
+}
 
 void UAnimStateMachineAsset::SetEntryState(const FName& StateName)
 {
     EntryState = StateName;
+    const FAnimStateDesc* State = FindState(StateName);
+    EntryStateId = State ? State->Id : InvalidAnimStateId;
+}
+
+bool UAnimStateMachineAsset::SetEntryStateId(FAnimStateId StateId)
+{
+    const FAnimStateDesc* State = FindStateById(StateId);
+    if (!State)
+    {
+        EntryState = FName();
+        EntryStateId = InvalidAnimStateId;
+        return false;
+    }
+
+    EntryStateId = StateId;
+    EntryState = State->StateName;
+    return true;
 }
 
 bool UAnimStateMachineAsset::AddState(
@@ -211,9 +74,25 @@ bool UAnimStateMachineAsset::AddState(
     bool bLoop,
     const FString& AnimationPath)
 {
-    if (!StateName.IsValid())
+    return AddStateWithId(GenerateStateId(), StateName, AnimationName, bLoop, AnimationPath);
+}
+
+bool UAnimStateMachineAsset::AddStateWithId(
+    FAnimStateId StateId,
+    const FName& StateName,
+    const FName& AnimationName,
+    bool bLoop,
+    const FString& AnimationPath)
+{
+    if (StateId == InvalidAnimStateId || !StateName.IsValid())
     {
-        UE_LOG_WARNING("[AnimSM] Invalid state: empty state name");
+        UE_LOG_WARNING("[AnimSM] Invalid state: empty id or state name");
+        return false;
+    }
+
+    if (FindStateById(StateId))
+    {
+        UE_LOG_WARNING("[AnimSM] Invalid state: duplicate state id %u", StateId);
         return false;
     }
 
@@ -224,11 +103,19 @@ bool UAnimStateMachineAsset::AddState(
     }
 
     FAnimStateDesc State;
+    State.Id = StateId;
     State.StateName = StateName;
     State.AnimationName = AnimationName;
     State.AnimationPath = FPaths::Normalize(AnimationPath);
     State.bLoop = bLoop;
     States.push_back(State);
+
+    if (EntryState == StateName || EntryStateId == StateId)
+    {
+        EntryState = StateName;
+        EntryStateId = StateId;
+    }
+
     return true;
 }
 
@@ -239,13 +126,10 @@ bool UAnimStateMachineAsset::SetStateAnimationPath(const FName& StateName, const
         return false;
     }
 
-    for (FAnimStateDesc& State : States)
+    if (FAnimStateDesc* State = FindState(StateName))
     {
-        if (State.StateName == StateName)
-        {
-            State.AnimationPath = FPaths::Normalize(AnimationPath);
-            return true;
-        }
+        State->AnimationPath = FPaths::Normalize(AnimationPath);
+        return true;
     }
 
     UE_LOG_WARNING("[AnimSM] Failed to set animation path: missing state %s", StateName.ToString().c_str());
@@ -260,9 +144,47 @@ bool UAnimStateMachineAsset::AddTransition(
     int32 Priority,
     EAnimBlendEaseOption EaseOption)
 {
-    if (!FromState.IsValid() || !ToState.IsValid() || Conditions.empty())
+    const FAnimStateDesc* FromStateDesc = FindState(FromState);
+    const FAnimStateDesc* ToStateDesc = FindState(ToState);
+    if (!FromStateDesc || !ToStateDesc)
     {
-        UE_LOG_WARNING("[AnimSM] Invalid transition: empty from/to/conditions");
+        UE_LOG_WARNING(
+            "[AnimSM] Invalid transition: missing from/to state %s -> %s",
+            FromState.ToString().c_str(),
+            ToState.ToString().c_str());
+        return false;
+    }
+
+    return AddTransitionWithId(
+        GenerateTransitionId(),
+        FromStateDesc->Id,
+        ToStateDesc->Id,
+        Conditions,
+        BlendTime,
+        Priority,
+        EaseOption);
+}
+
+bool UAnimStateMachineAsset::AddTransitionWithId(
+    FAnimTransitionId TransitionId,
+    FAnimStateId FromStateId,
+    FAnimStateId ToStateId,
+    const TArray<FAnimTransitionCondition>& Conditions,
+    float BlendTime,
+    int32 Priority,
+    EAnimBlendEaseOption EaseOption)
+{
+    const FAnimStateDesc* FromStateDesc = FindStateById(FromStateId);
+    const FAnimStateDesc* ToStateDesc = FindStateById(ToStateId);
+    if (TransitionId == InvalidAnimTransitionId || !FromStateDesc || !ToStateDesc || Conditions.empty())
+    {
+        UE_LOG_WARNING("[AnimSM] Invalid transition: empty id/from/to/conditions");
+        return false;
+    }
+
+    if (FindTransitionById(TransitionId))
+    {
+        UE_LOG_WARNING("[AnimSM] Invalid transition: duplicate transition id %u", TransitionId);
         return false;
     }
 
@@ -275,18 +197,21 @@ bool UAnimStateMachineAsset::AddTransition(
         }
     }
 
-    if (HasDuplicateTransition(FromState, ToState, Conditions))
+    if (HasDuplicateTransition(FromStateId, ToStateId, Conditions))
     {
         UE_LOG_WARNING(
             "[AnimSM] Invalid transition: duplicate %s -> %s",
-            FromState.ToString().c_str(),
-            ToState.ToString().c_str());
+            FromStateDesc->StateName.ToString().c_str(),
+            ToStateDesc->StateName.ToString().c_str());
         return false;
     }
 
     FAnimTransitionDesc Transition;
-    Transition.FromState = FromState;
-    Transition.ToState = ToState;
+    Transition.Id = TransitionId;
+    Transition.FromStateId = FromStateId;
+    Transition.ToStateId = ToStateId;
+    Transition.FromState = FromStateDesc->StateName;
+    Transition.ToState = ToStateDesc->StateName;
     Transition.Conditions = Conditions;
     Transition.BlendTime = std::max(0.0f, BlendTime);
     Transition.EaseOption = EaseOption;
@@ -410,12 +335,64 @@ const FAnimStateDesc* UAnimStateMachineAsset::FindState(const FName& StateName) 
     return nullptr;
 }
 
+FAnimStateDesc* UAnimStateMachineAsset::FindState(const FName& StateName)
+{
+    return const_cast<FAnimStateDesc*>(static_cast<const UAnimStateMachineAsset*>(this)->FindState(StateName));
+}
+
+const FAnimStateDesc* UAnimStateMachineAsset::FindStateById(FAnimStateId StateId) const
+{
+    if (StateId == InvalidAnimStateId)
+    {
+        return nullptr;
+    }
+
+    for (const FAnimStateDesc& State : States)
+    {
+        if (State.Id == StateId)
+        {
+            return &State;
+        }
+    }
+
+    return nullptr;
+}
+
+FAnimStateDesc* UAnimStateMachineAsset::FindStateById(FAnimStateId StateId)
+{
+    return const_cast<FAnimStateDesc*>(static_cast<const UAnimStateMachineAsset*>(this)->FindStateById(StateId));
+}
+
+const FAnimTransitionDesc* UAnimStateMachineAsset::FindTransitionById(FAnimTransitionId TransitionId) const
+{
+    if (TransitionId == InvalidAnimTransitionId)
+    {
+        return nullptr;
+    }
+
+    for (const FAnimTransitionDesc& Transition : Transitions)
+    {
+        if (Transition.Id == TransitionId)
+        {
+            return &Transition;
+        }
+    }
+
+    return nullptr;
+}
+
 TArray<const FAnimTransitionDesc*> UAnimStateMachineAsset::GetTransitionsFrom(const FName& StateName) const
+{
+    const FAnimStateDesc* State = FindState(StateName);
+    return State ? GetTransitionsFrom(State->Id) : TArray<const FAnimTransitionDesc*>();
+}
+
+TArray<const FAnimTransitionDesc*> UAnimStateMachineAsset::GetTransitionsFrom(FAnimStateId StateId) const
 {
     TArray<const FAnimTransitionDesc*> Result;
     for (const FAnimTransitionDesc& Transition : Transitions)
     {
-        if (Transition.FromState == StateName)
+        if (Transition.FromStateId == StateId)
         {
             Result.push_back(&Transition);
         }
@@ -441,7 +418,7 @@ bool UAnimStateMachineAsset::Validate(FString* OutMessage) const
         }
     };
 
-    if (!EntryState.IsValid() || !FindState(EntryState))
+    if (EntryStateId == InvalidAnimStateId || !FindStateById(EntryStateId))
     {
         SetMessage("Entry state is missing or does not exist");
         UE_LOG_WARNING("[AnimSM] Invalid asset: entry state is missing or does not exist");
@@ -450,37 +427,62 @@ bool UAnimStateMachineAsset::Validate(FString* OutMessage) const
 
     for (size_t StateIndex = 0; StateIndex < States.size(); ++StateIndex)
     {
-        if (!States[StateIndex].StateName.IsValid())
+        const FAnimStateDesc& State = States[StateIndex];
+        if (State.Id == InvalidAnimStateId || !State.StateName.IsValid())
         {
-            SetMessage("State name is empty");
-            UE_LOG_WARNING("[AnimSM] Invalid asset: state name is empty");
+            SetMessage("State id or name is empty");
+            UE_LOG_WARNING("[AnimSM] Invalid asset: state id or name is empty");
             return false;
         }
 
         for (size_t OtherIndex = StateIndex + 1; OtherIndex < States.size(); ++OtherIndex)
         {
-            if (States[StateIndex].StateName == States[OtherIndex].StateName)
+            if (State.Id == States[OtherIndex].Id)
+            {
+                SetMessage("Duplicate state id");
+                UE_LOG_WARNING("[AnimSM] Invalid asset: duplicate state id %u", State.Id);
+                return false;
+            }
+            if (State.StateName == States[OtherIndex].StateName)
             {
                 SetMessage("Duplicate state name");
-                UE_LOG_WARNING("[AnimSM] Invalid asset: duplicate state %s", States[StateIndex].StateName.ToString().c_str());
+                UE_LOG_WARNING("[AnimSM] Invalid asset: duplicate state %s", State.StateName.ToString().c_str());
                 return false;
             }
         }
     }
 
-    for (const FAnimTransitionDesc& Transition : Transitions)
+    for (size_t TransitionIndex = 0; TransitionIndex < Transitions.size(); ++TransitionIndex)
     {
-        if (!FindState(Transition.FromState))
+        const FAnimTransitionDesc& Transition = Transitions[TransitionIndex];
+        if (Transition.Id == InvalidAnimTransitionId)
         {
-            SetMessage("Transition from-state does not exist");
-            UE_LOG_WARNING("[AnimSM] Invalid asset: from-state does not exist %s", Transition.FromState.ToString().c_str());
+            SetMessage("Transition id is empty");
+            UE_LOG_WARNING("[AnimSM] Invalid asset: transition id is empty");
             return false;
         }
 
-        if (!FindState(Transition.ToState))
+        for (size_t OtherIndex = TransitionIndex + 1; OtherIndex < Transitions.size(); ++OtherIndex)
+        {
+            if (Transition.Id == Transitions[OtherIndex].Id)
+            {
+                SetMessage("Duplicate transition id");
+                UE_LOG_WARNING("[AnimSM] Invalid asset: duplicate transition id %u", Transition.Id);
+                return false;
+            }
+        }
+
+        if (!FindStateById(Transition.FromStateId))
+        {
+            SetMessage("Transition from-state does not exist");
+            UE_LOG_WARNING("[AnimSM] Invalid asset: from-state id does not exist %u", Transition.FromStateId);
+            return false;
+        }
+
+        if (!FindStateById(Transition.ToStateId))
         {
             SetMessage("Transition to-state does not exist");
-            UE_LOG_WARNING("[AnimSM] Invalid asset: to-state does not exist %s", Transition.ToState.ToString().c_str());
+            UE_LOG_WARNING("[AnimSM] Invalid asset: to-state id does not exist %u", Transition.ToStateId);
             return false;
         }
 
@@ -509,97 +511,60 @@ bool UAnimStateMachineAsset::Validate(FString* OutMessage) const
     return true;
 }
 
-UAnimStateMachineAsset* UAnimStateMachineAsset::LoadFromJsonFile(const FString& Path)
+bool UAnimStateMachineAsset::SaveToFile(const FString& Path) const
 {
-    const FString NormalizedPath = FPaths::Normalize(Path);
-    if (NormalizedPath.empty())
-    {
-        return nullptr;
-    }
+    FAnimStateMachineSerializer Serializer;
+    return Serializer.Save(Path, *this);
+}
 
-    std::ifstream File(FPaths::ToWide(NormalizedPath));
-    if (!File.is_open())
-    {
-        UE_LOG_ERROR("[AnimSM] Failed to open state machine asset: %s", NormalizedPath.c_str());
-        return nullptr;
-    }
-
-    FString FileContent((std::istreambuf_iterator<char>(File)), std::istreambuf_iterator<char>());
-    json::JSON Root = json::JSON::Load(FileContent);
-    if (Root.JSONType() != json::JSON::Class::Object)
-    {
-        UE_LOG_ERROR("[AnimSM] Invalid state machine json: %s", NormalizedPath.c_str());
-        return nullptr;
-    }
-
+UAnimStateMachineAsset* UAnimStateMachineAsset::LoadFromFile(const FString& Path)
+{
     UAnimStateMachineAsset* Asset = UObjectManager::Get().CreateObject<UAnimStateMachineAsset>();
-    if (Root.hasKey("name"))
+    FAnimStateMachineSerializer Serializer;
+    if (!Serializer.Load(Path, *Asset))
     {
-        Asset->SetFName(FName(GetJsonString(Root, "name")));
-    }
-
-    Asset->SetEntryState(FName(GetJsonString(Root, "entryState")));
-
-    if (Root.hasKey("states"))
-    {
-        for (json::JSON& StateNode : Root["states"].ArrayRange())
-        {
-            Asset->AddState(
-                FName(GetJsonString(StateNode, "name")),
-                FName(GetJsonString(StateNode, "animation")),
-                GetJsonBool(StateNode, "loop", true),
-                GetJsonString(StateNode, "animationPath"));
-        }
-    }
-
-    if (Root.hasKey("transitions"))
-    {
-        for (json::JSON& TransitionNode : Root["transitions"].ArrayRange())
-        {
-            TArray<FAnimTransitionCondition> Conditions;
-            if (TransitionNode.hasKey("conditions"))
-            {
-                for (json::JSON& ConditionNode : TransitionNode["conditions"].ArrayRange())
-                {
-                    Conditions.push_back(ParseJsonCondition(ConditionNode));
-                }
-            }
-            else
-            {
-                Conditions.push_back(ParseJsonCondition(TransitionNode));
-            }
-
-            Asset->AddTransition(
-                FName(GetJsonString(TransitionNode, "from")),
-                FName(GetJsonString(TransitionNode, "to")),
-                Conditions,
-                GetJsonFloat(TransitionNode, "blendTime", 0.0f),
-                GetJsonInt(TransitionNode, "priority", 0),
-                GetJsonEaseOption(TransitionNode, "easeOption"));
-        }
-    }
-
-    FString ValidationMessage;
-    if (!Asset->Validate(&ValidationMessage))
-    {
-        UE_LOG_ERROR("[AnimSM] Failed to validate state machine asset %s: %s", NormalizedPath.c_str(), ValidationMessage.c_str());
         UObjectManager::Get().DestroyObject(Asset);
         return nullptr;
     }
 
-    UE_LOG("[AnimSM] Loaded state machine asset: %s", NormalizedPath.c_str());
     return Asset;
 }
 
+bool UAnimStateMachineAsset::ReadAnimationDependenciesFromFile(const FString& Path, TArray<FString>& OutAnimationPaths)
+{
+    FAnimStateMachineSerializer Serializer;
+    return Serializer.ReadAnimationDependencies(Path, OutAnimationPaths);
+}
+
+FAnimStateId UAnimStateMachineAsset::GenerateStateId() const
+{
+    FAnimStateId MaxId = InvalidAnimStateId;
+    for (const FAnimStateDesc& State : States)
+    {
+        MaxId = std::max(MaxId, State.Id);
+    }
+    return MaxId + 1;
+}
+
+FAnimTransitionId UAnimStateMachineAsset::GenerateTransitionId() const
+{
+    FAnimTransitionId MaxId = InvalidAnimTransitionId;
+    for (const FAnimTransitionDesc& Transition : Transitions)
+    {
+        MaxId = std::max(MaxId, Transition.Id);
+    }
+    return MaxId + 1;
+}
+
 bool UAnimStateMachineAsset::HasDuplicateTransition(
-    const FName& FromState,
-    const FName& ToState,
+    FAnimStateId FromStateId,
+    FAnimStateId ToStateId,
     const TArray<FAnimTransitionCondition>& Conditions) const
 {
     for (const FAnimTransitionDesc& Transition : Transitions)
     {
-        if (Transition.FromState == FromState &&
-            Transition.ToState == ToState &&
+        if (Transition.FromStateId == FromStateId &&
+            Transition.ToStateId == ToStateId &&
             AreConditionsEqual(Transition.Conditions, Conditions))
         {
             return true;

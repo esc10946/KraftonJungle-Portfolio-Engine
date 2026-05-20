@@ -20,6 +20,7 @@ enum class EEditorAssetType : uint8
 	Font,
 	Particle,
 	AnimationSequence,
+	AnimStateMachine,
 	Scene,
 	Script,
 };
@@ -46,6 +47,7 @@ public:
 	const TArray<FString>& GetFontNames() const { return FontNames; }
 	const TArray<FString>& GetParticleNames() const { return ParticleNames; }
 	const TArray<FString>& GetAnimationSequenceAssetPaths() const { return AnimationSequencePaths; }
+	const TArray<FString>& GetAnimStateMachineAssetPaths() const { return AnimStateMachinePaths; }
 
 	UStaticMesh* LoadStaticMesh(const FString& Path) const;
 	USkeletalMesh* LoadSkeletalMesh(const FString& Path) const;
@@ -72,6 +74,7 @@ private:
 	TArray<FString> FontNames;
 	TArray<FString> ParticleNames;
 	TArray<FString> AnimationSequencePaths;
+	TArray<FString> AnimStateMachinePaths;
 	TArray<UMaterialInterface*> CachedMaterialInterfaces;
 	TArray<bool> CachedMaterialInterfaceResolved;
 
@@ -82,5 +85,6 @@ private:
 	TArray<FEditorAssetItem> FontItems;
 	TArray<FEditorAssetItem> ParticleItems;
 	TArray<FEditorAssetItem> AnimationSequenceItems;
+	TArray<FEditorAssetItem> AnimStateMachineItems;
 	TArray<FEditorAssetItem> EmptyItems;
 };

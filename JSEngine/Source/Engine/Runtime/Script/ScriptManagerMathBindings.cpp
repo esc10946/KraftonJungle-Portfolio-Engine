@@ -147,6 +147,7 @@ namespace
             || TryGetReflectedAssetPathForLua<FTextureAssetRef>(Object, Property, OutPath)
             || TryGetReflectedAssetPathForLua<FMaterialAssetRef>(Object, Property, OutPath)
             || TryGetReflectedAssetPathForLua<FAnimationSequenceAssetRef>(Object, Property, OutPath)
+            || TryGetReflectedAssetPathForLua<FAnimStateMachineAssetRef>(Object, Property, OutPath)
             || TryGetReflectedAssetPathForLua<FCurveAssetRef>(Object, Property, OutPath)
             || TryGetReflectedAssetPathForLua<FSceneAssetRef>(Object, Property, OutPath)
             || TryGetReflectedAssetPathForLua<FSoundAssetRef>(Object, Property, OutPath);
@@ -173,6 +174,10 @@ namespace
         if (dynamic_cast<const FAnimationSequenceAssetProperty*>(&Property))
         {
             return Property.SetPropertyValue_InContainer(&Object, FAnimationSequenceAssetRef(Path));
+        }
+        if (dynamic_cast<const FAnimStateMachineAssetProperty*>(&Property))
+        {
+            return Property.SetPropertyValue_InContainer(&Object, FAnimStateMachineAssetRef(Path));
         }
         if (dynamic_cast<const FCurveAssetProperty*>(&Property))
         {
@@ -238,6 +243,7 @@ namespace
             || dynamic_cast<const FTextureAssetProperty*>(Property)
             || dynamic_cast<const FMaterialAssetProperty*>(Property)
             || dynamic_cast<const FAnimationSequenceAssetProperty*>(Property)
+            || dynamic_cast<const FAnimStateMachineAssetProperty*>(Property)
             || dynamic_cast<const FCurveAssetProperty*>(Property)
             || dynamic_cast<const FSceneAssetProperty*>(Property)
             || dynamic_cast<const FSoundAssetProperty*>(Property))
@@ -303,6 +309,7 @@ namespace
             || dynamic_cast<const FTextureAssetProperty*>(Property)
             || dynamic_cast<const FMaterialAssetProperty*>(Property)
             || dynamic_cast<const FAnimationSequenceAssetProperty*>(Property)
+            || dynamic_cast<const FAnimStateMachineAssetProperty*>(Property)
             || dynamic_cast<const FCurveAssetProperty*>(Property)
             || dynamic_cast<const FSceneAssetProperty*>(Property)
             || dynamic_cast<const FSoundAssetProperty*>(Property))

@@ -12,6 +12,8 @@
 #include "Core/SkeletonLoadService.h"
 #include "Core/SkeletalMeshLoadService.h"
 #include "Core/StaticMeshLoadService.h"
+#include "Animation/AnimStateMachineAsset.h"
+#include "Animation/AnimStateMachineSerializer.h"
 
 #include <algorithm>
 #include <filesystem>
@@ -232,6 +234,7 @@ void FResourceManager::ClearDiscoveredResourceLists(bool bClearAtlasCache)
 	ParticleFilePaths.clear();
 	CurveFilePaths.clear();
 	AnimationSequenceFilePaths.clear();
+	AnimStateMachineFilePaths.clear();
 	SkeletonFilePaths.clear();
 	SkeletalMeshFilePaths.clear();
 	StaticMeshCache.ClearRegistry();
@@ -261,6 +264,10 @@ void FResourceManager::RegisterDiscoveredAssetFile(const std::filesystem::path& 
 	else if (FAssetPathPolicy::IsAnimationSequenceAssetPath(FPaths::ToUtf8(FilePath.generic_wstring())))
 	{
 		AnimationSequenceFilePaths.push_back(RelativePath);
+	}
+	else if (FAssetPathPolicy::IsAnimStateMachineAssetPath(FPaths::ToUtf8(FilePath.generic_wstring())))
+	{
+		AnimStateMachineFilePaths.push_back(RelativePath);
 	}
 	else if (Extension == L".obj")
 	{
@@ -588,6 +595,16 @@ void FResourceManager::ReleaseGPUResources()
 		}
 	}
 	AnimationSequenceMap.clear();
+
+	TSet<UAnimStateMachineAsset*> DestroyedStateMachines;
+	for (auto& [Path, Asset] : AnimStateMachineMap)
+	{
+		if (Asset && DestroyedStateMachines.insert(Asset).second)
+		{
+			UObjectManager::Get().DestroyObject(Asset);
+		}
+	}
+	AnimStateMachineMap.clear();
 
 	TSet<USkeletonAsset*> DestroyedSkeletons;
 	for (auto& [Path, Skeleton] : SkeletonMap)
@@ -1180,6 +1197,68 @@ bool FResourceManager::SaveAnimationSequence(UAnimationSequence* Sequence)
 TArray<FString> FResourceManager::GetAnimationSequencePaths() const
 {
 	return AnimationSequenceFilePaths;
+}
+
+UAnimStateMachineAsset* FResourceManager::LoadAnimStateMachineAsset(const FString& Path)
+{
+	const FString NormalizedPath = FPaths::Normalize(Path);
+	if (UAnimStateMachineAsset* FoundAsset = FindAnimStateMachineAsset(NormalizedPath))
+	{
+		return FoundAsset;
+	}
+
+	if (!FAssetPathPolicy::IsAnimStateMachineAssetPath(NormalizedPath))
+	{
+		UE_LOG_WARNING("[AnimSM] Unsupported state machine asset path: %s", NormalizedPath.c_str());
+		return nullptr;
+	}
+
+	UAnimStateMachineAsset* LoadedAsset = UAnimStateMachineAsset::LoadFromFile(NormalizedPath);
+	if (!LoadedAsset)
+	{
+		return nullptr;
+	}
+
+	AnimStateMachineMap[NormalizedPath] = LoadedAsset;
+	if (std::find(AnimStateMachineFilePaths.begin(), AnimStateMachineFilePaths.end(), NormalizedPath) == AnimStateMachineFilePaths.end())
+	{
+		AnimStateMachineFilePaths.push_back(NormalizedPath);
+	}
+
+	return LoadedAsset;
+}
+
+UAnimStateMachineAsset* FResourceManager::FindAnimStateMachineAsset(const FString& Path) const
+{
+	const FString NormalizedPath = FPaths::Normalize(Path);
+	auto It = AnimStateMachineMap.find(NormalizedPath);
+	return It != AnimStateMachineMap.end() ? It->second : nullptr;
+}
+
+bool FResourceManager::SaveAnimStateMachineAsset(const FString& Path, const UAnimStateMachineAsset* Asset)
+{
+	if (!Asset)
+	{
+		return false;
+	}
+
+	const FString NormalizedPath = FPaths::Normalize(Path);
+	if (!Asset->SaveToFile(NormalizedPath))
+	{
+		return false;
+	}
+
+	AnimStateMachineMap[NormalizedPath] = const_cast<UAnimStateMachineAsset*>(Asset);
+	if (std::find(AnimStateMachineFilePaths.begin(), AnimStateMachineFilePaths.end(), NormalizedPath) == AnimStateMachineFilePaths.end())
+	{
+		AnimStateMachineFilePaths.push_back(NormalizedPath);
+	}
+	return true;
+}
+
+TArray<FString> FResourceManager::GetAnimStateMachineAssetPaths() const
+{
+	return AnimStateMachineFilePaths;
 }
 
 const TArray<FString>& FResourceManager::GetTextureFilePath() const

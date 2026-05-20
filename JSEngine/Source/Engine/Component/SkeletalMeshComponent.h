@@ -7,6 +7,7 @@
 class UAnimStateMachineAsset;
 class UAnimInstance;
 class UAnimSingleNodeInstance;
+class UAnimStateMachineAssetInstance;
 class UAnimationSequenceBase;
 struct FAnimNotifyEvent;
 
@@ -69,7 +70,7 @@ public:
     bool UseDefaultAnimInstance();
 
     bool UseStateMachine(UAnimStateMachineAsset* StateMachineAsset);
-    bool LoadStateMachineFromJson(const FString& JsonPath);
+    bool LoadStateMachineAsset(const FString& AssetPath);
     void HandleAnimNotify(const FAnimNotifyEvent& Notify);
 
     void ApplyLocalPose(const TArray<FMatrix>& InLocalPose);
@@ -89,9 +90,11 @@ private:
     bool ActivateDefaultAnimInstance();
     bool ActivateCustomAnimInstance(bool bKeepCurrentOnFailure);
     bool ActivateStateMachineAssetInstance();
+    UAnimStateMachineAssetInstance* GetOrCreateStateMachineAssetInstance();
     bool IsComponentOwnedAnimInstance(const UAnimInstance* InAnimInstance) const;
     void DestroyOwnedAnimInstance(UAnimInstance*& InOutAnimInstance);
     void DestroyOwnedAnimInstance(UAnimSingleNodeInstance*& InOutAnimInstance);
+    void DestroyOwnedAnimInstance(UAnimStateMachineAssetInstance*& InOutAnimInstance);
     void DestroyInactiveOwnedAnimInstances(UAnimInstance* InstanceToKeep);
     UAnimationSequenceBase* LoadConfiguredAnimationSequence() const;
     void RegisterStateAnimationPathsFromAsset(const UAnimStateMachineAsset* StateMachineAsset);
@@ -101,6 +104,7 @@ private:
     UAnimInstance* DefaultAnimInstance = nullptr;
     UAnimSingleNodeInstance* SingleNodeAnimInstance = nullptr;
     UAnimInstance* CustomAnimInstance = nullptr;
+    UAnimStateMachineAssetInstance* StateMachineAssetInstance = nullptr;
 
     ESkeletalMeshAnimationMode AnimationMode = ESkeletalMeshAnimationMode::AnimInstance;
     EAnimInstanceSource AnimInstanceSource = EAnimInstanceSource::EmptyStateMachine;
@@ -108,5 +112,5 @@ private:
     bool bSingleAnimationLoop = true;
     float SingleAnimationPlayRate = 1.0f;
     FString CustomAnimInstanceClassName;
-    FString StateMachineAssetPath;
+    FAnimStateMachineAssetRef StateMachineAsset;
 };
