@@ -219,13 +219,13 @@
     }],
   "ClassName" : "UWorld",
   "Name" : "AnimationTest",
-  "NextUUID" : 2666,
+  "NextUUID" : 2805,
   "PerspectiveCamera" : {
     "FOV" : 60.000000,
     "FarClip" : 1000.000000,
-    "Location" : [-1.972209, 37.827797, 17.548744],
+    "Location" : [-39.966171, 128.571457, 122.451012],
     "NearClip" : 0.100000,
-    "Rotation" : [21.459768, -2.952942, -97.466095]
+    "Rotation" : [44.904808, -6.021667, -96.008362]
   },
   "Version" : 6,
   "WorldSettings" : {
