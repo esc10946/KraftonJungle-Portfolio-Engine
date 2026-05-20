@@ -1229,6 +1229,19 @@ namespace
         return !OutBinaryPath.empty();
     }
 
+    bool ResolveNativeSkeletalMeshBinaryForFbx(const FString& SourceFbxPath, FString& OutBinaryPath, FString& OutMessage)
+    {
+        const FString NormalizedSourcePath = NormalizeAssetPathForPackage(SourceFbxPath);
+        if (TryResolveImportedSkeletalMeshBinaryForFbx(NormalizedSourcePath, OutBinaryPath))
+        {
+            OutBinaryPath = NormalizeAssetPathForPackage(OutBinaryPath);
+            return true;
+        }
+
+        OutMessage = "FBX source has no imported native skeletal mesh binary: " + NormalizedSourcePath;
+        return false;
+    }
+
     bool AddImportedBinaryDependencies(FPackageCookContext& Context, const FString& BinaryPath, FString& OutMessage)
     {
         const FString NormalizedBinaryPath = NormalizeAssetPathForPackage(BinaryPath);
@@ -1497,17 +1510,20 @@ namespace
             if (Extension == ".fbx")
             {
                 FString ImportedBinaryPath;
-                if (TryResolveImportedSkeletalMeshBinaryForFbx(Value, ImportedBinaryPath))
+                if (!ResolveNativeSkeletalMeshBinaryForFbx(Value, ImportedBinaryPath, OutMessage))
                 {
-                    FString CookedPath;
-                    if (!CookStaticMeshDependency(Context, ImportedBinaryPath, CookedPath, OutMessage))
-                    {
-                        return false;
-                    }
-                    Node = CookedPath;
-                    AddManifest(Context, "Rewrote imported skeletal FBX reference: " + Value + " -> " + CookedPath);
-                    return true;
+                    return false;
                 }
+
+                if (!AddFileDependency(Context, ImportedBinaryPath, OutMessage))
+                {
+                    OutMessage = "Failed to include native skeletal mesh binary: " + ImportedBinaryPath + " | " + OutMessage;
+                    return false;
+                }
+
+                Node = ImportedBinaryPath;
+                AddManifest(Context, "Rewrote FBX source reference to native skeletal mesh binary: " + Value + " -> " + ImportedBinaryPath);
+                return true;
             }
 
             if (Extension == ".obj" || Extension == ".bin")
@@ -1560,6 +1576,24 @@ namespace
 
         const FString NormalizedPath = NormalizeAssetPathForPackage(Path);
         const FString Extension = GetLowerExtension(NormalizedPath);
+
+        if (Extension == ".fbx")
+        {
+            FString ImportedBinaryPath;
+            if (!ResolveNativeSkeletalMeshBinaryForFbx(NormalizedPath, ImportedBinaryPath, OutMessage))
+            {
+                return false;
+            }
+
+            if (!AddFileDependency(Context, ImportedBinaryPath, OutMessage))
+            {
+                OutMessage = "Failed to include native skeletal mesh binary: " + ImportedBinaryPath + " | " + OutMessage;
+                return false;
+            }
+
+            AddManifest(Context, "Resolved FBX source dependency to native skeletal mesh binary: " + NormalizedPath + " -> " + ImportedBinaryPath);
+            return true;
+        }
 
         if (Extension == ".obj" || Extension == ".bin")
         {
@@ -1633,7 +1667,8 @@ namespace
         constexpr const char* Dependencies[] =
         {
             "Asset/Material/DecalMat.mat",
-            "Asset/Mesh/Dice/Dice.obj"
+            "Asset/Mesh/Dice/Dice.obj",
+            "Asset/SkeletalMesh/GwenFBX/Gwen_skeletalmesh_Buffbone_Cstm_Healthbar.bin"
         };
 
         for (const char* Dependency : Dependencies)
@@ -1781,10 +1816,6 @@ namespace
             return false;
         }
         if (!AddRuntimeFilesByExtension(Context, "Asset/Material", { ".mat", ".matinst" }, OutMessage))
-        {
-            return false;
-        }
-        if (!AddRuntimeFilesByExtension(Context, "Asset/Mesh", { ".matinst" }, OutMessage))
         {
             return false;
         }

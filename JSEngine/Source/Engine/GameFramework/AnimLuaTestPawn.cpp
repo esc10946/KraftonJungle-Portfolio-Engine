@@ -19,7 +19,7 @@ void AAnimLuaTestPawn::InitDefaultComponents()
     SkeletalMeshComp->AttachToComponent(SceneRoot);
     SkeletalMeshComp->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
     SkeletalMeshComp->SetRelativeScale(FVector(0.01f, 0.01f, 0.01f));
-    SkeletalMeshComp->SetSkeletalMesh(FResourceManager::Get().LoadSkeletalMesh("Asset/SkeletalMesh/GwenFBX/Gwen.fbx"));
+    SkeletalMeshComp->SetSkeletalMesh(FResourceManager::Get().LoadSkeletalMesh("Asset/SkeletalMesh/GwenFBX/Gwen_skeletalmesh_Buffbone_Cstm_Healthbar.bin"));
 
     SpringArmComp = AddComponent<USpringArmComponent>();
     SpringArmComp->AttachToComponent(SceneRoot);

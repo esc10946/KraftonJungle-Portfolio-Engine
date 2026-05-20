@@ -48,7 +48,7 @@ namespace
 	FString ResolveMaterialSourcePathForSkeletalBinary(const FString& BinaryPath, const FString& SerializedPath)
 	{
 		const FString NormalizedSerializedPath = FPaths::Normalize(SerializedPath);
-		if (IsFbxPath(NormalizedSerializedPath) && FAssetPathPolicy::FileExists(NormalizedSerializedPath))
+		if (IsFbxPath(NormalizedSerializedPath))
 		{
 			return NormalizedSerializedPath;
 		}
