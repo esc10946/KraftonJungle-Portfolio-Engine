@@ -1,9 +1,0 @@
-{
-        "Name" : "Asset/SkeletalMesh/FurinaFBX/Furina_skeletalmesh_Hips_Inst_0.matinst",
-        "OverridedParams" : [{
-            "Name" : "DiffuseMap",
-            "Type" : "Texture",
-            "Value" : "Asset/SkeletalMesh/GwenFBX/textures/Body.png"
-          }],
-        "Parent" : "Asset/SkeletalMesh/FurinaFBX/Furina_skeletalmesh_Hips.bin"
-      }
