@@ -522,6 +522,26 @@ void FEditorViewportLayout::SetLastFocusedViewportIndex(int32 Index)
 	FEditorViewportClient* MainViewport = GetViewportClient(LastFocusedViewportIndex);
 }
 
+bool FEditorViewportLayout::HasActiveOperationViewport() const
+{
+	if (ActiveOperationViewportIndex >= 0 && ActiveOperationViewportIndex < MaxViewports)
+	{
+		return true;
+	}
+
+	for (int32 Index = 0; Index < MaxViewports; ++Index)
+	{
+		const FEditorViewportClient* Client = GetViewportClient(Index);
+		const UGizmoComponent* Gizmo = Client ? Client->GetGizmo() : nullptr;
+		if (Gizmo && (Gizmo->IsHolding() || Gizmo->IsPressedOnHandle()))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 void FEditorViewportLayout::SyncViewportRects()
 {
 	if (!RootSplitterV)

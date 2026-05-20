@@ -124,10 +124,7 @@ public:
 	// 스플리터 위젯 소유권 (new → BuildViewportLayout, delete → DestroyViewportLayout)
 	void DestroyViewportLayout();
 
-	bool HasActiveOperationViewport() const
-	{
-		return ActiveOperationViewportIndex >= 0 && ActiveOperationViewportIndex < MaxViewports;
-    }
+	bool HasActiveOperationViewport() const;
 
 private:
 	void SetViewportRect(int32 Index, const FViewportRect& Rect);

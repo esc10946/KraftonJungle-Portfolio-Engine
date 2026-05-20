@@ -91,6 +91,7 @@ public:
 	FSelectionManager* GetSelectionManager() const { return SelectionManager; }
 
 	UGizmoComponent* GetGizmo() { return Gizmo; }
+	const UGizmoComponent* GetGizmo() const { return Gizmo; }
 
 	/** Override to also resize the camera. */
 	void SetViewportSize(float InWidth, float InHeight) override;
