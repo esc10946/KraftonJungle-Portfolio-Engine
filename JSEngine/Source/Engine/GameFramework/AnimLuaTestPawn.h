@@ -19,6 +19,7 @@ public:
     AAnimLuaTestPawn() = default;
 
     void InitDefaultComponents() override;
+    void HandleAnimNotify(const FAnimNotifyEvent& Notify) override;
 
     USkeletalMeshComponent* GetSkeletalMeshComponent() const { return SkeletalMeshComp; }
     UCameraComponent* GetCameraComponent() const { return CameraComp; }

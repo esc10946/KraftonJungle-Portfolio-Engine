@@ -1,5 +1,6 @@
 #include "GameFramework/AnimLuaTestPawn.h"
 
+#include "Animation/AnimationSequenceBase.h"
 #include "Component/CameraComponent.h"
 #include "Component/SceneComponent.h"
 #include "Component/SkeletalMeshComponent.h"
@@ -35,4 +36,16 @@ void AAnimLuaTestPawn::InitDefaultComponents()
     ScriptComp->SetScriptName("AnimTest");
 
     AddTag("AnimLuaTestPawn");
+}
+
+void AAnimLuaTestPawn::HandleAnimNotify(const FAnimNotifyEvent& Notify)
+{
+    APawn::HandleAnimNotify(Notify);
+
+    if (!ScriptComp || !Notify.NotifyName.IsValid())
+    {
+        return;
+    }
+
+    ScriptComp->CallScriptFunction("HandleAnimNotify", Notify.NotifyName.ToString());
 }

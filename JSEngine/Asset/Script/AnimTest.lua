@@ -29,6 +29,19 @@ AnimTest.Properties = {
     Attack2ToIdleAnimationPath = { Type = "String", Default = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_Attack2_To_Idle.anim", Category = "Animation" },
     Attack3ToIdleAnimationPath = { Type = "String", Default = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_Attack3_To_Idle.anim", Category = "Animation" },
 
+    LightAttackSoundPath1 = { Type = "String", Default = "Asset/Audio/Gwen_Original_BasicAttack_1.ogg", Category = "Audio" },
+    LightAttackSoundPath2 = { Type = "String", Default = "Asset/Audio/Gwen_Original_BasicAttack_2.ogg", Category = "Audio" },
+    LightAttackSoundPath3 = { Type = "String", Default = "Asset/Audio/Gwen_Original_BasicAttack_3.ogg", Category = "Audio" },
+    HeavyAttackSoundPath = { Type = "String", Default = "Asset/Audio/Gwen_Original_BasicAttack_0.ogg", Category = "Audio" },
+    VoiceSoundPath1 = { Type = "String", Default = "Asset/Audio/Gwen_Original_Move_6.ogg", Category = "Audio" },
+    VoiceSoundPath2 = { Type = "String", Default = "Asset/Audio/Gwen_Original_Move_8.ogg", Category = "Audio" },
+    VoiceSoundPath3 = { Type = "String", Default = "Asset/Audio/Gwen_Original_Move_10.ogg", Category = "Audio" },
+    VoiceSoundPath4 = { Type = "String", Default = "Asset/Audio/Gwen_Original_Move_20.ogg", Category = "Audio" },
+    BGMPath = { Type = "String", Default = "Asset/Audio/StarGuardian_2017_SpawnMusic.ogg", Category = "Audio" },
+    IntroSoundPath = { Type = "String", Default = "Asset/Audio/league-of-legends-original-sounds-welcome-to-summoners-rift.mp3", Category = "Audio" },
+    IntroSoundDelay = { Type = "Float", Default = 10.0, Min = 0.0, Max = 30.0, Category = "Audio" },
+    IntroSoundVolumeScale = { Type = "Float", Default = 2.0, Min = 0.0, Max = 5.0, Category = "Audio" },
+
     MoveSpeed = { Type = "Float", Default = 7.0, Min = 0.0, Max = 100.0, Category = "Movement" },
     SprintSpeedMultiplier = { Type = "Float", Default = 1.5, Min = 1.0, Max = 10.0, Category = "Movement" },
     LookSensitivityDegrees = { Type = "Float", Default = 0.12, Min = 0.0, Max = 5.0, Category = "Movement" },
@@ -100,6 +113,10 @@ function AnimTest.new(component, properties)
         Properties = properties or {},
         LocomotionStateMachine = nil,
         NextLightAttackUsesAttack1 = true,
+        VoiceTimer = 0.0,
+        CurrentVoiceIndex = 1,
+        IntroSoundTimer = 0.0,
+        IntroSoundPlayed = false,
     }
     setmetatable(self, { __index = AnimTest })
     return self
@@ -296,10 +313,38 @@ function AnimTest:BeginPlay()
     if self:GetProperty("AutoConfigureAnimation", true) then
         self:ConfigureLocomotionStateMachine()
     end
+
+    local bgm_path = self:GetProperty("BGMPath", "")
+    if bgm_path ~= "" then
+        Engine.API.Audio.PlayBGM(bgm_path)
+    end
+
+    self.IntroSoundTimer = clamp(self:GetProperty("IntroSoundDelay", 10.0), 0.0)
+    self.IntroSoundPlayed = false
 end
 
 function AnimTest:Tick(delta_time)
+    self:UpdateIntroSound(delta_time)
     self:UpdateLocomotion(delta_time)
+end
+
+function AnimTest:UpdateIntroSound(delta_time)
+    if self.IntroSoundPlayed then
+        return
+    end
+
+    self.IntroSoundTimer = self.IntroSoundTimer - clamp(delta_time, 0.0)
+    if self.IntroSoundTimer > 0.0 then
+        return
+    end
+
+    local intro_path = self:GetProperty("IntroSoundPath", "")
+    if intro_path ~= "" then
+        local volume_scale = clamp(self:GetProperty("IntroSoundVolumeScale", 2.0), 0.0)
+        Engine.API.Audio.PlaySFX(intro_path, volume_scale)
+    end
+
+    self.IntroSoundPlayed = true
 end
 
 function AnimTest:UpdateLocomotion(delta_time)
@@ -349,6 +394,8 @@ function AnimTest:UpdateLocomotion(delta_time)
             mesh_rotation.Z = normalize_axis(mesh_rotation.Z + yaw_step)
             self.SkeletalMeshComp.Rotation = mesh_rotation
         end
+
+        self:UpdateMoveVoice(delta_time)
     end
 
     self:UpdateAnimationParameters(ground_speed, moving, sprinting)
@@ -368,6 +415,71 @@ function AnimTest:UpdateLocomotion(delta_time)
             anim_instance:SetAnimTriggerParameter(N.LightAttack3)
             self.NextLightAttackUsesAttack1 = true
         end
+    end
+end
+
+function AnimTest:UpdateMoveVoice(delta_time)
+    self.VoiceTimer = self.VoiceTimer - delta_time
+    if self.VoiceTimer > 0.0 then
+        return
+    end
+
+    local voices = {}
+    for i = 1, 4 do
+        local path = self:GetProperty("VoiceSoundPath" .. tostring(i), "")
+        if path ~= "" then
+            voices[#voices + 1] = path
+        end
+    end
+
+    if #voices > 0 then
+        if self.CurrentVoiceIndex > #voices then
+            self.CurrentVoiceIndex = 1
+        end
+        self:PlaySoundAtActor(voices[self.CurrentVoiceIndex])
+        self.CurrentVoiceIndex = self.CurrentVoiceIndex + 1
+    end
+
+    self.VoiceTimer = 3.0 + Engine.API.Random.RandomFloat(0.0, 5.0)
+end
+
+function AnimTest:HandleAnimNotify(notify_name)
+    if notify_name == "GwenLightAttack1Start" or notify_name == "GwenLightAttack3Start" then
+        self:PlayLightAttackSound()
+    elseif notify_name == "GwenHeavyAttackStart" then
+        self:PlayHeavyAttackSound()
+    end
+end
+
+function AnimTest:PlayLightAttackSound()
+    local sound_paths = {}
+    for i = 1, 3 do
+        local path = self:GetProperty("LightAttackSoundPath" .. tostring(i), "")
+        if path ~= "" then
+            sound_paths[#sound_paths + 1] = path
+        end
+    end
+
+    if #sound_paths == 0 then
+        return
+    end
+
+    local index = Engine.API.Random.RandomInt(1, #sound_paths)
+    if index < 1 then
+        index = 1
+    elseif index > #sound_paths then
+        index = #sound_paths
+    end
+    self:PlaySoundAtActor(sound_paths[index])
+end
+
+function AnimTest:PlayHeavyAttackSound()
+    self:PlaySoundAtActor(self:GetProperty("HeavyAttackSoundPath", ""))
+end
+
+function AnimTest:PlaySoundAtActor(sound_path)
+    if sound_path ~= "" then
+        Engine.API.Audio.PlaySFX(sound_path)
     end
 end
 
