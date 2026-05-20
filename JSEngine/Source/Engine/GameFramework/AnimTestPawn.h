@@ -5,7 +5,6 @@
 
 #include "AAnimTestPawn.generated.h"
 
-class UAnimStateMachineAsset;
 class UCameraComponent;
 class USceneComponent;
 class USkeletalMeshComponent;
@@ -42,7 +41,6 @@ private:
     USkeletalMeshComponent* SkeletalMeshComp = nullptr;
     USpringArmComponent* SpringArmComp = nullptr;
     UCameraComponent* CameraComp = nullptr;
-    UAnimStateMachineAsset* LocomotionStateMachine = nullptr;
 
     FString SkeletalMeshPath = "Asset/SkeletalMesh/GwenFBX/Gwen_skeletalmesh_Buffbone_Cstm_Healthbar.bin";
     FString IdleAnimationPath = "Asset/SkeletalMesh/GwenFBX/gwen_anim_Skeleton_Idle.anm.bin";

@@ -1,7 +1,6 @@
 #include "GameFramework/AnimTestPawn.h"
 
 #include "Animation/AnimInstance.h"
-#include "Animation/AnimStateMachineAsset.h"
 #include "Component/CameraComponent.h"
 #include "Component/SceneComponent.h"
 #include "Component/SkeletalMeshComponent.h"
@@ -12,7 +11,6 @@
 #include "GameFramework/PlayerController.h"
 #include "Math/Rotator.h"
 #include "Math/Utils.h"
-#include "Object/Object.h"
 
 #include <algorithm>
 #include <cmath>
@@ -23,6 +21,8 @@ REGISTER_FACTORY(AAnimTestPawn)
 
 namespace
 {
+    constexpr const char* GLocomotionStateMachineAssetPath = "Asset/Animation/AnimTest_Locomotion.animsm";
+
     bool IsActionActive(const FInputActionState* Action)
     {
         return Action &&
@@ -46,11 +46,6 @@ AAnimTestPawn::~AAnimTestPawn()
         }
     }
 
-    if (LocomotionStateMachine)
-    {
-        UObjectManager::Get().DestroyObject(LocomotionStateMachine);
-        LocomotionStateMachine = nullptr;
-    }
 }
 
 void AAnimTestPawn::InitDefaultComponents()
@@ -177,62 +172,29 @@ void AAnimTestPawn::LoadConfiguredSkeletalMesh()
 
 void AAnimTestPawn::ConfigureLocomotionStateMachine()
 {
-    if (!SkeletalMeshComp || IdleAnimationPath.empty() || RunAnimationPath.empty())
+    if (!SkeletalMeshComp)
     {
         return;
     }
 
-    UAnimInstance* AnimInstance = SkeletalMeshComp->GetOrCreateDefaultAnimInstance();
+    if (!SkeletalMeshComp->LoadStateMachineAsset(GLocomotionStateMachineAssetPath))
+    {
+        UE_LOG_WARNING(
+            "[AnimTestPawn] Failed to load locomotion state machine asset: %s",
+            GLocomotionStateMachineAssetPath);
+        return;
+    }
+
+    UAnimInstance* AnimInstance = SkeletalMeshComp->GetAnimInstance();
     if (!AnimInstance)
     {
         return;
     }
 
-    AnimInstance->RegisterAnimationPath(FName("Idle"), IdleAnimationPath);
-    AnimInstance->RegisterAnimationPath(FName("Run"), RunAnimationPath);
     AnimInstance->SetAnimFloatParameter(FName("Speed"), 0.0f);
     AnimInstance->SetAnimFloatParameter(FName("GroundSpeed"), 0.0f);
     AnimInstance->SetAnimBoolParameter(FName("bMoving"), false);
     AnimInstance->SetAnimBoolParameter(FName("bSprinting"), false);
-
-    if (LocomotionStateMachine)
-    {
-        UObjectManager::Get().DestroyObject(LocomotionStateMachine);
-        LocomotionStateMachine = nullptr;
-    }
-
-    LocomotionStateMachine = UObjectManager::Get().CreateObject<UAnimStateMachineAsset>();
-    if (!LocomotionStateMachine)
-    {
-        return;
-    }
-
-    LocomotionStateMachine->SetEntryState(FName("Idle"));
-    LocomotionStateMachine->AddState(FName("Idle"), FName("Idle"), true, IdleAnimationPath);
-    LocomotionStateMachine->AddState(FName("Run"), FName("Run"), true, RunAnimationPath);
-    LocomotionStateMachine->AddFloatTransition(
-        FName("Idle"),
-        FName("Run"),
-        FName("Speed"),
-        EAnimCompareOp::Greater,
-        MoveStartSpeedThreshold,
-        IdleRunBlendTime,
-        0,
-        EAnimBlendEaseOption::EaseInOut);
-    LocomotionStateMachine->AddFloatTransition(
-        FName("Run"),
-        FName("Idle"),
-        FName("Speed"),
-        EAnimCompareOp::LessEqual,
-        MoveStartSpeedThreshold,
-        IdleRunBlendTime,
-        0,
-        EAnimBlendEaseOption::EaseInOut);
-
-    if (!SkeletalMeshComp->UseStateMachine(LocomotionStateMachine))
-    {
-        UE_LOG_WARNING("[AnimTestPawn] Failed to activate locomotion state machine");
-    }
 }
 
 void AAnimTestPawn::UpdateLocomotion(float DeltaTime)
