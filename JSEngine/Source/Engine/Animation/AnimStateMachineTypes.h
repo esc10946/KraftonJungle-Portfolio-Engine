@@ -89,8 +89,7 @@ struct FAnimStateEditorMetadata
     FAnimStateId StateId = InvalidAnimStateId;
     float NodeX = 0.0f;
     float NodeY = 0.0f;
-    float NodeWidth = 160.0f;
-    float NodeHeight = 80.0f;
+    // 현재 미사용 placeholder, serializer 저장 대상 아님
     FString Comment;
     uint32 Color = 0;
 };
@@ -98,7 +97,6 @@ struct FAnimStateEditorMetadata
 struct FAnimTransitionEditorMetadata
 {
     FAnimTransitionId TransitionId = InvalidAnimTransitionId;
-    float ControlPointX = 0.0f;
-    float ControlPointY = 0.0f;
+    // 현재 미사용 placeholder, serializer 저장 대상 아님
     FString Comment;
 };

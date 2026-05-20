@@ -334,6 +334,15 @@ void FAssetEditorSubsystem::OpenEditorForAsset(const FString& AssetPath)
 		return;
 	}
 
+	if (FAssetPathPolicy::IsAnimStateMachineAssetPath(AssetPath))
+	{
+		if (!EditorEngine->CreateAnimStateMachineGraphViewer(AssetPath))
+		{
+			UE_LOG_WARNING("[AssetEditorSubsystem] Failed to open animation state machine graph: %s", AssetPath.c_str());
+		}
+		return;
+	}
+
 	EditorEngine->CreateSkeletalViewer(AssetPath);
 }
 

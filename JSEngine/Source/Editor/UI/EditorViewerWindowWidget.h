@@ -6,6 +6,7 @@
 class USkeletalMeshComponent;
 class FEditorViewer;
 class FAnimationViewer;
+class FAnimStateMachineGraphViewer;
 
 struct FAnimTimelineUIState
 {
@@ -40,6 +41,10 @@ public:
 	void RequestSaveMesh();
 	bool CanSaveMesh() const;
 	bool IsMeshDirty() const;
+	void RequestSaveGraph();
+	void RequestValidateGraph();
+	bool CanSaveGraph() const;
+	bool IsGraphDirty() const;
 
 private:
     // bone tree 캐시들. CachedMesh가 바뀌면 둘 다 재빌드.
@@ -70,6 +75,7 @@ private:
 	void RenderBoneDetails(USkeletalMeshComponent* SkelComp);
     void RenderSkeletalMeshContent(float DeltaTime);
     void RenderAnimationContent(float DeltaTime);
+    void RenderAnimStateMachineGraphContent(float DeltaTime);
 	void RenderDetachedDocumentChrome(bool& bDockRequested, bool& bCloseRequested);
 	void RenderDetachedDocumentToolbar(bool& bDockRequested);
     void Shutdown();
@@ -99,6 +105,26 @@ private:
 
 	FEditorViewer* Viewer = nullptr;
     FAnimTimelineUIState TimelineState;
+    uint32 GraphInspectorStateBufferId = 0;
+    uint32 GraphInspectorTransitionBufferId = 0;
+    FName GraphSelectedParameterName;
+    char GraphNewStateNameBuffer[128] = "New State";
+    char GraphStateNameBuffer[128] = {};
+    char GraphNewParameterNameBuffer[128] = "NewParameter";
+    char GraphRenameParameterBuffer[128] = {};
+    int32 GraphNewParameterTypeIndex = 0;
+    uint32 GraphTransitionTargetStateId = 0;
+    uint32 GraphTransitionFromStateId = 0;
+    uint32 GraphTransitionToStateId = 0;
+    int32 GraphTransitionParameterIndex = 0;
+    int32 GraphTransitionCompareOpIndex = 0;
+    int32 GraphTransitionEaseIndex = 0;
+    int32 GraphTransitionPriority = 0;
+    bool GraphTransitionBoolValue = true;
+    int32 GraphTransitionIntValue = 0;
+    float GraphTransitionFloatValue = 0.0f;
+    float GraphTransitionVectorValue[3] = { 0.0f, 0.0f, 0.0f };
+    float GraphTransitionBlendTime = 0.0f;
 
     bool bOpen = false;
 

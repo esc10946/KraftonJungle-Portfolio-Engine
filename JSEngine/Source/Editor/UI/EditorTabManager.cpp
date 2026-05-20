@@ -14,9 +14,18 @@ bool FEditorTabId::Matches(const FEditorTabId& Other) const
 FEditorTabId MakeEditorViewerTabId(const FString& ViewerFileName, const void* FallbackAddress)
 {
 	FEditorTabId TabId;
-	TabId.Kind = FAssetPathPolicy::IsAnimationSequenceAssetPath(ViewerFileName)
-		? EEditorTabKind::AnimationViewer
-		: EEditorTabKind::SkeletalMeshViewer;
+	if (FAssetPathPolicy::IsAnimStateMachineAssetPath(ViewerFileName))
+	{
+		TabId.Kind = EEditorTabKind::AnimStateMachineGraphViewer;
+	}
+	else if (FAssetPathPolicy::IsAnimationSequenceAssetPath(ViewerFileName))
+	{
+		TabId.Kind = EEditorTabKind::AnimationViewer;
+	}
+	else
+	{
+		TabId.Kind = EEditorTabKind::SkeletalMeshViewer;
+	}
 	TabId.PayloadId = ViewerFileName;
 	if (TabId.PayloadId.empty() && FallbackAddress)
 	{
@@ -36,9 +45,15 @@ FString MakeEditorViewerTabLabel(const FString& ViewerFileName)
 
 	const size_t SlashIndex = ViewerFileName.find_last_of("/\\");
 	const FString FileName = SlashIndex == FString::npos ? ViewerFileName : ViewerFileName.substr(SlashIndex + 1);
-	return FAssetPathPolicy::IsAnimationSequenceAssetPath(ViewerFileName)
-		? "Animation: " + FileName
-		: FileName;
+	if (FAssetPathPolicy::IsAnimStateMachineAssetPath(ViewerFileName))
+	{
+		return "State Machine: " + FileName;
+	}
+	if (FAssetPathPolicy::IsAnimationSequenceAssetPath(ViewerFileName))
+	{
+		return "Animation: " + FileName;
+	}
+	return FileName;
 }
 
 FEditorTabId MakeRuntimeUIPreviewTabId()

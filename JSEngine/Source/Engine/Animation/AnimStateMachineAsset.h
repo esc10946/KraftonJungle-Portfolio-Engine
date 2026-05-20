@@ -21,7 +21,12 @@ public:
         const FName& AnimationName,
         bool bLoop,
         const FString& AnimationPath = "");
+    bool RenameState(FAnimStateId StateId, const FName& NewName);
+    bool RemoveState(FAnimStateId StateId);
+    bool SetStateLoop(FAnimStateId StateId, bool bLoop);
     bool SetStateAnimationPath(const FName& StateName, const FString& AnimationPath);
+    bool SetStateAnimationPathById(FAnimStateId StateId, const FString& AnimationPath);
+    bool SetStateEditorPosition(FAnimStateId StateId, float NodeX, float NodeY);
     bool AddTransition(
         const FName& FromState,
         const FName& ToState,
@@ -29,6 +34,16 @@ public:
         float BlendTime,
         int32 Priority,
         EAnimBlendEaseOption EaseOption = EAnimBlendEaseOption::Linear);
+    bool RemoveTransition(FAnimTransitionId TransitionId);
+    bool ReconnectTransition(FAnimTransitionId TransitionId, FAnimStateId FromStateId, FAnimStateId ToStateId);
+    bool UpdateTransition(
+        FAnimTransitionId TransitionId,
+        float BlendTime,
+        int32 Priority,
+        EAnimBlendEaseOption EaseOption);
+    bool SetTransitionConditions(
+        FAnimTransitionId TransitionId,
+        const TArray<FAnimTransitionCondition>& Conditions);
     bool AddBoolTransition(
         const FName& FromState,
         const FName& ToState,
@@ -95,6 +110,7 @@ public:
     const FAnimStateDesc* FindStateById(FAnimStateId StateId) const;
     FAnimStateDesc* FindStateById(FAnimStateId StateId);
     const FAnimTransitionDesc* FindTransitionById(FAnimTransitionId TransitionId) const;
+    FAnimTransitionDesc* FindTransitionById(FAnimTransitionId TransitionId);
     TArray<const FAnimTransitionDesc*> GetTransitionsFrom(const FName& StateName) const;
     TArray<const FAnimTransitionDesc*> GetTransitionsFrom(FAnimStateId StateId) const;
 
@@ -127,6 +143,11 @@ private:
         FAnimStateId FromStateId,
         FAnimStateId ToStateId,
         const TArray<FAnimTransitionCondition>& Conditions) const;
+    bool HasDuplicateTransition(
+        FAnimStateId FromStateId,
+        FAnimStateId ToStateId,
+        const TArray<FAnimTransitionCondition>& Conditions,
+        FAnimTransitionId IgnoredTransitionId) const;
     bool IsParameterReferenced(const FName& ParameterName) const;
     bool IsConditionCompatibleWithDeclaration(const FAnimTransitionCondition& Condition, FString* OutMessage = nullptr) const;
     bool EnsureParameterDeclaration(const FName& ParameterName, EAnimParameterType ParameterType);

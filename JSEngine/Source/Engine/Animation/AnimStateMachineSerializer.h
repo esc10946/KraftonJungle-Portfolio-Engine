@@ -10,7 +10,7 @@ class UAnimStateMachineAsset;
 struct FAnimStateMachineBinaryHeader
 {
     uint32 MagicNumber = 0x534D5341; // 'ASMS'
-    uint32 Version = 2;
+    uint32 Version = 3;
     uint32 StateCount = 0;
     uint32 TransitionCount = 0;
     uint32 ConditionCount = 0;

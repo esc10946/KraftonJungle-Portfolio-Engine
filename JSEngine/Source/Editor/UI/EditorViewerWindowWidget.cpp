@@ -1,9 +1,11 @@
 ﻿#include "EditorViewerWindowWidget.h"
 #include "Editor/EditorEngine.h"
 #include "Editor/UI/EditorChromeConstants.h"
+#include "Editor/Viewer/AnimStateMachineGraphViewer.h"
 #include "Editor/Viewer/AnimationViewer.h"
 #include "Editor/Viewer/EditorViewer.h"
 #include "Editor/Viewer/FSkeletalMeshViewer.h"
+#include "Animation/AnimStateMachineAsset.h"
 #include "Animation/AnimationSequenceBase.h"
 #include "Asset/AnimationSequence.h"
 #include "Viewport/ViewportLayout.h"
@@ -11,20 +13,25 @@
 #include "Component/SkeletalMeshComponent.h"
 #include "Component/StaticMeshComponent.h"
 #include "Core/ResourceManager.h"
+#include "Core/StringUtils.h"
 #include "Component/GizmoComponent.h"
 #include "Component/TransformProxy.h"
 #include "Editor/Viewport/EditorViewportClient.h"
 #include "Engine/Runtime/WindowsWindow.h"
 #include "imgui.h"
 #include "ImGui/imgui_impl_win32.h"
+#include "imgui-node-editor/imgui_node_editor.h"
 
 #include <algorithm>
 #include <cstdio>
 #include <cmath>
+#include <cstring>
 #include <functional>
 
 namespace
 {
+namespace ed = ax::NodeEditor;
+
 void SetOpaqueBlendStateCallback(const ImDrawList*, const ImDrawCmd* Cmd)
 {
     ID3D11DeviceContext* DeviceContext = static_cast<ID3D11DeviceContext*>(Cmd->UserCallbackData);
@@ -86,6 +93,10 @@ FString GetViewerAssetLabel(FEditorViewer* Viewer)
     {
         return "Animation: " + BaseLabel;
     }
+    if (dynamic_cast<FAnimStateMachineGraphViewer*>(Viewer))
+    {
+        return "State Machine: " + BaseLabel;
+    }
     if (dynamic_cast<FSkeletalMeshViewer*>(Viewer))
     {
         return "Skeletal Mesh: " + BaseLabel;
@@ -103,6 +114,11 @@ FAnimationViewer* AsAnimationViewer(FEditorViewer* Viewer)
     return dynamic_cast<FAnimationViewer*>(Viewer);
 }
 
+FAnimStateMachineGraphViewer* AsAnimStateMachineGraphViewer(FEditorViewer* Viewer)
+{
+    return dynamic_cast<FAnimStateMachineGraphViewer*>(Viewer);
+}
+
 FSkeletalViewerShowFlags* GetViewerShowFlags(FEditorViewer* Viewer)
 {
     if (FSkeletalMeshViewer* SkeletalViewer = AsSkeletalMeshViewer(Viewer))
@@ -116,6 +132,345 @@ FSkeletalViewerShowFlags* GetViewerShowFlags(FEditorViewer* Viewer)
     }
 
     return nullptr;
+}
+
+ed::NodeId MakeStateNodeId(FAnimStateId StateId)
+{
+    return ed::NodeId(static_cast<uintptr_t>(StateId));
+}
+
+ed::PinId MakeStateInputPinId(FAnimStateId StateId)
+{
+    return ed::PinId(static_cast<uintptr_t>(StateId) * 2u + 1u);
+}
+
+ed::PinId MakeStateOutputPinId(FAnimStateId StateId)
+{
+    return ed::PinId(static_cast<uintptr_t>(StateId) * 2u + 2u);
+}
+
+ed::LinkId MakeTransitionLinkId(FAnimTransitionId TransitionId)
+{
+    return ed::LinkId(static_cast<uintptr_t>(TransitionId));
+}
+
+const FAnimStateEditorMetadata* FindStateEditorMetadata(
+    const UAnimStateMachineAsset* Asset,
+    FAnimStateId StateId)
+{
+    if (!Asset)
+    {
+        return nullptr;
+    }
+
+    for (const FAnimStateEditorMetadata& Metadata : Asset->GetStateEditorMetadata())
+    {
+        if (Metadata.StateId == StateId)
+        {
+            return &Metadata;
+        }
+    }
+
+    return nullptr;
+}
+
+FString CompareOpToString(EAnimCompareOp CompareOp)
+{
+    switch (CompareOp)
+    {
+    case EAnimCompareOp::Equal: return "Equal";
+    case EAnimCompareOp::NotEqual: return "NotEqual";
+    case EAnimCompareOp::Greater: return "Greater";
+    case EAnimCompareOp::GreaterEqual: return "GreaterEqual";
+    case EAnimCompareOp::Less: return "Less";
+    case EAnimCompareOp::LessEqual: return "LessEqual";
+    case EAnimCompareOp::IsTrue: return "IsTrue";
+    case EAnimCompareOp::IsFalse: return "IsFalse";
+    default: return "Unknown";
+    }
+}
+
+FString ParameterTypeToString(EAnimParameterType Type)
+{
+    switch (Type)
+    {
+    case EAnimParameterType::Bool: return "Bool";
+    case EAnimParameterType::Int: return "Int";
+    case EAnimParameterType::Float: return "Float";
+    case EAnimParameterType::Vector: return "Vector";
+    case EAnimParameterType::Trigger: return "Trigger";
+    default: return "Unknown";
+    }
+}
+
+FString EaseOptionToString(EAnimBlendEaseOption Option)
+{
+    switch (Option)
+    {
+    case EAnimBlendEaseOption::Linear: return "Linear";
+    case EAnimBlendEaseOption::EaseIn: return "EaseIn";
+    case EAnimBlendEaseOption::EaseOut: return "EaseOut";
+    case EAnimBlendEaseOption::EaseInOut: return "EaseInOut";
+    default: return "Unknown";
+    }
+}
+
+EAnimParameterType ParameterTypeFromIndex(int32 Index)
+{
+    switch (Index)
+    {
+    case 1: return EAnimParameterType::Int;
+    case 2: return EAnimParameterType::Float;
+    case 3: return EAnimParameterType::Vector;
+    case 4: return EAnimParameterType::Trigger;
+    default: return EAnimParameterType::Bool;
+    }
+}
+
+int32 ParameterTypeToIndex(EAnimParameterType Type)
+{
+    switch (Type)
+    {
+    case EAnimParameterType::Int: return 1;
+    case EAnimParameterType::Float: return 2;
+    case EAnimParameterType::Vector: return 3;
+    case EAnimParameterType::Trigger: return 4;
+    case EAnimParameterType::Bool:
+    default: return 0;
+    }
+}
+
+EAnimBlendEaseOption EaseOptionFromIndex(int32 Index)
+{
+    switch (Index)
+    {
+    case 1: return EAnimBlendEaseOption::EaseIn;
+    case 2: return EAnimBlendEaseOption::EaseOut;
+    case 3: return EAnimBlendEaseOption::EaseInOut;
+    default: return EAnimBlendEaseOption::Linear;
+    }
+}
+
+int32 EaseOptionToIndex(EAnimBlendEaseOption Option)
+{
+    switch (Option)
+    {
+    case EAnimBlendEaseOption::EaseIn: return 1;
+    case EAnimBlendEaseOption::EaseOut: return 2;
+    case EAnimBlendEaseOption::EaseInOut: return 3;
+    case EAnimBlendEaseOption::Linear:
+    default: return 0;
+    }
+}
+
+TArray<EAnimCompareOp> GetCompareOpsForParameterType(EAnimParameterType Type)
+{
+    switch (Type)
+    {
+    case EAnimParameterType::Bool:
+        return { EAnimCompareOp::Equal, EAnimCompareOp::NotEqual, EAnimCompareOp::IsTrue, EAnimCompareOp::IsFalse };
+    case EAnimParameterType::Int:
+    case EAnimParameterType::Float:
+        return {
+            EAnimCompareOp::Equal,
+            EAnimCompareOp::NotEqual,
+            EAnimCompareOp::Greater,
+            EAnimCompareOp::GreaterEqual,
+            EAnimCompareOp::Less,
+            EAnimCompareOp::LessEqual
+        };
+    case EAnimParameterType::Vector:
+        return { EAnimCompareOp::Equal, EAnimCompareOp::NotEqual };
+    case EAnimParameterType::Trigger:
+        return { EAnimCompareOp::IsTrue };
+    default:
+        return { EAnimCompareOp::Equal };
+    }
+}
+
+EAnimCompareOp GetCompareOpFromIndex(EAnimParameterType Type, int32 Index)
+{
+    TArray<EAnimCompareOp> Ops = GetCompareOpsForParameterType(Type);
+    if (Ops.empty())
+    {
+        return EAnimCompareOp::Equal;
+    }
+
+    const int32 ClampedIndex = std::clamp(Index, 0, static_cast<int32>(Ops.size()) - 1);
+    return Ops[ClampedIndex];
+}
+
+int32 GetCompareOpIndex(EAnimParameterType Type, EAnimCompareOp CompareOp)
+{
+    TArray<EAnimCompareOp> Ops = GetCompareOpsForParameterType(Type);
+    for (int32 Index = 0; Index < static_cast<int32>(Ops.size()); ++Index)
+    {
+        if (Ops[Index] == CompareOp)
+        {
+            return Index;
+        }
+    }
+    return 0;
+}
+
+const FAnimStateMachineParameterDesc* GetParameterByIndex(
+    const UAnimStateMachineAsset* Asset,
+    int32 Index)
+{
+    if (!Asset || Index < 0 || Index >= static_cast<int32>(Asset->GetParameters().size()))
+    {
+        return nullptr;
+    }
+
+    return &Asset->GetParameters()[Index];
+}
+
+int32 FindParameterIndex(const UAnimStateMachineAsset* Asset, const FName& ParameterName)
+{
+    if (!Asset)
+    {
+        return -1;
+    }
+
+    const TArray<FAnimStateMachineParameterDesc>& Parameters = Asset->GetParameters();
+    for (int32 Index = 0; Index < static_cast<int32>(Parameters.size()); ++Index)
+    {
+        if (Parameters[Index].Name == ParameterName)
+        {
+            return Index;
+        }
+    }
+
+    return -1;
+}
+
+bool IsParameterReferencedByAnyTransition(const UAnimStateMachineAsset* Asset, const FName& ParameterName)
+{
+    if (!Asset || !ParameterName.IsValid())
+    {
+        return false;
+    }
+
+    for (const FAnimTransitionDesc& Transition : Asset->GetTransitions())
+    {
+        for (const FAnimTransitionCondition& Condition : Transition.Conditions)
+        {
+            if (Condition.ParameterName == ParameterName)
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
+FAnimTransitionCondition BuildConditionFromUi(
+    const FAnimStateMachineParameterDesc& Parameter,
+    int32 CompareOpIndex,
+    bool BoolValue,
+    int32 IntValue,
+    float FloatValue,
+    const float VectorValue[3])
+{
+    FAnimTransitionCondition Condition;
+    Condition.ParameterName = Parameter.Name;
+    Condition.CompareOp = GetCompareOpFromIndex(Parameter.Type, CompareOpIndex);
+    if (Parameter.Type == EAnimParameterType::Trigger)
+    {
+        Condition.CompareOp = EAnimCompareOp::IsTrue;
+    }
+    Condition.CompareValue.BoolValue = BoolValue;
+    Condition.CompareValue.IntValue = IntValue;
+    Condition.CompareValue.FloatValue = FloatValue;
+    Condition.CompareValue.VectorValue = FVector(VectorValue[0], VectorValue[1], VectorValue[2]);
+    return Condition;
+}
+
+void DrawConditionValueEditor(
+    const char* IdSuffix,
+    EAnimParameterType Type,
+    FAnimParameterValue& InOutValue)
+{
+    switch (Type)
+    {
+    case EAnimParameterType::Bool:
+        ImGui::Checkbox((FString("Value##Bool") + IdSuffix).c_str(), &InOutValue.BoolValue);
+        break;
+    case EAnimParameterType::Int:
+        ImGui::InputInt((FString("Value##Int") + IdSuffix).c_str(), &InOutValue.IntValue);
+        break;
+    case EAnimParameterType::Float:
+        ImGui::InputFloat((FString("Value##Float") + IdSuffix).c_str(), &InOutValue.FloatValue, 0.05f, 0.25f, "%.3f");
+        break;
+    case EAnimParameterType::Vector:
+    {
+        float Values[3] =
+        {
+            InOutValue.VectorValue.X,
+            InOutValue.VectorValue.Y,
+            InOutValue.VectorValue.Z
+        };
+        if (ImGui::InputFloat3((FString("Value##Vector") + IdSuffix).c_str(), Values, "%.3f"))
+        {
+            InOutValue.VectorValue = FVector(Values[0], Values[1], Values[2]);
+        }
+        break;
+    }
+    case EAnimParameterType::Trigger:
+        ImGui::TextDisabled("Trigger");
+        break;
+    default:
+        break;
+    }
+}
+
+void DrawReadOnlyPin(FAnimStateId StateId, bool bOutput)
+{
+    ed::BeginPin(bOutput ? MakeStateOutputPinId(StateId) : MakeStateInputPinId(StateId), bOutput ? ed::PinKind::Output : ed::PinKind::Input);
+    ed::PinPivotSize(ImVec2(1.0f, 1.0f));
+    ed::PinPivotAlignment(bOutput ? ImVec2(1.0f, 0.5f) : ImVec2(0.0f, 0.5f));
+    ImGui::Dummy(ImVec2(1.0f, 1.0f));
+    ed::EndPin();
+}
+
+void CopyToBuffer(char* Buffer, size_t BufferSize, const FString& Value)
+{
+    if (!Buffer || BufferSize == 0)
+    {
+        return;
+    }
+
+    std::snprintf(Buffer, BufferSize, "%s", Value.c_str());
+}
+
+FString MakeUniqueStateName(const UAnimStateMachineAsset* Asset, const FString& BaseName)
+{
+    const FString CleanBase = BaseName.empty() ? "New State" : BaseName;
+    if (!Asset || !Asset->FindState(FName(CleanBase)))
+    {
+        return CleanBase;
+    }
+
+    for (int32 Index = 1; Index < 10000; ++Index)
+    {
+        FString Candidate = CleanBase + " " + std::to_string(Index);
+        if (!Asset->FindState(FName(Candidate)))
+        {
+            return Candidate;
+        }
+    }
+
+    return CleanBase + " 10000";
+}
+
+bool IsDuplicateStateName(
+    const UAnimStateMachineAsset* Asset,
+    const FString& Candidate,
+    FAnimStateId IgnoredStateId)
+{
+    const FAnimStateDesc* ExistingState = Asset ? Asset->FindState(FName(Candidate)) : nullptr;
+    return ExistingState && ExistingState->Id != IgnoredStateId;
 }
 
 void ApplyDetachedDocumentWindowClass()
@@ -306,6 +661,62 @@ void FEditorViewerWindowWidget::RequestSaveMesh()
 	if (FResourceManager::Get().SaveSkeletalMesh(Mesh))
 	{
 		ResetMeshDirtyBaseline();
+	}
+}
+
+bool FEditorViewerWindowWidget::CanSaveGraph() const
+{
+	FAnimStateMachineGraphViewer* GraphViewer = AsAnimStateMachineGraphViewer(Viewer);
+	return GraphViewer && GraphViewer->GetAsset() && GraphViewer->IsDirty();
+}
+
+bool FEditorViewerWindowWidget::IsGraphDirty() const
+{
+	FAnimStateMachineGraphViewer* GraphViewer = AsAnimStateMachineGraphViewer(Viewer);
+	return GraphViewer && GraphViewer->IsDirty();
+}
+
+void FEditorViewerWindowWidget::RequestSaveGraph()
+{
+	FAnimStateMachineGraphViewer* GraphViewer = AsAnimStateMachineGraphViewer(Viewer);
+	if (!GraphViewer)
+	{
+		return;
+	}
+
+	if (GraphViewer->SaveAsset())
+	{
+		if (EditorEngine)
+		{
+			EditorEngine->GetAssetService().RefreshAssetDatabase();
+			EditorEngine->GetNotificationService().Info("State machine saved.");
+		}
+	}
+	else if (EditorEngine)
+	{
+		EditorEngine->GetNotificationService().Warning("Failed to save state machine.");
+	}
+}
+
+void FEditorViewerWindowWidget::RequestValidateGraph()
+{
+	FAnimStateMachineGraphViewer* GraphViewer = AsAnimStateMachineGraphViewer(Viewer);
+	if (!GraphViewer)
+	{
+		return;
+	}
+
+	const bool bValid = GraphViewer->ValidateAsset();
+	if (EditorEngine)
+	{
+		if (bValid)
+		{
+			EditorEngine->GetNotificationService().Info("State machine is valid.");
+		}
+		else
+		{
+			EditorEngine->GetNotificationService().Warning("State machine validation failed.");
+		}
 	}
 }
 
@@ -512,14 +923,17 @@ void FEditorViewerWindowWidget::RenderDetachedDocumentChrome(bool& bDockRequeste
 
     ImGui::SetCursorPosX(MenuStartX);
 
-    const bool bCanSaveMesh = CanSaveMesh();
-    const char* SaveMeshLabel = IsMeshDirty() ? "Save Mesh *" : "Save Mesh";
+    const bool bGraphViewer = AsAnimStateMachineGraphViewer(Viewer) != nullptr;
+    const bool bCanSaveAsset = bGraphViewer ? CanSaveGraph() : CanSaveMesh();
+    const char* SaveAssetLabel = bGraphViewer
+        ? (IsGraphDirty() ? "Save State Machine *" : "Save State Machine")
+        : (IsMeshDirty() ? "Save Mesh *" : "Save Mesh");
 
     if (ImGui::BeginMenu("File"))
     {
-        if (ImGui::MenuItem(SaveMeshLabel, "Ctrl+S", false, bCanSaveMesh))
+        if (ImGui::MenuItem(SaveAssetLabel, "Ctrl+S", false, bCanSaveAsset))
         {
-            RequestSaveMesh();
+            bGraphViewer ? RequestSaveGraph() : RequestSaveMesh();
         }
         ImGui::Separator();
         if (ImGui::MenuItem("Close"))
@@ -536,11 +950,21 @@ void FEditorViewerWindowWidget::RenderDetachedDocumentChrome(bool& bDockRequeste
     }
     if (ImGui::BeginMenu("Asset"))
     {
-        if (ImGui::MenuItem(SaveMeshLabel, nullptr, false, bCanSaveMesh))
+        if (ImGui::MenuItem(SaveAssetLabel, nullptr, false, bCanSaveAsset))
         {
-            RequestSaveMesh();
+            bGraphViewer ? RequestSaveGraph() : RequestSaveMesh();
         }
-        ImGui::MenuItem("Reimport Mesh", nullptr, false, false);
+        if (bGraphViewer)
+        {
+            if (ImGui::MenuItem("Validate State Machine", nullptr, false, true))
+            {
+                RequestValidateGraph();
+            }
+        }
+        else
+        {
+            ImGui::MenuItem("Reimport Mesh", nullptr, false, false);
+        }
         ImGui::EndMenu();
     }
     if (ImGui::BeginMenu("Window"))
@@ -579,7 +1003,14 @@ void FEditorViewerWindowWidget::RenderDetachedDocumentChrome(bool& bDockRequeste
     }
     if (ImGui::BeginMenu("Help"))
     {
-        ImGui::TextDisabled(AsAnimationViewer(Viewer) ? "Animation Viewer" : "Skeletal Mesh Previewer");
+        if (AsAnimStateMachineGraphViewer(Viewer))
+        {
+            ImGui::TextDisabled("Animation State Machine Graph");
+        }
+        else
+        {
+            ImGui::TextDisabled(AsAnimationViewer(Viewer) ? "Animation Viewer" : "Skeletal Mesh Previewer");
+        }
         ImGui::EndMenu();
     }
 
@@ -724,6 +1155,931 @@ void FEditorViewerWindowWidget::RenderEmbedded(float DeltaTime)
     {
         RenderAnimationContent(DeltaTime);
 	}
+    else if (AsAnimStateMachineGraphViewer(Viewer))
+    {
+        RenderAnimStateMachineGraphContent(DeltaTime);
+    }
+}
+
+void FEditorViewerWindowWidget::RenderAnimStateMachineGraphContent(float DeltaTime)
+{
+    (void)DeltaTime;
+
+    FAnimStateMachineGraphViewer* GraphViewer = AsAnimStateMachineGraphViewer(Viewer);
+    UAnimStateMachineAsset* Asset = GraphViewer ? GraphViewer->GetAsset() : nullptr;
+    if (!GraphViewer)
+    {
+        return;
+    }
+
+    ImVec2 FullSize = ImGui::GetContentRegionAvail();
+    const float InspectorWidth = std::clamp(FullSize.x * 0.30f, 280.0f, 420.0f);
+    const float GraphWidth = std::max(220.0f, FullSize.x - InspectorWidth - ImGui::GetStyle().ItemSpacing.x);
+
+    ImGui::BeginChild("AnimStateMachineGraphCanvas", ImVec2(GraphWidth, 0), true);
+    if (!Asset)
+    {
+        ImGui::TextDisabled("State machine asset is not loaded.");
+        if (!GraphViewer->GetValidationMessage().empty())
+        {
+            ImGui::TextWrapped("%s", GraphViewer->GetValidationMessage().c_str());
+        }
+        ImGui::EndChild();
+        ImGui::SameLine();
+        ImGui::BeginChild("AnimStateMachineInspector", ImVec2(InspectorWidth, 0), true);
+        ImGui::TextDisabled("Inspector");
+        ImGui::EndChild();
+        return;
+    }
+
+    ed::SetCurrentEditor(GraphViewer->GetNodeEditorContext());
+    ed::PushStyleColor(ed::StyleColor_Bg, ImVec4(0.08f, 0.085f, 0.10f, 1.0f));
+    ed::PushStyleColor(ed::StyleColor_Grid, ImVec4(0.18f, 0.20f, 0.23f, 0.28f));
+    ed::PushStyleColor(ed::StyleColor_PinRect, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+    ed::PushStyleColor(ed::StyleColor_PinRectBorder, ImVec4(0.0f, 0.0f, 0.0f, 0.0f));
+    ed::Begin("AnimStateMachineGraph", ImVec2(0, 0));
+
+    int32 DefaultPositionIndex = 0;
+    for (const FAnimStateDesc& State : Asset->GetStates())
+    {
+        if (!GraphViewer->IsLayoutInitialized())
+        {
+            if (const FAnimStateEditorMetadata* Metadata = FindStateEditorMetadata(Asset, State.Id))
+            {
+                ed::SetNodePosition(MakeStateNodeId(State.Id), ImVec2(Metadata->NodeX, Metadata->NodeY));
+            }
+            else
+            {
+                const bool bEntryState = State.Id == Asset->GetEntryStateId();
+                const int32 LayoutIndex = bEntryState ? 0 : ++DefaultPositionIndex;
+                const int32 Column = LayoutIndex % 4;
+                const int32 Row = LayoutIndex / 4;
+                ed::SetNodePosition(
+                    MakeStateNodeId(State.Id),
+                    ImVec2(static_cast<float>(Column) * 240.0f, static_cast<float>(Row) * 140.0f));
+            }
+        }
+
+        ed::BeginNode(MakeStateNodeId(State.Id));
+        DrawReadOnlyPin(State.Id, false);
+        ImGui::SameLine();
+        ImGui::BeginGroup();
+        const bool bEntryState = State.Id == Asset->GetEntryStateId();
+        if (bEntryState)
+        {
+            ImGui::TextColored(ImVec4(0.92f, 0.74f, 0.25f, 1.0f), "ENTRY");
+        }
+        else
+        {
+            ImGui::TextDisabled("STATE");
+        }
+        ImGui::TextUnformatted(State.StateName.ToString().c_str());
+        if (!State.AnimationName.ToString().empty())
+        {
+            ImGui::TextDisabled("%s", State.AnimationName.ToString().c_str());
+        }
+        else if (!State.AnimationPath.empty())
+        {
+            ImGui::TextDisabled("%s", State.AnimationPath.c_str());
+        }
+        else
+        {
+            ImGui::TextDisabled("No animation");
+        }
+        ImGui::Dummy(ImVec2(180.0f, 4.0f));
+        ImGui::EndGroup();
+        ImGui::SameLine();
+        DrawReadOnlyPin(State.Id, true);
+        ed::EndNode();
+    }
+
+    for (const FAnimTransitionDesc& Transition : Asset->GetTransitions())
+    {
+        ed::Link(
+            MakeTransitionLinkId(Transition.Id),
+            MakeStateOutputPinId(Transition.FromStateId),
+            MakeStateInputPinId(Transition.ToStateId),
+            ImVec4(0.72f, 0.78f, 0.88f, 1.0f),
+            2.0f);
+    }
+
+    if (!GraphViewer->IsLayoutInitialized())
+    {
+        GraphViewer->MarkLayoutInitialized();
+    }
+
+    ed::End();
+
+    for (const FAnimStateDesc& State : Asset->GetStates())
+    {
+        const ImVec2 NodePosition = ed::GetNodePosition(MakeStateNodeId(State.Id));
+        if (GraphViewer->UpdateObservedNodePosition(State.Id, NodePosition.x, NodePosition.y))
+        {
+            if (Asset->SetStateEditorPosition(State.Id, NodePosition.x, NodePosition.y))
+            {
+                GraphViewer->MarkDirty();
+            }
+        }
+    }
+
+    if (GraphViewer->IsFitToViewPending())
+    {
+        ed::NavigateToContent(0.0f);
+        GraphViewer->MarkFitToViewDone();
+    }
+
+    if (ed::HasSelectionChanged())
+    {
+        ed::NodeId SelectedNodes[1] = { ed::NodeId(0) };
+        ed::LinkId SelectedLinks[1] = { ed::LinkId(0) };
+        if (ed::GetSelectedNodes(SelectedNodes, 1) > 0)
+        {
+            GraphViewer->SetSelectedStateId(static_cast<uint32>(SelectedNodes[0].Get()));
+            GraphViewer->SetSelectedTransitionId(InvalidAnimTransitionId);
+        }
+        else if (ed::GetSelectedLinks(SelectedLinks, 1) > 0)
+        {
+            GraphViewer->SetSelectedTransitionId(static_cast<uint32>(SelectedLinks[0].Get()));
+            GraphViewer->SetSelectedStateId(InvalidAnimStateId);
+        }
+        else
+        {
+            GraphViewer->SetSelectedStateId(InvalidAnimStateId);
+            GraphViewer->SetSelectedTransitionId(InvalidAnimTransitionId);
+        }
+    }
+
+    ed::PopStyleColor(4);
+    ed::SetCurrentEditor(nullptr);
+    ImGui::EndChild();
+
+    ImGui::SameLine();
+    ImGui::BeginChild("AnimStateMachineInspector", ImVec2(InspectorWidth, 0), true);
+    ImGui::TextUnformatted("State Machine");
+    ImGui::SameLine();
+    ImGui::TextDisabled("%s", GraphViewer->IsDirty() ? "dirty" : "saved");
+    ImGui::Separator();
+    if (ImGui::Button(GraphViewer->IsDirty() ? "Save *" : "Save", ImVec2(90.0f, 0.0f)))
+    {
+        RequestSaveGraph();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Validate", ImVec2(90.0f, 0.0f)))
+    {
+        RequestValidateGraph();
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Fit", ImVec2(70.0f, 0.0f)))
+    {
+        ed::SetCurrentEditor(GraphViewer->GetNodeEditorContext());
+        ed::NavigateToContent(0.0f);
+        ed::SetCurrentEditor(nullptr);
+    }
+    ImGui::Spacing();
+    ImGui::Text("States: %zu", Asset->GetStates().size());
+    ImGui::Text("Transitions: %zu", Asset->GetTransitions().size());
+    ImGui::Text("Parameters: %zu", Asset->GetParameters().size());
+    ImGui::Text("Entry: %s", Asset->GetEntryState().ToString().c_str());
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::TextUnformatted("State Commands");
+    ImGui::InputTextWithHint("##NewStateName", "New State", GraphNewStateNameBuffer, sizeof(GraphNewStateNameBuffer));
+    ImGui::SameLine();
+    if (ImGui::Button("Add State"))
+    {
+        const FString NewStateName = MakeUniqueStateName(Asset, GraphNewStateNameBuffer);
+        if (Asset->AddState(FName(NewStateName), FName(), true))
+        {
+            const FAnimStateDesc* NewState = Asset->FindState(FName(NewStateName));
+            if (NewState)
+            {
+                const float PositionX = static_cast<float>(Asset->GetStates().size() % 4) * 240.0f;
+                const float PositionY = static_cast<float>(Asset->GetStates().size() / 4) * 140.0f;
+                Asset->SetStateEditorPosition(NewState->Id, PositionX, PositionY);
+
+                ed::SetCurrentEditor(GraphViewer->GetNodeEditorContext());
+                ed::SetNodePosition(MakeStateNodeId(NewState->Id), ImVec2(PositionX, PositionY));
+                ed::ClearSelection();
+                ed::SelectNode(MakeStateNodeId(NewState->Id));
+                ed::SetCurrentEditor(nullptr);
+
+                GraphViewer->SetSelectedStateId(NewState->Id);
+                GraphViewer->SetSelectedTransitionId(InvalidAnimTransitionId);
+                GraphViewer->MarkDirty();
+                CopyToBuffer(GraphNewStateNameBuffer, sizeof(GraphNewStateNameBuffer), MakeUniqueStateName(Asset, "New State"));
+            }
+        }
+    }
+
+    if (!GraphViewer->GetValidationMessage().empty())
+    {
+        ImGui::Spacing();
+        ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.30f, 1.0f), "Validation");
+        ImGui::TextWrapped("%s", GraphViewer->GetValidationMessage().c_str());
+    }
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::TextUnformatted("Parameters");
+
+    const FString NewParameterName = StringUtils::Trim(GraphNewParameterNameBuffer);
+    const bool bNewParameterNameEmpty = NewParameterName.empty();
+    const bool bDuplicateParameterName = !bNewParameterNameEmpty && Asset->FindParameter(FName(NewParameterName)) != nullptr;
+    const bool bCanAddParameter = !bNewParameterNameEmpty && !bDuplicateParameterName;
+
+    const float AddButtonWidth = ImGui::CalcTextSize("Add").x + ImGui::GetStyle().FramePadding.x * 2.0f;
+    const float ParameterTypeWidth = 84.0f;
+    const float ParameterRowSpacing = ImGui::GetStyle().ItemSpacing.x * 2.0f;
+    const float ParameterNameWidth = std::max(
+        96.0f,
+        ImGui::GetContentRegionAvail().x - ParameterTypeWidth - AddButtonWidth - ParameterRowSpacing);
+    ImGui::SetNextItemWidth(ParameterNameWidth);
+    ImGui::InputTextWithHint("##NewParameterName", "Parameter", GraphNewParameterNameBuffer, sizeof(GraphNewParameterNameBuffer));
+    ImGui::SameLine();
+    static const char* ParameterTypeLabels[] = { "Bool", "Int", "Float", "Vector", "Trigger" };
+    ImGui::SetNextItemWidth(ParameterTypeWidth);
+    ImGui::Combo("##NewParameterType", &GraphNewParameterTypeIndex, ParameterTypeLabels, IM_ARRAYSIZE(ParameterTypeLabels));
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!bCanAddParameter);
+    if (ImGui::Button("Add##AddParameter", ImVec2(AddButtonWidth, 0.0f)))
+    {
+        if (Asset->AddParameter(FName(NewParameterName), ParameterTypeFromIndex(GraphNewParameterTypeIndex)))
+        {
+            GraphViewer->MarkDirty();
+            CopyToBuffer(GraphNewParameterNameBuffer, sizeof(GraphNewParameterNameBuffer), "NewParameter");
+        }
+    }
+    ImGui::EndDisabled();
+    if (bDuplicateParameterName)
+    {
+        ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.30f, 1.0f), "Parameter name already exists");
+    }
+
+    if (Asset->GetParameters().empty())
+    {
+        ImGui::TextDisabled("No parameters");
+    }
+    else
+    {
+        int32 SelectedParameterIndex = FindParameterIndex(Asset, GraphSelectedParameterName);
+        if (SelectedParameterIndex < 0)
+        {
+            SelectedParameterIndex = 0;
+            GraphSelectedParameterName = Asset->GetParameters()[0].Name;
+            CopyToBuffer(GraphRenameParameterBuffer, sizeof(GraphRenameParameterBuffer), GraphSelectedParameterName.ToString());
+        }
+
+        const FAnimStateMachineParameterDesc& SelectedParameter = Asset->GetParameters()[SelectedParameterIndex];
+        if (ImGui::BeginCombo("Selected Parameter", SelectedParameter.Name.ToString().c_str()))
+        {
+            for (int32 Index = 0; Index < static_cast<int32>(Asset->GetParameters().size()); ++Index)
+            {
+                const FAnimStateMachineParameterDesc& Parameter = Asset->GetParameters()[Index];
+                const bool bSelected = Index == SelectedParameterIndex;
+                if (ImGui::Selectable(Parameter.Name.ToString().c_str(), bSelected))
+                {
+                    GraphSelectedParameterName = Parameter.Name;
+                    CopyToBuffer(GraphRenameParameterBuffer, sizeof(GraphRenameParameterBuffer), Parameter.Name.ToString());
+                }
+                if (bSelected)
+                {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
+        ImGui::Text("Type: %s", ParameterTypeToString(SelectedParameter.Type).c_str());
+
+        ImGui::InputText("Rename Parameter", GraphRenameParameterBuffer, sizeof(GraphRenameParameterBuffer));
+        const FString RenameParameterName = GraphRenameParameterBuffer;
+        const bool bCanRenameParameter =
+            !RenameParameterName.empty() &&
+            RenameParameterName != SelectedParameter.Name.ToString() &&
+            !Asset->FindParameter(FName(RenameParameterName));
+        ImGui::BeginDisabled(!bCanRenameParameter);
+        if (ImGui::Button("Apply Parameter Name"))
+        {
+            const FName OldName = SelectedParameter.Name;
+            if (Asset->RenameParameter(OldName, FName(RenameParameterName)))
+            {
+                GraphSelectedParameterName = FName(RenameParameterName);
+                GraphViewer->MarkDirty();
+            }
+        }
+        ImGui::EndDisabled();
+        ImGui::SameLine();
+        if (ImGui::Button("Delete Parameter"))
+        {
+            const FName ParameterName = SelectedParameter.Name;
+            bool bDelete = true;
+            if (IsParameterReferencedByAnyTransition(Asset, ParameterName))
+            {
+                bDelete = MessageBoxW(
+                    nullptr,
+                    L"Remove parameter and all referencing conditions?",
+                    L"Delete Parameter",
+                    MB_ICONWARNING | MB_YESNO | MB_DEFBUTTON2) == IDYES;
+            }
+
+            if (bDelete)
+            {
+                const bool bRemoved = IsParameterReferencedByAnyTransition(Asset, ParameterName)
+                    ? Asset->RemoveParameterAndConditions(ParameterName)
+                    : Asset->RemoveParameter(ParameterName);
+                if (bRemoved)
+                {
+                    GraphSelectedParameterName = FName();
+                    GraphViewer->SetSelectedTransitionId(InvalidAnimTransitionId);
+                    GraphViewer->MarkDirty();
+                }
+            }
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Remove Unused"))
+        {
+            if (Asset->RemoveUnusedParameters() > 0)
+            {
+                GraphSelectedParameterName = FName();
+                GraphViewer->MarkDirty();
+            }
+        }
+    }
+
+    if (const FAnimStateDesc* SelectedState = Asset->FindStateById(GraphViewer->GetSelectedStateId()))
+    {
+        if (GraphInspectorStateBufferId != SelectedState->Id)
+        {
+            GraphInspectorStateBufferId = SelectedState->Id;
+            CopyToBuffer(GraphStateNameBuffer, sizeof(GraphStateNameBuffer), SelectedState->StateName.ToString());
+        }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::TextUnformatted("Selected State");
+        ImGui::Text("Id: %u", SelectedState->Id);
+        ImGui::InputText("Name", GraphStateNameBuffer, sizeof(GraphStateNameBuffer));
+
+        const FString CandidateName = GraphStateNameBuffer;
+        const bool bCanRename =
+            !CandidateName.empty() &&
+            !IsDuplicateStateName(Asset, CandidateName, SelectedState->Id) &&
+            CandidateName != SelectedState->StateName.ToString();
+        ImGui::BeginDisabled(!bCanRename);
+        if (ImGui::Button("Apply Name"))
+        {
+            if (Asset->RenameState(SelectedState->Id, FName(CandidateName)))
+            {
+                GraphViewer->MarkDirty();
+            }
+        }
+        ImGui::EndDisabled();
+        if (CandidateName.empty())
+        {
+            ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.30f, 1.0f), "State name is empty");
+        }
+        else if (IsDuplicateStateName(Asset, CandidateName, SelectedState->Id))
+        {
+            ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.30f, 1.0f), "Duplicate state name");
+        }
+
+        ImGui::Spacing();
+        bool bLoop = SelectedState->bLoop;
+        if (ImGui::Checkbox("Loop", &bLoop))
+        {
+            if (Asset->SetStateLoop(SelectedState->Id, bLoop))
+            {
+                GraphViewer->MarkDirty();
+            }
+        }
+
+        const FString CurrentAnimation = SelectedState->AnimationPath.empty()
+            ? SelectedState->AnimationName.ToString()
+            : SelectedState->AnimationPath;
+        if (ImGui::BeginCombo("Animation", CurrentAnimation.empty() ? "<None>" : CurrentAnimation.c_str()))
+        {
+            const TArray<FString>& AnimationPaths = EditorEngine->GetAssetService().GetAnimationSequenceAssetPaths();
+            if (AnimationPaths.empty())
+            {
+                ImGui::TextDisabled("No animation sequences");
+            }
+            for (const FString& AnimationPath : AnimationPaths)
+            {
+                const bool bSelected = AnimationPath == CurrentAnimation;
+                if (ImGui::Selectable(AnimationPath.c_str(), bSelected))
+                {
+                    if (Asset->SetStateAnimationPathById(SelectedState->Id, AnimationPath))
+                    {
+                        GraphViewer->MarkDirty();
+                    }
+                }
+                if (bSelected)
+                {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        const bool bIsEntry = SelectedState->Id == Asset->GetEntryStateId();
+        ImGui::BeginDisabled(bIsEntry);
+        if (ImGui::Button("Set Entry"))
+        {
+            if (Asset->SetEntryStateId(SelectedState->Id))
+            {
+                GraphViewer->MarkDirty();
+            }
+        }
+        ImGui::EndDisabled();
+        ImGui::SameLine();
+        ImGui::BeginDisabled(bIsEntry || Asset->GetStates().size() <= 1);
+        if (ImGui::Button("Delete State"))
+        {
+            const FAnimStateId RemovedStateId = SelectedState->Id;
+            if (Asset->RemoveState(RemovedStateId))
+            {
+                GraphViewer->SetSelectedStateId(InvalidAnimStateId);
+                GraphInspectorStateBufferId = InvalidAnimStateId;
+                GraphViewer->MarkDirty();
+            }
+        }
+        ImGui::EndDisabled();
+        if (bIsEntry)
+        {
+            ImGui::TextDisabled("Entry state cannot be deleted");
+        }
+        else if (Asset->GetStates().size() <= 1)
+        {
+            ImGui::TextDisabled("Last state cannot be deleted");
+        }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::TextUnformatted("Create Transition");
+        if (GraphTransitionTargetStateId == InvalidAnimStateId || !Asset->FindStateById(GraphTransitionTargetStateId))
+        {
+            for (const FAnimStateDesc& State : Asset->GetStates())
+            {
+                if (State.Id != SelectedState->Id)
+                {
+                    GraphTransitionTargetStateId = State.Id;
+                    break;
+                }
+            }
+        }
+
+        const FAnimStateDesc* TargetState = Asset->FindStateById(GraphTransitionTargetStateId);
+        if (ImGui::BeginCombo("Target", TargetState ? TargetState->StateName.ToString().c_str() : "<None>"))
+        {
+            for (const FAnimStateDesc& State : Asset->GetStates())
+            {
+                if (State.Id == SelectedState->Id)
+                {
+                    continue;
+                }
+
+                const bool bSelected = State.Id == GraphTransitionTargetStateId;
+                if (ImGui::Selectable(State.StateName.ToString().c_str(), bSelected))
+                {
+                    GraphTransitionTargetStateId = State.Id;
+                }
+                if (bSelected)
+                {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        const FAnimStateMachineParameterDesc* TransitionParameter = GetParameterByIndex(Asset, GraphTransitionParameterIndex);
+        if (!TransitionParameter && !Asset->GetParameters().empty())
+        {
+            GraphTransitionParameterIndex = 0;
+            TransitionParameter = GetParameterByIndex(Asset, GraphTransitionParameterIndex);
+        }
+        if (ImGui::BeginCombo("Condition Parameter", TransitionParameter ? TransitionParameter->Name.ToString().c_str() : "<None>"))
+        {
+            for (int32 Index = 0; Index < static_cast<int32>(Asset->GetParameters().size()); ++Index)
+            {
+                const FAnimStateMachineParameterDesc& Parameter = Asset->GetParameters()[Index];
+                const bool bSelected = Index == GraphTransitionParameterIndex;
+                if (ImGui::Selectable(Parameter.Name.ToString().c_str(), bSelected))
+                {
+                    GraphTransitionParameterIndex = Index;
+                    GraphTransitionCompareOpIndex = 0;
+                }
+                if (bSelected)
+                {
+                    ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        if (TransitionParameter)
+        {
+            TArray<EAnimCompareOp> Ops = GetCompareOpsForParameterType(TransitionParameter->Type);
+            const EAnimCompareOp CurrentOp = GetCompareOpFromIndex(TransitionParameter->Type, GraphTransitionCompareOpIndex);
+            if (ImGui::BeginCombo("Compare", CompareOpToString(CurrentOp).c_str()))
+            {
+                for (int32 Index = 0; Index < static_cast<int32>(Ops.size()); ++Index)
+                {
+                    const bool bSelected = Ops[Index] == CurrentOp;
+                    if (ImGui::Selectable(CompareOpToString(Ops[Index]).c_str(), bSelected))
+                    {
+                        GraphTransitionCompareOpIndex = Index;
+                    }
+                    if (bSelected)
+                    {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
+
+            switch (TransitionParameter->Type)
+            {
+            case EAnimParameterType::Bool:
+                ImGui::Checkbox("Condition Value", &GraphTransitionBoolValue);
+                break;
+            case EAnimParameterType::Int:
+                ImGui::InputInt("Condition Value", &GraphTransitionIntValue);
+                break;
+            case EAnimParameterType::Float:
+                ImGui::InputFloat("Condition Value", &GraphTransitionFloatValue, 0.05f, 0.25f, "%.3f");
+                break;
+            case EAnimParameterType::Vector:
+                ImGui::InputFloat3("Condition Value", GraphTransitionVectorValue, "%.3f");
+                break;
+            case EAnimParameterType::Trigger:
+                ImGui::TextDisabled("Trigger uses IsTrue");
+                break;
+            default:
+                break;
+            }
+        }
+
+        static const char* EaseLabels[] = { "Linear", "EaseIn", "EaseOut", "EaseInOut" };
+        ImGui::InputFloat("Blend Time", &GraphTransitionBlendTime, 0.05f, 0.25f, "%.3f");
+        GraphTransitionBlendTime = std::max(0.0f, GraphTransitionBlendTime);
+        ImGui::InputInt("Priority", &GraphTransitionPriority);
+        ImGui::Combo("Ease", &GraphTransitionEaseIndex, EaseLabels, IM_ARRAYSIZE(EaseLabels));
+
+        const bool bCanCreateTransition =
+            TargetState &&
+            TransitionParameter &&
+            TargetState->Id != SelectedState->Id;
+        ImGui::BeginDisabled(!bCanCreateTransition);
+        if (ImGui::Button("Create Transition"))
+        {
+            TArray<FAnimTransitionCondition> Conditions;
+            Conditions.push_back(BuildConditionFromUi(
+                *TransitionParameter,
+                GraphTransitionCompareOpIndex,
+                GraphTransitionBoolValue,
+                GraphTransitionIntValue,
+                GraphTransitionFloatValue,
+                GraphTransitionVectorValue));
+
+            if (Asset->AddTransition(
+                SelectedState->StateName,
+                TargetState->StateName,
+                Conditions,
+                GraphTransitionBlendTime,
+                GraphTransitionPriority,
+                EaseOptionFromIndex(GraphTransitionEaseIndex)))
+            {
+                GraphViewer->MarkDirty();
+            }
+        }
+        ImGui::EndDisabled();
+    }
+
+    if (const FAnimTransitionDesc* SelectedTransition = Asset->FindTransitionById(GraphViewer->GetSelectedTransitionId()))
+    {
+        if (GraphInspectorTransitionBufferId != SelectedTransition->Id)
+        {
+            GraphInspectorTransitionBufferId = SelectedTransition->Id;
+            GraphTransitionFromStateId = SelectedTransition->FromStateId;
+            GraphTransitionToStateId = SelectedTransition->ToStateId;
+            GraphTransitionBlendTime = SelectedTransition->BlendTime;
+            GraphTransitionPriority = SelectedTransition->Priority;
+            GraphTransitionEaseIndex = EaseOptionToIndex(SelectedTransition->EaseOption);
+        }
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::TextUnformatted("Selected Transition");
+        ImGui::Text("Id: %u", SelectedTransition->Id);
+        if (ImGui::Button("Delete Transition"))
+        {
+            const FAnimTransitionId RemovedTransitionId = SelectedTransition->Id;
+            if (Asset->RemoveTransition(RemovedTransitionId))
+            {
+                GraphViewer->SetSelectedTransitionId(InvalidAnimTransitionId);
+                GraphInspectorTransitionBufferId = InvalidAnimTransitionId;
+                GraphViewer->MarkDirty();
+            }
+        }
+
+        SelectedTransition = Asset->FindTransitionById(GraphViewer->GetSelectedTransitionId());
+        if (SelectedTransition)
+        {
+            const FAnimStateDesc* FromState = Asset->FindStateById(GraphTransitionFromStateId);
+            const FAnimStateDesc* ToState = Asset->FindStateById(GraphTransitionToStateId);
+            if (ImGui::BeginCombo("From", FromState ? FromState->StateName.ToString().c_str() : "<None>"))
+            {
+                for (const FAnimStateDesc& State : Asset->GetStates())
+                {
+                    const bool bSelected = State.Id == GraphTransitionFromStateId;
+                    if (ImGui::Selectable(State.StateName.ToString().c_str(), bSelected))
+                    {
+                        GraphTransitionFromStateId = State.Id;
+                    }
+                    if (bSelected)
+                    {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
+            if (ImGui::BeginCombo("To", ToState ? ToState->StateName.ToString().c_str() : "<None>"))
+            {
+                for (const FAnimStateDesc& State : Asset->GetStates())
+                {
+                    const bool bSelected = State.Id == GraphTransitionToStateId;
+                    if (ImGui::Selectable(State.StateName.ToString().c_str(), bSelected))
+                    {
+                        GraphTransitionToStateId = State.Id;
+                    }
+                    if (bSelected)
+                    {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
+            const bool bCanReconnect =
+                GraphTransitionFromStateId != InvalidAnimStateId &&
+                GraphTransitionToStateId != InvalidAnimStateId &&
+                (GraphTransitionFromStateId != SelectedTransition->FromStateId ||
+                 GraphTransitionToStateId != SelectedTransition->ToStateId);
+            ImGui::BeginDisabled(!bCanReconnect);
+            if (ImGui::Button("Apply Reconnect"))
+            {
+                if (Asset->ReconnectTransition(
+                    SelectedTransition->Id,
+                    GraphTransitionFromStateId,
+                    GraphTransitionToStateId))
+                {
+                    GraphViewer->MarkDirty();
+                }
+            }
+            ImGui::EndDisabled();
+
+            if (ImGui::InputFloat("Blend", &GraphTransitionBlendTime, 0.05f, 0.25f, "%.3f"))
+            {
+                GraphTransitionBlendTime = std::max(0.0f, GraphTransitionBlendTime);
+                if (Asset->UpdateTransition(
+                    SelectedTransition->Id,
+                    GraphTransitionBlendTime,
+                    GraphTransitionPriority,
+                    EaseOptionFromIndex(GraphTransitionEaseIndex)))
+                {
+                    GraphViewer->MarkDirty();
+                }
+            }
+            if (ImGui::InputInt("Transition Priority", &GraphTransitionPriority))
+            {
+                if (Asset->UpdateTransition(
+                    SelectedTransition->Id,
+                    GraphTransitionBlendTime,
+                    GraphTransitionPriority,
+                    EaseOptionFromIndex(GraphTransitionEaseIndex)))
+                {
+                    GraphViewer->MarkDirty();
+                }
+            }
+            static const char* EaseLabels[] = { "Linear", "EaseIn", "EaseOut", "EaseInOut" };
+            if (ImGui::Combo("Transition Ease", &GraphTransitionEaseIndex, EaseLabels, IM_ARRAYSIZE(EaseLabels)))
+            {
+                if (Asset->UpdateTransition(
+                    SelectedTransition->Id,
+                    GraphTransitionBlendTime,
+                    GraphTransitionPriority,
+                    EaseOptionFromIndex(GraphTransitionEaseIndex)))
+                {
+                    GraphViewer->MarkDirty();
+                }
+            }
+
+            SelectedTransition = Asset->FindTransitionById(GraphViewer->GetSelectedTransitionId());
+            if (SelectedTransition)
+            {
+                ImGui::Spacing();
+                ImGui::Text("Conditions: %zu", SelectedTransition->Conditions.size());
+                for (int32 ConditionIndex = 0; ConditionIndex < static_cast<int32>(SelectedTransition->Conditions.size()); ++ConditionIndex)
+                {
+                    const FAnimTransitionCondition& SourceCondition = SelectedTransition->Conditions[ConditionIndex];
+                    TArray<FAnimTransitionCondition> Conditions = SelectedTransition->Conditions;
+                    FAnimTransitionCondition& EditableCondition = Conditions[ConditionIndex];
+                    const FAnimStateMachineParameterDesc* ConditionParameter = Asset->FindParameter(EditableCondition.ParameterName);
+                    ImGui::PushID(ConditionIndex);
+                    ImGui::Separator();
+
+                    int32 ConditionParameterIndex = FindParameterIndex(Asset, EditableCondition.ParameterName);
+                    const FString CurrentParameterLabel = ConditionParameter ? ConditionParameter->Name.ToString() : FString("<Missing>");
+                    if (ImGui::BeginCombo("Parameter", CurrentParameterLabel.c_str()))
+                    {
+                        for (int32 ParameterIndex = 0; ParameterIndex < static_cast<int32>(Asset->GetParameters().size()); ++ParameterIndex)
+                        {
+                            const FAnimStateMachineParameterDesc& Parameter = Asset->GetParameters()[ParameterIndex];
+                            const bool bSelected = ParameterIndex == ConditionParameterIndex;
+                            if (ImGui::Selectable(Parameter.Name.ToString().c_str(), bSelected))
+                            {
+                                EditableCondition.ParameterName = Parameter.Name;
+                                EditableCondition.CompareOp = GetCompareOpFromIndex(Parameter.Type, 0);
+                                EditableCondition.CompareValue = FAnimParameterValue();
+                                if (Asset->SetTransitionConditions(SelectedTransition->Id, Conditions))
+                                {
+                                    GraphViewer->MarkDirty();
+                                }
+                            }
+                            if (bSelected)
+                            {
+                                ImGui::SetItemDefaultFocus();
+                            }
+                        }
+                        ImGui::EndCombo();
+                    }
+
+                    ConditionParameter = Asset->FindParameter(EditableCondition.ParameterName);
+                    if (ConditionParameter)
+                    {
+                        TArray<EAnimCompareOp> Ops = GetCompareOpsForParameterType(ConditionParameter->Type);
+                        int32 CompareIndex = GetCompareOpIndex(ConditionParameter->Type, EditableCondition.CompareOp);
+                        if (ImGui::BeginCombo("Compare", CompareOpToString(EditableCondition.CompareOp).c_str()))
+                        {
+                            for (int32 OpIndex = 0; OpIndex < static_cast<int32>(Ops.size()); ++OpIndex)
+                            {
+                                const bool bSelected = Ops[OpIndex] == EditableCondition.CompareOp;
+                                if (ImGui::Selectable(CompareOpToString(Ops[OpIndex]).c_str(), bSelected))
+                                {
+                                    CompareIndex = OpIndex;
+                                    EditableCondition.CompareOp = Ops[OpIndex];
+                                    if (Asset->SetTransitionConditions(SelectedTransition->Id, Conditions))
+                                    {
+                                        GraphViewer->MarkDirty();
+                                    }
+                                }
+                                if (bSelected)
+                                {
+                                    ImGui::SetItemDefaultFocus();
+                                }
+                            }
+                            ImGui::EndCombo();
+                        }
+
+                        FAnimParameterValue PreviousValue = EditableCondition.CompareValue;
+                        DrawConditionValueEditor("Condition", ConditionParameter->Type, EditableCondition.CompareValue);
+                        if (PreviousValue.BoolValue != EditableCondition.CompareValue.BoolValue ||
+                            PreviousValue.IntValue != EditableCondition.CompareValue.IntValue ||
+                            PreviousValue.FloatValue != EditableCondition.CompareValue.FloatValue ||
+                            PreviousValue.VectorValue != EditableCondition.CompareValue.VectorValue)
+                        {
+                            if (Asset->SetTransitionConditions(SelectedTransition->Id, Conditions))
+                            {
+                                GraphViewer->MarkDirty();
+                            }
+                        }
+                    }
+
+                    if (ImGui::Button("Delete Condition"))
+                    {
+                        if (Conditions.size() <= 1)
+                        {
+                            const bool bDeleteTransition = MessageBoxW(
+                                nullptr,
+                                L"Deleting the last condition will remove the transition.",
+                                L"Delete Transition",
+                                MB_ICONWARNING | MB_YESNO | MB_DEFBUTTON2) == IDYES;
+                            if (bDeleteTransition && Asset->RemoveTransition(SelectedTransition->Id))
+                            {
+                                GraphViewer->SetSelectedTransitionId(InvalidAnimTransitionId);
+                                GraphInspectorTransitionBufferId = InvalidAnimTransitionId;
+                                GraphViewer->MarkDirty();
+                            }
+                        }
+                        else
+                        {
+                            Conditions.erase(Conditions.begin() + ConditionIndex);
+                            if (Asset->SetTransitionConditions(SelectedTransition->Id, Conditions))
+                            {
+                                GraphViewer->MarkDirty();
+                            }
+                        }
+                    }
+                    ImGui::PopID();
+
+                    if (!Asset->FindTransitionById(GraphViewer->GetSelectedTransitionId()))
+                    {
+                        break;
+                    }
+                }
+
+                SelectedTransition = Asset->FindTransitionById(GraphViewer->GetSelectedTransitionId());
+                if (SelectedTransition)
+                {
+                    ImGui::Spacing();
+                    ImGui::TextUnformatted("Add Condition");
+                    const FAnimStateMachineParameterDesc* AddParameter = GetParameterByIndex(Asset, GraphTransitionParameterIndex);
+                    if (!AddParameter && !Asset->GetParameters().empty())
+                    {
+                        GraphTransitionParameterIndex = 0;
+                        AddParameter = GetParameterByIndex(Asset, GraphTransitionParameterIndex);
+                    }
+                    if (ImGui::BeginCombo("Add Parameter", AddParameter ? AddParameter->Name.ToString().c_str() : "<None>"))
+                    {
+                        for (int32 Index = 0; Index < static_cast<int32>(Asset->GetParameters().size()); ++Index)
+                        {
+                            const FAnimStateMachineParameterDesc& Parameter = Asset->GetParameters()[Index];
+                            const bool bSelected = Index == GraphTransitionParameterIndex;
+                            if (ImGui::Selectable(Parameter.Name.ToString().c_str(), bSelected))
+                            {
+                                GraphTransitionParameterIndex = Index;
+                                GraphTransitionCompareOpIndex = 0;
+                            }
+                            if (bSelected)
+                            {
+                                ImGui::SetItemDefaultFocus();
+                            }
+                        }
+                        ImGui::EndCombo();
+                    }
+                    if (AddParameter)
+                    {
+                        TArray<EAnimCompareOp> Ops = GetCompareOpsForParameterType(AddParameter->Type);
+                        const EAnimCompareOp CurrentAddOp = GetCompareOpFromIndex(AddParameter->Type, GraphTransitionCompareOpIndex);
+                        if (ImGui::BeginCombo("Add Compare", CompareOpToString(CurrentAddOp).c_str()))
+                        {
+                            for (int32 Index = 0; Index < static_cast<int32>(Ops.size()); ++Index)
+                            {
+                                const bool bSelected = Ops[Index] == CurrentAddOp;
+                                if (ImGui::Selectable(CompareOpToString(Ops[Index]).c_str(), bSelected))
+                                {
+                                    GraphTransitionCompareOpIndex = Index;
+                                }
+                                if (bSelected)
+                                {
+                                    ImGui::SetItemDefaultFocus();
+                                }
+                            }
+                            ImGui::EndCombo();
+                        }
+                        switch (AddParameter->Type)
+                        {
+                        case EAnimParameterType::Bool:
+                            ImGui::Checkbox("Add Value", &GraphTransitionBoolValue);
+                            break;
+                        case EAnimParameterType::Int:
+                            ImGui::InputInt("Add Value", &GraphTransitionIntValue);
+                            break;
+                        case EAnimParameterType::Float:
+                            ImGui::InputFloat("Add Value", &GraphTransitionFloatValue, 0.05f, 0.25f, "%.3f");
+                            break;
+                        case EAnimParameterType::Vector:
+                            ImGui::InputFloat3("Add Value", GraphTransitionVectorValue, "%.3f");
+                            break;
+                        case EAnimParameterType::Trigger:
+                            ImGui::TextDisabled("Trigger uses IsTrue");
+                            break;
+                        default:
+                            break;
+                        }
+                    }
+
+                    ImGui::BeginDisabled(!AddParameter);
+                    if (ImGui::Button("Add Condition"))
+                    {
+                        TArray<FAnimTransitionCondition> Conditions = SelectedTransition->Conditions;
+                        Conditions.push_back(BuildConditionFromUi(
+                            *AddParameter,
+                            GraphTransitionCompareOpIndex,
+                            GraphTransitionBoolValue,
+                            GraphTransitionIntValue,
+                            GraphTransitionFloatValue,
+                            GraphTransitionVectorValue));
+                        if (Asset->SetTransitionConditions(SelectedTransition->Id, Conditions))
+                        {
+                            GraphViewer->MarkDirty();
+                        }
+                    }
+                    ImGui::EndDisabled();
+                }
+            }
+        }
+    }
+    ImGui::EndChild();
 }
 
 void FEditorViewerWindowWidget::RenderSkeletalMeshContent(float DeltaTime)

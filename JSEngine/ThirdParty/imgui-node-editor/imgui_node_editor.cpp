@@ -129,6 +129,12 @@ static const float c_SelectionFadeOutDuration   = 0.15f; // seconds
 static const auto  c_MaxMoveOverEdgeSpeed       = 10.0f;
 static const auto  c_MaxMoveOverEdgeDistance    = 300.0f;
 
+static inline void ImRect_Floor(ImRect& rect)
+{
+    rect.Min = ImFloor(rect.Min);
+    rect.Max = ImFloor(rect.Max);
+}
+
 #if IMGUI_VERSION_NUM > 18101
 static const auto  c_AllRoundCornersFlags = ImDrawFlags_RoundCornersAll;
 #else
@@ -1483,19 +1489,31 @@ void ed::EditorContext::End()
 
         m_DrawList->ChannelsSetCurrent(c_UserChannel_Grid);
 
-        ImVec2 offset    = m_Canvas.ViewOrigin() * (1.0f / m_Canvas.ViewScale());
         ImU32 GRID_COLOR = GetColor(StyleColor_Grid, ImClamp(m_Canvas.ViewScale() * m_Canvas.ViewScale(), 0.0f, 1.0f));
         float GRID_SX    = 32.0f;// * m_Canvas.ViewScale();
         float GRID_SY    = 32.0f;// * m_Canvas.ViewScale();
-        ImVec2 VIEW_POS  = m_Canvas.ViewRect().Min;
-        ImVec2 VIEW_SIZE = m_Canvas.ViewRect().GetSize();
+        ImRect VIEW_RECT = m_Canvas.ViewRect();
+        ImRect SCREEN_RECT = m_Canvas.Rect();
+        float VIEW_SCALE = m_Canvas.ViewScale();
 
-        m_DrawList->AddRectFilled(VIEW_POS, VIEW_POS + VIEW_SIZE, GetColor(StyleColor_Bg));
+        m_Canvas.Suspend();
+        ImGui::PushClipRect(SCREEN_RECT.Min, SCREEN_RECT.Max, true);
+        m_DrawList->AddRectFilled(SCREEN_RECT.Min, SCREEN_RECT.Max, GetColor(StyleColor_Bg));
 
-        for (float x = fmodf(offset.x, GRID_SX); x < VIEW_SIZE.x; x += GRID_SX)
-            m_DrawList->AddLine(ImVec2(x, 0.0f) + VIEW_POS, ImVec2(x, VIEW_SIZE.y) + VIEW_POS, GRID_COLOR);
-        for (float y = fmodf(offset.y, GRID_SY); y < VIEW_SIZE.y; y += GRID_SY)
-            m_DrawList->AddLine(ImVec2(0.0f, y) + VIEW_POS, ImVec2(VIEW_SIZE.x, y) + VIEW_POS, GRID_COLOR);
+        const float FirstGridX = floorf(VIEW_RECT.Min.x / GRID_SX) * GRID_SX;
+        const float FirstGridY = floorf(VIEW_RECT.Min.y / GRID_SY) * GRID_SY;
+        for (float x = FirstGridX; x < VIEW_RECT.Max.x; x += GRID_SX)
+        {
+            const float ScreenX = SCREEN_RECT.Min.x + (x - VIEW_RECT.Min.x) * VIEW_SCALE;
+            m_DrawList->AddLine(ImVec2(ScreenX, SCREEN_RECT.Min.y), ImVec2(ScreenX, SCREEN_RECT.Max.y), GRID_COLOR);
+        }
+        for (float y = FirstGridY; y < VIEW_RECT.Max.y; y += GRID_SY)
+        {
+            const float ScreenY = SCREEN_RECT.Min.y + (y - VIEW_RECT.Min.y) * VIEW_SCALE;
+            m_DrawList->AddLine(ImVec2(SCREEN_RECT.Min.x, ScreenY), ImVec2(SCREEN_RECT.Max.x, ScreenY), GRID_COLOR);
+        }
+        ImGui::PopClipRect();
+        m_Canvas.Resume();
     }
 # endif
 
@@ -1648,7 +1666,7 @@ void ed::EditorContext::SetNodePosition(NodeId nodeId, const ImVec2& position)
     if (node->m_Bounds.Min != position)
     {
         node->m_Bounds.Translate(position - node->m_Bounds.Min);
-        node->m_Bounds.Floor();
+        ImRect_Floor(node->m_Bounds);
         MakeDirty(NodeEditor::SaveReasonFlags::Position, node);
     }
 }
@@ -1668,7 +1686,7 @@ void ed::EditorContext::SetGroupSize(NodeId nodeId, const ImVec2& size)
     {
         node->m_GroupBounds.Min = node->m_Bounds.Min;
         node->m_GroupBounds.Max = node->m_Bounds.Min + size;
-        node->m_GroupBounds.Floor();
+        ImRect_Floor(node->m_GroupBounds);
         MakeDirty(NodeEditor::SaveReasonFlags::Size, node);
     }
 }
@@ -1746,10 +1764,10 @@ void ed::EditorContext::UpdateNodeState(Node* node)
 
     node->m_Bounds.Min      = settings->m_Location;
     node->m_Bounds.Max      = node->m_Bounds.Min + settings->m_Size;
-    node->m_Bounds.Floor();
+    ImRect_Floor(node->m_Bounds);
     node->m_GroupBounds.Min = settings->m_Location;
     node->m_GroupBounds.Max = node->m_GroupBounds.Min + settings->m_GroupSize;
-    node->m_GroupBounds.Floor();
+    ImRect_Floor(node->m_GroupBounds);
 }
 
 void ed::EditorContext::RemoveSettings(Object* object)
@@ -3774,7 +3792,7 @@ bool ed::SizeAction::Process(const Control& control)
         if ((m_Pivot & NodeRegion::Right) == NodeRegion::Right)
             newBounds.Max.x = ImMax(newBounds.Min.x + minimumSize.x, Editor->AlignPointToGrid(newBounds.Max.x + dragOffset.x));
 
-        newBounds.Floor();
+        ImRect_Floor(newBounds);
 
         m_LastSize = newBounds.GetSize();
 
@@ -4366,15 +4384,15 @@ ed::EditorAction::AcceptResult ed::ShortcutAction::Accept(const Control& control
     Action candidateAction = None;
 
     auto& io = ImGui::GetIO();
-    if (io.KeyCtrl && !io.KeyShift && !io.KeyAlt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_X)))
+    if (io.KeyCtrl && !io.KeyShift && !io.KeyAlt && ImGui::IsKeyPressed(ImGuiKey_X))
         candidateAction = Cut;
-    if (io.KeyCtrl && !io.KeyShift && !io.KeyAlt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_C)))
+    if (io.KeyCtrl && !io.KeyShift && !io.KeyAlt && ImGui::IsKeyPressed(ImGuiKey_C))
         candidateAction = Copy;
-    if (io.KeyCtrl && !io.KeyShift && !io.KeyAlt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_V)))
+    if (io.KeyCtrl && !io.KeyShift && !io.KeyAlt && ImGui::IsKeyPressed(ImGuiKey_V))
         candidateAction = Paste;
     if (io.KeyCtrl && !io.KeyShift && !io.KeyAlt && ImGui::IsKeyPressed(GetKeyIndexForD()))
         candidateAction = Duplicate;
-    if (!io.KeyCtrl && !io.KeyShift && !io.KeyAlt && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Space)))
+    if (!io.KeyCtrl && !io.KeyShift && !io.KeyAlt && ImGui::IsKeyPressed(ImGuiKey_Space))
         candidateAction = CreateNode;
 
     if (candidateAction != None)
@@ -4928,7 +4946,7 @@ ed::EditorAction::AcceptResult ed::DeleteItemsAction::Accept(const Control& cont
         return False;
 
     auto& io = ImGui::GetIO();
-    if (Editor->CanAcceptUserInput() && ImGui::IsKeyPressed(ImGui::GetKeyIndex(ImGuiKey_Delete)) && Editor->AreShortcutsEnabled())
+    if (Editor->CanAcceptUserInput() && ImGui::IsKeyPressed(ImGuiKey_Delete) && Editor->AreShortcutsEnabled())
     {
         auto& selection = Editor->GetSelectedObjects();
         if (!selection.empty())
@@ -5284,7 +5302,7 @@ void ed::NodeBuilder::End()
     ImGui::EndGroup();
 
     m_NodeRect = ImGui_GetItemRect();
-    m_NodeRect.Floor();
+    ImRect_Floor(m_NodeRect);
 
     if (m_CurrentNode->m_Bounds.GetSize() != m_NodeRect.GetSize())
     {
@@ -5392,7 +5410,7 @@ void ed::NodeBuilder::PinRect(const ImVec2& a, const ImVec2& b)
     IM_ASSERT(nullptr != m_CurrentPin);
 
     m_CurrentPin->m_Bounds = ImRect(a, b);
-    m_CurrentPin->m_Bounds.Floor();
+    ImRect_Floor(m_CurrentPin->m_Bounds);
     m_ResolvePinRect     = false;
 }
 
@@ -5442,7 +5460,7 @@ void ed::NodeBuilder::Group(const ImVec2& size)
         ImGui::Dummy(size);
 
     m_GroupBounds = ImGui_GetItemRect();
-    m_GroupBounds.Floor();
+    ImRect_Floor(m_GroupBounds);
 }
 
 ImDrawList* ed::NodeBuilder::GetUserBackgroundDrawList() const

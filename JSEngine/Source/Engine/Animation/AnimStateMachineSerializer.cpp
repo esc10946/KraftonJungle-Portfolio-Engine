@@ -11,7 +11,7 @@
 namespace
 {
 constexpr uint32 ANIM_STATE_MACHINE_MAGIC = 0x534D5341;
-constexpr uint32 ANIM_STATE_MACHINE_VERSION = 2;
+constexpr uint32 ANIM_STATE_MACHINE_VERSION = 3;
 constexpr uint32 MAX_STATE_COUNT = 4096;
 constexpr uint32 MAX_TRANSITION_COUNT = 16384;
 constexpr uint32 MAX_CONDITION_COUNT = 65536;
@@ -93,18 +93,11 @@ bool FAnimStateMachineSerializer::Save(const FString& AssetPath, const UAnimStat
         WriteUInt32LE(Out, Metadata.StateId);
         WriteFloatLE(Out, Metadata.NodeX);
         WriteFloatLE(Out, Metadata.NodeY);
-        WriteFloatLE(Out, Metadata.NodeWidth);
-        WriteFloatLE(Out, Metadata.NodeHeight);
-        WriteString(Out, Metadata.Comment);
-        WriteUInt32LE(Out, Metadata.Color);
     }
 
     for (const FAnimTransitionEditorMetadata& Metadata : Asset.GetTransitionEditorMetadata())
     {
         WriteUInt32LE(Out, Metadata.TransitionId);
-        WriteFloatLE(Out, Metadata.ControlPointX);
-        WriteFloatLE(Out, Metadata.ControlPointY);
-        WriteString(Out, Metadata.Comment);
     }
 
     return Out.good();
@@ -120,9 +113,31 @@ bool FAnimStateMachineSerializer::Load(const FString& AssetPath, UAnimStateMachi
     }
 
     FAnimStateMachineBinaryHeader Header;
-    if (!ReadHeader(In, Header) || !IsValidHeader(Header))
+    if (!ReadHeader(In, Header))
     {
         UE_LOG_WARNING("[AnimSM] Load failed: invalid header %s", AssetPath.c_str());
+        return false;
+    }
+
+    if (Header.MagicNumber != ANIM_STATE_MACHINE_MAGIC)
+    {
+        UE_LOG_WARNING("[AnimSM] Load failed: invalid magic %s", AssetPath.c_str());
+        return false;
+    }
+
+    if (Header.Version != ANIM_STATE_MACHINE_VERSION)
+    {
+        UE_LOG_WARNING(
+            "[AnimSM] Load failed: unsupported version %u for %s (expected %u)",
+            Header.Version,
+            AssetPath.c_str(),
+            ANIM_STATE_MACHINE_VERSION);
+        return false;
+    }
+
+    if (!IsValidHeader(Header))
+    {
+        UE_LOG_WARNING("[AnimSM] Load failed: invalid counts %s", AssetPath.c_str());
         return false;
     }
 
@@ -217,11 +232,7 @@ bool FAnimStateMachineSerializer::Load(const FString& AssetPath, UAnimStateMachi
         FAnimStateEditorMetadata Metadata;
         if (!ReadUInt32LE(In, Metadata.StateId) ||
             !ReadFloatLE(In, Metadata.NodeX) ||
-            !ReadFloatLE(In, Metadata.NodeY) ||
-            !ReadFloatLE(In, Metadata.NodeWidth) ||
-            !ReadFloatLE(In, Metadata.NodeHeight) ||
-            !ReadString(In, Metadata.Comment) ||
-            !ReadUInt32LE(In, Metadata.Color))
+            !ReadFloatLE(In, Metadata.NodeY))
         {
             return false;
         }
@@ -231,10 +242,7 @@ bool FAnimStateMachineSerializer::Load(const FString& AssetPath, UAnimStateMachi
     for (uint32 Index = 0; Index < Header.TransitionMetadataCount; ++Index)
     {
         FAnimTransitionEditorMetadata Metadata;
-        if (!ReadUInt32LE(In, Metadata.TransitionId) ||
-            !ReadFloatLE(In, Metadata.ControlPointX) ||
-            !ReadFloatLE(In, Metadata.ControlPointY) ||
-            !ReadString(In, Metadata.Comment))
+        if (!ReadUInt32LE(In, Metadata.TransitionId))
         {
             return false;
         }

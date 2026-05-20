@@ -235,6 +235,9 @@
     <Filter Include="ThirdParty\SoLoud">
       <UniqueIdentifier>{b4e9f0a8-8f3f-bf0e-a833-f5dd1a6d1e7c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ThirdParty\imgui-node-editor">
+      <UniqueIdentifier>{f0084da4-d5a0-8290-aa50-f48642219a25}</UniqueIdentifier>
+    </Filter>
     <Filter Include="ThirdParty\luajit">
       <UniqueIdentifier>{5855565a-8bd0-786e-0fa2-ebfa04a8787f}</UniqueIdentifier>
     </Filter>
@@ -437,6 +440,9 @@
     </ClCompile>
     <ClCompile Include="Source\Editor\Undo\EditorUndoSystem.cpp">
       <Filter>Source\Editor\Undo</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Editor\Viewer\AnimStateMachineGraphViewer.cpp">
+      <Filter>Source\Editor\Viewer</Filter>
     </ClCompile>
     <ClCompile Include="Source\Editor\Viewer\AnimationViewer.cpp">
       <Filter>Source\Editor\Viewer</Filter>
@@ -1245,6 +1251,18 @@
     <ClCompile Include="ThirdParty\ImGui\imgui_widgets.cpp">
       <Filter>ThirdParty\ImGui</Filter>
     </ClCompile>
+    <ClCompile Include="ThirdParty\imgui-node-editor\crude_json.cpp">
+      <Filter>ThirdParty\imgui-node-editor</Filter>
+    </ClCompile>
+    <ClCompile Include="ThirdParty\imgui-node-editor\imgui_canvas.cpp">
+      <Filter>ThirdParty\imgui-node-editor</Filter>
+    </ClCompile>
+    <ClCompile Include="ThirdParty\imgui-node-editor\imgui_node_editor.cpp">
+      <Filter>ThirdParty\imgui-node-editor</Filter>
+    </ClCompile>
+    <ClCompile Include="ThirdParty\imgui-node-editor\imgui_node_editor_api.cpp">
+      <Filter>ThirdParty\imgui-node-editor</Filter>
+    </ClCompile>
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -1397,6 +1415,9 @@
     </ClInclude>
     <ClInclude Include="Source\Editor\Undo\EditorUndoSystem.h">
       <Filter>Source\Editor\Undo</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\Viewer\AnimStateMachineGraphViewer.h">
+      <Filter>Source\Editor\Viewer</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\Viewer\AnimationViewer.h">
       <Filter>Source\Editor\Viewer</Filter>
@@ -2381,6 +2402,33 @@
     </ClInclude>
     <ClInclude Include="ThirdParty\SimpleJSON\json.hpp">
       <Filter>ThirdParty\SimpleJSON</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\imgui-node-editor\crude_json.h">
+      <Filter>ThirdParty\imgui-node-editor</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\imgui-node-editor\imgui_bezier_math.h">
+      <Filter>ThirdParty\imgui-node-editor</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\imgui-node-editor\imgui_bezier_math.inl">
+      <Filter>ThirdParty\imgui-node-editor</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\imgui-node-editor\imgui_canvas.h">
+      <Filter>ThirdParty\imgui-node-editor</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\imgui-node-editor\imgui_extra_math.h">
+      <Filter>ThirdParty\imgui-node-editor</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\imgui-node-editor\imgui_extra_math.inl">
+      <Filter>ThirdParty\imgui-node-editor</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\imgui-node-editor\imgui_node_editor.h">
+      <Filter>ThirdParty\imgui-node-editor</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\imgui-node-editor\imgui_node_editor_internal.h">
+      <Filter>ThirdParty\imgui-node-editor</Filter>
+    </ClInclude>
+    <ClInclude Include="ThirdParty\imgui-node-editor\imgui_node_editor_internal.inl">
+      <Filter>ThirdParty\imgui-node-editor</Filter>
     </ClInclude>
     <ClInclude Include="ThirdParty\luajit\src\lua.h">
       <Filter>ThirdParty\luajit\src</Filter>

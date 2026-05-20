@@ -77,6 +77,7 @@ private:
 	bool CreateLuaScriptFile();
 	bool CreateMaterialAsset();
 	bool CreateCurveAsset();
+	bool CreateAnimStateMachineAsset();
 	bool CreateSceneAsset();
 	bool DeleteSelectedItem();
 	void RequestRenameSelectedItem();
