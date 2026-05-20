@@ -43,6 +43,7 @@ struct FAnimTimelineUIState
     int32 SelectedNotifyIndex = -1;
     char NotifyNameBuffer[64] = "Notify";
     char TrackFilter[128] = {};
+    char AnimationSearchFilter[128] = {};
 };
 
 class FEditorViewerWindowWidget : public FEditorWidget
@@ -120,6 +121,10 @@ private:
 	void RenderAnimationSequencePanelContent(
 		FAnimationViewer* AnimationViewer,
 		FAnimTimelineUIState& State);
+
+    void RenderAnimationPickerDetails(
+        FAnimationViewer* AnimationViewer,
+        FAnimTimelineUIState& State);
 
 	void DrawSelectedNotifyDetails(FAnimationViewer* AnimationViewer);
     TArray<TArray<int32>> Children;             // bone idx → child bone indices

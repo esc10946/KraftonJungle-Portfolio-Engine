@@ -2946,7 +2946,8 @@ void FEditorViewerWindowWidget::RenderSkeletalMeshContent(float DeltaTime)
     if (ImGui::IsItemActive())
     {
         RightPanelWidth -= ImGui::GetIO().MouseDelta.x;
-        RightPanelWidth = std::clamp(RightPanelWidth, 100.0f, FullSize.x * 0.4f);
+        const float MaxRightPanelWidth = std::max(100.0f, FullSize.x * 0.4f);
+        RightPanelWidth = std::clamp(RightPanelWidth, 100.0f, MaxRightPanelWidth);
     }
 
     ImGui::SameLine();
@@ -2997,13 +2998,22 @@ void FEditorViewerWindowWidget::RenderAnimationContent(float DeltaTime)
 
     ImVec2 FullSize = ImGui::GetContentRegionAvail();
 
+    const float TimelineSplitterHeight = AnimationViewer ? 5.0f : 0.0f;
+    auto ClampTimelinePanelHeight = [&]()
+    {
+        const float VerticalSpacing = ImGui::GetStyle().ItemSpacing.y * 2.0f;
+        const float MaxTimelineHeight = std::max(
+            120.0f,
+            FullSize.y - 180.0f - TimelineSplitterHeight - VerticalSpacing);
+        const float MinTimelineHeight = std::min(220.0f, MaxTimelineHeight);
+        DownPanelHeight = std::clamp(DownPanelHeight, MinTimelineHeight, MaxTimelineHeight);
+    };
+
     if (AnimationViewer)
     {
-        const float MaxTimelineHeight = std::max(220.0f, FullSize.y - 220.0f);
-        DownPanelHeight = std::clamp(DownPanelHeight, 220.0f, MaxTimelineHeight);
+        ClampTimelinePanelHeight();
     }
 
-    const float TimelineSplitterHeight = AnimationViewer ? 5.0f : 0.0f;
     float CenterWidth = std::max(160.0f, FullSize.x - RightPanelWidth - (ImGui::GetStyle().ItemSpacing.x * 2.0f));
     float CenterHeight = std::max(180.0f, FullSize.y - DownPanelHeight - TimelineSplitterHeight - (ImGui::GetStyle().ItemSpacing.y * 2.0f));
     CenterHeight = AnimationViewer ? CenterHeight : FullSize.y;
@@ -3105,8 +3115,7 @@ void FEditorViewerWindowWidget::RenderAnimationContent(float DeltaTime)
             if (ImGui::IsItemActive())
             {
                 DownPanelHeight -= ImGui::GetIO().MouseDelta.y;
-                const float MaxTimelineHeight = std::max(220.0f, FullSize.y - 220.0f);
-                DownPanelHeight = std::clamp(DownPanelHeight, 220.0f, MaxTimelineHeight);
+                ClampTimelinePanelHeight();
             }
 
             ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.08f, 0.10f, 0.13f, 1.0f));
@@ -3147,7 +3156,27 @@ void FEditorViewerWindowWidget::RenderAnimationContent(float DeltaTime)
         ImGui::Separator();
         ImGui::Spacing();
 
-        DrawSelectedNotifyDetails(AnimationViewer);
+        const float DetailsHeight = ImGui::GetContentRegionAvail().y;
+        const float PickerHeight = std::clamp(DetailsHeight * 0.48f, 190.0f, 320.0f);
+        const float NotifyHeight = std::max(
+            92.0f,
+            DetailsHeight - PickerHeight - ImGui::GetStyle().ItemSpacing.y - 8.0f);
+
+        ImGui::BeginChild("NotifyDetailsBody", ImVec2(0, NotifyHeight), false);
+        {
+            DrawSelectedNotifyDetails(AnimationViewer);
+        }
+        ImGui::EndChild();
+
+        ImGui::Spacing();
+        ImGui::Separator();
+        ImGui::Spacing();
+
+        ImGui::BeginChild("AnimationPickerDetails", ImVec2(0, 0), false);
+        {
+            RenderAnimationPickerDetails(AnimationViewer, TimelineState);
+        }
+        ImGui::EndChild();
     }
     ImGui::EndChild();
     ImGui::PopStyleColor(2);
@@ -3219,56 +3248,24 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
         ImGui::TextDisabled("ANIMATION");
         ImGui::SameLine();
 
-        const char* AnimationLabel = AnimName;
-        ImGui::PushStyleColor(ImGuiCol_FrameBg, ImVec4(0.06f, 0.08f, 0.11f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, ImVec4(0.10f, 0.13f, 0.18f, 1.0f));
-        ImGui::PushStyleColor(ImGuiCol_FrameBgActive, ImVec4(0.12f, 0.16f, 0.22f, 1.0f));
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 5.0f);
-        ImGui::SetNextItemWidth(std::min(std::max(220.0f, ImGui::CalcTextSize(AnimationLabel).x + 46.0f), std::max(240.0f, PanelWidth * 0.42f)));
-        if (ImGui::BeginCombo("##AnimationSequenceCombo", AnimationLabel))
+        const float CurrentLabelWidth = std::min(std::max(180.0f, PanelWidth * 0.24f), 320.0f);
+        ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.06f, 0.08f, 0.11f, 1.0f));
+        ImGui::PushStyleColor(ImGuiCol_Border, ImVec4(0.23f, 0.27f, 0.34f, 1.0f));
+        ImGui::BeginChild(
+            "AnimCurrentSequenceLabel",
+            ImVec2(CurrentLabelWidth, 28.0f),
+            true,
+            ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
         {
-            const TArray<FString>& AnimationPaths = EditorEngine->GetAssetService().GetAnimationSequenceAssetPaths();
-            bool bHasCompatibleAnimation = false;
-
-            if (AnimationViewer)
-            {
-                for (const FString& AnimationPath : AnimationPaths)
-                {
-                    if (!AnimationViewer->IsAnimationSequenceCompatible(AnimationPath))
-                    {
-                        continue;
-                    }
-
-                    bHasCompatibleAnimation = true;
-                    const bool bSelected = AnimationPath == AnimPath;
-                    if (ImGui::MenuItem(AnimationPath.c_str(), nullptr, bSelected))
-                    {
-                        AnimationViewer->SetAnimationSequence(AnimationPath);
-                        State.CurrentFrame = 0;
-                        State.SelectedNotifyIndex = -1;
-                    }
-                }
-            }
-
-            if (AnimationPaths.empty() || !bHasCompatibleAnimation)
-            {
-                ImGui::TextDisabled("No compatible animation sequences");
-            }
-
-            if (AnimationViewer && !AnimPath.empty())
-            {
-                ImGui::Separator();
-                if (ImGui::MenuItem("Clear"))
-                {
-                    AnimationViewer->ClearAnimationSequence();
-                    State.CurrentFrame = 0;
-                    State.SelectedNotifyIndex = -1;
-                }
-            }
-            ImGui::EndCombo();
+            ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 4.0f);
+            ImGui::TextUnformatted(AnimName);
         }
-        ImGui::PopStyleVar();
-        ImGui::PopStyleColor(3);
+        ImGui::EndChild();
+        if (ImGui::IsItemHovered() && !AnimPath.empty())
+        {
+            ImGui::SetTooltip("%s", AnimPath.c_str());
+        }
+        ImGui::PopStyleColor(2);
 
         const ImVec2 TransportButtonSize(30.0f, 28.0f);
 
@@ -3522,7 +3519,8 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
     if (ImGui::IsItemActive())
     {
         State.TrackListWidth += ImGui::GetIO().MouseDelta.x;
-        State.TrackListWidth = std::clamp(State.TrackListWidth, 180.0f, PanelWidth * 0.5f);
+        const float MaxTrackListWidth = std::max(180.0f, PanelWidth * 0.5f);
+        State.TrackListWidth = std::clamp(State.TrackListWidth, 180.0f, MaxTrackListWidth);
     }
 
     ImGui::SameLine();
@@ -3540,6 +3538,8 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
     {
         ImVec2 TimelineOrigin = ImGui::GetCursorScreenPos();
         ImVec2 Available = ImGui::GetContentRegionAvail();
+        Available.x = std::max(1.0f, Available.x);
+        Available.y = std::max(1.0f, Available.y);
         constexpr float TimelineGutter = 96.0f;
 
         const float TimelineContentWidth =
@@ -3553,6 +3553,26 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
             ImVec2(TimelineContentWidth, TimelineContentHeight),
             ImGuiButtonFlags_MouseButtonLeft);
 
+        const float MaxScrollX = std::max(0.0f, TimelineContentWidth - Available.x);
+        const float MaxScrollY = std::max(0.0f, TimelineContentHeight - Available.y);
+        const float ClampedScrollX = std::clamp(ImGui::GetScrollX(), 0.0f, MaxScrollX);
+        const float ClampedScrollY = std::clamp(ImGui::GetScrollY(), 0.0f, MaxScrollY);
+        if (ClampedScrollX != ImGui::GetScrollX())
+        {
+            ImGui::SetScrollX(ClampedScrollX);
+        }
+        if (ClampedScrollY != ImGui::GetScrollY())
+        {
+            ImGui::SetScrollY(ClampedScrollY);
+        }
+
+        const ImVec2 TimelineVisibleMin(
+            TimelineOrigin.x + ClampedScrollX,
+            TimelineOrigin.y + ClampedScrollY);
+        const ImVec2 TimelineVisibleMax(
+            TimelineVisibleMin.x + Available.x,
+            TimelineVisibleMin.y + Available.y);
+
         const bool bHovered = ImGui::IsItemHovered();
         const bool bActive = ImGui::IsItemActive();
 
@@ -3560,6 +3580,8 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
         ImVec2 CanvasMax = ImVec2(
             CanvasMin.x + TimelineContentWidth,
             CanvasMin.y + TimelineContentHeight);
+
+        DrawList->PushClipRect(TimelineVisibleMin, TimelineVisibleMax, true);
 
         // Background
         DrawList->AddRectFilled(
@@ -3580,13 +3602,20 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
         // Rows
         const char* TrackLabels[8] = {
             "Notifies",
-            "Curves",
+            " ",
+            " ",
+            " ",
+            " ",
+            " ",
+            " ",
+            " ",
+            /*"Curves",
             "Events",
             "Montage",
             "Blend",
             "Root",
             "Attrs",
-            "Meta"
+            "Meta"*/
         };
 
         for (int32 Row = 0; Row < 8; ++Row)
@@ -3821,9 +3850,139 @@ void FEditorViewerWindowWidget::RenderAnimationSequencePanelContent(
             State.FrameWidth += ImGui::GetIO().MouseWheel * 2.0f;
             State.FrameWidth = std::clamp(State.FrameWidth, 8.0f, 80.0f);
         }
+
+        DrawList->PopClipRect();
     }
     ImGui::EndChild();
     ImGui::PopStyleColor(2);
+}
+
+void FEditorViewerWindowWidget::RenderAnimationPickerDetails(
+    FAnimationViewer* AnimationViewer,
+    FAnimTimelineUIState& State)
+{
+    ImGui::TextDisabled("ANIMATION SEQUENCE");
+    ImGui::Spacing();
+
+    const FString EmptyAnimPath;
+    const FString& AnimPath = AnimationViewer ? AnimationViewer->GetAnimationSequencePath() : EmptyAnimPath;
+    const FString CurrentLabel = AnimPath.empty() ? FString("None") : GetBaseFileNameWithoutExtension(AnimPath);
+
+    ImGui::TextDisabled("Current");
+    ImGui::TextWrapped("%s", CurrentLabel.c_str());
+    if (!AnimPath.empty() && ImGui::IsItemHovered())
+    {
+        ImGui::SetTooltip("%s", AnimPath.c_str());
+    }
+
+    if (AnimationViewer && !AnimPath.empty())
+    {
+        if (DrawAnimButton("Clear Animation", ImVec2(-1.0f, 26.0f), false, false, true))
+        {
+            AnimationViewer->ClearAnimationSequence();
+            State.CurrentFrame = 0;
+            State.SelectedNotifyIndex = -1;
+        }
+        ImGui::Spacing();
+    }
+
+    ImGui::SetNextItemWidth(std::max(80.0f, ImGui::GetContentRegionAvail().x - 34.0f));
+    ImGui::InputTextWithHint(
+        "##AnimationSequenceSearch",
+        "Search animation sequences",
+        State.AnimationSearchFilter,
+        sizeof(State.AnimationSearchFilter));
+
+    ImGui::SameLine();
+    const bool bHasSearchText = State.AnimationSearchFilter[0] != '\0';
+    if (DrawAnimButton("X", ImVec2(28.0f, 0.0f), false, false, bHasSearchText))
+    {
+        State.AnimationSearchFilter[0] = '\0';
+    }
+
+    ImGui::Spacing();
+
+    if (!AnimationViewer || !EditorEngine)
+    {
+        ImGui::TextDisabled("No animation viewer.");
+        return;
+    }
+
+    const TArray<FString>& AnimationPaths = EditorEngine->GetAssetService().GetAnimationSequenceAssetPaths();
+    int32 CompatibleCount = 0;
+    int32 VisibleCount = 0;
+
+    const ImGuiTableFlags TableFlags =
+        ImGuiTableFlags_RowBg |
+        ImGuiTableFlags_BordersInnerV |
+        ImGuiTableFlags_Resizable |
+        ImGuiTableFlags_SizingStretchProp |
+        ImGuiTableFlags_ScrollY;
+
+    if (ImGui::BeginTable("AnimationSequencePickerTable", 2, TableFlags, ImVec2(0.0f, 0.0f)))
+    {
+        ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch, 0.62f);
+        ImGui::TableSetupColumn("Path", ImGuiTableColumnFlags_WidthStretch, 0.38f);
+        ImGui::TableSetupScrollFreeze(0, 1);
+        ImGui::TableHeadersRow();
+
+        for (const FString& AnimationPath : AnimationPaths)
+        {
+            if (!AnimationViewer->IsAnimationSequenceCompatible(AnimationPath))
+            {
+                continue;
+            }
+
+            ++CompatibleCount;
+            const FString AnimationName = GetBaseFileNameWithoutExtension(AnimationPath);
+            if (!MatchesFilter(AnimationName, State.AnimationSearchFilter) &&
+                !MatchesFilter(AnimationPath, State.AnimationSearchFilter))
+            {
+                continue;
+            }
+
+            ++VisibleCount;
+            const bool bSelected = AnimationPath == AnimPath;
+
+            ImGui::PushID(AnimationPath.c_str());
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            if (ImGui::Selectable(AnimationName.c_str(), bSelected, ImGuiSelectableFlags_SpanAllColumns))
+            {
+                AnimationViewer->SetAnimationSequence(AnimationPath);
+                State.CurrentFrame = 0;
+                State.SelectedNotifyIndex = -1;
+            }
+            if (ImGui::IsItemHovered())
+            {
+                ImGui::SetTooltip("%s", AnimationPath.c_str());
+            }
+
+            ImGui::TableSetColumnIndex(1);
+            ImGui::TextDisabled("%s", AnimationPath.c_str());
+            ImGui::PopID();
+        }
+
+        if (AnimationPaths.empty() || CompatibleCount == 0 || VisibleCount == 0)
+        {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            if (AnimationPaths.empty())
+            {
+                ImGui::TextDisabled("No animation sequences.");
+            }
+            else if (CompatibleCount == 0)
+            {
+                ImGui::TextDisabled("No compatible animation sequences.");
+            }
+            else
+            {
+                ImGui::TextDisabled("No results.");
+            }
+        }
+
+        ImGui::EndTable();
+    }
 }
 
 void FEditorViewerWindowWidget::DrawSelectedNotifyDetails(FAnimationViewer* AnimationViewer)
