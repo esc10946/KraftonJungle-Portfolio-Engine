@@ -49,10 +49,15 @@ struct FAnimParameterValue
     FVector VectorValue;
 };
 
+struct FAnimStateMachineParameterDesc
+{
+    FName Name;
+    EAnimParameterType Type = EAnimParameterType::Bool;
+};
+
 struct FAnimTransitionCondition
 {
     FName ParameterName;
-    EAnimParameterType ParameterType = EAnimParameterType::Bool;
     EAnimCompareOp CompareOp = EAnimCompareOp::Equal;
     FAnimParameterValue CompareValue;
 };

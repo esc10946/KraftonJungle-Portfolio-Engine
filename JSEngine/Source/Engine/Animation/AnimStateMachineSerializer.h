@@ -10,10 +10,11 @@ class UAnimStateMachineAsset;
 struct FAnimStateMachineBinaryHeader
 {
     uint32 MagicNumber = 0x534D5341; // 'ASMS'
-    uint32 Version = 1;
+    uint32 Version = 2;
     uint32 StateCount = 0;
     uint32 TransitionCount = 0;
     uint32 ConditionCount = 0;
+    uint32 ParameterCount = 0;
     uint32 StateMetadataCount = 0;
     uint32 TransitionMetadataCount = 0;
 };
@@ -33,6 +34,7 @@ private:
     void WriteFloatLE(std::ofstream& Out, float Value) const;
     void WriteString(std::ofstream& Out, const FString& Value) const;
     void WriteHeader(std::ofstream& Out, const FAnimStateMachineBinaryHeader& Header) const;
+    void WriteParameter(std::ofstream& Out, const FAnimStateMachineParameterDesc& Parameter) const;
     void WriteCondition(std::ofstream& Out, const FAnimTransitionCondition& Condition) const;
 
     bool ReadBool(std::ifstream& In, bool& OutValue) const;
@@ -41,6 +43,7 @@ private:
     bool ReadFloatLE(std::ifstream& In, float& OutValue) const;
     bool ReadString(std::ifstream& In, FString& OutValue) const;
     bool ReadHeader(std::ifstream& In, FAnimStateMachineBinaryHeader& OutHeader) const;
+    bool ReadParameter(std::ifstream& In, FAnimStateMachineParameterDesc& OutParameter) const;
     bool ReadCondition(std::ifstream& In, FAnimTransitionCondition& OutCondition) const;
     bool ReadStateRecord(std::ifstream& In, UAnimStateMachineAsset* OutAsset, FString* OutAnimationPath) const;
     bool SkipTransitionRecord(std::ifstream& In) const;

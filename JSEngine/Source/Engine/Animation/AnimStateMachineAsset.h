@@ -73,13 +73,23 @@ public:
         int32 Priority,
         EAnimBlendEaseOption EaseOption = EAnimBlendEaseOption::Linear);
 
+    bool AddParameter(const FName& ParameterName, EAnimParameterType ParameterType);
+    bool RenameParameter(const FName& OldParameterName, const FName& NewParameterName);
+    bool SetParameterType(const FName& ParameterName, EAnimParameterType ParameterType);
+    bool RemoveParameter(const FName& ParameterName);
+    bool RemoveParameterAndConditions(const FName& ParameterName);
+    uint32 RemoveUnusedParameters();
+
     const FName& GetEntryState() const { return EntryState; }
     FAnimStateId GetEntryStateId() const { return EntryStateId; }
+    const TArray<FAnimStateMachineParameterDesc>& GetParameters() const { return Parameters; }
     const TArray<FAnimStateDesc>& GetStates() const { return States; }
     const TArray<FAnimTransitionDesc>& GetTransitions() const { return Transitions; }
     const TArray<FAnimStateEditorMetadata>& GetStateEditorMetadata() const { return StateEditorMetadata; }
     const TArray<FAnimTransitionEditorMetadata>& GetTransitionEditorMetadata() const { return TransitionEditorMetadata; }
 
+    const FAnimStateMachineParameterDesc* FindParameter(const FName& ParameterName) const;
+    FAnimStateMachineParameterDesc* FindParameter(const FName& ParameterName);
     const FAnimStateDesc* FindState(const FName& StateName) const;
     FAnimStateDesc* FindState(const FName& StateName);
     const FAnimStateDesc* FindStateById(FAnimStateId StateId) const;
@@ -117,10 +127,14 @@ private:
         FAnimStateId FromStateId,
         FAnimStateId ToStateId,
         const TArray<FAnimTransitionCondition>& Conditions) const;
+    bool IsParameterReferenced(const FName& ParameterName) const;
+    bool IsConditionCompatibleWithDeclaration(const FAnimTransitionCondition& Condition, FString* OutMessage = nullptr) const;
+    bool EnsureParameterDeclaration(const FName& ParameterName, EAnimParameterType ParameterType);
 
 private:
     FName EntryState;
     FAnimStateId EntryStateId = InvalidAnimStateId;
+    TArray<FAnimStateMachineParameterDesc> Parameters;
     TArray<FAnimStateDesc> States;
     TArray<FAnimTransitionDesc> Transitions;
     TArray<FAnimStateEditorMetadata> StateEditorMetadata;

@@ -11,10 +11,11 @@
 namespace
 {
 constexpr uint32 ANIM_STATE_MACHINE_MAGIC = 0x534D5341;
-constexpr uint32 ANIM_STATE_MACHINE_VERSION = 1;
+constexpr uint32 ANIM_STATE_MACHINE_VERSION = 2;
 constexpr uint32 MAX_STATE_COUNT = 4096;
 constexpr uint32 MAX_TRANSITION_COUNT = 16384;
 constexpr uint32 MAX_CONDITION_COUNT = 65536;
+constexpr uint32 MAX_PARAMETER_COUNT = 4096;
 constexpr uint32 MAX_METADATA_COUNT = 65536;
 constexpr uint32 MAX_STRING_LENGTH = 65536;
 }
@@ -51,11 +52,17 @@ bool FAnimStateMachineSerializer::Save(const FString& AssetPath, const UAnimStat
     Header.StateCount = static_cast<uint32>(Asset.GetStates().size());
     Header.TransitionCount = static_cast<uint32>(Asset.GetTransitions().size());
     Header.ConditionCount = ConditionCount;
+    Header.ParameterCount = static_cast<uint32>(Asset.GetParameters().size());
     Header.StateMetadataCount = static_cast<uint32>(Asset.GetStateEditorMetadata().size());
     Header.TransitionMetadataCount = static_cast<uint32>(Asset.GetTransitionEditorMetadata().size());
     WriteHeader(Out, Header);
     WriteUInt32LE(Out, Asset.GetEntryStateId());
     WriteString(Out, Asset.GetEntryState().ToString());
+
+    for (const FAnimStateMachineParameterDesc& Parameter : Asset.GetParameters())
+    {
+        WriteParameter(Out, Parameter);
+    }
 
     for (const FAnimStateDesc& State : Asset.GetStates())
     {
@@ -126,6 +133,15 @@ bool FAnimStateMachineSerializer::Load(const FString& AssetPath, UAnimStateMachi
     if (!ReadUInt32LE(In, EntryStateId) || !ReadString(In, EntryStateName))
     {
         return false;
+    }
+
+    for (uint32 Index = 0; Index < Header.ParameterCount; ++Index)
+    {
+        FAnimStateMachineParameterDesc Parameter;
+        if (!ReadParameter(In, Parameter) || !OutAsset.AddParameter(Parameter.Name, Parameter.Type))
+        {
+            return false;
+        }
     }
 
     for (uint32 Index = 0; Index < Header.StateCount; ++Index)
@@ -265,6 +281,15 @@ bool FAnimStateMachineSerializer::ReadAnimationDependencies(const FString& Asset
         return false;
     }
 
+    for (uint32 Index = 0; Index < Header.ParameterCount; ++Index)
+    {
+        FAnimStateMachineParameterDesc Parameter;
+        if (!ReadParameter(In, Parameter))
+        {
+            return false;
+        }
+    }
+
     for (uint32 Index = 0; Index < Header.StateCount; ++Index)
     {
         FString AnimationPath;
@@ -336,14 +361,22 @@ void FAnimStateMachineSerializer::WriteHeader(std::ofstream& Out, const FAnimSta
     WriteUInt32LE(Out, Header.StateCount);
     WriteUInt32LE(Out, Header.TransitionCount);
     WriteUInt32LE(Out, Header.ConditionCount);
+    WriteUInt32LE(Out, Header.ParameterCount);
     WriteUInt32LE(Out, Header.StateMetadataCount);
     WriteUInt32LE(Out, Header.TransitionMetadataCount);
+}
+
+void FAnimStateMachineSerializer::WriteParameter(
+    std::ofstream& Out,
+    const FAnimStateMachineParameterDesc& Parameter) const
+{
+    WriteString(Out, Parameter.Name.ToString());
+    WriteUInt32LE(Out, static_cast<uint32>(Parameter.Type));
 }
 
 void FAnimStateMachineSerializer::WriteCondition(std::ofstream& Out, const FAnimTransitionCondition& Condition) const
 {
     WriteString(Out, Condition.ParameterName.ToString());
-    WriteUInt32LE(Out, static_cast<uint32>(Condition.ParameterType));
     WriteUInt32LE(Out, static_cast<uint32>(Condition.CompareOp));
     WriteBool(Out, Condition.CompareValue.BoolValue);
     WriteInt32LE(Out, Condition.CompareValue.IntValue);
@@ -427,26 +460,41 @@ bool FAnimStateMachineSerializer::ReadHeader(std::ifstream& In, FAnimStateMachin
         ReadUInt32LE(In, OutHeader.StateCount) &&
         ReadUInt32LE(In, OutHeader.TransitionCount) &&
         ReadUInt32LE(In, OutHeader.ConditionCount) &&
+        ReadUInt32LE(In, OutHeader.ParameterCount) &&
         ReadUInt32LE(In, OutHeader.StateMetadataCount) &&
         ReadUInt32LE(In, OutHeader.TransitionMetadataCount);
+}
+
+bool FAnimStateMachineSerializer::ReadParameter(
+    std::ifstream& In,
+    FAnimStateMachineParameterDesc& OutParameter) const
+{
+    FString ParameterName;
+    uint32 ParameterType = 0;
+    if (!ReadString(In, ParameterName) ||
+        !ReadUInt32LE(In, ParameterType) ||
+        ParameterType > static_cast<uint32>(EAnimParameterType::Trigger))
+    {
+        return false;
+    }
+
+    OutParameter.Name = FName(ParameterName);
+    OutParameter.Type = static_cast<EAnimParameterType>(ParameterType);
+    return true;
 }
 
 bool FAnimStateMachineSerializer::ReadCondition(std::ifstream& In, FAnimTransitionCondition& OutCondition) const
 {
     FString ParameterName;
-    uint32 ParameterType = 0;
     uint32 CompareOp = 0;
     if (!ReadString(In, ParameterName) ||
-        !ReadUInt32LE(In, ParameterType) ||
         !ReadUInt32LE(In, CompareOp) ||
-        ParameterType > static_cast<uint32>(EAnimParameterType::Trigger) ||
         CompareOp > static_cast<uint32>(EAnimCompareOp::IsFalse))
     {
         return false;
     }
 
     OutCondition.ParameterName = FName(ParameterName);
-    OutCondition.ParameterType = static_cast<EAnimParameterType>(ParameterType);
     OutCondition.CompareOp = static_cast<EAnimCompareOp>(CompareOp);
     return ReadBool(In, OutCondition.CompareValue.BoolValue) &&
         ReadInt32LE(In, OutCondition.CompareValue.IntValue) &&
@@ -521,6 +569,7 @@ bool FAnimStateMachineSerializer::IsValidHeader(const FAnimStateMachineBinaryHea
         Header.StateCount <= MAX_STATE_COUNT &&
         Header.TransitionCount <= MAX_TRANSITION_COUNT &&
         Header.ConditionCount <= MAX_CONDITION_COUNT &&
+        Header.ParameterCount <= MAX_PARAMETER_COUNT &&
         Header.StateMetadataCount <= MAX_METADATA_COUNT &&
         Header.TransitionMetadataCount <= MAX_METADATA_COUNT;
 }
