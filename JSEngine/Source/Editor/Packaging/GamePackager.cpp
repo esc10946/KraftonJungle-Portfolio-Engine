@@ -973,6 +973,12 @@ namespace
         return std::filesystem::exists(Resolved) && std::filesystem::is_regular_file(Resolved);
     }
 
+    bool IsProjectRelativeAssetPath(const FString& Path)
+    {
+        const FString NormalizedPath = FPaths::Normalize(Path);
+        return NormalizedPath.rfind("Asset/", 0) == 0 || NormalizedPath.rfind("asset/", 0) == 0;
+    }
+
     bool IsRuntimeCopyExtension(const FString& Extension)
     {
         return Extension == ".bin"
@@ -1148,6 +1154,57 @@ namespace
 
     bool AddFileDependency(FPackageCookContext& Context, const FString& Path, FString& OutMessage);
     std::filesystem::path ResolveStartupSceneForValidation(const FString& StartupScene);
+
+    FString ResolveAnimStateMachineDependencyPath(const FString& StateMachinePath, const FString& DependencyPath)
+    {
+        const FString NormalizedDependencyPath = FPaths::Normalize(DependencyPath);
+        if (NormalizedDependencyPath.empty())
+        {
+            return FString();
+        }
+
+        std::filesystem::path DependencyFsPath(FPaths::ToWide(NormalizedDependencyPath));
+        if (DependencyFsPath.is_absolute() || IsProjectRelativeAssetPath(NormalizedDependencyPath))
+        {
+            return NormalizeAssetPathForPackage(NormalizedDependencyPath);
+        }
+
+        return NormalizeAssetPathForPackage(FAssetPathPolicy::ResolveAssetRelativePath(StateMachinePath, NormalizedDependencyPath));
+    }
+
+    bool AddAnimStateMachineDependency(
+        FPackageCookContext& Context,
+        const FString& StateMachinePath,
+        const FString& DependencyPath,
+        FString& OutMessage)
+    {
+        const FString ResolvedDependency = ResolveAnimStateMachineDependencyPath(StateMachinePath, DependencyPath);
+        if (ResolvedDependency.empty())
+        {
+            return true;
+        }
+
+        const FString Extension = GetLowerExtension(ResolvedDependency);
+        if (Extension != ".obj" && Extension != ".bin" && !IsRuntimeCopyExtension(Extension))
+        {
+            OutMessage = "Unsupported state machine animation dependency: " + ResolvedDependency;
+            return false;
+        }
+
+        if (!FileExistsForPackage(ResolvedDependency))
+        {
+            OutMessage = "State machine animation dependency not found: " + ResolvedDependency;
+            return false;
+        }
+
+        if (!AddFileDependency(Context, ResolvedDependency, OutMessage))
+        {
+            OutMessage = "Failed to include state machine animation dependency: " + ResolvedDependency + " | " + OutMessage;
+            return false;
+        }
+
+        return true;
+    }
 
     bool TryResolveImportedSkeletalMeshBinaryForFbx(const FString& SourceFbxPath, FString& OutBinaryPath)
     {
@@ -1538,12 +1595,8 @@ namespace
 
             for (const FString& AnimationDependency : AnimationDependencies)
             {
-                const FString ResolvedDependency = FAssetPathPolicy::ResolveAssetRelativePath(
-                    NormalizedPath,
-                    AnimationDependency);
-                if (!AddFileDependency(Context, ResolvedDependency, OutMessage))
+                if (!AddAnimStateMachineDependency(Context, NormalizedPath, AnimationDependency, OutMessage))
                 {
-                    OutMessage = "Failed to include state machine animation dependency: " + ResolvedDependency + " | " + OutMessage;
                     return false;
                 }
             }

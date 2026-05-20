@@ -1248,7 +1248,6 @@ bool FResourceManager::SaveAnimStateMachineAsset(const FString& Path, const UAni
 		return false;
 	}
 
-	AnimStateMachineMap[NormalizedPath] = const_cast<UAnimStateMachineAsset*>(Asset);
 	if (std::find(AnimStateMachineFilePaths.begin(), AnimStateMachineFilePaths.end(), NormalizedPath) == AnimStateMachineFilePaths.end())
 	{
 		AnimStateMachineFilePaths.push_back(NormalizedPath);
