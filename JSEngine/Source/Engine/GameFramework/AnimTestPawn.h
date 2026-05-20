@@ -41,6 +41,7 @@ private:
     void AddDefaultAnimationNotifies(UAnimInstance* AnimInstance);
     void AddNotifyToAnimation(UAnimInstance* AnimInstance, const FName& AnimationName, const FName& NotifyName, float TriggerTime);
     bool IsInAttackState() const;
+    bool IsInMainAttackState() const;
     void PlayAttackNotifySound(const FAnimNotifyEvent& Notify);
     void PlayLightAttackSound();
     void PlayHeavyAttackSound();
@@ -60,6 +61,10 @@ private:
     FString HomeguardAnimationPath = "Asset/SkeletalMesh/GwenFBX/gwen_anim_Skeleton_Gwen_Homeguard.anm.bin";
     FString LightAttackAnimationPath = "Asset/SkeletalMesh/GwenFBX/gwen_anim_Skeleton_Attack1.bin";
     FString HeavyAttackAnimationPath = "Asset/SkeletalMesh/GwenFBX/gwen_anim_Skeleton_Attack2.bin";
+    FString LightAttack3AnimationPath = "Asset/SkeletalMesh/GwenFBX/gwen_anim_Skeleton_Attack3.bin";
+    FString Attack1ToIdleAnimationPath = "Asset/SkeletalMesh/GwenFBX/gwen_anim_Skeleton_Attack1_To_Idle.bin";
+    FString Attack2ToIdleAnimationPath = "Asset/SkeletalMesh/GwenFBX/gwen_anim_Skeleton_Attack2_To_Idle.bin";
+    FString Attack3ToIdleAnimationPath = "Asset/SkeletalMesh/GwenFBX/gwen_anim_Skeleton_Attack3_To_Idle.bin";
     FString LightAttackSoundPath1 = "Asset/Audio/Gwen_Original_BasicAttack_1.ogg";
     FString LightAttackSoundPath2 = "Asset/Audio/Gwen_Original_BasicAttack_2.ogg";
     FString LightAttackSoundPath3 = "Asset/Audio/Gwen_Original_BasicAttack_3.ogg";
@@ -73,13 +78,18 @@ private:
     float MoveSpeed = 7.0f;
     float SprintSpeedMultiplier = 1.5f;
     float LookSensitivityDegrees = 0.12f;
-    float LocomotionBlendTime = 0.12f;
-    float IntoRunDuration = 0.25f;
+    float LocomotionBlendTime = 0.0f;
+    float IntoRunDuration = 1.2f;
     float LightAttackDuration = 0.8f;
     float HeavyAttackDuration = 1.2f;
+    float LightAttack3Duration = 0.8f;
+    float Attack1ToIdleDuration = 2.1f;
+    float Attack2ToIdleDuration = 1.967f;
+    float Attack3ToIdleDuration = 2.633f;
     float MoveStartSpeedThreshold = 0.1f;
     bool bRotateToMovement = true;
     bool bAutoConfigureAnimation = true;
+    bool bNextLightAttackUsesAttack1 = true;
 
     float VoiceTimer = 0.0f;
     int32 CurrentVoiceIndex = 0;

@@ -27,9 +27,14 @@ REGISTER_FACTORY(AAnimTestPawn)
 
 namespace
 {
-    const FName NAME_LightAttack("LightAttack");
+    const FName NAME_LightAttack1("LightAttack1");
+    const FName NAME_LightAttack3("LightAttack3");
     const FName NAME_HeavyAttack("HeavyAttack");
-    const FName NAME_LightAttackStart("GwenLightAttackStart");
+    const FName NAME_Attack1ToIdle("Attack1ToIdle");
+    const FName NAME_Attack2ToIdle("Attack2ToIdle");
+    const FName NAME_Attack3ToIdle("Attack3ToIdle");
+    const FName NAME_LightAttack1Start("GwenLightAttack1Start");
+    const FName NAME_LightAttack3Start("GwenLightAttack3Start");
     const FName NAME_HeavyAttackStart("GwenHeavyAttackStart");
 
     bool IsActionActive(const FInputActionState* Action)
@@ -123,6 +128,10 @@ void AAnimTestPawn::Serialize(FArchive& Ar)
     Ar << "HomeguardAnimationPath" << HomeguardAnimationPath;
     Ar << "LightAttackAnimationPath" << LightAttackAnimationPath;
     Ar << "HeavyAttackAnimationPath" << HeavyAttackAnimationPath;
+    Ar << "LightAttack3AnimationPath" << LightAttack3AnimationPath;
+    Ar << "Attack1ToIdleAnimationPath" << Attack1ToIdleAnimationPath;
+    Ar << "Attack2ToIdleAnimationPath" << Attack2ToIdleAnimationPath;
+    Ar << "Attack3ToIdleAnimationPath" << Attack3ToIdleAnimationPath;
     Ar << "LightAttackSoundPath1" << LightAttackSoundPath1;
     Ar << "LightAttackSoundPath2" << LightAttackSoundPath2;
     Ar << "LightAttackSoundPath3" << LightAttackSoundPath3;
@@ -139,6 +148,10 @@ void AAnimTestPawn::Serialize(FArchive& Ar)
     Ar << "IntoRunDuration" << IntoRunDuration;
     Ar << "LightAttackDuration" << LightAttackDuration;
     Ar << "HeavyAttackDuration" << HeavyAttackDuration;
+    Ar << "LightAttack3Duration" << LightAttack3Duration;
+    Ar << "Attack1ToIdleDuration" << Attack1ToIdleDuration;
+    Ar << "Attack2ToIdleDuration" << Attack2ToIdleDuration;
+    Ar << "Attack3ToIdleDuration" << Attack3ToIdleDuration;
     Ar << "MoveStartSpeedThreshold" << MoveStartSpeedThreshold;
     Ar << "RotateToMovement" << bRotateToMovement;
     Ar << "AutoConfigureAnimation" << bAutoConfigureAnimation;
@@ -152,6 +165,10 @@ void AAnimTestPawn::Serialize(FArchive& Ar)
         IntoRunDuration = std::max(0.0f, IntoRunDuration);
         LightAttackDuration = std::max(0.0f, LightAttackDuration);
         HeavyAttackDuration = std::max(0.0f, HeavyAttackDuration);
+        LightAttack3Duration = std::max(0.0f, LightAttack3Duration);
+        Attack1ToIdleDuration = std::max(0.0f, Attack1ToIdleDuration);
+        Attack2ToIdleDuration = std::max(0.0f, Attack2ToIdleDuration);
+        Attack3ToIdleDuration = std::max(0.0f, Attack3ToIdleDuration);
         MoveStartSpeedThreshold = std::max(0.0f, MoveStartSpeedThreshold);
 
         LoadConfiguredSkeletalMesh();
@@ -170,8 +187,12 @@ void AAnimTestPawn::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
     OutProps.push_back({ "Into Run Animation", EPropertyType::String, &IntoRunAnimationPath });
     OutProps.push_back({ "Run Animation", EPropertyType::String, &RunAnimationPath });
     OutProps.push_back({ "Homeguard Animation", EPropertyType::String, &HomeguardAnimationPath });
-    OutProps.push_back({ "Light Attack Animation", EPropertyType::String, &LightAttackAnimationPath });
+    OutProps.push_back({ "Light Attack 1 Animation", EPropertyType::String, &LightAttackAnimationPath });
+    OutProps.push_back({ "Light Attack 3 Animation", EPropertyType::String, &LightAttack3AnimationPath });
     OutProps.push_back({ "Heavy Attack Animation", EPropertyType::String, &HeavyAttackAnimationPath });
+    OutProps.push_back({ "Attack 1 To Idle Animation", EPropertyType::String, &Attack1ToIdleAnimationPath });
+    OutProps.push_back({ "Attack 2 To Idle Animation", EPropertyType::String, &Attack2ToIdleAnimationPath });
+    OutProps.push_back({ "Attack 3 To Idle Animation", EPropertyType::String, &Attack3ToIdleAnimationPath });
     OutProps.push_back({ "Light Attack Sound 1", EPropertyType::String, &LightAttackSoundPath1 });
     OutProps.push_back({ "Light Attack Sound 2", EPropertyType::String, &LightAttackSoundPath2 });
     OutProps.push_back({ "Light Attack Sound 3", EPropertyType::String, &LightAttackSoundPath3 });
@@ -186,8 +207,12 @@ void AAnimTestPawn::GetEditableProperties(TArray<FPropertyDescriptor>& OutProps)
     OutProps.push_back({ "Look Sensitivity", EPropertyType::Float, &LookSensitivityDegrees, 0.0f, 5.0f, 0.01f });
     OutProps.push_back({ "Locomotion Blend Time", EPropertyType::Float, &LocomotionBlendTime, 0.0f, 5.0f, 0.01f });
     OutProps.push_back({ "Into Run Duration", EPropertyType::Float, &IntoRunDuration, 0.0f, 5.0f, 0.01f });
-    OutProps.push_back({ "Light Attack Duration", EPropertyType::Float, &LightAttackDuration, 0.0f, 5.0f, 0.01f });
+    OutProps.push_back({ "Light Attack 1 Duration", EPropertyType::Float, &LightAttackDuration, 0.0f, 5.0f, 0.01f });
+    OutProps.push_back({ "Light Attack 3 Duration", EPropertyType::Float, &LightAttack3Duration, 0.0f, 5.0f, 0.01f });
     OutProps.push_back({ "Heavy Attack Duration", EPropertyType::Float, &HeavyAttackDuration, 0.0f, 5.0f, 0.01f });
+    OutProps.push_back({ "Attack 1 To Idle Duration", EPropertyType::Float, &Attack1ToIdleDuration, 0.0f, 5.0f, 0.01f });
+    OutProps.push_back({ "Attack 2 To Idle Duration", EPropertyType::Float, &Attack2ToIdleDuration, 0.0f, 5.0f, 0.01f });
+    OutProps.push_back({ "Attack 3 To Idle Duration", EPropertyType::Float, &Attack3ToIdleDuration, 0.0f, 5.0f, 0.01f });
     OutProps.push_back({ "Move Start Speed Threshold", EPropertyType::Float, &MoveStartSpeedThreshold, 0.0f, 100.0f, 0.01f });
     OutProps.push_back({ "Rotate Mesh To Movement", EPropertyType::Bool, &bRotateToMovement });
     OutProps.push_back({ "Auto Configure Animation", EPropertyType::Bool, &bAutoConfigureAnimation });
@@ -211,11 +236,22 @@ void AAnimTestPawn::PostEditProperty(const char* PropertyName)
         std::strcmp(PropertyName, "Run Animation") == 0 ||
         std::strcmp(PropertyName, "Homeguard Animation") == 0 ||
         std::strcmp(PropertyName, "Light Attack Animation") == 0 ||
+        std::strcmp(PropertyName, "Light Attack 1 Animation") == 0 ||
+        std::strcmp(PropertyName, "Light Attack 3 Animation") == 0 ||
         std::strcmp(PropertyName, "Heavy Attack Animation") == 0 ||
+        std::strcmp(PropertyName, "Attack 1 To Idle Animation") == 0 ||
+        std::strcmp(PropertyName, "Attack 2 To Idle Animation") == 0 ||
+        std::strcmp(PropertyName, "Attack 3 To Idle Animation") == 0 ||
         std::strcmp(PropertyName, "Locomotion Blend Time") == 0 ||
         std::strcmp(PropertyName, "Into Run Duration") == 0 ||
         std::strcmp(PropertyName, "Light Attack Duration") == 0 ||
+        std::strcmp(PropertyName, "Light Attack 1 Duration") == 0 ||
+        std::strcmp(PropertyName, "Light Attack 3 Duration") == 0 ||
         std::strcmp(PropertyName, "Heavy Attack Duration") == 0 ||
+        std::strcmp(PropertyName, "Attack To Idle Duration") == 0 ||
+        std::strcmp(PropertyName, "Attack 1 To Idle Duration") == 0 ||
+        std::strcmp(PropertyName, "Attack 2 To Idle Duration") == 0 ||
+        std::strcmp(PropertyName, "Attack 3 To Idle Duration") == 0 ||
         std::strcmp(PropertyName, "Move Start Speed Threshold") == 0 ||
         std::strcmp(PropertyName, "Auto Configure Animation") == 0)
     {
@@ -244,7 +280,11 @@ void AAnimTestPawn::ConfigureLocomotionStateMachine()
         RunAnimationPath.empty() ||
         HomeguardAnimationPath.empty() ||
         LightAttackAnimationPath.empty() ||
-        HeavyAttackAnimationPath.empty())
+        LightAttack3AnimationPath.empty() ||
+        HeavyAttackAnimationPath.empty() ||
+        Attack1ToIdleAnimationPath.empty() ||
+        Attack2ToIdleAnimationPath.empty() ||
+        Attack3ToIdleAnimationPath.empty())
     {
         return;
     }
@@ -259,8 +299,12 @@ void AAnimTestPawn::ConfigureLocomotionStateMachine()
     AnimInstance->RegisterAnimationPath(FName("IntoRun"), IntoRunAnimationPath);
     AnimInstance->RegisterAnimationPath(FName("Run"), RunAnimationPath);
     AnimInstance->RegisterAnimationPath(FName("Homeguard"), HomeguardAnimationPath);
-    AnimInstance->RegisterAnimationPath(NAME_LightAttack, LightAttackAnimationPath);
+    AnimInstance->RegisterAnimationPath(NAME_LightAttack1, LightAttackAnimationPath);
+    AnimInstance->RegisterAnimationPath(NAME_LightAttack3, LightAttack3AnimationPath);
     AnimInstance->RegisterAnimationPath(NAME_HeavyAttack, HeavyAttackAnimationPath);
+    AnimInstance->RegisterAnimationPath(NAME_Attack1ToIdle, Attack1ToIdleAnimationPath);
+    AnimInstance->RegisterAnimationPath(NAME_Attack2ToIdle, Attack2ToIdleAnimationPath);
+    AnimInstance->RegisterAnimationPath(NAME_Attack3ToIdle, Attack3ToIdleAnimationPath);
     AddDefaultAnimationNotifies(AnimInstance);
     AnimInstance->SetAnimFloatParameter(FName("Speed"), 0.0f);
     AnimInstance->SetAnimFloatParameter(FName("GroundSpeed"), 0.0f);
@@ -284,8 +328,12 @@ void AAnimTestPawn::ConfigureLocomotionStateMachine()
     LocomotionStateMachine->AddState(FName("IntoRun"), FName("IntoRun"), false, IntoRunAnimationPath);
     LocomotionStateMachine->AddState(FName("Run"), FName("Run"), true, RunAnimationPath);
     LocomotionStateMachine->AddState(FName("Homeguard"), FName("Homeguard"), true, HomeguardAnimationPath);
-    LocomotionStateMachine->AddState(FName("LightAttack"), FName("LightAttack"), false, LightAttackAnimationPath);
-    LocomotionStateMachine->AddState(FName("HeavyAttack"), FName("HeavyAttack"), false, HeavyAttackAnimationPath);
+    LocomotionStateMachine->AddState(NAME_LightAttack1, NAME_LightAttack1, false, LightAttackAnimationPath);
+    LocomotionStateMachine->AddState(NAME_LightAttack3, NAME_LightAttack3, false, LightAttack3AnimationPath);
+    LocomotionStateMachine->AddState(NAME_HeavyAttack, NAME_HeavyAttack, false, HeavyAttackAnimationPath);
+    LocomotionStateMachine->AddState(NAME_Attack1ToIdle, NAME_Attack1ToIdle, false, Attack1ToIdleAnimationPath);
+    LocomotionStateMachine->AddState(NAME_Attack2ToIdle, NAME_Attack2ToIdle, false, Attack2ToIdleAnimationPath);
+    LocomotionStateMachine->AddState(NAME_Attack3ToIdle, NAME_Attack3ToIdle, false, Attack3ToIdleAnimationPath);
 
     LocomotionStateMachine->AddBoolTransition(
         FName("Idle"),
@@ -380,115 +428,265 @@ void AAnimTestPawn::ConfigureLocomotionStateMachine()
     {
         LocomotionStateMachine->AddTriggerTransition(
             StateName,
-            FName("HeavyAttack"),
-            FName("HeavyAttack"),
+            NAME_HeavyAttack,
+            NAME_HeavyAttack,
             LocomotionBlendTime,
             200,
             EAnimBlendEaseOption::EaseInOut);
         LocomotionStateMachine->AddTriggerTransition(
             StateName,
-            FName("LightAttack"),
-            FName("LightAttack"),
+            NAME_LightAttack1,
+            NAME_LightAttack1,
+            LocomotionBlendTime,
+            190,
+            EAnimBlendEaseOption::EaseInOut);
+        LocomotionStateMachine->AddTriggerTransition(
+            StateName,
+            NAME_LightAttack3,
+            NAME_LightAttack3,
             LocomotionBlendTime,
             190,
             EAnimBlendEaseOption::EaseInOut);
     }
 
-    TArray<FAnimTransitionCondition> LightAttackToIdleConditions;
-    FAnimTransitionCondition LightAttackIdleTimeCondition;
-    LightAttackIdleTimeCondition.ParameterName = FName("StateElapsedTime");
-    LightAttackIdleTimeCondition.ParameterType = EAnimParameterType::Float;
-    LightAttackIdleTimeCondition.CompareOp = EAnimCompareOp::GreaterEqual;
-    LightAttackIdleTimeCondition.CompareValue.FloatValue = LightAttackDuration;
-    LightAttackToIdleConditions.push_back(LightAttackIdleTimeCondition);
-    FAnimTransitionCondition NotMovingCondition;
-    NotMovingCondition.ParameterName = FName("bMoving");
-    NotMovingCondition.ParameterType = EAnimParameterType::Bool;
-    NotMovingCondition.CompareOp = EAnimCompareOp::IsFalse;
-    LightAttackToIdleConditions.push_back(NotMovingCondition);
+    const FName AttackRecoveryStates[] = {
+        NAME_Attack1ToIdle,
+        NAME_Attack2ToIdle,
+        NAME_Attack3ToIdle,
+    };
+
+    for (const FName& StateName : AttackRecoveryStates)
+    {
+        LocomotionStateMachine->AddTriggerTransition(
+            StateName,
+            NAME_HeavyAttack,
+            NAME_HeavyAttack,
+            LocomotionBlendTime,
+            200,
+            EAnimBlendEaseOption::EaseInOut);
+        LocomotionStateMachine->AddTriggerTransition(
+            StateName,
+            NAME_LightAttack1,
+            NAME_LightAttack1,
+            LocomotionBlendTime,
+            190,
+            EAnimBlendEaseOption::EaseInOut);
+        LocomotionStateMachine->AddTriggerTransition(
+            StateName,
+            NAME_LightAttack3,
+            NAME_LightAttack3,
+            LocomotionBlendTime,
+            190,
+            EAnimBlendEaseOption::EaseInOut);
+    }
+
+    FAnimTransitionCondition AttackTimeCondition;
+    AttackTimeCondition.ParameterName = FName("StateElapsedTime");
+    AttackTimeCondition.ParameterType = EAnimParameterType::Float;
+    AttackTimeCondition.CompareOp = EAnimCompareOp::GreaterEqual;
+
+    FAnimTransitionCondition RecoveryMovingCondition;
+    RecoveryMovingCondition.ParameterName = FName("bMoving");
+    RecoveryMovingCondition.ParameterType = EAnimParameterType::Bool;
+    RecoveryMovingCondition.CompareOp = EAnimCompareOp::IsTrue;
+    RecoveryMovingCondition.CompareValue.BoolValue = true;
+
+    FAnimTransitionCondition RecoverySprintingCondition;
+    RecoverySprintingCondition.ParameterName = FName("bSprinting");
+    RecoverySprintingCondition.ParameterType = EAnimParameterType::Bool;
+    RecoverySprintingCondition.CompareOp = EAnimCompareOp::IsTrue;
+    RecoverySprintingCondition.CompareValue.BoolValue = true;
+
+    TArray<FAnimTransitionCondition> Attack1ToIdleStartConditions;
+    AttackTimeCondition.CompareValue.FloatValue = LightAttackDuration;
+    Attack1ToIdleStartConditions.push_back(AttackTimeCondition);
+
+    TArray<FAnimTransitionCondition> Attack1DirectToHomeguardConditions = Attack1ToIdleStartConditions;
+    Attack1DirectToHomeguardConditions.push_back(RecoverySprintingCondition);
     LocomotionStateMachine->AddTransition(
-        FName("LightAttack"),
-        FName("Idle"),
-        LightAttackToIdleConditions,
+        NAME_LightAttack1,
+        FName("Homeguard"),
+        Attack1DirectToHomeguardConditions,
         LocomotionBlendTime,
-        100,
+        120,
         EAnimBlendEaseOption::EaseInOut);
 
-    TArray<FAnimTransitionCondition> LightAttackToRunConditions;
-    FAnimTransitionCondition LightAttackRunTimeCondition = LightAttackIdleTimeCondition;
-    LightAttackToRunConditions.push_back(LightAttackRunTimeCondition);
-    FAnimTransitionCondition MovingCondition;
-    MovingCondition.ParameterName = FName("bMoving");
-    MovingCondition.ParameterType = EAnimParameterType::Bool;
-    MovingCondition.CompareOp = EAnimCompareOp::IsTrue;
-    MovingCondition.CompareValue.BoolValue = true;
-
-    FAnimTransitionCondition SprintingCondition;
-    SprintingCondition.ParameterName = FName("bSprinting");
-    SprintingCondition.ParameterType = EAnimParameterType::Bool;
-    SprintingCondition.CompareOp = EAnimCompareOp::IsTrue;
-    SprintingCondition.CompareValue.BoolValue = true;
-
-    TArray<FAnimTransitionCondition> LightAttackToHomeguardConditions;
-    FAnimTransitionCondition LightAttackHomeguardTimeCondition = LightAttackIdleTimeCondition;
-    LightAttackToHomeguardConditions.push_back(LightAttackHomeguardTimeCondition);
-    LightAttackToHomeguardConditions.push_back(SprintingCondition);
+    TArray<FAnimTransitionCondition> Attack1DirectToRunConditions = Attack1ToIdleStartConditions;
+    Attack1DirectToRunConditions.push_back(RecoveryMovingCondition);
     LocomotionStateMachine->AddTransition(
-        FName("LightAttack"),
-        FName("Homeguard"),
-        LightAttackToHomeguardConditions,
+        NAME_LightAttack1,
+        FName("Run"),
+        Attack1DirectToRunConditions,
         LocomotionBlendTime,
         110,
         EAnimBlendEaseOption::EaseInOut);
 
-    LightAttackToRunConditions.push_back(MovingCondition);
     LocomotionStateMachine->AddTransition(
-        FName("LightAttack"),
-        FName("Run"),
-        LightAttackToRunConditions,
-        LocomotionBlendTime,
-        90,
-        EAnimBlendEaseOption::EaseInOut);
-
-    TArray<FAnimTransitionCondition> HeavyAttackToIdleConditions;
-    FAnimTransitionCondition HeavyAttackIdleTimeCondition;
-    HeavyAttackIdleTimeCondition.ParameterName = FName("StateElapsedTime");
-    HeavyAttackIdleTimeCondition.ParameterType = EAnimParameterType::Float;
-    HeavyAttackIdleTimeCondition.CompareOp = EAnimCompareOp::GreaterEqual;
-    HeavyAttackIdleTimeCondition.CompareValue.FloatValue = HeavyAttackDuration;
-    HeavyAttackToIdleConditions.push_back(HeavyAttackIdleTimeCondition);
-    HeavyAttackToIdleConditions.push_back(NotMovingCondition);
-    LocomotionStateMachine->AddTransition(
-        FName("HeavyAttack"),
-        FName("Idle"),
-        HeavyAttackToIdleConditions,
+        NAME_LightAttack1,
+        NAME_Attack1ToIdle,
+        Attack1ToIdleStartConditions,
         LocomotionBlendTime,
         100,
         EAnimBlendEaseOption::EaseInOut);
 
-    TArray<FAnimTransitionCondition> HeavyAttackToRunConditions;
-    FAnimTransitionCondition HeavyAttackRunTimeCondition = HeavyAttackIdleTimeCondition;
-    HeavyAttackToRunConditions.push_back(HeavyAttackRunTimeCondition);
+    TArray<FAnimTransitionCondition> Attack2ToIdleStartConditions;
+    AttackTimeCondition.CompareValue.FloatValue = HeavyAttackDuration;
+    Attack2ToIdleStartConditions.push_back(AttackTimeCondition);
 
-    TArray<FAnimTransitionCondition> HeavyAttackToHomeguardConditions;
-    FAnimTransitionCondition HeavyAttackHomeguardTimeCondition = HeavyAttackIdleTimeCondition;
-    HeavyAttackToHomeguardConditions.push_back(HeavyAttackHomeguardTimeCondition);
-    HeavyAttackToHomeguardConditions.push_back(SprintingCondition);
+    TArray<FAnimTransitionCondition> Attack2DirectToHomeguardConditions = Attack2ToIdleStartConditions;
+    Attack2DirectToHomeguardConditions.push_back(RecoverySprintingCondition);
     LocomotionStateMachine->AddTransition(
-        FName("HeavyAttack"),
+        NAME_HeavyAttack,
         FName("Homeguard"),
-        HeavyAttackToHomeguardConditions,
+        Attack2DirectToHomeguardConditions,
+        LocomotionBlendTime,
+        120,
+        EAnimBlendEaseOption::EaseInOut);
+
+    TArray<FAnimTransitionCondition> Attack2DirectToRunConditions = Attack2ToIdleStartConditions;
+    Attack2DirectToRunConditions.push_back(RecoveryMovingCondition);
+    LocomotionStateMachine->AddTransition(
+        NAME_HeavyAttack,
+        FName("Run"),
+        Attack2DirectToRunConditions,
         LocomotionBlendTime,
         110,
         EAnimBlendEaseOption::EaseInOut);
 
-    HeavyAttackToRunConditions.push_back(MovingCondition);
     LocomotionStateMachine->AddTransition(
-        FName("HeavyAttack"),
-        FName("Run"),
-        HeavyAttackToRunConditions,
+        NAME_HeavyAttack,
+        NAME_Attack2ToIdle,
+        Attack2ToIdleStartConditions,
         LocomotionBlendTime,
-        90,
+        100,
+        EAnimBlendEaseOption::EaseInOut);
+
+    TArray<FAnimTransitionCondition> Attack3ToIdleStartConditions;
+    AttackTimeCondition.CompareValue.FloatValue = LightAttack3Duration;
+    Attack3ToIdleStartConditions.push_back(AttackTimeCondition);
+
+    TArray<FAnimTransitionCondition> Attack3DirectToHomeguardConditions = Attack3ToIdleStartConditions;
+    Attack3DirectToHomeguardConditions.push_back(RecoverySprintingCondition);
+    LocomotionStateMachine->AddTransition(
+        NAME_LightAttack3,
+        FName("Homeguard"),
+        Attack3DirectToHomeguardConditions,
+        LocomotionBlendTime,
+        120,
+        EAnimBlendEaseOption::EaseInOut);
+
+    TArray<FAnimTransitionCondition> Attack3DirectToRunConditions = Attack3ToIdleStartConditions;
+    Attack3DirectToRunConditions.push_back(RecoveryMovingCondition);
+    LocomotionStateMachine->AddTransition(
+        NAME_LightAttack3,
+        FName("Run"),
+        Attack3DirectToRunConditions,
+        LocomotionBlendTime,
+        110,
+        EAnimBlendEaseOption::EaseInOut);
+
+    LocomotionStateMachine->AddTransition(
+        NAME_LightAttack3,
+        NAME_Attack3ToIdle,
+        Attack3ToIdleStartConditions,
+        LocomotionBlendTime,
+        100,
+        EAnimBlendEaseOption::EaseInOut);
+
+    TArray<FAnimTransitionCondition> Attack1ToIdleFinishConditions;
+    AttackTimeCondition.CompareValue.FloatValue = Attack1ToIdleDuration;
+    Attack1ToIdleFinishConditions.push_back(AttackTimeCondition);
+
+    TArray<FAnimTransitionCondition> Attack1ToHomeguardConditions = Attack1ToIdleFinishConditions;
+    Attack1ToHomeguardConditions.push_back(RecoverySprintingCondition);
+    LocomotionStateMachine->AddTransition(
+        NAME_Attack1ToIdle,
+        FName("Homeguard"),
+        Attack1ToHomeguardConditions,
+        LocomotionBlendTime,
+        120,
+        EAnimBlendEaseOption::EaseInOut);
+
+    TArray<FAnimTransitionCondition> Attack1ToRunConditions = Attack1ToIdleFinishConditions;
+    Attack1ToRunConditions.push_back(RecoveryMovingCondition);
+    LocomotionStateMachine->AddTransition(
+        NAME_Attack1ToIdle,
+        FName("Run"),
+        Attack1ToRunConditions,
+        LocomotionBlendTime,
+        110,
+        EAnimBlendEaseOption::EaseInOut);
+
+    LocomotionStateMachine->AddTransition(
+        NAME_Attack1ToIdle,
+        FName("Idle"),
+        Attack1ToIdleFinishConditions,
+        LocomotionBlendTime,
+        100,
+        EAnimBlendEaseOption::EaseInOut);
+
+    TArray<FAnimTransitionCondition> Attack2ToIdleFinishConditions;
+    AttackTimeCondition.CompareValue.FloatValue = Attack2ToIdleDuration;
+    Attack2ToIdleFinishConditions.push_back(AttackTimeCondition);
+
+    TArray<FAnimTransitionCondition> Attack2ToHomeguardConditions = Attack2ToIdleFinishConditions;
+    Attack2ToHomeguardConditions.push_back(RecoverySprintingCondition);
+    LocomotionStateMachine->AddTransition(
+        NAME_Attack2ToIdle,
+        FName("Homeguard"),
+        Attack2ToHomeguardConditions,
+        LocomotionBlendTime,
+        120,
+        EAnimBlendEaseOption::EaseInOut);
+
+    TArray<FAnimTransitionCondition> Attack2ToRunConditions = Attack2ToIdleFinishConditions;
+    Attack2ToRunConditions.push_back(RecoveryMovingCondition);
+    LocomotionStateMachine->AddTransition(
+        NAME_Attack2ToIdle,
+        FName("Run"),
+        Attack2ToRunConditions,
+        LocomotionBlendTime,
+        110,
+        EAnimBlendEaseOption::EaseInOut);
+
+    LocomotionStateMachine->AddTransition(
+        NAME_Attack2ToIdle,
+        FName("Idle"),
+        Attack2ToIdleFinishConditions,
+        LocomotionBlendTime,
+        100,
+        EAnimBlendEaseOption::EaseInOut);
+
+    TArray<FAnimTransitionCondition> Attack3ToIdleFinishConditions;
+    AttackTimeCondition.CompareValue.FloatValue = Attack3ToIdleDuration;
+    Attack3ToIdleFinishConditions.push_back(AttackTimeCondition);
+
+    TArray<FAnimTransitionCondition> Attack3ToHomeguardConditions = Attack3ToIdleFinishConditions;
+    Attack3ToHomeguardConditions.push_back(RecoverySprintingCondition);
+    LocomotionStateMachine->AddTransition(
+        NAME_Attack3ToIdle,
+        FName("Homeguard"),
+        Attack3ToHomeguardConditions,
+        LocomotionBlendTime,
+        120,
+        EAnimBlendEaseOption::EaseInOut);
+
+    TArray<FAnimTransitionCondition> Attack3ToRunConditions = Attack3ToIdleFinishConditions;
+    Attack3ToRunConditions.push_back(RecoveryMovingCondition);
+    LocomotionStateMachine->AddTransition(
+        NAME_Attack3ToIdle,
+        FName("Run"),
+        Attack3ToRunConditions,
+        LocomotionBlendTime,
+        110,
+        EAnimBlendEaseOption::EaseInOut);
+
+    LocomotionStateMachine->AddTransition(
+        NAME_Attack3ToIdle,
+        FName("Idle"),
+        Attack3ToIdleFinishConditions,
+        LocomotionBlendTime,
+        100,
         EAnimBlendEaseOption::EaseInOut);
 
     if (!SkeletalMeshComp->UseStateMachine(LocomotionStateMachine))
@@ -514,6 +712,7 @@ void AAnimTestPawn::UpdateLocomotion(float DeltaTime)
     const FInputActionState* HeavyAttackAction = Snapshot ? Snapshot->FindAction("HeavyAttack") : nullptr;
     const bool bLightAttackStarted = IsActionStarted(LightAttackAction);
     const bool bHeavyAttackStarted = IsActionStarted(HeavyAttackAction);
+    const bool bInMainAttack = IsInMainAttackState();
     const bool bLockMovement = IsInAttackState() || bLightAttackStarted || bHeavyAttackStarted;
 
     if (SpringArmComp && LookAction)
@@ -578,13 +777,27 @@ void AAnimTestPawn::UpdateLocomotion(float DeltaTime)
     {
         if (UAnimInstance* AnimInstance = SkeletalMeshComp->GetAnimInstance())
         {
+            if (bInMainAttack)
+            {
+                return;
+            }
+
             if (bHeavyAttackStarted)
             {
                 AnimInstance->SetAnimTriggerParameter(NAME_HeavyAttack);
             }
             else if (bLightAttackStarted)
             {
-                AnimInstance->SetAnimTriggerParameter(NAME_LightAttack);
+                if (bNextLightAttackUsesAttack1)
+                {
+                    AnimInstance->SetAnimTriggerParameter(NAME_LightAttack1);
+                    bNextLightAttackUsesAttack1 = false;
+                }
+                else
+                {
+                    AnimInstance->SetAnimTriggerParameter(NAME_LightAttack3);
+                    bNextLightAttackUsesAttack1 = true;
+                }
             }
         }
     }
@@ -610,12 +823,43 @@ bool AAnimTestPawn::IsInAttackState() const
     }
 
     const FName CurrentState = StateMachine->GetCurrentState();
-    return CurrentState == NAME_LightAttack || CurrentState == NAME_HeavyAttack;
+    return CurrentState == NAME_LightAttack1 ||
+        CurrentState == NAME_LightAttack3 ||
+        CurrentState == NAME_HeavyAttack ||
+        CurrentState == NAME_Attack1ToIdle ||
+        CurrentState == NAME_Attack2ToIdle ||
+        CurrentState == NAME_Attack3ToIdle;
+}
+
+bool AAnimTestPawn::IsInMainAttackState() const
+{
+    if (!SkeletalMeshComp)
+    {
+        return false;
+    }
+
+    const UAnimInstance* AnimInstance = SkeletalMeshComp->GetAnimInstance();
+    if (!AnimInstance)
+    {
+        return false;
+    }
+
+    const FAnimStateMachineNode* StateMachine = AnimInstance->GetStateMachine();
+    if (!StateMachine)
+    {
+        return false;
+    }
+
+    const FName CurrentState = StateMachine->GetCurrentState();
+    return CurrentState == NAME_LightAttack1 ||
+        CurrentState == NAME_LightAttack3 ||
+        CurrentState == NAME_HeavyAttack;
 }
 
 void AAnimTestPawn::AddDefaultAnimationNotifies(UAnimInstance* AnimInstance)
 {
-    AddNotifyToAnimation(AnimInstance, NAME_LightAttack, NAME_LightAttackStart, 0.01f);
+    AddNotifyToAnimation(AnimInstance, NAME_LightAttack1, NAME_LightAttack1Start, 0.01f);
+    AddNotifyToAnimation(AnimInstance, NAME_LightAttack3, NAME_LightAttack3Start, 0.01f);
     AddNotifyToAnimation(AnimInstance, NAME_HeavyAttack, NAME_HeavyAttackStart, 0.01f);
 }
 
@@ -659,7 +903,8 @@ void AAnimTestPawn::HandleAnimNotify(const FAnimNotifyEvent& Notify)
 
 void AAnimTestPawn::PlayAttackNotifySound(const FAnimNotifyEvent& Notify)
 {
-    if (Notify.NotifyName == NAME_LightAttackStart)
+    if (Notify.NotifyName == NAME_LightAttack1Start ||
+        Notify.NotifyName == NAME_LightAttack3Start)
     {
         PlayLightAttackSound();
     }
