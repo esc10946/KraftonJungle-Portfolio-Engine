@@ -229,7 +229,7 @@
   },
   "Version" : 6,
   "WorldSettings" : {
-    "DefaultPawnClass" : "AAnimTestPawn",
+    "DefaultPawnClass" : "AAnimLuaTestPawn",
     "DefaultPawnPrefabPath" : "",
     "GameModeClass" : "AGameModeBase",
     "OverrideGameMode" : true,
