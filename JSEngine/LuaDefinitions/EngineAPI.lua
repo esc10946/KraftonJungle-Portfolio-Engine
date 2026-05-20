@@ -295,6 +295,9 @@ function AnimStateMachineAsset:AddStateWithPath(stateName, animationName, animat
 function AnimStateMachineAsset:AddTransition(fromState, toState, conditionName, blendTime, priority, easeOption) end
 ---@return boolean
 function AnimStateMachineAsset:Validate() end
+---@param assetPath string
+---@return boolean
+function AnimStateMachineAsset:Save(assetPath) end
 
 ---@class AnimInstance: Object
 local AnimInstance = {}
@@ -337,6 +340,9 @@ function AnimInstance:GetSkelMeshComponent() end
 
 ---@return AnimStateMachineAsset
 function CreateAnimStateMachineAsset() end
+---@param assetPath string
+---@return AnimStateMachineAsset
+function LoadAnimStateMachineAsset(assetPath) end
 
 ---@class SkeletalMeshComponent: ActorComponent
 local SkeletalMeshComponent = {}
@@ -369,7 +375,7 @@ function SkeletalMeshComponent:StopSingleAnimation() end
 function SkeletalMeshComponent:UseStateMachine(asset) end
 ---@param jsonPath string
 ---@return boolean
-function SkeletalMeshComponent:LoadStateMachineFromJson(jsonPath) end
+function SkeletalMeshComponent:LoadStateMachineAsset(assetPath) end
 
 ---@class MainSceneDestructibleComponent: ActorComponent
 ---@field PresentationTrigger number

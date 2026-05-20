@@ -121,6 +121,7 @@ void FEditorAssetService::RefreshAssetDatabase()
 	FontNames.clear();
 	ParticleNames.clear();
 	AnimationSequencePaths.clear();
+	AnimStateMachinePaths.clear();
 	CachedMaterialInterfaces.clear();
 	CachedMaterialInterfaceResolved.clear();
 
@@ -154,6 +155,14 @@ void FEditorAssetService::RefreshAssetDatabase()
 	{
 		FEditorAssetService::AddUniquePath(AnimationSequencePaths, Path);
 	}
+	for (const FString& Path : FAssetQueryService::GetAnimStateMachineAssetPaths())
+	{
+		FEditorAssetService::AddUniquePath(AnimStateMachinePaths, Path);
+	}
+	for (const FString& Path : FResourceManager::Get().GetAnimStateMachineAssetPaths())
+	{
+		FEditorAssetService::AddUniquePath(AnimStateMachinePaths, Path);
+	}
 
 	for (const FString& Path : FAssetQueryService::GetTexturePaths())
 	{
@@ -186,6 +195,7 @@ void FEditorAssetService::RefreshAssetDatabase()
 	BuildItems(FontNames, EEditorAssetType::Font, FontItems);
 	BuildItems(ParticleNames, EEditorAssetType::Particle, ParticleItems);
 	BuildItems(AnimationSequencePaths, EEditorAssetType::AnimationSequence, AnimationSequenceItems);
+	BuildItems(AnimStateMachinePaths, EEditorAssetType::AnimStateMachine, AnimStateMachineItems);
 }
 
 const TArray<FEditorAssetItem>& FEditorAssetService::GetAssets(EEditorAssetType Type) const
@@ -206,6 +216,8 @@ const TArray<FEditorAssetItem>& FEditorAssetService::GetAssets(EEditorAssetType 
 		return ParticleItems;
 	case EEditorAssetType::AnimationSequence:
 		return AnimationSequenceItems;
+	case EEditorAssetType::AnimStateMachine:
+		return AnimStateMachineItems;
 	case EEditorAssetType::Scene:
 	case EEditorAssetType::Script:
 	default:

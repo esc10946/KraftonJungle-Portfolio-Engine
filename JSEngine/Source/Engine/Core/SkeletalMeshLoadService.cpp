@@ -48,8 +48,9 @@ namespace
 	FString ResolveMaterialSourcePathForSkeletalBinary(const FString& BinaryPath, const FString& SerializedPath)
 	{
 		const FString NormalizedSerializedPath = FPaths::Normalize(SerializedPath);
-		if (IsFbxPath(NormalizedSerializedPath) && FAssetPathPolicy::FileExists(NormalizedSerializedPath))
+		if (IsFbxPath(NormalizedSerializedPath))
 		{
+			// 패키지에 FBX가 없어도 serialized source path는 material alias 식별자로 유지
 			return NormalizedSerializedPath;
 		}
 
@@ -185,6 +186,7 @@ USkeletalMesh* FSkeletalMeshLoadService::LoadBinary(const FString& BinaryPath, c
 	const FString MaterialResolvePath = ResolveMaterialSourcePathForSkeletalBinary(BinaryPath, LoadedMeshData->PathFileName);
 	if (IsFbxPath(MaterialResolvePath))
 	{
+		// FBX를 로드하는 것이 아니라 저장된 material cache와 slot alias만 복원
 		ResourceManager.LoadMaterial(MaterialResolvePath, EMaterialShaderType::SurfaceLit);
 	}
 

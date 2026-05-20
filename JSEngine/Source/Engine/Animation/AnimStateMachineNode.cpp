@@ -127,7 +127,9 @@ void FAnimStateMachineNode::Update(const FAnimNodeUpdateContext& Context)
     {
         StateElapsedTime += Context.DeltaSeconds;
 
-        TArray<const FAnimTransitionDesc*> TransitionsFromCurrent = Asset->GetTransitionsFrom(CurrentState);
+        const FAnimStateDesc* CurrentStateDesc = Asset->FindState(CurrentState);
+        TArray<const FAnimTransitionDesc*> TransitionsFromCurrent =
+            CurrentStateDesc ? Asset->GetTransitionsFrom(CurrentStateDesc->Id) : TArray<const FAnimTransitionDesc*>();
         for (const FAnimTransitionDesc* Transition : TransitionsFromCurrent)
         {
             if (!Transition)
@@ -137,7 +139,11 @@ void FAnimStateMachineNode::Update(const FAnimNodeUpdateContext& Context)
 
             if (EvaluateTransition(*Transition, *Context.Parameters))
             {
-                EnterState(Transition->ToState, Transition->BlendTime, Transition->EaseOption);
+                const FAnimStateDesc* NextState = Asset->FindStateById(Transition->ToStateId);
+                if (NextState)
+                {
+                    EnterState(NextState->StateName, Transition->BlendTime, Transition->EaseOption);
+                }
                 break;
             }
         }

@@ -6,6 +6,12 @@
 #include "Math/Vector.h"
 #include "Object/FName.h"
 
+using FAnimStateId = uint32;
+using FAnimTransitionId = uint32;
+
+static constexpr FAnimStateId InvalidAnimStateId = 0;
+static constexpr FAnimTransitionId InvalidAnimTransitionId = 0;
+
 enum class EAnimBlendEaseOption : uint8
 {
     Linear = 0,
@@ -53,6 +59,7 @@ struct FAnimTransitionCondition
 
 struct FAnimStateDesc
 {
+    FAnimStateId Id = InvalidAnimStateId;
     FName StateName;
     FName AnimationName;
     FString AnimationPath;
@@ -61,10 +68,32 @@ struct FAnimStateDesc
 
 struct FAnimTransitionDesc
 {
+    FAnimTransitionId Id = InvalidAnimTransitionId;
+    FAnimStateId FromStateId = InvalidAnimStateId;
+    FAnimStateId ToStateId = InvalidAnimStateId;
     FName FromState;
     FName ToState;
     TArray<FAnimTransitionCondition> Conditions;
     float BlendTime = 0.0f;
     EAnimBlendEaseOption EaseOption = EAnimBlendEaseOption::Linear;
     int32 Priority = 0;
+};
+
+struct FAnimStateEditorMetadata
+{
+    FAnimStateId StateId = InvalidAnimStateId;
+    float NodeX = 0.0f;
+    float NodeY = 0.0f;
+    float NodeWidth = 160.0f;
+    float NodeHeight = 80.0f;
+    FString Comment;
+    uint32 Color = 0;
+};
+
+struct FAnimTransitionEditorMetadata
+{
+    FAnimTransitionId TransitionId = InvalidAnimTransitionId;
+    float ControlPointX = 0.0f;
+    float ControlPointY = 0.0f;
+    FString Comment;
 };

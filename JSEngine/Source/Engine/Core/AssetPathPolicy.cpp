@@ -65,6 +65,14 @@ bool FAssetPathPolicy::IsAnimationSequenceAssetPath(const FString& Path)
 	return Extension == L".anim" || Extension == L".animsequence";
 }
 
+bool FAssetPathPolicy::IsAnimStateMachineAssetPath(const FString& Path)
+{
+	std::filesystem::path FsPath(FPaths::ToWide(FPaths::Normalize(Path)));
+	std::wstring Extension = FsPath.extension().wstring();
+	std::transform(Extension.begin(), Extension.end(), Extension.begin(), ::towlower);
+	return Extension == L".animsm";
+}
+
 bool FAssetPathPolicy::IsSequenceAssetPath(const FString& Path)
 {
 	std::filesystem::path FsPath(FPaths::ToWide(FPaths::Normalize(Path)));
