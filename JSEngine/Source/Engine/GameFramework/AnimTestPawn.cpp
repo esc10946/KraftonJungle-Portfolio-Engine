@@ -85,8 +85,10 @@ void AAnimTestPawn::InitDefaultComponents()
     SpringArmComp = AddComponent<USpringArmComponent>();
     SpringArmComp->AttachToComponent(SceneRoot);
     SpringArmComp->SetRelativeLocation(FVector(0.0f, 0.0f, 1.6f));
-    SpringArmComp->SetTargetArmLength(5.0f);
-    SpringArmComp->SetSocketOffset(FVector(0.0f, 0.0f, 0.25f));
+    SpringArmComp->AddYawInput(90.0f);
+    SpringArmComp->AddPitchInput(-60.0f);
+    SpringArmComp->SetTargetArmLength(10.0f);
+    SpringArmComp->SetSocketOffset(FVector(0.0f, 0.0f, 0.5f));
 
     CameraComp = AddComponent<UCameraComponent>();
     CameraComp->AttachToComponent(SpringArmComp);
@@ -706,7 +708,6 @@ void AAnimTestPawn::UpdateLocomotion(float DeltaTime)
     APlayerController* PlayerController = GetController();
     const FGameplayInputSnapshot* Snapshot = PlayerController ? &PlayerController->GetInputSnapshot() : nullptr;
     const FInputActionState* MoveAction = Snapshot ? Snapshot->FindAction("Move") : nullptr;
-    const FInputActionState* LookAction = Snapshot ? Snapshot->FindAction("Look") : nullptr;
     const FInputActionState* SprintAction = Snapshot ? Snapshot->FindAction("Sprint") : nullptr;
     const FInputActionState* LightAttackAction = Snapshot ? Snapshot->FindAction("Attack") : nullptr;
     const FInputActionState* HeavyAttackAction = Snapshot ? Snapshot->FindAction("HeavyAttack") : nullptr;
@@ -714,13 +715,6 @@ void AAnimTestPawn::UpdateLocomotion(float DeltaTime)
     const bool bHeavyAttackStarted = IsActionStarted(HeavyAttackAction);
     const bool bInMainAttack = IsInMainAttackState();
     const bool bLockMovement = IsInAttackState() || bLightAttackStarted || bHeavyAttackStarted;
-
-    if (SpringArmComp && LookAction)
-    {
-        const FVector2& LookAxis = LookAction->Value.Axis2D;
-        SpringArmComp->AddYawInput(LookAxis.X * LookSensitivityDegrees);
-        SpringArmComp->AddPitchInput(-LookAxis.Y * LookSensitivityDegrees);
-    }
 
     FVector2 MoveAxis = FVector2::ZeroVector;
     if (MoveAction)

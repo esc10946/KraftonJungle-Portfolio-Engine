@@ -2064,15 +2064,6 @@ void FEditorPropertyWidget::RenderComponentProperties()
 	}
 	ImGui::Separator();
 
-	// 프로퍼티 직접 편집 후 월드 행렬 갱신
-	if (SelectedComponent->IsA<USceneComponent>())
-	{
-        UWorld* World = Owner->GetFocusedWorld();
-        const FWorldContext* Ctx = EditorEngine->GetWorldContextFromWorld(World);
-		static_cast<USceneComponent*>(SelectedComponent)->MarkTransformDirty();
-		Ctx->SelectionManager->GetGizmo()->UpdateGizmoTransform();
-	}
-
 	if (bDetailsPerfTraceFrame)
 	{
 		const double GetEditablePropertiesMs = DetailsPerfMs(PropertiesStart, PropertiesEnd);
