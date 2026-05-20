@@ -14,7 +14,7 @@ public:
 
 protected:
 	FMatrix ComputeCascadeShadowMatrix(const FMatrix& CamView, const FMatrix& CamProj,
-		float SplitNearT, float SplitFarT) const override;
+		float SplitNearT, float SplitFarT, float ShadowMapResolution) const override;
 	FMatrix ComputePerspectiveShadowMatrix(const FMatrix& CamView, const FMatrix& CamProj,
 		const TArray<FBoundingBox>* VisibleObjectsBounds) const override;
 

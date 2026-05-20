@@ -18,7 +18,10 @@ public:
 	
 	/* Cascade ShadowMap 전용 */
 	FMatrix GetLightViewProj(const FMatrix& CamView, const FMatrix& CamProj,
-		float SplitNearT, float SplitFarT, const TArray<FBoundingBox>* VisibleObjectsBounds = nullptr) const;
+		float SplitNearT,
+		float SplitFarT,
+		const TArray<FBoundingBox>* VisibleObjectsBounds = nullptr,
+		float ShadowMapResolution = 0.0f) const;
 
 	void PostDuplicate(UObject* Original) override;
 	void GetEditableProperties(TArray<FPropertyDescriptor>& OutProps) override;
@@ -28,13 +31,14 @@ public:
 public:
 	EShadowMap GetShadowMapType() const { return eShadowMapType; }
 	void SetShadowMapType(EShadowMap InType) { eShadowMapType = InType; }
+	bool IsShadowTexelSnapped() const { return bShadowTexelSnapped; }
 
 protected:
 	virtual FMatrix ComputePerspectiveShadowMatrix(const FMatrix& CamView, const FMatrix& CamProj,
 		const TArray<FBoundingBox>* VisibleObjectsBounds) const { return FMatrix::Identity; }
 
 	virtual FMatrix ComputeCascadeShadowMatrix(const FMatrix& CamView, const FMatrix& CamProj,
-		float SplitNearT, float SplitFarT) const;
+		float SplitNearT, float SplitFarT, float ShadowMapResolution) const;
 
 	virtual void PrintShadowMapDebugInfo(TArray<FPropertyDescriptor>& OutProps) const;
 
@@ -43,6 +47,7 @@ protected:
 
 public:
 	int32 ShadowResolutionScale = 2048;
+	bool bShadowTexelSnapped = true;
 	float ConstantBias = { 0.003f };
 	float SlopeScaledBias = { 0.12f } ;
 	float ShadowSharpen = 0.5f;
