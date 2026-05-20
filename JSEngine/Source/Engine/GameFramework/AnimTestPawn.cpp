@@ -89,7 +89,7 @@ void AAnimTestPawn::InitDefaultComponents()
     SpringArmComp->SetRelativeLocation(FVector(0.0f, 0.0f, 1.6f));
     SpringArmComp->AddYawInput(90.0f);
     SpringArmComp->AddPitchInput(-60.0f);
-    SpringArmComp->SetTargetArmLength(10.0f);
+    SpringArmComp->SetTargetArmLength(8.0f);
     SpringArmComp->SetSocketOffset(FVector(0.0f, 0.0f, 0.5f));
 
     CameraComp = AddComponent<UCameraComponent>();
