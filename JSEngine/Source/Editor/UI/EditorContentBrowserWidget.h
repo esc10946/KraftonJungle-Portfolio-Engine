@@ -100,6 +100,7 @@ private:
 	bool IsProjectRootPath(const std::filesystem::path& Path) const;
 	bool IsPreviewableImage(const FString& Extension) const;
 	bool IsMaterialAsset(const FString& Extension) const;
+	bool IsAnimationAsset(const FString& Extension) const;
 	bool IsCurveAsset(const std::filesystem::path& Path) const;
 	bool IsSequenceAsset(const FString& Extension) const;
 	bool IsPrefabAsset(const FString& Extension) const;

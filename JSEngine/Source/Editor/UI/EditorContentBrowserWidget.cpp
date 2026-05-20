@@ -227,6 +227,80 @@ bool DrawContentBrowserArrowButton(
 	ImGui::PopID();
 	return bClicked;
 }
+
+void DrawIconText(ImDrawList* DrawList, const ImVec2& Min, const ImVec2& Max, const char* Text)
+{
+	const ImVec2 TextSize = ImGui::CalcTextSize(Text);
+	DrawList->AddText(ImVec2((Min.x + Max.x - TextSize.x) * 0.5f, Max.y - 22.0f),
+		ImGui::GetColorU32(ImVec4(0.96f, 0.97f, 0.99f, 1.0f)), Text);
+}
+
+void DrawAnimationFileIcon(ImDrawList* DrawList, const ImVec2& Min, const ImVec2& Max)
+{
+	const float Width = Max.x - Min.x;
+	const float Height = Max.y - Min.y;
+	const ImU32 TrackColor = ImGui::GetColorU32(ImVec4(0.15f, 0.17f, 0.21f, 0.82f));
+	const ImU32 LineColor = ImGui::GetColorU32(ImVec4(1.0f, 0.82f, 0.36f, 1.0f));
+	const ImU32 KeyColor = ImGui::GetColorU32(ImVec4(0.98f, 0.96f, 0.88f, 1.0f));
+
+	const float TrackY = Min.y + Height * 0.42f;
+	DrawList->AddRectFilled(
+		ImVec2(Min.x + Width * 0.14f, TrackY - Height * 0.10f),
+		ImVec2(Max.x - Width * 0.14f, TrackY + Height * 0.10f),
+		TrackColor,
+		4.0f);
+
+	ImVec2 Prev(Min.x + Width * 0.18f, TrackY + Height * 0.10f);
+	for (int32 Step = 1; Step <= 5; ++Step)
+	{
+		const float Alpha = static_cast<float>(Step) / 5.0f;
+		const float X = Min.x + Width * (0.18f + Alpha * 0.64f);
+		const float Y = TrackY + ((Step % 2) == 0 ? Height * 0.10f : -Height * 0.10f);
+		const ImVec2 Next(X, Y);
+		DrawList->AddLine(Prev, Next, LineColor, 2.2f);
+		Prev = Next;
+	}
+
+	constexpr float KeyAlphas[] = { 0.20f, 0.42f, 0.64f, 0.80f };
+	for (float Alpha : KeyAlphas)
+	{
+		const ImVec2 Key(Min.x + Width * Alpha, Min.y + Height * 0.62f);
+		DrawList->AddCircleFilled(Key, std::max(2.0f, Width * 0.035f), KeyColor, 12);
+	}
+
+	DrawIconText(DrawList, Min, Max, "ANIM");
+}
+
+void DrawFbxFileIcon(ImDrawList* DrawList, const ImVec2& Min, const ImVec2& Max)
+{
+	const float Width = Max.x - Min.x;
+	const float Height = Max.y - Min.y;
+	const ImVec2 Center((Min.x + Max.x) * 0.5f, Min.y + Height * 0.42f);
+	const float Box = std::max(10.0f, std::min(Width, Height) * 0.23f);
+	const ImU32 FaceColor = ImGui::GetColorU32(ImVec4(0.12f, 0.17f, 0.22f, 0.88f));
+	const ImU32 TopColor = ImGui::GetColorU32(ImVec4(0.55f, 0.78f, 0.90f, 0.78f));
+	const ImU32 EdgeColor = ImGui::GetColorU32(ImVec4(0.93f, 0.98f, 1.0f, 0.92f));
+
+	const ImVec2 Top(Center.x, Center.y - Box);
+	const ImVec2 Left(Center.x - Box * 0.95f, Center.y - Box * 0.42f);
+	const ImVec2 Right(Center.x + Box * 0.95f, Center.y - Box * 0.42f);
+	const ImVec2 Bottom(Center.x, Center.y + Box * 0.20f);
+	const ImVec2 BottomLeft(Center.x - Box * 0.95f, Center.y + Box * 0.72f);
+	const ImVec2 BottomRight(Center.x + Box * 0.95f, Center.y + Box * 0.72f);
+
+	DrawList->AddQuadFilled(Top, Right, Bottom, Left, TopColor);
+	DrawList->AddQuadFilled(Left, Bottom, BottomLeft, ImVec2(Center.x, Center.y + Box * 1.28f), FaceColor);
+	DrawList->AddQuadFilled(Right, BottomRight, ImVec2(Center.x, Center.y + Box * 1.28f), Bottom, FaceColor);
+	DrawList->AddLine(Top, Left, EdgeColor, 1.8f);
+	DrawList->AddLine(Top, Right, EdgeColor, 1.8f);
+	DrawList->AddLine(Left, Bottom, EdgeColor, 1.8f);
+	DrawList->AddLine(Right, Bottom, EdgeColor, 1.8f);
+	DrawList->AddLine(Bottom, ImVec2(Center.x, Center.y + Box * 1.28f), EdgeColor, 1.8f);
+	DrawList->AddLine(BottomLeft, ImVec2(Center.x, Center.y + Box * 1.28f), EdgeColor, 1.4f);
+	DrawList->AddLine(BottomRight, ImVec2(Center.x, Center.y + Box * 1.28f), EdgeColor, 1.4f);
+
+	DrawIconText(DrawList, Min, Max, "FBX");
+}
 }
 
 void FEditorContentBrowserWidget::Initialize(UEditorEngine* InEditorEngine)
@@ -1077,6 +1151,14 @@ void FEditorContentBrowserWidget::DrawContentTile(const FContentItem& Item, cons
 			const ImVec2 TextSize = ImGui::CalcTextSize(Kind);
 			DrawList->AddText(ImVec2((IconMin.x + IconMax.x - TextSize.x) * 0.5f, IconMax.y - 22.0f),
 				ImGui::GetColorU32(ImVec4(0.96f, 0.97f, 0.99f, 1.0f)), Kind);
+		}
+		else if (IsAnimationAsset(Item.Extension))
+		{
+			DrawAnimationFileIcon(DrawList, IconMin, IconMax);
+		}
+		else if (Item.Extension == ".fbx")
+		{
+			DrawFbxFileIcon(DrawList, IconMin, IconMax);
 		}
 	}
 
@@ -2012,6 +2094,10 @@ ImU32 FEditorContentBrowserWidget::GetItemColor(const FContentItem& Item) const
 	{
 		return ImGui::GetColorU32(ImVec4(0.26f, 0.52f, 0.78f, 1.0f));
 	}
+	if (Item.Extension == ".fbx")
+	{
+		return ImGui::GetColorU32(ImVec4(0.32f, 0.56f, 0.70f, 1.0f));
+	}
 	if (Item.Extension == ".obj" || Item.Extension == ".bin")
 	{
 		return ImGui::GetColorU32(ImVec4(0.40f, 0.65f, 0.54f, 1.0f));
@@ -2019,6 +2105,10 @@ ImU32 FEditorContentBrowserWidget::GetItemColor(const FContentItem& Item) const
 	if (Item.Extension == ".mat" || Item.Extension == ".matinst")
 	{
 		return ImGui::GetColorU32(ImVec4(0.65f, 0.44f, 0.72f, 1.0f));
+	}
+	if (IsAnimationAsset(Item.Extension))
+	{
+		return ImGui::GetColorU32(ImVec4(0.78f, 0.48f, 0.28f, 1.0f));
 	}
 	if (IsCurveAsset(Item.Path))
 	{
@@ -2078,6 +2168,11 @@ bool FEditorContentBrowserWidget::IsPreviewableImage(const FString& Extension) c
 bool FEditorContentBrowserWidget::IsMaterialAsset(const FString& Extension) const
 {
 	return Extension == ".mat" || Extension == ".matinst";
+}
+
+bool FEditorContentBrowserWidget::IsAnimationAsset(const FString& Extension) const
+{
+	return Extension == ".anim" || Extension == ".animsequence" || Extension == ".sequence";
 }
 
 bool FEditorContentBrowserWidget::IsCurveAsset(const std::filesystem::path& Path) const
