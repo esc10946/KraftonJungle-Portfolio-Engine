@@ -16,6 +16,7 @@ class APlayerController : public AActor
 {
 public:
 	GENERATED_BODY(APlayerController, AActor)
+	void InitDefaultComponents() override;
 	void BeginPlay() override;
 	void Tick(float DeltaTime) override;
 
