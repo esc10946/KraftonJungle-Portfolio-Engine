@@ -54,32 +54,17 @@ SOLUTION_CONFIGURATIONS = [
 
 # RmlUi와 SoLoud는 여기서 재귀 스캔하지 않음. 두 라이브러리는
 # BuildTools/Scripts/*.ps1에서 정적 라이브러리로 빌드한 뒤 vcxproj에서 링크
-SOURCE_SCAN_DIRS = ["Source", "ThirdParty\\ImGui"]
+SOURCE_SCAN_DIRS = ["Source", "ThirdParty\\ImGui", "ThirdParty\\imgui-node-editor"]
 SHADER_SCAN_DIRS = ["Shaders"]
 ROOT_SOURCE_FILES = ["main.cpp", "TestComponent.cpp"]
 GENERATED_SOURCE_FILES = ["Generated\\JSEngine.generated.cpp"]
 
-# 전체 디렉터리를 가져오지 않고 프로젝트에 직접 포함할 ThirdParty core 파일
-EXPLICIT_SOURCE_FILES = [
-    "ThirdParty\\imgui-node-editor\\crude_json.cpp",
-    "ThirdParty\\imgui-node-editor\\imgui_canvas.cpp",
-    "ThirdParty\\imgui-node-editor\\imgui_node_editor.cpp",
-    "ThirdParty\\imgui-node-editor\\imgui_node_editor_api.cpp",
-]
+# scan 대상 밖에 있지만 프로젝트에 직접 포함할 개별 source 파일
+EXPLICIT_SOURCE_FILES = []
 
-# 전체 디렉터리를 가져오지 않고 Solution Explorer에만 표시할 header-only 또는
-# 외부 빌드 ThirdParty 진입점
+# scan 대상 밖에 있지만 Solution Explorer에 표시할 header-only 또는 외부 빌드 진입점
 EXPLICIT_HEADER_FILES = [
     "TestComponent.h",
-    "ThirdParty\\imgui-node-editor\\crude_json.h",
-    "ThirdParty\\imgui-node-editor\\imgui_bezier_math.h",
-    "ThirdParty\\imgui-node-editor\\imgui_bezier_math.inl",
-    "ThirdParty\\imgui-node-editor\\imgui_canvas.h",
-    "ThirdParty\\imgui-node-editor\\imgui_extra_math.h",
-    "ThirdParty\\imgui-node-editor\\imgui_extra_math.inl",
-    "ThirdParty\\imgui-node-editor\\imgui_node_editor.h",
-    "ThirdParty\\imgui-node-editor\\imgui_node_editor_internal.h",
-    "ThirdParty\\imgui-node-editor\\imgui_node_editor_internal.inl",
     "ThirdParty\\luajit\\src\\lua.h",
     "ThirdParty\\SimpleJSON\\json.hpp",
 ]
