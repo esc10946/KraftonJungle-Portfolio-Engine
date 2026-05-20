@@ -852,6 +852,10 @@ void FEditorContentBrowserWidget::DrawToolbar()
 
 void FEditorContentBrowserWidget::Refresh()
 {
+	if (EditorEngine)
+	{
+		EditorEngine->GetAssetService().RefreshAssetDatabase();
+	}
 	RebuildRootNode();
 	RefreshContent();
 	bPendingMaterialPreviewCacheClear = true;
@@ -1436,7 +1440,7 @@ bool FEditorContentBrowserWidget::CreateMaterialAsset()
 	}
 
 	SelectedPath = NewPath;
-	RefreshContent();
+	Refresh();
 	return true;
 }
 
@@ -1475,7 +1479,7 @@ bool FEditorContentBrowserWidget::CreateCurveAsset()
 	}
 
 	SelectedPath = NewPath;
-	RefreshContent();
+	Refresh();
 	return true;
 }
 
@@ -1493,7 +1497,7 @@ bool FEditorContentBrowserWidget::CreateSceneAsset()
 	}
 
 	SelectedPath = NewPath;
-	RefreshContent();
+	Refresh();
 	return true;
 }
 

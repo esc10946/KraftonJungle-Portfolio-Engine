@@ -328,6 +328,8 @@ bool FEditorMaterialWidget::CreateInstanceForCurrentMaterial()
         return false;
     }
 
+    EditorEngine->GetAssetService().RefreshAssetDatabase();
+
     SelectedMaterialPtr = NewInstance;
     if (EditingSlotOwner && EditingSlotIndex >= 0 && EditingSlotIndex < EditingSlotOwner->GetNumMaterials())
     {

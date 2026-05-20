@@ -2238,7 +2238,6 @@ void FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 				const FString Current = *Val;
 				if (ImGui::BeginCombo(Prop.Name, Current.empty() ? "<None>" : Current.c_str()))
 				{
-					EditorEngine->GetAssetService().RefreshAssetDatabase();
 					const TArray<FString>& MeshPaths = EditorEngine->GetAssetService().GetSkeletalMeshAssetPaths();
 					for (const FString& Path : MeshPaths)
 					{
@@ -2284,7 +2283,6 @@ void FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 				const FString Current = *Val;
 				if (ImGui::BeginCombo(Prop.Name, Current.empty() ? "<None>" : Current.c_str()))
 				{
-					EditorEngine->GetAssetService().RefreshAssetDatabase();
 					const TArray<FString>& AnimationPaths = EditorEngine->GetAssetService().GetAnimationSequenceAssetPaths();
 					const bool bNoneSelected = Current.empty();
 					if (ImGui::Selectable("<None>", bNoneSelected))
@@ -2328,11 +2326,10 @@ void FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 		{
 			if (EditorEngine)
 			{
-				EditorEngine->GetAssetService().RefreshAssetDatabase();
-				const TArray<FString>& StateMachinePaths = EditorEngine->GetAssetService().GetAnimStateMachineAssetPaths();
 				const FString Current = *Val;
 				if (ImGui::BeginCombo(Prop.Name, Current.empty() ? "<None>" : Current.c_str()))
 				{
+					const TArray<FString>& StateMachinePaths = EditorEngine->GetAssetService().GetAnimStateMachineAssetPaths();
 					const bool bNoneSelected = Current.empty();
 					if (ImGui::Selectable("<None>", bNoneSelected))
 					{
