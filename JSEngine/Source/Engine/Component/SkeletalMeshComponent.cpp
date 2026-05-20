@@ -65,6 +65,37 @@ USkeletalMeshComponent::~USkeletalMeshComponent()
     AnimInstance = nullptr;
 }
 
+void USkeletalMeshComponent::PostDuplicate(UObject* Original)
+{
+    USkinnedMeshComponent::PostDuplicate(Original);
+
+    const USkeletalMeshComponent* SourceComponent = Cast<USkeletalMeshComponent>(Original);
+    if (!SourceComponent)
+    {
+        return;
+    }
+
+    AnimationMode = SourceComponent->AnimationMode;
+    AnimInstanceSource = SourceComponent->AnimInstanceSource;
+    AnimationSequence = SourceComponent->AnimationSequence;
+    bSingleAnimationLoop = SourceComponent->bSingleAnimationLoop;
+    SingleAnimationPlayRate = SourceComponent->SingleAnimationPlayRate;
+    CustomAnimInstanceClassName = SourceComponent->CustomAnimInstanceClassName;
+    StateMachineAsset = SourceComponent->StateMachineAsset;
+
+    RefreshAnimInstanceFromOptions(true);
+}
+
+void USkeletalMeshComponent::BeginPlay()
+{
+    USkinnedMeshComponent::BeginPlay();
+
+    if (AnimationMode == ESkeletalMeshAnimationMode::SingleAnimation && !AnimationSequence.Path.empty())
+    {
+        PlaySingleAnimation();
+    }
+}
+
 void USkeletalMeshComponent::TickComponent(float DeltaTime)
 {
     USkinnedMeshComponent::TickComponent(DeltaTime);
