@@ -1009,8 +1009,6 @@ void AAnimTestPawn::AddNotifyToAnimation(
 
     FAnimNotifyEvent Notify;
     Notify.TriggerTime = std::max(0.0f, TriggerTime);
-    Notify.Duration = 0.0f;
-    Notify.NotifyName = NotifyName;
     Sequence->AddNotify(Notify);
 }
 
