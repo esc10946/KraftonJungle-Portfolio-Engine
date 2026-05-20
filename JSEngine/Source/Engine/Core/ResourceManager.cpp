@@ -938,10 +938,9 @@ UStaticMesh* FResourceManager::LoadStaticMesh(const FString& Path)
 	return FStaticMeshLoadService(*this).Load(Path);
 }
 
-UStaticMesh* FResourceManager::ImportStaticMeshFromFbx(const FString& SourceFbxPath)
+UStaticMesh* FResourceManager::ImportStaticMeshFromFbx(const FString& SourceFbxPath, bool bImportMaterials)
 {
-	ImportMaterialFromFbx(SourceFbxPath);
-	return FStaticMeshLoadService(*this).ImportFbxSource(SourceFbxPath);
+	return FStaticMeshLoadService(*this).ImportFbxSource(SourceFbxPath, bImportMaterials);
 }
 
 UStaticMesh* FResourceManager::FindStaticMesh(const FString& Path) const
@@ -1057,10 +1056,17 @@ USkeletalMesh* FResourceManager::LoadSkeletalMesh(const FString& Path, const FSt
 	return FSkeletalMeshLoadService(*this).Load(Path, SkeletonName);
 }
 
-USkeletalMesh* FResourceManager::ImportSkeletalMeshFromFbx(const FString& SourceFbxPath, const FString& SkeletonName)
+USkeletalMesh* FResourceManager::ImportSkeletalMeshFromFbx(
+	const FString& SourceFbxPath,
+	const FString& SkeletonName,
+	bool bImportMaterials,
+	const TArray<USkeletonAsset*>* ImportedSkeletonsOverride)
 {
-	ImportMaterialFromFbx(SourceFbxPath);
-	return FSkeletalMeshLoadService(*this).ImportFbxSource(SourceFbxPath, SkeletonName);
+	return FSkeletalMeshLoadService(*this).ImportFbxSource(
+		SourceFbxPath,
+		SkeletonName,
+		bImportMaterials,
+		ImportedSkeletonsOverride);
 }
 
 USkeletalMesh* FResourceManager::FindSkeletalMesh(const FString& Path) const
@@ -1158,9 +1164,11 @@ UAnimationSequence* FResourceManager::LoadAnimationSequence(const FString& Path)
 	return FAnimationSequenceLoadService(*this).Load(Path);
 }
 
-UAnimationSequence* FResourceManager::ImportAnimationSequencesFromFbx(const FString& SourceFbxPath)
+UAnimationSequence* FResourceManager::ImportAnimationSequencesFromFbx(
+	const FString& SourceFbxPath,
+	const TArray<USkeletonAsset*>* ImportedSkeletonsOverride)
 {
-	return FAnimationSequenceLoadService(*this).ImportFbxSource(SourceFbxPath);
+	return FAnimationSequenceLoadService(*this).ImportFbxSource(SourceFbxPath, ImportedSkeletonsOverride);
 }
 
 UAnimationSequence* FResourceManager::FindAnimationSequence(const FString& Path) const

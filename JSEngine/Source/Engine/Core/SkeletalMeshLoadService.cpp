@@ -161,7 +161,11 @@ USkeletalMesh* FSkeletalMeshLoadService::Load(const FString& Path, const FString
 	return nullptr;
 }
 
-USkeletalMesh* FSkeletalMeshLoadService::ImportFbxSource(const FString& Path, const FString& SkeletonName)
+USkeletalMesh* FSkeletalMeshLoadService::ImportFbxSource(
+	const FString& Path,
+	const FString& SkeletonName,
+	bool bImportMaterials,
+	const TArray<USkeletonAsset*>* ImportedSkeletonsOverride)
 {
 	const FString NormalizedPath = FPaths::Normalize(Path);
 	if (!IsFbxPath(NormalizedPath))
@@ -170,8 +174,7 @@ USkeletalMesh* FSkeletalMeshLoadService::ImportFbxSource(const FString& Path, co
 		return nullptr;
 	}
 
-	ResourceManager.LoadMaterial(NormalizedPath, EMaterialShaderType::SurfaceLit);
-	return ImportFbxSourceToBinary(NormalizedPath, SkeletonName);
+	return ImportFbxSourceToBinary(NormalizedPath, SkeletonName, bImportMaterials, ImportedSkeletonsOverride);
 }
 
 USkeletalMesh* FSkeletalMeshLoadService::LoadBinary(const FString& BinaryPath, const FString& CacheKey)
@@ -214,15 +217,27 @@ USkeletalMesh* FSkeletalMeshLoadService::LoadSiblingImportedBinary(const FString
 	return nullptr;
 }
 
-USkeletalMesh* FSkeletalMeshLoadService::ImportFbxSourceToBinary(const FString& NormalizedPath, const FString& SkeletonName)
+USkeletalMesh* FSkeletalMeshLoadService::ImportFbxSourceToBinary(
+	const FString& NormalizedPath,
+	const FString& SkeletonName,
+	bool bImportMaterials,
+	const TArray<USkeletonAsset*>* ImportedSkeletonsOverride)
 {
 	FStaticMeshLoadOptions LoadOptions;
 	const FString BinaryPath = SkeletonName.empty()
 		? FAssetPathPolicy::MakeWritableSkeletalMeshCacheBinaryPath(NormalizedPath)
 		: FAssetPathPolicy::MakeSiblingSkeletalMeshBinaryPath(NormalizedPath, SkeletonName);
 
+	if (bImportMaterials)
+	{
+		ResourceManager.ImportMaterialFromFbx(NormalizedPath);
+	}
+
 	const auto SourceStart = std::chrono::steady_clock::now();
-	const TArray<USkeletonAsset*> ImportedSkeletons = ResourceManager.ImportSkeletonsFromFbx(NormalizedPath);
+	const TArray<USkeletonAsset*> LocalImportedSkeletons =
+		ImportedSkeletonsOverride ? TArray<USkeletonAsset*>() : ResourceManager.ImportSkeletonsFromFbx(NormalizedPath);
+	const TArray<USkeletonAsset*>& ImportedSkeletons =
+		ImportedSkeletonsOverride ? *ImportedSkeletonsOverride : LocalImportedSkeletons;
 	FSkeletalMesh* LoadedMeshData = ResourceManager.FbxImporter.LoadSkeletalMesh(NormalizedPath, LoadOptions);
 	const auto SourceEnd = std::chrono::steady_clock::now();
 	const double SourceLoadSec = std::chrono::duration<double>(SourceEnd - SourceStart).count();

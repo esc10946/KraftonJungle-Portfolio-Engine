@@ -2077,15 +2077,6 @@ void FEditorPropertyWidget::RenderComponentProperties()
 	}
 	ImGui::Separator();
 
-	// 프로퍼티 직접 편집 후 월드 행렬 갱신
-	if (SelectedComponent->IsA<USceneComponent>())
-	{
-        UWorld* World = Owner->GetFocusedWorld();
-        const FWorldContext* Ctx = EditorEngine->GetWorldContextFromWorld(World);
-		static_cast<USceneComponent*>(SelectedComponent)->MarkTransformDirty();
-		Ctx->SelectionManager->GetGizmo()->UpdateGizmoTransform();
-	}
-
 	if (bDetailsPerfTraceFrame)
 	{
 		const double GetEditablePropertiesMs = DetailsPerfMs(PropertiesStart, PropertiesEnd);
@@ -2290,11 +2281,11 @@ void FEditorPropertyWidget::RenderPropertyWidget(FPropertyDescriptor& Prop)
 		{
 			if (EditorEngine)
 			{
-				EditorEngine->GetAssetService().RefreshAssetDatabase();
-				const TArray<FString>& AnimationPaths = EditorEngine->GetAssetService().GetAnimationSequenceAssetPaths();
 				const FString Current = *Val;
 				if (ImGui::BeginCombo(Prop.Name, Current.empty() ? "<None>" : Current.c_str()))
 				{
+					EditorEngine->GetAssetService().RefreshAssetDatabase();
+					const TArray<FString>& AnimationPaths = EditorEngine->GetAssetService().GetAnimationSequenceAssetPaths();
 					const bool bNoneSelected = Current.empty();
 					if (ImGui::Selectable("<None>", bNoneSelected))
 					{

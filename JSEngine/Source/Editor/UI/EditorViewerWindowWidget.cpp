@@ -462,6 +462,11 @@ FEditorViewerWindowWidget::~FEditorViewerWindowWidget()
     Shutdown();
 }
 
+FEditorViewerWindowWidget::~FEditorViewerWindowWidget()
+{
+    Shutdown();
+}
+
 void FEditorViewerWindowWidget::Shutdown()
 {
     ReleaseViewerIcons();

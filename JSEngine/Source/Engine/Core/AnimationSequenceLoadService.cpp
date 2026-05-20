@@ -167,7 +167,9 @@ UAnimationSequence* FAnimationSequenceLoadService::Load(const FString& Path)
     return nullptr;
 }
 
-UAnimationSequence* FAnimationSequenceLoadService::ImportFbxSource(const FString& Path)
+UAnimationSequence* FAnimationSequenceLoadService::ImportFbxSource(
+    const FString& Path,
+    const TArray<USkeletonAsset*>* ImportedSkeletonsOverride)
 {
     const FString NormalizedPath = FPaths::Normalize(Path);
     if (!IsFbxPath(NormalizedPath))
@@ -176,7 +178,7 @@ UAnimationSequence* FAnimationSequenceLoadService::ImportFbxSource(const FString
         return nullptr;
     }
 
-    return ImportFbxSourceToBinary(NormalizedPath);
+    return ImportFbxSourceToBinary(NormalizedPath, ImportedSkeletonsOverride);
 }
 
 UAnimationSequence* FAnimationSequenceLoadService::LoadAnimationAsset(const FString& AssetPath)
@@ -247,10 +249,15 @@ UAnimationSequence* FAnimationSequenceLoadService::LoadSiblingImportedBinary(con
     return nullptr;
 }
 
-UAnimationSequence* FAnimationSequenceLoadService::ImportFbxSourceToBinary(const FString& NormalizedPath)
+UAnimationSequence* FAnimationSequenceLoadService::ImportFbxSourceToBinary(
+    const FString& NormalizedPath,
+    const TArray<USkeletonAsset*>* ImportedSkeletonsOverride)
 {
     const auto SourceStart = std::chrono::steady_clock::now();
-    const TArray<USkeletonAsset*> ImportedSkeletons = ResourceManager.ImportSkeletonsFromFbx(NormalizedPath);
+    const TArray<USkeletonAsset*> LocalImportedSkeletons =
+        ImportedSkeletonsOverride ? TArray<USkeletonAsset*>() : ResourceManager.ImportSkeletonsFromFbx(NormalizedPath);
+    const TArray<USkeletonAsset*>& ImportedSkeletons =
+        ImportedSkeletonsOverride ? *ImportedSkeletonsOverride : LocalImportedSkeletons;
     const USkeletonAsset* TargetSkeleton = ImportedSkeletons.empty() ? nullptr : ImportedSkeletons[0];
 
     FAnimationImportOptions ImportOptions;

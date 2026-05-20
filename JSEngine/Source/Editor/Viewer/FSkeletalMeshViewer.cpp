@@ -490,6 +490,10 @@ void FSkeletalMeshViewer::ChangeTarget(const FString& InFileName)
     if (SkelMesh)
     {
         ViewTarget->GetSkeletalMeshComponent()->SetSkeletalMesh(SkelMesh);
+        if (UWorld* World = Client.GetFocusedWorld())
+        {
+            World->RebuildSpatialIndex();
+        }
     }
 
     UE_LOG(

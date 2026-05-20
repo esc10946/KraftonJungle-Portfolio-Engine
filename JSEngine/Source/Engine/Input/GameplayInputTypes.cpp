@@ -139,6 +139,16 @@ FGameplayInputSnapshot FDefaultGameplayInputMapping::BuildSnapshot(
 		: EInputTriggerEvent::None;
 	Snapshot.SetAction("Dash", FInputActionValue::MakeBool(IsDigitalActive(DashTrigger)), DashTrigger);
 
+	const EInputTriggerEvent SprintTrigger = Permissions.bAllowGameActions
+		? GetDigitalTrigger(Frame, { VK_SHIFT })
+		: EInputTriggerEvent::None;
+	Snapshot.SetAction("Sprint", FInputActionValue::MakeBool(IsDigitalActive(SprintTrigger)), SprintTrigger);
+
+	const EInputTriggerEvent HeavyAttackTrigger = Permissions.bAllowGameActions
+		? GetDigitalTrigger(Frame, { VK_RBUTTON })
+		: EInputTriggerEvent::None;
+	Snapshot.SetAction("HeavyAttack", FInputActionValue::MakeBool(IsDigitalActive(HeavyAttackTrigger)), HeavyAttackTrigger);
+
 	const EInputTriggerEvent InteractTrigger = Permissions.bAllowGameActions
 		? GetDigitalTrigger(Frame, { 'E' })
 		: EInputTriggerEvent::None;

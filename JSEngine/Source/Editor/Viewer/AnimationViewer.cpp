@@ -119,6 +119,14 @@ static bool IsAnimationCompatibleWithMesh(const USkeletalMesh* Mesh, const UAnim
                ToLowerNormalizedPath(FPaths::ToUtf8(AnimPath.parent_path().generic_wstring())) &&
            GetImportedFbxStem(Mesh->GetAssetPathFileName()) == GetImportedFbxStem(AnimationPath);
 }
+
+static bool IsFbxPath(const FString& Path)
+{
+    std::filesystem::path FsPath(FPaths::ToWide(FPaths::Normalize(Path)));
+    std::wstring Extension = FsPath.extension().wstring();
+    std::transform(Extension.begin(), Extension.end(), Extension.begin(), ::towlower);
+    return Extension == L".fbx";
+}
 }
 
 FAnimationViewer::~FAnimationViewer()
@@ -230,14 +238,32 @@ bool FAnimationViewer::SetAnimationSequence(const FString& AnimationPath)
     {
         return false;
     }
-	
-    USkeletalMeshComponent* SkelComp = PreviewActor ? PreviewActor->GetSkeletalMeshComponent() : nullptr;
+    if (!PreviewActor)
+    {
+        return false;
+    }
+
+    const FString& SourceImportPath = Sequence->GetSourceImportPath();
+    if (!SourceImportPath.empty() && !SetPreviewSkeletalMesh(SourceImportPath))
+    {
+        if (!IsFbxPath(SourceImportPath))
+        {
+            return false;
+        }
+
+        FResourceManager::Get().ImportFbxAssets(SourceImportPath);
+        if (!SetPreviewSkeletalMesh(SourceImportPath))
+        {
+            return false;
+        }
+    }
+
+    USkeletalMeshComponent* SkelComp = PreviewActor->GetSkeletalMeshComponent();
     if (!SkelComp || !SkelComp->GetSkeletalMesh())
     {
         return false;
     }
 
-    SetPreviewSkeletalMesh(Sequence->GetSourceImportPath());
     if (!IsAnimationCompatibleWithMesh(SkelComp->GetSkeletalMesh(), Sequence, AnimationPath))
     {
         FString AnimationSkeletonPath = ResolveSkeletonPathFromAnimation(Sequence);
