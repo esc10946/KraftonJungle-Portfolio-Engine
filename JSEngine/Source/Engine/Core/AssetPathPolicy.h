@@ -21,11 +21,9 @@ public:
 	static FString SanitizeImportedAssetToken(const FString& Token);
 	static FString MakeSiblingSkeletonBinaryPath(const FString& SourceFbxPath, const FString& SkeletonRootName);
 	static FString MakeSiblingSkeletalMeshBinaryPath(const FString& SourceFbxPath, const FString& MeshOrSkeletonToken);
-	static FString MakeSiblingAnimationSequenceBinaryPath(const FString& SourceFbxPath, const FString& SequenceName);
 	static FString MakeSiblingAnimationSequenceAssetPath(const FString& SourceFbxPath, const FString& SequenceName);
 	static FString MakeAssetRelativePath(const FString& FromAssetPath, const FString& ToAssetPath);
 	static FString ResolveAssetRelativePath(const FString& FromAssetPath, const FString& RelativeTargetPath);
 
 	static FString MakeWritableSkeletalMeshCacheBinaryPath(const FString& SourcePath);
-	static FString MakeWritableAnimationSequenceCacheBinaryPath(const FString& SourcePath);
 };

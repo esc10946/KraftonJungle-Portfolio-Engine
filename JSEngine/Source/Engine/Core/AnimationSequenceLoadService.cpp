@@ -1,6 +1,7 @@
 ﻿#include "Core/AnimationSequenceLoadService.h"
 
 #include "Asset/AnimationSequence.h"
+#include "Asset/AnimationSequenceSerializer.h"
 #include "Core/AssetPathPolicy.h"
 #include "Core/Logging/Log.h"
 #include "Core/Paths.h"
@@ -13,65 +14,12 @@
 
 namespace
 {
-    bool IsBinaryPath(const FString& Path)
-    {
-        std::filesystem::path FsPath(FPaths::ToWide(FPaths::Normalize(Path)));
-        std::wstring Extension = FsPath.extension().wstring();
-        std::transform(Extension.begin(), Extension.end(), Extension.begin(), ::towlower);
-        return Extension == L".bin";
-    }
-
     bool IsFbxPath(const FString& Path)
     {
         std::filesystem::path FsPath(FPaths::ToWide(FPaths::Normalize(Path)));
         std::wstring Extension = FsPath.extension().wstring();
         std::transform(Extension.begin(), Extension.end(), Extension.begin(), ::towlower);
         return Extension == L".fbx";
-    }
-
-    TArray<FString> FindSiblingAnimationBinaries(const FString& SourceFbxPath)
-    {
-        TArray<FString> Result;
-
-        const FString NormalizedSourcePath = FPaths::Normalize(SourceFbxPath);
-        const std::filesystem::path SourceFsPath(FPaths::ToWide(NormalizedSourcePath));
-        const std::filesystem::path ParentPath = SourceFsPath.parent_path();
-
-        std::error_code Ec;
-        if (ParentPath.empty() || !std::filesystem::exists(ParentPath, Ec) || Ec)
-        {
-            return Result;
-        }
-
-        const FString Prefix = FPaths::ToUtf8(SourceFsPath.stem().generic_wstring()) + "_anim_";
-        for (const std::filesystem::directory_entry& Entry : std::filesystem::directory_iterator(ParentPath, Ec))
-        {
-            if (Ec)
-            {
-                break;
-            }
-
-            if (!Entry.is_regular_file(Ec) || Ec)
-            {
-                continue;
-            }
-
-            std::wstring Extension = Entry.path().extension().wstring();
-            std::transform(Extension.begin(), Extension.end(), Extension.begin(), ::towlower);
-            if (Extension != L".bin")
-            {
-                continue;
-            }
-
-            const FString FileName = FPaths::ToUtf8(Entry.path().filename().generic_wstring());
-            if (FileName.rfind(Prefix, 0) == 0)
-            {
-                Result.push_back(FPaths::Normalize(FPaths::ToUtf8(Entry.path().generic_wstring())));
-            }
-        }
-
-        std::sort(Result.begin(), Result.end());
-        return Result;
     }
 
     TArray<FString> FindSiblingAnimationAssets(const FString& SourceFbxPath)
@@ -89,34 +37,93 @@ namespace
         }
 
         const FString Prefix = FPaths::ToUtf8(SourceFsPath.stem().generic_wstring()) + "_anim_";
-        for (const std::filesystem::directory_entry& Entry : std::filesystem::directory_iterator(ParentPath, Ec))
+        auto CollectFromDirectory = [&](const std::filesystem::path& DirectoryPath)
         {
-            if (Ec)
+            std::error_code IterEc;
+            if (!std::filesystem::exists(DirectoryPath, IterEc) || !std::filesystem::is_directory(DirectoryPath, IterEc) || IterEc)
             {
-                break;
+                return;
             }
 
-            if (!Entry.is_regular_file(Ec) || Ec)
+            for (const std::filesystem::directory_entry& Entry : std::filesystem::directory_iterator(DirectoryPath, IterEc))
             {
-                continue;
-            }
+                if (IterEc)
+                {
+                    break;
+                }
 
-            std::wstring Extension = Entry.path().extension().wstring();
-            std::transform(Extension.begin(), Extension.end(), Extension.begin(), ::towlower);
-            if (Extension != L".anim")
-            {
-                continue;
-            }
+                if (!Entry.is_regular_file(IterEc) || IterEc)
+                {
+                    continue;
+                }
 
-            const FString FileName = FPaths::ToUtf8(Entry.path().filename().generic_wstring());
-            if (FileName.rfind(Prefix, 0) == 0)
-            {
-                Result.push_back(FPaths::Normalize(FPaths::ToUtf8(Entry.path().generic_wstring())));
+                std::wstring Extension = Entry.path().extension().wstring();
+                std::transform(Extension.begin(), Extension.end(), Extension.begin(), ::towlower);
+                if (Extension != L".anim")
+                {
+                    continue;
+                }
+
+                const FString FileName = FPaths::ToUtf8(Entry.path().filename().generic_wstring());
+                if (FileName.rfind(Prefix, 0) == 0)
+                {
+                    Result.push_back(FPaths::Normalize(FPaths::ToUtf8(Entry.path().generic_wstring())));
+                }
             }
-        }
+        };
+
+        CollectFromDirectory(ParentPath);
+        CollectFromDirectory(ParentPath / L"Animation");
 
         std::sort(Result.begin(), Result.end());
         return Result;
+    }
+
+    FString ResolveAnimationAssetSavePath(const FString& SourceFbxPath, const FString& SequenceToken)
+    {
+        const FString DefaultAssetPath = FAssetPathPolicy::MakeSiblingAnimationSequenceAssetPath(SourceFbxPath, SequenceToken);
+
+        const std::filesystem::path SourceFsPath(FPaths::ToWide(FPaths::Normalize(SourceFbxPath)));
+        const std::filesystem::path DefaultFsPath(FPaths::ToWide(DefaultAssetPath));
+        const std::filesystem::path LegacySiblingPath = SourceFsPath.parent_path() / DefaultFsPath.filename();
+        const FString LegacyAssetPath = FPaths::Normalize(FPaths::ToUtf8(LegacySiblingPath.generic_wstring()));
+
+        std::error_code Ec;
+        if (std::filesystem::exists(LegacySiblingPath, Ec) && !Ec)
+        {
+            return LegacyAssetPath;
+        }
+
+        if (std::filesystem::exists(std::filesystem::path(FPaths::ToWide(DefaultAssetPath)), Ec) && !Ec)
+        {
+            return DefaultAssetPath;
+        }
+
+        return DefaultAssetPath;
+    }
+
+    void PreserveAuthoredAnimationMetadata(
+        FAnimationSequenceSerializer& Serializer,
+        const FString& AssetPath,
+        UAnimationSequence& LoadedSequence)
+    {
+        std::error_code Ec;
+        if (!std::filesystem::exists(std::filesystem::path(FPaths::ToWide(AssetPath)), Ec) || Ec)
+        {
+            return;
+        }
+
+        UAnimationSequence ExistingSequence;
+        if (!Serializer.LoadAnimationSequenceAsset(AssetPath, ExistingSequence))
+        {
+            return;
+        }
+
+        LoadedSequence.ClearNotifies();
+        for (const FAnimNotifyEvent& Notify : ExistingSequence.GetNotifies())
+        {
+            LoadedSequence.AddNotify(Notify);
+        }
     }
 }
 
@@ -145,20 +152,9 @@ UAnimationSequence* FAnimationSequenceLoadService::Load(const FString& Path)
         return ImportedAssetSequence;
     }
 
-    if (IsBinaryPath(NormalizedPath))
-    {
-        return LoadBinary(NormalizedPath, NormalizedPath);
-    }
-
-    if (UAnimationSequence* ImportedSequence = LoadSiblingImportedBinary(NormalizedPath))
-    {
-        ResourceManager.AnimationSequenceMap[NormalizedPath] = ImportedSequence;
-        return ImportedSequence;
-    }
-
     if (IsFbxPath(NormalizedPath))
     {
-        UE_LOG_WARNING("[AnimationSequenceLoad] Imported FBX animation binary missing. Explicit import is required. | Path=%s", NormalizedPath.c_str());
+        UE_LOG_WARNING("[AnimationSequenceLoad] Imported FBX animation asset missing. Explicit import is required. | Path=%s", NormalizedPath.c_str());
     }
     else
     {
@@ -178,7 +174,7 @@ UAnimationSequence* FAnimationSequenceLoadService::ImportFbxSource(
         return nullptr;
     }
 
-    return ImportFbxSourceToBinary(NormalizedPath, ImportedSkeletonsOverride);
+    return ImportFbxSourceToAsset(NormalizedPath, ImportedSkeletonsOverride);
 }
 
 UAnimationSequence* FAnimationSequenceLoadService::LoadAnimationAsset(const FString& AssetPath)
@@ -222,34 +218,7 @@ UAnimationSequence* FAnimationSequenceLoadService::LoadSiblingAnimationAsset(con
     return nullptr;
 }
 
-UAnimationSequence* FAnimationSequenceLoadService::LoadBinary(const FString& BinaryPath, const FString& CacheKey)
-{
-    FAnimationSequence* LoadedSequenceData = new FAnimationSequence();
-    if (!ResourceManager.AnimationSequenceSerializer.LoadAnimationSequence(BinaryPath, *LoadedSequenceData))
-    {
-        delete LoadedSequenceData;
-        return nullptr;
-    }
-
-    UE_LOG("[AnimationSequenceLoad] Source=ImportedBinary | Path=%s", BinaryPath.c_str());
-    return FinalizeLoadedSequence(LoadedSequenceData, CacheKey);
-}
-
-UAnimationSequence* FAnimationSequenceLoadService::LoadSiblingImportedBinary(const FString& NormalizedPath)
-{
-    const TArray<FString> BinaryPaths = FindSiblingAnimationBinaries(NormalizedPath);
-    for (const FString& BinaryPath : BinaryPaths)
-    {
-        if (UAnimationSequence* Sequence = LoadBinary(BinaryPath, BinaryPath))
-        {
-            return Sequence;
-        }
-    }
-
-    return nullptr;
-}
-
-UAnimationSequence* FAnimationSequenceLoadService::ImportFbxSourceToBinary(
+UAnimationSequence* FAnimationSequenceLoadService::ImportFbxSourceToAsset(
     const FString& NormalizedPath,
     const TArray<USkeletonAsset*>* ImportedSkeletonsOverride)
 {
@@ -286,8 +255,7 @@ UAnimationSequence* FAnimationSequenceLoadService::ImportFbxSourceToBinary(
         }
 
         const FString SequenceToken = Sequence->Name.empty() ? FString("anim") : Sequence->Name;
-        const FString SaveBinaryPath = FAssetPathPolicy::MakeSiblingAnimationSequenceBinaryPath(NormalizedPath, SequenceToken);
-        const FString SaveAssetPath = FAssetPathPolicy::MakeSiblingAnimationSequenceAssetPath(NormalizedPath, SequenceToken);
+        const FString SaveAssetPath = ResolveAnimationAssetSavePath(NormalizedPath, SequenceToken);
 
         if (TargetSkeleton)
         {
@@ -296,31 +264,26 @@ UAnimationSequence* FAnimationSequenceLoadService::ImportFbxSourceToBinary(
                 TargetSkeleton->GetAssetPathFileName());
         }
 
-        const bool bSaveBinaryOk = ResourceManager.AnimationSequenceSerializer.SaveAnimationSequence(SaveBinaryPath, NormalizedPath, *Sequence);
-        if (bSaveBinaryOk)
+        UAnimationSequence* LoadedSequence = FinalizeLoadedSequence(Sequence, SaveAssetPath);
+        LoadedSequence->SetAssetPath(SaveAssetPath);
+        LoadedSequence->SetSourceImportPath(NormalizedPath);
+        PreserveAuthoredAnimationMetadata(ResourceManager.AnimationSequenceSerializer, SaveAssetPath, *LoadedSequence);
+
+        const bool bSaveAssetOk = ResourceManager.AnimationSequenceSerializer.SaveAnimationSequenceAsset(SaveAssetPath, *LoadedSequence);
+        UE_LOG("[AnimationSequenceLoad] Source=FBX | Path=%s | FbxSec=%.6f | AnimSave=%s | AnimPath=%s",
+               NormalizedPath.c_str(),
+               SourceLoadSec,
+               bSaveAssetOk ? "OK" : "FAIL",
+               SaveAssetPath.c_str());
+
+        if (bSaveAssetOk)
         {
-            UAnimationSequence* LoadedSequence = FinalizeLoadedSequence(Sequence, SaveAssetPath);
-            LoadedSequence->SetAssetPath(SaveAssetPath);
-            LoadedSequence->SetSourceImportPath(NormalizedPath);
-
-            const bool bSaveAssetOk = ResourceManager.AnimationSequenceSerializer.SaveAnimationSequenceAsset(SaveAssetPath, *LoadedSequence);
-            UE_LOG("[AnimationSequenceLoad] Source=FBX | Path=%s | FbxSec=%.6f | BinarySave=OK | BinaryPath=%s | AnimSave=%s | AnimPath=%s",
-                   NormalizedPath.c_str(),
-                   SourceLoadSec,
-                   SaveBinaryPath.c_str(),
-                   bSaveAssetOk ? "OK" : "FAIL",
-                   SaveAssetPath.c_str());
-
             if (!FirstLoadedSequence)
             {
                 FirstLoadedSequence = LoadedSequence;
             }
             continue;
         }
-
-        UE_LOG_WARNING("[AnimationSequenceLoad] Source=FBX | Path=%s | FbxSec=%.6f | BinarySave=FAIL | BinaryPath=%s",
-                       NormalizedPath.c_str(), SourceLoadSec, SaveBinaryPath.c_str());
-        delete Sequence;
     }
 
     if (!FirstLoadedSequence)

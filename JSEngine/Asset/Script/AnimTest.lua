@@ -3,12 +3,12 @@ local AnimTest = {}
 AnimTest.Properties = {
     IdleAnimationPath = {
         Type = "String",
-        Default = "Asset/SkeletalMesh/GwenFBX/gwen_anim_Skeleton_Idle.anm.bin",
+        Default = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_Idle.anm.anim",
         Category = "Animation",
     },
     RunAnimationPath = {
         Type = "String",
-        Default = "Asset/SkeletalMesh/GwenFBX/gwen_anim_Skeleton_Run.anm.bin",
+        Default = "Asset/SkeletalMesh/GwenFBX/Gwen_anim_Skeleton_Run.anm.anim",
         Category = "Animation",
     },
     WalkSpeed = {

@@ -1196,10 +1196,15 @@ bool FResourceManager::SaveAnimationSequence(UAnimationSequence* Sequence)
 		return false;
 	}
 
-	const FString BinPath = Data->Name.empty()
-		? FAssetPathPolicy::MakeWritableAnimationSequenceCacheBinaryPath(Data->SourcePath)
-		: FAssetPathPolicy::MakeSiblingAnimationSequenceBinaryPath(Data->SourcePath, Data->Name);
-	return AnimationSequenceSerializer.SaveAnimationSequence(BinPath, Data->SourcePath, *Data);
+	const FString SequenceToken = Data->Name.empty() ? FString("anim") : Data->Name;
+	const FString AssetPath = FAssetPathPolicy::MakeSiblingAnimationSequenceAssetPath(Data->SourcePath, SequenceToken);
+	Sequence->SetAssetPath(AssetPath);
+	if (Sequence->GetSourceImportPath().empty())
+	{
+		Sequence->SetSourceImportPath(Data->SourcePath);
+	}
+
+	return AnimationSequenceSerializer.SaveAnimationSequenceAsset(AssetPath, *Sequence);
 }
 
 TArray<FString> FResourceManager::GetAnimationSequencePaths() const

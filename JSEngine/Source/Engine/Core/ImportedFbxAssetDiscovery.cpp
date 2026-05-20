@@ -1,5 +1,6 @@
 #include "Core/ImportedFbxAssetDiscovery.h"
 
+#include "Asset/AnimationSequence.h"
 #include "Asset/AnimationSequenceSerializer.h"
 #include "Asset/BinarySerializer.h"
 #include "Asset/SkeletalMeshTypes.h"
@@ -26,18 +27,39 @@ namespace
         return FPaths::Normalize(FPaths::ToUtf8(Path.generic_wstring()));
     }
 
+    bool IsAnimationSequenceAssetPath(const std::filesystem::path& Path)
+    {
+        return FAssetPathPolicy::IsAnimationSequenceAssetPath(NormalizePath(Path));
+    }
+
+    bool IsDiscoverableImportedAssetPath(const std::filesystem::path& Path)
+    {
+        return IsBinPath(Path) || IsAnimationSequenceAssetPath(Path);
+    }
+
 	bool IsSiblingImportedAssetForSource(const std::filesystem::path& BinaryPath, const std::filesystem::path& SourceFbxPath)
 	{
-		if (BinaryPath.parent_path() != SourceFbxPath.parent_path())
-		{
-            return false;
-        }
-
         const FString Stem = FPaths::ToUtf8(SourceFbxPath.stem().generic_wstring());
         const FString FileName = FPaths::ToUtf8(BinaryPath.filename().generic_wstring());
-		return FileName.rfind(Stem + "_skeleton_", 0) == 0
-			|| FileName.rfind(Stem + "_skeletalmesh_", 0) == 0
-			|| FileName.rfind(Stem + "_anim_", 0) == 0;
+        if (IsBinPath(BinaryPath))
+        {
+            if (BinaryPath.parent_path() != SourceFbxPath.parent_path())
+            {
+                return false;
+            }
+
+            return FileName.rfind(Stem + "_skeleton_", 0) == 0
+                || FileName.rfind(Stem + "_skeletalmesh_", 0) == 0;
+        }
+
+        if (IsAnimationSequenceAssetPath(BinaryPath))
+        {
+            const std::filesystem::path AnimationAssetDir = SourceFbxPath.parent_path() / L"Animation";
+            return BinaryPath.parent_path() == AnimationAssetDir
+                && FileName.rfind(Stem + "_anim_", 0) == 0;
+        }
+
+        return false;
 	}
 
     void AddRecordIfUnique(TArray<FImportedFbxAssetRecord>& Records, const FImportedFbxAssetRecord& Record)
@@ -62,18 +84,37 @@ namespace
     }
 }
 
-bool FImportedFbxAssetDiscovery::ReadImportedAssetRecord(const FString& BinaryPath, FImportedFbxAssetRecord& OutRecord) const
+bool FImportedFbxAssetDiscovery::ReadImportedAssetRecord(const FString& AssetPath, FImportedFbxAssetRecord& OutRecord) const
 {
-    const FString NormalizedBinaryPath = FPaths::Normalize(BinaryPath);
+    const FString NormalizedAssetPath = FPaths::Normalize(AssetPath);
+
+    if (FAssetPathPolicy::IsAnimationSequenceAssetPath(NormalizedAssetPath))
+    {
+        FAnimationSequenceSerializer Serializer;
+        UAnimationSequence SequenceAsset;
+        if (Serializer.LoadAnimationSequenceAsset(NormalizedAssetPath, SequenceAsset))
+        {
+            const FAnimationSequence* Sequence = SequenceAsset.GetSequenceData();
+            OutRecord = {};
+            OutRecord.Type = EImportedFbxAssetType::AnimationSequence;
+            OutRecord.AssetPath = NormalizedAssetPath;
+            OutRecord.SourcePath = SequenceAsset.GetSourceImportPath();
+            OutRecord.Name = Sequence ? Sequence->Name : FString();
+            OutRecord.SkeletonSourcePath = Sequence ? Sequence->SkeletonSourcePath : FString();
+            return true;
+        }
+
+        return false;
+    }
 
     {
         FSkeletonSerializer Serializer;
         FSkeleton Skeleton;
-        if (Serializer.LoadSkeleton(NormalizedBinaryPath, Skeleton))
+        if (Serializer.LoadSkeleton(NormalizedAssetPath, Skeleton))
         {
             OutRecord = {};
             OutRecord.Type = EImportedFbxAssetType::Skeleton;
-            OutRecord.AssetPath = NormalizedBinaryPath;
+            OutRecord.AssetPath = NormalizedAssetPath;
             OutRecord.Name = Skeleton.RootNodeName;
             OutRecord.BoneCount = static_cast<uint32>(Skeleton.Bones.size());
             return true;
@@ -83,13 +124,13 @@ bool FImportedFbxAssetDiscovery::ReadImportedAssetRecord(const FString& BinaryPa
     {
         FBinarySerializer Serializer;
         FStaticMesh Mesh;
-        if (Serializer.LoadStaticMesh(NormalizedBinaryPath, Mesh))
+        if (Serializer.LoadStaticMesh(NormalizedAssetPath, Mesh))
         {
             OutRecord = {};
             OutRecord.Type = EImportedFbxAssetType::StaticMesh;
-            OutRecord.AssetPath = NormalizedBinaryPath;
+            OutRecord.AssetPath = NormalizedAssetPath;
             OutRecord.SourcePath = Mesh.PathFileName;
-            OutRecord.Name = FPaths::ToUtf8(std::filesystem::path(FPaths::ToWide(NormalizedBinaryPath)).stem().wstring());
+            OutRecord.Name = FPaths::ToUtf8(std::filesystem::path(FPaths::ToWide(NormalizedAssetPath)).stem().wstring());
             return true;
         }
     }
@@ -97,29 +138,14 @@ bool FImportedFbxAssetDiscovery::ReadImportedAssetRecord(const FString& BinaryPa
     {
         FBinarySerializer Serializer;
         FSkeletalMesh Mesh;
-        if (Serializer.LoadSkeletalMesh(NormalizedBinaryPath, Mesh))
+        if (Serializer.LoadSkeletalMesh(NormalizedAssetPath, Mesh))
         {
             OutRecord = {};
             OutRecord.Type = EImportedFbxAssetType::SkeletalMesh;
-            OutRecord.AssetPath = NormalizedBinaryPath;
+            OutRecord.AssetPath = NormalizedAssetPath;
             OutRecord.SourcePath = Mesh.PathFileName;
             OutRecord.SkeletonSourcePath = Mesh.SkeletonSourcePath;
             OutRecord.BoneCount = static_cast<uint32>(Mesh.Bones.size());
-            return true;
-        }
-    }
-
-    {
-        FAnimationSequenceSerializer Serializer;
-        FAnimationSequence Sequence;
-        if (Serializer.LoadAnimationSequence(NormalizedBinaryPath, Sequence))
-        {
-            OutRecord = {};
-            OutRecord.Type = EImportedFbxAssetType::AnimationSequence;
-            OutRecord.AssetPath = NormalizedBinaryPath;
-            OutRecord.SourcePath = Sequence.SourcePath;
-            OutRecord.Name = Sequence.Name;
-            OutRecord.SkeletonSourcePath = Sequence.SkeletonSourcePath;
             return true;
         }
     }
@@ -182,29 +208,41 @@ TArray<FImportedFbxAssetRecord> FImportedFbxAssetDiscovery::DiscoverForSourceFbx
         return Result;
     }
 
-    for (const std::filesystem::directory_entry& Entry : std::filesystem::directory_iterator(ParentPath, Ec))
+    auto DiscoverSiblingAssetsInDirectory = [&](const std::filesystem::path& DirectoryPath)
     {
-        if (Ec)
+        std::error_code IterEc;
+        if (!std::filesystem::exists(DirectoryPath, IterEc) || !std::filesystem::is_directory(DirectoryPath, IterEc) || IterEc)
         {
-            break;
+            return;
         }
 
-        if (!Entry.is_regular_file(Ec) || Ec || !IsBinPath(Entry.path()))
+        for (const std::filesystem::directory_entry& Entry : std::filesystem::directory_iterator(DirectoryPath, IterEc))
         {
-            continue;
-        }
+            if (IterEc)
+            {
+                break;
+            }
 
-        if (!IsSiblingImportedAssetForSource(Entry.path(), SourcePath))
-        {
-            continue;
-        }
+            if (!Entry.is_regular_file(IterEc) || IterEc || !IsDiscoverableImportedAssetPath(Entry.path()))
+            {
+                continue;
+            }
 
-        FImportedFbxAssetRecord Record;
-        if (ReadImportedAssetRecord(NormalizePath(Entry.path()), Record))
-        {
-            AddRecordIfUnique(Result, Record);
+            if (!IsSiblingImportedAssetForSource(Entry.path(), SourcePath))
+            {
+                continue;
+            }
+
+            FImportedFbxAssetRecord Record;
+            if (ReadImportedAssetRecord(NormalizePath(Entry.path()), Record))
+            {
+                AddRecordIfUnique(Result, Record);
+            }
         }
-    }
+    };
+
+    DiscoverSiblingAssetsInDirectory(ParentPath);
+    DiscoverSiblingAssetsInDirectory(ParentPath / L"Animation");
 
     const FString StaticMeshBinaryPath = FAssetPathPolicy::MakeStaticMeshCacheBinaryPath(NormalizedSourceFbxPath);
     FImportedFbxAssetRecord StaticMeshRecord;

@@ -30,7 +30,7 @@
 | Asset | Naming |
 |---|---|
 | Skeleton | `{FBX파일명}_skeleton_{스켈레톤루트FbxNode이름}.bin` |
-| Animation | `{FBX파일명}_anim_{애니메이션클립명}.bin` |
+| Animation | `Animation/{FBX파일명}_anim_{애니메이션클립명}.anim` 또는 기존 sibling `.anim` |
 | Skeletal Mesh | skeleton root 또는 mesh 이름을 포함한 deterministic 이름 |
 
 ## Accepted Constraints
@@ -38,7 +38,7 @@
 | Constraint | Policy |
 |---|---|
 | 기존 cache 호환성 | 고려하지 않음. cache 삭제 후 재임포트 전제 |
-| generated `.bin` 이동/rename | 지원하지 않음 |
+| generated `.bin` 이동/rename | Skeleton/SkeletalMesh에 한정. Animation은 authored `.anim` 사용 |
 | 자동 재임포트 | 하지 않음 |
 | 고아 `.bin` | 추적/삭제하지 않음 |
 | bone index 제한 | 현행 유지 |

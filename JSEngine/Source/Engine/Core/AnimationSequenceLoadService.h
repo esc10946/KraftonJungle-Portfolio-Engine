@@ -20,9 +20,7 @@ public:
 private:
     UAnimationSequence* LoadAnimationAsset(const FString& AssetPath);
     UAnimationSequence* LoadSiblingAnimationAsset(const FString& NormalizedPath);
-    UAnimationSequence* LoadBinary(const FString& BinaryPath, const FString& CacheKey);
-    UAnimationSequence* LoadSiblingImportedBinary(const FString& NormalizedPath);
-    UAnimationSequence* ImportFbxSourceToBinary(
+    UAnimationSequence* ImportFbxSourceToAsset(
         const FString& NormalizedPath,
         const TArray<USkeletonAsset*>* ImportedSkeletonsOverride);
     UAnimationSequence* FinalizeLoadedSequence(FAnimationSequence* SequenceData, const FString& CacheKey);

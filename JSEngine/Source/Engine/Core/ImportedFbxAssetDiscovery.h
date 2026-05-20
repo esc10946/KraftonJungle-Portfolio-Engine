@@ -26,5 +26,5 @@ class FImportedFbxAssetDiscovery
 public:
     TArray<FImportedFbxAssetRecord> DiscoverInDirectory(const FString& DirectoryPath) const;
     TArray<FImportedFbxAssetRecord> DiscoverForSourceFbx(const FString& SourceFbxPath) const;
-    bool ReadImportedAssetRecord(const FString& BinaryPath, FImportedFbxAssetRecord& OutRecord) const;
+    bool ReadImportedAssetRecord(const FString& AssetPath, FImportedFbxAssetRecord& OutRecord) const;
 };

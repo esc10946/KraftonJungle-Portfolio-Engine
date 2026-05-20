@@ -206,11 +206,6 @@ FString FAssetPathPolicy::MakeSiblingSkeletalMeshBinaryPath(const FString& Sourc
 	return PathToNormalizedString(MakeSiblingBinaryPath(SourceFbxPath, "skeletalmesh", MeshOrSkeletonToken));
 }
 
-FString FAssetPathPolicy::MakeSiblingAnimationSequenceBinaryPath(const FString& SourceFbxPath, const FString& SequenceName)
-{
-	return PathToNormalizedString(MakeSiblingBinaryPath(SourceFbxPath, "anim", SequenceName));
-}
-
 FString FAssetPathPolicy::MakeSiblingAnimationSequenceAssetPath(const FString& SourceFbxPath, const FString& SequenceName)
 {
 	std::filesystem::path SourceFsPath(FPaths::ToWide(FPaths::Normalize(SourceFbxPath)));
@@ -276,21 +271,3 @@ FString FAssetPathPolicy::MakeWritableSkeletalMeshCacheBinaryPath(const FString&
 	return FPaths::ToString(BinaryPath.wstring());
 }
 
-FString FAssetPathPolicy::MakeWritableAnimationSequenceCacheBinaryPath(const FString& SourcePath)
-{
-	const FString NormalizedSourcePath = FPaths::Normalize(SourcePath);
-	std::filesystem::path SourceFsPath(FPaths::ToWide(NormalizedSourcePath));
-
-	std::filesystem::path BinDir = std::filesystem::path(FPaths::RootDir()) / "Asset" / "Animation" / "Bin";
-
-	if (!std::filesystem::exists(BinDir))
-	{
-		std::filesystem::create_directories(BinDir);
-	}
-
-	std::filesystem::path BinaryFileName = SourceFsPath.stem();
-	BinaryFileName += ".bin";
-
-	std::filesystem::path BinaryPath = BinDir / BinaryFileName;
-	return FPaths::ToString(BinaryPath.wstring());
-}
