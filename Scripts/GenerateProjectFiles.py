@@ -54,13 +54,15 @@ SOLUTION_CONFIGURATIONS = [
 
 # RmlUi와 SoLoud는 여기서 재귀 스캔하지 않음. 두 라이브러리는
 # BuildTools/Scripts/*.ps1에서 정적 라이브러리로 빌드한 뒤 vcxproj에서 링크
-SOURCE_SCAN_DIRS = ["Source", "ThirdParty\\ImGui"]
+SOURCE_SCAN_DIRS = ["Source", "ThirdParty\\ImGui", "ThirdParty\\imgui-node-editor"]
 SHADER_SCAN_DIRS = ["Shaders"]
 ROOT_SOURCE_FILES = ["main.cpp", "TestComponent.cpp"]
 GENERATED_SOURCE_FILES = ["Generated\\JSEngine.generated.cpp"]
 
-# 전체 디렉터리를 가져오지 않고 Solution Explorer에만 표시할 header-only 또는
-# 외부 빌드 ThirdParty 진입점
+# scan 대상 밖에 있지만 프로젝트에 직접 포함할 개별 source 파일
+EXPLICIT_SOURCE_FILES = []
+
+# scan 대상 밖에 있지만 Solution Explorer에 표시할 header-only 또는 외부 빌드 진입점
 EXPLICIT_HEADER_FILES = [
     "TestComponent.h",
     "ThirdParty\\luajit\\src\\lua.h",
@@ -200,7 +202,7 @@ def scan_files(project_dir: Path) -> dict[str, list[str]]:
                 if full_path.suffix.lower() in SHADER_EXTS:
                     result["None"].append(normalize_rel(full_path.relative_to(project_dir)))
 
-    for source_file in [*GENERATED_SOURCE_FILES, *ROOT_SOURCE_FILES]:
+    for source_file in [*GENERATED_SOURCE_FILES, *ROOT_SOURCE_FILES, *EXPLICIT_SOURCE_FILES]:
         if (project_dir / source_file).exists():
             result["ClCompile"].append(source_file.replace("/", "\\"))
 

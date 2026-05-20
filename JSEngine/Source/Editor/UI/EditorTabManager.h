@@ -8,6 +8,7 @@ enum class EEditorTabKind : uint8
 	StaticMeshViewer,
 	SkeletalMeshViewer,
 	AnimationViewer,
+	AnimStateMachineGraphViewer,
 	MaterialEditor,
 	CurveEditor,
 	ActorSequencer,

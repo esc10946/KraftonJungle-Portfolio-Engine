@@ -72,6 +72,41 @@ EAnimCompareOp LuaParseAnimCompareOp(const FString& OpName)
 
     return EAnimCompareOp::Equal;
 }
+
+bool LuaTryParseAnimParameterType(const FString& TypeName, EAnimParameterType& OutType)
+{
+    if (TypeName == "Bool")
+    {
+        OutType = EAnimParameterType::Bool;
+        return true;
+    }
+
+    if (TypeName == "Int")
+    {
+        OutType = EAnimParameterType::Int;
+        return true;
+    }
+
+    if (TypeName == "Float")
+    {
+        OutType = EAnimParameterType::Float;
+        return true;
+    }
+
+    if (TypeName == "Vector")
+    {
+        OutType = EAnimParameterType::Vector;
+        return true;
+    }
+
+    if (TypeName == "Trigger")
+    {
+        OutType = EAnimParameterType::Trigger;
+        return true;
+    }
+
+    return false;
+}
 } // namespace
 
 void FScriptManager::BindAnimationTypes()
@@ -134,6 +169,34 @@ void FScriptManager::BindAnimationTypes()
     {
         return Self.SetStateAnimationPath(FName(StateName), AnimationPath);
     });
+    LUA_SET(AddParameter, [](UAnimStateMachineAsset& Self, const FString& ParameterName, const FString& ParameterType)
+    {
+        EAnimParameterType ParsedType = EAnimParameterType::Bool;
+        return LuaTryParseAnimParameterType(ParameterType, ParsedType) &&
+            Self.AddParameter(FName(ParameterName), ParsedType);
+    });
+    LUA_SET(RenameParameter, [](UAnimStateMachineAsset& Self, const FString& OldParameterName, const FString& NewParameterName)
+    {
+        return Self.RenameParameter(FName(OldParameterName), FName(NewParameterName));
+    });
+    LUA_SET(SetParameterType, [](UAnimStateMachineAsset& Self, const FString& ParameterName, const FString& ParameterType)
+    {
+        EAnimParameterType ParsedType = EAnimParameterType::Bool;
+        return LuaTryParseAnimParameterType(ParameterType, ParsedType) &&
+            Self.SetParameterType(FName(ParameterName), ParsedType);
+    });
+    LUA_SET(RemoveParameter, [](UAnimStateMachineAsset& Self, const FString& ParameterName)
+    {
+        return Self.RemoveParameter(FName(ParameterName));
+    });
+    LUA_SET(RemoveParameterAndConditions, [](UAnimStateMachineAsset& Self, const FString& ParameterName)
+    {
+        return Self.RemoveParameterAndConditions(FName(ParameterName));
+    });
+    LUA_SET(RemoveUnusedParameters, [](UAnimStateMachineAsset& Self)
+    {
+        return Self.RemoveUnusedParameters();
+    });
     LUA_SET(AddTransition, [](
         UAnimStateMachineAsset& Self,
         const FString& FromState,
@@ -148,12 +211,18 @@ void FScriptManager::BindAnimationTypes()
     {
         const EAnimBlendEaseOption BlendEaseOption = LuaParseAnimBlendEaseOption(EaseOption.value_or("Linear"));
         const EAnimCompareOp ParsedCompareOp = LuaParseAnimCompareOp(CompareOp);
-        if (ParameterType == "Trigger")
+        EAnimParameterType ParsedType = EAnimParameterType::Bool;
+        if (!LuaTryParseAnimParameterType(ParameterType, ParsedType))
+        {
+            return false;
+        }
+
+        if (ParsedType == EAnimParameterType::Trigger)
         {
             return Self.AddTriggerTransition(FName(FromState), FName(ToState), FName(ParameterName), BlendTime, Priority, BlendEaseOption);
         }
 
-        if (ParameterType == "Int")
+        if (ParsedType == EAnimParameterType::Int)
         {
             return Self.AddIntTransition(
                 FName(FromState),
@@ -166,7 +235,7 @@ void FScriptManager::BindAnimationTypes()
                 BlendEaseOption);
         }
 
-        if (ParameterType == "Float")
+        if (ParsedType == EAnimParameterType::Float)
         {
             return Self.AddFloatTransition(
                 FName(FromState),
@@ -174,6 +243,19 @@ void FScriptManager::BindAnimationTypes()
                 FName(ParameterName),
                 ParsedCompareOp,
                 Value.as<float>(),
+                BlendTime,
+                Priority,
+                BlendEaseOption);
+        }
+
+        if (ParsedType == EAnimParameterType::Vector)
+        {
+            return Self.AddVectorTransition(
+                FName(FromState),
+                FName(ToState),
+                FName(ParameterName),
+                ParsedCompareOp,
+                Value.as<FVector>(),
                 BlendTime,
                 Priority,
                 BlendEaseOption);
@@ -243,6 +325,27 @@ void FScriptManager::BindAnimationTypes()
         sol::optional<FString> EaseOption)
     {
         return Self.AddFloatTransition(
+            FName(FromState),
+            FName(ToState),
+            FName(ParameterName),
+            LuaParseAnimCompareOp(CompareOp),
+            Value,
+            BlendTime,
+            Priority,
+            LuaParseAnimBlendEaseOption(EaseOption.value_or("Linear")));
+    });
+    LUA_SET(AddVectorTransition, [](
+        UAnimStateMachineAsset& Self,
+        const FString& FromState,
+        const FString& ToState,
+        const FString& ParameterName,
+        const FString& CompareOp,
+        const FVector& Value,
+        float BlendTime,
+        int32 Priority,
+        sol::optional<FString> EaseOption)
+    {
+        return Self.AddVectorTransition(
             FName(FromState),
             FName(ToState),
             FName(ParameterName),

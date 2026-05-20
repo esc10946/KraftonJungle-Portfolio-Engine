@@ -601,18 +601,15 @@ void AAnimTestPawn::ConfigureLocomotionStateMachine()
 
     FAnimTransitionCondition AttackTimeCondition;
     AttackTimeCondition.ParameterName = FName("StateElapsedTime");
-    AttackTimeCondition.ParameterType = EAnimParameterType::Float;
     AttackTimeCondition.CompareOp = EAnimCompareOp::GreaterEqual;
 
     FAnimTransitionCondition RecoveryMovingCondition;
     RecoveryMovingCondition.ParameterName = FName("bMoving");
-    RecoveryMovingCondition.ParameterType = EAnimParameterType::Bool;
     RecoveryMovingCondition.CompareOp = EAnimCompareOp::IsTrue;
     RecoveryMovingCondition.CompareValue.BoolValue = true;
 
     FAnimTransitionCondition RecoverySprintingCondition;
     RecoverySprintingCondition.ParameterName = FName("bSprinting");
-    RecoverySprintingCondition.ParameterType = EAnimParameterType::Bool;
     RecoverySprintingCondition.CompareOp = EAnimCompareOp::IsTrue;
     RecoverySprintingCondition.CompareValue.BoolValue = true;
 

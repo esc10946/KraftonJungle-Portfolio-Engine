@@ -576,6 +576,10 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientDebug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientRelease|x64'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="Source\Editor\Viewer\AnimStateMachineGraphViewer.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientDebug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientRelease|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="Source\Editor\Viewer\AnimationViewer.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientDebug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='GameClientRelease|x64'">true</ExcludedFromBuild>
@@ -907,6 +911,10 @@
     <ClCompile Include="ThirdParty\ImGui\imgui_impl_win32.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui_tables.cpp" />
     <ClCompile Include="ThirdParty\ImGui\imgui_widgets.cpp" />
+    <ClCompile Include="ThirdParty\imgui-node-editor\crude_json.cpp" />
+    <ClCompile Include="ThirdParty\imgui-node-editor\imgui_canvas.cpp" />
+    <ClCompile Include="ThirdParty\imgui-node-editor\imgui_node_editor.cpp" />
+    <ClCompile Include="ThirdParty\imgui-node-editor\imgui_node_editor_api.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -960,6 +968,7 @@
     <ClInclude Include="Source\Editor\UI\EditorViewportOverlayWidget.h" />
     <ClInclude Include="Source\Editor\UI\EditorWidget.h" />
     <ClInclude Include="Source\Editor\Undo\EditorUndoSystem.h" />
+    <ClInclude Include="Source\Editor\Viewer\AnimStateMachineGraphViewer.h" />
     <ClInclude Include="Source\Editor\Viewer\AnimationViewer.h" />
     <ClInclude Include="Source\Editor\Viewer\EditorViewer.h" />
     <ClInclude Include="Source\Editor\Viewer\FSkeletalMeshViewer.h" />
@@ -1288,6 +1297,15 @@
     <ClInclude Include="ThirdParty\ImGui\imstb_textedit.h" />
     <ClInclude Include="ThirdParty\ImGui\imstb_truetype.h" />
     <ClInclude Include="ThirdParty\SimpleJSON\json.hpp" />
+    <ClInclude Include="ThirdParty\imgui-node-editor\crude_json.h" />
+    <ClInclude Include="ThirdParty\imgui-node-editor\imgui_bezier_math.h" />
+    <ClInclude Include="ThirdParty\imgui-node-editor\imgui_bezier_math.inl" />
+    <ClInclude Include="ThirdParty\imgui-node-editor\imgui_canvas.h" />
+    <ClInclude Include="ThirdParty\imgui-node-editor\imgui_extra_math.h" />
+    <ClInclude Include="ThirdParty\imgui-node-editor\imgui_extra_math.inl" />
+    <ClInclude Include="ThirdParty\imgui-node-editor\imgui_node_editor.h" />
+    <ClInclude Include="ThirdParty\imgui-node-editor\imgui_node_editor_internal.h" />
+    <ClInclude Include="ThirdParty\imgui-node-editor\imgui_node_editor_internal.inl" />
     <ClInclude Include="ThirdParty\luajit\src\lua.h" />
   </ItemGroup>
   <ItemGroup>

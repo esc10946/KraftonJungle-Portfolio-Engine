@@ -5,6 +5,7 @@
 #include "Editor/UI/EditorChromeConstants.h"
 #include "Editor/UI/EditorMainPanel.h"
 #include "Editor/Settings/EditorSettings.h"
+#include "Animation/AnimStateMachineAsset.h"
 #include "Asset/CurveFloatAsset.h"
 #include "Asset/StaticMesh.h"
 #include "Core/ResourceManager.h"
@@ -1226,7 +1227,7 @@ void FEditorContentBrowserWidget::DrawContentTile(const FContentItem& Item, cons
 		{
 			EditorEngine->GetNotificationService().Info("Prefab selected. Drag to viewport or right-click to spawn.");
 		}
-		else if (Item.Extension == ".anim" || Item.Extension == ".animsequence" || Item.Extension == ".fbx")
+		else if (Item.Extension == ".anim" || Item.Extension == ".animsequence" || Item.Extension == ".animsm" || Item.Extension == ".fbx")
 		{
 			RequestOpenAsset(Item.Path);
 		}
@@ -1291,6 +1292,11 @@ void FEditorContentBrowserWidget::DrawContentContextMenu(bool bHasSelectedItem)
 		if (ImGui::MenuItem("Curve"))
 		{
 			CreateCurveAsset();
+			ImGui::CloseCurrentPopup();
+		}
+		if (ImGui::MenuItem("State Machine"))
+		{
+			CreateAnimStateMachineAsset();
 			ImGui::CloseCurrentPopup();
 		}
 		if (ImGui::MenuItem("Scene"))
@@ -1480,6 +1486,58 @@ bool FEditorContentBrowserWidget::CreateCurveAsset()
 
 	SelectedPath = NewPath;
 	Refresh();
+	return true;
+}
+
+bool FEditorContentBrowserWidget::CreateAnimStateMachineAsset()
+{
+	if (!EditorEngine)
+	{
+		return false;
+	}
+
+	const std::filesystem::path NewPath = MakeUniquePath(CurrentPath / L"New State Machine.animsm");
+	const FString RelativePath = MakeRelativeProjectPath(NewPath);
+
+	UAnimStateMachineAsset* Asset = UObjectManager::Get().CreateObject<UAnimStateMachineAsset>();
+	if (!Asset)
+	{
+		return false;
+	}
+
+	if (!Asset->AddState(FName("Entry"), FName(), true))
+	{
+		UObjectManager::Get().DestroyObject(Asset);
+		return false;
+	}
+	Asset->SetEntryState(FName("Entry"));
+	if (Asset->GetEntryStateId() == InvalidAnimStateId)
+	{
+		UObjectManager::Get().DestroyObject(Asset);
+		return false;
+	}
+	Asset->SetStateEditorPosition(Asset->GetEntryStateId(), 0.0f, 0.0f);
+
+	FString ValidationMessage;
+	if (!Asset->Validate(&ValidationMessage))
+	{
+		UObjectManager::Get().DestroyObject(Asset);
+		EditorEngine->GetNotificationService().Warning("Failed to create state machine asset.");
+		return false;
+	}
+
+	if (!FResourceManager::Get().SaveAnimStateMachineAsset(RelativePath, Asset))
+	{
+		UObjectManager::Get().DestroyObject(Asset);
+		EditorEngine->GetNotificationService().Warning("Failed to save state machine asset.");
+		return false;
+	}
+	UObjectManager::Get().DestroyObject(Asset);
+
+	SelectedPath = NewPath;
+	EditorEngine->GetAssetService().RefreshAssetDatabase();
+	RefreshContent();
+	EditorEngine->GetAssetEditorSubsystem().RequestOpenEditorForAsset(RelativePath);
 	return true;
 }
 
