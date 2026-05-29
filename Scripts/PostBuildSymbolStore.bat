@@ -265,7 +265,7 @@ for %%A in ("%SRC_LIST%") do (
 echo [SymbolStore] [2/3] Generate srcsrv stream file
 
 set "SRCSRV_TRGT=%%targ%%\%%var2%%\%%fnbksl%%^(%%var3%%^)\%%var4%%\%%fnfile%%^(%%var1%%^)"
-set "SRCSRV_CMD=cmd /c git --git-dir=^"%GIT_MIRROR%^" show %%var4%%:%%var3%% ^> ^"%%srcsrvtrg%%^""
+set "SRCSRV_CMD=cmd /c git --git-dir=^"%GIT_MIRROR%^" show %%var4%%:%%var3%% ^> %%srcsrvtrg%%"
 
 (
     echo SRCSRV: ini ------------------------------------------------
