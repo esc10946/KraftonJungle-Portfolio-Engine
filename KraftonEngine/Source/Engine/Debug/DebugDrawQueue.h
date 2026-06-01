@@ -14,6 +14,7 @@ struct FDebugDrawItem
 	FColor  Color;
 	float   RemainingTime;	// <= 0이면 이번 프레임 후 제거 (0 = 1프레임만)
 	bool    bOneFrame;		// Duration == 0으로 추가된 항목 (1프레임 표시 후 제거)
+	bool    bAlwaysOnTop = false;
 };
 
 // ============================================================
@@ -27,7 +28,7 @@ class FDebugDrawQueue
 {
 public:
 	void AddLine(const FVector& Start, const FVector& End,
-		const FColor& Color, float Duration);
+		const FColor& Color, float Duration, bool bAlwaysOnTop = false);
 
 	void AddBox(const FVector& Center, const FVector& Extent,
 		const FColor& Color, float Duration);
