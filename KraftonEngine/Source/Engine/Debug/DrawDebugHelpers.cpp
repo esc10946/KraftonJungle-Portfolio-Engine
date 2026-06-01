@@ -12,6 +12,14 @@ void DrawDebugLine(UWorld* World,
 	World->GetScene().GetDebugDrawQueue().AddLine(Start, End, Color, Duration);
 }
 
+void DrawDebugLineAlwaysOnTop(UWorld* World,
+	const FVector& Start, const FVector& End,
+	const FColor& Color, float Duration)
+{
+	if (!World) return;
+	World->GetScene().GetDebugDrawQueue().AddLine(Start, End, Color, Duration, true);
+}
+
 void DrawDebugBox(UWorld* World,
 	const FVector& Center, const FVector& Extent,
 	const FColor& Color, float Duration)

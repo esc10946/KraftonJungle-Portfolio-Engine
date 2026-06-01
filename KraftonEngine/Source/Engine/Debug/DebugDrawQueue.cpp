@@ -2,7 +2,7 @@
 #include <cmath>
 
 void FDebugDrawQueue::AddLine(const FVector& Start, const FVector& End,
-	const FColor& Color, float Duration)
+	const FColor& Color, float Duration, bool bAlwaysOnTop)
 {
 	FDebugDrawItem Item;
 	Item.Start = Start;
@@ -10,6 +10,7 @@ void FDebugDrawQueue::AddLine(const FVector& Start, const FVector& End,
 	Item.Color = Color;
 	Item.RemainingTime = Duration;
 	Item.bOneFrame = (Duration <= 0.0f);
+	Item.bAlwaysOnTop = bAlwaysOnTop;
 	Items.push_back(Item);
 }
 

@@ -24,6 +24,11 @@ void DrawDebugLine(UWorld* World,
 	const FColor& Color = FColor::White(),
 	float Duration = 0.0f);
 
+void DrawDebugLineAlwaysOnTop(UWorld* World,
+	const FVector& Start, const FVector& End,
+	const FColor& Color = FColor::White(),
+	float Duration = 0.0f);
+
 void DrawDebugBox(UWorld* World,
 	const FVector& Center, const FVector& Extent,
 	const FColor& Color = FColor::White(),
@@ -68,6 +73,7 @@ void DrawDebugFrustum(UWorld* World,
 #else
 
 inline void DrawDebugLine(UWorld*, const FVector&, const FVector&, const FColor & = FColor::White(), float = 0.0f) {}
+inline void DrawDebugLineAlwaysOnTop(UWorld*, const FVector&, const FVector&, const FColor & = FColor::White(), float = 0.0f) {}
 inline void DrawDebugBox(UWorld*, const FVector&, const FVector&, const FColor & = FColor::White(), float = 0.0f) {}
 inline void DrawDebugBox(UWorld*, const FVector&, const FVector&, const FVector&, const FVector&, const FColor & = FColor::White(), float = 0.0f) {}
 inline void DrawDebugBox(UWorld*, const FVector&, const FVector&, const FVector&, const FVector&, const FVector&, const FVector&, const FVector&, const FVector&, const FColor & = FColor::White(), float = 0.0f) {}
