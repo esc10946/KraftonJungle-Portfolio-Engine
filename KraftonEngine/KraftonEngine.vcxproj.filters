@@ -646,6 +646,9 @@
     <Filter Include="ThirdParty\sol2\include\sol\utility">
       <UniqueIdentifier>{9665cc4b-2b87-76ba-7eb3-a148e4c5a694}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Game\GameMode">
+      <UniqueIdentifier>{0362fc63-7f66-4793-9598-391ce27e310f}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\Common\ConstantBuffers.hlsli">
@@ -2117,6 +2120,10 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Intermediate\Generated\Reflection.generated.cpp">
       <Filter>Intermediate\Generated</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Profiling\Stats\ClothCollisionStats.cpp" />
+    <ClCompile Include="Source\Game\GameMode\AFinaleGameMode.cpp">
+      <Filter>Source\Game\GameMode</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -6073,6 +6080,10 @@
     </ClInclude>
     <ClInclude Include="ThirdParty\sol2\include\sol\utility\to_string.hpp">
       <Filter>ThirdParty\sol2\include\sol\utility</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Profiling\Stats\ClothCollisionStats.h" />
+    <ClInclude Include="Source\Game\GameMode\AFinaleGameMode.h">
+      <Filter>Source\Game\GameMode</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
