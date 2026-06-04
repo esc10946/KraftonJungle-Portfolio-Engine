@@ -1,6 +1,8 @@
 #include "AnimNotifyState_AttackHitWindow.h"
 
 #include "Component/Input/ActionComponent.h"
+#include "Component/Combat/CombatStateComponent.h"
+#include "Component/Combat/HealthComponent.h"
 #include "Component/PrimitiveComponent.h"
 #include "Component/Primitive/SkeletalMeshComponent.h"
 #include "Core/Types/CollisionTypes.h"
@@ -127,6 +129,53 @@ namespace
 		const FVector Dir = ResolveKnockbackDirection(Attacker, Target, Mode);
 		Action->Knockback(Dir, Distance, Duration);
 	}
+
+	bool PassesCombatFilters(AActor* Owner, AActor* Candidate, bool bUseTeamFilter, bool bRequireHealthComponent)
+	{
+		if (!IsValid(Owner) || !IsValid(Candidate))
+		{
+			return false;
+		}
+
+		if (bRequireHealthComponent && !Candidate->GetComponentByClass<UHealthComponent>())
+		{
+			return false;
+		}
+
+		if (bUseTeamFilter)
+		{
+			UCombatStateComponent* OwnerCombat = Owner->GetComponentByClass<UCombatStateComponent>();
+			UCombatStateComponent* CandidateCombat = Candidate->GetComponentByClass<UCombatStateComponent>();
+			if (!OwnerCombat || !CandidateCombat || !OwnerCombat->IsHostileTo(CandidateCombat))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	void ApplyCombatDamage(AActor* Owner, AActor* Candidate, const FVector& Center, float Damage, float PoiseDamage)
+	{
+		if (!IsValid(Owner) || !IsValid(Candidate))
+		{
+			return;
+		}
+		UHealthComponent* Health = Candidate->GetComponentByClass<UHealthComponent>();
+		if (!Health)
+		{
+			return;
+		}
+
+		FCombatDamageSpec Spec;
+		Spec.Damage = Damage;
+		Spec.PoiseDamage = PoiseDamage;
+		Spec.DamageCauser = Owner;
+		Spec.InstigatorActor = Owner;
+		Spec.HitLocation = Center;
+		Spec.HitDirection = ResolveKnockbackDirection(Owner, Candidate, EAttackKnockbackMode::AwayFromAttacker);
+		Health->ApplyDamageSpec(Spec);
+	}
 	void PurgeInvalidAttackHitEntries(
 		TMap<TWeakObjectPtr<USkeletalMeshComponent>, TSet<TWeakObjectPtr<AActor>>>& HitActorsByMesh,
 		TMap<TWeakObjectPtr<USkeletalMeshComponent>, TSet<TWeakObjectPtr<AActor>>>& MissLoggedActorsByMesh,
@@ -226,6 +275,11 @@ void UAnimNotifyState_AttackHitWindow::NotifyTick(USkeletalMeshComponent* MeshCo
 			continue;
 		}
 
+		if (!PassesCombatFilters(Owner, Candidate, bUseCombatTeamFilter, bApplyDamage && bRequireHealthComponent))
+		{
+			continue;
+		}
+
 		bSawTargetCandidate = true;
 		if (HitActors.find(Candidate) != HitActors.end())
 		{
@@ -311,6 +365,10 @@ void UAnimNotifyState_AttackHitWindow::NotifyTick(USkeletalMeshComponent* MeshCo
 		}
 
 		HitActors.insert(Candidate);
+		if (bApplyDamage)
+		{
+			ApplyCombatDamage(Owner, Candidate, Center, Damage, PoiseDamage);
+		}
 		ApplyHitStop(Owner, HitStopDuration, bAutoAddActionComponent);
 		ApplyHitStop(Candidate, HitStopDuration, bAutoAddActionComponent);
 		if (bApplyKnockback)

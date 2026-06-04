@@ -34,6 +34,18 @@ void UCharacterMovementComponent::AddInputVector(const FVector& WorldDirection, 
 	AccumulatedInput = AccumulatedInput + WorldDirection * ScaleValue;
 }
 
+
+void UCharacterMovementComponent::ClearInputVector()
+{
+	AccumulatedInput = FVector::ZeroVector;
+}
+
+void UCharacterMovementComponent::StopMovementImmediately()
+{
+	AccumulatedInput = FVector::ZeroVector;
+	Velocity = FVector::ZeroVector;
+}
+
 void UCharacterMovementComponent::ConsumeInputVector(FVector& Out)
 {
 	Out = AccumulatedInput;

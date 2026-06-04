@@ -47,6 +47,21 @@ public:
 	UPROPERTY(Edit, Save, Category="AttackHitWindow", DisplayName="Hit Stop Duration", Min=0.0f, Max=1.0f, Speed=0.01f)
 	float HitStopDuration = 0.08f;
 
+	UPROPERTY(Edit, Save, Category="AttackHitWindow|Damage", DisplayName="Apply Damage")
+	bool bApplyDamage = true;
+
+	UPROPERTY(Edit, Save, Category="AttackHitWindow|Damage", DisplayName="Damage", Min=0.0f, Max=100000.0f, Speed=0.5f)
+	float Damage = 10.0f;
+
+	UPROPERTY(Edit, Save, Category="AttackHitWindow|Damage", DisplayName="Poise Damage", Min=0.0f, Max=100000.0f, Speed=0.5f)
+	float PoiseDamage = 10.0f;
+
+	UPROPERTY(Edit, Save, Category="AttackHitWindow|Damage", DisplayName="Require Health Component")
+	bool bRequireHealthComponent = true;
+
+	UPROPERTY(Edit, Save, Category="AttackHitWindow|Damage", DisplayName="Use Combat Team Filter")
+	bool bUseCombatTeamFilter = true;
+
 	UPROPERTY(Edit, Save, Category="AttackHitWindow", DisplayName="Apply Knockback")
 	bool bApplyKnockback = false;
 

@@ -519,9 +519,15 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Engine\Component\PrimitiveComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\SceneComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\ShapeComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\AI\EncounterComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\AI\EnemyAIBrainComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\AI\EnemyAttackComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\AI\PhaseComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Camera\CameraComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Camera\CineCameraComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Camera\SpringArmComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\Combat\CombatStateComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\Combat\HealthComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Debug\BoneDebugComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Debug\GizmoComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Debug\PhysicsAssetPreviewComponent.cpp" />
@@ -610,7 +616,10 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Engine\GameFramework\Light\DirectionalLightActor.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\Light\PointLightActor.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\Light\SpotLightActor.cpp" />
+    <ClCompile Include="Source\Engine\GameFramework\Pawn\BaseCombatCharacter.cpp" />
+    <ClCompile Include="Source\Engine\GameFramework\Pawn\BossEnemyCharacter.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\Pawn\Character.cpp" />
+    <ClCompile Include="Source\Engine\GameFramework\Pawn\EnemyCharacter.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\Pawn\LuaCharacter.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\Pawn\Pawn.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\Pawn\WheeledVehiclePawn.cpp" />
@@ -969,9 +978,16 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\Component\PrimitiveComponent.h" />
     <ClInclude Include="Source\Engine\Component\SceneComponent.h" />
     <ClInclude Include="Source\Engine\Component\ShapeComponent.h" />
+    <ClInclude Include="Source\Engine\Component\AI\EncounterComponent.h" />
+    <ClInclude Include="Source\Engine\Component\AI\EnemyAIBrainComponent.h" />
+    <ClInclude Include="Source\Engine\Component\AI\EnemyAttackComponent.h" />
+    <ClInclude Include="Source\Engine\Component\AI\PhaseComponent.h" />
     <ClInclude Include="Source\Engine\Component\Camera\CameraComponent.h" />
     <ClInclude Include="Source\Engine\Component\Camera\CineCameraComponent.h" />
     <ClInclude Include="Source\Engine\Component\Camera\SpringArmComponent.h" />
+    <ClInclude Include="Source\Engine\Component\Combat\CombatStateComponent.h" />
+    <ClInclude Include="Source\Engine\Component\Combat\CombatTypes.h" />
+    <ClInclude Include="Source\Engine\Component\Combat\HealthComponent.h" />
     <ClInclude Include="Source\Engine\Component\Debug\BoneDebugComponent.h" />
     <ClInclude Include="Source\Engine\Component\Debug\GizmoComponent.h" />
     <ClInclude Include="Source\Engine\Component\Debug\PhysicsAssetPreviewComponent.h" />
@@ -999,6 +1015,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\Component\Primitive\CylindricalBillboardComponent.h" />
     <ClInclude Include="Source\Engine\Component\Primitive\DecalComponent.h" />
     <ClInclude Include="Source\Engine\Component\Primitive\HeightFogComponent.h" />
+    <ClInclude Include="Source\Engine\Component\Primitive\RagdollReactionPolicy.h" />
     <ClInclude Include="Source\Engine\Component\Primitive\SkeletalMeshComponent.h" />
     <ClInclude Include="Source\Engine\Component\Primitive\SkinnedMeshComponent.h" />
     <ClInclude Include="Source\Engine\Component\Primitive\StaticMeshComponent.h" />
@@ -1071,7 +1088,10 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\GameFramework\Light\DirectionalLightActor.h" />
     <ClInclude Include="Source\Engine\GameFramework\Light\PointLightActor.h" />
     <ClInclude Include="Source\Engine\GameFramework\Light\SpotLightActor.h" />
+    <ClInclude Include="Source\Engine\GameFramework\Pawn\BaseCombatCharacter.h" />
+    <ClInclude Include="Source\Engine\GameFramework\Pawn\BossEnemyCharacter.h" />
     <ClInclude Include="Source\Engine\GameFramework\Pawn\Character.h" />
+    <ClInclude Include="Source\Engine\GameFramework\Pawn\EnemyCharacter.h" />
     <ClInclude Include="Source\Engine\GameFramework\Pawn\LuaCharacter.h" />
     <ClInclude Include="Source\Engine\GameFramework\Pawn\Pawn.h" />
     <ClInclude Include="Source\Engine\GameFramework\Pawn\WheeledVehiclePawn.h" />
@@ -2305,6 +2325,13 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ObjViewDebug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Demo|x64'">true</ExcludedFromBuild>
     </FxCompile>
+    <FxCompile Include="Shaders\Generated\Materials\JungleMenu_Surface.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Game|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ObjViewDebug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Demo|x64'">true</ExcludedFromBuild>
+    </FxCompile>
     <FxCompile Include="Shaders\Generated\Materials\NewMaterial_1_Decal.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -2313,6 +2340,13 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Demo|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="Shaders\Generated\Materials\NewMaterial_Surface.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Game|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ObjViewDebug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Demo|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Shaders\Generated\Materials\Wood_Surface.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Game|x64'">true</ExcludedFromBuild>
@@ -2348,13 +2382,6 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Demo|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="Shaders\Generated\Materials\water_Surface.hlsl">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Game|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ObjViewDebug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Demo|x64'">true</ExcludedFromBuild>
-    </FxCompile>
-    <FxCompile Include="Shaders\Generated\Preview\Materials\acc.002_Surface.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Game|x64'">true</ExcludedFromBuild>

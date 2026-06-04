@@ -36,6 +36,8 @@ public:
 	// Controller 등 외부에서 매 frame 누적. TickComponent 가 ConsumeInputVector 로 비움.
 	UFUNCTION(Callable, Category="CharacterMovement|Input")
 	void AddInputVector(const FVector& WorldDirection, float ScaleValue = 1.0f);
+	UFUNCTION(Callable, Category="CharacterMovement|Input")
+	void ClearInputVector();
 	void ConsumeInputVector(FVector& OutAccumulated);
 
 	// Root motion delta 입력 — local 좌표계 (root 본 기준) 의 한 프레임 분.
@@ -72,6 +74,9 @@ public:
 	// edge-triggered — input 측에서 Pressed 마다 호출.
 	UFUNCTION(Callable, Exec, Category="CharacterMovement")
 	void           Jump();
+
+	UFUNCTION(Callable, Category="CharacterMovement")
+	void           StopMovementImmediately();
 
 	// UMovementComponent:
 	void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction& ThisTickFunction) override;

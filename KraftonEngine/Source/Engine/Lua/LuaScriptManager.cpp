@@ -26,6 +26,13 @@
 #include "Component/Camera/CineCameraComponent.h"
 #include "Component/Camera/SpringArmComponent.h"
 #include "Component/Input/ActionComponent.h"
+#include "Component/AI/EncounterComponent.h"
+#include "Component/AI/EnemyAIBrainComponent.h"
+#include "Component/AI/EnemyAttackComponent.h"
+#include "Component/AI/PhaseComponent.h"
+#include "Component/Combat/CombatStateComponent.h"
+#include "Component/Combat/CombatTypes.h"
+#include "Component/Combat/HealthComponent.h"
 #include "Component/Input/InputComponent.h"
 #include "Component/Light/AmbientLightComponent.h"
 #include "Component/Light/DirectionalLightComponent.h"
@@ -72,7 +79,10 @@
 #include "GameFramework/Camera/WaveOscillatorCameraShake.h"
 #include "GameFramework/GameMode/GameplayStatics.h"
 #include "GameFramework/GameMode/PlayerController.h"
+#include "GameFramework/Pawn/BaseCombatCharacter.h"
+#include "GameFramework/Pawn/BossEnemyCharacter.h"
 #include "GameFramework/Pawn/Character.h"
+#include "GameFramework/Pawn/EnemyCharacter.h"
 #include "GameFramework/Pawn/Pawn.h"
 #include "GameFramework/Pawn/WheeledVehiclePawn.h"
 #include "Input/InputKeyCodes.h"
@@ -4066,12 +4076,199 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
         &ACharacter::GetCharacterMovement
     );
 
+    sol::table CombatTeam = Lua.create_named_table("CombatTeam");
+    CombatTeam["Neutral"] = static_cast<int>(ECombatTeam::Neutral);
+    CombatTeam["Player"] = static_cast<int>(ECombatTeam::Player);
+    CombatTeam["Enemy"] = static_cast<int>(ECombatTeam::Enemy);
+    CombatTeam["World"] = static_cast<int>(ECombatTeam::World);
+
+    sol::table EncounterState = Lua.create_named_table("EncounterState");
+    EncounterState["Inactive"] = static_cast<int>(EEncounterState::Inactive);
+    EncounterState["Active"] = static_cast<int>(EEncounterState::Active);
+    EncounterState["Completed"] = static_cast<int>(EEncounterState::Completed);
+
+    Lua.new_usertype<FEnemyAttackData>(
+        "EnemyAttackData",
+        "AttackName",
+        sol::property(
+            [](const FEnemyAttackData& Data) { return Data.AttackName.ToString(); },
+            [](FEnemyAttackData& Data, const FString& Name) { Data.AttackName = FName(Name); }
+        ),
+        "MinPhase", &FEnemyAttackData::MinPhase,
+        "MaxPhase", &FEnemyAttackData::MaxPhase,
+        "MinRange", &FEnemyAttackData::MinRange,
+        "MaxRange", &FEnemyAttackData::MaxRange,
+        "MaxAbsAngle", &FEnemyAttackData::MaxAbsAngle,
+        "Cooldown", &FEnemyAttackData::Cooldown,
+        "RecoveryTime", &FEnemyAttackData::RecoveryTime,
+        "Weight", &FEnemyAttackData::Weight,
+        "Damage", &FEnemyAttackData::Damage,
+        "PoiseDamage", &FEnemyAttackData::PoiseDamage,
+        "IsValid", [](const FEnemyAttackData& Data) { return Data.AttackName.IsValid(); }
+    );
+
+    Lua.new_usertype<UHealthComponent>(
+        "HealthComponent",
+        sol::base_classes,
+        sol::bases<UActorComponent, UObject>(),
+        "ApplyDamage",
+        sol::overload(
+            [](UHealthComponent& H, float Damage, AActor* DamageCauser, AActor* InstigatorActor) { return H.ApplyDamage(Damage, DamageCauser, InstigatorActor).AppliedDamage; },
+            [](UHealthComponent& H, float Damage) { return H.ApplyDamage(Damage, nullptr, nullptr).AppliedDamage; }
+        ),
+        "Heal", &UHealthComponent::Heal,
+        "SetHealth", &UHealthComponent::SetHealth,
+        "Kill", &UHealthComponent::Kill,
+        "ResetHealth", &UHealthComponent::ResetHealth,
+        "IsDead", &UHealthComponent::IsDead,
+        "IsAlive", &UHealthComponent::IsAlive,
+        "GetCurrentHealth", &UHealthComponent::GetCurrentHealth,
+        "GetMaxHealth", &UHealthComponent::GetMaxHealth,
+        "GetHealthRatio", &UHealthComponent::GetHealthRatio,
+        "SetInvincible", &UHealthComponent::SetInvincible,
+        "IsInvincible", &UHealthComponent::IsInvincible
+    );
+
+    Lua.new_usertype<UCombatStateComponent>(
+        "CombatStateComponent",
+        sol::base_classes,
+        sol::bases<UActorComponent, UObject>(),
+        "CanReceiveDamage", &UCombatStateComponent::CanReceiveDamage,
+        "SetDamageEnabled", &UCombatStateComponent::SetDamageEnabled,
+        "SetInvincible", &UCombatStateComponent::SetInvincible,
+        "SetSuperArmor", &UCombatStateComponent::SetSuperArmor,
+        "IsInvincible", &UCombatStateComponent::IsInvincible,
+        "HasSuperArmor", &UCombatStateComponent::HasSuperArmor,
+        "IsStaggered", &UCombatStateComponent::IsStaggered,
+        "ApplyPoiseDamage", &UCombatStateComponent::ApplyPoiseDamage,
+        "ResetPoise", &UCombatStateComponent::ResetPoise,
+        "StartStagger", &UCombatStateComponent::StartStagger,
+        "StopStagger", &UCombatStateComponent::StopStagger,
+        "GetPoiseRatio", &UCombatStateComponent::GetPoiseRatio,
+        "SetTeam", [](UCombatStateComponent& C, int Team) { C.SetTeam(static_cast<ECombatTeam>(Team)); },
+        "GetTeam", [](UCombatStateComponent& C) { return static_cast<int>(C.GetTeam()); },
+        "IsHostileTo", &UCombatStateComponent::IsHostileTo
+    );
+
+    Lua.new_usertype<UEnemyAIBrainComponent>(
+        "EnemyAIBrainComponent",
+        sol::base_classes,
+        sol::bases<UActorComponent, UObject>(),
+        "SetTarget", &UEnemyAIBrainComponent::SetTarget,
+        "ClearTarget", &UEnemyAIBrainComponent::ClearTarget,
+        "GetTarget", &UEnemyAIBrainComponent::GetTarget,
+        "HasValidTarget", &UEnemyAIBrainComponent::HasValidTarget,
+        "AcquireTargetByTag", [](UEnemyAIBrainComponent& B, const FString& Tag) { return B.AcquireTargetByTag(FName(Tag)); },
+        "AcquireNearestHostileTarget", &UEnemyAIBrainComponent::AcquireNearestHostileTarget,
+        "AcquireDefaultTarget", &UEnemyAIBrainComponent::AcquireDefaultTarget,
+        "GetDistanceToTarget", &UEnemyAIBrainComponent::GetDistanceToTarget,
+        "GetDirectionToTarget", &UEnemyAIBrainComponent::GetDirectionToTarget,
+        "GetFlatDirectionToTarget", &UEnemyAIBrainComponent::GetFlatDirectionToTarget,
+        "GetAngleToTarget", &UEnemyAIBrainComponent::GetAngleToTarget,
+        "IsTargetInRange", &UEnemyAIBrainComponent::IsTargetInRange,
+        "IsTargetInFront", &UEnemyAIBrainComponent::IsTargetInFront,
+        "IsTargetBehind", &UEnemyAIBrainComponent::IsTargetBehind,
+        "SetState", [](UEnemyAIBrainComponent& B, const FString& State) { B.SetState(FName(State)); },
+        "GetState", [](UEnemyAIBrainComponent& B) { return B.GetState().ToString(); },
+        "GetPreviousState", [](UEnemyAIBrainComponent& B) { return B.GetPreviousState().ToString(); },
+        "GetStateTime", &UEnemyAIBrainComponent::GetStateTime
+    );
+
+    Lua.new_usertype<UEnemyAttackComponent>(
+        "EnemyAttackComponent",
+        sol::base_classes,
+        sol::bases<UActorComponent, UObject>(),
+        "IsAttackOnCooldown", [](UEnemyAttackComponent& C, const FString& Name) { return C.IsAttackOnCooldown(FName(Name)); },
+        "GetAttackCooldownRemaining", [](UEnemyAttackComponent& C, const FString& Name) { return C.GetAttackCooldownRemaining(FName(Name)); },
+        "SetAttackCooldown", [](UEnemyAttackComponent& C, const FString& Name, float Cooldown) { C.SetAttackCooldown(FName(Name), Cooldown); },
+        "ClearAttackCooldowns", &UEnemyAttackComponent::ClearAttackCooldowns,
+        "SelectAttack", &UEnemyAttackComponent::SelectAttack,
+        "CommitAttack", [](UEnemyAttackComponent& C, const FString& Name) { return C.CommitAttack(FName(Name)); },
+        "CommitAttackData", &UEnemyAttackComponent::CommitAttackData,
+        "FindAttackByName", [](UEnemyAttackComponent& C, const FString& Name) { return C.FindAttackByName(FName(Name)); },
+        "GetLastAttackName", [](UEnemyAttackComponent& C) { return C.GetLastAttackName().ToString(); }
+    );
+
+    Lua.new_usertype<UPhaseComponent>(
+        "PhaseComponent",
+        sol::base_classes,
+        sol::bases<UActorComponent, UObject>(),
+        "SetPhase", &UPhaseComponent::SetPhase,
+        "GetCurrentPhase", &UPhaseComponent::GetCurrentPhase,
+        "FindAutoPhaseForHealthRatio", &UPhaseComponent::FindAutoPhaseForHealthRatio,
+        "TrySetPhaseByHealthRatio", &UPhaseComponent::TrySetPhaseByHealthRatio
+    );
+
+    Lua.new_usertype<UEncounterComponent>(
+        "EncounterComponent",
+        sol::base_classes,
+        sol::bases<UActorComponent, UObject>(),
+        "StartEncounter", &UEncounterComponent::StartEncounter,
+        "CompleteEncounter", &UEncounterComponent::CompleteEncounter,
+        "ResetEncounter", &UEncounterComponent::ResetEncounter,
+        "IsEncounterActive", &UEncounterComponent::IsEncounterActive,
+        "IsEncounterCompleted", &UEncounterComponent::IsEncounterCompleted,
+        "GetEncounterState", [](UEncounterComponent& C) { return static_cast<int>(C.GetEncounterState()); }
+    );
+
+    Lua.new_usertype<ABaseCombatCharacter>(
+        "BaseCombatCharacter",
+        sol::base_classes,
+        sol::bases<ACharacter, APawn, AActor, UObject>(),
+        "GetHealthComponent", &ABaseCombatCharacter::GetHealthComponent,
+        "GetCombatStateComponent", &ABaseCombatCharacter::GetCombatStateComponent,
+        "GetActionComponent", &ABaseCombatCharacter::GetActionComponent,
+        "ApplyCombatDamage", &ABaseCombatCharacter::ApplyCombatDamage,
+        "IsDead", &ABaseCombatCharacter::IsDead,
+        "IsAlive", &ABaseCombatCharacter::IsAlive,
+        "PlayCombatMontage", &ABaseCombatCharacter::PlayCombatMontage,
+        "SetAnimGraphBool", [](ABaseCombatCharacter& C, const FString& Name, bool Value) { C.SetAnimGraphBool(FName(Name), Value); },
+        "SetAnimGraphFloat", [](ABaseCombatCharacter& C, const FString& Name, float Value) { C.SetAnimGraphFloat(FName(Name), Value); },
+        "SetAnimGraphInt", [](ABaseCombatCharacter& C, const FString& Name, int Value) { C.SetAnimGraphInt(FName(Name), Value); }
+    );
+
+    Lua.new_usertype<AEnemyCharacter>(
+        "EnemyCharacter",
+        sol::base_classes,
+        sol::bases<ABaseCombatCharacter, ACharacter, APawn, AActor, UObject>(),
+        "GetAIBrainComponent", &AEnemyCharacter::GetAIBrainComponent,
+        "GetAttackComponent", &AEnemyCharacter::GetAttackComponent,
+        "GetLuaScriptComponent", &AEnemyCharacter::GetLuaScriptComponent,
+        "MoveToTarget", sol::overload(
+            [](AEnemyCharacter& C, float Scale) { C.MoveToTarget(Scale); },
+            [](AEnemyCharacter& C) { C.MoveToTarget(1.0f); }
+        ),
+        "FaceTarget", sol::overload(
+            [](AEnemyCharacter& C, float DeltaTime, float YawRate) { C.FaceTarget(DeltaTime, YawRate); },
+            [](AEnemyCharacter& C, float DeltaTime) { C.FaceTarget(DeltaTime, -1.0f); }
+        ),
+        "StopEnemyMovement", &AEnemyCharacter::StopEnemyMovement,
+        "SelectAndCommitAttack", [](AEnemyCharacter& C, int Phase) { FEnemyAttackData A; C.SelectAndCommitAttack(Phase, A); return A; },
+        "PlayAttackMontage", &AEnemyCharacter::PlayAttackMontage
+    );
+
+    Lua.new_usertype<ABossEnemyCharacter>(
+        "BossEnemyCharacter",
+        sol::base_classes,
+        sol::bases<AEnemyCharacter, ABaseCombatCharacter, ACharacter, APawn, AActor, UObject>(),
+        "GetPhaseComponent", &ABossEnemyCharacter::GetPhaseComponent,
+        "GetEncounterComponent", &ABossEnemyCharacter::GetEncounterComponent,
+        "StartBossEncounter", &ABossEnemyCharacter::StartBossEncounter,
+        "CompleteBossEncounter", &ABossEnemyCharacter::CompleteBossEncounter,
+        "IsBossEncounterActive", &ABossEnemyCharacter::IsBossEncounterActive,
+        "SetBossPhase", &ABossEnemyCharacter::SetBossPhase,
+        "GetBossPhase", &ABossEnemyCharacter::GetBossPhase,
+        "TryUpdatePhaseFromHealth", &ABossEnemyCharacter::TryUpdatePhaseFromHealth
+    );
+
     Lua.new_usertype<UActionComponent>(
         "ActionComponent",
         sol::base_classes,
         sol::bases<UActorComponent, UObject>(),
         "HitStop",
         &UActionComponent::HitStop,
+        "LocalHitStop",
+        &UActionComponent::LocalHitStop,
         "HitSquash",
         &UActionComponent::HitSquash,
         "Knockback",
@@ -4080,6 +4277,8 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
         &UActionComponent::Slomo,
         "StopHitStop",
         &UActionComponent::StopHitStop,
+        "StopLocalHitStop",
+        &UActionComponent::StopLocalHitStop,
         "StopHitSquash",
         &UActionComponent::StopHitSquash,
         "StopKnockback",
@@ -5014,6 +5213,42 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
         [](AActor& Actor)
         {
             return Actor.GetComponentByClass<UActionComponent>();
+        },
+
+        "GetHealthComponent",
+        [](AActor& Actor)
+        {
+            return Actor.GetComponentByClass<UHealthComponent>();
+        },
+
+        "GetCombatStateComponent",
+        [](AActor& Actor)
+        {
+            return Actor.GetComponentByClass<UCombatStateComponent>();
+        },
+
+        "GetEnemyAIBrainComponent",
+        [](AActor& Actor)
+        {
+            return Actor.GetComponentByClass<UEnemyAIBrainComponent>();
+        },
+
+        "GetEnemyAttackComponent",
+        [](AActor& Actor)
+        {
+            return Actor.GetComponentByClass<UEnemyAttackComponent>();
+        },
+
+        "GetPhaseComponent",
+        [](AActor& Actor)
+        {
+            return Actor.GetComponentByClass<UPhaseComponent>();
+        },
+
+        "GetEncounterComponent",
+        [](AActor& Actor)
+        {
+            return Actor.GetComponentByClass<UEncounterComponent>();
         },
 
         "GetRootComponent",
