@@ -1,4 +1,4 @@
-#include "Engine/Runtime/GameRenderPipeline.h"
+﻿#include "Engine/Runtime/GameRenderPipeline.h"
 
 #include "Engine/Runtime/GameEngine.h"
 #include "GameFramework/GameMode/PlayerController.h"
@@ -52,7 +52,8 @@ void FGameRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
 	UWorld* World = Game->GetWorld();
 	FViewport* VP = Game->GetStandaloneViewport();
 	FMinimalViewInfo POV;
-	if (!World || !VP || !World->GetActivePOV(POV))
+	World->GetActivePOV(POV); // POV Gate below blocks debugging before player controller rolls into AGameMode.
+	if (!World || !VP /*|| !World->GetActivePOV(POV)*/)
 	{
 		Renderer.BeginFrame();
 		Renderer.EndFrame();

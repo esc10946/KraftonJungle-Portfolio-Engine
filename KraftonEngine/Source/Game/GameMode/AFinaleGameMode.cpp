@@ -11,6 +11,7 @@ AFinaleGameMode::AFinaleGameMode()
 void AFinaleGameMode::StartMatch()
 {
 	UE_LOG("[AFinalGameMode] Match Started");
+	AGameModeBase::StartMatch();
 }
 
 void AFinaleGameMode::OnPlayerDeath()

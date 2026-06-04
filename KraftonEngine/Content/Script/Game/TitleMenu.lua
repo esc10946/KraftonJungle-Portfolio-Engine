@@ -1,18 +1,19 @@
 -- ============================================================
 -- TitleMenu.lua
 -- Attach to a single controller actor placed in the Title scene.
--- On BeginPlay it builds the title menu widget from Content/UI/Title.rml
--- and wires the two buttons.
+-- On BeginPlay it builds the title menu (Title.rml) and wires the
+-- four buttons:
 --
---   start_btn -> transition to the gameplay scene
---   quit_btn  -> quit the application
---
--- TODO: replace "DoF_Demo" with the real gameplay scene name.
+--   start_btn   -> transition to the gameplay scene
+--   options_btn -> open Options screen      (TODO)
+--   credits_btn -> transition to the credits scene
+--   exit_btn    -> quit the application
 -- ============================================================
 
-local START_SCENE = "Game/GamePlay"
+local START_SCENE   = "Game/GamePlay"
+local CREDITS_SCENE = "Game/GameCredits"
 
-local widget = nil
+local widget = nil          -- title menu
 
 function BeginPlay()
     widget = UI.CreateWidget("Content/Game/UI/Title.rml")
@@ -35,8 +36,7 @@ function BeginPlay()
     end)
 
     widget:bind_click("credits_btn", function()
-        -- TODO: open Credits screen
-        print("[TitleMenu] Credits clicked")
+        Engine.OpenScene(CREDITS_SCENE)
     end)
 
     widget:bind_click("exit_btn", function()
