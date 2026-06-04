@@ -29,16 +29,6 @@ body#title-screen {
     display: block;
 }
 
-#logo {
-    position: absolute;
-    width: 512px;
-    height: 512px;
-    left: 50%;
-    margin-left: -256px; /* Half the width */
-    top: 5%;
-    decorator: image("../Texture/GameScene/Title/Title_Logo.png"); /* 1254x1254, 1:1 */
-}
-
 /* Shared button layout. Button art is 2508x627 (~4:1), so at 360px wide
    the height is 360 / 4 = 90px to preserve aspect ratio. */
 .title-btn {
@@ -65,5 +55,3 @@ body#title-screen {
 #exit_btn           { decorator: image("../Texture/GameScene/Title/Title_Exit.png"); }
 #exit_btn:hover     { decorator: image("../Texture/GameScene/Title/Title_Exit_Hovered.png"); }
 
-/* ---- LOGO ---- */
-#logo_img           { decorator: image("../Texture/GameScene/Title/Title_Logo.png"); }
