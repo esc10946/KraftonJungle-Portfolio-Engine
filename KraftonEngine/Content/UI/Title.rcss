@@ -1,0 +1,61 @@
+/* ============================================================
+   Title screen stylesheet
+   Background: Content/Texture/GameScene/Title.png
+   Paths are resolved relative to this .rcss file's location
+   (Content/UI/), so assets are reached via ../
+   ============================================================ */
+
+@font-face {
+    font-family: Maple;
+    src: url("../Font/Maplestory Bold.ttf");
+}
+
+/* Fullscreen background image */
+body#title-screen {
+    width: 100%;
+    height: 100%;
+    font-family: Maple;
+    decorator: image("../Texture/GameScene/Title.png" cover);
+}
+
+/* Button column, anchored toward the lower-center of the screen */
+#menu {
+    position: absolute;
+    left: 50%;
+    bottom: 12%;
+    width: 320px;
+    margin-left: -160px;          /* center the 320px column */
+    display: block;
+}
+
+/* Shared button look */
+.title-btn {
+    display: block;
+    width: 100%;
+    height: 64px;
+    margin-bottom: 20px;
+
+    font-size: 32px;
+    color: #e8e8e8;
+    text-align: center;
+    /* RmlUi has no line-height; vertical-center via padding */
+    padding-top: 14px;
+
+    background-color: rgba(0, 0, 0, 140);
+    border-width: 2px;
+    border-color: rgba(200, 200, 200, 120);
+
+    cursor: pointer;
+}
+
+/* Hover / active feedback */
+.title-btn:hover {
+    color: #ffcc00;
+    background-color: rgba(30, 30, 30, 200);
+    border-color: #ffcc00;
+}
+
+.title-btn:active {
+    color: #ffffff;
+    background-color: rgba(80, 60, 0, 220);
+}

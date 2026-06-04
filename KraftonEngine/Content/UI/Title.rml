@@ -1,0 +1,12 @@
+<rml>
+<head>
+    <title>Title</title>
+    <link type="text/rcss" href="Title.rcss"/>
+</head>
+<body id="title-screen">
+    <div id="menu">
+        <div class="title-btn" id="start_btn">START</div>
+        <div class="title-btn" id="quit_btn">QUIT</div>
+    </div>
+</body>
+</rml>
