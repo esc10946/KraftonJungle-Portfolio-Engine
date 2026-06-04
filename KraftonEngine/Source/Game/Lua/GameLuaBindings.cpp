@@ -19,7 +19,23 @@
 // ============================================================
 void RegisterGameLuaBindings(sol::state& Lua)
 {
-	(void)Lua;
+	// "Engine" 테이블은 엔진 측 바인딩(FLuaScriptManager)이 이미 만들어 두지만,
+	// 등록 순서에 의존하지 않도록 없으면 생성한다.
+	sol::table Engine = Lua["Engine"].valid() ? Lua["Engine"] : Lua.create_named_table("Engine");
+
+	// Engine.OpenScene("MapName" 또는 "Scene/Foo.Scene") — 다음 frame Tick 끝에서
+	// active world 를 destroy 하고 해당 scene 으로 교체한다. World->Tick 바깥에서
+	// 일어나므로 버튼 클릭(Lua) 콜백에서 호출해도 use-after-free 가 없다.
+	Engine.set_function(
+		"OpenScene",
+		[](const FString& SceneNameOrPath)
+		{
+			if (GEngine)
+			{
+				GEngine->RequestTransitionToScene(SceneNameOrPath);
+			}
+		}
+	);
 }
 
 // 자기-등록 — Editor / Game 측이 RegisterGameLuaBindings 함수명을 모르고도
