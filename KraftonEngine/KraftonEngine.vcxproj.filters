@@ -6085,6 +6085,9 @@
     <ClInclude Include="Source\Game\GameMode\AFinaleGameMode.h">
       <Filter>Source\Game\GameMode</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Game\GameMode\GameState.h">
+      <Filter>Source\Game\GameMode</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="KraftonEngine.rc" />

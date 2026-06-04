@@ -1,10 +1,11 @@
 ﻿#include "AFinaleGameMode.h"
+#include "GameState.h"
 #include "Engine/Core/Logging/Log.h"
 #include "Engine/Object/Reflection/UClass.h"
 
 AFinaleGameMode::AFinaleGameMode()
 {
-	//GameStateClass = AFinaleGameState::StaticClass();
+	GameStateClass = AFinaleGameState::StaticClass();
 }
 
 void AFinaleGameMode::StartMatch()

@@ -1,9 +1,12 @@
 ﻿#pragma once
 #include "Engine/GameFramework/GameMode/GameModeBase.h"
 
+#include "Source/Game/GameMode/AFinaleGameMode.generated.h"
+
 UCLASS()
 class AFinaleGameMode : public AGameModeBase
 {
+	GENERATED_BODY()
 public:
 	AFinaleGameMode();
 	void StartMatch() override;
