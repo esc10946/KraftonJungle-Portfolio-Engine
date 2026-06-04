@@ -5,7 +5,7 @@ UCLASS()
 class AFinaleGameMode : public AGameModeBase
 {
 public:
-	AFinaleGameMode(UClass* GameStateClass, UClass* PlayerControllerClass);
+	AFinaleGameMode();
 	void StartMatch() override;
 	void OnPossessedPawnEnteredTrigger(ATriggerVolumeBase* Trigger, APawn* Pawn) override;
 	void OnPossessedPawnExitedTrigger(ATriggerVolumeBase* Trigger, APawn* Pawn)  override;
