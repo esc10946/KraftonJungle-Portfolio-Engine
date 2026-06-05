@@ -113,6 +113,23 @@ void AFinaleGameMode::OnPlayerDeath()
 	SetGamePhase(EGamePhase::Dead);
 }
 
+void AFinaleGameMode::OnPlayerRevive()
+{
+	if (!CheckGamePhase(EGamePhase::Dead)) return;
+	SetGamePhase(EGamePhase::Playing);
+	if (AFinaleGameState* State = Cast<AFinaleGameState>(GetGameState()))
+	{
+		State->ReviveCount++;
+	}
+
+}
+
+void AFinaleGameMode::OnPlayerDefeated()
+{
+	if (!CheckGamePhase(EGamePhase::Dead)) return;
+	SetGamePhase(EGamePhase::Defeated);
+}
+
 void AFinaleGameMode::OnBossSlain(FName BossId)
 {
 	if (!CheckGamePhase(EGamePhase::Playing)) return;

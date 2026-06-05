@@ -1,0 +1,77 @@
+/* ============================================================
+   Death overlay — shown when the player enters EGamePhase::Dead.
+   The camera (engine post-process fade) darkens the scene to black
+   behind this overlay, so the body stays transparent and only adds the
+   icon + buttons on top. All Flow PNGs have transparent backgrounds.
+   Font "Serpentine" is registered in C++ (UIManager.cpp).
+   ============================================================ */
+
+body#death-screen {
+    width: 100%;
+    height: 100%;
+    font-family: Serpentine;
+}
+
+#death-panel {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 600px;
+    height: 560px;
+    margin-left: -300px;   /* -half width  -> horizontal center */
+    margin-top: -280px;    /* -half height -> vertical center   */
+    text-align: center;
+}
+
+/* Two icons share one square; the red copy sits exactly over the grey.
+   Centered with left:50% + negative margin (same pattern as the panels) —
+   auto margins don't work here since both children are absolutely positioned. */
+#death-icons {
+    position: absolute;
+    left: 50%;
+    width: 360px;
+    height: 360px;
+    margin-left: -180px;
+}
+
+#death-icon-grey, #death-icon-red {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 360px;
+    height: 360px;
+}
+
+#death-icon-grey { decorator: image("../Texture/Flow/UI_DEATH_GREY.png"); }
+/* opacity is raised 0 -> 1 at runtime (SetProperty) as the camera fades. */
+#death-icon-red  { decorator: image("../Texture/Flow/UI_DEATH.png"); opacity: 0; }
+
+/* Text buttons — same look as the pause / options buttons. */
+.text-btn {
+    display: block;
+    width: 360px;
+    margin-top: 24px;
+    margin-left: auto;
+    margin-right: auto;    /* auto margins -> horizontal center */
+    height: 48px;
+    padding-top: 8px;
+    text-align: center;
+    font-size: 28px;
+    color: #e8e8e8;
+    cursor: pointer;
+}
+
+.text-btn:hover {
+    color: #ffcc00;
+}
+
+/* #death-icons is absolute (out of flow), so push the button below the 360px
+   icon instead of letting it sit at the panel top. */
+#give_in_btn {
+    margin-top: 400px;
+}
+
+/* Hidden during the dying window; revealed (display:block) on true death. */
+#title_btn {
+    display: none;
+}

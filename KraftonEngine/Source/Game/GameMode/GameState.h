@@ -11,6 +11,7 @@ enum class EGamePhase : uint8
 	Paused,
 	CutScene,
 	Dead,
+	Defeated,	// True death
 	Victory,
 	GameOver,
 	Leaderboard,
@@ -21,7 +22,9 @@ class AFinaleGameState : public AGameStateBase
 {
 	GENERATED_BODY()
 public:
-	EGamePhase Phase = EGamePhase::None;
+	EGamePhase Phase   = EGamePhase::None;
+	uint16 ReviveCount = 0;
+	uint16 Score	   = 0;
 
 public:
 	FString GetPhaseString();

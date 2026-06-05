@@ -1,0 +1,36 @@
+/* ============================================================
+   Revive flourish — a transient burst shown on revive. Pops in at full
+   alpha, then fades out while dilating (opacity + transform driven by
+   GameFlowController). Plays over the camera fade-in, on its own clock.
+   Same centered geometry as the death icon. UI_REVIVE is transparent.
+   ============================================================ */
+
+body#revive-screen {
+    width: 100%;
+    height: 100%;
+    font-family: Serpentine;
+}
+
+#revive-panel {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 600px;
+    height: 560px;
+    margin-left: -300px;   /* -half width  -> horizontal center */
+    margin-top: -280px;    /* -half height -> vertical center   */
+    text-align: center;
+}
+
+/* Matches #death-icons placement so the burst sits exactly where the death
+   icon was. transform-origin centers the dilation; opacity starts full. */
+#revive-icon {
+    position: absolute;
+    left: 50%;
+    margin-left: -180px;   /* -half width -> horizontal center */
+    width: 360px;
+    height: 360px;
+    transform-origin: 50% 50%;
+    opacity: 1;
+    decorator: image("../Texture/Flow/UI_REVIVE.png");
+}

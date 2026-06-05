@@ -22,6 +22,8 @@ public:
 	void OnGameQuit();			// Quit means returned to title here
 	void OnLeaderBoardView();
 	void OnPlayerDeath();
+	void OnPlayerRevive();
+	void OnPlayerDefeated();	// True death
 	void OnBossSlain(FName BossId);
 	void OnVictory();
 
@@ -30,5 +32,4 @@ private:
 	bool CheckGamePhase(EGamePhase InPase);
 	FString GetGamePhaseString();
 
-	
 };
