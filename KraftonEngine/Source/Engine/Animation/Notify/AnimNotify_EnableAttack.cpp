@@ -1,7 +1,9 @@
 #include "AnimNotify_EnableAttack.h"
 
 #include "Animation/AnimInstance.h"
+#include "Component/Movement/CharacterMovementComponent.h"
 #include "Component/Primitive/SkeletalMeshComponent.h"
+#include "GameFramework/Pawn/Character.h"
 #include "Object/Ptr/WeakObjectPtr.h"
 
 namespace
@@ -17,6 +19,17 @@ void UAnimNotify_EnableAttack::Notify(USkeletalMeshComponent* MeshComp, UAnimSeq
 	}
 
 	GEnableAttackMeshes.insert(TWeakObjectPtr<USkeletalMeshComponent>(MeshComp));
+
+	ACharacter* OwnerCharacter = Cast<ACharacter>(MeshComp->GetOwner());
+	if (!IsValid(OwnerCharacter))
+	{
+		return;
+	}
+
+	if (UCharacterMovementComponent* Movement = OwnerCharacter->GetCharacterMovement())
+	{
+		Movement->SetMovementInputEnabled(true);
+	}
 }
 
 bool UAnimNotify_EnableAttack::ConsumeEnableAttack(UAnimInstance* AnimInstance)

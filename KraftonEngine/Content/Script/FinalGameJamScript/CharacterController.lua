@@ -1,4 +1,5 @@
 local LMB = "LeftMouseButton"
+local MOVE_KEYS = { "W", "A", "S", "D" }
 local WEAPON_MESH_PATH = "Content/Data/FGJ_Character/Weapon/Katana_StaticMesh.uasset"
 local RWEAPON_SOCKET = "RH_Socket"
 local LWEAPON_SOCKET = "LH_Socket"
@@ -19,6 +20,7 @@ local weaponBindingWarned = false --Print binding warning once
 local currentAttackIndex = 0
 local attackPlaying = false
 local canChainAttack = false --EnableAttack Notify opens this flag
+local movementLocked = false
 
 --Get AnimInstance from SkeletalMesh--
 local function GetOrCacheAnimInstance()
@@ -79,6 +81,127 @@ local function consume_enable_attack(anim)
     return Animation.ConsumeEnableAttack(anim)
 end
 
+local function get_character_movement()
+    if obj == nil then
+        return nil
+    end
+
+    --obj is bound as Actor, so ACharacter functions can be hidden--
+    if obj.GetCharacterMovement ~= nil then
+        return obj:GetCharacterMovement()
+    end
+
+    --Call reflected ACharacter function when obj's lua type is Actor--
+    if obj.IsA ~= nil and obj.CallFunction ~= nil and obj:IsA("ACharacter") then
+        return obj:CallFunction("GetCharacterMovement")
+    end
+
+    return nil
+end
+
+local function call_movement_function(movement, functionName, ...)
+    if movement == nil then
+        return nil
+    end
+
+    local directFunction = movement[functionName]
+    if directFunction ~= nil then
+        return directFunction(movement, ...)
+    end
+
+    if movement.CallFunction ~= nil then
+        return movement:CallFunction(functionName, ...)
+    end
+
+    return nil
+end
+
+local function set_movement_input_enabled(enabled)
+    local movement = get_character_movement()
+    if movement == nil then
+        return
+    end
+
+    call_movement_function(movement, "SetMovementInputEnabled", enabled)
+end
+
+local function stop_horizontal_movement()
+    local movement = get_character_movement()
+    if movement == nil then
+        return
+    end
+
+    call_movement_function(movement, "ClearInputVector")
+    call_movement_function(movement, "StopHorizontalMovementImmediately")
+end
+
+local function lock_movement_for_attack()
+    movementLocked = true
+    set_movement_input_enabled(false)
+    stop_horizontal_movement()
+end
+
+local function unlock_movement_after_attack()
+    if not movementLocked then
+        return
+    end
+
+    movementLocked = false
+    set_movement_input_enabled(true)
+end
+
+local function is_move_key_down()
+    for _, key in ipairs(MOVE_KEYS) do
+        if Input.GetKey(key) then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function update_movement_lock()
+    if attackPlaying and not canChainAttack then
+        lock_movement_for_attack()
+        return
+    end
+
+    unlock_movement_after_attack()
+
+    --Stop immediately when all movement keys are released--
+    if not is_move_key_down() then
+        stop_horizontal_movement()
+    end
+end
+
+local function stop_attack_for_movement()
+    if not attackPlaying or not canChainAttack or not is_move_key_down() then
+        return
+    end
+
+    local anim = GetOrCacheAnimInstance()
+    if anim ~= nil and anim.StopMontage ~= nil then
+        --Stop montage immediately and return to locomotion pose--
+        anim:StopMontage(0.0)
+    end
+
+    attackPlaying = false
+    currentAttackIndex = 0
+    canChainAttack = false
+    unlock_movement_after_attack()
+    consume_enable_attack(anim)
+end
+
+local function configure_movement()
+    local movement = get_character_movement()
+    if movement == nil then
+        return
+    end
+
+    --Make key release stop horizontal movement immediately--
+    call_movement_function(movement, "SetStopImmediatelyWhenNoInput", true)
+end
+
 --Play Attack--
 local function play_attack(index)
     --If Invalid just return--
@@ -94,6 +217,7 @@ local function play_attack(index)
     currentAttackIndex = index
     attackPlaying = true
     canChainAttack = false
+    lock_movement_for_attack()
     --Clear old EnableAttack flag--
     consume_enable_attack(anim)
     anim:PlayMontage(montage)
@@ -104,13 +228,31 @@ local function is_attack_pressed()
 end
 
 --Update AnimGraph GroundSpeed variable--
+local function get_movement_velocity(movement)
+    if movement == nil then
+        return nil
+    end
+
+    --Use direct binding when movement is bound as CharacterMovementComponent--
+    if movement.GetVelocity ~= nil then
+        return movement:GetVelocity()
+    end
+
+    --Use reflected function when movement is bound as Object/Component--
+    if movement.CallFunction ~= nil then
+        return movement:CallFunction("GetVelocityValue")
+    end
+
+    return nil
+end
+
 local function update_ground_speed()
     local groundSpeed = 0.0
 
-    if obj ~= nil and obj.GetCharacterMovement ~= nil then
-        local movement = obj:GetCharacterMovement()
-        if movement ~= nil and movement.GetVelocity ~= nil then
-            local velocity = movement:GetVelocity()
+    local movement = get_character_movement()
+    if movement ~= nil then
+        local velocity = get_movement_velocity(movement)
+        if velocity ~= nil then
             groundSpeed = math.sqrt(velocity.X * velocity.X + velocity.Y * velocity.Y)
         end
     end
@@ -120,7 +262,6 @@ local function update_ground_speed()
         anim:SetGraphVariableFloat(GROUND_SPEED_VAR, groundSpeed)
     end
 
-    print("[CharacterController] GroundSpeed: " .. string.format("%.2f", groundSpeed))
 end
 
 --Consume EnableAttack Notify flag--
@@ -183,6 +324,7 @@ local function update_attack_sequence()
         attackPlaying = false
         currentAttackIndex = 0
         canChainAttack = false
+        unlock_movement_after_attack()
         return
     end
 
@@ -193,18 +335,22 @@ local function update_attack_sequence()
     attackPlaying = false
     currentAttackIndex = 0
     canChainAttack = false
+    unlock_movement_after_attack()
     consume_enable_attack(anim)
 end
 
 function BeginPlay()
     GetOrCacheAnimInstance()
+    configure_movement()
     equip_weapon()
     load_attack_montages()
 end
 
 function Tick(dt)
-    update_ground_speed()
     update_attack_chain_window()
+    update_movement_lock()
+    stop_attack_for_movement()
+    update_ground_speed()
     handle_attack_input()
     update_attack_sequence()
 end

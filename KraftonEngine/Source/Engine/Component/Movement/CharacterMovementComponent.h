@@ -42,6 +42,14 @@ public:
 	void AddInputVector(const FVector& WorldDirection, float ScaleValue = 1.0f);
 	UFUNCTION(Callable, Category="CharacterMovement|Input")
 	void ClearInputVector();
+	UFUNCTION(Callable, Category="CharacterMovement|Input")
+	void SetMovementInputEnabled(bool bEnabled);
+	UFUNCTION(Pure, Category="CharacterMovement|Input")
+	bool IsMovementInputEnabled() const { return bMovementInputEnabled; }
+	UFUNCTION(Callable, Category="CharacterMovement|Input")
+	void SetStopImmediatelyWhenNoInput(bool bEnabled) { bStopImmediatelyWhenNoInput = bEnabled; }
+	UFUNCTION(Pure, Category="CharacterMovement|Input")
+	bool ShouldStopImmediatelyWhenNoInput() const { return bStopImmediatelyWhenNoInput; }
 	void ConsumeInputVector(FVector& OutAccumulated);
 
 	// Root motion delta 입력 — local 좌표계 (root 본 기준) 의 한 프레임 분.
@@ -82,6 +90,7 @@ public:
 	UFUNCTION(Callable, Category="CharacterMovement")
 	void           StopMovementImmediately();
 	void           StopMovementImmediately(bool bPreserveVerticalVelocity);
+	UFUNCTION(Callable, Category="CharacterMovement")
 	void           StopHorizontalMovementImmediately();
 
 	// Physics/contact bridge. Dynamic bodies or scripted impacts can feed an impulse
@@ -166,6 +175,8 @@ protected:
 	FVector       AccumulatedInput = FVector(0.0f, 0.0f, 0.0f);
 	FVector       Velocity         = FVector(0.0f, 0.0f, 0.0f);
 	FVector       PendingExternalImpulse = FVector::ZeroVector;
+	bool          bMovementInputEnabled = true;
+	bool          bStopImmediatelyWhenNoInput = false;
 	// 시작 시 floor 잡힐 때까지 Falling — 첫 frame TickFalling 이 raycast 후 자동 Walking 전환.
 	EMovementMode MovementMode     = EMovementMode::Falling;
 

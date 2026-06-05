@@ -991,7 +991,7 @@ void AEnemyCharacter::Brain_Chase()
 	if (!RequestMoveToLocation(GoalLocation, Acceptance, true) && !Brain->IsMoveActive())
 	{
 		StopEnemyMovement();
-		UE_LOG("[EnemyAI] Brain_Chase move failed. Enemy=%s Reason=%s", GetName().c_str(), Brain->GetLastMoveFailureReason().c_str());
+		//UE_LOG("[EnemyAI] Brain_Chase move failed. Enemy=%s Reason=%s", GetName().c_str(), Brain->GetLastMoveFailureReason().c_str());
 	}
 }
 

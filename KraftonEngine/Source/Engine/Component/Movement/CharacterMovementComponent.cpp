@@ -51,12 +51,30 @@ void UCharacterMovementComponent::BeginPlay()
 
 void UCharacterMovementComponent::AddInputVector(const FVector& WorldDirection, float ScaleValue)
 {
+	if (!bMovementInputEnabled)
+	{
+		return;
+	}
 	AccumulatedInput = AccumulatedInput + WorldDirection * ScaleValue;
 }
 
 void UCharacterMovementComponent::ClearInputVector()
 {
 	AccumulatedInput = FVector::ZeroVector;
+}
+
+void UCharacterMovementComponent::SetMovementInputEnabled(bool bEnabled)
+{
+	if (bMovementInputEnabled == bEnabled)
+	{
+		return;
+	}
+
+	bMovementInputEnabled = bEnabled;
+	if (!bMovementInputEnabled)
+	{
+		ClearInputVector();
+	}
 }
 
 void UCharacterMovementComponent::StopMovementImmediately()
@@ -312,6 +330,13 @@ void UCharacterMovementComponent::ApplyInputToVelocity(const FVector& Input, flo
 	}
 	else if (MovementMode == EMovementMode::Walking)
 	{
+		if (bStopImmediatelyWhenNoInput)
+		{
+			Velocity.X = 0.0f;
+			Velocity.Y = 0.0f;
+			return;
+		}
+
 		FVector V2D(Velocity.X, Velocity.Y, 0.0f);
 		const float Speed2D = V2D.Length();
 		if (Speed2D > 0.0f)
