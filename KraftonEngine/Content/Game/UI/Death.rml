@@ -13,7 +13,9 @@
             <div id="death-icon-red"></div>
         </div>
         <div id="give_in_btn" class="text-btn">GIVE IN</div>
-        <!-- Revealed only on true death (Defeated); hidden during the dying window. -->
+        <!-- Revealed only on true death (Defeated); hidden during the dying window.
+             LEADERBOARD here is view-only (no record written after a defeat). -->
+        <div id="leaderboard_btn" class="text-btn">LEADERBOARD</div>
         <div id="title_btn" class="text-btn">RETURN TO TITLE</div>
     </div>
 </body>

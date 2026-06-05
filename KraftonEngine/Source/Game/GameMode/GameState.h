@@ -24,9 +24,10 @@ class AFinaleGameState : public AGameStateBase
 public:
 	EGamePhase Phase   = EGamePhase::None;
 	uint16 ReviveCount = 0;
-	uint16 Score	   = 0;
+	float  ActiveTime  = 0;	// Tracks how much time has been elapsed since the game start, only counting the time when GamePhase == Playing
 
 public:
+	void	Tick(float DeltaTime) override;
 	FString GetPhaseString();
-
+	void    UpdateActiveTime(float DeltaTime);
 };

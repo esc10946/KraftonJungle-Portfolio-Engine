@@ -12,6 +12,7 @@
 #include "Audio/AudioManager.h"
 #include "Game/GameMode/AFinaleGameMode.h"
 #include "Game/GameMode/GameState.h"
+#include "Game/Leaderboard/LeaderboardStore.h"
 #include "Engine/Core/Logging/Log.h"
 
 #include <algorithm>
@@ -140,6 +141,81 @@ void RegisterGameLuaBindings(sol::state& Lua)
 			{
 				Manager->StartCameraFade(FromAlpha, ToAlpha, Duration, FLinearColor::Black(), false, true);
 			}
+		}
+	);
+	// Game.ViewLeaderboard — victory/defeat LEADERBOARD button. Drives the phase
+	// to Leaderboard (gated in OnLeaderBoardView); the leaderboard screen is TODO.
+	Game.set_function(
+		"ViewLeaderboard",
+		[]()
+		{
+			if (!GEngine || !GEngine->GetWorld()) return;
+			if (AFinaleGameMode* GM = Cast<AFinaleGameMode>(GEngine->GetWorld()->GetGameMode()))
+			{
+				GM->OnLeaderBoardView();
+			}
+		}
+	);
+	// Game.GetActiveTime — seconds of Playing time elapsed up to victory. The
+	// leaderboard reads this at submit (the run is frozen by then) for the record.
+	Game.set_function(
+		"GetActiveTime",
+		[]() -> float
+		{
+			if (!GEngine || !GEngine->GetWorld()) return 0.0f;
+			if (AFinaleGameMode* GM = Cast<AFinaleGameMode>(GEngine->GetWorld()->GetGameMode()))
+			{
+				return GM->GetActiveTime();
+			}
+			return 0.0f;
+		}
+	);
+	// Game.GetReviveCount — number of revives the player used this run.
+	Game.set_function(
+		"GetReviveCount",
+		[]() -> int
+		{
+			if (!GEngine || !GEngine->GetWorld()) return 0;
+			if (AFinaleGameMode* GM = Cast<AFinaleGameMode>(GEngine->GetWorld()->GetGameMode()))
+			{
+				return static_cast<int>(GM->GetReviveCount());
+			}
+			return 0;
+		}
+	);
+
+	// ============================================================
+	// Leaderboard — file-backed top-N store (Saves/Leaderboard.txt). The UI is an
+	// RmlUi overlay driven from GameFlowController.lua: submit on victory (writes a
+	// record), view-only elsewhere (defeat/pause/title). Lua has no file I/O, so
+	// persistence lives in C++ (GameLeaderboard, see LeaderboardStore.h).
+	// ============================================================
+	sol::table Leaderboard = Lua["Leaderboard"].valid() ? Lua["Leaderboard"] : Lua.create_named_table("Leaderboard");
+	Leaderboard.set_function(
+		"Submit",
+		[](const FString& Name, float TimeSec, int Revives)
+		{
+			GameLeaderboard::Submit(Name, TimeSec, Revives);
+		}
+	);
+	// Returns a 1-based array of { name, time, revives } sorted best-first.
+	Leaderboard.set_function(
+		"GetEntries",
+		[](sol::this_state S) -> sol::table
+		{
+			sol::state_view View(S);
+			sol::table Out = View.create_table();
+			std::vector<GameLeaderboard::FEntry> Entries = GameLeaderboard::Load();
+			int Index = 1;
+			for (const GameLeaderboard::FEntry& E : Entries)
+			{
+				sol::table Row = View.create_table();
+				Row["name"]    = E.Name;
+				Row["time"]    = E.TimeSec;
+				Row["revives"] = E.Revives;
+				Out[Index++]   = Row;
+			}
+			return Out;
 		}
 	);
 

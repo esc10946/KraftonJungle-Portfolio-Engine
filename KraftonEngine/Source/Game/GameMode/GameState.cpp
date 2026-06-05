@@ -1,5 +1,11 @@
 ﻿#include "GameState.h"
 
+void AFinaleGameState::Tick(float DeltaTime)
+{
+	AGameStateBase::Tick(DeltaTime);
+	UpdateActiveTime(DeltaTime);
+}
+
 FString AFinaleGameState::GetPhaseString()
 {
 	switch(Phase)
@@ -45,4 +51,10 @@ FString AFinaleGameState::GetPhaseString()
 		return "Unregistered Phase";
 	}
 	}
+}
+
+void AFinaleGameState::UpdateActiveTime(float DeltaTime)
+{
+	if (Phase != EGamePhase::Playing) return;
+	ActiveTime += DeltaTime;
 }

@@ -661,6 +661,15 @@ void UUIManager::Initialize(ID3D11Device* InDevice)
 		UE_LOG("[RmlUi] Failed to load font: Content/Font/Serpentine.ttf");
 	}
 
+	// Fallback face: Serpentine is a display font with letters only, so digits and
+	// symbols (+ - : . x) render blank. Registered with fallback_face = true,
+	// RmlUi pulls any glyph missing from Serpentine (or any other face) from here.
+	const std::filesystem::path FallbackFontPath = ToProjectPath("Content/Font/YOZAKURA.otf");
+	if (!Rml::LoadFontFace(ToRmlPath(FallbackFontPath), /*fallback_face=*/true))
+	{
+		UE_LOG("[RmlUi] Failed to load fallback font: Content/Font/YOZAKURA.otf");
+	}
+
 	StartUIHotReloadWatcher();
 }
 

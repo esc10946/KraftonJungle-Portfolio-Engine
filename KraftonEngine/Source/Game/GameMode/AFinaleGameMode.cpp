@@ -34,6 +34,26 @@ FString AFinaleGameMode::GetGamePhaseString()
 	return "Unknown";
 }
 
+uint16 AFinaleGameMode::GetReviveCount() const
+{
+	if (AFinaleGameState* State = Cast<AFinaleGameState>(GetGameState()))
+	{
+		return State->ReviveCount;
+	}
+
+	return 0;
+}
+
+float AFinaleGameMode::GetActiveTime() const
+{
+	if (AFinaleGameState* State = Cast<AFinaleGameState>(GetGameState()))
+	{
+		return State->ActiveTime;
+	}
+
+	return 0;
+}
+
 AFinaleGameMode::AFinaleGameMode()
 {
 	GameStateClass = AFinaleGameState::StaticClass();
@@ -104,6 +124,8 @@ void AFinaleGameMode::OnGameQuit()
 
 void AFinaleGameMode::OnLeaderBoardView()
 {
+	if (!CheckGamePhase(EGamePhase::Defeated) && !CheckGamePhase(EGamePhase::Victory)) return;
+	SetGamePhase(EGamePhase::Leaderboard);
 
 }
 
@@ -121,7 +143,6 @@ void AFinaleGameMode::OnPlayerRevive()
 	{
 		State->ReviveCount++;
 	}
-
 }
 
 void AFinaleGameMode::OnPlayerDefeated()
@@ -130,9 +151,11 @@ void AFinaleGameMode::OnPlayerDefeated()
 	SetGamePhase(EGamePhase::Defeated);
 }
 
+// Boss slain itself is not a state
 void AFinaleGameMode::OnBossSlain(FName BossId)
 {
 	if (!CheckGamePhase(EGamePhase::Playing)) return;
+
 }
 
 void AFinaleGameMode::OnVictory()

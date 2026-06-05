@@ -27,6 +27,10 @@ public:
 	void OnBossSlain(FName BossId);
 	void OnVictory();
 
+	// Returns the number of times the user exploited revive in this play
+	uint16 GetReviveCount() const;
+	float  GetActiveTime()  const;
+
 private:
 	void SetGamePhase(EGamePhase InPhase);
 	bool CheckGamePhase(EGamePhase InPase);

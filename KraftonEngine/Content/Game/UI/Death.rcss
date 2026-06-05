@@ -75,3 +75,9 @@ body#death-screen {
 #title_btn {
     display: none;
 }
+
+/* Like #title_btn: hidden while dying, revealed on true death for a view-only
+   peek at the leaderboard. */
+#leaderboard_btn {
+    display: none;
+}
