@@ -135,6 +135,15 @@ public:
 	UFUNCTION(Callable, Category="Enemy|Brain")
 	void Brain_OpenDeflect();
 
+	// ── Phase 3 협동 (공격 토큰) ──
+	// 공격 토큰을 시도/획득. 타깃에 이미 동시공격 상한만큼 나가 있으면 false → 지원/재배치.
+	UFUNCTION(Callable, Category="Enemy|Brain")
+	bool Brain_AcquireAttackToken();
+	UFUNCTION(Callable, Category="Enemy|Brain")
+	void Brain_ReleaseAttackToken();
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	int32 Brain_GetSquadSlot() const;
+
 	UPROPERTY(Edit, Save, Category="Enemy|Movement", DisplayName="Can Move")
 	bool bCanMove = true;
 	UPROPERTY(Edit, Save, Category="Enemy|Movement", DisplayName="Can Rotate")
@@ -161,6 +170,16 @@ public:
 	UPROPERTY(Edit, Save, Category="Enemy|AI", DisplayName="Defensive Retreat Input Scale", Min=0.0f, Max=1.0f, Speed=0.05f)
 	float DefensiveRetreatInputScale = 0.55f;
 
+	// ── Phase 3 협동 / Phase 4 LOD 튜닝 ──
+	UPROPERTY(Edit, Save, Category="Enemy|Squad", DisplayName="Max Simultaneous Attackers", Min=0.0f, Max=16.0f, Speed=1.0f)
+	int32 SquadMaxSimultaneousAttackers = 2;
+	UPROPERTY(Edit, Save, Category="Enemy|Squad", DisplayName="Squad Token Duration", Min=0.0f, Max=10.0f, Speed=0.05f)
+	float SquadTokenDuration = 1.0f;
+	UPROPERTY(Edit, Save, Category="Enemy|LOD", DisplayName="LOD Near Distance", Min=0.0f, Max=1000.0f, Speed=0.5f)
+	float LODNearDistance = 25.0f;
+	UPROPERTY(Edit, Save, Category="Enemy|LOD", DisplayName="LOD Far Distance", Min=0.0f, Max=2000.0f, Speed=0.5f)
+	float LODFarDistance = 80.0f;
+
 protected:
 	void Tick(float DeltaTime) override;
 	void HandleDeath(UHealthComponent* Component, AActor* DamageCauser, AActor* InstigatorActor) override;
@@ -169,6 +188,8 @@ protected:
 	void RebindEnemyComponents();
 	void RunBuiltInDecisionLogic(float DeltaTime);
 	void UpdateAttackExecution(float DeltaTime);
+	// Phase 4: 타깃과의 거리로 LOD 를 정해 전투 시계 스텝 주기를 조절(원거리 적은 저빈도 think).
+	void UpdateAILOD();
 	bool StartAttackExecution(const FEnemyAttackData& Attack);
 	float GetCurrentHealthRatio() const;
 	bool IsTargetHostileDamageReceiver(AActor* Target) const;
@@ -197,4 +218,5 @@ private:
 	float LastTickDelta = 0.0f;
 	FName SelectedAttackName = FName::None;
 	bool bStrafeClockwise = true;
+	int32 CurrentLODLevel = 0; // 0=near(60Hz), 1=mid(30Hz), 2=far(10Hz)
 };

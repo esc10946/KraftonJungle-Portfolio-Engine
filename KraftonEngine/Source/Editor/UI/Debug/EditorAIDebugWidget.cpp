@@ -176,6 +176,33 @@ void FEditorAIDebugWidget::Render(float /*DeltaTime*/)
 		}
 	}
 
+	// ── 협동 / LOD / 보스 페이즈 (Phase 3~4) ──
+	if (ImGui::CollapsingHeader("Squad / LOD / Boss", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		if (BB)
+		{
+			ImGui::Text("LOD level: %d   Holding token: %s   Slot: %d   Active attackers: %d",
+				static_cast<int>(BB->GetFloat(FName("LOD")) + 0.5f),
+				BB->GetBool(FName("HoldingToken")) ? "YES" : "no",
+				static_cast<int>(BB->GetFloat(FName("SquadSlot")) + 0.5f),
+				static_cast<int>(BB->GetFloat(FName("ActiveAttackers")) + 0.5f));
+			if (BB->HasFloat(FName("PhaseAggression")))
+			{
+				ImGui::Text("Phase aggression: %.2f   Phase entry: %s",
+					BB->GetFloat(FName("PhaseAggression")),
+					BB->GetBool(FName("PhaseEntry")) ? "YES" : "no");
+			}
+			else
+			{
+				ImGui::TextDisabled("(no boss phase director)");
+			}
+		}
+		else
+		{
+			ImGui::TextDisabled("No blackboard component.");
+		}
+	}
+
 	// ── Utility 점수 (히스토그램 + 분해 표) ──
 	if (ImGui::CollapsingHeader("Utility Reasoner", ImGuiTreeNodeFlags_DefaultOpen))
 	{
@@ -197,14 +224,14 @@ void FEditorAIDebugWidget::Render(float /*DeltaTime*/)
 				ImGui::PlotHistogram("Final score", Finals.data(), static_cast<int>(Finals.size()),
 					0, nullptr, 0.0f, FLT_MAX, ImVec2(0.0f, 80.0f));
 
-				ImGui::TextDisabled("name           final  | base rng ang thr pos rec rep");
+				ImGui::TextDisabled("name         final | base rng ang thr pos pha rec rep");
 				for (const FUtilityCandidate& C : Candidates)
 				{
 					const FUtilityScoreBreakdown& B = C.Breakdown;
-					ImGui::Text("%s%-13s %6.3f | %.2f %.2f %.2f %.2f %.2f %.2f %.2f",
+					ImGui::Text("%s%-11s %6.3f | %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f",
 						C.bChosen ? "*" : " ",
 						C.ActionId.ToString().c_str(), B.Final,
-						B.Base, B.Range, B.Angle, B.Threat, B.Posture, B.Recovery, B.Repetition);
+						B.Base, B.Range, B.Angle, B.Threat, B.Posture, B.Phase, B.Recovery, B.Repetition);
 				}
 			}
 		}

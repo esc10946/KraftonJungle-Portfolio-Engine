@@ -466,6 +466,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Editor\Viewport\Asset\MeshEditorViewportClient.cpp" />
     <ClCompile Include="Source\Editor\Viewport\Asset\StaticMeshEditorViewportClient.cpp" />
     <ClCompile Include="Source\Editor\Viewport\Level\FLevelViewportLayout.cpp" />
+    <ClCompile Include="Source\Engine\AI\SquadCoordinator.cpp" />
     <ClCompile Include="Source\Engine\AI\Navigation\PathFollowingComponent.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimInstance.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimationManager.cpp" />
@@ -524,6 +525,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Engine\Component\AI\AIBlackboardComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\AIDecisionTraceComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\AIPerceptionComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\AI\BossPhaseDirector.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\EncounterComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\EnemyAIBrainComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\EnemyAttackComponent.cpp" />
@@ -928,6 +930,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Editor\Viewport\Level\FLevelViewportLayout.h" />
     <ClInclude Include="Source\Editor\Viewport\Level\LevelEditorViewportClient.h" />
     <ClInclude Include="Source\Engine\AI\CombatClock.h" />
+    <ClInclude Include="Source\Engine\AI\SquadCoordinator.h" />
     <ClInclude Include="Source\Engine\AI\Navigation\PathFollowingComponent.h" />
     <ClInclude Include="Source\Engine\Animation\AnimExtractContext.h" />
     <ClInclude Include="Source\Engine\Animation\AnimInstance.h" />
@@ -999,6 +1002,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\Component\AI\AIBlackboardComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\AIDecisionTraceComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\AIPerceptionComponent.h" />
+    <ClInclude Include="Source\Engine\Component\AI\BossPhaseDirector.h" />
     <ClInclude Include="Source\Engine\Component\AI\EncounterComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\EnemyAIBrainComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\EnemyAttackComponent.h" />

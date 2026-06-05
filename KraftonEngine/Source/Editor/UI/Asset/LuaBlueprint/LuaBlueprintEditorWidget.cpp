@@ -14,6 +14,7 @@
 #include "Core/Types/PropertyTypes.h"
 #include "Object/Reflection/UClass.h"
 #include "Platform/Paths.h"
+#include "Editor/UI/Util/EditorFileUtils.h"
 #include "Serialization/MemoryArchive.h"
 
 #include <filesystem>
@@ -2868,36 +2869,66 @@ void FLuaBlueprintEditorWidget::RenderToolbar(ULuaBlueprintAsset* Blueprint)
     ImGui::SameLine();
     if (ToolbarButton("Export JSON"))
     {
-        const FString OutPath = FString(FPaths::ToUtf8(FPaths::RootDir())) + "/Saved/LuaBlueprint_Export.json";
-        const std::filesystem::path P(FPaths::ToWide(OutPath));
-        std::error_code Ec;
-        std::filesystem::create_directories(P.parent_path(), Ec);
-        std::ofstream File(P, std::ios::binary | std::ios::trunc);
-        if (File.is_open())
+        // 파일 저장 대화상자로 내보낼 위치를 직접 고른다(고정 경로 대신).
+        const std::wstring InitDir = (std::filesystem::path(FPaths::RootDir()) / L"Content").wstring();
+        FEditorFileDialogOptions Options;
+        Options.Title                      = L"Export Lua Blueprint JSON";
+        Options.Filter                     = L"Lua Blueprint JSON (*.json)\0*.json\0All Files (*.*)\0*.*\0";
+        Options.DefaultExtension           = L"json";
+        Options.DefaultFileName            = L"LuaBlueprint_Export.json";
+        Options.InitialDirectory           = InitDir.c_str();
+        Options.bFileMustExist             = false;
+        Options.bPathMustExist             = true;
+        Options.bPromptOverwrite           = true;
+        Options.bReturnRelativeToProjectRoot = false;
+
+        const FString OutPath = FEditorFileUtils::SaveFileDialog(Options);
+        if (!OutPath.empty())
         {
-            File << Blueprint->ExportGraphToJsonString().c_str();
+            const std::filesystem::path P(FPaths::ToWide(OutPath));
+            std::error_code Ec;
+            std::filesystem::create_directories(P.parent_path(), Ec);
+            std::ofstream File(P, std::ios::binary | std::ios::trunc);
+            if (File.is_open())
+            {
+                File << Blueprint->ExportGraphToJsonString().c_str();
+            }
         }
     }
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Export the graph to Saved/LuaBlueprint_Export.json (re-importable text JSON).");
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Browse and export the graph to a chosen .json file (re-importable text JSON).");
 
     ImGui::SameLine();
     if (ToolbarButton("Import JSON"))
     {
-        const FString InPath = FString(FPaths::ToUtf8(FPaths::RootDir())) + "/Saved/LuaBlueprint_Export.json";
-        std::ifstream File(std::filesystem::path(FPaths::ToWide(InPath)), std::ios::binary);
-        if (File.is_open())
+        // 파일 열기 대화상자로 불러올 .json 을 직접 고른다(고정 경로 대신).
+        const std::wstring InitDir = (std::filesystem::path(FPaths::RootDir()) / L"Content").wstring();
+        FEditorFileDialogOptions Options;
+        Options.Title                      = L"Import Lua Blueprint JSON";
+        Options.Filter                     = L"Lua Blueprint JSON (*.json)\0*.json\0All Files (*.*)\0*.*\0";
+        Options.DefaultExtension           = L"json";
+        Options.InitialDirectory           = InitDir.c_str();
+        Options.bFileMustExist             = true;
+        Options.bPathMustExist             = true;
+        Options.bReturnRelativeToProjectRoot = false;
+
+        const FString InPath = FEditorFileUtils::OpenFileDialog(Options);
+        if (!InPath.empty())
         {
-            std::stringstream Buffer;
-            Buffer << File.rdbuf();
-            if (Blueprint->ImportGraphFromJsonString(FString(Buffer.str())))
+            std::ifstream File(std::filesystem::path(FPaths::ToWide(InPath)), std::ios::binary);
+            if (File.is_open())
             {
-                Blueprint->Compile();
-                bPositionsPushed = false;
-                CommitBlueprintEdit(Blueprint);
+                std::stringstream Buffer;
+                Buffer << File.rdbuf();
+                if (Blueprint->ImportGraphFromJsonString(FString(Buffer.str())))
+                {
+                    Blueprint->Compile();
+                    bPositionsPushed = false;
+                    CommitBlueprintEdit(Blueprint);
+                }
             }
         }
     }
-    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Import Saved/LuaBlueprint_Export.json, replacing the current graph.");
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Browse and import a .json blueprint, replacing the current graph.");
 
     ImGui::SameLine();
     ImGui::TextDisabled("|");

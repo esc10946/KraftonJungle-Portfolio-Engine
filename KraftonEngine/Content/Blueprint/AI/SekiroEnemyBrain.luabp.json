@@ -198,6 +198,24 @@
         {"id": 166, "owningNodeId": 23, "kind": 0, "type": 0, "displayName": "Exec", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
         {"id": 167, "owningNodeId": 23, "kind": 0, "type": 6, "displayName": "Target", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""}
       ]
+    },
+    {
+      "id": 24, "type": 8, "displayName": "Branch: Got Attack Token?", "pos": [920, 240],
+      "nameValue": "", "stringValue": "", "boolValue": false, "intValue": 0, "floatValue": 0.0,
+      "pins": [
+        {"id": 170, "owningNodeId": 24, "kind": 0, "type": 0, "displayName": "Exec", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 171, "owningNodeId": 24, "kind": 0, "type": 1, "displayName": "Condition", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 172, "owningNodeId": 24, "kind": 1, "type": 0, "displayName": "True", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 173, "owningNodeId": 24, "kind": 1, "type": 0, "displayName": "False", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""}
+      ]
+    },
+    {
+      "id": 25, "type": 21, "displayName": "Brain_AcquireAttackToken", "pos": [720, 400],
+      "nameValue": "Brain_AcquireAttackToken", "stringValue": "", "boolValue": false, "intValue": 0, "floatValue": 0.0,
+      "pins": [
+        {"id": 174, "owningNodeId": 25, "kind": 0, "type": 6, "displayName": "Target", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 175, "owningNodeId": 25, "kind": 1, "type": 1, "displayName": "ReturnValue", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""}
+      ]
     }
   ],
   "links": [
@@ -209,11 +227,13 @@
     {"id": 905, "from": 126, "to": 127},
     {"id": 906, "from": 125, "to": 160},
     {"id": 907, "from": 138, "to": 140},
-    {"id": 908, "from": 139, "to": 144},
+    {"id": 908, "from": 139, "to": 170},
     {"id": 909, "from": 146, "to": 148},
     {"id": 910, "from": 147, "to": 150},
     {"id": 911, "from": 163, "to": 136},
     {"id": 912, "from": 162, "to": 166},
+    {"id": 913, "from": 172, "to": 144},
+    {"id": 914, "from": 173, "to": 150},
 
     {"id": 920, "from": 102, "to": 104},
     {"id": 921, "from": 102, "to": 107},
@@ -229,6 +249,7 @@
     {"id": 931, "from": 102, "to": 151},
     {"id": 932, "from": 102, "to": 164},
     {"id": 933, "from": 102, "to": 167},
+    {"id": 934, "from": 102, "to": 174},
 
     {"id": 940, "from": 110, "to": 112},
     {"id": 941, "from": 116, "to": 118},
@@ -237,7 +258,8 @@
     {"id": 944, "from": 132, "to": 134},
     {"id": 945, "from": 135, "to": 137},
     {"id": 946, "from": 143, "to": 145},
-    {"id": 947, "from": 165, "to": 161}
+    {"id": 947, "from": 165, "to": 161},
+    {"id": 948, "from": 175, "to": 171}
   ],
   "variables": []
 }

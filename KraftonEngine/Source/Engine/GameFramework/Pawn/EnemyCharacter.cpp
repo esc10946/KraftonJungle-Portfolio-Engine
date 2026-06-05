@@ -8,6 +8,7 @@
 #include "Component/AI/AIPerceptionComponent.h"
 #include "Component/AI/UtilityReasonerComponent.h"
 #include "Component/AI/AIDecisionTraceComponent.h"
+#include "AI/SquadCoordinator.h"
 #include "Component/Combat/CombatStateComponent.h"
 #include "Component/Combat/CombatMoveComponent.h"
 #include "Component/Combat/HealthComponent.h"
@@ -124,7 +125,9 @@ void AEnemyCharacter::Tick(float DeltaTime)
 	{
 		// Lua 두뇌가 의사결정을 가져간 경우에도, 진행 중인 공격 스윙(타격 윈도우·회복 종료)
 		// 은 C++ 가 계속 실행해 준다 — "결정은 Lua, 실행은 C++".
-		// 전투 고정틱 시계를 누적해 Lua 가 Brain_ConsumeCombatStep 으로 60Hz 결정을 게이트한다.
+		// 전투 고정틱 시계를 누적해 Lua 가 Brain_ConsumeCombatStep 으로 결정을 게이트한다.
+		// LOD 가 거리별로 스텝 주기를 조절(원거리 적은 저빈도) — Phase 4.
+		UpdateAILOD();
 		CombatClock.Accumulate(DeltaTime);
 		UpdateAttackExecution(DeltaTime);
 	}
@@ -622,6 +625,7 @@ void AEnemyCharacter::HandleDeath(UHealthComponent* Component, AActor* DamageCau
 	{
 		Move->EndMove();
 	}
+	FSquadCoordinator::Get().ReleaseToken(this); // 죽으면 공격 토큰 반환 → 다른 적이 압박 이어감
 	StopEnemyMovement();
 	if (AIBrainComponent)
 	{
@@ -776,6 +780,7 @@ void AEnemyCharacter::Brain_Idle()
 	{
 		Brain->SetState(FName("Idle"));
 	}
+	FSquadCoordinator::Get().ReleaseToken(this); // 타깃 없음 → 토큰 반환
 	StopEnemyMovement();
 }
 
@@ -824,4 +829,82 @@ void AEnemyCharacter::Brain_OpenDeflect()
 		Brain->SetState(FName("Deflect"));
 	}
 	StopEnemyMovement();
+}
+
+bool AEnemyCharacter::Brain_AcquireAttackToken()
+{
+	UEnemyAIBrainComponent* Brain = AIBrainComponent.Get();
+	UWorld* World = GetWorld();
+	if (!Brain || !Brain->HasValidTarget() || !World)
+	{
+		return false;
+	}
+	AActor* Target = Brain->GetTarget();
+	if (!Target)
+	{
+		return false;
+	}
+	const float Now  = World->GetGameTimeSeconds();
+	const bool  bOk  = FSquadCoordinator::Get().TryAcquireToken(this, Target, Now, SquadTokenDuration, SquadMaxSimultaneousAttackers);
+	if (UAIBlackboardComponent* BB = Blackboard.Get())
+	{
+		BB->SetBool(FName("HoldingToken"), bOk);
+		BB->SetFloat(FName("ActiveAttackers"), static_cast<float>(FSquadCoordinator::Get().CountActiveAttackers(Target, Now)));
+		BB->SetFloat(FName("SquadSlot"), static_cast<float>(FSquadCoordinator::Get().GetSlotIndex(this, Target, Now)));
+	}
+	return bOk;
+}
+
+void AEnemyCharacter::Brain_ReleaseAttackToken()
+{
+	FSquadCoordinator::Get().ReleaseToken(this);
+	if (UAIBlackboardComponent* BB = Blackboard.Get())
+	{
+		BB->SetBool(FName("HoldingToken"), false);
+	}
+}
+
+int32 AEnemyCharacter::Brain_GetSquadSlot() const
+{
+	const UEnemyAIBrainComponent* Brain = AIBrainComponent.Get();
+	UWorld* World = GetWorld();
+	if (!Brain || !Brain->HasValidTarget() || !World)
+	{
+		return -1;
+	}
+	return FSquadCoordinator::Get().GetSlotIndex(const_cast<AEnemyCharacter*>(this), Brain->GetTarget(), World->GetGameTimeSeconds());
+}
+
+void AEnemyCharacter::UpdateAILOD()
+{
+	float Distance = 9999.0f;
+	if (AIBrainComponent.IsValid() && AIBrainComponent->HasValidTarget())
+	{
+		Distance = AIBrainComponent->GetDistanceToTarget();
+	}
+
+	int32 Lod;
+	float StepSeconds;
+	if (Distance <= LODNearDistance)
+	{
+		Lod = 0;
+		StepSeconds = 1.0f / 60.0f; // 근접: 풀레이트 정밀 틱
+	}
+	else if (Distance <= LODFarDistance)
+	{
+		Lod = 1;
+		StepSeconds = 1.0f / 30.0f;
+	}
+	else
+	{
+		Lod = 2;
+		StepSeconds = 1.0f / 10.0f; // 원거리: 저빈도 think 로 CPU 예산 절감
+	}
+
+	CurrentLODLevel = Lod;
+	CombatClock.StepSeconds = StepSeconds;
+	if (UAIBlackboardComponent* BB = Blackboard.Get())
+	{
+		BB->SetFloat(FName("LOD"), static_cast<float>(Lod));
+	}
 }

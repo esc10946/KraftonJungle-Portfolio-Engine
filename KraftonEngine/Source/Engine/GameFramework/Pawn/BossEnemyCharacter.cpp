@@ -3,6 +3,7 @@
 #include "Component/AI/EncounterComponent.h"
 #include "Component/AI/EnemyAIBrainComponent.h"
 #include "Component/AI/PhaseComponent.h"
+#include "Component/AI/BossPhaseDirector.h"
 #include "Component/Combat/HealthComponent.h"
 
 void ABossEnemyCharacter::InitDefaultComponents(const FString& SkeletalMeshFileName)
@@ -15,6 +16,8 @@ void ABossEnemyCharacter::InitDefaultComponents(const FString& SkeletalMeshFileN
 	Super::InitDefaultComponents(SkeletalMeshFileName, ScriptFile);
 	PhaseComponent = AddComponent<UPhaseComponent>();
 	EncounterComponent = AddComponent<UEncounterComponent>();
+	// 보스 페이즈 감독기 — 페이즈 전환 시 슈퍼아머/체간리셋/공격성 상승 (Phase 3).
+	AddComponent<UBossPhaseDirector>();
 	RebindBossComponents();
 }
 

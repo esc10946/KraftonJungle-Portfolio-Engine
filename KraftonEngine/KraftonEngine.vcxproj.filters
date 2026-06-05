@@ -1034,6 +1034,9 @@
     <ClCompile Include="Source\Editor\Viewport\Level\FLevelViewportLayout.cpp">
       <Filter>Source\Editor\Viewport\Level</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\AI\SquadCoordinator.cpp">
+      <Filter>Source\Engine\AI</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\AI\Navigation\PathFollowingComponent.cpp">
       <Filter>Source\Engine\AI\Navigation</Filter>
     </ClCompile>
@@ -1206,6 +1209,9 @@
       <Filter>Source\Engine\Component\AI</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Component\AI\AIPerceptionComponent.cpp">
+      <Filter>Source\Engine\Component\AI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Component\AI\BossPhaseDirector.cpp">
       <Filter>Source\Engine\Component\AI</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Component\AI\EncounterComponent.cpp">
@@ -2414,6 +2420,9 @@
     <ClInclude Include="Source\Engine\AI\CombatClock.h">
       <Filter>Source\Engine\AI</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\AI\SquadCoordinator.h">
+      <Filter>Source\Engine\AI</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Engine\AI\Navigation\PathFollowingComponent.h">
       <Filter>Source\Engine\AI\Navigation</Filter>
     </ClInclude>
@@ -2625,6 +2634,9 @@
       <Filter>Source\Engine\Component\AI</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\AI\AIPerceptionComponent.h">
+      <Filter>Source\Engine\Component\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Component\AI\BossPhaseDirector.h">
       <Filter>Source\Engine\Component\AI</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\AI\EncounterComponent.h">

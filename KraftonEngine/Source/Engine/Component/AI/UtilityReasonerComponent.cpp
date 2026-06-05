@@ -16,6 +16,7 @@ namespace
     const FName Key_TargetThreat  = FName("TargetThreat");
     const FName Key_TargetPosture = FName("TargetPosture");
     const FName Key_TargetInRecovery = FName("TargetInRecovery");
+    const FName Key_PhaseAggression  = FName("PhaseAggression");
 
     // 거리 곡선: 공격 사정대(MinRange~MaxRange) 중앙에서 1, 가장자리에서 0.4.
     float RangeCurve(const FEnemyAttackData& Attack, float Distance)
@@ -67,6 +68,8 @@ FName UUtilityReasonerComponent::SelectBestAction()
     const float TargetThreat  = BB->GetFloat(Key_TargetThreat);
     const float TargetPosture = BB->GetFloat(Key_TargetPosture);
     const bool  bTargetInRecovery = BB->GetBool(Key_TargetInRecovery);
+    // 보스 페이즈 감독기가 기록(없으면 1.0 = 중립). 높은 페이즈일수록 공격성 상승.
+    const float PhaseAggression = BB->HasFloat(Key_PhaseAggression) ? BB->GetFloat(Key_PhaseAggression) : 1.0f;
 
     // 콤보 게이트용 마지막 사용 기술.
     const TArray<FName>& RecentMoves = BB->GetRecentMoves();
@@ -114,7 +117,17 @@ FName UUtilityReasonerComponent::SelectBestAction()
             B.Posture = 1.4f;
         }
 
-        B.Phase = 1.0f; // MinPhase/MaxPhase 는 CanUseAttack 에서 이미 게이트.
+        // 페이즈 곡선: MinPhase/MaxPhase 게이트는 CanUseAttack 이 처리. 여기서는 보스
+        // 페이즈 공격성으로 압박/돌진/페이즈기/위험공격 가치를 키운다.
+        B.Phase = 1.0f;
+        if (PhaseAggression != 1.0f &&
+            (Attack.Tactic == EEnemyAttackTactic::Pressure ||
+             Attack.Tactic == EEnemyAttackTactic::GapCloser ||
+             Attack.Tactic == EEnemyAttackTactic::PhaseChange ||
+             Attack.PerilousType != EPerilousType::None))
+        {
+            B.Phase = PhaseAggression;
+        }
 
         // 후딜 punish 곡선: 타깃이 후딜(Recovery) 중이면 Punish/GapCloser 가치 상승.
         B.Recovery = 1.0f;
