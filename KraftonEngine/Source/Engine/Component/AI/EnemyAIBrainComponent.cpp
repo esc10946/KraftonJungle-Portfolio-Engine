@@ -2,6 +2,8 @@
 
 #include "Component/Combat/CombatStateComponent.h"
 #include "GameFramework/AActor.h"
+#include "GameFramework/Pawn/EnemyCharacter.h"
+#include "GameFramework/Controller/AIController.h"
 #include "GameFramework/World.h"
 #include "Math/MathUtils.h"
 
@@ -220,6 +222,59 @@ bool UEnemyAIBrainComponent::IsTargetInFront(float MaxAbsAngleDegrees) const
 bool UEnemyAIBrainComponent::IsTargetBehind(float MinAbsAngleDegrees) const
 {
 	return HasValidTarget() && fabsf(GetAngleToTarget()) >= MinAbsAngleDegrees;
+}
+
+bool UEnemyAIBrainComponent::RequestMoveToTarget(float AcceptanceRadius, bool bUsePathfinding)
+{
+	AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(GetOwner());
+	if (!Enemy || !HasValidTarget())
+	{
+		return false;
+	}
+	const float Radius = AcceptanceRadius > 0.0f ? AcceptanceRadius : AttackRange;
+	return Enemy->RequestMoveToTarget(Radius, bUsePathfinding);
+}
+
+void UEnemyAIBrainComponent::StopMove()
+{
+	if (AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(GetOwner()))
+	{
+		Enemy->StopEnemyMovement();
+	}
+}
+
+bool UEnemyAIBrainComponent::IsMoveActive() const
+{
+	const AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(GetOwner());
+	return Enemy && Enemy->IsPathFollowing();
+}
+
+EPathFollowingStatus UEnemyAIBrainComponent::GetMoveStatus() const
+{
+	const AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(GetOwner());
+	AAIController* Controller = Enemy ? Enemy->GetEnemyAIController() : nullptr;
+	return Controller ? Controller->GetMoveStatus() : EPathFollowingStatus::Idle;
+}
+
+EPathFollowingRequestResult UEnemyAIBrainComponent::GetLastMoveRequestResult() const
+{
+	const AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(GetOwner());
+	AAIController* Controller = Enemy ? Enemy->GetEnemyAIController() : nullptr;
+	return Controller ? Controller->GetLastMoveRequestResult() : EPathFollowingRequestResult::Failed;
+}
+
+EPathFollowingResult UEnemyAIBrainComponent::GetLastMoveResult() const
+{
+	const AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(GetOwner());
+	AAIController* Controller = Enemy ? Enemy->GetEnemyAIController() : nullptr;
+	return Controller ? Controller->GetLastMoveResult() : EPathFollowingResult::Invalid;
+}
+
+FString UEnemyAIBrainComponent::GetLastMoveFailureReason() const
+{
+	const AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(GetOwner());
+	AAIController* Controller = Enemy ? Enemy->GetEnemyAIController() : nullptr;
+	return Controller ? Controller->GetLastMoveFailureReason() : "No AIController";
 }
 
 void UEnemyAIBrainComponent::SetState(const FName& NewState)

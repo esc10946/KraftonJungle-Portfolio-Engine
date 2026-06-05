@@ -15,20 +15,23 @@ void ABossEnemyCharacter::InitDefaultComponents(const FString& SkeletalMeshFileN
 	Super::InitDefaultComponents(SkeletalMeshFileName, ScriptFile);
 	PhaseComponent = AddComponent<UPhaseComponent>();
 	EncounterComponent = AddComponent<UEncounterComponent>();
-	if (PhaseComponent)
-	{
-		PhaseComponent->OnPhaseChanged.AddUObject(this, &ABossEnemyCharacter::HandlePhaseChanged);
-	}
-	if (EncounterComponent)
-	{
-		EncounterComponent->OnEncounterStarted.AddUObject(this, &ABossEnemyCharacter::HandleEncounterStarted);
-		EncounterComponent->OnEncounterCompleted.AddUObject(this, &ABossEnemyCharacter::HandleEncounterCompleted);
-	}
+	RebindBossComponents();
 }
 
 void ABossEnemyCharacter::PostDuplicate()
 {
 	Super::PostDuplicate();
+	RebindBossComponents();
+}
+
+void ABossEnemyCharacter::OnPostLoad(FArchive& Ar)
+{
+	Super::OnPostLoad(Ar);
+	RebindBossComponents();
+}
+
+void ABossEnemyCharacter::RebindBossComponents()
+{
 	PhaseComponent = GetComponentByClass<UPhaseComponent>();
 	EncounterComponent = GetComponentByClass<UEncounterComponent>();
 	if (PhaseComponent)
@@ -40,6 +43,11 @@ void ABossEnemyCharacter::PostDuplicate()
 		EncounterComponent->OnEncounterStarted.AddUObject(this, &ABossEnemyCharacter::HandleEncounterStarted);
 		EncounterComponent->OnEncounterCompleted.AddUObject(this, &ABossEnemyCharacter::HandleEncounterCompleted);
 	}
+}
+
+EEnemyAIBehaviorStyle ABossEnemyCharacter::GetResolvedBehaviorStyle() const
+{
+	return BehaviorStyle == EEnemyAIBehaviorStyle::Balanced ? EEnemyAIBehaviorStyle::Boss : BehaviorStyle;
 }
 
 bool ABossEnemyCharacter::StartBossEncounter()
@@ -74,6 +82,12 @@ bool ABossEnemyCharacter::TryUpdatePhaseFromHealth()
 		return false;
 	}
 	return PhaseComponent->TrySetPhaseByHealthRatio(HealthComponent->GetHealthRatio());
+}
+
+void ABossEnemyCharacter::HandleDamaged(UHealthComponent* Component, float Damage, float NewHealth, AActor* DamageCauser, AActor* InstigatorActor)
+{
+	Super::HandleDamaged(Component, Damage, NewHealth, DamageCauser, InstigatorActor);
+	TryUpdatePhaseFromHealth();
 }
 
 void ABossEnemyCharacter::HandleDeath(UHealthComponent* Component, AActor* DamageCauser, AActor* InstigatorActor)

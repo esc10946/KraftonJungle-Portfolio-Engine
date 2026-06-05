@@ -44,6 +44,8 @@ public:
 	bool CanUseAttack(const FEnemyAttackData& Attack, int32 Phase, float Distance, float AbsAngle) const;
 	UFUNCTION(Pure, Category="EnemyAI|Attack")
 	FEnemyAttackData SelectAttack(int32 Phase, float Distance, float AbsAngle) const;
+	UFUNCTION(Pure, Category="EnemyAI|Attack")
+	FEnemyAttackData SelectAttackForStyle(int32 Phase, float Distance, float AbsAngle, EEnemyAIBehaviorStyle Style, float StateTime, float HealthRatio) const;
 	UFUNCTION(Callable, Category="EnemyAI|Attack")
 	bool CommitAttack(const FName& AttackName);
 	UFUNCTION(Callable, Category="EnemyAI|Attack")
@@ -66,6 +68,8 @@ public:
 
 private:
 	float GetRecentRepeatScale(const FEnemyAttackData& Attack) const;
+	float GetStyleWeightScale(const FEnemyAttackData& Attack, EEnemyAIBehaviorStyle Style, float Distance, float AbsAngle, float StateTime, float HealthRatio) const;
+	bool PassesComboGate(const FEnemyAttackData& Attack) const;
 	int32 FindCooldownIndex(const FName& AttackName) const;
 	float GlobalCooldownRemaining = 0.0f;
 	TArray<FEnemyAttackCooldownEntry> Cooldowns;

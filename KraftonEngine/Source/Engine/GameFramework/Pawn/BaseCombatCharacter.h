@@ -8,6 +8,7 @@ class UAnimMontage;
 class UAnimInstance;
 class UCombatStateComponent;
 class UHealthComponent;
+class FArchive;
 
 #include "Source/Engine/GameFramework/Pawn/BaseCombatCharacter.generated.h"
 
@@ -21,6 +22,7 @@ public:
 
 	void InitDefaultComponents(const FString& SkeletalMeshFileName) override;
 	void PostDuplicate() override;
+	void OnPostLoad(FArchive& Ar) override;
 
 	UFUNCTION(Pure, Category="Combat|Components")
 	UHealthComponent* GetHealthComponent() const { return HealthComponent; }
@@ -46,6 +48,7 @@ public:
 	void SetAnimGraphInt(const FName& Name, int32 Value);
 
 protected:
+	void RebindCombatComponents();
 	virtual void HandleDamaged(UHealthComponent* Component, float Damage, float NewHealth, AActor* DamageCauser, AActor* InstigatorActor);
 	virtual void HandleDeath(UHealthComponent* Component, AActor* DamageCauser, AActor* InstigatorActor);
 	UAnimInstance* GetAnimInstance() const;

@@ -1,4 +1,4 @@
-﻿#include "GameFramework/Pawn/Character.h"
+#include "GameFramework/Pawn/Character.h"
 
 #include "Component/PrimitiveComponent.h"
 #include "Component/Shape/CapsuleComponent.h"
@@ -244,6 +244,23 @@ void ACharacter::PostDuplicate()
 	CapsuleComponent  = Cast<UCapsuleComponent>(GetRootComponent());
 	Mesh              = GetComponentByClass<USkeletalMeshComponent>();
 	CharacterMovement = GetComponentByClass<UCharacterMovementComponent>();
+}
+
+void ACharacter::OnPostLoad(FArchive& Ar)
+{
+	Super::OnPostLoad(Ar);
+
+	// SceneSaveManager 는 액터 기본 생성자 이후 컴포넌트 그래프를 별도로 복원한다.
+	// 따라서 InitDefaultComponents() 에서 채우던 캐시 포인터와 Movement UpdatedComponent 를
+	// 로드 완료 시점에 다시 연결해야 실제 플레이/PIE 에서 이동, 애니메이션, 충돌 정책이 동작한다.
+	CapsuleComponent  = Cast<UCapsuleComponent>(GetRootComponent());
+	Mesh              = GetComponentByClass<USkeletalMeshComponent>();
+	CharacterMovement = GetComponentByClass<UCharacterMovementComponent>();
+	if (CharacterMovement && CapsuleComponent)
+	{
+		CharacterMovement->SetUpdatedComponent(CapsuleComponent);
+	}
+	ReconcileCharacterCollisionOwnership();
 }
 
 bool ACharacter::EnterRagdoll()

@@ -47,6 +47,17 @@ public:
 	UFUNCTION(Pure, Category="Combat|Poise")
 	float GetPoiseRatio() const;
 
+	// ── Attack threat broadcast ──
+	// 공격을 시작한 액터가 자신의 CombatState 에 "지금 공격 중" 을 표시한다(MarkAttacking).
+	// 적 AI 는 타깃의 CombatState 를 폴링해 IsAttacking / GetAttackThreatRemaining 으로
+	// 회피·패링 타이밍을 잡는다. 게임시간 기준 self-expiring 이라 Tick 의존이 없다.
+	UFUNCTION(Callable, Category="Combat|Threat")
+	void MarkAttacking(float WindowSeconds);
+	UFUNCTION(Pure, Category="Combat|Threat")
+	bool IsAttacking() const;
+	UFUNCTION(Pure, Category="Combat|Threat")
+	float GetAttackThreatRemaining() const;
+
 	UFUNCTION(Callable, Category="Combat|Team")
 	void SetTeam(ECombatTeam InTeam) { Team = InTeam; }
 	UFUNCTION(Pure, Category="Combat|Team")
@@ -84,4 +95,5 @@ public:
 private:
 	bool bStaggered = false;
 	float StaggerRemainingTime = 0.0f;
+	float AttackThreatUntilSeconds = 0.0f;
 };

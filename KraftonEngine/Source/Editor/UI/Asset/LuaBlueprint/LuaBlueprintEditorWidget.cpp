@@ -16,6 +16,10 @@
 #include "Platform/Paths.h"
 #include "Serialization/MemoryArchive.h"
 
+#include <filesystem>
+#include <fstream>
+#include <sstream>
+
 #include <algorithm>
 #include <cctype>
 #include <cfloat>
@@ -2858,6 +2862,42 @@ void FLuaBlueprintEditorWidget::RenderToolbar(ULuaBlueprintAsset* Blueprint)
         CommitBlueprintEdit(Blueprint);
     }
     if (ImGui::IsItemHovered()) ImGui::SetTooltip("Reset the graph to its default event nodes.");
+
+    ImGui::SameLine();
+    ImGui::TextDisabled("|");
+    ImGui::SameLine();
+    if (ToolbarButton("Export JSON"))
+    {
+        const FString OutPath = FString(FPaths::ToUtf8(FPaths::RootDir())) + "/Saved/LuaBlueprint_Export.json";
+        const std::filesystem::path P(FPaths::ToWide(OutPath));
+        std::error_code Ec;
+        std::filesystem::create_directories(P.parent_path(), Ec);
+        std::ofstream File(P, std::ios::binary | std::ios::trunc);
+        if (File.is_open())
+        {
+            File << Blueprint->ExportGraphToJsonString().c_str();
+        }
+    }
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Export the graph to Saved/LuaBlueprint_Export.json (re-importable text JSON).");
+
+    ImGui::SameLine();
+    if (ToolbarButton("Import JSON"))
+    {
+        const FString InPath = FString(FPaths::ToUtf8(FPaths::RootDir())) + "/Saved/LuaBlueprint_Export.json";
+        std::ifstream File(std::filesystem::path(FPaths::ToWide(InPath)), std::ios::binary);
+        if (File.is_open())
+        {
+            std::stringstream Buffer;
+            Buffer << File.rdbuf();
+            if (Blueprint->ImportGraphFromJsonString(FString(Buffer.str())))
+            {
+                Blueprint->Compile();
+                bPositionsPushed = false;
+                CommitBlueprintEdit(Blueprint);
+            }
+        }
+    }
+    if (ImGui::IsItemHovered()) ImGui::SetTooltip("Import Saved/LuaBlueprint_Export.json, replacing the current graph.");
 
     ImGui::SameLine();
     ImGui::TextDisabled("|");

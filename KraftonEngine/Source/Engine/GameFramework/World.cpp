@@ -11,6 +11,7 @@
 #include "Physics/PhysicsWorldSnapshot.h"
 #include "GameFramework/GameMode/GameModeBase.h"
 #include "GameFramework/GameMode/GameStateBase.h"
+#include "Navigation/NavigationSystem.h"
 #include <memory>
 #include "GameFramework/GameMode/PlayerController.h"
 #include "GameFramework/Camera/PlayerCameraManager.h"
@@ -40,6 +41,7 @@ void UWorld::BeginDestroy()
 	RouteWorldDestroyed();
 	EditorPOVProvider = nullptr;
 	GameMode.Reset();
+	NavigationSystem = nullptr;
 	GameModeClass = nullptr;
 	SetOuter(nullptr);
 	UObject::BeginDestroy();
@@ -50,6 +52,7 @@ void UWorld::AddReferencedObjects(FReferenceCollector& Collector)
 	UObject::AddReferencedObjects(Collector);
 	Collector.AddReferencedObject(PersistentLevel, "UWorld.PersistentLevel");
 	Collector.AddReferencedObject(GameMode.Get(), "UWorld.GameMode");
+	Collector.AddReferencedObject(NavigationSystem.GetRaw(), "UWorld.NavigationSystem");
 	Scene.AddReferencedObjects(Collector);
 }
 
@@ -152,6 +155,10 @@ void UWorld::DestroyActor(AActor* Actor)
 
 	MarkWorldPrimitivePickingBVHDirty();
 	Partition.RemoveActor(Actor);
+	if (NavigationSystem)
+	{
+		NavigationSystem->InvalidateNavigationData();
+	}
 
 	// GC 기반 파괴 요청. 실제 메모리 해제는 안전 지점의 GC sweep에서 수행된다.
 	UObjectManager::Get().DestroyObject(Actor);
@@ -356,6 +363,10 @@ void UWorld::AddActor(AActor* Actor)
 
 	InsertActorToOctree(Actor);
 	MarkWorldPrimitivePickingBVHDirty();
+	if (NavigationSystem)
+	{
+		NavigationSystem->InvalidateNavigationData();
+	}
 
 	// PIE 중 Duplicate(Ctrl+D)나 SpawnActor로 들어온 액터에도 BeginPlay를 보장.
 	if (bHasBegunPlay && !Actor->HasActorBegunPlay())
@@ -546,6 +557,8 @@ void UWorld::InitWorld()
 	PersistentLevel = UObjectManager::Get().CreateObject<ULevel>(this);
 	PersistentLevel->SetWorld(this);
 
+	NavigationSystem = UObjectManager::Get().CreateObject<UNavigationSystem>(this);
+
 	// E.2/3: CameraManager spawn 은 PC 의 BeginPlay 가 담당. World 는 보유하지 않음.
 
 	// 물리 시스템 초기화
@@ -568,6 +581,13 @@ void UWorld::BeginPlay()
 	if (PersistentLevel)
 	{
 		PersistentLevel->BeginPlay();
+	}
+
+	// NavigationData는 모든 액터와 컴포넌트가 BeginPlay를 거쳐 물리 바디를 만든 뒤
+	// 빌드한다. LuaBlueprint PostBeginPlay / AI Tick 전에 캐시가 준비되도록 한다.
+	if (NavigationSystem)
+	{
+		NavigationSystem->RebuildNavigation();
 	}
 
     BroadcastLuaBlueprintPostBeginPlay();

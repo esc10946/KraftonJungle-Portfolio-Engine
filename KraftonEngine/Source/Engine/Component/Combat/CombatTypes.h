@@ -26,6 +26,51 @@ inline const char* GCombatTeamNames[] = {
 };
 inline constexpr uint32 GCombatTeamCount = sizeof(GCombatTeamNames) / sizeof(GCombatTeamNames[0]);
 
+
+UENUM()
+enum class EEnemyAIBehaviorStyle : uint8
+{
+	Passive = 0,
+	Balanced = 1,
+	Aggressive = 2,
+	Defensive = 3,
+	Boss = 4,
+};
+
+inline const char* GEnemyAIBehaviorStyleNames[] = {
+	"Passive",
+	"Balanced",
+	"Aggressive",
+	"Defensive",
+	"Boss",
+};
+inline constexpr uint32 GEnemyAIBehaviorStyleCount = sizeof(GEnemyAIBehaviorStyleNames) / sizeof(GEnemyAIBehaviorStyleNames[0]);
+
+UENUM()
+enum class EEnemyAttackTactic : uint8
+{
+	Neutral = 0,
+	Opener = 1,
+	Pressure = 2,
+	Combo = 3,
+	GapCloser = 4,
+	Punish = 5,
+	Retreat = 6,
+	PhaseChange = 7,
+};
+
+inline const char* GEnemyAttackTacticNames[] = {
+	"Neutral",
+	"Opener",
+	"Pressure",
+	"Combo",
+	"GapCloser",
+	"Punish",
+	"Retreat",
+	"PhaseChange",
+};
+inline constexpr uint32 GEnemyAttackTacticCount = sizeof(GEnemyAttackTacticNames) / sizeof(GEnemyAttackTacticNames[0]);
+
 UENUM()
 enum class ECombatDamageResult : uint8
 {
@@ -140,6 +185,28 @@ struct FEnemyAttackData
 
 	UPROPERTY(Edit, Save, Category="Attack|Behavior", DisplayName="Gap Closer")
 	bool bIsGapCloser = false;
+
+
+	UPROPERTY(Edit, Save, Category="Attack|Behavior", DisplayName="Tactic", Enum=EEnemyAttackTactic)
+	EEnemyAttackTactic Tactic = EEnemyAttackTactic::Neutral;
+
+	UPROPERTY(Edit, Save, Category="Attack|Behavior", DisplayName="Priority", Min=0.0f, Max=100.0f, Speed=0.1f)
+	float Priority = 1.0f;
+
+	UPROPERTY(Edit, Save, Category="Attack|Combo", DisplayName="Requires Previous Attack")
+	bool bRequiresPreviousAttack = false;
+
+	UPROPERTY(Edit, Save, Category="Attack|Combo", DisplayName="Required Previous Attack")
+	FName RequiredPreviousAttack = FName::None;
+
+	UPROPERTY(Edit, Save, Category="Attack|FallbackHit", DisplayName="Use Fallback Damage")
+	bool bUseFallbackDamage = true;
+
+	UPROPERTY(Edit, Save, Category="Attack|FallbackHit", DisplayName="Fallback Damage Delay", Min=0.0f, Max=10.0f, Speed=0.01f)
+	float FallbackDamageDelay = 0.35f;
+
+	UPROPERTY(Edit, Save, Category="Attack|FallbackHit", DisplayName="Fallback Hit Radius", Min=0.0f, Max=100000.0f, Speed=0.5f)
+	float FallbackHitRadius = 1.5f;
 };
 
 USTRUCT()

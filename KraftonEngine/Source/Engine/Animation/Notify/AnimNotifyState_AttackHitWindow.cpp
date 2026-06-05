@@ -10,6 +10,7 @@
 #include "Debug/DrawDebugHelpers.h"
 #include "Core/Logging/Log.h"
 #include "GameFramework/AActor.h"
+#include "GameFramework/Pawn/EnemyCharacter.h"
 #include "GameFramework/World.h"
 #include "Mesh/Skeletal/SkeletalMesh.h"
 #include "Mesh/Skeletal/SkeletalMeshAsset.h"
@@ -218,7 +219,7 @@ namespace
 
 }
 
-void UAnimNotifyState_AttackHitWindow::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* /*Anim*/, float /*TotalDuration*/)
+void UAnimNotifyState_AttackHitWindow::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* /*Anim*/, float TotalDuration)
 {
 	PurgeInvalidAttackHitEntries(HitActorsByMesh, MissLoggedActorsByMesh, NoTargetLoggedMeshes);
 	if (!IsValid(MeshComp))
@@ -229,6 +230,17 @@ void UAnimNotifyState_AttackHitWindow::NotifyBegin(USkeletalMeshComponent* MeshC
 	HitActorsByMesh[MeshComp].clear();
 	MissLoggedActorsByMesh[MeshComp].clear();
 	NoTargetLoggedMeshes.erase(MeshComp);
+
+	// 공격 히트 윈도우가 열리는 순간을 "이 액터가 공격 중" 으로 broadcast.
+	// 적 AI 가 타깃의 CombatState 를 폴링해 회피/패링 타이밍을 잡는다(클래스 무관).
+	if (AActor* Owner = MeshComp->GetOwner())
+	{
+		if (UCombatStateComponent* Combat = Owner->GetComponentByClass<UCombatStateComponent>())
+		{
+			const float ThreatWindow = TotalDuration > 0.0f ? TotalDuration + 0.15f : 0.5f;
+			Combat->MarkAttacking(ThreatWindow);
+		}
+	}
 }
 
 void UAnimNotifyState_AttackHitWindow::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* /*Anim*/, float /*FrameDeltaTime*/)
@@ -367,7 +379,21 @@ void UAnimNotifyState_AttackHitWindow::NotifyTick(USkeletalMeshComponent* MeshCo
 		HitActors.insert(Candidate);
 		if (bApplyDamage)
 		{
-			ApplyCombatDamage(Owner, Candidate, Center, Damage, PoiseDamage);
+			if (AEnemyCharacter* EnemyOwner = Cast<AEnemyCharacter>(Owner))
+			{
+				if (EnemyOwner->HasCurrentAttack())
+				{
+					EnemyOwner->ApplyCurrentAttackDamageToActor(Candidate, Center);
+				}
+				else
+				{
+					ApplyCombatDamage(Owner, Candidate, Center, Damage, PoiseDamage);
+				}
+			}
+			else
+			{
+				ApplyCombatDamage(Owner, Candidate, Center, Damage, PoiseDamage);
+			}
 		}
 		ApplyHitStop(Owner, HitStopDuration, bAutoAddActionComponent);
 		ApplyHitStop(Candidate, HitStopDuration, bAutoAddActionComponent);

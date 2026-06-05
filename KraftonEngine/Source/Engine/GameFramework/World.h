@@ -1,6 +1,7 @@
 #pragma once
 #include "Object/Object.h"
 #include "Object/Ptr/WeakObjectPtr.h"
+#include "Object/Ptr/ObjectPtr.h"
 #include "Core/Types/RayTypes.h"
 #include "Core/Types/CollisionTypes.h"
 #include "Collision/BVH/WorldPrimitivePickingBVH.h"
@@ -25,6 +26,7 @@ class UPrimitiveComponent;
 class AGameModeBase;
 class AGameStateBase;
 class APlayerController;
+class UNavigationSystem;
 class UClass;
 struct FPhysicsWorldSnapshot;
 
@@ -192,6 +194,7 @@ private:
 
 	// Game flow — Editor 월드에서는 nullptr로 유지된다.
 	TWeakObjectPtr<AGameModeBase> GameMode;
+	TObjectPtr<UNavigationSystem> NavigationSystem = nullptr;
 	UClass* GameModeClass = nullptr;  // GameEngine 등이 BeginPlay 전에 세팅
 
 public:
@@ -227,6 +230,8 @@ public:
 	AGameStateBase* GetGameState() const;
 	UFUNCTION(Pure, Category="World|Game")
 	APlayerController* GetFirstPlayerController() const;
+	UFUNCTION(Pure, Category="World|Navigation")
+	UNavigationSystem* GetNavigationSystem() const { return NavigationSystem.Get(); }
 
 	// Physics snapshot receivers let specialized components consume their own snapshot domains
 	// without UWorld depending on those concrete component classes. Returns a handle for unregister.

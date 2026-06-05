@@ -3,6 +3,7 @@
 #include "Component/ActorComponent.h"
 #include "Core/Delegate.h"
 #include "Math/Vector.h"
+#include "Navigation/NavTypes.h"
 #include "Object/FName.h"
 #include "Object/Ptr/WeakObjectPtr.h"
 
@@ -61,19 +62,34 @@ public:
 	UFUNCTION(Pure, Category="EnemyAI|State")
 	float GetStateTime() const { return StateTime; }
 
+	UFUNCTION(Callable, Category="EnemyAI|Move")
+	bool RequestMoveToTarget(float AcceptanceRadius = -1.0f, bool bUsePathfinding = true);
+	UFUNCTION(Callable, Category="EnemyAI|Move")
+	void StopMove();
+	UFUNCTION(Pure, Category="EnemyAI|Move")
+	bool IsMoveActive() const;
+	UFUNCTION(Pure, Category="EnemyAI|Move")
+	EPathFollowingStatus GetMoveStatus() const;
+	UFUNCTION(Pure, Category="EnemyAI|Move")
+	EPathFollowingRequestResult GetLastMoveRequestResult() const;
+	UFUNCTION(Pure, Category="EnemyAI|Move")
+	EPathFollowingResult GetLastMoveResult() const;
+	UFUNCTION(Pure, Category="EnemyAI|Move")
+	FString GetLastMoveFailureReason() const;
+
 	void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction& ThisTickFunction) override;
 
 	UPROPERTY(Edit, Save, Category="EnemyAI|Target", DisplayName="Default Target Tag")
 	FName DefaultTargetTag = FName("Player");
 
-	UPROPERTY(Edit, Save, Category="EnemyAI|Sense", DisplayName="Detection Range", Min=0.0f, Max=100000.0f, Speed=10.0f)
-	float DetectionRange = 1200.0f;
+	UPROPERTY(Edit, Save, Category="EnemyAI|Sense", DisplayName="Detection Range", Min=0.0f, Max=1000.0f, Speed=0.5f)
+	float DetectionRange = 40.0f;
 
-	UPROPERTY(Edit, Save, Category="EnemyAI|Sense", DisplayName="Lose Target Range", Min=0.0f, Max=100000.0f, Speed=10.0f)
-	float LoseTargetRange = 1800.0f;
+	UPROPERTY(Edit, Save, Category="EnemyAI|Sense", DisplayName="Lose Target Range", Min=0.0f, Max=1000.0f, Speed=0.5f)
+	float LoseTargetRange = 55.0f;
 
-	UPROPERTY(Edit, Save, Category="EnemyAI|Combat", DisplayName="Attack Range", Min=0.0f, Max=100000.0f, Speed=10.0f)
-	float AttackRange = 220.0f;
+	UPROPERTY(Edit, Save, Category="EnemyAI|Combat", DisplayName="Attack Range", Min=0.0f, Max=1000.0f, Speed=0.1f)
+	float AttackRange = 3.0f;
 
 	UPROPERTY(Edit, Save, Category="EnemyAI|State", DisplayName="Initial State")
 	FName InitialState = FName("Idle");

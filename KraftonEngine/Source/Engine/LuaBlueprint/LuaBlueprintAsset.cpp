@@ -6,6 +6,7 @@
 #include "Object/GarbageCollection.h"
 #include "Object/Reflection/UClass.h"
 #include "Serialization/Archive.h"
+#include "SimpleJSON/json.hpp"
 
 #include <algorithm>
 #include <cstring>
@@ -2970,6 +2971,222 @@ void ULuaBlueprintAsset::RefreshAllNodePinTypes()
             }
         }
     }
+}
+
+namespace
+{
+    json::JSON MakeVec3Json(const FVector& V)
+    {
+        json::JSON Arr = json::Array();
+        Arr[0] = static_cast<double>(V.X);
+        Arr[1] = static_cast<double>(V.Y);
+        Arr[2] = static_cast<double>(V.Z);
+        return Arr;
+    }
+
+    FVector ReadVec3Json(json::JSON& Node)
+    {
+        if (Node.JSONType() != json::JSON::Class::Array || Node.size() < 3)
+        {
+            return FVector::ZeroVector;
+        }
+        return FVector(
+            static_cast<float>(Node[0].ToFloat()),
+            static_cast<float>(Node[1].ToFloat()),
+            static_cast<float>(Node[2].ToFloat()));
+    }
+}
+
+FString ULuaBlueprintAsset::ExportGraphToJsonString() const
+{
+    json::JSON Root = json::Object();
+    Root["format"]  = "KraftonLuaBlueprint";
+    Root["version"] = 1;
+
+    json::JSON NodeArr = json::Array();
+    unsigned NodeIndex = 0;
+    for (const FLuaBlueprintNode& Node : Nodes)
+    {
+        json::JSON J = json::Object();
+        J["id"]          = static_cast<int>(Node.NodeId);
+        J["type"]        = static_cast<int>(Node.Type);
+        J["displayName"] = Node.DisplayName.ToString();
+        json::JSON Pos = json::Array();
+        Pos[0] = static_cast<double>(Node.PosX);
+        Pos[1] = static_cast<double>(Node.PosY);
+        J["pos"]         = Pos;
+        J["nameValue"]   = Node.NameValue.ToString();
+        J["stringValue"] = Node.StringValue;
+        J["boolValue"]   = Node.BoolValue;
+        J["intValue"]    = static_cast<int>(Node.IntValue);
+        J["floatValue"]  = static_cast<double>(Node.FloatValue);
+        J["vector"]      = MakeVec3Json(Node.VectorValue);
+
+        json::JSON PinArr = json::Array();
+        unsigned PinIndex = 0;
+        for (const FLuaBlueprintPin& Pin : Node.Pins)
+        {
+            json::JSON P = json::Object();
+            P["id"]            = static_cast<int>(Pin.PinId);
+            P["owningNodeId"]  = static_cast<int>(Pin.OwningNodeId);
+            P["kind"]          = static_cast<int>(Pin.Kind);
+            P["type"]          = static_cast<int>(Pin.Type);
+            P["displayName"]   = Pin.DisplayName.ToString();
+            P["defaultBool"]   = Pin.DefaultBool;
+            P["defaultInt"]    = static_cast<int>(Pin.DefaultInt);
+            P["defaultFloat"]  = static_cast<double>(Pin.DefaultFloat);
+            P["defaultString"] = Pin.DefaultString;
+            P["defaultVector"] = MakeVec3Json(Pin.DefaultVector);
+            PinArr[PinIndex++] = P;
+        }
+        J["pins"]            = PinArr;
+        NodeArr[NodeIndex++] = J;
+    }
+    Root["nodes"] = NodeArr;
+
+    json::JSON LinkArr = json::Array();
+    unsigned LinkIndex = 0;
+    for (const FLuaBlueprintLink& Link : Links)
+    {
+        json::JSON L = json::Object();
+        L["id"]   = static_cast<int>(Link.LinkId);
+        L["from"] = static_cast<int>(Link.FromPinId);
+        L["to"]   = static_cast<int>(Link.ToPinId);
+        LinkArr[LinkIndex++] = L;
+    }
+    Root["links"] = LinkArr;
+
+    json::JSON VarArr = json::Array();
+    unsigned VarIndex = 0;
+    for (const FLuaBlueprintVariable& Var : Variables)
+    {
+        json::JSON V = json::Object();
+        V["name"]         = Var.Name.ToString();
+        V["type"]         = static_cast<int>(Var.Type);
+        V["strongObject"] = Var.bStrongObject;
+        V["boolValue"]    = Var.BoolValue;
+        V["intValue"]     = static_cast<int>(Var.IntValue);
+        V["floatValue"]   = static_cast<double>(Var.FloatValue);
+        V["stringValue"]  = Var.StringValue;
+        V["vector"]       = MakeVec3Json(Var.VectorValue);
+        VarArr[VarIndex++] = V;
+    }
+    Root["variables"] = VarArr;
+
+    return FString(Root.dump());
+}
+
+bool ULuaBlueprintAsset::ImportGraphFromJsonString(const FString& Text)
+{
+    json::JSON Root = json::JSON::Load(Text);
+    if (Root.JSONType() != json::JSON::Class::Object || !Root.hasKey("nodes"))
+    {
+        return false;
+    }
+
+    Nodes.clear();
+    Links.clear();
+    Variables.clear();
+    Diagnostics.clear();
+
+    uint32 MaxId = 0;
+
+    json::JSON NodeArr = Root["nodes"];
+    for (unsigned i = 0; i < static_cast<unsigned>(NodeArr.size()); ++i)
+    {
+        json::JSON J = NodeArr[i];
+        FLuaBlueprintNode Node;
+        Node.NodeId      = static_cast<uint32>(J["id"].ToInt());
+        Node.Type        = static_cast<ELuaBlueprintNodeType>(J["type"].ToInt());
+        Node.DisplayName = FName(FString(J["displayName"].ToString()));
+        if (J.hasKey("pos") && J["pos"].size() >= 2)
+        {
+            Node.PosX = static_cast<float>(J["pos"][0].ToFloat());
+            Node.PosY = static_cast<float>(J["pos"][1].ToFloat());
+        }
+        Node.NameValue   = FName(FString(J["nameValue"].ToString()));
+        Node.StringValue = FString(J["stringValue"].ToString());
+        Node.BoolValue   = J["boolValue"].ToBool();
+        Node.IntValue    = static_cast<int32>(J["intValue"].ToInt());
+        Node.FloatValue  = static_cast<float>(J["floatValue"].ToFloat());
+        if (J.hasKey("vector"))
+        {
+            Node.VectorValue = ReadVec3Json(J["vector"]);
+        }
+
+        if (J.hasKey("pins"))
+        {
+            json::JSON PinArr = J["pins"];
+            for (unsigned p = 0; p < static_cast<unsigned>(PinArr.size()); ++p)
+            {
+                json::JSON Pj = PinArr[p];
+                FLuaBlueprintPin Pin;
+                Pin.PinId        = static_cast<uint32>(Pj["id"].ToInt());
+                Pin.OwningNodeId = static_cast<uint32>(Pj["owningNodeId"].ToInt());
+                Pin.Kind         = static_cast<ELuaBlueprintPinKind>(Pj["kind"].ToInt());
+                Pin.Type         = static_cast<ELuaBlueprintPinType>(Pj["type"].ToInt());
+                Pin.DisplayName  = FName(FString(Pj["displayName"].ToString()));
+                Pin.DefaultBool  = Pj["defaultBool"].ToBool();
+                Pin.DefaultInt   = static_cast<int32>(Pj["defaultInt"].ToInt());
+                Pin.DefaultFloat = static_cast<float>(Pj["defaultFloat"].ToFloat());
+                Pin.DefaultString= FString(Pj["defaultString"].ToString());
+                if (Pj.hasKey("defaultVector"))
+                {
+                    Pin.DefaultVector = ReadVec3Json(Pj["defaultVector"]);
+                }
+                if (Pin.OwningNodeId == 0)
+                {
+                    Pin.OwningNodeId = Node.NodeId;
+                }
+                MaxId = (std::max)(MaxId, Pin.PinId);
+                Node.Pins.push_back(Pin);
+            }
+        }
+        MaxId = (std::max)(MaxId, Node.NodeId);
+        Nodes.push_back(Node);
+    }
+
+    if (Root.hasKey("links"))
+    {
+        json::JSON LinkArr = Root["links"];
+        for (unsigned i = 0; i < static_cast<unsigned>(LinkArr.size()); ++i)
+        {
+            json::JSON L = LinkArr[i];
+            FLuaBlueprintLink Link;
+            Link.LinkId    = static_cast<uint32>(L["id"].ToInt());
+            Link.FromPinId = static_cast<uint32>(L["from"].ToInt());
+            Link.ToPinId   = static_cast<uint32>(L["to"].ToInt());
+            MaxId = (std::max)(MaxId, Link.LinkId);
+            Links.push_back(Link);
+        }
+    }
+
+    if (Root.hasKey("variables"))
+    {
+        json::JSON VarArr = Root["variables"];
+        for (unsigned i = 0; i < static_cast<unsigned>(VarArr.size()); ++i)
+        {
+            json::JSON V = VarArr[i];
+            FLuaBlueprintVariable Var;
+            Var.Name          = FName(FString(V["name"].ToString()));
+            Var.Type          = static_cast<ELuaBlueprintPinType>(V["type"].ToInt());
+            Var.bStrongObject = V["strongObject"].ToBool();
+            Var.BoolValue     = V["boolValue"].ToBool();
+            Var.IntValue      = static_cast<int32>(V["intValue"].ToInt());
+            Var.FloatValue    = static_cast<float>(V["floatValue"].ToFloat());
+            Var.StringValue   = FString(V["stringValue"].ToString());
+            if (V.hasKey("vector"))
+            {
+                Var.VectorValue = ReadVec3Json(V["vector"]);
+            }
+            Variables.push_back(Var);
+        }
+    }
+
+    NextId = MaxId + 1;
+    RemoveInvalidLinks();
+    BumpVersion();
+    return true;
 }
 
 void ULuaBlueprintAsset::Serialize(FArchive& Ar)

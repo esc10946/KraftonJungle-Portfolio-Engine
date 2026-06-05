@@ -38,6 +38,12 @@ public:
     void               InitializeDefault();
     bool               Compile();
 
+    // JSON 그래프 입출력 — 사람이 편집/공유/버전관리 가능한 텍스트 포맷.
+    // .uasset 바이너리 저장과는 별개이며, 노드/핀/링크의 id 를 그대로 보존해 완벽 왕복한다.
+    // 에디터 툴바의 Export/Import JSON 버튼이 이 둘을 사용한다.
+    FString ExportGraphToJsonString() const;
+    bool    ImportGraphFromJsonString(const FString& Text);
+
     bool RemoveNode(uint32 NodeId);
     bool RemoveLink(uint32 LinkId);
     bool RemoveInvalidLinks();

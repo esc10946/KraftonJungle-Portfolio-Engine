@@ -5,6 +5,8 @@
 
 #include "Object/Ptr/WeakObjectPtr.h"
 #include "Source/Engine/GameFramework/Pawn/Pawn.generated.h"
+class AController;
+class AAIController;
 class APlayerController;
 class UInputComponent;
 struct FInputSystemSnapshot;
@@ -32,7 +34,7 @@ public:
 
 	// PlayerController::Possess가 호출 — 서브클래스가 override해서
 	// 입력 활성화/카메라 전환 등을 처리할 수 있다.
-	virtual void PossessedBy(APlayerController* PC);
+	virtual void PossessedBy(AController* NewController);
 	virtual void UnPossessed();
 
 	// Input 활성화 — BeginPlay 가 UInputComponent 부착 후 호출. 자식이 override.
@@ -45,9 +47,14 @@ public:
 	void BeginPlay() override;
 
 	UFUNCTION(Pure, Category="Pawn")
-	APlayerController* GetController() const { return Controller; }
+	AController* GetController() const { return Controller; }
 	UFUNCTION(Pure, Category="Pawn")
 	bool IsPossessed() const { return Controller != nullptr; }
+
+	UFUNCTION(Pure, Category="Pawn")
+	APlayerController* GetPlayerController() const;
+	UFUNCTION(Pure, Category="Pawn")
+	AAIController* GetAIController() const;
 
 	UFUNCTION(Callable, Category="Pawn")
 	void SetAutoPossessPlayer(bool bIn) { bAutoPossessPlayer = bIn; }
@@ -89,7 +96,7 @@ public:
 	bool bUseControllerRotationRoll  = false;
 
 protected:
-	TWeakObjectPtr<APlayerController> Controller;  // 직렬화 제외 — 런타임에 PC가 세팅
+	TWeakObjectPtr<AController> Controller;  // 직렬화 제외 — 런타임에 Controller가 세팅
 
 	UPROPERTY(Edit, Save, Category="Pawn", DisplayName="Auto Possess Player")
 	bool bAutoPossessPlayer = true;            // 직렬화 — GameMode가 시작 시 자동 Possess할 후보로 사용

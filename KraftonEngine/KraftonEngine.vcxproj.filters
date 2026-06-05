@@ -118,6 +118,12 @@
     <Filter Include="Source\Engine">
       <UniqueIdentifier>{d0b56061-5521-9f21-3d03-1e11f47e99a7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Engine\AI">
+      <UniqueIdentifier>{67d62a53-52ce-a14f-a7a1-a6e905173989}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\AI\Navigation">
+      <UniqueIdentifier>{215c1fd4-f045-1ab9-2677-6f0a89e1e7dd}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source\Engine\Animation">
       <UniqueIdentifier>{883a27c1-1a16-4122-ba2c-ce4f747faae7}</UniqueIdentifier>
     </Filter>
@@ -241,6 +247,9 @@
     <Filter Include="Source\Engine\GameFramework\Camera">
       <UniqueIdentifier>{72b41fe4-6926-0c2c-9073-b1547b3ba1b2}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Engine\GameFramework\Controller">
+      <UniqueIdentifier>{1e54d6b5-25d6-be79-a203-429d4acdaefd}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source\Engine\GameFramework\GameMode">
       <UniqueIdentifier>{5dad4861-14c8-9475-5500-063e7861367c}</UniqueIdentifier>
     </Filter>
@@ -285,6 +294,9 @@
     </Filter>
     <Filter Include="Source\Engine\Mesh\Static">
       <UniqueIdentifier>{b0b266a4-4232-a98f-8e35-4534a8a518b9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Navigation">
+      <UniqueIdentifier>{ca9386c9-1e16-536c-828d-7bb0e6c7b5ec}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Object">
       <UniqueIdentifier>{f6219ff0-0046-2f35-71f3-ad6383da3d2c}</UniqueIdentifier>
@@ -396,6 +408,9 @@
     </Filter>
     <Filter Include="Source\Game">
       <UniqueIdentifier>{7b75b017-e44b-6189-2a88-30dc16a5724f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Game\GameMode">
+      <UniqueIdentifier>{180756f8-cd60-823a-2895-cf41347cb361}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Game\Lua">
       <UniqueIdentifier>{a904550b-6c67-d00d-ee77-c5aaf7b88e71}</UniqueIdentifier>
@@ -645,9 +660,6 @@
     </Filter>
     <Filter Include="ThirdParty\sol2\include\sol\utility">
       <UniqueIdentifier>{9665cc4b-2b87-76ba-7eb3-a148e4c5a694}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source\Game\GameMode">
-      <UniqueIdentifier>{0362fc63-7f66-4793-9598-391ce27e310f}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -1018,6 +1030,9 @@
     </ClCompile>
     <ClCompile Include="Source\Editor\Viewport\Level\FLevelViewportLayout.cpp">
       <Filter>Source\Editor\Viewport\Level</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\AI\Navigation\PathFollowingComponent.cpp">
+      <Filter>Source\Engine\AI\Navigation</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Animation\AnimInstance.cpp">
       <Filter>Source\Engine\Animation</Filter>
@@ -1409,6 +1424,9 @@
     <ClCompile Include="Source\Engine\GameFramework\Actor\HeightFogActor.cpp">
       <Filter>Source\Engine\GameFramework\Actor</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\GameFramework\Actor\NavMeshBoundsVolume.cpp">
+      <Filter>Source\Engine\GameFramework\Actor</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\GameFramework\Actor\ParticleSystemActor.cpp">
       <Filter>Source\Engine\GameFramework\Actor</Filter>
     </ClCompile>
@@ -1447,6 +1465,12 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\GameFramework\Camera\WaveOscillatorCameraShake.cpp">
       <Filter>Source\Engine\GameFramework\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\GameFramework\Controller\AIController.cpp">
+      <Filter>Source\Engine\GameFramework\Controller</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\GameFramework\Controller\Controller.cpp">
+      <Filter>Source\Engine\GameFramework\Controller</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\GameFramework\GameMode\GameModeBase.cpp">
       <Filter>Source\Engine\GameFramework\GameMode</Filter>
@@ -1609,6 +1633,15 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Mesh\Static\StaticMesh.cpp">
       <Filter>Source\Engine\Mesh\Static</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Navigation\GridNavMesh.cpp">
+      <Filter>Source\Engine\Navigation</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Navigation\NavigationData.cpp">
+      <Filter>Source\Engine\Navigation</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Navigation\NavigationSystem.cpp">
+      <Filter>Source\Engine\Navigation</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Object\FName.cpp">
       <Filter>Source\Engine\Object</Filter>
@@ -2099,6 +2132,9 @@
     <ClCompile Include="Source\Game\GameActorPlacements.cpp">
       <Filter>Source\Game</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Game\GameMode\AFinaleGameMode.cpp">
+      <Filter>Source\Game\GameMode</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Game\Lua\GameLuaBindings.cpp">
       <Filter>Source\Game\Lua</Filter>
     </ClCompile>
@@ -2153,10 +2189,6 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Intermediate\Generated\Reflection.generated.cpp">
       <Filter>Intermediate\Generated</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Profiling\Stats\ClothCollisionStats.cpp" />
-    <ClCompile Include="Source\Game\GameMode\AFinaleGameMode.cpp">
-      <Filter>Source\Game\GameMode</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -2354,6 +2386,9 @@
     </ClInclude>
     <ClInclude Include="Source\Editor\Viewport\Level\LevelEditorViewportClient.h">
       <Filter>Source\Editor\Viewport\Level</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\AI\Navigation\PathFollowingComponent.h">
+      <Filter>Source\Engine\AI\Navigation</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Animation\AnimExtractContext.h">
       <Filter>Source\Engine\Animation</Filter>
@@ -2820,6 +2855,9 @@
     <ClInclude Include="Source\Engine\GameFramework\Actor\HeightFogActor.h">
       <Filter>Source\Engine\GameFramework\Actor</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\GameFramework\Actor\NavMeshBoundsVolume.h">
+      <Filter>Source\Engine\GameFramework\Actor</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Engine\GameFramework\Actor\ParticleSystemActor.h">
       <Filter>Source\Engine\GameFramework\Actor</Filter>
     </ClInclude>
@@ -2861,6 +2899,12 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\GameFramework\Camera\WaveOscillatorCameraShake.h">
       <Filter>Source\Engine\GameFramework\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\GameFramework\Controller\AIController.h">
+      <Filter>Source\Engine\GameFramework\Controller</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\GameFramework\Controller\Controller.h">
+      <Filter>Source\Engine\GameFramework\Controller</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\GameFramework\GameMode\GameModeBase.h">
       <Filter>Source\Engine\GameFramework\GameMode</Filter>
@@ -3056,6 +3100,18 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Mesh\Static\StaticMeshAsset.h">
       <Filter>Source\Engine\Mesh\Static</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Navigation\GridNavMesh.h">
+      <Filter>Source\Engine\Navigation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Navigation\NavTypes.h">
+      <Filter>Source\Engine\Navigation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Navigation\NavigationData.h">
+      <Filter>Source\Engine\Navigation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Navigation\NavigationSystem.h">
+      <Filter>Source\Engine\Navigation</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Object\FName.h">
       <Filter>Source\Engine\Object</Filter>
@@ -3713,6 +3769,12 @@
     </ClInclude>
     <ClInclude Include="Source\Game\GameActorPlacements.h">
       <Filter>Source\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Game\GameMode\AFinaleGameMode.h">
+      <Filter>Source\Game\GameMode</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Game\GameMode\GameState.h">
+      <Filter>Source\Game\GameMode</Filter>
     </ClInclude>
     <ClInclude Include="Source\Game\Lua\GameLuaBindings.h">
       <Filter>Source\Game\Lua</Filter>
@@ -6149,13 +6211,6 @@
     </ClInclude>
     <ClInclude Include="ThirdParty\sol2\include\sol\utility\to_string.hpp">
       <Filter>ThirdParty\sol2\include\sol\utility</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Profiling\Stats\ClothCollisionStats.h" />
-    <ClInclude Include="Source\Game\GameMode\AFinaleGameMode.h">
-      <Filter>Source\Game\GameMode</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Game\GameMode\GameState.h">
-      <Filter>Source\Game\GameMode</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

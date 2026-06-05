@@ -1,6 +1,6 @@
 #pragma once
 
-#include "GameFramework/AActor.h"
+#include "GameFramework/Controller/Controller.h"
 #include "GameFramework/Camera/CameraTypes.h"
 
 #include "Object/Ptr/WeakObjectPtr.h"
@@ -16,7 +16,7 @@ struct FInputSystemSnapshot;
 // World당 (지금은) 1개만 spawn되며 GameMode가 spawn/관리.
 // ============================================================
 UCLASS()
-class APlayerController : public AActor
+class APlayerController : public AController
 {
 public:
 	GENERATED_BODY()
@@ -33,7 +33,7 @@ public:
 	void UnPossess();
 
 	UFUNCTION(Pure, Category="PlayerController")
-	APawn* GetPossessedPawn() const { return PossessedPawn.Get(); }
+	APawn* GetPossessedPawn() const { return GetPawn(); }
 
 	void ProcessPlayerInput(const FInputSystemSnapshot& Snapshot, float DeltaTime);
 
@@ -55,8 +55,6 @@ public:
 		bool bLockOutgoing = false);
 
 private:
-	TWeakObjectPtr<APawn> PossessedPawn;  // 직렬화 제외
-
 	// PlayerCameraManager — UE 의 PC->PlayerCameraManager 와 동일 의미. 직렬화 제외.
 	// 현재(E.2 청크 1)는 World 의 CameraManager 를 reference 로 캐싱. E.2 청크 3 에서
 	// PC 가 BeginPlay 에서 직접 SpawnActor 로 생성하는 owner 로 전환.

@@ -25,6 +25,17 @@ void ABaseCombatCharacter::InitDefaultComponents(const FString& SkeletalMeshFile
 void ABaseCombatCharacter::PostDuplicate()
 {
 	Super::PostDuplicate();
+	RebindCombatComponents();
+}
+
+void ABaseCombatCharacter::OnPostLoad(FArchive& Ar)
+{
+	Super::OnPostLoad(Ar);
+	RebindCombatComponents();
+}
+
+void ABaseCombatCharacter::RebindCombatComponents()
+{
 	HealthComponent = GetComponentByClass<UHealthComponent>();
 	CombatStateComponent = GetComponentByClass<UCombatStateComponent>();
 	ActionComponent = GetComponentByClass<UActionComponent>();

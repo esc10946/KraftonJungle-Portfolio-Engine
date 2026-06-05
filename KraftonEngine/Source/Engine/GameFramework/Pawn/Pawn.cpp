@@ -1,4 +1,6 @@
 #include "GameFramework/Pawn/Pawn.h"
+#include "GameFramework/Controller/Controller.h"
+#include "GameFramework/Controller/AIController.h"
 #include "GameFramework/GameMode/PlayerController.h"
 #include "GameFramework/Camera/PlayerCameraManager.h"
 #include "Component/Camera/CameraComponent.h"
@@ -38,16 +40,16 @@ void APawn::ProcessPlayerInput(const FInputSystemSnapshot& Snapshot, float Delta
 	}
 }
 
-void APawn::PossessedBy(APlayerController* PC)
+void APawn::PossessedBy(AController* NewController)
 {
-	Controller = PC;
+	Controller = NewController;
 
 	// 자기 첫 카메라 컴포넌트를 ActiveCamera로 — PIE 시작 시 시점이 Pawn 기준이 되도록.
 	// 카메라 컴포넌트가 없으면 no-op (CameraManager의 기존 흐름이 다른 카메라를 선택).
 	// E.2/2: PC->GetPlayerCameraManager() 경로 사용.
 	if (UCameraComponent* MyCamera = GetComponentByClass<UCameraComponent>())
 	{
-		if (PC)
+		if (APlayerController* PC = Cast<APlayerController>(NewController))
 		{
 			if (APlayerCameraManager* Mgr = PC->GetPlayerCameraManager())
 			{
@@ -56,6 +58,16 @@ void APawn::PossessedBy(APlayerController* PC)
 			}
 		}
 	}
+}
+
+APlayerController* APawn::GetPlayerController() const
+{
+	return Cast<APlayerController>(Controller.Get());
+}
+
+AAIController* APawn::GetAIController() const
+{
+	return Cast<AAIController>(Controller.Get());
 }
 
 void APawn::UnPossessed()

@@ -30,6 +30,7 @@
 #include "Component/AI/EnemyAIBrainComponent.h"
 #include "Component/AI/EnemyAttackComponent.h"
 #include "Component/AI/PhaseComponent.h"
+#include "AI/Navigation/PathFollowingComponent.h"
 #include "Component/Combat/CombatStateComponent.h"
 #include "Component/Combat/CombatTypes.h"
 #include "Component/Combat/HealthComponent.h"
@@ -71,6 +72,7 @@
 #include "Core/Types/CollisionTypes.h"
 #include "GameFramework/AActor.h"
 #include "GameFramework/World.h"
+#include "GameFramework/Actor/NavMeshBoundsVolume.h"
 #include "GameFramework/Actor/ParticleSystemActor.h"
 #include "GameFramework/Camera/CameraModifier.h"
 #include "GameFramework/Camera/CameraShakeBase.h"
@@ -78,6 +80,8 @@
 #include "GameFramework/Camera/SequenceCameraShake.h"
 #include "GameFramework/Camera/WaveOscillatorCameraShake.h"
 #include "GameFramework/GameMode/GameplayStatics.h"
+#include "GameFramework/Controller/AIController.h"
+#include "GameFramework/Controller/Controller.h"
 #include "GameFramework/GameMode/PlayerController.h"
 #include "GameFramework/Pawn/BaseCombatCharacter.h"
 #include "GameFramework/Pawn/BossEnemyCharacter.h"
@@ -92,6 +96,10 @@
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Math/Rotator.h"
 #include "Math/Vector.h"
+#include "Navigation/NavigationSystem.h"
+#include "Navigation/NavigationData.h"
+#include "Navigation/GridNavMesh.h"
+#include "Navigation/NavTypes.h"
 #include "Mesh/MeshManager.h"
 #include "Mesh/Skeletal/SkeletalMesh.h"
 #include "Mesh/Static/StaticMesh.h"
@@ -4087,6 +4095,158 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
     EncounterState["Active"] = static_cast<int>(EEncounterState::Active);
     EncounterState["Completed"] = static_cast<int>(EEncounterState::Completed);
 
+    sol::table PathFollowingStatus = Lua.create_named_table("PathFollowingStatus");
+    PathFollowingStatus["Idle"] = static_cast<int>(EPathFollowingStatus::Idle);
+    PathFollowingStatus["Waiting"] = static_cast<int>(EPathFollowingStatus::Waiting);
+    PathFollowingStatus["Moving"] = static_cast<int>(EPathFollowingStatus::Moving);
+    PathFollowingStatus["Paused"] = static_cast<int>(EPathFollowingStatus::Paused);
+
+    sol::table PathFollowingResult = Lua.create_named_table("PathFollowingResult");
+    PathFollowingResult["Success"] = static_cast<int>(EPathFollowingResult::Success);
+    PathFollowingResult["Blocked"] = static_cast<int>(EPathFollowingResult::Blocked);
+    PathFollowingResult["OffPath"] = static_cast<int>(EPathFollowingResult::OffPath);
+    PathFollowingResult["Aborted"] = static_cast<int>(EPathFollowingResult::Aborted);
+    PathFollowingResult["Invalid"] = static_cast<int>(EPathFollowingResult::Invalid);
+
+    sol::table PathFollowingRequestResult = Lua.create_named_table("PathFollowingRequestResult");
+    PathFollowingRequestResult["Failed"] = static_cast<int>(EPathFollowingRequestResult::Failed);
+    PathFollowingRequestResult["AlreadyAtGoal"] = static_cast<int>(EPathFollowingRequestResult::AlreadyAtGoal);
+    PathFollowingRequestResult["RequestSuccessful"] = static_cast<int>(EPathFollowingRequestResult::RequestSuccessful);
+
+    Lua.new_usertype<FNavAgentProperties>(
+        "NavAgentProperties",
+        "Radius", &FNavAgentProperties::Radius,
+        "Height", &FNavAgentProperties::Height,
+        "StepHeight", &FNavAgentProperties::StepHeight,
+        "MaxSlopeDegrees", &FNavAgentProperties::MaxSlopeDegrees
+    );
+
+    Lua.new_usertype<FNavigationPath>(
+        "NavigationPath",
+        "IsValid", &FNavigationPath::IsValid,
+        "Num", &FNavigationPath::Num,
+        "GetPathPointLocation", &FNavigationPath::GetPathPointLocation,
+        "GetEndLocation", &FNavigationPath::GetEndLocation,
+        "IsPartial", [](const FNavigationPath& P) { return P.bIsPartial; }
+    );
+
+    Lua.new_usertype<ANavigationData>(
+        "NavigationData",
+        sol::base_classes,
+        sol::bases<AActor, UObject>(),
+        "RebuildNavigationData", &ANavigationData::RebuildNavigationData,
+        "ClearNavigationData", &ANavigationData::ClearNavigationData,
+        "IsNavigationDataBuilt", &ANavigationData::IsNavigationDataBuilt,
+        "GetNavigationNodeCount", &ANavigationData::GetNavigationNodeCount,
+        "GetBlockedNodeCount", &ANavigationData::GetBlockedNodeCount,
+        "ProjectPointToNavigation", [](ANavigationData& D, const FVector& Point, const FNavAgentProperties& Props) { FVector Out; return D.ProjectPointToNavigation(Point, Out, Props) ? Out : FVector::ZeroVector; },
+        "FindPath", [](ANavigationData& D, const FVector& Start, const FVector& End, const FNavAgentProperties& Props) { FNavigationPath Path; D.FindPath(Start, End, Props, Path); return Path; },
+        "NavigationRaycast", &ANavigationData::NavigationRaycast,
+        "GetRandomReachablePointInRadius", [](ANavigationData& D, const FVector& Origin, float Radius, const FNavAgentProperties& Props) { FVector Out; return D.GetRandomReachablePointInRadius(Origin, Radius, Out, Props) ? Out : FVector::ZeroVector; },
+        "DebugDrawNavigationData", &ANavigationData::DebugDrawNavigationData,
+        "GetSupportedAgent", &ANavigationData::GetSupportedAgent,
+        "SetSupportedAgent", &ANavigationData::SetSupportedAgent
+    );
+
+    Lua.new_usertype<AGridNavMesh>(
+        "GridNavMesh",
+        sol::base_classes,
+        sol::bases<ANavigationData, AActor, UObject>(),
+        "RebuildNavigationData", &AGridNavMesh::RebuildNavigationData,
+        "ClearNavigationData", &AGridNavMesh::ClearNavigationData,
+        "IsNavigationDataBuilt", &AGridNavMesh::IsNavigationDataBuilt,
+        "GetNavigationNodeCount", &AGridNavMesh::GetNavigationNodeCount,
+        "GetBlockedNodeCount", &AGridNavMesh::GetBlockedNodeCount,
+        "GetCellSize", &AGridNavMesh::GetCellSize,
+        "GetLastBuildBoundsCount", &AGridNavMesh::GetLastBuildBoundsCount,
+        "GetLastBuildCandidateCount", &AGridNavMesh::GetLastBuildCandidateCount,
+        "GetLastBuildDurationMs", &AGridNavMesh::GetLastBuildDurationMs,
+        "GetLastBuildMessage", &AGridNavMesh::GetLastBuildMessage,
+        "SetCellSize", &AGridNavMesh::SetCellSize,
+        "IsLocationOnNavData", &AGridNavMesh::IsLocationOnNavData,
+        "DebugDrawNavigationData", &AGridNavMesh::DebugDrawNavigationData
+    );
+
+    Lua.new_usertype<UNavigationSystem>(
+        "NavigationSystem",
+        sol::base_classes,
+        sol::bases<UObject>(),
+        "RebuildNavigation", &UNavigationSystem::RebuildNavigation,
+        "InvalidateNavigationData", &UNavigationSystem::InvalidateNavigationData,
+        "GetMainNavigationData", &UNavigationSystem::GetMainNavigationData,
+        "GetGridNavMesh", &UNavigationSystem::GetGridNavMesh,
+        "HasBuiltNavigationData", &UNavigationSystem::HasBuiltNavigationData,
+        "DebugDrawNavigationData", &UNavigationSystem::DebugDrawNavigationData,
+        "GetLastQueryMessage", &UNavigationSystem::GetLastQueryMessage,
+        "GetDebugSummary", &UNavigationSystem::GetDebugSummary,
+        "ProjectPointToNavigation", [](UNavigationSystem& N, const FVector& Point, const FNavAgentProperties& Props) { FVector Out; return N.ProjectPointToNavigation(Point, Out, Props) ? Out : FVector::ZeroVector; },
+        "FindPathSync", [](UNavigationSystem& N, const FVector& Start, const FVector& End, const FNavAgentProperties& Props) { FNavigationPath Path; N.FindPathSync(Start, End, Props, Path); return Path; },
+        "NavigationRaycast", &UNavigationSystem::NavigationRaycast,
+        "GetRandomReachablePointInRadius", [](UNavigationSystem& N, const FVector& Origin, float Radius, const FNavAgentProperties& Props) { FVector Out; return N.GetRandomReachablePointInRadius(Origin, Radius, Out, Props) ? Out : FVector::ZeroVector; },
+        "HasNavigationBounds", &UNavigationSystem::HasNavigationBounds,
+        "IsPointInsideNavigationBounds", &UNavigationSystem::IsPointInsideNavigationBounds
+    );
+
+    Lua.new_usertype<UPathFollowingComponent>(
+        "PathFollowingComponent",
+        sol::base_classes,
+        sol::bases<UActorComponent, UObject>(),
+        "AbortMove", &UPathFollowingComponent::AbortMove,
+        "PauseMove", &UPathFollowingComponent::PauseMove,
+        "ResumeMove", &UPathFollowingComponent::ResumeMove,
+        "GetStatus", [](UPathFollowingComponent& C) { return static_cast<int>(C.GetStatus()); },
+        "IsMoving", &UPathFollowingComponent::IsMoving,
+        "HasValidPath", &UPathFollowingComponent::HasValidPath,
+        "GetCurrentPathIndex", &UPathFollowingComponent::GetCurrentPathIndex,
+        "GetCurrentPathPoint", &UPathFollowingComponent::GetCurrentPathPoint,
+        "GetRemainingDistance", &UPathFollowingComponent::GetRemainingDistance,
+        "GetPathPointCount", &UPathFollowingComponent::GetPathPointCount,
+        "GetLastMoveResult", [](UPathFollowingComponent& C) { return static_cast<int>(C.GetLastMoveResult()); },
+        "GetLastPathPointCount", &UPathFollowingComponent::GetLastPathPointCount,
+        "GetLastMoveGoalLocation", &UPathFollowingComponent::GetLastMoveGoalLocation
+    );
+
+    Lua.new_usertype<AController>(
+        "Controller",
+        sol::base_classes,
+        sol::bases<AActor, UObject>(),
+        "GetPawn", &AController::GetPawn,
+        "GetPossessedPawn", &AController::GetPossessedPawn,
+        "HasPawn", &AController::HasPawn,
+        "UnPossess", &AController::UnPossess,
+        "GetControlRotation", [](AController& C) { return C.GetControlRotation().ToVector(); },
+        "SetControlRotation", [](AController& C, const FVector& R) { C.SetControlRotation(FRotator(R)); }
+    );
+
+    Lua.new_usertype<AAIController>(
+        "AIController",
+        sol::base_classes,
+        sol::bases<AController, AActor, UObject>(),
+        "MoveToActor", [](AAIController& C, AActor* Goal, float AcceptanceRadius, bool bUsePathfinding) { return static_cast<int>(C.MoveToActor(Goal, AcceptanceRadius, true, bUsePathfinding)); },
+        "MoveToLocation", [](AAIController& C, const FVector& Goal, float AcceptanceRadius, bool bUsePathfinding) { return static_cast<int>(C.MoveToLocation(Goal, AcceptanceRadius, bUsePathfinding)); },
+        "StopMovement", &AAIController::StopMovement,
+        "GetPathFollowingComponent", &AAIController::GetPathFollowingComponent,
+        "GetMoveStatus", [](AAIController& C) { return static_cast<int>(C.GetMoveStatus()); },
+        "IsFollowingPath", &AAIController::IsFollowingPath,
+        "GetMoveGoalActor", &AAIController::GetMoveGoalActor,
+        "GetLastMoveRequestResult", [](AAIController& C) { return static_cast<int>(C.GetLastMoveRequestResult()); },
+        "GetLastMoveResult", [](AAIController& C) { return static_cast<int>(C.GetLastMoveResult()); },
+        "GetLastMoveFailureReason", &AAIController::GetLastMoveFailureReason,
+        "GetCurrentPathPointCount", &AAIController::GetCurrentPathPointCount,
+        "SetRepathInterval", &AAIController::SetRepathInterval,
+        "GetNavAgentProperties", &AAIController::GetNavAgentProperties,
+        "SetNavAgentProperties", &AAIController::SetNavAgentProperties
+    );
+
+    Lua.new_usertype<ANavMeshBoundsVolume>(
+        "NavMeshBoundsVolume",
+        sol::base_classes,
+        sol::bases<AActor, UObject>(),
+        "GetBoundsComponent", &ANavMeshBoundsVolume::GetBoundsComponent,
+        "ContainsPoint", &ANavMeshBoundsVolume::ContainsPoint
+    );
+
+
     Lua.new_usertype<FEnemyAttackData>(
         "EnemyAttackData",
         "AttackName",
@@ -4169,6 +4329,17 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
         "IsTargetInFront", &UEnemyAIBrainComponent::IsTargetInFront,
         "IsTargetBehind", &UEnemyAIBrainComponent::IsTargetBehind,
         "SetState", [](UEnemyAIBrainComponent& B, const FString& State) { B.SetState(FName(State)); },
+        "RequestMoveToTarget", sol::overload(
+            [](UEnemyAIBrainComponent& B, float AcceptanceRadius, bool bUsePathfinding) { return B.RequestMoveToTarget(AcceptanceRadius, bUsePathfinding); },
+            [](UEnemyAIBrainComponent& B, float AcceptanceRadius) { return B.RequestMoveToTarget(AcceptanceRadius, true); },
+            [](UEnemyAIBrainComponent& B) { return B.RequestMoveToTarget(-1.0f, true); }
+        ),
+        "StopMove", &UEnemyAIBrainComponent::StopMove,
+        "IsMoveActive", &UEnemyAIBrainComponent::IsMoveActive,
+        "GetMoveStatus", [](UEnemyAIBrainComponent& B) { return static_cast<int>(B.GetMoveStatus()); },
+        "GetLastMoveRequestResult", [](UEnemyAIBrainComponent& B) { return static_cast<int>(B.GetLastMoveRequestResult()); },
+        "GetLastMoveResult", [](UEnemyAIBrainComponent& B) { return static_cast<int>(B.GetLastMoveResult()); },
+        "GetLastMoveFailureReason", &UEnemyAIBrainComponent::GetLastMoveFailureReason,
         "GetState", [](UEnemyAIBrainComponent& B) { return B.GetState().ToString(); },
         "GetPreviousState", [](UEnemyAIBrainComponent& B) { return B.GetPreviousState().ToString(); },
         "GetStateTime", &UEnemyAIBrainComponent::GetStateTime
@@ -4243,6 +4414,22 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
             [](AEnemyCharacter& C, float DeltaTime) { C.FaceTarget(DeltaTime, -1.0f); }
         ),
         "StopEnemyMovement", &AEnemyCharacter::StopEnemyMovement,
+        "SpawnDefaultAIController", &AEnemyCharacter::SpawnDefaultAIController,
+        "GetEnemyAIController", &AEnemyCharacter::GetEnemyAIController,
+        "RequestMoveToTarget", sol::overload(
+            [](AEnemyCharacter& C, float AcceptanceRadius, bool bUsePathfinding) { return C.RequestMoveToTarget(AcceptanceRadius, bUsePathfinding); },
+            [](AEnemyCharacter& C, float AcceptanceRadius) { return C.RequestMoveToTarget(AcceptanceRadius, true); },
+            [](AEnemyCharacter& C) { return C.RequestMoveToTarget(-1.0f, true); }
+        ),
+        "RequestMoveToActor", sol::overload(
+            [](AEnemyCharacter& C, AActor* Target, float AcceptanceRadius, bool bUsePathfinding) { return C.RequestMoveToActor(Target, AcceptanceRadius, bUsePathfinding); },
+            [](AEnemyCharacter& C, AActor* Target, float AcceptanceRadius) { return C.RequestMoveToActor(Target, AcceptanceRadius, true); }
+        ),
+        "RequestMoveToLocation", sol::overload(
+            [](AEnemyCharacter& C, const FVector& Location, float AcceptanceRadius, bool bUsePathfinding) { return C.RequestMoveToLocation(Location, AcceptanceRadius, bUsePathfinding); },
+            [](AEnemyCharacter& C, const FVector& Location, float AcceptanceRadius) { return C.RequestMoveToLocation(Location, AcceptanceRadius, true); }
+        ),
+        "IsPathFollowing", &AEnemyCharacter::IsPathFollowing,
         "SelectAndCommitAttack", [](AEnemyCharacter& C, int Phase) { FEnemyAttackData A; C.SelectAndCommitAttack(Phase, A); return A; },
         "PlayAttackMontage", &AEnemyCharacter::PlayAttackMontage
     );
@@ -5354,7 +5541,7 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
     Lua.new_usertype<APlayerController>(
         "PlayerController",
         sol::base_classes,
-        sol::bases<AActor, UObject>(),
+        sol::bases<AController, AActor, UObject>(),
         "Possess",
         &APlayerController::Possess,
         "UnPossess",
@@ -5379,6 +5566,10 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
         sol::bases<AActor, UObject>(),
         "GetController",
         &APawn::GetController,
+        "GetPlayerController",
+        &APawn::GetPlayerController,
+        "GetAIController",
+        &APawn::GetAIController,
         "IsPossessed",
         &APawn::IsPossessed,
         "SetAutoPossessPlayer",
@@ -5508,6 +5699,13 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
         []() -> APlayerController*
         {
             return (GEngine && GEngine->GetWorld()) ? GEngine->GetWorld()->GetFirstPlayerController() : nullptr;
+        }
+    );
+    World.set_function(
+        "GetNavigationSystem",
+        []() -> UNavigationSystem*
+        {
+            return (GEngine && GEngine->GetWorld()) ? GEngine->GetWorld()->GetNavigationSystem() : nullptr;
         }
     );
     World.set_function(
