@@ -448,7 +448,7 @@ USkeleton* FSkeletonManager::LoadSkeleton(const FString& PackagePath)
     USkeleton* Skeleton = UObjectManager::Get().CreateObject<USkeleton>();
     if (Header.Version >= static_cast<uint32>(EAssetPackageSerializationVersion::SkeletonSocketPayload))
     {
-        Skeleton->SerializeCurrentPayload(Reader);
+        Skeleton->SerializeCurrentPayload(Reader, Header.Version);
     }
     else
     {

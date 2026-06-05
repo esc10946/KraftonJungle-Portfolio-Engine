@@ -9495,14 +9495,14 @@
   "ClassName" : "UWorld",
   "ContextHandle" : "NewScene",
   "ContextName" : "New Scene",
-  "Name" : "Default",
+  "Name" : "CharTest",
   "ObjectId" : 1,
   "PerspectiveCamera" : {
     "FOV" : 1.047198,
     "FarClip" : 1000.000000,
-    "Location" : [-6.083405, 19.195881, 8.494172],
+    "Location" : [-15.029140, 2.783872, 13.930687],
     "NearClip" : 0.100000,
-    "Rotation" : [0.000000, 26.172314, 331.651550]
+    "Rotation" : [0.000000, 26.322315, 388.951599]
   },
   "Version" : 2,
   "WorldSettings" : {

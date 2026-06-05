@@ -18,7 +18,7 @@ public:
 
     void Serialize(FArchive& Ar) override;
     void SerializeLegacyPayload(FArchive& Ar);	// Socket 개념 추가 이전의 에셋 데이터 호환
-    void SerializeCurrentPayload(FArchive& Ar);	// Socket 개념 추가된 최신 버전 에셋 직렬화
+    void SerializeCurrentPayload(FArchive& Ar, uint32 PackageVersion = 0);	// Socket 개념 추가된 최신 버전 에셋 직렬화
     // 수동 바이너리 포맷 — 반사 직렬화 비활성.
     bool ShouldReflectProperties() const override { return false; }
 

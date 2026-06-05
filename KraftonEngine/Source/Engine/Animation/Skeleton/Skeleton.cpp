@@ -1,5 +1,6 @@
 #include "Animation/Skeleton/Skeleton.h"
 #include "Animation/Skeleton/SkeletonManager.h"
+#include "Asset/AssetPackage.h"
 #include "Core/Logging/Log.h"
 #include "Physics/PhysicsAsset.h"
 #include "Physics/PhysicsAssetManager.h"
@@ -28,8 +29,13 @@ void USkeleton::SerializeLegacyPayload(FArchive& Ar)
     }
 }
 
-void USkeleton::SerializeCurrentPayload(FArchive& Ar)
+void USkeleton::SerializeCurrentPayload(FArchive& Ar, uint32 PackageVersion)
 {
+    if (PackageVersion == 0)
+    {
+        PackageVersion = FAssetPackageHeader::CurrentVersion;
+    }
+
     UObject::Serialize(Ar);
 
     Ar << AssetPathFileName;
@@ -47,6 +53,14 @@ void USkeleton::SerializeCurrentPayload(FArchive& Ar)
     for (FSkeletalMeshSocket& Socket : Sockets)
     {
 	    Ar << Socket;
+        if (PackageVersion >= static_cast<uint32>(EAssetPackageSerializationVersion::SkeletonSocketPreviewMeshPayload))
+        {
+            Ar << Socket.PreviewStaticMeshPath;
+        }
+        else if (Ar.IsLoading())
+        {
+            Socket.PreviewStaticMeshPath = "None";
+        }
     }
 
     if (Ar.IsLoading())

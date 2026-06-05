@@ -4,8 +4,15 @@
 
 #include "Engine/Runtime/Engine.h"
 #include "Engine/Runtime/EngineInitHooks.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimationManager.h"
+#include "Animation/Montage/AnimMontage.h"
+#include "Animation/Notify/AnimNotify_EnableAttack.h"
+#include "Component/Primitive/SkeletalMeshComponent.h"
+#include "Component/Primitive/StaticMeshComponent.h"
 #include "Lua/LuaScriptManager.h"
 #include "Core/ProjectSettings.h"
+#include "Core/Logging/Log.h"
 #include "Audio/AudioManager.h"
 
 #include <algorithm>
@@ -41,6 +48,72 @@ void RegisterGameLuaBindings(sol::state& Lua)
 			{
 				GEngine->RequestTransitionToScene(SceneNameOrPath);
 			}
+		}
+	);
+
+	sol::table Animation = Lua["Animation"].valid() ? Lua["Animation"] : Lua.create_named_table("Animation");
+	Animation.set_function(
+		"LoadMontage",
+		[](const FString& Path) -> UAnimMontage*
+		{
+			if (Path.empty() || Path == "None")
+			{
+				return nullptr;
+			}
+			return FAnimationManager::Get().LoadMontage(Path);
+		}
+	);
+	Animation.set_function(
+		"ConsumeEnableAttack",
+		[](UAnimInstance* AnimInstance) -> bool
+		{
+			return UAnimNotify_EnableAttack::ConsumeEnableAttack(AnimInstance);
+		}
+	);
+
+	sol::table Equipment = Lua["Equipment"].valid() ? Lua["Equipment"] : Lua.create_named_table("Equipment");
+	Equipment.set_function(
+		"AttachStaticMeshToSocket",
+		[](AActor* Owner, const FString& MeshPath, const FString& SocketName, const FVector& RelativeScale) -> UStaticMeshComponent*
+		{
+			if (!IsValid(Owner) || MeshPath.empty() || MeshPath == "None")
+			{
+				UE_LOG("[Equipment] AttachStaticMeshToSocket failed: invalid owner or mesh path");
+				return nullptr;
+			}
+
+			USkeletalMeshComponent* OwnerMesh = Owner->GetComponentByClass<USkeletalMeshComponent>();
+			if (!IsValid(OwnerMesh))
+			{
+				UE_LOG("[Equipment] AttachStaticMeshToSocket failed: owner has no skeletal mesh");
+				return nullptr;
+			}
+
+			if (!OwnerMesh->HasSocket(FName(SocketName)))
+			{
+				UE_LOG("[Equipment] AttachStaticMeshToSocket failed: socket not found. Socket='%s'", SocketName.c_str());
+				return nullptr;
+			}
+
+			UStaticMeshComponent* WeaponMesh = Owner->AddComponent<UStaticMeshComponent>();
+			if (!IsValid(WeaponMesh))
+			{
+				UE_LOG("[Equipment] AttachStaticMeshToSocket failed: could not create static mesh component");
+				return nullptr;
+			}
+
+			if (!WeaponMesh->SetStaticMeshByPath(MeshPath))
+			{
+				UE_LOG("[Equipment] AttachStaticMeshToSocket failed: could not load static mesh. Mesh='%s'", MeshPath.c_str());
+				Owner->RemoveComponent(WeaponMesh);
+				return nullptr;
+			}
+
+			WeaponMesh->AttachToComponent(OwnerMesh, FName(SocketName));
+			WeaponMesh->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
+			WeaponMesh->SetRelativeRotation(FVector(0.0f, 0.0f, 0.0f));
+			WeaponMesh->SetRelativeScale(RelativeScale);
+			return WeaponMesh;
 		}
 	);
 

@@ -11,6 +11,7 @@
 #include "GameFramework/World.h"
 #include "Component/Debug/GizmoComponent.h"
 #include "Component/Primitive/SkeletalMeshComponent.h"
+#include "Component/Primitive/StaticMeshComponent.h"
 #include "Component/Debug/BoneDebugComponent.h"
 #include "Component/Debug/PhysicsAssetPreviewComponent.h"
 #include "Physics/PhysicsAsset.h"
@@ -38,6 +39,7 @@ void FMeshEditorViewportClient::AddReferencedObjects(FReferenceCollector& Collec
 	Collector.AddReferencedObject(PreviewMeshComponent);
 	Collector.AddReferencedObject(BoneDebugComponent);
 	Collector.AddReferencedObject(PhysicsAssetPreviewComponent);
+	Collector.AddReferencedObjects(SocketPreviewMeshComponents, "FMeshEditorViewportClient::SocketPreviewMeshComponents");
 	Collector.AddReferencedObject(PreviewWorld);
 	Collector.AddReferencedObject(PreviewActor);
 	Collector.AddReferencedObject(ActivePhysicsGizmoAsset);
@@ -55,6 +57,7 @@ void FMeshEditorViewportClient::Release()
 	PreviewWorld = nullptr;
 	PreviewActor = nullptr;
 	ClearPhysicsAssetGizmoTarget();
+	ClearSocketPreviewMeshes();
 
 	UObjectManager::Get().DestroyObject(Gizmo);
 	Gizmo = nullptr;
@@ -180,6 +183,16 @@ bool FMeshEditorViewportClient::GetCameraView(FMinimalViewInfo& OutPOV) const
 
 void FMeshEditorViewportClient::Tick(float DeltaTime)
 {
+	USkeleton* PreviewSkeleton = nullptr;
+	if (PreviewMeshComponent)
+	{
+		if (USkeletalMesh* Mesh = PreviewMeshComponent->GetSkeletalMesh())
+		{
+			PreviewSkeleton = Mesh->GetSkeleton();
+		}
+	}
+	SyncSocketPreviewMeshes(PreviewSkeleton);
+
 	SyncCameraSmoothingTarget();
 
 	if (bIsFocusAnimating)
@@ -269,6 +282,111 @@ void FMeshEditorViewportClient::SetSelectedSocket(USkeletalMesh* Mesh, USkeleton
 		BoneDebugComponent->SetSelectedBoneIndex(-1);
 		BoneDebugComponent->SetSelectedSocketIndex(SocketIndex);
 	}
+}
+
+void FMeshEditorViewportClient::SyncSocketPreviewMeshes(USkeleton* Skeleton)
+{
+	if (!PreviewActor || !PreviewMeshComponent || !Skeleton)
+	{
+		ClearSocketPreviewMeshes();
+		return;
+	}
+
+	const TArray<FSkeletalMeshSocket>& Sockets = Skeleton->GetSockets();
+	while (SocketPreviewMeshComponents.size() > Sockets.size())
+	{
+		DestroySocketPreviewComponent(SocketPreviewMeshComponents.back());
+		SocketPreviewMeshComponents.pop_back();
+		SocketPreviewMeshPaths.pop_back();
+	}
+
+	while (SocketPreviewMeshComponents.size() < Sockets.size())
+	{
+		SocketPreviewMeshComponents.push_back(nullptr);
+		SocketPreviewMeshPaths.push_back("None");
+	}
+
+	for (int32 SocketIndex = 0; SocketIndex < static_cast<int32>(Sockets.size()); ++SocketIndex)
+	{
+		const FSkeletalMeshSocket& Socket = Sockets[SocketIndex];
+		const FString PreviewPath = Socket.PreviewStaticMeshPath.empty() ? FString("None") : Socket.PreviewStaticMeshPath;
+		const bool bHasPreviewMesh = PreviewPath != "None";
+
+		UStaticMeshComponent*& Component = SocketPreviewMeshComponents[SocketIndex];
+		FString& CachedPath = SocketPreviewMeshPaths[SocketIndex];
+
+		if (!bHasPreviewMesh)
+		{
+			DestroySocketPreviewComponent(Component);
+			Component = nullptr;
+			CachedPath = "None";
+			continue;
+		}
+
+		if (!Component || CachedPath != PreviewPath)
+		{
+			DestroySocketPreviewComponent(Component);
+			Component = CreateSocketPreviewComponent(Socket);
+			CachedPath = Component ? PreviewPath : "None";
+		}
+
+		if (Component)
+		{
+			Component->AttachToComponent(PreviewMeshComponent, Socket.Name);
+			Component->SetRelativeLocation(FVector::ZeroVector);
+			Component->SetRelativeRotation(FVector::ZeroVector);
+			Component->SetRelativeScale(FVector(1.0f, 1.0f, 1.0f));
+		}
+	}
+}
+
+void FMeshEditorViewportClient::ClearSocketPreviewMeshes()
+{
+	for (UStaticMeshComponent* Component : SocketPreviewMeshComponents)
+	{
+		DestroySocketPreviewComponent(Component);
+	}
+	SocketPreviewMeshComponents.clear();
+	SocketPreviewMeshPaths.clear();
+}
+
+UStaticMeshComponent* FMeshEditorViewportClient::CreateSocketPreviewComponent(const FSkeletalMeshSocket& Socket)
+{
+	if (!PreviewActor || !PreviewMeshComponent || Socket.PreviewStaticMeshPath.empty() || Socket.PreviewStaticMeshPath == "None")
+	{
+		return nullptr;
+	}
+
+	UStaticMeshComponent* Component = PreviewActor->AddComponent<UStaticMeshComponent>();
+	if (!Component)
+	{
+		return nullptr;
+	}
+
+	Component->SetHiddenInComponentTree(true);
+	Component->SetComponentTickEnabled(false);
+	Component->AttachToComponent(PreviewMeshComponent, Socket.Name);
+	Component->SetRelativeLocation(FVector::ZeroVector);
+	Component->SetRelativeRotation(FVector::ZeroVector);
+	Component->SetRelativeScale(FVector(1.0f, 1.0f, 1.0f));
+	if (!Component->SetStaticMeshByPath(Socket.PreviewStaticMeshPath))
+	{
+		DestroySocketPreviewComponent(Component);
+		return nullptr;
+	}
+
+	return Component;
+}
+
+void FMeshEditorViewportClient::DestroySocketPreviewComponent(UStaticMeshComponent* Component)
+{
+	if (!Component)
+	{
+		return;
+	}
+
+	Component->RouteComponentDestroyed();
+	UObjectManager::Get().DestroyObject(Component);
 }
 
 void FMeshEditorViewportClient::SetSelectedPhysicsAssetElement(
