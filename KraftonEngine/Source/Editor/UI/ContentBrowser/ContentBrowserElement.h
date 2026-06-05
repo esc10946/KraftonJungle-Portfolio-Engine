@@ -181,6 +181,16 @@ public:
 	virtual const char* GetDragItemType() override { return "PNGElement"; }
 };
 
+class RmlWidgetElement final : public ContentBrowserElement
+{
+public:
+	void OnDoubleLeftClicked(ContentBrowserContext& Context) override;
+
+protected:
+	const char* GetTypeLabel() const override { return "RML Widget"; }
+	uint32 GetAccentColor() const override { return IM_COL32(95, 170, 255, 255); }
+};
+
 #include "Editor/UI/Panel/EditorMaterialInspector.h"
 class MaterialElement final : public ContentBrowserElement
 {

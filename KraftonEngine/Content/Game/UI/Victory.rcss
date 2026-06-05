@@ -1,0 +1,78 @@
+/* ============================================================
+   Victory overlay — shown when the player enters EGamePhase::Victory.
+   Self-dimming (no camera fade): #victory-dim is a full-screen black sheet
+   whose opacity is eased 0 -> VICTORY_DIM at runtime, while the panel fades
+   in (opacity 0 -> 1) and the icon settles (scale 0.8 -> 1.0). All start
+   states below match the pre-intro reset in GameFlowController so there's no
+   first-frame flash. UI_VICTORY is transparent.
+   Font "Serpentine" is registered in C++ (UIManager.cpp).
+   ============================================================ */
+
+body#victory-screen {
+    width: 100%;
+    height: 100%;
+    font-family: Serpentine;
+}
+
+/* Full-screen dim behind the panel. Eased up to VICTORY_DIM at runtime. */
+#victory-dim {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #000000;
+    opacity: 0;
+}
+
+/* Painted after #victory-dim, so it sits on top. Faded in as a group
+   (opacity cascades to the icon + buttons). */
+#victory-panel {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 600px;
+    height: 560px;
+    margin-left: -300px;   /* -half width  -> horizontal center */
+    margin-top: -280px;    /* -half height -> vertical center   */
+    text-align: center;
+    opacity: 0;
+}
+
+/* Same centered geometry as the death / revive icon. transform-origin keeps
+   the scale settle anchored at the center. */
+#victory-icon {
+    position: absolute;
+    left: 50%;
+    margin-left: -180px;   /* -half width -> horizontal center */
+    width: 360px;
+    height: 360px;
+    transform-origin: 50% 50%;
+    transform: scale(0.8);
+    decorator: image("../Texture/Flow/UI_VICTORY.png");
+}
+
+/* Text buttons — same look as the pause / death buttons. */
+.text-btn {
+    display: block;
+    width: 360px;
+    margin-top: 24px;
+    margin-left: auto;
+    margin-right: auto;    /* auto margins -> horizontal center */
+    height: 48px;
+    padding-top: 8px;
+    text-align: center;
+    font-size: 28px;
+    color: #e8e8e8;
+    cursor: pointer;
+}
+
+.text-btn:hover {
+    color: #ffcc00;
+}
+
+/* #victory-icon is absolute (out of flow), so push the first button below the
+   360px icon instead of letting it sit at the panel top. */
+#leaderboard_btn {
+    margin-top: 400px;
+}

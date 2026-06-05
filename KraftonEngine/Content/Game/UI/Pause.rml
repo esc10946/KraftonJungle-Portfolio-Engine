@@ -1,0 +1,14 @@
+<rml>
+<head>
+    <title>Pause</title>
+    <link type="text/rcss" href="Pause.rcss"/>
+</head>
+<body id="pause-screen">
+    <!-- Overlay shown over the frozen gameplay scene. The body dims it. -->
+    <div id="pause-panel">
+        <div id="pause-title"></div>
+        <div id="resume_btn" class="text-btn">RESUME</div>
+        <div id="title_btn" class="text-btn">RETURN TO TITLE</div>
+    </div>
+</body>
+</rml>

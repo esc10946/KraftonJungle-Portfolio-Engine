@@ -79,6 +79,9 @@
     <Filter Include="Source\Editor\UI\Asset\Material">
       <UniqueIdentifier>{994177d8-b52e-61fd-e3e8-c510233e7128}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Editor\UI\Asset\Rml">
+      <UniqueIdentifier>{6c7ec533-9a91-465d-b44d-4a9cda9c5214}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source\Editor\UI\Asset\Mesh">
       <UniqueIdentifier>{5084842c-4071-bc7f-36a2-4a3bf67026e8}</UniqueIdentifier>
     </Filter>
@@ -952,6 +955,12 @@
     </ClCompile>
     <ClCompile Include="Source\Editor\UI\Asset\Physics\PhysicsAssetEditorWidget.cpp">
       <Filter>Source\Editor\UI\Asset\Physics</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Editor\UI\Asset\Rml\RmlLivePreview.cpp">
+      <Filter>Source\Editor\UI\Asset\Rml</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Editor\UI\Asset\Rml\RmlWidgetEditorWidget.cpp">
+      <Filter>Source\Editor\UI\Asset\Rml</Filter>
     </ClCompile>
     <ClCompile Include="Source\Editor\UI\ContentBrowser\ContentBrowser.cpp">
       <Filter>Source\Editor\UI\ContentBrowser</Filter>
@@ -2144,6 +2153,9 @@
     <ClCompile Include="Source\Engine\Texture\stb_image_impl.cpp">
       <Filter>Source\Engine\Texture</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\UI\RmlWidgetManager.cpp">
+      <Filter>Source\Engine\UI</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\UI\UIManager.cpp">
       <Filter>Source\Engine\UI</Filter>
     </ClCompile>
@@ -2219,6 +2231,9 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Intermediate\Generated\Reflection.generated.cpp">
       <Filter>Intermediate\Generated</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Game\GameMode\GameState.cpp">
+      <Filter>Source\Game\GameMode</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -2320,6 +2335,12 @@
     </ClInclude>
     <ClInclude Include="Source\Editor\UI\Asset\Physics\PhysicsAssetEditorWidget.h">
       <Filter>Source\Editor\UI\Asset\Physics</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\UI\Asset\Rml\RmlLivePreview.h">
+      <Filter>Source\Editor\UI\Asset\Rml</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\UI\Asset\Rml\RmlWidgetEditorWidget.h">
+      <Filter>Source\Editor\UI\Asset\Rml</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\UI\ContentBrowser\ContentBrowser.h">
       <Filter>Source\Editor\UI\ContentBrowser</Filter>
@@ -3811,6 +3832,12 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Texture\Texture2D.h">
       <Filter>Source\Engine\Texture</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\UI\RmlWidgetAsset.h">
+      <Filter>Source\Engine\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\UI\RmlWidgetManager.h">
+      <Filter>Source\Engine\UI</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\UI\UIManager.h">
       <Filter>Source\Engine\UI</Filter>

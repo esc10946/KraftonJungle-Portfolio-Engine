@@ -1,0 +1,62 @@
+<rml>
+<head>
+    <title>Leaderboard</title>
+    <link type="text/rcss" href="Leaderboard.rcss"/>
+</head>
+<body id="lb-screen">
+    <!-- Leaderboard overlay. Layered above the victory / death overlay (higher
+         z-order) rather than a separate scene, so the run's ActiveTime /
+         ReviveCount are still live when submitting. Two modes, set by
+         GameFlowController:
+           submit  (from Victory)  - #lb-entry visible, SUBMIT writes a record
+           view    (from Defeat)   - #lb-entry hidden, browse only
+         Row cells (name/time/rev) are filled via SetText; ranks are static. -->
+    <div id="lb-dim"></div>
+    <div id="lb-panel">
+        <div id="lb-title">LEADERBOARD</div>
+
+        <div id="lb-list">
+            <div class="lb-head">
+                <span class="lb-rank">#</span>
+                <span class="lb-name">NAME</span>
+                <span class="lb-time">TIME</span>
+                <span class="lb-rev">REVIVES</span>
+            </div>
+            <div class="lb-row"><span class="lb-rank">1</span><span id="row1_name" class="lb-name">---</span><span id="row1_time" class="lb-time"></span><span id="row1_rev" class="lb-rev"></span></div>
+            <div class="lb-row"><span class="lb-rank">2</span><span id="row2_name" class="lb-name">---</span><span id="row2_time" class="lb-time"></span><span id="row2_rev" class="lb-rev"></span></div>
+            <div class="lb-row"><span class="lb-rank">3</span><span id="row3_name" class="lb-name">---</span><span id="row3_time" class="lb-time"></span><span id="row3_rev" class="lb-rev"></span></div>
+            <div class="lb-row"><span class="lb-rank">4</span><span id="row4_name" class="lb-name">---</span><span id="row4_time" class="lb-time"></span><span id="row4_rev" class="lb-rev"></span></div>
+            <div class="lb-row"><span class="lb-rank">5</span><span id="row5_name" class="lb-name">---</span><span id="row5_time" class="lb-time"></span><span id="row5_rev" class="lb-rev"></span></div>
+            <div class="lb-row"><span class="lb-rank">6</span><span id="row6_name" class="lb-name">---</span><span id="row6_time" class="lb-time"></span><span id="row6_rev" class="lb-rev"></span></div>
+        </div>
+
+        <!-- Name entry (submit mode only). No typed text input: each initial is
+             cycled A-Z with the +/- buttons (engine RmlUi has no keyboard text
+             path; click events are all that's needed). -->
+        <div id="lb-entry">
+            <div id="lb-entry-label">ENTER YOUR NAME</div>
+            <div id="lb-initials">
+                <div class="lb-slot">
+                    <div id="up0" class="lb-arrow">+</div>
+                    <div id="ltr0" class="lb-letter">A</div>
+                    <div id="down0" class="lb-arrow">-</div>
+                </div>
+                <div class="lb-slot">
+                    <div id="up1" class="lb-arrow">+</div>
+                    <div id="ltr1" class="lb-letter">A</div>
+                    <div id="down1" class="lb-arrow">-</div>
+                </div>
+                <div class="lb-slot">
+                    <div id="up2" class="lb-arrow">+</div>
+                    <div id="ltr2" class="lb-letter">A</div>
+                    <div id="down2" class="lb-arrow">-</div>
+                </div>
+            </div>
+            <div id="lb-yourtime"></div>
+            <div id="submit_btn" class="text-btn">SUBMIT</div>
+        </div>
+
+        <div id="close_btn" class="text-btn">BACK</div>
+    </div>
+</body>
+</rml>

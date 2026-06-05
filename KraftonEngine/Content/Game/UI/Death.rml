@@ -1,0 +1,22 @@
+<rml>
+<head>
+    <title>Death</title>
+    <link type="text/rcss" href="Death.rcss"/>
+</head>
+<body id="death-screen">
+    <!-- The engine camera fade darkens the scene behind this overlay.
+         The 死 icon is two stacked copies: grey at the back, red on top
+         whose opacity is raised 0->1 over the fade by GameFlowController. -->
+    <div id="death-panel">
+        <div id="death-icons">
+            <div id="death-icon-grey"></div>
+            <div id="death-icon-red"></div>
+        </div>
+        <div id="give_in_btn" class="text-btn">GIVE IN</div>
+        <!-- Revealed only on true death (Defeated); hidden during the dying window.
+             LEADERBOARD here is view-only (no record written after a defeat). -->
+        <div id="leaderboard_btn" class="text-btn">LEADERBOARD</div>
+        <div id="title_btn" class="text-btn">RETURN TO TITLE</div>
+    </div>
+</body>
+</rml>

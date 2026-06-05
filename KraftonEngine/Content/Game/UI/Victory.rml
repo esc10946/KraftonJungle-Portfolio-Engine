@@ -1,0 +1,21 @@
+<rml>
+<head>
+    <title>Victory</title>
+    <link type="text/rcss" href="Victory.rcss"/>
+</head>
+<body id="victory-screen">
+    <!-- Terminal win state (EGamePhase::Victory). Unlike the Death overlay this
+         dims itself in the UI layer rather than via the camera fade, so the
+         icon can brighten while the scene behind darkens. GameFlowController
+         eases #victory-dim opacity, #victory-panel opacity and the icon scale
+         in over VICTORY_INTRO on its own clock. -->
+    <div id="victory-dim"></div>
+    <div id="victory-panel">
+        <div id="victory-icon"></div>
+        <!-- LEADERBOARD: record + view (phase -> Leaderboard).
+             RETURN TO TITLE: leave without recording. -->
+        <div id="leaderboard_btn" class="text-btn">LEADERBOARD</div>
+        <div id="title_btn" class="text-btn">RETURN TO TITLE</div>
+    </div>
+</body>
+</rml>

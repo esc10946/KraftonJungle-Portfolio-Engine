@@ -30,6 +30,8 @@
 #include "Editor/Subsystem/AssetFactory.h"
 #include "Physics/PhysicsAsset.h"
 #include "Physics/PhysicsAssetManager.h"
+#include "UI/RmlWidgetAsset.h"
+#include "UI/RmlWidgetManager.h"
 
 #include <algorithm>
 #include <chrono>
@@ -1002,6 +1004,24 @@ void VectorFieldElement::RenderDetail()
 
 		ImGui::EndTable();
 	}
+}
+
+void RmlWidgetElement::OnDoubleLeftClicked(ContentBrowserContext& Context)
+{
+	if (!Context.EditorEngine)
+	{
+		ShellExecuteW(nullptr, L"open", ContentItem.Path.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+		return;
+	}
+
+	const FString FilePath = FPaths::ToUtf8(ContentItem.Path.wstring());
+	if (URmlWidgetAsset* WidgetAsset = FRmlWidgetManager::Get().Load(FilePath))
+	{
+		Context.EditorEngine->OpenAssetEditorForObject(WidgetAsset);
+		return;
+	}
+
+	ShellExecuteW(nullptr, L"open", ContentItem.Path.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
 }
 
 void MaterialElement::OnLeftClicked(ContentBrowserContext& Context)

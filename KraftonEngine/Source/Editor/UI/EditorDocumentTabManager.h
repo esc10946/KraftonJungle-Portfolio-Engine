@@ -12,6 +12,7 @@ enum class EEditorDocumentTabKind : uint8
 	LuaBlueprintEditor,
 	PhysicsAssetEditor,
     MaterialEditor,
+	RmlWidgetEditor,
 	Unsupported,
 };
 
