@@ -4,6 +4,172 @@
 
 namespace
 {
+	static FbxNode* FindLowestCommonAncestor(FbxNode* A, FbxNode* B)
+	{
+		if (!A || !B)
+		{
+			return nullptr;
+		}
+
+		TSet<FbxNode*> Ancestors;
+		for (FbxNode* Node = A; Node && Node->GetParent(); Node = Node->GetParent())
+		{
+			Ancestors.insert(Node);
+		}
+
+		for (FbxNode* Node = B; Node && Node->GetParent(); Node = Node->GetParent())
+		{
+			if (Ancestors.find(Node) != Ancestors.end())
+			{
+				return Node;
+			}
+		}
+
+		return nullptr;
+	}
+
+	static FbxNode* FindSkinClusterLowestCommonAncestor(const TArray<FbxNode*>& LinkNodes)
+	{
+		FbxNode* CommonAncestor = nullptr;
+		for (FbxNode* LinkNode : LinkNodes)
+		{
+			if (!LinkNode)
+			{
+				continue;
+			}
+
+			CommonAncestor = CommonAncestor
+				? FindLowestCommonAncestor(CommonAncestor, LinkNode)
+				: LinkNode;
+
+			if (!CommonAncestor)
+			{
+				break;
+			}
+		}
+
+		return CommonAncestor;
+	}
+
+	static TArray<FbxNode*> CollectSkinClusterLinkNodes(FbxSkin* Skin)
+	{
+		TArray<FbxNode*> LinkNodes;
+		if (!Skin)
+		{
+			return LinkNodes;
+		}
+
+		for (int32 ClusterIndex = 0; ClusterIndex < Skin->GetClusterCount(); ++ClusterIndex)
+		{
+			FbxCluster* Cluster = Skin->GetCluster(ClusterIndex);
+			FbxNode*    LinkNode = Cluster ? Cluster->GetLink() : nullptr;
+			if (LinkNode)
+			{
+				LinkNodes.push_back(LinkNode);
+			}
+		}
+
+		return LinkNodes;
+	}
+
+	static void MarkNodesFromLinksToCommonAncestor(
+		const TArray<FbxNode*>& LinkNodes,
+		FbxNode*                CommonAncestor,
+		TSet<FbxNode*>&         OutRequiredNodes
+		)
+	{
+		if (!CommonAncestor)
+		{
+			return;
+		}
+
+		for (FbxNode* LinkNode : LinkNodes)
+		{
+			for (FbxNode* BoneNode = LinkNode; BoneNode && BoneNode->GetParent(); BoneNode = BoneNode->GetParent())
+			{
+				OutRequiredNodes.insert(BoneNode);
+				if (BoneNode == CommonAncestor)
+				{
+					break;
+				}
+			}
+		}
+	}
+
+	static bool HasSkeletonChild(FbxNode* Node)
+	{
+		if (!Node)
+		{
+			return false;
+		}
+
+		for (int32 ChildIndex = 0; ChildIndex < Node->GetChildCount(); ++ChildIndex)
+		{
+			if (FFbxSceneQuery::IsSkeletonNode(Node->GetChild(ChildIndex)))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	static void MarkSkeletonLeafHierarchyNodes(FFbxImportContext& Context, TSet<FbxNode*>& OutRequiredNodes)
+	{
+		TArray<FbxNode*> LeafNodes;
+		for (FbxNode* Node : Context.AllNodes)
+		{
+			if (FFbxSceneQuery::IsSkeletonNode(Node) && !HasSkeletonChild(Node))
+			{
+				LeafNodes.push_back(Node);
+			}
+		}
+
+		if (LeafNodes.size() <= 1)
+		{
+			return;
+		}
+
+		FbxNode* CommonAncestor = FindSkinClusterLowestCommonAncestor(LeafNodes);
+		MarkNodesFromLinksToCommonAncestor(LeafNodes, CommonAncestor, OutRequiredNodes);
+	}
+
+	static void MarkSkinClusterHierarchyNodes(FFbxImportContext& Context, TSet<FbxNode*>& OutRequiredNodes)
+	{
+		for (FbxNode* Node : Context.AllNodes)
+		{
+			FbxMesh* Mesh = Node ? Node->GetMesh() : nullptr;
+			if (!Mesh)
+			{
+				continue;
+			}
+
+			const int32 DeformerCount = Mesh->GetDeformerCount(FbxDeformer::eSkin);
+			for (int32 DeformerIndex = 0; DeformerIndex < DeformerCount; ++DeformerIndex)
+			{
+				FbxSkin* Skin = static_cast<FbxSkin*>(Mesh->GetDeformer(DeformerIndex, FbxDeformer::eSkin));
+				if (!Skin)
+				{
+					continue;
+				}
+
+				const TArray<FbxNode*> LinkNodes = CollectSkinClusterLinkNodes(Skin);
+				FbxNode* CommonAncestor = FindSkinClusterLowestCommonAncestor(LinkNodes);
+				MarkNodesFromLinksToCommonAncestor(LinkNodes, CommonAncestor, OutRequiredNodes);
+			}
+		}
+	}
+
+	static bool ShouldImportAsBone(FbxNode* Node, const TSet<FbxNode*>& RequiredHierarchyNodes)
+	{
+		if (!Node || Node->GetMesh())
+		{
+			return false;
+		}
+
+		return FFbxSceneQuery::IsSkeletonNode(Node) || RequiredHierarchyNodes.find(Node) != RequiredHierarchyNodes.end();
+	}
+
 	static void BuildReferenceSkeleton(FFbxImportContext& Context)
 	{
 		Context.ReferenceSkeleton.Bones.clear();
@@ -29,9 +195,16 @@ bool FFbxSkeletonImporter::ImportSkeleton(FbxScene* Scene, FFbxImportContext& Co
 	Context.BoneNodeToIndex.clear();
 	Context.ReferenceSkeleton.Bones.clear();
 
+	TSet<FbxNode*> RequiredHierarchyNodes;
+	MarkSkinClusterHierarchyNodes(Context, RequiredHierarchyNodes);
+	if (RequiredHierarchyNodes.empty())
+	{
+		MarkSkeletonLeafHierarchyNodes(Context, RequiredHierarchyNodes);
+	}
+
 	for (FbxNode* Node : Context.AllNodes)
 	{
-		if (!FFbxSceneQuery::IsSkeletonNode(Node))
+		if (!ShouldImportAsBone(Node, RequiredHierarchyNodes))
 		{
 			continue;
 		}
