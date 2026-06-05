@@ -1,17 +1,19 @@
 local LMB = "LeftMouseButton"
 local WEAPON_MESH_PATH = "Content/Data/FGJ_Character/Weapon/Katana_StaticMesh.uasset"
-local WEAPON_SOCKET = "RH_Socket"
-local WEAPON_SCALE = Vec3(1.0,1.0,1.0)--Vec3(0.053, 0.396, 0.082)
+local RWEAPON_SOCKET = "RH_Socket"
+local LWEAPON_SOCKET = "LH_Socket"
 
 local ATTACK_MONTAGE_PATHS = {
-    "Content/Montages/HorizontalAttack_Unreal_Take_Montage.uasset",
-    "Content/Montages/VerticalAttack_Unreal_Take_Montage.uasset",
-    "Content/Montages/360Attack_Unreal_Take_Montage.uasset",
+    "Content/Montages/Attack1_Montage.uasset",
+    "Content/Montages/Attack2_Montage.uasset",
+    "Content/Montages/Attack3_Montage.uasset",
+    "Content/Montages/Attack4_Montage.uasset",
 }
 
 local attackMontages = {} --Save Loaded Montage"
 local animInstance = nil --Cached Character's SkeletalMesh animInstance
-local weaponComponent = nil --Cached equipped weapon component
+local RweaponComponent = nil --Cached equipped weapon component
+local LweaponComponent = nil
 local weaponBindingWarned = false --Print binding warning once
 local currentAttackIndex = 0
 local attackPlaying = false
@@ -34,9 +36,13 @@ end
 
 --Equip Weapon to RH_Socket--
 local function equip_weapon()
-    if weaponComponent ~= nil or obj == nil then
+    if RweaponComponent ~= nil or obj == nil then
         return
     end
+    if LweaponComponent ~= nil or obj == nil then
+        return
+    end
+
 
     if Equipment == nil or Equipment.AttachStaticMeshToSocket == nil then
         if not weaponBindingWarned then
@@ -48,7 +54,8 @@ local function equip_weapon()
     end
 
     --Create weapon component and attach to hand socket--
-    weaponComponent = Equipment.AttachStaticMeshToSocket(obj, WEAPON_MESH_PATH, WEAPON_SOCKET, WEAPON_SCALE)
+    LweaponComponent = Equipment.AttachStaticMeshToSocket(obj, WEAPON_MESH_PATH, LWEAPON_SOCKET, Vec3(1.0,1.0,1.0))
+    RweaponComponent = Equipment.AttachStaticMeshToSocket(obj, WEAPON_MESH_PATH, RWEAPON_SOCKET, Vec3(1.0,1.0,1.0))
 end
 
 --Load AnimMontages from Saved Loaded Montages--
