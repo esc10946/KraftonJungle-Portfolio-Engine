@@ -141,6 +141,7 @@ private:
 	void LoadStartLevel();
 	bool FindSceneViewportPOV(struct FMinimalViewInfo& OutPOV) const;
 	void RestoreViewportCamera(const FPerspectiveCameraData& CamData);
+	bool SaveSceneToPath(const FString& InScenePath);
 
 	FSelectionManager SelectionManager;
 	FEditorMainPanel MainPanel;

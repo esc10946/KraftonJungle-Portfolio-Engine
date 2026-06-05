@@ -3,6 +3,7 @@
 #include "Core/Types/CoreTypes.h"
 #include "Core/Singleton.h"
 #include "Object/GarbageCollection.h"
+#include "Engine/Platform/DirectoryWatcher.h"
 #include "Render/Types/RenderTypes.h"
 
 #ifdef GetNextSibling
@@ -104,6 +105,9 @@ public:
 	UUserWidget* CreateWidget(APlayerController* OwningPlayer, const FString& DocumentPath);
 	void AddToViewport(UUserWidget* Widget, int32 ZOrder);
 	void RemoveFromViewport(UUserWidget* Widget);
+	bool ReloadDocument(UUserWidget* Widget);
+	bool ReloadStyleSheet(UUserWidget* Widget);
+	void ReloadAllStyleSheets();
 	// PIE end / TransitionToScene 같은 라이프사이클 경계 — viewport 만 비우고 widget UObject
 	// 는 유지 (Lua 가 캐시한 핸들이 valid 한 채로 다음 세션에 재사용되도록).
 	void ClearViewport();
@@ -129,17 +133,23 @@ private:
 	void ProcessInput(const FFrameContext& Frame);
 	void RemoveFromViewportImmediate(UUserWidget* Widget);
 	void FlushDeferredViewportRemovals();
+	void StartUIHotReloadWatcher();
+	void StopUIHotReloadWatcher();
+	void HandleUIFileChanges(const TSet<FString>& ChangedPaths);
 
 private:
 	TArray<UUserWidget*> ViewportWidgets;
 	TArray<UUserWidget*> CreatedWidgets;
 	TArray<UUserWidget*> PendingRemoveWidgets;
+	TArray<UUserWidget*> PendingReloadWidgets;
 
 	ID3D11Device* CachedDevice = nullptr;
 	FRmlSystemInterface* SystemInterface = nullptr;
 	FRmlFileInterfaceWide* FileInterface = nullptr;
 	FRmlRenderInterfaceD3D11* RenderInterface = nullptr;
 	Rml::Context* RmlContext = nullptr;
+	FWatchID UIWatchID = 0;
+	FSubscriptionID UIWatchSub = 0;
 	bool bRmlInitialized = false;
 	bool bDispatchingRmlEvents = false;
 };

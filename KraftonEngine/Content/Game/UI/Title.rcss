@@ -5,16 +5,14 @@
    (Content/UI/), so assets are reached via ../
    ============================================================ */
 
-@font-face {
-    font-family: Maple;
-    src: url("../../Font/Maplestory Bold.ttf");
-}
+/* Font family "Serpentine" is registered in C++ (UIManager.cpp); the engine
+   does not load fonts from @font-face, so reference that name directly. */
 
 /* Fullscreen background image */
 body#title-screen {
     width: 100%;
     height: 100%;
-    font-family: Maple;
+    font-family: Serpentine;
     decorator: image("../Texture/GameScene/Title/Title.png" cover);
 }
 

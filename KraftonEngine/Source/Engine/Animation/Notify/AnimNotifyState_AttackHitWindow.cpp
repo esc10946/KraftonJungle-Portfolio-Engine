@@ -1,8 +1,6 @@
 #include "AnimNotifyState_AttackHitWindow.h"
 
 #include "Component/Input/ActionComponent.h"
-#include "Component/Combat/CombatStateComponent.h"
-#include "Component/Combat/HealthComponent.h"
 #include "Component/PrimitiveComponent.h"
 #include "Component/Primitive/SkeletalMeshComponent.h"
 #include "Core/Types/CollisionTypes.h"
@@ -10,7 +8,6 @@
 #include "Debug/DrawDebugHelpers.h"
 #include "Core/Logging/Log.h"
 #include "GameFramework/AActor.h"
-#include "GameFramework/Pawn/EnemyCharacter.h"
 #include "GameFramework/World.h"
 #include "Mesh/Skeletal/SkeletalMesh.h"
 #include "Mesh/Skeletal/SkeletalMeshAsset.h"
@@ -130,53 +127,6 @@ namespace
 		const FVector Dir = ResolveKnockbackDirection(Attacker, Target, Mode);
 		Action->Knockback(Dir, Distance, Duration);
 	}
-
-	bool PassesCombatFilters(AActor* Owner, AActor* Candidate, bool bUseTeamFilter, bool bRequireHealthComponent)
-	{
-		if (!IsValid(Owner) || !IsValid(Candidate))
-		{
-			return false;
-		}
-
-		if (bRequireHealthComponent && !Candidate->GetComponentByClass<UHealthComponent>())
-		{
-			return false;
-		}
-
-		if (bUseTeamFilter)
-		{
-			UCombatStateComponent* OwnerCombat = Owner->GetComponentByClass<UCombatStateComponent>();
-			UCombatStateComponent* CandidateCombat = Candidate->GetComponentByClass<UCombatStateComponent>();
-			if (!OwnerCombat || !CandidateCombat || !OwnerCombat->IsHostileTo(CandidateCombat))
-			{
-				return false;
-			}
-		}
-
-		return true;
-	}
-
-	void ApplyCombatDamage(AActor* Owner, AActor* Candidate, const FVector& Center, float Damage, float PoiseDamage)
-	{
-		if (!IsValid(Owner) || !IsValid(Candidate))
-		{
-			return;
-		}
-		UHealthComponent* Health = Candidate->GetComponentByClass<UHealthComponent>();
-		if (!Health)
-		{
-			return;
-		}
-
-		FCombatDamageSpec Spec;
-		Spec.Damage = Damage;
-		Spec.PoiseDamage = PoiseDamage;
-		Spec.DamageCauser = Owner;
-		Spec.InstigatorActor = Owner;
-		Spec.HitLocation = Center;
-		Spec.HitDirection = ResolveKnockbackDirection(Owner, Candidate, EAttackKnockbackMode::AwayFromAttacker);
-		Health->ApplyDamageSpec(Spec);
-	}
 	void PurgeInvalidAttackHitEntries(
 		TMap<TWeakObjectPtr<USkeletalMeshComponent>, TSet<TWeakObjectPtr<AActor>>>& HitActorsByMesh,
 		TMap<TWeakObjectPtr<USkeletalMeshComponent>, TSet<TWeakObjectPtr<AActor>>>& MissLoggedActorsByMesh,
@@ -219,7 +169,7 @@ namespace
 
 }
 
-void UAnimNotifyState_AttackHitWindow::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* /*Anim*/, float TotalDuration)
+void UAnimNotifyState_AttackHitWindow::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* /*Anim*/, float /*TotalDuration*/)
 {
 	PurgeInvalidAttackHitEntries(HitActorsByMesh, MissLoggedActorsByMesh, NoTargetLoggedMeshes);
 	if (!IsValid(MeshComp))
@@ -230,17 +180,6 @@ void UAnimNotifyState_AttackHitWindow::NotifyBegin(USkeletalMeshComponent* MeshC
 	HitActorsByMesh[MeshComp].clear();
 	MissLoggedActorsByMesh[MeshComp].clear();
 	NoTargetLoggedMeshes.erase(MeshComp);
-
-	// 공격 히트 윈도우가 열리는 순간을 "이 액터가 공격 중" 으로 broadcast.
-	// 적 AI 가 타깃의 CombatState 를 폴링해 회피/패링 타이밍을 잡는다(클래스 무관).
-	if (AActor* Owner = MeshComp->GetOwner())
-	{
-		if (UCombatStateComponent* Combat = Owner->GetComponentByClass<UCombatStateComponent>())
-		{
-			const float ThreatWindow = TotalDuration > 0.0f ? TotalDuration + 0.15f : 0.5f;
-			Combat->MarkAttacking(ThreatWindow);
-		}
-	}
 }
 
 void UAnimNotifyState_AttackHitWindow::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* /*Anim*/, float /*FrameDeltaTime*/)
@@ -283,11 +222,6 @@ void UAnimNotifyState_AttackHitWindow::NotifyTick(USkeletalMeshComponent* MeshCo
 			}
 		}
 		else if (!TargetActorTag.empty() && !bMatchesTargetActorTag)
-		{
-			continue;
-		}
-
-		if (!PassesCombatFilters(Owner, Candidate, bUseCombatTeamFilter, bApplyDamage && bRequireHealthComponent))
 		{
 			continue;
 		}
@@ -377,24 +311,6 @@ void UAnimNotifyState_AttackHitWindow::NotifyTick(USkeletalMeshComponent* MeshCo
 		}
 
 		HitActors.insert(Candidate);
-		if (bApplyDamage)
-		{
-			if (AEnemyCharacter* EnemyOwner = Cast<AEnemyCharacter>(Owner))
-			{
-				if (EnemyOwner->HasCurrentAttack())
-				{
-					EnemyOwner->ApplyCurrentAttackDamageToActor(Candidate, Center);
-				}
-				else
-				{
-					ApplyCombatDamage(Owner, Candidate, Center, Damage, PoiseDamage);
-				}
-			}
-			else
-			{
-				ApplyCombatDamage(Owner, Candidate, Center, Damage, PoiseDamage);
-			}
-		}
 		ApplyHitStop(Owner, HitStopDuration, bAutoAddActionComponent);
 		ApplyHitStop(Candidate, HitStopDuration, bAutoAddActionComponent);
 		if (bApplyKnockback)

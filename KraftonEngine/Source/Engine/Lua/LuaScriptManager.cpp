@@ -1,4 +1,4 @@
-#include "LuaScriptManager.h"
+﻿#include "LuaScriptManager.h"
 #include "Lua/LuaDebugManager.h"
 
 #include "Audio/AudioManager.h"
@@ -5917,6 +5917,16 @@ void FLuaScriptManager::RegisterUIBindings(sol::state& Lua)
         },
         "RemoveFromParent",
         &UUserWidget::RemoveFromParent,
+        "Reload",
+        &UUserWidget::ReloadDocument,
+        "reload",
+        &UUserWidget::ReloadDocument,
+        "ReloadDocument",
+        &UUserWidget::ReloadDocument,
+        "ReloadStyleSheet",
+        &UUserWidget::ReloadStyleSheet,
+        "reload_style",
+        &UUserWidget::ReloadStyleSheet,
         "Show",
         [](UUserWidget& Widget)
         {
@@ -5958,6 +5968,13 @@ void FLuaScriptManager::RegisterUIBindings(sol::state& Lua)
         [](const FString& DocumentPath)
         {
             return UUIManager::Get().CreateWidget(nullptr, DocumentPath);
+        }
+    );
+    UI.set_function(
+        "ReloadAllStyleSheets",
+        []()
+        {
+            UUIManager::Get().ReloadAllStyleSheets();
         }
     );
 }

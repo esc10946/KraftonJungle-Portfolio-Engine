@@ -1,42 +1,41 @@
 /* ============================================================
    Credits page — its own full-screen scene (GameCredits).
-   Authoring style: text drawn over a PNG frame.
+   Authoring style: logo on top, role/name text centered underneath.
    Paths resolve relative to this file (Content/Game/UI/).
    ============================================================ */
 
-@font-face {
-    font-family: Maple;
-    src: url("../../Font/Maplestory Bold.ttf");
-}
-
 /* Full-screen page background. Reusing the title art for a consistent look;
-   swap this for a dedicated credits background image if you make one. */
+   swap this for a dedicated credits background image if you make one.
+   Font family "Serpentine" is registered in C++ (UIManager.cpp); the engine
+   does not load fonts from @font-face, so reference that name directly. */
 body#credits-screen {
     width: 100%;
     height: 100%;
-    font-family: Maple;
-    decorator: image("../Texture/GameScene/Title/Title.png" cover);
+    font-family: Serpentine;
+    decorator: image("../Texture/GameScene/Title/Background_Black.png" cover);
 }
 
-/* Centered panel carrying the PNG frame.
-   TODO: drop a frame image at the path below. Match the frame's aspect ratio to
-   width/height here (currently 1000x680) or it will stretch. */
+/* Centered, frameless column. Logo on top, text underneath. */
 #credits-panel {
     position: absolute;
     left: 50%;
-    top: 50%;
+    top: 42%;              /* nudged above center to raise logo + thanks */
     width: 1000px;
     height: 680px;
     margin-left: -500px;   /* -half width  -> horizontal center */
-    margin-top: -340px;    /* -half height -> vertical center   */
-    decorator: image("../Texture/GameScene/Title/Credits_Frame.png");
+    margin-top: -340px;    /* -half height -> vertical center reference */
 }
 
-#credits-heading {
-    text-align: center;
-    color: #ffffff;
-    font-size: 56px;
-    margin-top: 48px;
+/* Logo art (1254x1254, 1:1) centered at the top of the column.
+   TODO: swap the role/name text below for image rows later. */
+#credits-logo {
+    display: block;
+    width: 280px;
+    height: 280px;
+    margin-top: 24px;
+    margin-left: auto;
+    margin-right: auto;    /* auto margins -> horizontal center */
+    decorator: image("../Texture/GameScene/Title/Title_Logo.png");
 }
 
 #credits-body {
@@ -45,10 +44,19 @@ body#credits-screen {
     color: #e8e8e8;
 }
 
+/* RmlUi has no UA stylesheet, so <p> defaults to inline and would lay the
+   rows out on one line (and ignore vertical margins). Force block so each
+   role/name sits on its own line and the margins below create the spacing. */
+#credits-body p {
+    display: block;
+}
+
+/* First role in each pair carries the gap that separates one pair from the
+   previous name/role above it. */
 #credits-body .role {
     font-size: 28px;
     color: #ffcc00;
-    margin-top: 20px;
+    margin-top: 28px;
 }
 
 #credits-body .name {
@@ -56,19 +64,23 @@ body#credits-screen {
     margin-top: 2px;
 }
 
+/* "thanks" now sits at the top of the body, right under the logo.
+   margin-bottom opens a gap between it and the first credit row below. */
 #credits-body .thanks {
-    font-size: 18px;
+    font-size: 48px;
     color: #aaaaaa;
-    margin-top: 40px;
+    margin-top: 24px;
+    margin-bottom: 48px;
 }
 
-/* Text-based Back button — no art needed. */
+/* Text-based Back button — no art needed. In normal flow below the credits;
+   margin-top is the gap between the last credit row and the button. */
 .text-btn {
-    position: absolute;
-    bottom: 36px;
-    left: 50%;
+    display: block;
     width: 200px;
-    margin-left: -100px;
+    margin-top: 64px;
+    margin-left: auto;
+    margin-right: auto;    /* auto margins -> horizontal center */
     height: 48px;
     padding-top: 8px;
     text-align: center;

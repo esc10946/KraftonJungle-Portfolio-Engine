@@ -1,0 +1,99 @@
+/* ============================================================
+   Options overlay — shown on top of the title screen.
+   Master Volume controlled with -/+ buttons (no slider, so it does
+   not depend on RmlUi form controls).
+   Font "Serpentine" is registered in C++ (UIManager.cpp); reference
+   that name directly (the engine does not load @font-face fonts).
+   ============================================================ */
+
+/* Full-screen dim behind the panel; also captures clicks so the title
+   buttons underneath can't be hit while Options is open. */
+body#options-screen {
+    width: 100%;
+    height: 100%;
+    font-family: Serpentine;
+    background-color: rgba(0, 0, 0, 180);
+}
+
+/* Centered, frameless panel. */
+#options-panel {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 760px;
+    height: 440px;
+    margin-left: -380px;   /* -half width  -> horizontal center */
+    margin-top: -220px;    /* -half height -> vertical center   */
+}
+
+#options-heading {
+    text-align: center;
+    color: #ffffff;
+    font-size: 56px;
+    margin-top: 24px;
+}
+
+/* One settings row: label on its own line, control row beneath. */
+.opt-row {
+    display: block;
+    text-align: center;
+    margin-top: 64px;
+}
+
+.opt-label {
+    display: block;
+    color: #e8e8e8;
+    font-size: 30px;
+}
+
+.opt-control {
+    display: block;
+    margin-top: 18px;
+    text-align: center;
+}
+
+/* -/+ stepper buttons */
+.step-btn {
+    display: inline-block;
+    width: 56px;
+    height: 56px;
+    padding-top: 4px;
+    font-size: 40px;
+    text-align: center;
+    color: #e8e8e8;
+    background-color: rgba(255, 255, 255, 22);
+    cursor: pointer;
+}
+
+.step-btn:hover {
+    color: #ffcc00;
+    background-color: rgba(255, 204, 0, 40);
+}
+
+/* Current value (e.g. "70%") between the two steppers */
+.opt-value {
+    display: inline-block;
+    width: 160px;
+    font-size: 32px;
+    color: #ffcc00;
+    text-align: center;
+}
+
+/* Text-based Back button — no art needed. */
+.text-btn {
+    display: block;
+    width: 320px;
+    margin-top: 80px;
+    margin-left: auto;
+    margin-right: auto;    /* auto margins -> horizontal center */
+    height: 48px;
+    padding-top: 8px;
+    text-align: center;
+    font-size: 28px;
+    color: #e8e8e8;
+    cursor: pointer;
+}
+
+.text-btn:hover {
+    color: #ffcc00;
+}

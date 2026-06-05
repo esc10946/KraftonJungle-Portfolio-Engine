@@ -258,7 +258,6 @@ static EWorldType StringToWorldType(const string& Str)
 
 void FSceneSaveManager::SaveSceneAsJSON(const string& InSceneName, FWorldContext& WorldContext, const FMinimalViewInfo* PerspectivePOV)
 {
-	using namespace json;
 	FScopedGarbageCollectionBlocker GCBlocker;
 
 	if (!IsSceneSerializableObject(WorldContext.World)) return;
@@ -269,14 +268,47 @@ void FSceneSaveManager::SaveSceneAsJSON(const string& InSceneName, FWorldContext
 
 	std::wstring SceneDir = GetSceneDirectory();
 	std::filesystem::path FileDestination = std::filesystem::path(SceneDir) / (FPaths::ToWide(FinalName) + SceneExtension);
-	std::filesystem::create_directories(SceneDir);
+	SaveSceneToFile(FileDestination, FinalName, WorldContext, PerspectivePOV);
+}
+
+void FSceneSaveManager::SaveSceneToJSON(const string& InFilePath, FWorldContext& WorldContext, const FMinimalViewInfo* PerspectivePOV)
+{
+	FScopedGarbageCollectionBlocker GCBlocker;
+
+	if (!IsSceneSerializableObject(WorldContext.World) || InFilePath.empty()) return;
+
+	std::filesystem::path FileDestination(FPaths::ToWide(InFilePath));
+	if (!FileDestination.has_filename())
+	{
+		return;
+	}
+
+	if (FileDestination.extension().empty())
+	{
+		FileDestination += SceneExtension;
+	}
+
+	const string SceneName = FPaths::ToUtf8(FileDestination.stem().wstring());
+	SaveSceneToFile(FileDestination, SceneName, WorldContext, PerspectivePOV);
+}
+
+void FSceneSaveManager::SaveSceneToFile(const std::filesystem::path& FileDestination, const string& SceneName, FWorldContext& WorldContext, const FMinimalViewInfo* PerspectivePOV)
+{
+	using namespace json;
+
+	if (!IsSceneSerializableObject(WorldContext.World)) return;
+
+	if (std::filesystem::path ParentPath = FileDestination.parent_path(); !ParentPath.empty())
+	{
+		std::filesystem::create_directories(ParentPath);
+	}
 
 	FSceneSaveContext SaveContext;
 	CollectWorldObjectIds(WorldContext.World, SaveContext);
 
 	JSON Root = SerializeWorld(WorldContext.World, WorldContext, PerspectivePOV, SaveContext);
 	Root[SceneKeys::Version] = 2;
-	Root[SceneKeys::Name] = FinalName;
+	Root[SceneKeys::Name] = SceneName;
 
 	std::ofstream File(FileDestination);
 	if (File.is_open()) {
