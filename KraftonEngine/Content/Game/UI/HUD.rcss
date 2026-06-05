@@ -135,6 +135,36 @@ body#hud-screen {
     height: 20px;
 }
 
+.hp-marker {
+    position: absolute;
+    display: block;
+    decorator: image("../Texture/HUD/SB_FE/Marker_Bar.png" contain);
+}
+
+.hp-marker-center {
+    position: absolute;
+    left: 1px;
+    top: 3px;
+    display: block;
+    width: 80%;
+    height: 80%;
+    decorator: image("../Texture/HUD/SB_FE/Marker_Center.png" contain);
+}
+
+#player-hp-marker-left {
+    left: -3px;
+    top: -15px;
+    width: 8px;
+    height: 50px;
+}
+
+#player-hp-marker-right {
+    right: -3px;
+    top: -15px;
+    width: 8px;
+    height: 50px;
+}
+
 /* ============================================================
    Bottom red token / state icon
    ============================================================ */
@@ -197,6 +227,20 @@ body#hud-screen {
     decorator: image("../Texture/HUD/SB_FE/BossHealthBar.png" fill);
 }
 
+#boss-hp-marker-left {
+    left: 7px;
+    top: 2px;
+    width: 10px;
+    height: 32px;
+}
+
+#boss-hp-marker-right {
+    right: 7px;
+    top: 2px;
+    width: 10px;
+    height: 32px;
+}
+
 #boss-name-bg {
     position: absolute;
     left: 20px;
@@ -232,11 +276,11 @@ body#hud-screen {
 #boss-posture-panel {
     position: absolute;
     left: 50%;
-    top: 67px;
+    top: 63px;
     display: block;
-    width: 520px;
-    height: 25px;
-    margin-left: -260px;
+    width: 460px;
+    height: 42px;
+    margin-left: -230px;
 }
 
 #boss-posture-bg {
@@ -244,19 +288,37 @@ body#hud-screen {
     left: 0px;
     top: 0px;
     display: block;
-    width: 520px;
-    height: 25px;
-    decorator: image("../Texture/HUD/SB_FE/HealthBar_BG.png" cover);
+    width: 460px;
+    height: 42px;
+}
+
+#boss-posture-bg-left {
+    position: absolute;
+    right: 232px;
+    top: 0px;
+    width: 227px;
+    height: 42px;
+    decorator: image("../Texture/HUD/SB_FE/PostureBar_Left_BG.png" fill);
+}
+
+#boss-posture-bg-right {
+    position: absolute;
+    left: 232px;
+    top: 0px;
+    width: 227px;
+    height: 42px;
+    decorator: image("../Texture/HUD/SB_FE/PostureBar_Right_BG.png" fill);
 }
 
 #boss-posture-left-clip {
     position: absolute;
-    right: 262px;
-    top: 11px;
+    left: 0px;
+    top: 12px;
     display: block;
-    width: 256px;
-    height: 10px;
+    width: 227px;
+    height: 18px;
     overflow: hidden;
+    clip: always;
 }
 
 #boss-posture-left-mask {
@@ -265,29 +327,28 @@ body#hud-screen {
     top: 0px;
     display: block;
     width: 100%;
-    height: 10px;
-    overflow: hidden;
-    clip: always;
+    height: 18px;
 }
 
 #boss-posture-left-fill {
     position: absolute;
-    right: 0px;
+    left: 0px;
     top: 0px;
     display: block;
-    width: 256px;
-    height: 10px;
-    decorator: image("../Texture/HUD/SB_FE/HealthBar.png" fill);
+    width: 227px;
+    height: 18px;
+    decorator: image("../Texture/HUD/SB_FE/PostureBar_Left.png" fill);
 }
 
 #boss-posture-right-clip {
     position: absolute;
-    left: 262px;
-    top: 11px;
+    right: 0px;
+    top: 12px;
     display: block;
-    width: 255px;
-    height: 10px;
+    width: 227px;
+    height: 18px;
     overflow: hidden;
+    clip: always;
 }
 
 #boss-posture-right-mask {
@@ -296,29 +357,42 @@ body#hud-screen {
     top: 0px;
     display: block;
     width: 100%;
-    height: 10px;
-    overflow: hidden;
-    clip: always;
+    height: 18px;
 }
 
 #boss-posture-right-fill {
     position: absolute;
-    left: 0px;
+    right: 0px;
     top: 0px;
     display: block;
-    width: 255px;
-    height: 10px;
-    decorator: image("../Texture/HUD/SB_FE/HealthBar.png" fill);
+    width: 227px;
+    height: 18px;
+    decorator: image("../Texture/HUD/SB_FE/PostureBar_Right.png" fill);
 }
 
 #boss-posture-center-mark {
     position: absolute;
-    left: 258px;
-    top: 6px;
+    left: 228px;
+    top: 12px;
     display: block;
     width: 4px;
-    height: 22px;
+    height: 18px;
     background-color: rgb(240, 238, 224);
+}
+
+#boss-posture-marker-left {
+    left: -36px;
+    top: 10px;
+    transform: scale(-1, 1);
+    width: 95px;
+    height: 22px;
+}
+
+#boss-posture-marker-right {
+    right: -36px;
+    top: 10px;
+    width: 95px;
+    height: 22px;
 }
 
 /* ============================================================
@@ -355,6 +429,29 @@ body#hud-screen {
 }
 
 /* 왼쪽 바 마스크 - 런타임에서 width 조절: 0px ~ 227px */
+.posture-bg-marker {
+    position: absolute;
+    display: block;
+    width: 54px;
+    height: 28px;
+    decorator: image("../Texture/HUD/SB_FE/PostureBar_Marker.png" contain);
+}
+
+#player-posture-marker-left {
+    left: -36px;
+    top: 9px;
+    transform: scale(-1, 1);
+
+    height: 16px;
+    width: 95px;}
+
+#player-posture-marker-right {
+    right: -36px;
+    top: 9px;
+
+    height: 16px;
+    width: 95px;}
+
 #player-posture-left-clip {
     position: absolute;
     left: 0px;
@@ -389,11 +486,14 @@ body#hud-screen {
 /* 오른쪽 바 마스크 - 런타임에서 width 조절: 0px ~ 227px */
 #player-posture-right-clip {
     position: absolute;
-    left: 232px;
+    right: 0px;
     top: 10px;
+
     width: 227px;
     height: 14px;
+
     overflow: hidden;
+    clip: always;
 }
 
 #player-posture-right-mask {
@@ -402,8 +502,6 @@ body#hud-screen {
     top: 0px;
     width: 100%;
     height: 14px;
-    overflow: hidden;
-    clip: always;
 }
 
 #player-posture-right-fill {
@@ -419,9 +517,9 @@ body#hud-screen {
 #player-posture-center-mark {
     position: absolute;
     left: 228px;
-    top: 6px;
+    top: 11px;
     width: 4px;
-    height: 22px;
+    height: 12px;
     background-color: rgb(240, 238, 224);
 }
 

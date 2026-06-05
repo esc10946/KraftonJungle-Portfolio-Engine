@@ -10,6 +10,12 @@
             <div id="boss-hp-mask">
                 <div id="boss-hp-fill"></div>
             </div>
+            <div id="boss-hp-marker-left" class="hp-marker">
+                <div class="hp-marker-center"></div>
+            </div>
+            <div id="boss-hp-marker-right" class="hp-marker">
+                <div class="hp-marker-center"></div>
+            </div>
         </div>
             
         <div id="boss-name-bg">
@@ -20,6 +26,9 @@
 
     <div id="boss-posture-panel">
         <div id="boss-posture-bg">
+            <div id="boss-posture-bg-left"></div>
+            <div id="boss-posture-bg-right"></div>
+
             <div id="boss-posture-left-clip">
                 <div id="boss-posture-left-mask">
                     <div id="boss-posture-left-fill"></div>
@@ -31,6 +40,8 @@
                 </div>
             </div>
             <div id="boss-posture-center-mark"></div>
+            <div id="boss-posture-marker-left" class="posture-bg-marker"></div>
+            <div id="boss-posture-marker-right" class="posture-bg-marker"></div>
          </div>   
     </div>
 
@@ -38,7 +49,6 @@
         <!-- BG 레이어 -->
         <div id="player-posture-bg-left"></div>
         <div id="player-posture-bg-right"></div>
-
         <!-- fill 레이어 -->
         <div id="player-posture-left-clip">
             <div id="player-posture-left-mask">
@@ -53,6 +63,9 @@
 
         <!-- 중앙 마크 -->
         <div id="player-posture-center-mark"></div>
+        <div id="player-posture-marker-left" class="posture-bg-marker"></div>
+        <div id="player-posture-marker-right" class="posture-bg-marker"></div>
+
     </div>
 
     <div id="item-panel">
@@ -76,6 +89,12 @@
             </div>
             
             <div id="player-hp-border"></div>
+            <div id="player-hp-marker-left" class="hp-marker">
+                <div class="hp-marker-center"></div>
+            </div>
+            <div id="player-hp-marker-right" class="hp-marker">
+                <div class="hp-marker-center"></div>
+            </div>
         </div>
     </div>
 </body>
