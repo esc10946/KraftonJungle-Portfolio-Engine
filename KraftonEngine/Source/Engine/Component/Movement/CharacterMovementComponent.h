@@ -81,6 +81,8 @@ public:
 
 	UFUNCTION(Callable, Category="CharacterMovement")
 	void           StopMovementImmediately();
+	void           StopMovementImmediately(bool bPreserveVerticalVelocity);
+	void           StopHorizontalMovementImmediately();
 
 	// Physics/contact bridge. Dynamic bodies or scripted impacts can feed an impulse
 	// back into the controller-owned character without making the capsule a Dynamic body.
@@ -108,6 +110,8 @@ public:
 	float SweepPullbackDistance = 0.01f;
 	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Ground Snap Distance", Min=0.0f, Max=5.0f, Speed=0.01f)
 	float GroundSnapDistance = 0.45f;
+	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Falling Landing Snap Distance", Min=0.0f, Max=1.0f, Speed=0.01f)
+	float FallingLandingSnapDistance = 0.08f;
 	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Max Step Height", Min=0.0f, Max=2.0f, Speed=0.01f)
 	float MaxStepHeight = 0.45f;
 	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Max Drop Height", Min=0.0f, Max=5.0f, Speed=0.01f)
@@ -145,6 +149,7 @@ protected:
 	bool  RecoverFromPenetration();
 	bool  ProbePenetration(FHitResult& OutHit) const;
 	bool  TraceFloor(FHitResult& OutHit) const;
+	bool  TraceFloorWithProbeDistance(float ProbeDistance, FHitResult& OutHit) const;
 	bool  IsWalkableFloor(const FHitResult& Hit) const;
 	bool  SnapToFloor(float ProbeDistance);
 	bool  MoveWithSlide(const FVector& Delta, FHitResult* OutHit = nullptr);

@@ -37,6 +37,10 @@ struct FGridNavCell
 {
 	FVector Location = FVector::ZeroVector;
 	bool bWalkable = false;
+	// Horizontal free radius from this cell center to the nearest blocking obstacle.
+	// Path queries still re-check cached obstacle bounds with the requesting agent height,
+	// but this gives a cheap first-order clearance value for debugging and filtering.
+	float ClearanceRadius = 0.0f;
 };
 
 // ============================================================
@@ -135,6 +139,7 @@ private:
 		bool bWalkable = false;
 		bool bBlockedByObstacle = false;
 		FVector DebugLocation = FVector::ZeroVector;
+		float ClearanceRadius = 0.0f;
 	};
 
 	UNavigationSystem* GetNavigationSystem() const;
@@ -145,21 +150,24 @@ private:
 	bool IsInsideAnyBuildBounds(const FVector& Point, const TArray<FBuildBounds>& Bounds) const;
 	FBuildCellResult BuildCell(const FGridNavCellKey& Key, float GuessZ, const TArray<FBuildBounds>& Bounds, const TArray<FNavigationPrimitiveBounds>& Primitives, FGridNavCell& OutCell) const;
 	bool ProjectPointToWalkableSurfaceByPrimitiveBounds(const FVector& Guess, const TArray<FBuildBounds>& Bounds, const TArray<FNavigationPrimitiveBounds>& Primitives, FVector& OutProjectedLocation) const;
-	bool HasAgentFootprint(const FVector& ProjectedLocation, const TArray<FNavigationPrimitiveBounds>& Primitives) const;
-	bool HasAgentFootprintByPrimitiveBounds(const FVector& ProjectedLocation, const TArray<FNavigationPrimitiveBounds>& Primitives) const;
+	bool HasAgentFootprint(const FVector& ProjectedLocation, const FNavAgentProperties& AgentProps, const TArray<FNavigationPrimitiveBounds>& Primitives, float* OutClearanceRadius = nullptr) const;
+	bool HasAgentFootprintByPrimitiveBounds(const FVector& ProjectedLocation, const FNavAgentProperties& AgentProps, const TArray<FNavigationPrimitiveBounds>& Primitives, float* OutClearanceRadius = nullptr) const;
 	const FGridNavCell* FindCell(const FGridNavCellKey& Key) const;
-	bool FindCellAtPointStrict(const FVector& Point, FGridNavCellKey& OutKey, FVector& OutLocation) const;
+	bool IsCellUsableForAgent(const FGridNavCellKey& Key, const FNavAgentProperties& AgentProps, const FGridNavCell*& OutCell) const;
+	bool FindCellAtPointStrict(const FVector& Point, const FNavAgentProperties& AgentProps, FGridNavCellKey& OutKey, FVector& OutLocation) const;
 	bool FindNearestCell(const FVector& Point, FGridNavCellKey& OutKey, FVector& OutLocation) const;
+	bool FindNearestCellForAgent(const FVector& Point, const FNavAgentProperties& AgentProps, FGridNavCellKey& OutKey, FVector& OutLocation) const;
 	bool IsHeightTransitionAllowed(float FromZ, float ToZ, const FNavAgentProperties& AgentProps) const;
 	bool HasCachedSegment(const FVector& Start, const FVector& End, const FNavAgentProperties& AgentProps) const;
 	FColor GetHeightDebugColor(float HeightZ, float MinZ, float MaxZ) const;
 	bool ShouldDrawHeightContour(float HeightZ, float MinZ) const;
 	bool BuildDirectCachedPath(const FVector& Start, const FVector& End, const FNavAgentProperties& AgentProps, FNavigationPath& OutPath) const;
-	bool IsDiagonalMoveAllowed(const FGridNavCellKey& From, const FGridNavCellKey& Dir) const;
+	bool IsDiagonalMoveAllowed(const FGridNavCellKey& From, const FGridNavCellKey& Dir, const FNavAgentProperties& AgentProps) const;
 	void SmoothPath(const FNavAgentProperties& AgentProps, FNavigationPath& InOutPath) const;
 
 	std::unordered_map<FGridNavCellKey, FGridNavCell, FGridNavCellKeyHash> WalkableCells;
 	std::unordered_map<FGridNavCellKey, FVector, FGridNavCellKeyHash> BlockedCells;
+	TArray<FNavigationPrimitiveBounds> CachedNavigationPrimitives;
 	int32 BlockedCellCount = 0;
 	int32 LastBuildBoundsCount = 0;
 	int32 LastBuildCandidateCount = 0;

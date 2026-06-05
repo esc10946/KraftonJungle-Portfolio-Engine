@@ -18,9 +18,11 @@
 #include "Object/Reflection/UClass.h"
 #include "Math/MathUtils.h"
 #include "Math/Rotator.h"
-#include "Core/Logging/Log.h"
+
 #include <algorithm>
 #include <cmath>
+
+#include "Core/Logging/Log.h"
 
 namespace
 {
@@ -198,7 +200,7 @@ void AEnemyCharacter::StopEnemyMovement()
 	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
 	{
 		Movement->ClearInputVector();
-		Movement->StopMovementImmediately();
+		Movement->StopHorizontalMovementImmediately();
 	}
 }
 

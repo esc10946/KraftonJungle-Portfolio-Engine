@@ -55,6 +55,13 @@ namespace
 		return DX * DX + DY * DY;
 	}
 
+	float HorizontalDistanceToBox2D(const FVector& Point, const FBoundingBox& Box)
+	{
+		const float DX = (Point.X < Box.Min.X) ? (Box.Min.X - Point.X) : ((Point.X > Box.Max.X) ? (Point.X - Box.Max.X) : 0.0f);
+		const float DY = (Point.Y < Box.Min.Y) ? (Box.Min.Y - Point.Y) : ((Point.Y > Box.Max.Y) ? (Point.Y - Box.Max.Y) : 0.0f);
+		return sqrtf(DX * DX + DY * DY);
+	}
+
 	void AddPathPointIfDistinct(FNavigationPath& Path, const FVector& Location)
 	{
 		if (!Path.PathPoints.empty())
@@ -210,6 +217,7 @@ void AGridNavMesh::ClearNavigationData()
 	}
 	WalkableCells.clear();
 	BlockedCells.clear();
+	CachedNavigationPrimitives.clear();
 	BlockedCellCount = 0;
 	LastBuildBoundsCount = 0;
 	LastBuildCandidateCount = 0;
@@ -415,11 +423,17 @@ bool AGridNavMesh::ProjectPointToWalkableSurfaceByPrimitiveBounds(
 	return IsInsideAnyBuildBounds(OutProjectedLocation, Bounds);
 }
 
-bool AGridNavMesh::HasAgentFootprintByPrimitiveBounds(const FVector& ProjectedLocation, const TArray<FNavigationPrimitiveBounds>& Primitives) const
+bool AGridNavMesh::HasAgentFootprintByPrimitiveBounds(
+	const FVector& ProjectedLocation,
+	const FNavAgentProperties& AgentProps,
+	const TArray<FNavigationPrimitiveBounds>& Primitives,
+	float* OutClearanceRadius) const
 {
-	const float Radius = std::max(0.05f, SupportedAgent.Radius + std::max(0.0f, ObstaclePadding));
+	const float RequiredRadius = std::max(0.01f, AgentProps.Radius + std::max(0.0f, ObstaclePadding));
 	const float AgentBottom = ProjectedLocation.Z + 0.05f;
-	const float AgentTop = ProjectedLocation.Z + std::max(Radius * 2.0f, SupportedAgent.Height);
+	const float AgentHeight = std::max(RequiredRadius * 2.0f, AgentProps.Height);
+	const float AgentTop = ProjectedLocation.Z + AgentHeight;
+	float ClearanceRadius = FLT_MAX;
 
 	for (const FNavigationPrimitiveBounds& PrimitiveBounds : Primitives)
 	{
@@ -432,6 +446,9 @@ bool AGridNavMesh::HasAgentFootprintByPrimitiveBounds(const FVector& ProjectedLo
 		{
 			continue;
 		}
+		// Obstacles entirely below the current floor do not block this floor.  This allows
+		// valid upper platforms, while still treating vertical walls that overlap the
+		// agent's capsule height as blocking geometry.
 		if (B.Max.Z <= ProjectedLocation.Z + 0.02f)
 		{
 			continue;
@@ -440,18 +457,33 @@ bool AGridNavMesh::HasAgentFootprintByPrimitiveBounds(const FVector& ProjectedLo
 		{
 			continue;
 		}
-		if (ProjectedLocation.X >= B.Min.X - Radius && ProjectedLocation.X <= B.Max.X + Radius &&
-			ProjectedLocation.Y >= B.Min.Y - Radius && ProjectedLocation.Y <= B.Max.Y + Radius)
+
+		const float DistanceToObstacle = HorizontalDistanceToBox2D(ProjectedLocation, B);
+		ClearanceRadius = std::min(ClearanceRadius, DistanceToObstacle);
+		if (DistanceToObstacle < RequiredRadius)
 		{
+			if (OutClearanceRadius)
+			{
+				*OutClearanceRadius = DistanceToObstacle;
+			}
 			return false;
 		}
+	}
+
+	if (OutClearanceRadius)
+	{
+		*OutClearanceRadius = ClearanceRadius == FLT_MAX ? 1000000.0f : ClearanceRadius;
 	}
 	return true;
 }
 
-bool AGridNavMesh::HasAgentFootprint(const FVector& ProjectedLocation, const TArray<FNavigationPrimitiveBounds>& Primitives) const
+bool AGridNavMesh::HasAgentFootprint(
+	const FVector& ProjectedLocation,
+	const FNavAgentProperties& AgentProps,
+	const TArray<FNavigationPrimitiveBounds>& Primitives,
+	float* OutClearanceRadius) const
 {
-	return HasAgentFootprintByPrimitiveBounds(ProjectedLocation, Primitives);
+	return HasAgentFootprintByPrimitiveBounds(ProjectedLocation, AgentProps, Primitives, OutClearanceRadius);
 }
 
 AGridNavMesh::FBuildCellResult AGridNavMesh::BuildCell(
@@ -481,13 +513,18 @@ AGridNavMesh::FBuildCellResult AGridNavMesh::BuildCell(
 		return Result;
 	}
 	Result.DebugLocation = Projected;
-	if (!HasAgentFootprint(Projected, Primitives))
+	float ClearanceRadius = 0.0f;
+	if (!HasAgentFootprint(Projected, SupportedAgent, Primitives, &ClearanceRadius))
 	{
+		Result.DebugLocation = Projected;
+		Result.ClearanceRadius = ClearanceRadius;
 		Result.bBlockedByObstacle = true;
 		return Result;
 	}
 	OutCell.Location = Projected;
 	OutCell.bWalkable = true;
+	OutCell.ClearanceRadius = ClearanceRadius;
+	Result.ClearanceRadius = ClearanceRadius;
 	Result.bWalkable = true;
 	return Result;
 }
@@ -513,6 +550,7 @@ bool AGridNavMesh::RebuildNavigationData()
 
 	TArray<FNavigationPrimitiveBounds> NavigationPrimitives;
 	CollectNavigationPrimitives(NavigationPrimitives);
+	CachedNavigationPrimitives = NavigationPrimitives;
 
 	const float Grid = std::max(0.25f, CellSize);
 	for (const FBuildBounds& B : Bounds)
@@ -572,15 +610,39 @@ const FGridNavCell* AGridNavMesh::FindCell(const FGridNavCellKey& Key) const
 	return It != WalkableCells.end() ? &It->second : nullptr;
 }
 
-bool AGridNavMesh::FindCellAtPointStrict(const FVector& Point, FGridNavCellKey& OutKey, FVector& OutLocation) const
+bool AGridNavMesh::IsCellUsableForAgent(const FGridNavCellKey& Key, const FNavAgentProperties& AgentProps, const FGridNavCell*& OutCell) const
+{
+	OutCell = FindCell(Key);
+	if (!OutCell || !OutCell->bWalkable)
+	{
+		return false;
+	}
+
+	const float RequiredRadius = std::max(0.01f, AgentProps.Radius + std::max(0.0f, ObstaclePadding));
+	if (OutCell->ClearanceRadius > 0.0f && OutCell->ClearanceRadius + 0.001f < RequiredRadius)
+	{
+		return false;
+	}
+
+	// Re-check against the cached source obstacle bounds using the requesting agent's
+	// radius and height.  The grid is built once, but path queries must remain agent-aware;
+	// otherwise larger bodies can receive routes that only fit the smallest build agent.
+	if (!CachedNavigationPrimitives.empty())
+	{
+		return HasAgentFootprint(OutCell->Location, AgentProps, CachedNavigationPrimitives, nullptr);
+	}
+	return true;
+}
+
+bool AGridNavMesh::FindCellAtPointStrict(const FVector& Point, const FNavAgentProperties& AgentProps, FGridNavCellKey& OutKey, FVector& OutLocation) const
 {
 	if (!bNavigationDataBuilt || WalkableCells.empty())
 	{
 		return false;
 	}
 	OutKey = WorldToCell(Point);
-	const FGridNavCell* Cell = FindCell(OutKey);
-	if (!Cell)
+	const FGridNavCell* Cell = nullptr;
+	if (!IsCellUsableForAgent(OutKey, AgentProps, Cell))
 	{
 		return false;
 	}
@@ -632,10 +694,54 @@ bool AGridNavMesh::FindNearestCell(const FVector& Point, FGridNavCellKey& OutKey
 	return false;
 }
 
-bool AGridNavMesh::ProjectPointToNavigation(const FVector& Point, FVector& OutProjectedPoint, const FNavAgentProperties&) const
+bool AGridNavMesh::FindNearestCellForAgent(const FVector& Point, const FNavAgentProperties& AgentProps, FGridNavCellKey& OutKey, FVector& OutLocation) const
+{
+	if (!bNavigationDataBuilt || WalkableCells.empty())
+	{
+		return false;
+	}
+	const FGridNavCellKey Base = WorldToCell(Point);
+	float BestDistSq = FLT_MAX;
+	bool bFound = false;
+
+	for (int32 Ring = 0; Ring <= std::max(1, NearestCellSearchRings); ++Ring)
+	{
+		for (int32 DX = -Ring; DX <= Ring; ++DX)
+		{
+			for (int32 DY = -Ring; DY <= Ring; ++DY)
+			{
+				if (Ring != 0 && std::abs(DX) != Ring && std::abs(DY) != Ring)
+				{
+					continue;
+				}
+				const FGridNavCellKey Key{Base.X + DX, Base.Y + DY};
+				const FGridNavCell* Cell = nullptr;
+				if (!IsCellUsableForAgent(Key, AgentProps, Cell))
+				{
+					continue;
+				}
+				const float DistSq = FVector::DistSquared(Point, Cell->Location);
+				if (DistSq < BestDistSq)
+				{
+					BestDistSq = DistSq;
+					OutKey = Key;
+					OutLocation = Cell->Location;
+					bFound = true;
+				}
+			}
+		}
+		if (bFound)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool AGridNavMesh::ProjectPointToNavigation(const FVector& Point, FVector& OutProjectedPoint, const FNavAgentProperties& AgentProps) const
 {
 	FGridNavCellKey Key;
-	return FindNearestCell(Point, Key, OutProjectedPoint);
+	return FindNearestCellForAgent(Point, AgentProps, Key, OutProjectedPoint);
 }
 
 bool AGridNavMesh::IsHeightTransitionAllowed(float FromZ, float ToZ, const FNavAgentProperties& AgentProps) const
@@ -667,7 +773,7 @@ bool AGridNavMesh::HasCachedSegment(const FVector& Start, const FVector& End, co
 		const FVector Sample(Start.X + (End.X - Start.X) * Alpha, Start.Y + (End.Y - Start.Y) * Alpha, Start.Z + (End.Z - Start.Z) * Alpha);
 		FGridNavCellKey Key;
 		FVector CellLocation;
-		if (!FindCellAtPointStrict(Sample, Key, CellLocation))
+		if (!FindCellAtPointStrict(Sample, AgentProps, Key, CellLocation))
 		{
 			return false;
 		}
@@ -678,7 +784,7 @@ bool AGridNavMesh::HasCachedSegment(const FVector& Start, const FVector& End, co
 			{
 				return false;
 			}
-			if (!IsDiagonalMoveAllowed(PreviousKey, Step))
+			if (!IsDiagonalMoveAllowed(PreviousKey, Step, AgentProps))
 			{
 				return false;
 			}
@@ -705,7 +811,7 @@ bool AGridNavMesh::BuildDirectCachedPath(const FVector& Start, const FVector& En
 		const FVector Sample(Start.X + (End.X - Start.X) * Alpha, Start.Y + (End.Y - Start.Y) * Alpha, Start.Z + (End.Z - Start.Z) * Alpha);
 		FGridNavCellKey SampleKey;
 		FVector Projected;
-		if (!FindCellAtPointStrict(Sample, SampleKey, Projected))
+		if (!FindCellAtPointStrict(Sample, AgentProps, SampleKey, Projected))
 		{
 			return false;
 		}
@@ -723,7 +829,7 @@ bool AGridNavMesh::BuildDirectCachedPath(const FVector& Start, const FVector& En
 	return true;
 }
 
-bool AGridNavMesh::IsDiagonalMoveAllowed(const FGridNavCellKey& From, const FGridNavCellKey& Dir) const
+bool AGridNavMesh::IsDiagonalMoveAllowed(const FGridNavCellKey& From, const FGridNavCellKey& Dir, const FNavAgentProperties& AgentProps) const
 {
 	if (Dir.X == 0 || Dir.Y == 0)
 	{
@@ -731,7 +837,9 @@ bool AGridNavMesh::IsDiagonalMoveAllowed(const FGridNavCellKey& From, const FGri
 	}
 	const FGridNavCellKey A{From.X + Dir.X, From.Y};
 	const FGridNavCellKey B{From.X, From.Y + Dir.Y};
-	return FindCell(A) && FindCell(B);
+	const FGridNavCell* CellA = nullptr;
+	const FGridNavCell* CellB = nullptr;
+	return IsCellUsableForAgent(A, AgentProps, CellA) && IsCellUsableForAgent(B, AgentProps, CellB);
 }
 
 bool AGridNavMesh::FindPath(const FVector& Start, const FVector& End, const FNavAgentProperties& AgentProps, FNavigationPath& OutPath) const
@@ -741,7 +849,7 @@ bool AGridNavMesh::FindPath(const FVector& Start, const FVector& End, const FNav
 	FGridNavCellKey GoalKey;
 	FVector StartLocation;
 	FVector GoalLocation;
-	if (!FindNearestCell(Start, StartKey, StartLocation) || !FindNearestCell(End, GoalKey, GoalLocation))
+	if (!FindNearestCellForAgent(Start, AgentProps, StartKey, StartLocation) || !FindNearestCellForAgent(End, AgentProps, GoalKey, GoalLocation))
 	{
 		return false;
 	}
@@ -754,6 +862,32 @@ bool AGridNavMesh::FindPath(const FVector& Start, const FVector& End, const FNav
 	std::priority_queue<FGridOpenNode> Open;
 	std::unordered_map<FGridNavCellKey, FGridSearchRecord, FGridNavCellKeyHash> Records;
 	std::unordered_set<FGridNavCellKey, FGridNavCellKeyHash> Closed;
+	std::unordered_map<FGridNavCellKey, bool, FGridNavCellKeyHash> UsableCellCache;
+	UsableCellCache.reserve(static_cast<size_t>(std::min(std::max(16, MaxSearchNodes), 4096)));
+	auto IsUsableCached = [this, &AgentProps, &UsableCellCache](const FGridNavCellKey& Key, const FGridNavCell*& OutCell) -> bool
+	{
+		auto Cached = UsableCellCache.find(Key);
+		if (Cached != UsableCellCache.end())
+		{
+			OutCell = Cached->second ? FindCell(Key) : nullptr;
+			return Cached->second && OutCell;
+		}
+		const bool bUsable = IsCellUsableForAgent(Key, AgentProps, OutCell);
+		UsableCellCache[Key] = bUsable;
+		return bUsable;
+	};
+	auto IsDiagonalMoveAllowedCached = [&IsUsableCached](const FGridNavCellKey& From, const FGridNavCellKey& Dir) -> bool
+	{
+		if (Dir.X == 0 || Dir.Y == 0)
+		{
+			return true;
+		}
+		const FGridNavCellKey A{From.X + Dir.X, From.Y};
+		const FGridNavCellKey B{From.X, From.Y + Dir.Y};
+		const FGridNavCell* CellA = nullptr;
+		const FGridNavCell* CellB = nullptr;
+		return IsUsableCached(A, CellA) && IsUsableCached(B, CellB);
+	};
 
 	FGridSearchRecord StartRecord;
 	StartRecord.G = 0.0f;
@@ -794,15 +928,15 @@ bool AGridNavMesh::FindPath(const FVector& Start, const FVector& End, const FNav
 			break;
 		}
 
-		const FGridNavCell* CurrentCell = FindCell(Current.Key);
-		if (!CurrentCell)
+		const FGridNavCell* CurrentCell = nullptr;
+		if (!IsUsableCached(Current.Key, CurrentCell))
 		{
 			continue;
 		}
 
 		for (const FGridNavCellKey& Dir : Directions)
 		{
-			if (!IsDiagonalMoveAllowed(Current.Key, Dir))
+			if (!IsDiagonalMoveAllowedCached(Current.Key, Dir))
 			{
 				continue;
 			}
@@ -811,12 +945,16 @@ bool AGridNavMesh::FindPath(const FVector& Start, const FVector& End, const FNav
 			{
 				continue;
 			}
-			const FGridNavCell* NextCell = FindCell(Next);
-			if (!NextCell)
+			const FGridNavCell* NextCell = nullptr;
+			if (!IsUsableCached(Next, NextCell))
 			{
 				continue;
 			}
-			if (!HasCachedSegment(CurrentCell->Location, NextCell->Location, AgentProps))
+			// Adjacent cells have already been filtered for agent radius/height clearance,
+			// and diagonal corner cutting is checked by IsDiagonalMoveAllowed().  Avoid the
+			// expensive sampled segment validation in the hot A* neighbor loop; reserve it
+			// for direct-path and smoothing checks where a segment can span many cells.
+			if (!IsHeightTransitionAllowed(CurrentCell->Location.Z, NextCell->Location.Z, AgentProps))
 			{
 				continue;
 			}
@@ -868,8 +1006,8 @@ bool AGridNavMesh::FindPath(const FVector& Start, const FVector& End, const FNav
 	AddPathPointIfDistinct(OutPath, StartLocation);
 	for (auto It = ReversedKeys.rbegin(); It != ReversedKeys.rend(); ++It)
 	{
-		const FGridNavCell* Cell = FindCell(*It);
-		if (Cell)
+		const FGridNavCell* Cell = nullptr;
+		if (IsCellUsableForAgent(*It, AgentProps, Cell))
 		{
 			AddPathPointIfDistinct(OutPath, Cell->Location);
 		}
@@ -905,7 +1043,7 @@ bool AGridNavMesh::GetRandomReachablePointInRadius(const FVector& Origin, float 
 	}
 	FVector ProjectedOrigin;
 	FGridNavCellKey OriginKey;
-	if (!FindNearestCell(Origin, OriginKey, ProjectedOrigin))
+	if (!FindNearestCellForAgent(Origin, AgentProps, OriginKey, ProjectedOrigin))
 	{
 		return false;
 	}
@@ -944,7 +1082,7 @@ bool AGridNavMesh::IsLocationOnNavData(const FVector& Location) const
 {
 	FGridNavCellKey Key;
 	FVector Projected;
-	return FindNearestCell(Location, Key, Projected) && FVector::DistSquared(Location, Projected) <= CellSize * CellSize;
+	return FindNearestCellForAgent(Location, SupportedAgent, Key, Projected) && FVector::DistSquared(Location, Projected) <= CellSize * CellSize;
 }
 
 void AGridNavMesh::SmoothPath(const FNavAgentProperties& AgentProps, FNavigationPath& InOutPath) const

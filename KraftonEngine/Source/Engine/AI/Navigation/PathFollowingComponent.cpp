@@ -1,12 +1,14 @@
 #include "AI/Navigation/PathFollowingComponent.h"
 
 #include "Component/Movement/CharacterMovementComponent.h"
+#include "Component/Shape/CapsuleComponent.h"
 #include "Debug/DrawDebugHelpers.h"
 #include "GameFramework/Controller/AIController.h"
 #include "GameFramework/Pawn/Character.h"
 #include "GameFramework/Pawn/Pawn.h"
 #include "GameFramework/World.h"
 
+#include <algorithm>
 #include <cfloat>
 #include <cmath>
 
@@ -34,6 +36,34 @@ APawn* UPathFollowingComponent::GetPawnOwner() const
 ACharacter* UPathFollowingComponent::GetCharacterOwner() const
 {
 	return Cast<ACharacter>(GetPawnOwner());
+}
+
+float UPathFollowingComponent::GetOwnerAgentRadius() const
+{
+	ACharacter* Character = GetCharacterOwner();
+	if (!Character)
+	{
+		return 0.0f;
+	}
+	UCapsuleComponent* Capsule = Character->GetCapsuleComponent();
+	return Capsule ? Capsule->GetScaledCapsuleRadius() : 0.0f;
+}
+
+float UPathFollowingComponent::GetEffectivePathPointAcceptanceRadius(bool bFinalPoint) const
+{
+	if (bFinalPoint || !bUseAgentRadiusForCornerAcceptance)
+	{
+		return bFinalPoint ? AcceptanceRadius : PathPointAcceptanceRadius;
+	}
+
+	const float AgentRadius = GetOwnerAgentRadius();
+	if (AgentRadius <= 0.0f)
+	{
+		return PathPointAcceptanceRadius;
+	}
+
+	const float AgentScaledRadius = std::max(MinCornerAcceptanceRadius, AgentRadius * std::max(0.05f, CornerAcceptanceRadiusScale));
+	return std::min(PathPointAcceptanceRadius, AgentScaledRadius);
 }
 
 bool UPathFollowingComponent::RequestMove(const FNavigationPath& InPath, float InAcceptanceRadius)
@@ -112,7 +142,7 @@ void UPathFollowingComponent::FinishMove(EPathFollowingResult Result)
 			Movement->ClearInputVector();
 			if (Result != EPathFollowingResult::Success)
 			{
-				Movement->StopMovementImmediately();
+				Movement->StopHorizontalMovementImmediately();
 			}
 		}
 	}
@@ -152,7 +182,7 @@ void UPathFollowingComponent::AdvancePathIfNeeded()
 	while (CurrentPathIndex < Path.Num())
 	{
 		const bool bFinalPoint = CurrentPathIndex >= Path.Num() - 1;
-		const float Radius = bFinalPoint ? AcceptanceRadius : PathPointAcceptanceRadius;
+		const float Radius = GetEffectivePathPointAcceptanceRadius(bFinalPoint);
 		if (FlatDistanceSquared(PawnLocation, Path.GetPathPointLocation(CurrentPathIndex)) > Radius * Radius)
 		{
 			break;

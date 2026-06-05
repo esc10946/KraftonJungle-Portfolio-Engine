@@ -1,4 +1,4 @@
-﻿#include "CharacterMovementComponent.h"
+#include "CharacterMovementComponent.h"
 
 #include "Animation/AnimInstance.h"
 #include "Component/Shape/CapsuleComponent.h"
@@ -61,9 +61,29 @@ void UCharacterMovementComponent::ClearInputVector()
 
 void UCharacterMovementComponent::StopMovementImmediately()
 {
+	StopMovementImmediately(false);
+}
+
+void UCharacterMovementComponent::StopMovementImmediately(bool bPreserveVerticalVelocity)
+{
 	AccumulatedInput = FVector::ZeroVector;
+
+	if (bPreserveVerticalVelocity)
+	{
+		PendingExternalImpulse.X = 0.0f;
+		PendingExternalImpulse.Y = 0.0f;
+		Velocity.X = 0.0f;
+		Velocity.Y = 0.0f;
+		return;
+	}
+
 	PendingExternalImpulse = FVector::ZeroVector;
 	Velocity = FVector::ZeroVector;
+}
+
+void UCharacterMovementComponent::StopHorizontalMovementImmediately()
+{
+	StopMovementImmediately(true);
 }
 
 void UCharacterMovementComponent::AddExternalImpulse(const FVector& WorldImpulse)
@@ -357,11 +377,28 @@ void UCharacterMovementComponent::TickFalling(float DeltaTime, const FVector& Ro
 		Velocity.X * DeltaTime + RootMotionWorldXY.X,
 		Velocity.Y * DeltaTime + RootMotionWorldXY.Y,
 		Velocity.Z * DeltaTime);
-	MoveWithSlide(Offset);
+
+	FHitResult MoveHit;
+	MoveWithSlide(Offset, &MoveHit);
 
 	if (Velocity.Z > 0.0f) return;
 
-	if (SnapToFloor(FloorProbeDistance + GroundSnapDistance))
+	// Falling must not use the walking ground-stick distance.  GroundSnapDistance is
+	// intentionally generous so walking characters stay glued to small ramps/steps,
+	// but using it while airborne makes the character teleport to the floor as soon
+	// as the floor comes within that probe range.  Landing is allowed only after a
+	// real downward sweep hit on walkable floor or when the remaining air gap is
+	// inside a very small landing snap tolerance.
+	const bool bHitWalkableFloor = MoveHit.bHit && IsWalkableFloor(MoveHit);
+	if (bHitWalkableFloor)
+	{
+		SnapToFloor(FallingLandingSnapDistance);
+		Velocity.Z = 0.0f;
+		SetMovementMode(EMovementMode::Walking);
+		return;
+	}
+
+	if (SnapToFloor(FallingLandingSnapDistance))
 	{
 		Velocity.Z = 0.0f;
 		SetMovementMode(EMovementMode::Walking);
@@ -677,10 +714,7 @@ bool UCharacterMovementComponent::SnapToFloor(float ProbeDistance)
 	if (!Updated) return false;
 
 	FHitResult Floor;
-	const float PreviousProbeDistance = FloorProbeDistance;
-	FloorProbeDistance = (std::max)(FloorProbeDistance, ProbeDistance);
-	const bool bHasFloor = TraceFloor(Floor);
-	FloorProbeDistance = PreviousProbeDistance;
+	const bool bHasFloor = TraceFloorWithProbeDistance(ProbeDistance, Floor);
 
 	if (!bHasFloor || !IsWalkableFloor(Floor))
 	{
@@ -697,6 +731,11 @@ bool UCharacterMovementComponent::SnapToFloor(float ProbeDistance)
 
 bool UCharacterMovementComponent::TraceFloor(FHitResult& OutHit) const
 {
+	return TraceFloorWithProbeDistance(FloorProbeDistance, OutHit);
+}
+
+bool UCharacterMovementComponent::TraceFloorWithProbeDistance(float ProbeDistance, FHitResult& OutHit) const
+{
 	USceneComponent* Updated = GetUpdatedComponent();
 	if (!Updated) return false;
 	AActor* Owner = GetOwner();
@@ -709,7 +748,7 @@ bool UCharacterMovementComponent::TraceFloor(FHitResult& OutHit) const
 
 	const FVector  Start = Updated->GetWorldLocation();
 	const FVector  Dir(0.0f, 0.0f, -1.0f);
-	const float    MaxDist = HalfHeight + FloorProbeDistance;
+	const float    MaxDist = HalfHeight + (std::max)(0.0f, ProbeDistance);
 
 	return World->PhysicsRaycastByObjectTypes(Start, Dir, MaxDist, OutHit,
 		GetFloorObjectTypeMask(), Owner);
