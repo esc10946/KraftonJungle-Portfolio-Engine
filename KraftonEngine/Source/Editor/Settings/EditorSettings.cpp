@@ -88,6 +88,7 @@ namespace Key
 	constexpr const char* ShowEditorDebug = "ShowEditorDebug";
 	constexpr const char* ShowShadowMapDebug = "ShowShadowMapDebug";
 	constexpr const char* ShowAnimationDebug = "ShowAnimationDebug";
+	constexpr const char* ShowAIDebug = "ShowAIDebug";
 
 	// Perspective Camera
 	constexpr const char* PerspectiveCamera = "PerspectiveCamera";
@@ -392,6 +393,7 @@ void FEditorSettings::SaveToFile(const FString& Path) const
 	WidgetsObj[Key::ShowEditorDebug] = UI.bEditorDebug;
 	WidgetsObj[Key::ShowShadowMapDebug] = UI.bShadowMapDebug;
 	WidgetsObj[Key::ShowAnimationDebug] = UI.bAnimationDebug;
+	WidgetsObj[Key::ShowAIDebug] = UI.bAIDebug;
 	Root[Key::UIWidgets] = WidgetsObj;
 
 	// Perspective Camera
@@ -531,6 +533,7 @@ void FEditorSettings::LoadFromFile(const FString& Path)
 		if (W.hasKey(Key::ShowEditorDebug))    UI.bEditorDebug = W[Key::ShowEditorDebug].ToBool();
 		if (W.hasKey(Key::ShowShadowMapDebug)) UI.bShadowMapDebug = W[Key::ShowShadowMapDebug].ToBool();
 		if (W.hasKey(Key::ShowAnimationDebug)) UI.bAnimationDebug = W[Key::ShowAnimationDebug].ToBool();
+		if (W.hasKey(Key::ShowAIDebug))        UI.bAIDebug = W[Key::ShowAIDebug].ToBool();
 	}
 
 	// Perspective Camera

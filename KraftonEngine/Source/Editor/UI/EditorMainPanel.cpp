@@ -205,6 +205,7 @@ void FEditorMainPanel::Create(FWindowsWindow* InWindow, FRenderer& InRenderer, U
 	ContentBrowserWidget.Initialize(InEditorEngine, InRenderer.GetFD3DDevice().GetDevice());
 	ShadowMapDebugWidget.Initialize(InEditorEngine);
 	AnimationDebugWidget.Initialize(InEditorEngine);
+	AIDebugWidget.Initialize(InEditorEngine);
 	AssetEditorManager.Initialize(InEditorEngine);
 
 	AssetEditorManager.RegisterEditor<FFloatCurveEditorWidget>();
@@ -303,6 +304,12 @@ void FEditorMainPanel::Render(float DeltaTime)
 		AnimationDebugWidget.Render(DeltaTime);
 	}
 
+	if (!bHideEditorWindows && bLevelDocumentActive && Settings.UI.bAIDebug)
+	{
+		SCOPE_STAT_CAT("AIDebugWidget.Render", "5_UI");
+		AIDebugWidget.Render(DeltaTime);
+	}
+
 	ProjectSettingsWidget.Render();
 	WorldSettingsWidget.Render();
 
@@ -397,6 +404,7 @@ void FEditorMainPanel::RenderMainMenuBar()
 		ImGui::Checkbox("Editor Debug", &Settings.UI.bEditorDebug);
 		ImGui::Checkbox("Shadow Map Debug", &Settings.UI.bShadowMapDebug);
 		ImGui::Checkbox("Animation Debug", &Settings.UI.bAnimationDebug);
+		ImGui::Checkbox("AI Debug", &Settings.UI.bAIDebug);
 		ImGui::Separator();
 		ImGui::Checkbox("IMGUI_Setting", &Settings.UI.bImGUISettings);
 		ImGui::EndPopup();

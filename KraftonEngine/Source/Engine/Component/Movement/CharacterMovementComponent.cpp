@@ -62,7 +62,13 @@ void UCharacterMovementComponent::ClearInputVector()
 void UCharacterMovementComponent::StopMovementImmediately()
 {
 	AccumulatedInput = FVector::ZeroVector;
+	PendingExternalImpulse = FVector::ZeroVector;
 	Velocity = FVector::ZeroVector;
+}
+
+void UCharacterMovementComponent::AddExternalImpulse(const FVector& WorldImpulse)
+{
+	PendingExternalImpulse = PendingExternalImpulse + WorldImpulse;
 }
 
 void UCharacterMovementComponent::ConsumeInputVector(FVector& Out)
@@ -129,6 +135,21 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, ELevelTick Tick
 	else
 	{
 		RecoverFromPenetration();
+	}
+
+	if (MovementMode == EMovementMode::Walking)
+	{
+		ApplyBasedMovement();
+	}
+
+	if (!PendingExternalImpulse.IsNearlyZero())
+	{
+		Velocity = Velocity + PendingExternalImpulse;
+		PendingExternalImpulse = FVector::ZeroVector;
+		if (Velocity.Z > 0.0f)
+		{
+			SetMovementMode(EMovementMode::Falling);
+		}
 	}
 
 	bAppliedRootMotionYawThisFrame = false;
@@ -206,11 +227,12 @@ void UCharacterMovementComponent::EnforceCharacterControllerPolicy()
 		// a dynamic PhysicsToEngine body, because CharacterMovement owns its transform.
 		Primitive->SetSimulatePhysics(false);
 		Primitive->SetKinematic(true);
-		if (Primitive->GetCollisionEnabled() == ECollisionEnabled::NoCollision ||
-			Primitive->GetCollisionEnabled() == ECollisionEnabled::PhysicsOnly ||
-			Primitive->GetCollisionEnabled() == ECollisionEnabled::QueryAndPhysics)
+		if (Primitive->GetCollisionEnabled() != ECollisionEnabled::QueryAndPhysics)
 		{
-			Primitive->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+			// Keep the capsule as a kinematic simulation obstacle for dynamic bodies while
+			// CharacterMovement remains the sole transform owner. Static/character collision
+			// is still resolved by sweeps and floor probes, not by rigid-body integration.
+			Primitive->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		}
 	}
 
@@ -436,21 +458,9 @@ bool UCharacterMovementComponent::SafeMoveUpdatedComponent(const FVector& Delta,
 	}
 
 	AActor* Owner = GetOwner();
-	if (!Owner)
-	{
-		Updated->SetWorldLocation(Updated->GetWorldLocation() + Delta);
-		return true;
-	}
-
-	UWorld* World = Owner->GetWorld();
-	if (!World)
-	{
-		Updated->SetWorldLocation(Updated->GetWorldLocation() + Delta);
-		return true;
-	}
-
+	UWorld* World = Owner ? Owner->GetWorld() : nullptr;
 	UCapsuleComponent* Capsule = Cast<UCapsuleComponent>(Updated);
-	if (!Capsule)
+	if (!World || !Capsule)
 	{
 		Updated->SetWorldLocation(Updated->GetWorldLocation() + Delta);
 		return true;
@@ -472,8 +482,8 @@ bool UCharacterMovementComponent::SafeMoveUpdatedComponent(const FVector& Delta,
 		TraceChannel = Primitive->GetCollisionObjectType();
 	}
 
-	const FVector Start = Updated->GetWorldLocation();
-	const FVector End   = Start + Delta;
+	FVector Start = Updated->GetWorldLocation();
+	FVector End   = Start + Delta;
 	const FQuat   Rot   = Updated->GetWorldMatrix().ToQuat();
 	const FCollisionShape Shape = FCollisionShape::MakeCapsule(Radius, HalfHeight);
 
@@ -486,11 +496,22 @@ bool UCharacterMovementComponent::SafeMoveUpdatedComponent(const FVector& Delta,
 
 	if (Hit.bStartPenetrating)
 	{
-		RecoverFromPenetration();
-		if (!World->PhysicsSweep(Updated->GetWorldLocation(), Updated->GetWorldLocation() + Delta, Rot, Shape, Hit, TraceChannel, Owner))
+		const bool bRecovered = RecoverFromPenetration();
+		Start = Updated->GetWorldLocation();
+		End   = Start + Delta;
+		Hit   = FHitResult();
+		if (!World->PhysicsSweep(Start, End, Rot, Shape, Hit, TraceChannel, Owner))
 		{
-			Updated->SetWorldLocation(Updated->GetWorldLocation() + Delta);
+			Updated->SetWorldLocation(End);
 			return true;
+		}
+		if (!bRecovered && Hit.bStartPenetrating)
+		{
+			if (OutHit)
+			{
+				*OutHit = Hit;
+			}
+			return false;
 		}
 	}
 
@@ -514,6 +535,8 @@ bool UCharacterMovementComponent::SafeMoveUpdatedComponent(const FVector& Delta,
 		);
 	}
 
+	HandleBlockingHitPhysicsInteraction(Delta, Hit);
+
 	if (!Hit.ImpactNormal.IsNearlyZero())
 	{
 		const float VelocityIntoSurface = Velocity.Dot(Hit.ImpactNormal);
@@ -525,7 +548,6 @@ bool UCharacterMovementComponent::SafeMoveUpdatedComponent(const FVector& Delta,
 
 	return false;
 }
-
 bool UCharacterMovementComponent::MoveWithSlide(const FVector& Delta, FHitResult* OutHit)
 {
 	if (OutHit)
@@ -575,7 +597,7 @@ bool UCharacterMovementComponent::MoveWithSlide(const FVector& Delta, FHitResult
 
 		const float RemainingLen = Remaining.Length();
 		const float UsedFraction = RemainingLen > CharacterMoveSmallNumber
-			? (std::max)(0.0f, (std::min)(1.0f, Hit.Distance / RemainingLen))
+			? (std::max)(0.0f, (std::min)(1.0f, Progress / RemainingLen))
 			: 1.0f;
 		Remaining = Remaining * (1.0f - UsedFraction);
 
@@ -662,12 +684,14 @@ bool UCharacterMovementComponent::SnapToFloor(float ProbeDistance)
 
 	if (!bHasFloor || !IsWalkableFloor(Floor))
 	{
+		ClearMovementBase();
 		return false;
 	}
 
 	FVector NewLoc = Updated->GetWorldLocation();
 	NewLoc.Z = Floor.WorldHitLocation.Z + GetCapsuleHalfHeight();
 	Updated->SetWorldLocation(NewLoc);
+	UpdateMovementBaseFromFloor(Floor);
 	return true;
 }
 
@@ -688,7 +712,98 @@ bool UCharacterMovementComponent::TraceFloor(FHitResult& OutHit) const
 	const float    MaxDist = HalfHeight + FloorProbeDistance;
 
 	return World->PhysicsRaycastByObjectTypes(Start, Dir, MaxDist, OutHit,
-		ObjectTypeBit(ECollisionChannel::WorldStatic), Owner);
+		GetFloorObjectTypeMask(), Owner);
+}
+
+void UCharacterMovementComponent::ApplyBasedMovement()
+{
+	USceneComponent* Updated = GetUpdatedComponent();
+	if (!Updated || !bHasMovementBase)
+	{
+		return;
+	}
+
+	UPrimitiveComponent* Base = CurrentMovementBase.Get();
+	if (!Base || !IsValid(Base))
+	{
+		ClearMovementBase();
+		return;
+	}
+
+	const FVector BaseLocation = Base->GetWorldLocation();
+	const FVector Delta = BaseLocation - LastMovementBaseLocation;
+	LastMovementBaseLocation = BaseLocation;
+
+	if (Delta.Length() <= CharacterMoveSmallNumber)
+	{
+		return;
+	}
+
+	Updated->SetWorldLocation(Updated->GetWorldLocation() + Delta);
+	RecoverFromPenetration();
+}
+
+void UCharacterMovementComponent::UpdateMovementBaseFromFloor(const FHitResult& FloorHit)
+{
+	UPrimitiveComponent* NewBase = FloorHit.HitComponent;
+	if (!NewBase || !IsValid(NewBase))
+	{
+		ClearMovementBase();
+		return;
+	}
+
+	CurrentMovementBase = NewBase;
+	LastMovementBaseLocation = NewBase->GetWorldLocation();
+	bHasMovementBase = true;
+}
+
+void UCharacterMovementComponent::ClearMovementBase()
+{
+	CurrentMovementBase.Reset();
+	LastMovementBaseLocation = FVector::ZeroVector;
+	bHasMovementBase = false;
+}
+
+void UCharacterMovementComponent::HandleBlockingHitPhysicsInteraction(const FVector& AttemptedMove, const FHitResult& Hit)
+{
+	if (!bEnablePhysicsInteraction || !Hit.HitComponent || !Hit.HitComponent->GetSimulatePhysics())
+	{
+		return;
+	}
+
+	FVector PushDir(AttemptedMove.X, AttemptedMove.Y, 0.0f);
+	if (PushDir.Length() <= CharacterMoveSmallNumber)
+	{
+		PushDir = FVector(Velocity.X, Velocity.Y, 0.0f);
+	}
+	const float PushSpeed = PushDir.Length();
+	if (PushSpeed <= PhysicsPushMinSpeed)
+	{
+		return;
+	}
+	PushDir = PushDir * (1.0f / PushSpeed);
+
+	float NormalScale = 1.0f;
+	if (!Hit.ImpactNormal.IsNearlyZero())
+	{
+		NormalScale = (std::max)(0.0f, -PushDir.Dot(Hit.ImpactNormal.Normalized()));
+		if (NormalScale <= CharacterMoveSmallNumber)
+		{
+			return;
+		}
+	}
+
+	const FVector Impulse = PushDir * (PhysicsPushImpulseScale * PushSpeed * NormalScale);
+	Hit.HitComponent->AddImpulse(Impulse);
+}
+
+uint32 UCharacterMovementComponent::GetFloorObjectTypeMask() const
+{
+	// Floor can be static geometry or kinematic/world-dynamic platforms. Pawns are
+	// intentionally excluded; character-character contact is solved by sweeps and
+	// depenetration, not by treating another capsule as walkable ground.
+	return ObjectTypeBit(ECollisionChannel::WorldStatic) |
+		ObjectTypeBit(ECollisionChannel::WorldDynamic);
 }
 
 float UCharacterMovementComponent::GetCapsuleHalfHeight() const

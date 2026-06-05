@@ -4,6 +4,10 @@
 #include "Animation/Montage/AnimMontage.h"
 #include "Component/AI/EnemyAIBrainComponent.h"
 #include "Component/AI/EnemyAttackComponent.h"
+#include "Component/AI/AIBlackboardComponent.h"
+#include "Component/AI/AIPerceptionComponent.h"
+#include "Component/AI/UtilityReasonerComponent.h"
+#include "Component/AI/AIDecisionTraceComponent.h"
 #include "Component/Combat/CombatStateComponent.h"
 #include "Component/Combat/HealthComponent.h"
 #include "Component/Movement/CharacterMovementComponent.h"
@@ -53,6 +57,11 @@ void AEnemyCharacter::InitDefaultComponents(const FString& SkeletalMeshFileName,
 	Super::InitDefaultComponents(SkeletalMeshFileName);
 	AIBrainComponent = AddComponent<UEnemyAIBrainComponent>();
 	AttackComponent = AddComponent<UEnemyAttackComponent>();
+	// 세키로식 전투 AI 코어 계층 — 책임 분리된 엔진 컴포넌트.
+	Blackboard = AddComponent<UAIBlackboardComponent>();
+	Perception = AddComponent<UAIPerceptionComponent>();
+	Reasoner = AddComponent<UUtilityReasonerComponent>();
+	DecisionTrace = AddComponent<UAIDecisionTraceComponent>();
 	LuaScriptComponent = AddComponent<ULuaScriptComponent>();
 	if (LuaScriptComponent && !ScriptFile.empty())
 	{
@@ -83,6 +92,10 @@ void AEnemyCharacter::RebindEnemyComponents()
 	AIBrainComponent = GetComponentByClass<UEnemyAIBrainComponent>();
 	AttackComponent = GetComponentByClass<UEnemyAttackComponent>();
 	LuaScriptComponent = GetComponentByClass<ULuaScriptComponent>();
+	Blackboard = GetComponentByClass<UAIBlackboardComponent>();
+	Perception = GetComponentByClass<UAIPerceptionComponent>();
+	Reasoner = GetComponentByClass<UUtilityReasonerComponent>();
+	DecisionTrace = GetComponentByClass<UAIDecisionTraceComponent>();
 	if (!AIControllerClass)
 	{
 		AIControllerClass = AAIController::StaticClass();
@@ -92,6 +105,7 @@ void AEnemyCharacter::RebindEnemyComponents()
 void AEnemyCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	LastTickDelta = DeltaTime;
 	if (bUseBuiltInDecisionLogic)
 	{
 		RunBuiltInDecisionLogic(DeltaTime);
@@ -100,6 +114,8 @@ void AEnemyCharacter::Tick(float DeltaTime)
 	{
 		// Lua 두뇌가 의사결정을 가져간 경우에도, 진행 중인 공격 스윙(타격 윈도우·회복 종료)
 		// 은 C++ 가 계속 실행해 준다 — "결정은 Lua, 실행은 C++".
+		// 전투 고정틱 시계를 누적해 Lua 가 Brain_ConsumeCombatStep 으로 60Hz 결정을 게이트한다.
+		CombatClock.Accumulate(DeltaTime);
 		UpdateAttackExecution(DeltaTime);
 	}
 }
@@ -591,4 +607,153 @@ void AEnemyCharacter::HandleDeath(UHealthComponent* Component, AActor* DamageCau
 	{
 		AIBrainComponent->SetState(FName("Dead"));
 	}
+}
+
+// =============================================================================
+//  Brain 동사 파사드 — Lua Blueprint 정책 ↔ C++ 코어 컴포넌트의 경계.
+//  블루프린트는 이 무인자 동사들만 호출한다. 내부에서 Perception/Reasoner/
+//  Blackboard/Brain 컴포넌트로 위임한다.
+// =============================================================================
+void AEnemyCharacter::Brain_Sense()
+{
+	if (UAIPerceptionComponent* P = Perception.Get())
+	{
+		P->UpdateSenses();
+	}
+}
+
+bool AEnemyCharacter::Brain_AcquireTarget()
+{
+	UEnemyAIBrainComponent* Brain = AIBrainComponent.Get();
+	if (!Brain)
+	{
+		return false;
+	}
+	if (!Brain->HasValidTarget())
+	{
+		Brain->AcquireDefaultTarget();
+	}
+	return Brain->HasValidTarget();
+}
+
+void AEnemyCharacter::Brain_FaceTarget()
+{
+	FaceTarget(LastTickDelta);
+}
+
+float AEnemyCharacter::Brain_GetDistance() const
+{
+	return AIBrainComponent.IsValid() ? AIBrainComponent->GetDistanceToTarget() : 9999.0f;
+}
+
+float AEnemyCharacter::Brain_GetAttackRange() const
+{
+	return AIBrainComponent.IsValid() ? AIBrainComponent->AttackRange : 3.0f;
+}
+
+bool AEnemyCharacter::Brain_ConsumeCombatStep()
+{
+	return CombatClock.ConsumeStep();
+}
+
+bool AEnemyCharacter::Brain_IsBusy() const
+{
+	if (IsDead() || HasCurrentAttack())
+	{
+		return true;
+	}
+	if (UCombatStateComponent* Combat = GetCombatStateComponent())
+	{
+		if (Combat->IsStaggered())
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool AEnemyCharacter::Brain_SelectAttack()
+{
+	UUtilityReasonerComponent* R = Reasoner.Get();
+	if (!R)
+	{
+		return false;
+	}
+	const FName Name = R->SelectBestAction();
+	SelectedAttackName = Name;
+	if (UAIDecisionTraceComponent* Trace = DecisionTrace.Get())
+	{
+		Trace->RecordDecision();
+	}
+	return Name.IsValid();
+}
+
+bool AEnemyCharacter::Brain_PlaySelectedAttack()
+{
+	if (!bCanAttack || !SelectedAttackName.IsValid() || !AttackComponent.IsValid())
+	{
+		return false;
+	}
+	const FEnemyAttackData Attack = AttackComponent->FindAttackByName(SelectedAttackName);
+	if (!Attack.AttackName.IsValid())
+	{
+		return false;
+	}
+	if (!StartAttackExecution(Attack))
+	{
+		return false;
+	}
+	AttackComponent->CommitAttackData(Attack);
+	if (UAIBlackboardComponent* BB = Blackboard.Get())
+	{
+		BB->PushRecentMove(Attack.AttackName);
+	}
+	return true;
+}
+
+void AEnemyCharacter::Brain_Chase()
+{
+	UEnemyAIBrainComponent* Brain = AIBrainComponent.Get();
+	if (!Brain)
+	{
+		return;
+	}
+	Brain->SetState(FName("Chase"));
+	const float Acceptance = (std::max)(0.1f, Brain->AttackRange * 0.85f);
+	if (!Brain->RequestMoveToTarget(Acceptance, true) && !Brain->IsMoveActive())
+	{
+		MoveToTarget(1.0f);
+	}
+}
+
+void AEnemyCharacter::Brain_Strafe()
+{
+	if (UEnemyAIBrainComponent* Brain = AIBrainComponent.Get())
+	{
+		Brain->SetState(FName("Strafe"));
+	}
+	StopEnemyMovement();
+	StrafeAroundTarget(0.7f, bStrafeClockwise);
+}
+
+void AEnemyCharacter::Brain_Reposition()
+{
+	if (UEnemyAIBrainComponent* Brain = AIBrainComponent.Get())
+	{
+		Brain->SetState(FName("Reposition"));
+	}
+	StopEnemyMovement();
+	// 공격 불가(쿨다운 등)일 때 간격을 유지하며 측면으로 빠진다. 방향은 가끔 뒤집어
+	// 한쪽으로만 도는 것을 막는다.
+	StrafeAroundTarget(0.6f, bStrafeClockwise);
+	bStrafeClockwise = !bStrafeClockwise;
+}
+
+void AEnemyCharacter::Brain_Idle()
+{
+	if (UEnemyAIBrainComponent* Brain = AIBrainComponent.Get())
+	{
+		Brain->SetState(FName("Idle"));
+	}
+	StopEnemyMovement();
 }

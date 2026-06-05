@@ -218,10 +218,11 @@ void ACharacter::InitDefaultComponents(const FString& SkeletalMeshFileName)
 	// 등과의 overlap 이벤트는 받아야 한다. PhysX 백엔드는 static-static pair 를 생성하지 않아
 	// simulate=false 인 static 바디로는 static trigger 와 overlap 이 발화되지 않으므로 kinematic 으로 등록
 	// (kinematic↔static pair → setKinematicTarget 으로 위치 추적 + trigger 콜백 수신).
-	// ※ overlap 을 받으려면 CollisionEnabled 가 QueryOnly/QueryAndPhysics 여야 물리 씬에 등록됨.
+	// ※ CharacterMovement가 transform을 소유하지만, Dynamic 물체가 캐릭터를
+	//    kinematic obstacle로 볼 수 있도록 QueryAndPhysics proxy로 등록한다.
 	CapsuleComponent->SetSimulatePhysics(false);
 	CapsuleComponent->SetKinematic(true);
-	CapsuleComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	CapsuleComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 
 	// 2) SkeletalMesh — Capsule 의 자식.
 	Mesh = AddComponent<USkeletalMeshComponent>();
@@ -535,9 +536,11 @@ void ACharacter::SavePreRagdollCharacterState()
 
 ECollisionEnabled ACharacter::ResolveCharacterDrivenCapsuleCollisionEnabled() const
 {
-	// Character locomotion collision is query/controller owned. Dynamic rigid-body
-	// simulation is not allowed to own the root capsule transform.
-	return ECollisionEnabled::QueryOnly;
+	// Character locomotion is controller owned, but its kinematic capsule also stays
+	// in the simulation scene so Dynamic bodies collide with it as a moving obstacle.
+	// Snapshot write-back is still disabled because the capsule is KinematicTarget,
+	// not PhysicsToEngine.
+	return ECollisionEnabled::QueryAndPhysics;
 }
 
 ECollisionEnabled ACharacter::ResolveCharacterDrivenMeshCollisionEnabled() const
@@ -609,7 +612,7 @@ void ACharacter::ApplyCharacterPhysicsOwnershipPolicy()
 	{
 		CapsuleComponent->SetSimulatePhysics(false);
 		CapsuleComponent->SetKinematic(true);
-		CapsuleComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		CapsuleComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	}
 
 	if (Mesh)

@@ -4,6 +4,7 @@
 #include "Core/Types/CollisionTypes.h"   // FHitResult
 #include "Math/Vector.h"
 #include "Math/Transform.h"
+#include "Object/Ptr/WeakObjectPtr.h"
 
 // UE 의 EMovementMode minimal subset — 후속 단계에서 NavWalking/Swimming 등 확장.
 UENUM()
@@ -21,9 +22,12 @@ enum class EMovementMode : uint8
 //   - Jump: 후속 phase (F-5).
 //
 // Floor detection: IPhysicsScene::Raycast — capsule 중심에서 down 으로 (HalfHeight + Probe).
+// WorldStatic/WorldDynamic floor를 모두 볼 수 있어 moving platform도 base로 잡는다.
 // Owner 는 ignore 해서 자기 capsule 안 잡힘. XY/Z 이동은 capsule sweep으로 벽 관통을 막는다.
 
 #include "Source/Engine/Component/Movement/CharacterMovementComponent.generated.h"
+
+class UPrimitiveComponent;
 
 UCLASS()
 class UCharacterMovementComponent : public UMovementComponent
@@ -77,6 +81,10 @@ public:
 
 	UFUNCTION(Callable, Category="CharacterMovement")
 	void           StopMovementImmediately();
+
+	// Physics/contact bridge. Dynamic bodies or scripted impacts can feed an impulse
+	// back into the controller-owned character without making the capsule a Dynamic body.
+	void           AddExternalImpulse(const FVector& WorldImpulse);
 
 	// UMovementComponent:
 	void BeginPlay() override;
@@ -140,11 +148,17 @@ protected:
 	bool  MoveWithSlide(const FVector& Delta, FHitResult* OutHit = nullptr);
 	bool  TryStepUp(const FVector& MoveDelta, const FHitResult& BlockingHit);
     bool  SafeMoveUpdatedComponent(const FVector& Delta, FHitResult* OutHit = nullptr);
+	void  ApplyBasedMovement();
+	void  UpdateMovementBaseFromFloor(const FHitResult& FloorHit);
+	void  ClearMovementBase();
+	void  HandleBlockingHitPhysicsInteraction(const FVector& AttemptedMove, const FHitResult& Hit);
+	uint32 GetFloorObjectTypeMask() const;
 	float GetCapsuleHalfHeight() const;
 	float GetCapsuleRadius() const;
 
 	FVector       AccumulatedInput = FVector(0.0f, 0.0f, 0.0f);
 	FVector       Velocity         = FVector(0.0f, 0.0f, 0.0f);
+	FVector       PendingExternalImpulse = FVector::ZeroVector;
 	// 시작 시 floor 잡힐 때까지 Falling — 첫 frame TickFalling 이 raycast 후 자동 Walking 전환.
 	EMovementMode MovementMode     = EMovementMode::Falling;
 
@@ -160,6 +174,15 @@ protected:
 	// 매 Tick 시작에 reset 후 yaw 적용 시 true.
 	bool          bAppliedRootMotionYawThisFrame = false;
 	bool          bNeedsInitialGrounding = true;
+	TWeakObjectPtr<UPrimitiveComponent> CurrentMovementBase = nullptr;
+	FVector       LastMovementBaseLocation = FVector::ZeroVector;
+	bool          bHasMovementBase = false;
+
+	// Character↔dynamic bridge. The character remains controller-owned, but blocking
+	// hits against simulating bodies can push those bodies through impulses.
+	bool          bEnablePhysicsInteraction = true;
+	float         PhysicsPushImpulseScale = 12.0f;
+	float         PhysicsPushMinSpeed = 0.05f;
 
 	// 평면 속도 기준 yaw 를 RotationYawRate * dt 로 lerp. TickComponent 끝에서 적용.
 	void  PhysOrientToMovement(float DeltaTime);

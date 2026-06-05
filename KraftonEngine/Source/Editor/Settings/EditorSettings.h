@@ -51,6 +51,7 @@ public:
 		bool bEditorDebug = false;
 		bool bShadowMapDebug = false;
 		bool bAnimationDebug = false;
+		bool bAIDebug = false;
 	} UI;
 
 	void SaveToFile(const FString& Path) const;

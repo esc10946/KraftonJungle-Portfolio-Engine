@@ -1,0 +1,212 @@
+{
+  "format": "KraftonLuaBlueprint",
+  "version": 1,
+  "nodes": [
+    {
+      "id": 1, "type": 1, "displayName": "Event Tick", "pos": [-640, 0],
+      "nameValue": "", "stringValue": "", "boolValue": false, "intValue": 0, "floatValue": 0.0,
+      "pins": [
+        {"id": 101, "owningNodeId": 1, "kind": 1, "type": 0, "displayName": "Then", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""}
+      ]
+    },
+    {
+      "id": 2, "type": 23, "displayName": "Self", "pos": [-640, 240],
+      "nameValue": "", "stringValue": "", "boolValue": false, "intValue": 0, "floatValue": 0.0,
+      "pins": [
+        {"id": 102, "owningNodeId": 2, "kind": 1, "type": 6, "displayName": "Self", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""}
+      ]
+    },
+    {
+      "id": 3, "type": 21, "displayName": "Brain_Sense", "pos": [-440, 0],
+      "nameValue": "Brain_Sense", "stringValue": "", "boolValue": false, "intValue": 0, "floatValue": 0.0,
+      "pins": [
+        {"id": 103, "owningNodeId": 3, "kind": 0, "type": 0, "displayName": "Exec", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 104, "owningNodeId": 3, "kind": 0, "type": 6, "displayName": "Target", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 105, "owningNodeId": 3, "kind": 1, "type": 0, "displayName": "Then", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""}
+      ]
+    },
+    {
+      "id": 4, "type": 21, "displayName": "Brain_FaceTarget", "pos": [-260, 0],
+      "nameValue": "Brain_FaceTarget", "stringValue": "", "boolValue": false, "intValue": 0, "floatValue": 0.0,
+      "pins": [
+        {"id": 106, "owningNodeId": 4, "kind": 0, "type": 0, "displayName": "Exec", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 107, "owningNodeId": 4, "kind": 0, "type": 6, "displayName": "Target", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 108, "owningNodeId": 4, "kind": 1, "type": 0, "displayName": "Then", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""}
+      ]
+    },
+    {
+      "id": 5, "type": 21, "displayName": "Brain_IsBusy", "pos": [-80, 220],
+      "nameValue": "Brain_IsBusy", "stringValue": "", "boolValue": false, "intValue": 0, "floatValue": 0.0,
+      "pins": [
+        {"id": 109, "owningNodeId": 5, "kind": 0, "type": 6, "displayName": "Target", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 110, "owningNodeId": 5, "kind": 1, "type": 1, "displayName": "ReturnValue", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""}
+      ]
+    },
+    {
+      "id": 6, "type": 8, "displayName": "Branch: Busy?", "pos": [-80, 0],
+      "nameValue": "", "stringValue": "", "boolValue": false, "intValue": 0, "floatValue": 0.0,
+      "pins": [
+        {"id": 111, "owningNodeId": 6, "kind": 0, "type": 0, "displayName": "Exec", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 112, "owningNodeId": 6, "kind": 0, "type": 1, "displayName": "Condition", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 113, "owningNodeId": 6, "kind": 1, "type": 0, "displayName": "True", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 114, "owningNodeId": 6, "kind": 1, "type": 0, "displayName": "False", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""}
+      ]
+    },
+    {
+      "id": 7, "type": 21, "displayName": "Brain_ConsumeCombatStep", "pos": [120, 220],
+      "nameValue": "Brain_ConsumeCombatStep", "stringValue": "", "boolValue": false, "intValue": 0, "floatValue": 0.0,
+      "pins": [
+        {"id": 115, "owningNodeId": 7, "kind": 0, "type": 6, "displayName": "Target", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 116, "owningNodeId": 7, "kind": 1, "type": 1, "displayName": "ReturnValue", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""}
+      ]
+    },
+    {
+      "id": 8, "type": 8, "displayName": "Branch: Combat Step?", "pos": [120, 0],
+      "nameValue": "", "stringValue": "", "boolValue": false, "intValue": 0, "floatValue": 0.0,
+      "pins": [
+        {"id": 117, "owningNodeId": 8, "kind": 0, "type": 0, "displayName": "Exec", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 118, "owningNodeId": 8, "kind": 0, "type": 1, "displayName": "Condition", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 119, "owningNodeId": 8, "kind": 1, "type": 0, "displayName": "True", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 120, "owningNodeId": 8, "kind": 1, "type": 0, "displayName": "False", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""}
+      ]
+    },
+    {
+      "id": 9, "type": 21, "displayName": "Brain_AcquireTarget", "pos": [320, 220],
+      "nameValue": "Brain_AcquireTarget", "stringValue": "", "boolValue": false, "intValue": 0, "floatValue": 0.0,
+      "pins": [
+        {"id": 121, "owningNodeId": 9, "kind": 0, "type": 6, "displayName": "Target", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 122, "owningNodeId": 9, "kind": 1, "type": 1, "displayName": "ReturnValue", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""}
+      ]
+    },
+    {
+      "id": 10, "type": 8, "displayName": "Branch: Has Target?", "pos": [320, 0],
+      "nameValue": "", "stringValue": "", "boolValue": false, "intValue": 0, "floatValue": 0.0,
+      "pins": [
+        {"id": 123, "owningNodeId": 10, "kind": 0, "type": 0, "displayName": "Exec", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 124, "owningNodeId": 10, "kind": 0, "type": 1, "displayName": "Condition", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 125, "owningNodeId": 10, "kind": 1, "type": 0, "displayName": "True", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 126, "owningNodeId": 10, "kind": 1, "type": 0, "displayName": "False", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""}
+      ]
+    },
+    {
+      "id": 11, "type": 21, "displayName": "Brain_Idle", "pos": [520, 360],
+      "nameValue": "Brain_Idle", "stringValue": "", "boolValue": false, "intValue": 0, "floatValue": 0.0,
+      "pins": [
+        {"id": 127, "owningNodeId": 11, "kind": 0, "type": 0, "displayName": "Exec", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 128, "owningNodeId": 11, "kind": 0, "type": 6, "displayName": "Target", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""}
+      ]
+    },
+    {
+      "id": 12, "type": 21, "displayName": "Brain_GetDistance", "pos": [520, 460],
+      "nameValue": "Brain_GetDistance", "stringValue": "", "boolValue": false, "intValue": 0, "floatValue": 0.0,
+      "pins": [
+        {"id": 129, "owningNodeId": 12, "kind": 0, "type": 6, "displayName": "Target", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 130, "owningNodeId": 12, "kind": 1, "type": 3, "displayName": "ReturnValue", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""}
+      ]
+    },
+    {
+      "id": 13, "type": 21, "displayName": "Brain_GetAttackRange", "pos": [520, 560],
+      "nameValue": "Brain_GetAttackRange", "stringValue": "", "boolValue": false, "intValue": 0, "floatValue": 0.0,
+      "pins": [
+        {"id": 131, "owningNodeId": 13, "kind": 0, "type": 6, "displayName": "Target", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 132, "owningNodeId": 13, "kind": 1, "type": 3, "displayName": "ReturnValue", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""}
+      ]
+    },
+    {
+      "id": 14, "type": 36, "displayName": "Distance > AttackRange", "pos": [720, 480],
+      "nameValue": "", "stringValue": "", "boolValue": false, "intValue": 0, "floatValue": 0.0,
+      "pins": [
+        {"id": 133, "owningNodeId": 14, "kind": 0, "type": 3, "displayName": "A", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 134, "owningNodeId": 14, "kind": 0, "type": 3, "displayName": "B", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 135, "owningNodeId": 14, "kind": 1, "type": 1, "displayName": "Result", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""}
+      ]
+    },
+    {
+      "id": 15, "type": 8, "displayName": "Branch: Out Of Range?", "pos": [520, 0],
+      "nameValue": "", "stringValue": "", "boolValue": false, "intValue": 0, "floatValue": 0.0,
+      "pins": [
+        {"id": 136, "owningNodeId": 15, "kind": 0, "type": 0, "displayName": "Exec", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 137, "owningNodeId": 15, "kind": 0, "type": 1, "displayName": "Condition", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 138, "owningNodeId": 15, "kind": 1, "type": 0, "displayName": "True", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 139, "owningNodeId": 15, "kind": 1, "type": 0, "displayName": "False", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""}
+      ]
+    },
+    {
+      "id": 16, "type": 21, "displayName": "Brain_Chase", "pos": [720, -80],
+      "nameValue": "Brain_Chase", "stringValue": "", "boolValue": false, "intValue": 0, "floatValue": 0.0,
+      "pins": [
+        {"id": 140, "owningNodeId": 16, "kind": 0, "type": 0, "displayName": "Exec", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 141, "owningNodeId": 16, "kind": 0, "type": 6, "displayName": "Target", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""}
+      ]
+    },
+    {
+      "id": 17, "type": 21, "displayName": "Brain_SelectAttack", "pos": [720, 200],
+      "nameValue": "Brain_SelectAttack", "stringValue": "", "boolValue": false, "intValue": 0, "floatValue": 0.0,
+      "pins": [
+        {"id": 142, "owningNodeId": 17, "kind": 0, "type": 6, "displayName": "Target", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 143, "owningNodeId": 17, "kind": 1, "type": 1, "displayName": "ReturnValue", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""}
+      ]
+    },
+    {
+      "id": 18, "type": 8, "displayName": "Branch: Attack Viable?", "pos": [920, 80],
+      "nameValue": "", "stringValue": "", "boolValue": false, "intValue": 0, "floatValue": 0.0,
+      "pins": [
+        {"id": 144, "owningNodeId": 18, "kind": 0, "type": 0, "displayName": "Exec", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 145, "owningNodeId": 18, "kind": 0, "type": 1, "displayName": "Condition", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 146, "owningNodeId": 18, "kind": 1, "type": 0, "displayName": "True", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 147, "owningNodeId": 18, "kind": 1, "type": 0, "displayName": "False", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""}
+      ]
+    },
+    {
+      "id": 19, "type": 21, "displayName": "Brain_PlaySelectedAttack", "pos": [1120, 0],
+      "nameValue": "Brain_PlaySelectedAttack", "stringValue": "", "boolValue": false, "intValue": 0, "floatValue": 0.0,
+      "pins": [
+        {"id": 148, "owningNodeId": 19, "kind": 0, "type": 0, "displayName": "Exec", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 149, "owningNodeId": 19, "kind": 0, "type": 6, "displayName": "Target", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""}
+      ]
+    },
+    {
+      "id": 20, "type": 21, "displayName": "Brain_Reposition", "pos": [1120, 180],
+      "nameValue": "Brain_Reposition", "stringValue": "", "boolValue": false, "intValue": 0, "floatValue": 0.0,
+      "pins": [
+        {"id": 150, "owningNodeId": 20, "kind": 0, "type": 0, "displayName": "Exec", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""},
+        {"id": 151, "owningNodeId": 20, "kind": 0, "type": 6, "displayName": "Target", "defaultBool": false, "defaultInt": 0, "defaultFloat": 0.0, "defaultString": ""}
+      ]
+    }
+  ],
+  "links": [
+    {"id": 900, "from": 101, "to": 103},
+    {"id": 901, "from": 105, "to": 106},
+    {"id": 902, "from": 108, "to": 111},
+    {"id": 903, "from": 114, "to": 117},
+    {"id": 904, "from": 119, "to": 123},
+    {"id": 905, "from": 126, "to": 127},
+    {"id": 906, "from": 125, "to": 136},
+    {"id": 907, "from": 138, "to": 140},
+    {"id": 908, "from": 139, "to": 144},
+    {"id": 909, "from": 146, "to": 148},
+    {"id": 910, "from": 147, "to": 150},
+
+    {"id": 920, "from": 102, "to": 104},
+    {"id": 921, "from": 102, "to": 107},
+    {"id": 922, "from": 102, "to": 109},
+    {"id": 923, "from": 102, "to": 115},
+    {"id": 924, "from": 102, "to": 121},
+    {"id": 925, "from": 102, "to": 128},
+    {"id": 926, "from": 102, "to": 129},
+    {"id": 927, "from": 102, "to": 131},
+    {"id": 928, "from": 102, "to": 141},
+    {"id": 929, "from": 102, "to": 142},
+    {"id": 930, "from": 102, "to": 149},
+    {"id": 931, "from": 102, "to": 151},
+
+    {"id": 940, "from": 110, "to": 112},
+    {"id": 941, "from": 116, "to": 118},
+    {"id": 942, "from": 122, "to": 124},
+    {"id": 943, "from": 130, "to": 133},
+    {"id": 944, "from": 132, "to": 134},
+    {"id": 945, "from": 135, "to": 137},
+    {"id": 946, "from": 143, "to": 145}
+  ],
+  "variables": []
+}

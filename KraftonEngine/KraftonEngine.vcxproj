@@ -441,6 +441,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Editor\UI\ContentBrowser\ContentBrowser.cpp" />
     <ClCompile Include="Source\Editor\UI\ContentBrowser\ContentBrowserElement.cpp" />
     <ClCompile Include="Source\Editor\UI\ContentBrowser\EditorPrefabWidget.cpp" />
+    <ClCompile Include="Source\Editor\UI\Debug\EditorAIDebugWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\Debug\EditorAnimationDebugWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\Debug\EditorShadowMapDebugWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\Dialog\FbxImportOptionsDialog.cpp" />
@@ -520,10 +521,14 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Engine\Component\PrimitiveComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\SceneComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\ShapeComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\AI\AIBlackboardComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\AI\AIDecisionTraceComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\AI\AIPerceptionComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\EncounterComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\EnemyAIBrainComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\EnemyAttackComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\PhaseComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\AI\UtilityReasonerComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Camera\CameraComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Camera\CineCameraComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Camera\SpringArmComponent.cpp" />
@@ -893,6 +898,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Editor\UI\ContentBrowser\ContentBrowserElement.h" />
     <ClInclude Include="Source\Editor\UI\ContentBrowser\ContentItem.h" />
     <ClInclude Include="Source\Editor\UI\ContentBrowser\EditorPrefabWidget.h" />
+    <ClInclude Include="Source\Editor\UI\Debug\EditorAIDebugWidget.h" />
     <ClInclude Include="Source\Editor\UI\Debug\EditorAnimationDebugWidget.h" />
     <ClInclude Include="Source\Editor\UI\Debug\EditorShadowMapDebugWidget.h" />
     <ClInclude Include="Source\Editor\UI\Dialog\FbxImportOptionsDialog.h" />
@@ -920,6 +926,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Editor\Viewport\Asset\StaticMeshEditorViewportClient.h" />
     <ClInclude Include="Source\Editor\Viewport\Level\FLevelViewportLayout.h" />
     <ClInclude Include="Source\Editor\Viewport\Level\LevelEditorViewportClient.h" />
+    <ClInclude Include="Source\Engine\AI\CombatClock.h" />
     <ClInclude Include="Source\Engine\AI\Navigation\PathFollowingComponent.h" />
     <ClInclude Include="Source\Engine\Animation\AnimExtractContext.h" />
     <ClInclude Include="Source\Engine\Animation\AnimInstance.h" />
@@ -988,10 +995,14 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\Component\PrimitiveComponent.h" />
     <ClInclude Include="Source\Engine\Component\SceneComponent.h" />
     <ClInclude Include="Source\Engine\Component\ShapeComponent.h" />
+    <ClInclude Include="Source\Engine\Component\AI\AIBlackboardComponent.h" />
+    <ClInclude Include="Source\Engine\Component\AI\AIDecisionTraceComponent.h" />
+    <ClInclude Include="Source\Engine\Component\AI\AIPerceptionComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\EncounterComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\EnemyAIBrainComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\EnemyAttackComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\PhaseComponent.h" />
+    <ClInclude Include="Source\Engine\Component\AI\UtilityReasonerComponent.h" />
     <ClInclude Include="Source\Engine\Component\Camera\CameraComponent.h" />
     <ClInclude Include="Source\Engine\Component\Camera\CineCameraComponent.h" />
     <ClInclude Include="Source\Engine\Component\Camera\SpringArmComponent.h" />

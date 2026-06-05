@@ -959,6 +959,9 @@
     <ClCompile Include="Source\Editor\UI\ContentBrowser\EditorPrefabWidget.cpp">
       <Filter>Source\Editor\UI\ContentBrowser</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Editor\UI\Debug\EditorAIDebugWidget.cpp">
+      <Filter>Source\Editor\UI\Debug</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Editor\UI\Debug\EditorAnimationDebugWidget.cpp">
       <Filter>Source\Editor\UI\Debug</Filter>
     </ClCompile>
@@ -1196,6 +1199,15 @@
     <ClCompile Include="Source\Engine\Component\ShapeComponent.cpp">
       <Filter>Source\Engine\Component</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Component\AI\AIBlackboardComponent.cpp">
+      <Filter>Source\Engine\Component\AI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Component\AI\AIDecisionTraceComponent.cpp">
+      <Filter>Source\Engine\Component\AI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Component\AI\AIPerceptionComponent.cpp">
+      <Filter>Source\Engine\Component\AI</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\Component\AI\EncounterComponent.cpp">
       <Filter>Source\Engine\Component\AI</Filter>
     </ClCompile>
@@ -1206,6 +1218,9 @@
       <Filter>Source\Engine\Component\AI</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Component\AI\PhaseComponent.cpp">
+      <Filter>Source\Engine\Component\AI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Component\AI\UtilityReasonerComponent.cpp">
       <Filter>Source\Engine\Component\AI</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Component\Camera\CameraComponent.cpp">
@@ -2309,6 +2324,9 @@
     <ClInclude Include="Source\Editor\UI\ContentBrowser\EditorPrefabWidget.h">
       <Filter>Source\Editor\UI\ContentBrowser</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Editor\UI\Debug\EditorAIDebugWidget.h">
+      <Filter>Source\Editor\UI\Debug</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Editor\UI\Debug\EditorAnimationDebugWidget.h">
       <Filter>Source\Editor\UI\Debug</Filter>
     </ClInclude>
@@ -2389,6 +2407,9 @@
     </ClInclude>
     <ClInclude Include="Source\Editor\Viewport\Level\LevelEditorViewportClient.h">
       <Filter>Source\Editor\Viewport\Level</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\AI\CombatClock.h">
+      <Filter>Source\Engine\AI</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\AI\Navigation\PathFollowingComponent.h">
       <Filter>Source\Engine\AI\Navigation</Filter>
@@ -2594,6 +2615,15 @@
     <ClInclude Include="Source\Engine\Component\ShapeComponent.h">
       <Filter>Source\Engine\Component</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\Component\AI\AIBlackboardComponent.h">
+      <Filter>Source\Engine\Component\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Component\AI\AIDecisionTraceComponent.h">
+      <Filter>Source\Engine\Component\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Component\AI\AIPerceptionComponent.h">
+      <Filter>Source\Engine\Component\AI</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Engine\Component\AI\EncounterComponent.h">
       <Filter>Source\Engine\Component\AI</Filter>
     </ClInclude>
@@ -2604,6 +2634,9 @@
       <Filter>Source\Engine\Component\AI</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\AI\PhaseComponent.h">
+      <Filter>Source\Engine\Component\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Component\AI\UtilityReasonerComponent.h">
       <Filter>Source\Engine\Component\AI</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\Camera\CameraComponent.h">

@@ -2,6 +2,7 @@
 
 #include "GameFramework/Pawn/BaseCombatCharacter.h"
 #include "Component/Combat/CombatTypes.h"
+#include "AI/CombatClock.h"
 #include "Object/Ptr/WeakObjectPtr.h"
 
 class AAIController;
@@ -9,6 +10,10 @@ class UClass;
 class UEnemyAIBrainComponent;
 class UEnemyAttackComponent;
 class ULuaScriptComponent;
+class UAIBlackboardComponent;
+class UAIPerceptionComponent;
+class UUtilityReasonerComponent;
+class UAIDecisionTraceComponent;
 class FArchive;
 
 #include "Source/Engine/GameFramework/Pawn/EnemyCharacter.generated.h"
@@ -33,6 +38,18 @@ public:
 	UEnemyAttackComponent* GetAttackComponent() const { return AttackComponent; }
 	UFUNCTION(Pure, Category="Enemy|Components")
 	ULuaScriptComponent* GetLuaScriptComponent() const { return LuaScriptComponent; }
+
+	// ── 세키로식 전투 AI 계층 (엔진 코어 컴포넌트) ──
+	UFUNCTION(Pure, Category="Enemy|AICore")
+	UAIBlackboardComponent* GetBlackboard() const { return Blackboard; }
+	UFUNCTION(Pure, Category="Enemy|AICore")
+	UAIPerceptionComponent* GetPerception() const { return Perception; }
+	UFUNCTION(Pure, Category="Enemy|AICore")
+	UUtilityReasonerComponent* GetReasoner() const { return Reasoner; }
+	UFUNCTION(Pure, Category="Enemy|AICore")
+	UAIDecisionTraceComponent* GetDecisionTrace() const { return DecisionTrace; }
+	UFUNCTION(Pure, Category="Enemy|AICore")
+	int32 GetAIPhase() const { return GetCurrentAIPhase(); }
 
 	UFUNCTION(Callable, Category="Enemy|AI")
 	AAIController* SpawnDefaultAIController();
@@ -71,6 +88,35 @@ public:
 	bool MarkCurrentAttackDamagedActor(AActor* Target);
 	UFUNCTION(Callable, Category="Enemy|Attack")
 	bool ApplyCurrentAttackDamageToActor(AActor* Target, const FVector& HitLocation);
+
+	// ── Brain 동사 (Lua Blueprint 정책이 호출하는 파사드 — 결정은 Lua, 실행은 C++) ──
+	// 모두 무인자/단순 반환이라 블루프린트 그래프에서 깔끔히 배선된다.
+	UFUNCTION(Callable, Category="Enemy|Brain")
+	void Brain_Sense();
+	UFUNCTION(Callable, Category="Enemy|Brain")
+	bool Brain_AcquireTarget();
+	UFUNCTION(Callable, Category="Enemy|Brain")
+	void Brain_FaceTarget();
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	float Brain_GetDistance() const;
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	float Brain_GetAttackRange() const;
+	UFUNCTION(Callable, Category="Enemy|Brain")
+	bool Brain_ConsumeCombatStep();
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	bool Brain_IsBusy() const;
+	UFUNCTION(Callable, Category="Enemy|Brain")
+	bool Brain_SelectAttack();
+	UFUNCTION(Callable, Category="Enemy|Brain")
+	bool Brain_PlaySelectedAttack();
+	UFUNCTION(Callable, Category="Enemy|Brain")
+	void Brain_Chase();
+	UFUNCTION(Callable, Category="Enemy|Brain")
+	void Brain_Strafe();
+	UFUNCTION(Callable, Category="Enemy|Brain")
+	void Brain_Reposition();
+	UFUNCTION(Callable, Category="Enemy|Brain")
+	void Brain_Idle();
 
 	UPROPERTY(Edit, Save, Category="Enemy|Movement", DisplayName="Can Move")
 	bool bCanMove = true;
@@ -114,6 +160,10 @@ protected:
 	TWeakObjectPtr<UEnemyAIBrainComponent> AIBrainComponent = nullptr;
 	TWeakObjectPtr<UEnemyAttackComponent> AttackComponent = nullptr;
 	TWeakObjectPtr<ULuaScriptComponent> LuaScriptComponent = nullptr;
+	TWeakObjectPtr<UAIBlackboardComponent> Blackboard = nullptr;
+	TWeakObjectPtr<UAIPerceptionComponent> Perception = nullptr;
+	TWeakObjectPtr<UUtilityReasonerComponent> Reasoner = nullptr;
+	TWeakObjectPtr<UAIDecisionTraceComponent> DecisionTrace = nullptr;
 
 private:
 	float ThinkTimer = 0.0f;
@@ -123,4 +173,10 @@ private:
 	float CurrentAttackElapsed = 0.0f;
 	FEnemyAttackData CurrentAttack;
 	TArray<TWeakObjectPtr<AActor>> CurrentAttackDamagedActors;
+
+	// 전투 고정틱 시계 + Lua 두뇌 파사드 런타임 상태.
+	FCombatClock CombatClock;
+	float LastTickDelta = 0.0f;
+	FName SelectedAttackName = FName::None;
+	bool bStrafeClockwise = true;
 };
