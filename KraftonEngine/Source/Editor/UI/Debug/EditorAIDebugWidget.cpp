@@ -9,7 +9,6 @@
 #include "Component/AI/AIDecisionTraceComponent.h"
 #include "Component/AI/AIPerceptionComponent.h"
 #include "Component/AI/EnemyAIBrainComponent.h"
-#include "Component/AI/UtilityReasonerComponent.h"
 #include "Component/Character/CharacterStateMachineComponent.h"
 #include "Component/Movement/CharacterMovementComponent.h"
 #include "Component/Combat/CombatStateComponent.h"
@@ -20,7 +19,6 @@
 #include "Object/Object.h"
 #include "Object/Reflection/UClass.h"
 
-#include <cfloat>
 #include <cstdio>
 
 namespace
@@ -88,7 +86,6 @@ void FEditorAIDebugWidget::Render(float /*DeltaTime*/)
 
 	UAIBlackboardComponent*    BB        = Enemy->GetBlackboard();
 	UAIPerceptionComponent*    Perception = Enemy->GetPerception();
-	UUtilityReasonerComponent* Reasoner  = Enemy->GetReasoner();
 	UAIDecisionTraceComponent* Trace     = Enemy->GetDecisionTrace();
 	UEnemyAIBrainComponent*    Brain     = Enemy->GetAIBrainComponent();
 	UCombatMoveComponent*      Move      = Enemy->GetCombatMove();
@@ -97,9 +94,9 @@ void FEditorAIDebugWidget::Render(float /*DeltaTime*/)
 	ImGui::Text("Target: %s", Enemy->GetName().c_str());
 	ImGui::SameLine();
 	ImGui::TextDisabled("(phase %d)", Enemy->GetAIPhase());
-	if (Brain)
+	if (UCharacterStateMachineComponent* SM = Enemy->GetStateMachine())
 	{
-		ImGui::Text("HFSM State: %s   (t=%.2fs)", Brain->GetState().ToString().c_str(), Brain->GetStateTime());
+		ImGui::Text("HFSM State: %s   (t=%.2fs)", SM->GetState().ToString().c_str(), SM->GetTimeInState());
 	}
 	ImGui::Separator();
 
@@ -110,12 +107,11 @@ void FEditorAIDebugWidget::Render(float /*DeltaTime*/)
 		if (SM)
 		{
 			static const char* kLocoNames[] = { "Locked", "InputAllowed", "Strafe", "Retreat" };
-			const int32 StateIdx = SM->GetStateInt();
-			const char* StateName = (StateIdx >= 0 && static_cast<uint32>(StateIdx) < GCharacterStateCount) ? GCharacterStateNames[StateIdx] : "?";
+			const int32 AnimStateId = SM->GetStateInt();
 			const int32 LocoIdx = SM->GetLocomotionModeInt();
 			const char* LocoName = (LocoIdx >= 0 && LocoIdx < 4) ? kLocoNames[LocoIdx] : "?";
-			ImGui::Text("State: %s (id %d)   t=%.2fs", StateName, StateIdx, SM->GetTimeInState());
-			ImGui::Text("Locomotion policy: %s   AnimGraph StateId push: %d", LocoName, StateIdx);
+			ImGui::Text("State: %s (anim id %d)   t=%.2fs", SM->GetState().ToString().c_str(), AnimStateId, SM->GetTimeInState());
+			ImGui::Text("Locomotion policy: %s   AnimGraph StateId push: %d", LocoName, AnimStateId);
 			if (UCharacterMovementComponent* Move = Enemy->GetCharacterMovement())
 			{
 				ImGui::Text("Movement speed: %.2f   mode: %s", Move->GetSpeed(), Move->IsWalking() ? "Walking" : "Falling");
@@ -234,44 +230,7 @@ void FEditorAIDebugWidget::Render(float /*DeltaTime*/)
 		}
 	}
 
-	// ── Utility 점수 (히스토그램 + 분해 표) ──
-	if (ImGui::CollapsingHeader("Utility Reasoner", ImGuiTreeNodeFlags_DefaultOpen))
-	{
-		if (Reasoner)
-		{
-			const TArray<FUtilityCandidate>& Candidates = Reasoner->GetCandidates();
-			if (Candidates.empty())
-			{
-				ImGui::TextDisabled("No viable candidates this step.");
-			}
-			else
-			{
-				TArray<float> Finals;
-				Finals.reserve(Candidates.size());
-				for (const FUtilityCandidate& Candidate : Candidates)
-				{
-					Finals.push_back(Candidate.Breakdown.Final);
-				}
-				ImGui::PlotHistogram("Final score", Finals.data(), static_cast<int>(Finals.size()),
-					0, nullptr, 0.0f, FLT_MAX, ImVec2(0.0f, 80.0f));
-
-				ImGui::TextDisabled("name         final | base rng ang thr pos pha rec rep");
-				for (const FUtilityCandidate& C : Candidates)
-				{
-					const FUtilityScoreBreakdown& B = C.Breakdown;
-					ImGui::Text("%s%-11s %6.3f | %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f",
-						C.bChosen ? "*" : " ",
-						C.ActionId.ToString().c_str(), B.Final,
-						B.Base, B.Range, B.Angle, B.Threat, B.Posture, B.Phase, B.Recovery, B.Repetition);
-				}
-			}
-		}
-		else
-		{
-			ImGui::TextDisabled("No reasoner component.");
-		}
-	}
-
+	// ── Lua Blueprint 정책 점수는 Decision Trace 섹션에서 표시된다. ──
 	// ── Blackboard ──
 	if (ImGui::CollapsingHeader("Blackboard", ImGuiTreeNodeFlags_DefaultOpen))
 	{

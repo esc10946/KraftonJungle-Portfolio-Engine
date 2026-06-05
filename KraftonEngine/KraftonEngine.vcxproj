@@ -526,12 +526,10 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Engine\Component\AI\AIBlackboardComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\AIDecisionTraceComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\AIPerceptionComponent.cpp" />
-    <ClCompile Include="Source\Engine\Component\AI\BossPhaseDirector.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\EncounterComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\EnemyAIBrainComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\EnemyAttackComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\PhaseComponent.cpp" />
-    <ClCompile Include="Source\Engine\Component\AI\UtilityReasonerComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Camera\CameraComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Camera\CineCameraComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Camera\SpringArmComponent.cpp" />
@@ -1005,12 +1003,10 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\Component\AI\AIBlackboardComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\AIDecisionTraceComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\AIPerceptionComponent.h" />
-    <ClInclude Include="Source\Engine\Component\AI\BossPhaseDirector.h" />
     <ClInclude Include="Source\Engine\Component\AI\EncounterComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\EnemyAIBrainComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\EnemyAttackComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\PhaseComponent.h" />
-    <ClInclude Include="Source\Engine\Component\AI\UtilityReasonerComponent.h" />
     <ClInclude Include="Source\Engine\Component\Camera\CameraComponent.h" />
     <ClInclude Include="Source\Engine\Component\Camera\CineCameraComponent.h" />
     <ClInclude Include="Source\Engine\Component\Camera\SpringArmComponent.h" />

@@ -27,49 +27,6 @@ inline const char* GCombatTeamNames[] = {
 inline constexpr uint32 GCombatTeamCount = sizeof(GCombatTeamNames) / sizeof(GCombatTeamNames[0]);
 
 
-UENUM()
-enum class EEnemyAIBehaviorStyle : uint8
-{
-	Passive = 0,
-	Balanced = 1,
-	Aggressive = 2,
-	Defensive = 3,
-	Boss = 4,
-};
-
-inline const char* GEnemyAIBehaviorStyleNames[] = {
-	"Passive",
-	"Balanced",
-	"Aggressive",
-	"Defensive",
-	"Boss",
-};
-inline constexpr uint32 GEnemyAIBehaviorStyleCount = sizeof(GEnemyAIBehaviorStyleNames) / sizeof(GEnemyAIBehaviorStyleNames[0]);
-
-UENUM()
-enum class EEnemyAttackTactic : uint8
-{
-	Neutral = 0,
-	Opener = 1,
-	Pressure = 2,
-	Combo = 3,
-	GapCloser = 4,
-	Punish = 5,
-	Retreat = 6,
-	PhaseChange = 7,
-};
-
-inline const char* GEnemyAttackTacticNames[] = {
-	"Neutral",
-	"Opener",
-	"Pressure",
-	"Combo",
-	"GapCloser",
-	"Punish",
-	"Retreat",
-	"PhaseChange",
-};
-inline constexpr uint32 GEnemyAttackTacticCount = sizeof(GEnemyAttackTacticNames) / sizeof(GEnemyAttackTacticNames[0]);
 
 UENUM()
 enum class ECombatDamageResult : uint8
@@ -252,8 +209,9 @@ struct FEnemyAttackData
 	bool bIsGapCloser = false;
 
 
-	UPROPERTY(Edit, Save, Category="Attack|Behavior", DisplayName="Tactic", Enum=EEnemyAttackTactic)
-	EEnemyAttackTactic Tactic = EEnemyAttackTactic::Neutral;
+	// 전술 의미는 C++ enum이 아니라 Lua Blueprint/Data가 해석하는 태그다.
+	UPROPERTY(Edit, Save, Category="Attack|Behavior", DisplayName="Tactic Tag")
+	FName TacticTag = FName("Neutral");
 
 	UPROPERTY(Edit, Save, Category="Attack|Behavior", DisplayName="Priority", Min=0.0f, Max=100.0f, Speed=0.1f)
 	float Priority = 1.0f;
@@ -263,15 +221,6 @@ struct FEnemyAttackData
 
 	UPROPERTY(Edit, Save, Category="Attack|Combo", DisplayName="Required Previous Attack")
 	FName RequiredPreviousAttack = FName::None;
-
-	UPROPERTY(Edit, Save, Category="Attack|FallbackHit", DisplayName="Use Fallback Damage")
-	bool bUseFallbackDamage = true;
-
-	UPROPERTY(Edit, Save, Category="Attack|FallbackHit", DisplayName="Fallback Damage Delay", Min=0.0f, Max=10.0f, Speed=0.01f)
-	float FallbackDamageDelay = 0.35f;
-
-	UPROPERTY(Edit, Save, Category="Attack|FallbackHit", DisplayName="Fallback Hit Radius", Min=0.0f, Max=100000.0f, Speed=0.5f)
-	float FallbackHitRadius = 1.5f;
 
 	// ── 프레임 데이터 / 위험공격 분류 (Phase 2) ──
 	// 60Hz 기준 프레임 수. 전투 시계가 이 타임라인을 진행시켜 위험표식·후딜 punish 창을 만든다.
@@ -306,9 +255,4 @@ struct FEnemyPhaseData
 	UPROPERTY(Edit, Save, Category="Phase", DisplayName="Phase Name")
 	FName PhaseName = FName::None;
 
-	UPROPERTY(Edit, Save, Category="Phase", DisplayName="Auto Enter At Or Below Health Ratio")
-	bool bAutoEnterAtOrBelowHealthRatio = false;
-
-	UPROPERTY(Edit, Save, Category="Phase", DisplayName="Health Ratio Threshold", Min=0.0f, Max=1.0f, Speed=0.01f)
-	float HealthRatioThreshold = 1.0f;
 };

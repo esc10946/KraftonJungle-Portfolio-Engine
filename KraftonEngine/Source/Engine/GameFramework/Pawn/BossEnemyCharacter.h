@@ -38,12 +38,8 @@ public:
 	bool SetBossPhase(int32 NewPhase);
 	UFUNCTION(Pure, Category="Boss|Phase")
 	int32 GetBossPhase() const;
-	UFUNCTION(Callable, Category="Boss|Phase")
-	bool TryUpdatePhaseFromHealth();
-
 protected:
 	int32 GetCurrentAIPhase() const override { return GetBossPhase(); }
-	EEnemyAIBehaviorStyle GetResolvedBehaviorStyle() const override;
 	void HandleDamaged(UHealthComponent* Component, float Damage, float NewHealth, AActor* DamageCauser, AActor* InstigatorActor) override;
 	void HandleDeath(UHealthComponent* Component, AActor* DamageCauser, AActor* InstigatorActor) override;
 	void HandlePhaseChanged(UPhaseComponent* Component, int32 OldPhase, int32 NewPhase);

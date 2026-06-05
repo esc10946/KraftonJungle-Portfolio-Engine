@@ -2,38 +2,15 @@
 
 #include "Animation/AnimInstance.h"
 #include "Animation/Graph/AnimGraphInstance.h"
-#include "Component/Combat/CombatMoveComponent.h"
-#include "Component/Combat/CombatStateComponent.h"
-#include "Component/Combat/HealthComponent.h"
 #include "Component/Movement/CharacterMovementComponent.h"
 #include "Component/Primitive/SkeletalMeshComponent.h"
 #include "GameFramework/AActor.h"
 #include "GameFramework/Pawn/Character.h"
 #include "Math/MathUtils.h"
 #include "Math/Rotator.h"
-#include "Object/Object.h"
 
 #include <algorithm>
 #include <cmath>
-
-const FCharacterStateDef& GetCharacterStateDef(ECharacterState State)
-{
-    // { Locomotion, AnimStateId, bAllowsPolicyExit, bFaceTarget }
-    static const FCharacterStateDef Defs[] = {
-        /* Idle      */ { ELocomotionMode::InputAllowed, 0, true,  false },
-        /* Approach  */ { ELocomotionMode::InputAllowed, 1, true,  true  },
-        /* Strafe    */ { ELocomotionMode::Strafe,       2, true,  true  },
-        /* Retreat   */ { ELocomotionMode::Retreat,      3, true,  true  },
-        /* Attack    */ { ELocomotionMode::Locked,       4, false, false },
-        /* Defend    */ { ELocomotionMode::Locked,       5, false, true  },
-        /* Hit       */ { ELocomotionMode::Locked,       6, false, false },
-        /* Staggered */ { ELocomotionMode::Locked,       7, false, false },
-        /* Dead      */ { ELocomotionMode::Locked,       8, false, false },
-    };
-    const int32 Index = static_cast<int32>(State);
-    const int32 Count = static_cast<int32>(sizeof(Defs) / sizeof(Defs[0]));
-    return (Index >= 0 && Index < Count) ? Defs[Index] : Defs[0];
-}
 
 namespace
 {
@@ -58,33 +35,128 @@ namespace
         }
         return Delta.Normalized();
     }
+
+    ELocomotionMode SanitizeLocomotionMode(int32 Value)
+    {
+        switch (Value)
+        {
+        case static_cast<int32>(ELocomotionMode::Locked):
+            return ELocomotionMode::Locked;
+        case static_cast<int32>(ELocomotionMode::InputAllowed):
+            return ELocomotionMode::InputAllowed;
+        case static_cast<int32>(ELocomotionMode::Strafe):
+            return ELocomotionMode::Strafe;
+        case static_cast<int32>(ELocomotionMode::Retreat):
+            return ELocomotionMode::Retreat;
+        default:
+            return ELocomotionMode::InputAllowed;
+        }
+    }
+}
+
+void UCharacterStateMachineComponent::EnsureStateDefinitions()
+{
+    const FName SafeInitial = InitialState.IsValid() ? InitialState : FName("Idle");
+    if (!CurrentState.IsValid())
+    {
+        CurrentState = SafeInitial;
+    }
+    if (!HasStateDefinition(SafeInitial))
+    {
+        FCharacterStateDef Def;
+        Def.StateName = SafeInitial;
+        Def.Locomotion = ELocomotionMode::InputAllowed;
+        Def.AnimStateId = 0;
+        Def.bAllowsPolicyExit = true;
+        Def.bFaceTarget = false;
+        StateDefinitions.push_back(Def);
+    }
+}
+
+FCharacterStateDef UCharacterStateMachineComponent::GetStateDef(const FName& StateName) const
+{
+    for (const FCharacterStateDef& Def : StateDefinitions)
+    {
+        if (Def.StateName == StateName)
+        {
+            return Def;
+        }
+    }
+
+    FCharacterStateDef NeutralDef;
+    NeutralDef.StateName = StateName.IsValid() ? StateName : InitialState;
+    NeutralDef.Locomotion = ELocomotionMode::InputAllowed;
+    NeutralDef.AnimStateId = 0;
+    NeutralDef.bAllowsPolicyExit = true;
+    NeutralDef.bFaceTarget = false;
+    return NeutralDef;
+}
+
+int32 UCharacterStateMachineComponent::GetLocomotionModeInt() const
+{
+    return static_cast<int32>(GetStateDef(CurrentState).Locomotion);
+}
+
+bool UCharacterStateMachineComponent::IsMovementLocked() const
+{
+    return GetStateDef(CurrentState).Locomotion == ELocomotionMode::Locked;
+}
+
+bool UCharacterStateMachineComponent::CanPolicyExitCurrentState() const
+{
+    return GetStateDef(CurrentState).bAllowsPolicyExit;
+}
+
+bool UCharacterStateMachineComponent::HasStateDefinition(const FName& StateName) const
+{
+    for (const FCharacterStateDef& Def : StateDefinitions)
+    {
+        if (Def.StateName == StateName)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+void UCharacterStateMachineComponent::DefineState(const FName& StateName, int32 LocomotionMode, int32 AnimStateId, bool bAllowsPolicyExit, bool bFaceTarget)
+{
+    if (!StateName.IsValid())
+    {
+        return;
+    }
+    FCharacterStateDef NewDef;
+    NewDef.StateName = StateName;
+    NewDef.Locomotion = SanitizeLocomotionMode(LocomotionMode);
+    NewDef.AnimStateId = AnimStateId;
+    NewDef.bAllowsPolicyExit = bAllowsPolicyExit;
+    NewDef.bFaceTarget = bFaceTarget;
+
+    for (FCharacterStateDef& Def : StateDefinitions)
+    {
+        if (Def.StateName == StateName)
+        {
+            Def = NewDef;
+            return;
+        }
+    }
+    StateDefinitions.push_back(NewDef);
+}
+
+void UCharacterStateMachineComponent::ClearStateDefinitions()
+{
+    StateDefinitions.clear();
 }
 
 void UCharacterStateMachineComponent::BeginPlay()
 {
     UActorComponent::BeginPlay();
-    AActor* Owner = GetOwner();
-    if (!Owner)
-    {
-        return;
-    }
+    EnsureStateDefinitions();
+    CurrentState = InitialState.IsValid() ? InitialState : FName("Idle");
+    PreviousState = FName::None;
+    TimeInState = 0.0f;
 
-    if (!bEventsBound)
-    {
-        if (UHealthComponent* Health = Owner->GetComponentByClass<UHealthComponent>())
-        {
-            Health->OnDamaged.AddUObject(this, &UCharacterStateMachineComponent::HandleDamaged);
-            Health->OnDeath.AddUObject(this, &UCharacterStateMachineComponent::HandleDeath);
-        }
-        if (UCombatStateComponent* Combat = Owner->GetComponentByClass<UCombatStateComponent>())
-        {
-            Combat->OnStaggerStarted.AddUObject(this, &UCharacterStateMachineComponent::HandleStaggerStarted);
-            Combat->OnStaggerEnded.AddUObject(this, &UCharacterStateMachineComponent::HandleStaggerEnded);
-        }
-        bEventsBound = true;
-    }
-
-    if (ACharacter* Character = Cast<ACharacter>(Owner))
+    if (ACharacter* Character = Cast<ACharacter>(GetOwner()))
     {
         if (UCharacterMovementComponent* Movement = Character->GetCharacterMovement())
         {
@@ -110,24 +182,22 @@ void UCharacterStateMachineComponent::TickComponent(float DeltaTime, ELevelTick 
         DashRemaining = (std::max)(0.0f, DashRemaining - DeltaTime);
     }
 
-    CheckAutoExit(GetCharacterStateDef(CurrentState), DeltaTime); // may ChangeState
-
-    const FCharacterStateDef& Def = GetCharacterStateDef(CurrentState);
+    const FCharacterStateDef Def = GetStateDef(CurrentState);
     ApplyMovement(Def, DeltaTime);
     ApplyFacing(Def, DeltaTime);
     ApplyAnimation(Def);
 }
 
-bool UCharacterStateMachineComponent::RequestState(ECharacterState NewState)
+bool UCharacterStateMachineComponent::RequestState(const FName& NewState)
 {
-    if (CurrentState == ECharacterState::Dead)
+    if (!NewState.IsValid())
     {
         return false;
     }
-    const FCharacterStateDef& Def = GetCharacterStateDef(CurrentState);
+    const FCharacterStateDef Def = GetStateDef(CurrentState);
     if (!Def.bAllowsPolicyExit && CurrentState != NewState)
     {
-        return false; // committed 상태 — 정책이 떠날 수 없음
+        return false;
     }
     if (CurrentState == NewState)
     {
@@ -137,15 +207,15 @@ bool UCharacterStateMachineComponent::RequestState(ECharacterState NewState)
     return true;
 }
 
-void UCharacterStateMachineComponent::ForceState(ECharacterState NewState)
+void UCharacterStateMachineComponent::ForceState(const FName& NewState)
 {
-    if (CurrentState != NewState)
+    if (NewState.IsValid() && CurrentState != NewState)
     {
         ChangeState(NewState);
     }
 }
 
-void UCharacterStateMachineComponent::ChangeState(ECharacterState NewState)
+void UCharacterStateMachineComponent::ChangeState(const FName& NewState)
 {
     PreviousState = CurrentState;
     CurrentState  = NewState;
@@ -178,14 +248,12 @@ void UCharacterStateMachineComponent::ApplyMovement(const FCharacterStateDef& De
     case ELocomotionMode::Locked:
         if (DashRemaining > 0.0f && Target)
         {
-            // 갭클로저 대시 — Locked 라도 짧게 타깃 방향으로 전진(root motion 없는 돌진 공격용).
             const FVector Dir = FlatDirTo(Character, Target);
             if (!Dir.IsNearlyZero())
             {
                 Character->AddMovementInput(Dir, DashScale);
             }
         }
-        // root motion 이 있으면 그것이 변위를 담당하므로 건드리지 않는다(montage 이동 보존).
         else if (!Movement->HasPendingRootMotion())
         {
             Movement->ClearInputVector();
@@ -193,7 +261,7 @@ void UCharacterStateMachineComponent::ApplyMovement(const FCharacterStateDef& De
         }
         break;
     case ELocomotionMode::InputAllowed:
-        break; // 외부 입력(WASD/path-follow)이 이동을 구동 — 미개입
+        break;
     case ELocomotionMode::Strafe:
         if (Target)
         {
@@ -234,7 +302,6 @@ void UCharacterStateMachineComponent::ApplyFacing(const FCharacterStateDef& Def,
 
     if (Def.bFaceTarget && Target)
     {
-        // 상태머신이 타깃을 조준 — 이동방향 자동회전과 충돌하지 않게 잠시 끈다.
         if (Movement)
         {
             Movement->bOrientRotationToMovement = false;
@@ -253,7 +320,6 @@ void UCharacterStateMachineComponent::ApplyFacing(const FCharacterStateDef& Def,
     }
     else if (Movement && bHasCachedOrient)
     {
-        // 조준 안 함 → 캐시된 이동방향 자동회전 정책 복원.
         Movement->bOrientRotationToMovement = bCachedOrientToMovement;
     }
 }
@@ -269,109 +335,6 @@ void UCharacterStateMachineComponent::ApplyAnimation(const FCharacterStateDef& D
     UAnimInstance* Anim = Mesh ? Mesh->GetAnimInstance() : nullptr;
     if (UAnimGraphInstance* Graph = Cast<UAnimGraphInstance>(Anim))
     {
-        // 그래프가 이 변수들을 선언하지 않으면 no-op → 기존 그래프 비파괴.
         Graph->SetGraphVariableInt(FName("StateId"), Def.AnimStateId);
-        Graph->SetGraphVariableBool(FName("IsAttacking"), CurrentState == ECharacterState::Attack);
-        Graph->SetGraphVariableBool(FName("IsDefending"), CurrentState == ECharacterState::Defend);
-        Graph->SetGraphVariableBool(FName("IsStaggered"), CurrentState == ECharacterState::Staggered);
-    }
-}
-
-void UCharacterStateMachineComponent::CheckAutoExit(const FCharacterStateDef& /*Def*/, float /*DeltaTime*/)
-{
-    AActor* Owner = GetOwner();
-    switch (CurrentState)
-    {
-    case ECharacterState::Attack:
-    {
-        UCombatMoveComponent* Move = Owner ? Owner->GetComponentByClass<UCombatMoveComponent>() : nullptr;
-        const bool bMoveActive = Move && Move->IsMoveActive();
-        bool bMontagePlaying = false;
-        if (ACharacter* Character = Cast<ACharacter>(Owner))
-        {
-            if (USkeletalMeshComponent* Mesh = Character->GetMesh())
-            {
-                if (UAnimInstance* Anim = Mesh->GetAnimInstance())
-                {
-                    bMontagePlaying = Anim->IsMontagePlaying();
-                }
-            }
-        }
-        if ((!bMoveActive && !bMontagePlaying && TimeInState > 0.06f) || TimeInState > AttackTimeoutFallback)
-        {
-            ForceState(ECharacterState::Idle);
-        }
-        break;
-    }
-    case ECharacterState::Defend:
-        if (TimeInState > DefendDuration)
-        {
-            ForceState(ECharacterState::Idle);
-        }
-        break;
-    case ECharacterState::Hit:
-        if (TimeInState > HitDuration)
-        {
-            ForceState(ECharacterState::Idle);
-        }
-        break;
-    case ECharacterState::Staggered:
-    {
-        UCombatStateComponent* Combat = Owner ? Owner->GetComponentByClass<UCombatStateComponent>() : nullptr;
-        if (Combat)
-        {
-            if (!Combat->IsStaggered())
-            {
-                ForceState(ECharacterState::Idle);
-            }
-        }
-        else if (TimeInState > 1.0f)
-        {
-            ForceState(ECharacterState::Idle);
-        }
-        break;
-    }
-    default:
-        break;
-    }
-}
-
-void UCharacterStateMachineComponent::HandleDamaged(UHealthComponent* /*Component*/, float Damage, float /*NewHealth*/, AActor* /*DamageCauser*/, AActor* /*InstigatorActor*/)
-{
-    if (CurrentState == ECharacterState::Dead || CurrentState == ECharacterState::Staggered || Damage <= 0.0f)
-    {
-        return;
-    }
-    if (AActor* Owner = GetOwner())
-    {
-        if (UCombatStateComponent* Combat = Owner->GetComponentByClass<UCombatStateComponent>())
-        {
-            if (Combat->HasSuperArmor())
-            {
-                return; // 슈퍼아머 중에는 피격 반응 없음
-            }
-        }
-    }
-    ForceState(ECharacterState::Hit);
-}
-
-void UCharacterStateMachineComponent::HandleDeath(UHealthComponent* /*Component*/, AActor* /*DamageCauser*/, AActor* /*InstigatorActor*/)
-{
-    ForceState(ECharacterState::Dead);
-}
-
-void UCharacterStateMachineComponent::HandleStaggerStarted(UCombatStateComponent* /*Component*/, float /*Duration*/)
-{
-    if (CurrentState != ECharacterState::Dead)
-    {
-        ForceState(ECharacterState::Staggered);
-    }
-}
-
-void UCharacterStateMachineComponent::HandleStaggerEnded(UCombatStateComponent* /*Component*/)
-{
-    if (CurrentState == ECharacterState::Staggered)
-    {
-        ForceState(ECharacterState::Idle);
     }
 }

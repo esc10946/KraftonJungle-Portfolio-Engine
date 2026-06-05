@@ -1217,9 +1217,6 @@
     <ClCompile Include="Source\Engine\Component\AI\AIPerceptionComponent.cpp">
       <Filter>Source\Engine\Component\AI</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Component\AI\BossPhaseDirector.cpp">
-      <Filter>Source\Engine\Component\AI</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Engine\Component\AI\EncounterComponent.cpp">
       <Filter>Source\Engine\Component\AI</Filter>
     </ClCompile>
@@ -1230,9 +1227,6 @@
       <Filter>Source\Engine\Component\AI</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Component\AI\PhaseComponent.cpp">
-      <Filter>Source\Engine\Component\AI</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\Component\AI\UtilityReasonerComponent.cpp">
       <Filter>Source\Engine\Component\AI</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Component\Camera\CameraComponent.cpp">
@@ -2648,9 +2642,6 @@
     <ClInclude Include="Source\Engine\Component\AI\AIPerceptionComponent.h">
       <Filter>Source\Engine\Component\AI</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Component\AI\BossPhaseDirector.h">
-      <Filter>Source\Engine\Component\AI</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Engine\Component\AI\EncounterComponent.h">
       <Filter>Source\Engine\Component\AI</Filter>
     </ClInclude>
@@ -2661,9 +2652,6 @@
       <Filter>Source\Engine\Component\AI</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\AI\PhaseComponent.h">
-      <Filter>Source\Engine\Component\AI</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\Component\AI\UtilityReasonerComponent.h">
       <Filter>Source\Engine\Component\AI</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\Camera\CameraComponent.h">

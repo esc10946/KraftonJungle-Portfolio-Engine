@@ -33,7 +33,13 @@ public:
     UAIDecisionTraceComponent()           = default;
     ~UAIDecisionTraceComponent() override = default;
 
-    // 형제 Reasoner/Brain/Perception 에서 스냅샷을 모아 한 레코드를 추가한다.
+    // Lua Blueprint 정책이 후보와 점수를 직접 기록한다. C++은 보관/정렬/표시만 담당한다.
+    UFUNCTION(Callable, Category="AI|Trace")
+    void BeginDecision(const FName& State);
+    UFUNCTION(Callable, Category="AI|Trace")
+    void AddCandidate(const FName& ActionName, float Score);
+    UFUNCTION(Callable, Category="AI|Trace")
+    void CommitDecision(const FName& ChosenAction);
     UFUNCTION(Callable, Category="AI|Trace")
     void RecordDecision();
 
@@ -47,6 +53,14 @@ public:
     const TArray<FDecisionTraceRecord>& GetRecords() const { return Records; }
 
 private:
+    struct FPendingCandidate
+    {
+        FName ActionName;
+        float Score = 0.0f;
+    };
+
     TArray<FDecisionTraceRecord> Records;
+    TArray<FPendingCandidate>    PendingCandidates;
+    FName                        PendingState = FName::None;
     int64                        NextTick = 0;
 };

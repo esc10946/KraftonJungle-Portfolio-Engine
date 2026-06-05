@@ -1,7 +1,6 @@
 #include "Component/AI/EnemyAIBrainComponent.h"
 
 #include "AI/CombatTargetRegistry.h"
-#include "Component/Character/CharacterStateMachineComponent.h"
 #include "Component/Combat/CombatStateComponent.h"
 #include "Component/Combat/HealthComponent.h"
 #include "GameFramework/AActor.h"
@@ -37,42 +36,6 @@ namespace
 		return Angle;
 	}
 
-	// FName HFSM 상태 ↔ 단일 권위 ECharacterState 매핑.
-	ECharacterState MapFNameToState(const FName& StateName)
-	{
-		const FString N = StateName.ToString();
-		if (N == "Chase" || N == "Pursue" || N == "Approach") return ECharacterState::Approach;
-		if (N == "Strafe") return ECharacterState::Strafe;
-		if (N == "Reposition" || N == "Retreat") return ECharacterState::Retreat;
-		if (N == "Attack") return ECharacterState::Attack;
-		if (N == "Deflect" || N == "Dodge" || N == "Parry" || N == "Defend") return ECharacterState::Defend;
-		if (N == "Hit") return ECharacterState::Hit;
-		if (N == "Staggered" || N == "Stagger") return ECharacterState::Staggered;
-		if (N == "Dead") return ECharacterState::Dead;
-		return ECharacterState::Idle; // Idle/Guard/Recover/unknown
-	}
-
-	FName MapStateToFName(ECharacterState State)
-	{
-		switch (State)
-		{
-		case ECharacterState::Approach:  return FName("Chase");
-		case ECharacterState::Strafe:    return FName("Strafe");
-		case ECharacterState::Retreat:   return FName("Reposition");
-		case ECharacterState::Attack:    return FName("Attack");
-		case ECharacterState::Defend:    return FName("Deflect");
-		case ECharacterState::Hit:       return FName("Hit");
-		case ECharacterState::Staggered: return FName("Staggered");
-		case ECharacterState::Dead:      return FName("Dead");
-		default:                         return FName("Idle");
-		}
-	}
-
-	bool IsEventState(ECharacterState State)
-	{
-		return State == ECharacterState::Dead || State == ECharacterState::Staggered || State == ECharacterState::Hit;
-	}
-
 	bool IsAliveTarget(AActor* Actor)
 	{
 		if (!IsValid(Actor))
@@ -85,49 +48,12 @@ namespace
 		}
 		return true;
 	}
-
-	bool IsHostileOrTaggedFallback(AActor* OwnerActor, AActor* Candidate, const FName& FallbackTag)
-	{
-		if (!OwnerActor || !Candidate || Candidate == OwnerActor)
-		{
-			return false;
-		}
-		UCombatStateComponent* OwnerCombat = OwnerActor->GetComponentByClass<UCombatStateComponent>();
-		UCombatStateComponent* CandidateCombat = Candidate->GetComponentByClass<UCombatStateComponent>();
-		if (OwnerCombat && CandidateCombat)
-		{
-			return OwnerCombat->IsHostileTo(CandidateCombat);
-		}
-		return FallbackTag.IsValid() && Candidate->HasTag(FallbackTag);
-	}
 }
 
 void UEnemyAIBrainComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction& ThisTickFunction)
 {
 	UActorComponent::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	if (!bHasInitializedState)
-	{
-		CurrentState = InitialState;
-		PreviousState = FName::None;
-		StateTime = 0.0f;
-		bHasInitializedState = true;
-		// 단일 권위 상태머신에도 초기 상태 반영.
-		if (AActor* OwnerActor = GetOwner())
-		{
-			if (UCharacterStateMachineComponent* SM = OwnerActor->GetComponentByClass<UCharacterStateMachineComponent>())
-			{
-				SM->ForceState(MapFNameToState(InitialState));
-			}
-		}
-	}
-	StateTime += DeltaTime; // fallback 캐시 — GetStateTime 은 SM 이 있으면 그쪽을 우선.
-
 	if (TargetActor.IsValid() && !HasValidTarget())
-	{
-		ClearTarget();
-		return;
-	}
-	if (HasValidTarget() && LoseTargetRange > 0.0f && GetDistanceToTarget() > LoseTargetRange)
 	{
 		ClearTarget();
 	}
@@ -164,39 +90,31 @@ bool UEnemyAIBrainComponent::HasValidTarget() const
 	}
 	UCombatStateComponent* OwnerCombat = OwnerActor->GetComponentByClass<UCombatStateComponent>();
 	UCombatStateComponent* TargetCombat = Target->GetComponentByClass<UCombatStateComponent>();
-	if (OwnerCombat && TargetCombat)
-	{
-		return OwnerCombat->IsHostileTo(TargetCombat);
-	}
-	return Target->HasTag(DefaultTargetTag) || Target->HasTag(FName("HitTarget"));
+	return OwnerCombat && TargetCombat && OwnerCombat->IsHostileTo(TargetCombat);
 }
 
-AActor* UEnemyAIBrainComponent::AcquireTargetByTag(const FName& Tag)
+AActor* UEnemyAIBrainComponent::AcquireTargetByTag(const FName& Tag, float SearchRange)
 {
 	AActor* OwnerActor = GetOwner();
 	UWorld* World = OwnerActor ? OwnerActor->GetWorld() : nullptr;
-	if (!World || !Tag.IsValid())
+	if (!World || !OwnerActor || !Tag.IsValid())
 	{
 		return nullptr;
 	}
 
 	AActor* BestActor = nullptr;
 	float BestDistanceSq = FLT_MAX;
-	const FVector OwnerLocation = OwnerActor ? OwnerActor->GetActorLocation() : FVector::ZeroVector;
+	const FVector OwnerLocation = OwnerActor->GetActorLocation();
 	for (AActor* Candidate : World->GetActors())
 	{
 		if (!IsAliveTarget(Candidate) || Candidate == OwnerActor || !Candidate->HasTag(Tag))
 		{
 			continue;
 		}
-		if (!IsHostileOrTaggedFallback(OwnerActor, Candidate, Tag))
-		{
-			continue;
-		}
 		FVector Delta = Candidate->GetActorLocation() - OwnerLocation;
 		Delta.Z = 0.0f;
 		const float DistSq = Delta.X * Delta.X + Delta.Y * Delta.Y;
-		if (DetectionRange > 0.0f && DistSq > DetectionRange * DetectionRange)
+		if (SearchRange > 0.0f && DistSq > SearchRange * SearchRange)
 		{
 			continue;
 		}
@@ -218,20 +136,9 @@ AActor* UEnemyAIBrainComponent::AcquireNearestHostileTarget(float SearchRange)
 	{
 		return nullptr;
 	}
-	const float Range = SearchRange > 0.0f ? SearchRange : DetectionRange;
-	// World 전체 Actor 순회 대신 전투원 등록소만 질의 — 적 수가 늘어도 O(전투원 수).
-	AActor* BestActor = FCombatTargetRegistry::Get().FindNearestHostile(OwnerCombat, OwnerActor->GetActorLocation(), Range);
+	AActor* BestActor = FCombatTargetRegistry::Get().FindNearestHostile(OwnerCombat, OwnerActor->GetActorLocation(), SearchRange);
 	SetTarget(BestActor);
 	return BestActor;
-}
-
-AActor* UEnemyAIBrainComponent::AcquireDefaultTarget()
-{
-	if (AActor* Hostile = AcquireNearestHostileTarget(DetectionRange))
-	{
-		return Hostile;
-	}
-	return AcquireTargetByTag(DefaultTargetTag);
 }
 
 float UEnemyAIBrainComponent::GetDistanceToTarget() const
@@ -328,7 +235,7 @@ bool UEnemyAIBrainComponent::RequestMoveToTarget(float AcceptanceRadius, bool bU
 	{
 		return false;
 	}
-	const float Radius = AcceptanceRadius > 0.0f ? AcceptanceRadius : AttackRange;
+	const float Radius = AcceptanceRadius > 0.0f ? AcceptanceRadius : 0.5f;
 	return Enemy->RequestMoveToTarget(Radius, bUsePathfinding);
 }
 
@@ -372,71 +279,4 @@ FString UEnemyAIBrainComponent::GetLastMoveFailureReason() const
 	const AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(GetOwner());
 	AAIController* Controller = Enemy ? Enemy->GetEnemyAIController() : nullptr;
 	return Controller ? Controller->GetLastMoveFailureReason() : "No AIController";
-}
-
-void UEnemyAIBrainComponent::SetState(const FName& NewState)
-{
-	// 단일 권위 상태머신이 있으면 그쪽으로 라우팅 — FName 상태는 enum 상태의 별칭이 된다.
-	if (AActor* OwnerActor = GetOwner())
-	{
-		if (UCharacterStateMachineComponent* SM = OwnerActor->GetComponentByClass<UCharacterStateMachineComponent>())
-		{
-			const ECharacterState Target = MapFNameToState(NewState);
-			const FName Before = MapStateToFName(SM->GetState());
-			if (IsEventState(Target))
-			{
-				SM->ForceState(Target);
-			}
-			else
-			{
-				SM->RequestState(Target); // committed 상태(Attack 등)에선 거부될 수 있음 — 의도된 가드
-			}
-			const FName After = MapStateToFName(SM->GetState());
-			bHasInitializedState = true;
-			if (After != Before)
-			{
-				PreviousState = Before;
-				CurrentState = After;
-				StateTime = 0.0f;
-				OnStateChanged.Broadcast(this, Before, After);
-			}
-			return;
-		}
-	}
-
-	// fallback (상태머신 없음) — 기존 동작.
-	if (CurrentState == NewState)
-	{
-		return;
-	}
-	const FName OldState = CurrentState;
-	PreviousState = OldState;
-	CurrentState = NewState;
-	StateTime = 0.0f;
-	bHasInitializedState = true;
-	OnStateChanged.Broadcast(this, OldState, NewState);
-}
-
-FName UEnemyAIBrainComponent::GetState() const
-{
-	if (AActor* OwnerActor = GetOwner())
-	{
-		if (UCharacterStateMachineComponent* SM = OwnerActor->GetComponentByClass<UCharacterStateMachineComponent>())
-		{
-			return MapStateToFName(SM->GetState());
-		}
-	}
-	return CurrentState;
-}
-
-float UEnemyAIBrainComponent::GetStateTime() const
-{
-	if (AActor* OwnerActor = GetOwner())
-	{
-		if (UCharacterStateMachineComponent* SM = OwnerActor->GetComponentByClass<UCharacterStateMachineComponent>())
-		{
-			return SM->GetTimeInState();
-		}
-	}
-	return StateTime;
 }

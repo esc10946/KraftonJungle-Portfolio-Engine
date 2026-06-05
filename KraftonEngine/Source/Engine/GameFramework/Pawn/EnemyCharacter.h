@@ -12,7 +12,6 @@ class UEnemyAttackComponent;
 class ULuaScriptComponent;
 class UAIBlackboardComponent;
 class UAIPerceptionComponent;
-class UUtilityReasonerComponent;
 class UAIDecisionTraceComponent;
 class UCombatMoveComponent;
 class FArchive;
@@ -46,8 +45,6 @@ public:
 	UFUNCTION(Pure, Category="Enemy|AICore")
 	UAIPerceptionComponent* GetPerception() const { return Perception; }
 	UFUNCTION(Pure, Category="Enemy|AICore")
-	UUtilityReasonerComponent* GetReasoner() const { return Reasoner; }
-	UFUNCTION(Pure, Category="Enemy|AICore")
 	UAIDecisionTraceComponent* GetDecisionTrace() const { return DecisionTrace; }
 	UFUNCTION(Pure, Category="Enemy|AICore")
 	UCombatMoveComponent* GetCombatMove() const { return CombatMove; }
@@ -80,12 +77,6 @@ public:
 	bool IsPathFollowing() const;
 
 	UFUNCTION(Callable, Category="Enemy|Attack")
-	bool SelectAndCommitAttack(int32 Phase, FEnemyAttackData& OutAttack);
-	// 안전판: 공격을 고르고 → 실행을 "시작"한 뒤에야 쿨다운을 커밋한다. 시작 실패면 쿨다운을
-	// 소비하지 않는다(SelectAndCommitAttack 의 "공격 안 하는데 쿨다운만 도는" 위험 회피).
-	UFUNCTION(Callable, Category="Enemy|Attack")
-	bool CommitAndStartAttack(int32 Phase);
-	UFUNCTION(Callable, Category="Enemy|Attack")
 	bool PlayAttackMontage(const FEnemyAttackData& Attack);
 	UFUNCTION(Pure, Category="Enemy|Attack")
 	bool HasCurrentAttack() const { return bCurrentAttackActive && CurrentAttack.AttackName.IsValid(); }
@@ -108,12 +99,80 @@ public:
 	float Brain_GetDistance() const;
 	UFUNCTION(Pure, Category="Enemy|Brain")
 	float Brain_GetAttackRange() const;
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	float Brain_GetAbsAngle() const;
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	float Brain_GetVerticalDelta() const;
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	float Brain_GetSelfHealthRatio() const;
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	float Brain_GetTargetHealthRatio() const;
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	float Brain_GetTargetPostureRatio() const;
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	bool Brain_CanSeeTarget() const;
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	bool Brain_HasLineOfSight() const;
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	bool Brain_IsInProximity() const;
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	int32 Brain_GetPhase() const;
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	float Brain_GetStateTime() const;
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	int32 Brain_GetLODLevel() const;
+
+	// 공격 카탈로그 열람/선택 파사드. Lua Blueprint가 점수를 계산하고 C++은 데이터 검증/실행만 수행한다.
+	UFUNCTION(Pure, Category="Enemy|Brain|Attack")
+	int32 Brain_GetAttackCount() const;
+	UFUNCTION(Pure, Category="Enemy|Brain|Attack")
+	FName Brain_GetAttackName(int32 Index) const;
+	UFUNCTION(Pure, Category="Enemy|Brain|Attack")
+	bool Brain_CanUseAttackIndex(int32 Index) const;
+	UFUNCTION(Pure, Category="Enemy|Brain|Attack")
+	float Brain_GetAttackBaseWeight(int32 Index) const;
+	UFUNCTION(Pure, Category="Enemy|Brain|Attack")
+	float Brain_GetAttackPriority(int32 Index) const;
+	UFUNCTION(Pure, Category="Enemy|Brain|Attack")
+	float Brain_GetAttackMinRange(int32 Index) const;
+	UFUNCTION(Pure, Category="Enemy|Brain|Attack")
+	float Brain_GetAttackMaxRange(int32 Index) const;
+	UFUNCTION(Pure, Category="Enemy|Brain|Attack")
+	float Brain_GetAttackMaxAbsAngle(int32 Index) const;
+	UFUNCTION(Pure, Category="Enemy|Brain|Attack")
+	float Brain_GetAttackMaxVerticalDelta(int32 Index) const;
+	UFUNCTION(Pure, Category="Enemy|Brain|Attack")
+	float Brain_GetAttackRepeatWeightScale(int32 Index) const;
+	UFUNCTION(Pure, Category="Enemy|Brain|Attack")
+	FName Brain_GetAttackTacticTag(int32 Index) const;
+	UFUNCTION(Pure, Category="Enemy|Brain|Attack")
+	bool Brain_IsAttackGapCloser(int32 Index) const;
+	UFUNCTION(Pure, Category="Enemy|Brain|Attack")
+	int32 Brain_GetAttackPerilousType(int32 Index) const;
+	UFUNCTION(Pure, Category="Enemy|Brain|Attack")
+	bool Brain_AttackRequiresPreviousAttack(int32 Index) const;
+	UFUNCTION(Pure, Category="Enemy|Brain|Attack")
+	FName Brain_GetAttackRequiredPreviousAttack(int32 Index) const;
+	UFUNCTION(Pure, Category="Enemy|Brain|Attack")
+	int32 Brain_GetRecentAttackRepeat(const FName& AttackName) const;
+	UFUNCTION(Pure, Category="Enemy|Brain|Attack")
+	FName Brain_GetLastAttackName() const;
+	UFUNCTION(Callable, Category="Enemy|Brain|Attack")
+	bool Brain_SetSelectedAttack(const FName& AttackName);
+	UFUNCTION(Callable, Category="Enemy|Brain|Attack")
+	bool Brain_PlayAttackByName(const FName& AttackName);
+
+	// Lua Blueprint 의사결정 디버그 트레이스. 후보/점수는 Lua가 기록한다.
+	UFUNCTION(Callable, Category="Enemy|Brain|Trace")
+	void Brain_BeginDecisionTrace();
+	UFUNCTION(Callable, Category="Enemy|Brain|Trace")
+	void Brain_AddDecisionCandidate(const FName& ActionName, float Score);
+	UFUNCTION(Callable, Category="Enemy|Brain|Trace")
+	void Brain_CommitDecisionTrace(const FName& ChosenAction);
 	UFUNCTION(Callable, Category="Enemy|Brain")
 	bool Brain_ConsumeCombatStep();
 	UFUNCTION(Pure, Category="Enemy|Brain")
 	bool Brain_IsBusy() const;
-	UFUNCTION(Callable, Category="Enemy|Brain")
-	bool Brain_SelectAttack();
 	UFUNCTION(Callable, Category="Enemy|Brain")
 	bool Brain_PlaySelectedAttack();
 	UFUNCTION(Callable, Category="Enemy|Brain")
@@ -160,19 +219,13 @@ public:
 	bool bAutoPossessAI = true;
 	UPROPERTY(Edit, Save, Category="Enemy|AI", DisplayName="AI Controller Class", Type=ClassRef, AllowedClass=AAIController)
 	UClass* AIControllerClass = nullptr;
+	UPROPERTY(Edit, Save, Category="Enemy|AI", DisplayName="Brain Script", AssetType="Script")
+	FString BrainScriptFile = "AI/enemy_brain.lua";
+	UPROPERTY(Edit, Save, Category="Enemy|AI", DisplayName="Target Search Range", Min=0.0f, Max=1000.0f, Speed=0.5f)
+	float TargetSearchRange = 16.0f;
+	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Default Attack Range", Min=0.0f, Max=1000.0f, Speed=0.1f)
+	float DefaultAttackRange = 1.7f;
 
-	UPROPERTY(Edit, Save, Category="Enemy|AI", DisplayName="Use Built-In Decision Logic")
-	bool bUseBuiltInDecisionLogic = true;
-	UPROPERTY(Edit, Save, Category="Enemy|AI", DisplayName="Behavior Style", Enum=EEnemyAIBehaviorStyle)
-	EEnemyAIBehaviorStyle BehaviorStyle = EEnemyAIBehaviorStyle::Balanced;
-	UPROPERTY(Edit, Save, Category="Enemy|AI", DisplayName="Think Interval", Min=0.0f, Max=2.0f, Speed=0.01f)
-	float ThinkInterval = 0.12f;
-	UPROPERTY(Edit, Save, Category="Enemy|AI", DisplayName="Path Repath Interval", Min=0.0f, Max=5.0f, Speed=0.05f)
-	float RepathInterval = 0.35f;
-	UPROPERTY(Edit, Save, Category="Enemy|AI", DisplayName="Defensive Retreat Distance", Min=0.0f, Max=1000.0f, Speed=0.1f)
-	float DefensiveRetreatDistance = 1.4f;
-	UPROPERTY(Edit, Save, Category="Enemy|AI", DisplayName="Defensive Retreat Input Scale", Min=0.0f, Max=1.0f, Speed=0.05f)
-	float DefensiveRetreatInputScale = 0.55f;
 
 	// ── Phase 3 협동 / Phase 4 LOD 튜닝 ──
 	UPROPERTY(Edit, Save, Category="Enemy|Squad", DisplayName="Max Simultaneous Attackers", Min=0.0f, Max=16.0f, Speed=1.0f)
@@ -198,13 +251,6 @@ public:
 	// max(SquadTokenDuration, SelectedAttackDuration + 이 값)이다.
 	UPROPERTY(Edit, Save, Category="Enemy|Squad", DisplayName="Attack Token Safety Buffer", Min=0.0f, Max=5.0f, Speed=0.05f)
 	float AttackTokenSafetyBuffer = 0.15f;
-	// Built-in 반응 행동: 타깃 공격 커밋을 감지했을 때 탄기 시도 확률/쿨다운/정면 각도.
-	UPROPERTY(Edit, Save, Category="Enemy|Deflect", DisplayName="Deflect Chance", Min=0.0f, Max=1.0f, Speed=0.05f)
-	float DeflectChance = 0.25f;
-	UPROPERTY(Edit, Save, Category="Enemy|Deflect", DisplayName="Deflect Cooldown", Min=0.0f, Max=10.0f, Speed=0.05f)
-	float DeflectCooldown = 1.2f;
-	UPROPERTY(Edit, Save, Category="Enemy|Deflect", DisplayName="Deflect Max Abs Angle", Min=0.0f, Max=180.0f, Speed=1.0f)
-	float DeflectMaxAbsAngle = 80.0f;
 	UPROPERTY(Edit, Save, Category="Enemy|LOD", DisplayName="LOD Near Distance", Min=0.0f, Max=1000.0f, Speed=0.5f)
 	float LODNearDistance = 25.0f;
 	UPROPERTY(Edit, Save, Category="Enemy|LOD", DisplayName="LOD Far Distance", Min=0.0f, Max=2000.0f, Speed=0.5f)
@@ -214,9 +260,7 @@ protected:
 	void Tick(float DeltaTime) override;
 	void HandleDeath(UHealthComponent* Component, AActor* DamageCauser, AActor* InstigatorActor) override;
 	virtual int32 GetCurrentAIPhase() const { return 1; }
-	virtual EEnemyAIBehaviorStyle GetResolvedBehaviorStyle() const { return BehaviorStyle; }
 	void RebindEnemyComponents();
-	void RunBuiltInDecisionLogic(float DeltaTime);
 	void UpdateAttackExecution(float DeltaTime);
 	// Phase 4: 타깃과의 거리로 LOD 를 정해 전투 시계 스텝 주기를 조절(원거리 적은 저빈도 think).
 	void UpdateAILOD();
@@ -226,25 +270,22 @@ protected:
 	bool StartAttackExecution(const FEnemyAttackData& Attack);
 	float GetCurrentHealthRatio() const;
 	bool IsTargetHostileDamageReceiver(AActor* Target) const;
-	bool IsTargetInsideCurrentAttackFallback(AActor* Target) const;
 	void StopPathFollowingOnly();
+	bool SetRuntimeState(const FName& StateName, bool bForce = false);
 	bool AcquireAttackTokenForDuration(float DesiredDuration);
-	float GetEffectiveThinkInterval() const;
+	const FEnemyAttackData* GetAttackDataByIndex(int32 Index) const;
+	bool CanUseAttackDataNow(const FEnemyAttackData& Attack) const;
 
 	TWeakObjectPtr<UEnemyAIBrainComponent> AIBrainComponent = nullptr;
 	TWeakObjectPtr<UEnemyAttackComponent> AttackComponent = nullptr;
 	TWeakObjectPtr<ULuaScriptComponent> LuaScriptComponent = nullptr;
 	TWeakObjectPtr<UAIBlackboardComponent> Blackboard = nullptr;
 	TWeakObjectPtr<UAIPerceptionComponent> Perception = nullptr;
-	TWeakObjectPtr<UUtilityReasonerComponent> Reasoner = nullptr;
 	TWeakObjectPtr<UAIDecisionTraceComponent> DecisionTrace = nullptr;
 	TWeakObjectPtr<UCombatMoveComponent> CombatMove = nullptr;
 
 private:
-	float ThinkTimer = 0.0f;
-	float RepathTimer = 0.0f;
 	bool bCurrentAttackActive = false;
-	bool bFallbackDamageAttempted = false;
 	float CurrentAttackElapsed = 0.0f;
 	FEnemyAttackData CurrentAttack;
 	TArray<TWeakObjectPtr<AActor>> CurrentAttackDamagedActors;
@@ -255,7 +296,6 @@ private:
 	FName SelectedAttackName = FName::None;
 	bool bStrafeClockwise = true;
 	int32 CurrentLODLevel = 0; // 0=near(60Hz), 1=mid(30Hz), 2=far(10Hz)
-	float DeflectCooldownRemaining = 0.0f;
 	int32 CachedSquadSlot = -1;
 	int32 CachedEngagerCount = 0;
 };

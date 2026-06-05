@@ -1,4 +1,4 @@
-﻿#include "LuaScriptManager.h"
+#include "LuaScriptManager.h"
 #include "Lua/LuaDebugManager.h"
 
 #include "Audio/AudioManager.h"
@@ -30,6 +30,7 @@
 #include "Component/AI/EnemyAIBrainComponent.h"
 #include "Component/AI/EnemyAttackComponent.h"
 #include "Component/AI/PhaseComponent.h"
+#include "Component/Character/CharacterStateMachineComponent.h"
 #include "AI/Navigation/PathFollowingComponent.h"
 #include "Component/Combat/CombatStateComponent.h"
 #include "Component/Combat/CombatTypes.h"
@@ -4081,8 +4082,17 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
         "GetMesh",
         &ACharacter::GetMesh,
         "GetCharacterMovement",
-        &ACharacter::GetCharacterMovement
+        &ACharacter::GetCharacterMovement,
+        "GetStateMachine",
+        &ACharacter::GetStateMachine
     );
+
+
+    sol::table LocomotionMode = Lua.create_named_table("LocomotionMode");
+    LocomotionMode["Locked"] = static_cast<int>(ELocomotionMode::Locked);
+    LocomotionMode["InputAllowed"] = static_cast<int>(ELocomotionMode::InputAllowed);
+    LocomotionMode["Strafe"] = static_cast<int>(ELocomotionMode::Strafe);
+    LocomotionMode["Retreat"] = static_cast<int>(ELocomotionMode::Retreat);
 
     sol::table CombatTeam = Lua.create_named_table("CombatTeam");
     CombatTeam["Neutral"] = static_cast<int>(ECombatTeam::Neutral);
@@ -4318,9 +4328,11 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
         "ClearTarget", &UEnemyAIBrainComponent::ClearTarget,
         "GetTarget", &UEnemyAIBrainComponent::GetTarget,
         "HasValidTarget", &UEnemyAIBrainComponent::HasValidTarget,
-        "AcquireTargetByTag", [](UEnemyAIBrainComponent& B, const FString& Tag) { return B.AcquireTargetByTag(FName(Tag)); },
+        "AcquireTargetByTag", sol::overload(
+            [](UEnemyAIBrainComponent& B, const FString& Tag, float SearchRange) { return B.AcquireTargetByTag(FName(Tag), SearchRange); },
+            [](UEnemyAIBrainComponent& B, const FString& Tag) { return B.AcquireTargetByTag(FName(Tag), 0.0f); }
+        ),
         "AcquireNearestHostileTarget", &UEnemyAIBrainComponent::AcquireNearestHostileTarget,
-        "AcquireDefaultTarget", &UEnemyAIBrainComponent::AcquireDefaultTarget,
         "GetDistanceToTarget", &UEnemyAIBrainComponent::GetDistanceToTarget,
         "GetDirectionToTarget", &UEnemyAIBrainComponent::GetDirectionToTarget,
         "GetFlatDirectionToTarget", &UEnemyAIBrainComponent::GetFlatDirectionToTarget,
@@ -4328,7 +4340,6 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
         "IsTargetInRange", &UEnemyAIBrainComponent::IsTargetInRange,
         "IsTargetInFront", &UEnemyAIBrainComponent::IsTargetInFront,
         "IsTargetBehind", &UEnemyAIBrainComponent::IsTargetBehind,
-        "SetState", [](UEnemyAIBrainComponent& B, const FString& State) { B.SetState(FName(State)); },
         "RequestMoveToTarget", sol::overload(
             [](UEnemyAIBrainComponent& B, float AcceptanceRadius, bool bUsePathfinding) { return B.RequestMoveToTarget(AcceptanceRadius, bUsePathfinding); },
             [](UEnemyAIBrainComponent& B, float AcceptanceRadius) { return B.RequestMoveToTarget(AcceptanceRadius, true); },
@@ -4339,10 +4350,28 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
         "GetMoveStatus", [](UEnemyAIBrainComponent& B) { return static_cast<int>(B.GetMoveStatus()); },
         "GetLastMoveRequestResult", [](UEnemyAIBrainComponent& B) { return static_cast<int>(B.GetLastMoveRequestResult()); },
         "GetLastMoveResult", [](UEnemyAIBrainComponent& B) { return static_cast<int>(B.GetLastMoveResult()); },
-        "GetLastMoveFailureReason", &UEnemyAIBrainComponent::GetLastMoveFailureReason,
-        "GetState", [](UEnemyAIBrainComponent& B) { return B.GetState().ToString(); },
-        "GetPreviousState", [](UEnemyAIBrainComponent& B) { return B.GetPreviousState().ToString(); },
-        "GetStateTime", &UEnemyAIBrainComponent::GetStateTime
+        "GetLastMoveFailureReason", &UEnemyAIBrainComponent::GetLastMoveFailureReason
+    );
+
+    Lua.new_usertype<UCharacterStateMachineComponent>(
+        "CharacterStateMachineComponent",
+        sol::base_classes,
+        sol::bases<UActorComponent, UObject>(),
+        "RequestState", [](UCharacterStateMachineComponent& S, const FString& State) { return S.RequestState(FName(State)); },
+        "ForceState", [](UCharacterStateMachineComponent& S, const FString& State) { S.ForceState(FName(State)); },
+        "DefineState", [](UCharacterStateMachineComponent& S, const FString& State, int Locomotion, int AnimStateId, bool bAllowsPolicyExit, bool bFaceTarget) { S.DefineState(FName(State), Locomotion, AnimStateId, bAllowsPolicyExit, bFaceTarget); },
+        "ClearStateDefinitions", &UCharacterStateMachineComponent::ClearStateDefinitions,
+        "HasStateDefinition", [](UCharacterStateMachineComponent& S, const FString& State) { return S.HasStateDefinition(FName(State)); },
+        "GetState", [](UCharacterStateMachineComponent& S) { return S.GetState().ToString(); },
+        "GetPreviousState", [](UCharacterStateMachineComponent& S) { return S.GetPreviousState().ToString(); },
+        "GetStateInt", &UCharacterStateMachineComponent::GetStateInt,
+        "GetTimeInState", &UCharacterStateMachineComponent::GetTimeInState,
+        "GetLocomotionModeInt", &UCharacterStateMachineComponent::GetLocomotionModeInt,
+        "IsMovementLocked", &UCharacterStateMachineComponent::IsMovementLocked,
+        "CanPolicyExitCurrentState", &UCharacterStateMachineComponent::CanPolicyExitCurrentState,
+        "BeginDash", &UCharacterStateMachineComponent::BeginDash,
+        "SetMovementTarget", &UCharacterStateMachineComponent::SetMovementTarget,
+        "GetMovementTarget", &UCharacterStateMachineComponent::GetMovementTarget
     );
 
     Lua.new_usertype<UEnemyAttackComponent>(
@@ -4353,7 +4382,7 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
         "GetAttackCooldownRemaining", [](UEnemyAttackComponent& C, const FString& Name) { return C.GetAttackCooldownRemaining(FName(Name)); },
         "SetAttackCooldown", [](UEnemyAttackComponent& C, const FString& Name, float Cooldown) { C.SetAttackCooldown(FName(Name), Cooldown); },
         "ClearAttackCooldowns", &UEnemyAttackComponent::ClearAttackCooldowns,
-        "SelectAttack", &UEnemyAttackComponent::SelectAttack,
+        "CanUseAttack", &UEnemyAttackComponent::CanUseAttack,
         "CommitAttack", [](UEnemyAttackComponent& C, const FString& Name) { return C.CommitAttack(FName(Name)); },
         "CommitAttackData", &UEnemyAttackComponent::CommitAttackData,
         "FindAttackByName", [](UEnemyAttackComponent& C, const FString& Name) { return C.FindAttackByName(FName(Name)); },
@@ -4365,9 +4394,7 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
         sol::base_classes,
         sol::bases<UActorComponent, UObject>(),
         "SetPhase", &UPhaseComponent::SetPhase,
-        "GetCurrentPhase", &UPhaseComponent::GetCurrentPhase,
-        "FindAutoPhaseForHealthRatio", &UPhaseComponent::FindAutoPhaseForHealthRatio,
-        "TrySetPhaseByHealthRatio", &UPhaseComponent::TrySetPhaseByHealthRatio
+        "GetCurrentPhase", &UPhaseComponent::GetCurrentPhase
     );
 
     Lua.new_usertype<UEncounterComponent>(
@@ -4430,7 +4457,6 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
             [](AEnemyCharacter& C, const FVector& Location, float AcceptanceRadius) { return C.RequestMoveToLocation(Location, AcceptanceRadius, true); }
         ),
         "IsPathFollowing", &AEnemyCharacter::IsPathFollowing,
-        "SelectAndCommitAttack", [](AEnemyCharacter& C, int Phase) { FEnemyAttackData A; C.SelectAndCommitAttack(Phase, A); return A; },
         "PlayAttackMontage", &AEnemyCharacter::PlayAttackMontage
     );
 
@@ -4444,8 +4470,7 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
         "CompleteBossEncounter", &ABossEnemyCharacter::CompleteBossEncounter,
         "IsBossEncounterActive", &ABossEnemyCharacter::IsBossEncounterActive,
         "SetBossPhase", &ABossEnemyCharacter::SetBossPhase,
-        "GetBossPhase", &ABossEnemyCharacter::GetBossPhase,
-        "TryUpdatePhaseFromHealth", &ABossEnemyCharacter::TryUpdatePhaseFromHealth
+        "GetBossPhase", &ABossEnemyCharacter::GetBossPhase
     );
 
     Lua.new_usertype<UActionComponent>(
