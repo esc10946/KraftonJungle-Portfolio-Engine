@@ -44,6 +44,16 @@ void UUserWidget::RemoveFromParent()
 	bInViewport = false;
 }
 
+bool UUserWidget::ReloadDocument()
+{
+	return UUIManager::Get().ReloadDocument(this);
+}
+
+bool UUserWidget::ReloadStyleSheet()
+{
+	return UUIManager::Get().ReloadStyleSheet(this);
+}
+
 void UUserWidget::BindClick(const FString& ElementId, sol::protected_function Callback)
 {
 	PendingClickBindings.push_back({ ElementId, Callback });

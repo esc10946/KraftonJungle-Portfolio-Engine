@@ -20,8 +20,10 @@
 #undef GetFirstChild
 #endif
 #include <RmlUi/Core.h>
+#include <RmlUi/Core/Factory.h>
 
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <filesystem>
 #include <memory>
@@ -76,6 +78,65 @@ namespace
 	Rml::String ToRmlPath(const std::filesystem::path& Path)
 	{
 		return FPaths::ToUtf8(Path.generic_wstring());
+	}
+
+	FString ToLowerAscii(FString Value)
+	{
+		std::transform(Value.begin(), Value.end(), Value.begin(),
+			[](unsigned char Ch)
+			{
+				return static_cast<char>(std::tolower(Ch));
+			});
+		return Value;
+	}
+
+	FString NormalizeProjectRelativePath(const FString& Path)
+	{
+		const FString RelativePath = FPaths::MakeProjectRelative(Path);
+		std::filesystem::path Normalized(FPaths::ToWide(RelativePath));
+		Normalized = Normalized.lexically_normal();
+		return ToLowerAscii(FPaths::ToUtf8(Normalized.generic_wstring()));
+	}
+
+	FString GetLowerExtension(const FString& Path)
+	{
+		std::filesystem::path ParsedPath(FPaths::ToWide(Path));
+		return ToLowerAscii(FPaths::ToUtf8(ParsedPath.extension().wstring()));
+	}
+
+	bool IsRmlDocumentPath(const FString& Path)
+	{
+		const FString Ext = GetLowerExtension(Path);
+		return Ext == ".rml" || Ext == ".html" || Ext == ".htm";
+	}
+
+	bool IsRcssStyleSheetPath(const FString& Path)
+	{
+		return GetLowerExtension(Path) == ".rcss";
+	}
+
+	Rml::ElementDocument* LoadRmlDocumentFromPath(Rml::Context* Context, const FString& DocumentPath)
+	{
+		if (!Context)
+		{
+			return nullptr;
+		}
+
+		const std::filesystem::path Path = ToProjectPath(DocumentPath);
+		if (!std::filesystem::exists(Path))
+		{
+			UE_LOG("[RmlUi] Document not found: %s", DocumentPath.c_str());
+			return nullptr;
+		}
+
+		Rml::ElementDocument* Document = Context->LoadDocument(ToRmlPath(Path));
+		if (!Document)
+		{
+			UE_LOG("[RmlUi] Failed to load document: %s", DocumentPath.c_str());
+			return nullptr;
+		}
+
+		return Document;
 	}
 }
 
@@ -576,10 +637,13 @@ void UUIManager::Initialize(ID3D11Device* InDevice)
 	{
 		UE_LOG("[RmlUi] Failed to load font: Content/Font/Maplestory Bold.ttf");
 	}
+
+	StartUIHotReloadWatcher();
 }
 
 void UUIManager::Shutdown()
 {
+	StopUIHotReloadWatcher();
 	DestroyAllWidgets();
 
 	if (RmlContext)
@@ -612,11 +676,116 @@ UUserWidget* UUIManager::CreateWidget(APlayerController* OwningPlayer, const FSt
 	return Widget;
 }
 
+bool UUIManager::ReloadDocument(UUserWidget* Widget)
+{
+	CompactInvalidWidgets();
+	if (!IsAliveObject(Widget))
+	{
+		return false;
+	}
+
+	if (bDispatchingRmlEvents)
+	{
+		if (std::find(PendingReloadWidgets.begin(), PendingReloadWidgets.end(), Widget) == PendingReloadWidgets.end())
+		{
+			PendingReloadWidgets.push_back(Widget);
+		}
+		return true;
+	}
+
+	if (!Widget->IsInViewport() && !Widget->IsDocumentLoaded())
+	{
+		return true;
+	}
+
+	if (!RmlContext)
+	{
+		return false;
+	}
+
+	Rml::Factory::ClearStyleSheetCache();
+	Rml::ElementDocument* NewDocument = LoadRmlDocumentFromPath(RmlContext, Widget->GetDocumentPath());
+	if (!NewDocument)
+	{
+		UE_LOG("[RmlUi] Reload failed, keeping previous document: %s", Widget->GetDocumentPath().c_str());
+		return false;
+	}
+
+	Widget->ClearEventListeners();
+	if (Widget->GetDocument())
+	{
+		Widget->GetDocument()->Close();
+	}
+
+	NewDocument->Show();
+	Widget->MarkDocumentLoaded(NewDocument);
+	Widget->RegisterEventListeners();
+
+	if (Widget->IsInViewport()
+		&& std::find(ViewportWidgets.begin(), ViewportWidgets.end(), Widget) == ViewportWidgets.end())
+	{
+		ViewportWidgets.push_back(Widget);
+	}
+
+	std::sort(ViewportWidgets.begin(), ViewportWidgets.end(),
+		[](const UUserWidget* A, const UUserWidget* B)
+		{
+			return A->GetZOrder() < B->GetZOrder();
+		});
+
+	UE_LOG("[RmlUi] Reloaded document: %s", Widget->GetDocumentPath().c_str());
+	return true;
+}
+
+bool UUIManager::ReloadStyleSheet(UUserWidget* Widget)
+{
+	if (!IsAliveObject(Widget) || !Widget->GetDocument())
+	{
+		return false;
+	}
+
+	Rml::Factory::ClearStyleSheetCache();
+	Widget->GetDocument()->ReloadStyleSheet();
+	if (RmlContext)
+	{
+		RmlContext->Update();
+	}
+	return true;
+}
+
+void UUIManager::ReloadAllStyleSheets()
+{
+	CompactInvalidWidgets();
+	Rml::Factory::ClearStyleSheetCache();
+
+	bool bReloadedAny = false;
+	for (UUserWidget* Widget : CreatedWidgets)
+	{
+		if (!IsAliveObject(Widget) || !Widget->GetDocument())
+		{
+			continue;
+		}
+
+		Widget->GetDocument()->ReloadStyleSheet();
+		bReloadedAny = true;
+	}
+
+	if (bReloadedAny)
+	{
+		if (RmlContext)
+		{
+			RmlContext->Update();
+		}
+		UE_LOG("[RmlUi] Reloaded active stylesheets.");
+	}
+}
+
 void UUIManager::AddReferencedObjects(FReferenceCollector& Collector)
 {
 	Collector.AddReferencedObjects(CreatedWidgets, "UUIManager.CreatedWidgets");
 	Collector.AddReferencedObjects(ViewportWidgets, "UUIManager.ViewportWidgets");
 	Collector.AddReferencedObjects(PendingRemoveWidgets, "UUIManager.PendingRemoveWidgets");
+	Collector.AddReferencedObjects(PendingReloadWidgets, "UUIManager.PendingReloadWidgets");
 }
 
 void UUIManager::CompactInvalidWidgets()
@@ -637,6 +806,7 @@ void UUIManager::CompactInvalidWidgets()
 	RemoveInvalid(ViewportWidgets);
 	RemoveInvalid(CreatedWidgets);
 	RemoveInvalid(PendingRemoveWidgets);
+	RemoveInvalid(PendingReloadWidgets);
 }
 
 FUIInputCaptureState UUIManager::GetViewportInputCaptureState() const
@@ -729,6 +899,7 @@ void UUIManager::ClearViewport()
 	// 캐시가 dangling 이 되어 RemoveFromParent → CloseDocument 가 stale Rml::Document 를
 	// 참조해 크래시). UObject 까지 파괴하는 건 Shutdown 만의 책임.
 	PendingRemoveWidgets.clear();
+	PendingReloadWidgets.clear();
 
 	for (UUserWidget* Widget : ViewportWidgets)
 	{
@@ -776,17 +947,9 @@ bool UUIManager::LoadDocument(UUserWidget* Widget)
 		return false;
 	}
 
-	const std::filesystem::path Path = ToProjectPath(Widget->GetDocumentPath());
-	if (!std::filesystem::exists(Path))
-	{
-		UE_LOG("[RmlUi] Document not found: %s", Widget->GetDocumentPath().c_str());
-		return false;
-	}
-
-	Rml::ElementDocument* Document = RmlContext->LoadDocument(ToRmlPath(Path));
+	Rml::ElementDocument* Document = LoadRmlDocumentFromPath(RmlContext, Widget->GetDocumentPath());
 	if (!Document)
 	{
-		UE_LOG("[RmlUi] Failed to load document: %s", Widget->GetDocumentPath().c_str());
 		return false;
 	}
 
@@ -806,6 +969,90 @@ void UUIManager::CloseDocument(UUserWidget* Widget)
 	Widget->ClearEventListeners();
 	Widget->GetDocument()->Close();
 	Widget->ClearDocument();
+}
+
+void UUIManager::StartUIHotReloadWatcher()
+{
+	if (UIWatchID != 0)
+	{
+		return;
+	}
+
+	UIWatchID = FDirectoryWatcher::Get().Watch(FPaths::AssetDir(), "Content/");
+	if (UIWatchID == 0)
+	{
+		return;
+	}
+
+	UIWatchSub = FDirectoryWatcher::Get().Subscribe(
+		UIWatchID,
+		[this](const TSet<FString>& ChangedPaths)
+		{
+			HandleUIFileChanges(ChangedPaths);
+		});
+}
+
+void UUIManager::StopUIHotReloadWatcher()
+{
+	if (UIWatchSub != 0)
+	{
+		FDirectoryWatcher::Get().Unsubscribe(UIWatchSub);
+		UIWatchSub = 0;
+	}
+
+	if (UIWatchID != 0)
+	{
+		FDirectoryWatcher::Get().Unwatch(UIWatchID);
+		UIWatchID = 0;
+	}
+
+	PendingReloadWidgets.clear();
+}
+
+void UUIManager::HandleUIFileChanges(const TSet<FString>& ChangedPaths)
+{
+	TSet<FString> DocumentsToReload;
+	bool bReloadStyleSheets = false;
+
+	for (const FString& ChangedPath : ChangedPaths)
+	{
+		if (IsRmlDocumentPath(ChangedPath))
+		{
+			DocumentsToReload.insert(NormalizeProjectRelativePath(ChangedPath));
+		}
+		else if (IsRcssStyleSheetPath(ChangedPath))
+		{
+			bReloadStyleSheets = true;
+		}
+	}
+
+	if (DocumentsToReload.empty() && !bReloadStyleSheets)
+	{
+		return;
+	}
+
+	if (!DocumentsToReload.empty())
+	{
+		CompactInvalidWidgets();
+		for (UUserWidget* Widget : CreatedWidgets)
+		{
+			if (!IsAliveObject(Widget) || !Widget->IsDocumentLoaded())
+			{
+				continue;
+			}
+
+			const FString WidgetPath = NormalizeProjectRelativePath(Widget->GetDocumentPath());
+			if (DocumentsToReload.find(WidgetPath) != DocumentsToReload.end())
+			{
+				ReloadDocument(Widget);
+			}
+		}
+	}
+
+	if (bReloadStyleSheets)
+	{
+		ReloadAllStyleSheets();
+	}
 }
 
 void UUIManager::Render(const FPassContext& Ctx)
@@ -894,16 +1141,26 @@ void UUIManager::ProcessInput(const FFrameContext& Frame)
 
 void UUIManager::FlushDeferredViewportRemovals()
 {
-	if (PendingRemoveWidgets.empty())
+	if (PendingRemoveWidgets.empty() && PendingReloadWidgets.empty())
 	{
 		return;
 	}
 
 	TArray<UUserWidget*> WidgetsToRemove = PendingRemoveWidgets;
+	TArray<UUserWidget*> WidgetsToReload = PendingReloadWidgets;
 	PendingRemoveWidgets.clear();
+	PendingReloadWidgets.clear();
 
 	for (UUserWidget* Widget : WidgetsToRemove)
 	{
 		RemoveFromViewportImmediate(Widget);
+	}
+
+	for (UUserWidget* Widget : WidgetsToReload)
+	{
+		if (IsAliveObject(Widget) && Widget->IsInViewport())
+		{
+			ReloadDocument(Widget);
+		}
 	}
 }

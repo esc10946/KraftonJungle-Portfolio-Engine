@@ -66,6 +66,10 @@ public:
 	void AddToViewport(int32 InZOrder = 0);
 	UFUNCTION(Callable, Category="UI")
 	void RemoveFromParent();
+	UFUNCTION(Callable, Category="UI")
+	bool ReloadDocument();
+	UFUNCTION(Callable, Category="UI")
+	bool ReloadStyleSheet();
 	void BindClick(const FString& ElementId, sol::protected_function Callback);
 	void RegisterEventListeners();
 	void ClearEventListeners();
