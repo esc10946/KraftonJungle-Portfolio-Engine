@@ -24,7 +24,6 @@ namespace
     const FName Key_TargetHealth = FName("TargetHealth");
     const FName Key_TargetPosture= FName("TargetPosture");
     const FName Key_TargetThreat = FName("TargetThreat");
-    const FName Key_ThreatScore  = FName("ThreatScore");
     const FName Key_Phase        = FName("Phase");
     const FName Key_TargetPerilous   = FName("TargetPerilous");
     const FName Key_TargetInRecovery = FName("TargetInRecovery");
@@ -146,7 +145,6 @@ void UAIPerceptionComponent::UpdateSenses()
         BB->SetBool(Key_LastSeenValid, false);
         BB->SetFloat(Key_Distance, 9999.0f);
         BB->SetFloat(Key_Distance3D, 9999.0f);
-        BB->SetFloat(Key_ThreatScore, 0.0f);
         return;
     }
 
@@ -202,10 +200,6 @@ void UAIPerceptionComponent::UpdateSenses()
     BB->SetBool(Key_CanSee, bVisible);
     BB->SetBool(Key_HasLOS, bHasLineOfSight);
     BB->SetBool(Key_InProximity, bInProximity);
-
-    // ── 위협 점수: 타깃이 공격을 커밋했고 사정권이면 1 ──
-    const float ThreatScore = (TargetThreat > 0.0f && FlatDist <= SightRange) ? 1.0f : 0.0f;
-    BB->SetFloat(Key_ThreatScore, ThreatScore);
 
     if (bVisible)
     {

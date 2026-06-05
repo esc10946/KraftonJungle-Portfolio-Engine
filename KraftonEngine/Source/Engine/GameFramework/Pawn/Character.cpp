@@ -1,4 +1,4 @@
-﻿#include "GameFramework/Pawn/Character.h"
+#include "GameFramework/Pawn/Character.h"
 
 #include "Component/PrimitiveComponent.h"
 #include "Component/Shape/CapsuleComponent.h"
@@ -256,6 +256,10 @@ void ACharacter::PostDuplicate()
 	Mesh              = GetComponentByClass<USkeletalMeshComponent>();
 	CharacterMovement = GetComponentByClass<UCharacterMovementComponent>();
 	StateMachine      = GetComponentByClass<UCharacterStateMachineComponent>();
+	if (!StateMachine.IsValid())
+	{
+		StateMachine = AddComponent<UCharacterStateMachineComponent>();
+	}
 }
 
 void ACharacter::OnPostLoad(FArchive& Ar)
@@ -269,6 +273,10 @@ void ACharacter::OnPostLoad(FArchive& Ar)
 	Mesh              = GetComponentByClass<USkeletalMeshComponent>();
 	CharacterMovement = GetComponentByClass<UCharacterMovementComponent>();
 	StateMachine      = GetComponentByClass<UCharacterStateMachineComponent>();
+	if (!StateMachine.IsValid())
+	{
+		StateMachine = AddComponent<UCharacterStateMachineComponent>();
+	}
 	if (CharacterMovement && CapsuleComponent)
 	{
 		CharacterMovement->SetUpdatedComponent(CapsuleComponent);
