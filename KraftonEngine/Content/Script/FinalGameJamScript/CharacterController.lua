@@ -2,6 +2,7 @@ local LMB = "LeftMouseButton"
 local WEAPON_MESH_PATH = "Content/Data/FGJ_Character/Weapon/Katana_StaticMesh.uasset"
 local RWEAPON_SOCKET = "RH_Socket"
 local LWEAPON_SOCKET = "LH_Socket"
+local GROUND_SPEED_VAR = "GroundSpeed"
 
 local ATTACK_MONTAGE_PATHS = {
     "Content/Montages/Attack1_Montage.uasset",
@@ -102,6 +103,26 @@ local function is_attack_pressed()
     return Input.GetKeyDown(LMB)
 end
 
+--Update AnimGraph GroundSpeed variable--
+local function update_ground_speed()
+    local groundSpeed = 0.0
+
+    if obj ~= nil and obj.GetCharacterMovement ~= nil then
+        local movement = obj:GetCharacterMovement()
+        if movement ~= nil and movement.GetVelocity ~= nil then
+            local velocity = movement:GetVelocity()
+            groundSpeed = math.sqrt(velocity.X * velocity.X + velocity.Y * velocity.Y)
+        end
+    end
+
+    local anim = GetOrCacheAnimInstance()
+    if anim ~= nil and anim.SetGraphVariableFloat ~= nil then
+        anim:SetGraphVariableFloat(GROUND_SPEED_VAR, groundSpeed)
+    end
+
+    print("[CharacterController] GroundSpeed: " .. string.format("%.2f", groundSpeed))
+end
+
 --Consume EnableAttack Notify flag--
 local function update_attack_chain_window()
     if not attackPlaying then
@@ -182,6 +203,7 @@ function BeginPlay()
 end
 
 function Tick(dt)
+    update_ground_speed()
     update_attack_chain_window()
     handle_attack_input()
     update_attack_sequence()
