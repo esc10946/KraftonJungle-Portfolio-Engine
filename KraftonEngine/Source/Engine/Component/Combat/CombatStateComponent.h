@@ -22,6 +22,7 @@ public:
 	~UCombatStateComponent() override = default;
 
 	void BeginPlay() override;
+	void EndPlay() override;
 	void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction& ThisTickFunction) override;
 
 	UFUNCTION(Pure, Category="Combat|State")

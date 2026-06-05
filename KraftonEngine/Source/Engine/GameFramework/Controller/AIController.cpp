@@ -134,14 +134,34 @@ bool AAIController::CanReuseCurrentMove(AActor* NewGoalActor, const FVector& New
 
 EPathFollowingRequestResult AAIController::MoveToActor(AActor* Goal, float AcceptanceRadius, bool bStopOnOverlap, bool bUsePathfinding)
 {
-	(void)bStopOnOverlap;
 	if (!Goal)
 	{
 		StopMovement();
 		return SetLastMoveRequestResult(EPathFollowingRequestResult::Failed, "MoveToActor failed: null goal");
 	}
 	const FVector GoalLocation = Goal->GetActorLocation();
-	const float ResolvedAcceptanceRadius = AcceptanceRadius > 0.0f ? AcceptanceRadius : 3.0f;
+	float ResolvedAcceptanceRadius = AcceptanceRadius > 0.0f ? AcceptanceRadius : 3.0f;
+	if (bStopOnOverlap)
+	{
+		// 캡슐이 겹치기 전에 멈추도록 수용 반경에 양쪽 캡슐 반경을 더한다(몸통 크기 인식).
+		float SelfRadius = 0.0f;
+		float GoalRadius = 0.0f;
+		if (ACharacter* SelfChar = Cast<ACharacter>(GetPawn()))
+		{
+			if (UCapsuleComponent* Capsule = SelfChar->GetCapsuleComponent())
+			{
+				SelfRadius = Capsule->GetScaledCapsuleRadius();
+			}
+		}
+		if (ACharacter* GoalChar = Cast<ACharacter>(Goal))
+		{
+			if (UCapsuleComponent* Capsule = GoalChar->GetCapsuleComponent())
+			{
+				GoalRadius = Capsule->GetScaledCapsuleRadius();
+			}
+		}
+		ResolvedAcceptanceRadius += SelfRadius + GoalRadius;
+	}
 	if (CanReuseCurrentMove(Goal, GoalLocation, ResolvedAcceptanceRadius, bUsePathfinding))
 	{
 		return SetLastMoveRequestResult(EPathFollowingRequestResult::RequestSuccessful);

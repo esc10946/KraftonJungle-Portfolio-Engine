@@ -1,5 +1,6 @@
 #include "Component/Combat/CombatStateComponent.h"
 
+#include "AI/CombatTargetRegistry.h"
 #include "Component/Combat/HealthComponent.h"
 #include "GameFramework/AActor.h"
 #include "GameFramework/World.h"
@@ -25,6 +26,14 @@ void UCombatStateComponent::BeginPlay()
 		MaxPoise = 0.0f;
 	}
 	CurrentPoise = FMath::Clamp(CurrentPoise, 0.0f, MaxPoise);
+	// 전투원 등록 — AI 타깃 획득이 이 등록소만 질의하면 World 전체 스캔이 사라진다.
+	FCombatTargetRegistry::Get().Register(this);
+}
+
+void UCombatStateComponent::EndPlay()
+{
+	FCombatTargetRegistry::Get().Unregister(this);
+	UActorComponent::EndPlay();
 }
 
 void UCombatStateComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction& ThisTickFunction)

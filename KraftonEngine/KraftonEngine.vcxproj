@@ -466,6 +466,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Editor\Viewport\Asset\MeshEditorViewportClient.cpp" />
     <ClCompile Include="Source\Editor\Viewport\Asset\StaticMeshEditorViewportClient.cpp" />
     <ClCompile Include="Source\Editor\Viewport\Level\FLevelViewportLayout.cpp" />
+    <ClCompile Include="Source\Engine\AI\CombatTargetRegistry.cpp" />
     <ClCompile Include="Source\Engine\AI\SquadCoordinator.cpp" />
     <ClCompile Include="Source\Engine\AI\Navigation\PathFollowingComponent.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimInstance.cpp" />
@@ -534,6 +535,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Engine\Component\Camera\CameraComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Camera\CineCameraComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Camera\SpringArmComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\Character\CharacterStateMachineComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Combat\CombatMoveComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Combat\CombatStateComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Combat\HealthComponent.cpp" />
@@ -930,6 +932,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Editor\Viewport\Level\FLevelViewportLayout.h" />
     <ClInclude Include="Source\Editor\Viewport\Level\LevelEditorViewportClient.h" />
     <ClInclude Include="Source\Engine\AI\CombatClock.h" />
+    <ClInclude Include="Source\Engine\AI\CombatTargetRegistry.h" />
     <ClInclude Include="Source\Engine\AI\SquadCoordinator.h" />
     <ClInclude Include="Source\Engine\AI\Navigation\PathFollowingComponent.h" />
     <ClInclude Include="Source\Engine\Animation\AnimExtractContext.h" />
@@ -1011,6 +1014,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\Component\Camera\CameraComponent.h" />
     <ClInclude Include="Source\Engine\Component\Camera\CineCameraComponent.h" />
     <ClInclude Include="Source\Engine\Component\Camera\SpringArmComponent.h" />
+    <ClInclude Include="Source\Engine\Component\Character\CharacterStateMachineComponent.h" />
     <ClInclude Include="Source\Engine\Component\Combat\CombatMoveComponent.h" />
     <ClInclude Include="Source\Engine\Component\Combat\CombatStateComponent.h" />
     <ClInclude Include="Source\Engine\Component\Combat\CombatTypes.h" />

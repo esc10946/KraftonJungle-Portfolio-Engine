@@ -81,6 +81,10 @@ public:
 
 	UFUNCTION(Callable, Category="Enemy|Attack")
 	bool SelectAndCommitAttack(int32 Phase, FEnemyAttackData& OutAttack);
+	// 안전판: 공격을 고르고 → 실행을 "시작"한 뒤에야 쿨다운을 커밋한다. 시작 실패면 쿨다운을
+	// 소비하지 않는다(SelectAndCommitAttack 의 "공격 안 하는데 쿨다운만 도는" 위험 회피).
+	UFUNCTION(Callable, Category="Enemy|Attack")
+	bool CommitAndStartAttack(int32 Phase);
 	UFUNCTION(Callable, Category="Enemy|Attack")
 	bool PlayAttackMontage(const FEnemyAttackData& Attack);
 	UFUNCTION(Pure, Category="Enemy|Attack")
@@ -175,6 +179,18 @@ public:
 	int32 SquadMaxSimultaneousAttackers = 2;
 	UPROPERTY(Edit, Save, Category="Enemy|Squad", DisplayName="Squad Token Duration", Min=0.0f, Max=10.0f, Speed=0.05f)
 	float SquadTokenDuration = 1.0f;
+	// 토큰 없는 적은 타깃 중심이 아니라 (AttackRange * 이 비율) 반경의 링 슬롯으로 이동.
+	UPROPERTY(Edit, Save, Category="Enemy|Squad", DisplayName="Combat Ring Radius Scale", Min=0.0f, Max=3.0f, Speed=0.05f)
+	float CombatRingRadiusScale = 0.9f;
+	UPROPERTY(Edit, Save, Category="Enemy|Squad", DisplayName="Separation Radius", Min=0.0f, Max=10.0f, Speed=0.05f)
+	float SeparationRadius = 1.6f;
+	UPROPERTY(Edit, Save, Category="Enemy|Squad", DisplayName="Separation Strength", Min=0.0f, Max=2.0f, Speed=0.05f)
+	float SeparationStrength = 0.6f;
+	// 갭클로저: 이 배율까지의 거리에서 돌진 공격을 허용하고(사정권 밖이라도), 시작 시 대시한다.
+	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Gap Closer Range Scale", Min=1.0f, Max=6.0f, Speed=0.05f)
+	float GapCloserRangeScale = 2.5f;
+	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Gap Closer Dash Scale", Min=0.0f, Max=3.0f, Speed=0.05f)
+	float GapCloserDashScale = 1.2f;
 	UPROPERTY(Edit, Save, Category="Enemy|LOD", DisplayName="LOD Near Distance", Min=0.0f, Max=1000.0f, Speed=0.5f)
 	float LODNearDistance = 25.0f;
 	UPROPERTY(Edit, Save, Category="Enemy|LOD", DisplayName="LOD Far Distance", Min=0.0f, Max=2000.0f, Speed=0.5f)
@@ -190,6 +206,9 @@ protected:
 	void UpdateAttackExecution(float DeltaTime);
 	// Phase 4: 타깃과의 거리로 LOD 를 정해 전투 시계 스텝 주기를 조절(원거리 적은 저빈도 think).
 	void UpdateAILOD();
+	// 다수 적 포지셔닝: 아군과 겹치지 않게 매 프레임 분리 입력 + 타깃 주위 링 슬롯 위치 계산.
+	void ApplySeparationSteering();
+	FVector ComputeSlotLocation(AActor* Target) const;
 	bool StartAttackExecution(const FEnemyAttackData& Attack);
 	float GetCurrentHealthRatio() const;
 	bool IsTargetHostileDamageReceiver(AActor* Target) const;
@@ -219,4 +238,6 @@ private:
 	FName SelectedAttackName = FName::None;
 	bool bStrafeClockwise = true;
 	int32 CurrentLODLevel = 0; // 0=near(60Hz), 1=mid(30Hz), 2=far(10Hz)
+	int32 CachedSquadSlot = -1;
+	int32 CachedEngagerCount = 0;
 };

@@ -6,7 +6,9 @@
 #include "Component/Combat/CombatStateComponent.h"
 #include "Component/Combat/CombatMoveComponent.h"
 #include "Component/Combat/HealthComponent.h"
+#include "Core/Types/CollisionTypes.h"
 #include "GameFramework/AActor.h"
+#include "GameFramework/World.h"
 
 #include <cmath>
 
@@ -27,11 +29,15 @@ namespace
     const FName Key_TargetPerilous   = FName("TargetPerilous");
     const FName Key_TargetInRecovery = FName("TargetInRecovery");
     const FName Key_TargetMovePhase  = FName("TargetMovePhase");
+    const FName Key_Distance3D        = FName("Distance3D");
+    const FName Key_VerticalDelta     = FName("VerticalDelta");
+    const FName Key_HasLOS            = FName("HasLOS");
 }
 
-void UAIPerceptionComponent::RecordStimulus(EAISenseType Type, AActor* Source, const FVector& Location, float Strength)
+void UAIPerceptionComponent::AgeStimuli()
 {
-    // 기존 자극 노화 + 만료 제거.
+    // 노화/만료는 RecordStimulus 가 아니라 여기서 — 아무것도 감지하지 않는 시간에도
+    // stimulus 가 정상적으로 늙어 만료된다(stale stimulus 버그 수정).
     for (auto It = Stimuli.begin(); It != Stimuli.end(); )
     {
         ++It->AgeTicks;
@@ -44,7 +50,33 @@ void UAIPerceptionComponent::RecordStimulus(EAISenseType Type, AActor* Source, c
             ++It;
         }
     }
+}
 
+bool UAIPerceptionComponent::ComputeLineOfSight(AActor* Target)
+{
+    AActor* Owner = GetOwner();
+    UWorld* World = Owner ? Owner->GetWorld() : nullptr;
+    if (!Owner || !World || !Target)
+    {
+        return false;
+    }
+    const FVector Eye      = Owner->GetActorLocation() + FVector(0.0f, 0.0f, EyeHeight);
+    const FVector TargetEye = Target->GetActorLocation() + FVector(0.0f, 0.0f, EyeHeight * 0.5f);
+    FVector Delta = TargetEye - Eye;
+    const float Dist = Delta.Length();
+    if (Dist < 0.01f)
+    {
+        return true;
+    }
+    const FVector Dir = Delta.Normalized();
+    FHitResult Hit;
+    // static 지오메트리(벽)만 검사 — 타깃 사이에 벽이 있으면 가시선 차단. owner 무시.
+    const bool bBlocked = World->PhysicsRaycast(Eye, Dir, Dist, Hit, ECollisionChannel::WorldStatic, Owner);
+    return !bBlocked;
+}
+
+void UAIPerceptionComponent::RecordStimulus(EAISenseType Type, AActor* Source, const FVector& Location, float Strength)
+{
     FAISenseStimulus Stim;
     Stim.Type     = Type;
     Stim.Source   = Source;
@@ -67,6 +99,7 @@ void UAIPerceptionComponent::UpdateSenses()
     {
         return;
     }
+    AgeStimuli(); // 감지 여부와 무관하게 매 호출 노화 — stale stimulus 방지
     UAIBlackboardComponent* BB    = Owner->GetComponentByClass<UAIBlackboardComponent>();
     UEnemyAIBrainComponent* Brain = Owner->GetComponentByClass<UEnemyAIBrainComponent>();
     if (!BB || !Brain)
@@ -103,17 +136,25 @@ void UAIPerceptionComponent::UpdateSenses()
 
     if (!bHasTarget || !TargetActor)
     {
-        bCanSeeTarget = false;
+        bCanSeeTarget   = false;
+        bHasLineOfSight = false;
         BB->SetBool(Key_CanSee, false);
+        BB->SetBool(Key_HasLOS, false);
         BB->SetFloat(Key_Distance, 9999.0f);
+        BB->SetFloat(Key_Distance3D, 9999.0f);
         BB->SetFloat(Key_ThreatScore, 0.0f);
         return;
     }
 
-    const float Dist     = Brain->GetDistanceToTarget();
-    const float Angle    = Brain->GetAngleToTarget();
-    const float AbsAngle = std::fabs(Angle);
-    BB->SetFloat(Key_Distance, Dist);
+    // 추적/공격 range 판단은 flat(XY) 거리, 타깃 상실/높이 판단은 3D/수직 거리로 분리.
+    const float FlatDist  = Brain->GetFlatDistanceToTarget();
+    const float Dist3D    = Brain->GetDistanceToTarget();
+    const float VertDelta = Brain->GetVerticalDeltaToTarget();
+    const float Angle     = Brain->GetAngleToTarget();
+    const float AbsAngle  = std::fabs(Angle);
+    BB->SetFloat(Key_Distance, FlatDist);
+    BB->SetFloat(Key_Distance3D, Dist3D);
+    BB->SetFloat(Key_VerticalDelta, VertDelta);
     BB->SetFloat(Key_Angle, Angle);
     BB->SetFloat(Key_AbsAngle, AbsAngle);
 
@@ -147,15 +188,17 @@ void UAIPerceptionComponent::UpdateSenses()
     BB->SetBool(Key_TargetInRecovery, TargetInRecovery);
     BB->SetFloat(Key_TargetMovePhase, TargetMovePhase);
 
-    // ── 시야 콘: 거리 + FOV 안쪽 ──
-    const bool bInRange = Dist <= SightRange;
+    // ── 시야 콘: 거리(flat) + FOV + 가시선(LOS) ──
+    const bool bInRange = FlatDist <= SightRange;
     const bool bInFov   = AbsAngle <= (FieldOfViewDegrees * 0.5f);
-    const bool bVisible = bInRange && bInFov;
+    bHasLineOfSight     = (!bRequireLineOfSight) || ComputeLineOfSight(TargetActor);
+    const bool bVisible = bInRange && bInFov && bHasLineOfSight;
     bCanSeeTarget       = bVisible;
     BB->SetBool(Key_CanSee, bVisible);
+    BB->SetBool(Key_HasLOS, bHasLineOfSight);
 
     // ── 위협 점수: 타깃이 공격을 커밋했고 사정권이면 1 ──
-    const float ThreatScore = (TargetThreat > 0.0f && Dist <= SightRange) ? 1.0f : 0.0f;
+    const float ThreatScore = (TargetThreat > 0.0f && FlatDist <= SightRange) ? 1.0f : 0.0f;
     BB->SetFloat(Key_ThreatScore, ThreatScore);
 
     if (bVisible)
@@ -164,7 +207,7 @@ void UAIPerceptionComponent::UpdateSenses()
         BB->SetLastSeenLocation(TargetLoc);
         RecordStimulus(EAISenseType::Sight, TargetActor, TargetLoc, 1.0f);
     }
-    if (Dist <= ProximityRange)
+    if (FlatDist <= ProximityRange)
     {
         RecordStimulus(EAISenseType::Proximity, TargetActor, TargetActor->GetActorLocation(), 1.0f);
     }

@@ -40,6 +40,12 @@ public:
 
 	UFUNCTION(Pure, Category="EnemyAI|Target")
 	float GetDistanceToTarget() const;
+	// XY 평면 거리 — 추적/공격 range 판단에 쓴다(높낮이 맵에서 3D 거리의 오판 방지).
+	UFUNCTION(Pure, Category="EnemyAI|Target")
+	float GetFlatDistanceToTarget() const;
+	// |Z| 차이 — 공격 vertical tolerance 판단용.
+	UFUNCTION(Pure, Category="EnemyAI|Target")
+	float GetVerticalDeltaToTarget() const;
 	UFUNCTION(Pure, Category="EnemyAI|Target")
 	FVector GetDirectionToTarget() const;
 	UFUNCTION(Pure, Category="EnemyAI|Target")
@@ -53,14 +59,16 @@ public:
 	UFUNCTION(Pure, Category="EnemyAI|Target")
 	bool IsTargetBehind(float MinAbsAngleDegrees = 120.0f) const;
 
+	// SetState/GetState/GetStateTime 은 단일 권위인 UCharacterStateMachineComponent 로
+	// 라우팅된다(있으면). FName 상태는 그 enum 상태의 별칭이 되어 셋이 한 정책을 따른다.
 	UFUNCTION(Callable, Category="EnemyAI|State")
 	void SetState(const FName& NewState);
 	UFUNCTION(Pure, Category="EnemyAI|State")
-	FName GetState() const { return CurrentState; }
+	FName GetState() const;
 	UFUNCTION(Pure, Category="EnemyAI|State")
 	FName GetPreviousState() const { return PreviousState; }
 	UFUNCTION(Pure, Category="EnemyAI|State")
-	float GetStateTime() const { return StateTime; }
+	float GetStateTime() const;
 
 	UFUNCTION(Callable, Category="EnemyAI|Move")
 	bool RequestMoveToTarget(float AcceptanceRadius = -1.0f, bool bUsePathfinding = true);

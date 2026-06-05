@@ -51,6 +51,8 @@ public:
 
     UFUNCTION(Pure, Category="AI|Perception")
     bool CanSeeTarget() const { return bCanSeeTarget; }
+    UFUNCTION(Pure, Category="AI|Perception")
+    bool HasLineOfSight() const { return bHasLineOfSight; }
 
     UPROPERTY(Edit, Save, Category="AI|Perception", DisplayName="Field Of View Degrees", Min=10.0f, Max=360.0f, Speed=1.0f)
     float FieldOfViewDegrees = 120.0f;
@@ -64,12 +66,21 @@ public:
     UPROPERTY(Edit, Save, Category="AI|Perception", DisplayName="Stimulus Memory Ticks", Min=1.0f, Max=600.0f, Speed=1.0f)
     int32 StimulusMemoryTicks = 90;
 
+    // 벽 너머 차단 — CanSee 가 거리·FOV 외에 가시선(static 충돌) 레이캐스트도 통과해야 true.
+    UPROPERTY(Edit, Save, Category="AI|Perception", DisplayName="Require Line Of Sight")
+    bool bRequireLineOfSight = true;
+    UPROPERTY(Edit, Save, Category="AI|Perception", DisplayName="Eye Height", Min=0.0f, Max=5.0f, Speed=0.05f)
+    float EyeHeight = 1.6f;
+
     // ── 디버거/내부용 직접 접근 ──
     const TArray<FAISenseStimulus>& GetStimuli() const { return Stimuli; }
 
 private:
     void RecordStimulus(EAISenseType Type, AActor* Source, const FVector& Location, float Strength);
+    void AgeStimuli();                       // 매 UpdateSenses 마다 노화/만료 — 감지 여부와 무관
+    bool ComputeLineOfSight(AActor* Target); // owner 눈 → target 사이 static 차단 검사
 
     TArray<FAISenseStimulus> Stimuli;
-    bool                     bCanSeeTarget = false;
+    bool                     bCanSeeTarget   = false;
+    bool                     bHasLineOfSight = false;
 };

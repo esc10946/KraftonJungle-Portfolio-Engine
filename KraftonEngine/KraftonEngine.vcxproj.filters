@@ -187,6 +187,9 @@
     <Filter Include="Source\Engine\Component\Camera">
       <UniqueIdentifier>{ac700b73-d302-a951-b230-7f47ae1a3f19}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Engine\Component\Character">
+      <UniqueIdentifier>{c47e1fe7-e423-05fc-324e-1d34b5636ad1}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source\Engine\Component\Combat">
       <UniqueIdentifier>{535680b1-3cbc-f61c-66c6-b6f3b734ab9f}</UniqueIdentifier>
     </Filter>
@@ -1034,6 +1037,9 @@
     <ClCompile Include="Source\Editor\Viewport\Level\FLevelViewportLayout.cpp">
       <Filter>Source\Editor\Viewport\Level</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\AI\CombatTargetRegistry.cpp">
+      <Filter>Source\Engine\AI</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\AI\SquadCoordinator.cpp">
       <Filter>Source\Engine\AI</Filter>
     </ClCompile>
@@ -1237,6 +1243,9 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Component\Camera\SpringArmComponent.cpp">
       <Filter>Source\Engine\Component\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Component\Character\CharacterStateMachineComponent.cpp">
+      <Filter>Source\Engine\Component\Character</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Component\Combat\CombatMoveComponent.cpp">
       <Filter>Source\Engine\Component\Combat</Filter>
@@ -2420,6 +2429,9 @@
     <ClInclude Include="Source\Engine\AI\CombatClock.h">
       <Filter>Source\Engine\AI</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\AI\CombatTargetRegistry.h">
+      <Filter>Source\Engine\AI</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Engine\AI\SquadCoordinator.h">
       <Filter>Source\Engine\AI</Filter>
     </ClInclude>
@@ -2662,6 +2674,9 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\Camera\SpringArmComponent.h">
       <Filter>Source\Engine\Component\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Component\Character\CharacterStateMachineComponent.h">
+      <Filter>Source\Engine\Component\Character</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\Combat\CombatMoveComponent.h">
       <Filter>Source\Engine\Component\Combat</Filter>

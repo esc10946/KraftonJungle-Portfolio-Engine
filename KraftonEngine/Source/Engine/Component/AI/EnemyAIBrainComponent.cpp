@@ -1,5 +1,7 @@
 #include "Component/AI/EnemyAIBrainComponent.h"
 
+#include "AI/CombatTargetRegistry.h"
+#include "Component/Character/CharacterStateMachineComponent.h"
 #include "Component/Combat/CombatStateComponent.h"
 #include "GameFramework/AActor.h"
 #include "GameFramework/Pawn/EnemyCharacter.h"
@@ -33,6 +35,42 @@ namespace
 		}
 		return Angle;
 	}
+
+	// FName HFSM 상태 ↔ 단일 권위 ECharacterState 매핑.
+	ECharacterState MapFNameToState(const FName& StateName)
+	{
+		const FString N = StateName.ToString();
+		if (N == "Chase" || N == "Pursue" || N == "Approach") return ECharacterState::Approach;
+		if (N == "Strafe") return ECharacterState::Strafe;
+		if (N == "Reposition" || N == "Retreat") return ECharacterState::Retreat;
+		if (N == "Attack") return ECharacterState::Attack;
+		if (N == "Deflect" || N == "Dodge" || N == "Parry" || N == "Defend") return ECharacterState::Defend;
+		if (N == "Hit") return ECharacterState::Hit;
+		if (N == "Staggered" || N == "Stagger") return ECharacterState::Staggered;
+		if (N == "Dead") return ECharacterState::Dead;
+		return ECharacterState::Idle; // Idle/Guard/Recover/unknown
+	}
+
+	FName MapStateToFName(ECharacterState State)
+	{
+		switch (State)
+		{
+		case ECharacterState::Approach:  return FName("Chase");
+		case ECharacterState::Strafe:    return FName("Strafe");
+		case ECharacterState::Retreat:   return FName("Reposition");
+		case ECharacterState::Attack:    return FName("Attack");
+		case ECharacterState::Defend:    return FName("Deflect");
+		case ECharacterState::Hit:       return FName("Hit");
+		case ECharacterState::Staggered: return FName("Staggered");
+		case ECharacterState::Dead:      return FName("Dead");
+		default:                         return FName("Idle");
+		}
+	}
+
+	bool IsEventState(ECharacterState State)
+	{
+		return State == ECharacterState::Dead || State == ECharacterState::Staggered || State == ECharacterState::Hit;
+	}
 }
 
 void UEnemyAIBrainComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction& ThisTickFunction)
@@ -44,8 +82,16 @@ void UEnemyAIBrainComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 		PreviousState = FName::None;
 		StateTime = 0.0f;
 		bHasInitializedState = true;
+		// 단일 권위 상태머신에도 초기 상태 반영.
+		if (AActor* OwnerActor = GetOwner())
+		{
+			if (UCharacterStateMachineComponent* SM = OwnerActor->GetComponentByClass<UCharacterStateMachineComponent>())
+			{
+				SM->ForceState(MapFNameToState(InitialState));
+			}
+		}
 	}
-	StateTime += DeltaTime;
+	StateTime += DeltaTime; // fallback 캐시 — GetStateTime 은 SM 이 있으면 그쪽을 우선.
 
 	if (HasValidTarget() && LoseTargetRange > 0.0f && GetDistanceToTarget() > LoseTargetRange)
 	{
@@ -115,39 +161,14 @@ AActor* UEnemyAIBrainComponent::AcquireTargetByTag(const FName& Tag)
 AActor* UEnemyAIBrainComponent::AcquireNearestHostileTarget(float SearchRange)
 {
 	AActor* OwnerActor = GetOwner();
-	UWorld* World = OwnerActor ? OwnerActor->GetWorld() : nullptr;
 	UCombatStateComponent* OwnerCombat = OwnerActor ? OwnerActor->GetComponentByClass<UCombatStateComponent>() : nullptr;
-	if (!World || !OwnerCombat)
+	if (!OwnerActor || !OwnerCombat)
 	{
 		return nullptr;
 	}
-
-	AActor* BestActor = nullptr;
-	float BestDistanceSq = FLT_MAX;
-	const FVector OwnerLocation = OwnerActor->GetActorLocation();
 	const float Range = SearchRange > 0.0f ? SearchRange : DetectionRange;
-	for (AActor* Candidate : World->GetActors())
-	{
-		if (!IsValid(Candidate) || Candidate == OwnerActor)
-		{
-			continue;
-		}
-		UCombatStateComponent* CandidateCombat = Candidate->GetComponentByClass<UCombatStateComponent>();
-		if (!CandidateCombat || !OwnerCombat->IsHostileTo(CandidateCombat))
-		{
-			continue;
-		}
-		const float DistSq = FVector::DistSquared(Candidate->GetActorLocation(), OwnerLocation);
-		if (Range > 0.0f && DistSq > Range * Range)
-		{
-			continue;
-		}
-		if (DistSq < BestDistanceSq)
-		{
-			BestDistanceSq = DistSq;
-			BestActor = Candidate;
-		}
-	}
+	// World 전체 Actor 순회 대신 전투원 등록소만 질의 — 적 수가 늘어도 O(전투원 수).
+	AActor* BestActor = FCombatTargetRegistry::Get().FindNearestHostile(OwnerCombat, OwnerActor->GetActorLocation(), Range);
 	SetTarget(BestActor);
 	return BestActor;
 }
@@ -170,6 +191,30 @@ float UEnemyAIBrainComponent::GetDistanceToTarget() const
 		return FLT_MAX;
 	}
 	return FVector::Distance(OwnerActor->GetActorLocation(), Target->GetActorLocation());
+}
+
+float UEnemyAIBrainComponent::GetFlatDistanceToTarget() const
+{
+	AActor* OwnerActor = GetOwner();
+	AActor* Target = TargetActor.Get();
+	if (!OwnerActor || !IsValid(Target))
+	{
+		return FLT_MAX;
+	}
+	FVector Delta = Target->GetActorLocation() - OwnerActor->GetActorLocation();
+	Delta.Z = 0.0f;
+	return Delta.Length();
+}
+
+float UEnemyAIBrainComponent::GetVerticalDeltaToTarget() const
+{
+	AActor* OwnerActor = GetOwner();
+	AActor* Target = TargetActor.Get();
+	if (!OwnerActor || !IsValid(Target))
+	{
+		return FLT_MAX;
+	}
+	return fabsf(Target->GetActorLocation().Z - OwnerActor->GetActorLocation().Z);
 }
 
 FVector UEnemyAIBrainComponent::GetDirectionToTarget() const
@@ -279,6 +324,35 @@ FString UEnemyAIBrainComponent::GetLastMoveFailureReason() const
 
 void UEnemyAIBrainComponent::SetState(const FName& NewState)
 {
+	// 단일 권위 상태머신이 있으면 그쪽으로 라우팅 — FName 상태는 enum 상태의 별칭이 된다.
+	if (AActor* OwnerActor = GetOwner())
+	{
+		if (UCharacterStateMachineComponent* SM = OwnerActor->GetComponentByClass<UCharacterStateMachineComponent>())
+		{
+			const ECharacterState Target = MapFNameToState(NewState);
+			const FName Before = MapStateToFName(SM->GetState());
+			if (IsEventState(Target))
+			{
+				SM->ForceState(Target);
+			}
+			else
+			{
+				SM->RequestState(Target); // committed 상태(Attack 등)에선 거부될 수 있음 — 의도된 가드
+			}
+			const FName After = MapStateToFName(SM->GetState());
+			bHasInitializedState = true;
+			if (After != Before)
+			{
+				PreviousState = Before;
+				CurrentState = After;
+				StateTime = 0.0f;
+				OnStateChanged.Broadcast(this, Before, After);
+			}
+			return;
+		}
+	}
+
+	// fallback (상태머신 없음) — 기존 동작.
 	if (CurrentState == NewState)
 	{
 		return;
@@ -289,4 +363,28 @@ void UEnemyAIBrainComponent::SetState(const FName& NewState)
 	StateTime = 0.0f;
 	bHasInitializedState = true;
 	OnStateChanged.Broadcast(this, OldState, NewState);
+}
+
+FName UEnemyAIBrainComponent::GetState() const
+{
+	if (AActor* OwnerActor = GetOwner())
+	{
+		if (UCharacterStateMachineComponent* SM = OwnerActor->GetComponentByClass<UCharacterStateMachineComponent>())
+		{
+			return MapStateToFName(SM->GetState());
+		}
+	}
+	return CurrentState;
+}
+
+float UEnemyAIBrainComponent::GetStateTime() const
+{
+	if (AActor* OwnerActor = GetOwner())
+	{
+		if (UCharacterStateMachineComponent* SM = OwnerActor->GetComponentByClass<UCharacterStateMachineComponent>())
+		{
+			return SM->GetTimeInState();
+		}
+	}
+	return StateTime;
 }

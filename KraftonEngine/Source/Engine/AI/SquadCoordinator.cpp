@@ -122,3 +122,89 @@ bool FSquadCoordinator::HoldsToken(AActor* Holder, AActor* Target, float Now) co
     }
     return false;
 }
+
+void FSquadCoordinator::PruneEngagers(float Now)
+{
+    for (auto It = Engagers.begin(); It != Engagers.end(); )
+    {
+        if (!It->Holder.IsValid() || !It->Target.IsValid() || It->ExpirySeconds < Now)
+        {
+            It = Engagers.erase(It);
+        }
+        else
+        {
+            ++It;
+        }
+    }
+}
+
+int32 FSquadCoordinator::SlotIndexOf(AActor* Holder, AActor* Target) const
+{
+    int32 Index = 0;
+    for (const FEngagerSlot& Slot : Engagers)
+    {
+        if (Slot.Target.Get() != Target)
+        {
+            continue;
+        }
+        if (Slot.Holder.Get() == Holder)
+        {
+            return Index;
+        }
+        ++Index;
+    }
+    return -1;
+}
+
+int32 FSquadCoordinator::RegisterEngager(AActor* Holder, AActor* Target, float Now, float Duration)
+{
+    if (!Holder || !Target)
+    {
+        return -1;
+    }
+    PruneEngagers(Now);
+    for (FEngagerSlot& Slot : Engagers)
+    {
+        if (Slot.Holder.Get() == Holder && Slot.Target.Get() == Target)
+        {
+            Slot.ExpirySeconds = Now + Duration; // 갱신
+            return SlotIndexOf(Holder, Target);
+        }
+    }
+    FEngagerSlot NewSlot;
+    NewSlot.Holder        = Holder;
+    NewSlot.Target        = Target;
+    NewSlot.ExpirySeconds = Now + Duration;
+    Engagers.push_back(NewSlot);
+    return SlotIndexOf(Holder, Target);
+}
+
+int32 FSquadCoordinator::GetEngagerCount(AActor* Target, float Now)
+{
+    PruneEngagers(Now);
+    int32 Count = 0;
+    for (const FEngagerSlot& Slot : Engagers)
+    {
+        if (Slot.Target.Get() == Target)
+        {
+            ++Count;
+        }
+    }
+    return Count;
+}
+
+void FSquadCoordinator::ReleaseEngager(AActor* Holder)
+{
+    for (auto It = Engagers.begin(); It != Engagers.end(); )
+    {
+        AActor* H = It->Holder.Get();
+        if (H == Holder || H == nullptr)
+        {
+            It = Engagers.erase(It);
+        }
+        else
+        {
+            ++It;
+        }
+    }
+}

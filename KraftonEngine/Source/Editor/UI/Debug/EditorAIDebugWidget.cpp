@@ -10,6 +10,8 @@
 #include "Component/AI/AIPerceptionComponent.h"
 #include "Component/AI/EnemyAIBrainComponent.h"
 #include "Component/AI/UtilityReasonerComponent.h"
+#include "Component/Character/CharacterStateMachineComponent.h"
+#include "Component/Movement/CharacterMovementComponent.h"
 #include "Component/Combat/CombatStateComponent.h"
 #include "Component/Combat/CombatMoveComponent.h"
 #include "Component/Combat/CombatTypes.h"
@@ -101,6 +103,32 @@ void FEditorAIDebugWidget::Render(float /*DeltaTime*/)
 	}
 	ImGui::Separator();
 
+	// ── 단일 정책 상태 (이동·애니·정책이 한 상태에서 파생되는지) ──
+	if (ImGui::CollapsingHeader("Unified State", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		UCharacterStateMachineComponent* SM = Enemy->GetStateMachine();
+		if (SM)
+		{
+			static const char* kLocoNames[] = { "Locked", "InputAllowed", "Strafe", "Retreat" };
+			const int32 StateIdx = SM->GetStateInt();
+			const char* StateName = (StateIdx >= 0 && static_cast<uint32>(StateIdx) < GCharacterStateCount) ? GCharacterStateNames[StateIdx] : "?";
+			const int32 LocoIdx = SM->GetLocomotionModeInt();
+			const char* LocoName = (LocoIdx >= 0 && LocoIdx < 4) ? kLocoNames[LocoIdx] : "?";
+			ImGui::Text("State: %s (id %d)   t=%.2fs", StateName, StateIdx, SM->GetTimeInState());
+			ImGui::Text("Locomotion policy: %s   AnimGraph StateId push: %d", LocoName, StateIdx);
+			if (UCharacterMovementComponent* Move = Enemy->GetCharacterMovement())
+			{
+				ImGui::Text("Movement speed: %.2f   mode: %s", Move->GetSpeed(), Move->IsWalking() ? "Walking" : "Falling");
+			}
+			AActor* MoveTgt = SM->GetMovementTarget();
+			ImGui::TextDisabled("move target: %s", MoveTgt ? MoveTgt->GetName().c_str() : "(none)");
+		}
+		else
+		{
+			ImGui::TextDisabled("No state machine component.");
+		}
+	}
+
 	// ── 체력 / 체간 시계열 그래프 ──
 	if (ImGui::CollapsingHeader("Vitality / Posture", ImGuiTreeNodeFlags_DefaultOpen))
 	{
@@ -121,7 +149,9 @@ void FEditorAIDebugWidget::Render(float /*DeltaTime*/)
 	{
 		if (Perception)
 		{
-			ImGui::Text("Can See Target: %s", Perception->CanSeeTarget() ? "YES" : "no");
+			ImGui::Text("Can See Target: %s   (LOS: %s)",
+				Perception->CanSeeTarget() ? "YES" : "no",
+				Perception->HasLineOfSight() ? "clear" : "blocked");
 			ImGui::Text("FOV: %.0f deg   Sight: %.1f   Proximity: %.1f",
 				Perception->FieldOfViewDegrees, Perception->SightRange, Perception->ProximityRange);
 			ImGui::Text("Active stimuli: %d", static_cast<int>(Perception->GetStimuli().size()));
@@ -181,11 +211,12 @@ void FEditorAIDebugWidget::Render(float /*DeltaTime*/)
 	{
 		if (BB)
 		{
-			ImGui::Text("LOD level: %d   Holding token: %s   Slot: %d   Active attackers: %d",
+			ImGui::Text("LOD level: %d   Holding token: %s   Active attackers: %d",
 				static_cast<int>(BB->GetFloat(FName("LOD")) + 0.5f),
 				BB->GetBool(FName("HoldingToken")) ? "YES" : "no",
-				static_cast<int>(BB->GetFloat(FName("SquadSlot")) + 0.5f),
 				static_cast<int>(BB->GetFloat(FName("ActiveAttackers")) + 0.5f));
+			ImGui::Text("Ring slot: %.0f / %.0f engagers (combat slotting)",
+				BB->GetFloat(FName("SquadSlot")), BB->GetFloat(FName("EngagerCount")));
 			if (BB->HasFloat(FName("PhaseAggression")))
 			{
 				ImGui::Text("Phase aggression: %.2f   Phase entry: %s",

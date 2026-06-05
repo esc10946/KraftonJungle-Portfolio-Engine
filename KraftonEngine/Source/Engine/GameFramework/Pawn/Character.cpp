@@ -4,6 +4,7 @@
 #include "Component/Shape/CapsuleComponent.h"
 #include "Component/Input/InputComponent.h"
 #include "Component/Movement/CharacterMovementComponent.h"
+#include "Component/Character/CharacterStateMachineComponent.h"
 #include "Component/Primitive/SkeletalMeshComponent.h"
 #include "Math/Rotator.h"
 #include "Mesh/MeshManager.h"
@@ -242,6 +243,9 @@ void ACharacter::InitDefaultComponents(const FString& SkeletalMeshFileName)
 	// 3) CharacterMovement — non-scene. UpdatedComponent = Capsule.
 	CharacterMovement = AddComponent<UCharacterMovementComponent>();
 	CharacterMovement->SetUpdatedComponent(CapsuleComponent);
+
+	// 4) StateMachine — 이동·애니·정책의 단일 권위(모든 캐릭터 공통).
+	StateMachine = AddComponent<UCharacterStateMachineComponent>();
 }
 
 void ACharacter::PostDuplicate()
@@ -251,6 +255,7 @@ void ACharacter::PostDuplicate()
 	CapsuleComponent  = Cast<UCapsuleComponent>(GetRootComponent());
 	Mesh              = GetComponentByClass<USkeletalMeshComponent>();
 	CharacterMovement = GetComponentByClass<UCharacterMovementComponent>();
+	StateMachine      = GetComponentByClass<UCharacterStateMachineComponent>();
 }
 
 void ACharacter::OnPostLoad(FArchive& Ar)
@@ -263,6 +268,7 @@ void ACharacter::OnPostLoad(FArchive& Ar)
 	CapsuleComponent  = Cast<UCapsuleComponent>(GetRootComponent());
 	Mesh              = GetComponentByClass<USkeletalMeshComponent>();
 	CharacterMovement = GetComponentByClass<UCharacterMovementComponent>();
+	StateMachine      = GetComponentByClass<UCharacterStateMachineComponent>();
 	if (CharacterMovement && CapsuleComponent)
 	{
 		CharacterMovement->SetUpdatedComponent(CapsuleComponent);

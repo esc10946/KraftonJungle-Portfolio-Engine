@@ -24,6 +24,14 @@ struct FAttackToken
     float                  ExpirySeconds = 0.0f;
 };
 
+// 토큰과 별개로, 타깃을 상대하는 "모든" 적의 등록(공격 여부 무관). 링 슬롯 분배용.
+struct FEngagerSlot
+{
+    TWeakObjectPtr<AActor> Holder;
+    TWeakObjectPtr<AActor> Target;
+    float                  ExpirySeconds = 0.0f;
+};
+
 class FSquadCoordinator
 {
 public:
@@ -40,11 +48,21 @@ public:
     int32 GetSlotIndex(AActor* Holder, AActor* Target, float Now);
     bool  HoldsToken(AActor* Holder, AActor* Target, float Now) const;
 
-    void Reset() { Tokens.clear(); }
+    // ── 링 슬롯(combat slotting) ──
+    // 타깃을 상대하는 모든 적을 등록하고, Holder 의 0-based 슬롯 인덱스를 돌려준다.
+    // 적은 타깃 중심이 아니라 (slot, count) 로 정해진 링 위치로 이동해 서로 겹치지 않는다.
+    int32 RegisterEngager(AActor* Holder, AActor* Target, float Now, float Duration);
+    int32 GetEngagerCount(AActor* Target, float Now);
+    void  ReleaseEngager(AActor* Holder);
+
+    void Reset() { Tokens.clear(); Engagers.clear(); }
 
 private:
     FSquadCoordinator() = default;
-    void Prune(float Now);
+    void  Prune(float Now);
+    void  PruneEngagers(float Now);
+    int32 SlotIndexOf(AActor* Holder, AActor* Target) const;
 
     TArray<FAttackToken> Tokens;
+    TArray<FEngagerSlot> Engagers;
 };
