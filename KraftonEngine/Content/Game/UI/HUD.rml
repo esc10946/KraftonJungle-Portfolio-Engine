@@ -5,56 +5,78 @@
 </head>
 
 <body id="hud-screen">
+    <div id="boss-panel">
+        <div id="boss-hp-bg">
+            <div id="boss-hp-mask">
+                <div id="boss-hp-fill"></div>
+            </div>
+        </div>
+            
+        <div id="boss-name-bg">
+            <div id="boss-name">Krafton</div>
+        </div>
+    </div>
 
-    <!-- Player HUD : bottom left -->
+
+    <div id="boss-posture-panel">
+        <div id="boss-posture-bg">
+            <div id="boss-posture-left-clip">
+                <div id="boss-posture-left-mask">
+                    <div id="boss-posture-left-fill"></div>
+                </div>
+            </div>
+            <div id="boss-posture-right-clip">
+                <div id="boss-posture-right-mask">
+                    <div id="boss-posture-right-fill"></div>
+                </div>
+            </div>
+            <div id="boss-posture-center-mark"></div>
+         </div>   
+    </div>
+
+    <div id="player-posture-panel">
+        <!-- BG 레이어 -->
+        <div id="player-posture-bg-left"></div>
+        <div id="player-posture-bg-right"></div>
+
+        <!-- fill 레이어 -->
+        <div id="player-posture-left-clip">
+            <div id="player-posture-left-mask">
+                <div id="player-posture-left-fill"></div>
+            </div>
+        </div>
+        <div id="player-posture-right-clip">
+            <div id="player-posture-right-mask">
+                <div id="player-posture-right-fill"></div>
+            </div>
+        </div>
+
+        <!-- 중앙 마크 -->
+        <div id="player-posture-center-mark"></div>
+    </div>
+
+    <div id="item-panel">
+        <div id="item-name-main">SHURIKEN</div>
+        <div id="item-slot-main" class="item-slot"></div>
+        <div id="item-count-main">1</div>
+    </div>
+    
     <div id="player-hud">
 
-        <!-- Main dark brush background -->
         <div id="player-hud-bg"></div>
 
-        <!-- Top circular skill / item icons -->
         <div id="player-icon-left" class="player-top-icon"></div>
         <div id="player-icon-right" class="player-top-icon"></div>
 
-        <!-- HP bar -->
-        <div id="player-hp-frame">
+        <div id="player-token"></div>
 
-            <!--
-                Runtime에서는 이 mask width만 조절한다.
-                Fill 이미지를 직접 줄이면 이미지가 찌그러지므로 mask를 줄이고 내부 이미지는 고정 크기로 둔다.
-            -->
+        <div id="player-hp-frame">
             <div id="player-hp-mask">
                 <div id="player-hp-fill"></div>
             </div>
-
-            <!-- HP frame image is drawn above fill -->
+            
             <div id="player-hp-border"></div>
         </div>
-
-        <!-- Small red status icon / resurrection token area -->
-        <div id="player-token"></div>
-
     </div>
-
-
-    <!-- Enemy HUD -->
-    <div id="enemy-panel">
-        <div id="enemy-hp-bg">
-            <div id="enemy-hp-fill"></div>
-        </div>
-
-        <div id="enemy-posture-bg">
-            <div id="enemy-posture-fill"></div>
-        </div>
-    </div>
-
-
-    <!-- Bottom Right Item HUD -->
-    <div id="item-panel">
-        <div id="item-slot-main" class="item-slot"></div>
-        <div id="item-slot-sub" class="item-slot"></div>
-        <div id="item-count">3</div>
-    </div>
-
 </body>
 </rml>

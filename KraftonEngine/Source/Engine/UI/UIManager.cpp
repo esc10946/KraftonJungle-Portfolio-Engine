@@ -250,6 +250,17 @@ void FRmlRenderInterfaceD3D11::BeginFrame(const FPassContext& InCtx)
 
 void FRmlRenderInterfaceD3D11::EndFrame()
 {
+	if (Ctx && bScissorEnabled)
+	{
+		if (ID3D11DeviceContext* DC = Ctx->Device.GetDeviceContext())
+		{
+			DC->RSSetScissorRects(0, nullptr);
+		}
+		Ctx->Resources.RasterizerStateManager.ResetCache();
+		Ctx->Resources.SetRasterizerState(Ctx->Device, ERasterizerState::SolidNoCull);
+	}
+
+	bScissorEnabled = false;
 	Ctx = nullptr;
 }
 
@@ -344,7 +355,15 @@ void FRmlRenderInterfaceD3D11::RenderGeometry(Rml::CompiledGeometryHandle Geomet
 
 	Ctx->Resources.SetDepthStencilState(Ctx->Device, EDepthStencilState::NoDepth);
 	Ctx->Resources.SetBlendState(Ctx->Device, EBlendState::AlphaBlend);
-	Ctx->Resources.SetRasterizerState(Ctx->Device, ERasterizerState::SolidNoCull);
+	if (bScissorEnabled && ScissorRasterizerState)
+	{
+		DC->RSSetState(ScissorRasterizerState);
+		Ctx->Resources.RasterizerStateManager.ResetCache();
+	}
+	else
+	{
+		Ctx->Resources.SetRasterizerState(Ctx->Device, ERasterizerState::SolidNoCull);
+	}
 
 	DC->OMSetRenderTargets(1, &Ctx->Cache.RTV, Ctx->Cache.DSV);
 	DC->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -506,6 +525,8 @@ void FRmlRenderInterfaceD3D11::ReleaseTexture(Rml::TextureHandle Texture)
 
 void FRmlRenderInterfaceD3D11::EnableScissorRegion(bool Enable)
 {
+	bScissorEnabled = Enable;
+
 	if (!Ctx)
 	{
 		return;
@@ -515,9 +536,11 @@ void FRmlRenderInterfaceD3D11::EnableScissorRegion(bool Enable)
 	if (Enable && ScissorRasterizerState)
 	{
 		DC->RSSetState(ScissorRasterizerState);
+		Ctx->Resources.RasterizerStateManager.ResetCache();
 	}
 	else
 	{
+		Ctx->Resources.RasterizerStateManager.ResetCache();
 		Ctx->Resources.SetRasterizerState(Ctx->Device, ERasterizerState::SolidNoCull);
 	}
 

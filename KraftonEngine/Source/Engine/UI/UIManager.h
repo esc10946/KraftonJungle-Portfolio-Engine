@@ -90,6 +90,7 @@ private:
 	ID3D11Buffer* PerFrameCB = nullptr;
 	ID3D11ShaderResourceView* WhiteTextureSRV = nullptr;
 	ID3D11RasterizerState* ScissorRasterizerState = nullptr;
+	bool bScissorEnabled = false;
 	Rml::Matrix4f CurrentTransform;
 	const FPassContext* Ctx = nullptr;
 };

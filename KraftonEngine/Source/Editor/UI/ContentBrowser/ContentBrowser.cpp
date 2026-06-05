@@ -121,6 +121,10 @@ void FEditorContentBrowserWidget::Initialize(UEditorEngine* InEditor, ID3D11Devi
 	IconFileMap[".fbx"] = L"icon_MatEd_Mesh_40x.png";
 	IconFileMap[".fga"] = L"StartMerge_42x.png";
 	IconFileMap[".uasset"] = L"icon_MatEd_Mesh_40x.png";
+	IconFileMap[".rml"] = L"StartMerge_42x.png";
+	IconFileMap[".rcss"] = L"StartMerge_42x.png";
+	IconFileMap[".html"] = L"StartMerge_42x.png";
+	IconFileMap[".htm"] = L"StartMerge_42x.png";
 
 	ContentBrowserContext Context;
 	Context.ContentSize = ImVec2(112, 112);
@@ -456,6 +460,10 @@ void FEditorContentBrowserWidget::RefreshContent()
 		{
 			Element = std::make_shared<PNGElement>();
 			Icon = FEditorTextureManager::Get().GetOrLoadThumbnail(FPaths::ToUtf8(Content.Path.lexically_relative(FPaths::RootDir()).generic_wstring()));
+		}
+		else if (Extension == ".rml" || Extension == ".rcss" || Extension == ".html" || Extension == ".htm")
+		{
+			Element = std::make_shared<RmlWidgetElement>();
 		}
 		else if (Extension == ".uasset")
 		{
