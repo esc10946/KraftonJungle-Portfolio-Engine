@@ -74,7 +74,7 @@
   },
   "Version" : 2,
   "WorldSettings" : {
-    "GameMode" : "",
+    "GameMode" : "AGameModeBase",
     "Gravity" : [0.000000, 0.000000, -9.810000]
   },
   "WorldType" : "Editor"

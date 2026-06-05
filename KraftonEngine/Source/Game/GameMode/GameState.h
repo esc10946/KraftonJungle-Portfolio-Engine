@@ -6,13 +6,14 @@
 UENUM()
 enum class EGamePhase : uint8 
 {
-	Title,
-	Options,
+	None,
 	Playing,
 	Paused,
+	CutScene,
 	Dead,
 	Victory,
 	GameOver,
+	Leaderboard,
 };
 
 UCLASS()
@@ -20,6 +21,9 @@ class AFinaleGameState : public AGameStateBase
 {
 	GENERATED_BODY()
 public:
-	EGamePhase Phase = EGamePhase::Title;
+	EGamePhase Phase = EGamePhase::None;
+
+public:
+	FString GetPhaseString();
 
 };

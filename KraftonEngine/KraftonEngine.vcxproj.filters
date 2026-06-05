@@ -2193,6 +2193,9 @@
     <ClCompile Include="Intermediate\Generated\Reflection.generated.cpp">
       <Filter>Intermediate\Generated</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Game\GameMode\GameState.cpp">
+      <Filter>Source\Game\GameMode</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Source\Editor\EditorEngine.h">

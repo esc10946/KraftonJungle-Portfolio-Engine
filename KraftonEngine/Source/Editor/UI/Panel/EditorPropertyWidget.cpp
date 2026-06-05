@@ -98,6 +98,19 @@ namespace
 			&& !(bShowEditorOnlyComponents && Component->IsEditorOnlyComponent());
 	}
 
+	bool IsBlankRenameName(const FString& Name)
+	{
+		for (const char Ch : Name)
+		{
+			if (!std::isspace(static_cast<unsigned char>(Ch)))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	struct FComponentClassGroup
 	{
 		const char* Label = nullptr;
@@ -1062,14 +1075,7 @@ void FEditorPropertyWidget::Render(float DeltaTime)
 	{
 		if (SelectionCount == 1)
 		{
-			if (!bActorSelected && SelectedComponent)
-			{
-				BeginRenameComponent(SelectedComponent.Get());
-			}
-			else
-			{
-				BeginRenameActor(PrimaryActor);
-			}
+			BeginRenameActor(PrimaryActor);
 		}
 	}
 
@@ -1144,6 +1150,16 @@ void FEditorPropertyWidget::Render(float DeltaTime)
 			SelectedComponent = nullptr;
 			PendingDetailsScrollY = -1.0f;
 			bRestoreDetailsScrollY = false;
+		}
+		ImGui::SameLine();
+		if (ImGui::SmallButton("Rename"))
+		{
+			CancelActiveDetailsEdit();
+			bActorSelected = true;
+			SelectedComponent = nullptr;
+			PendingDetailsScrollY = -1.0f;
+			bRestoreDetailsScrollY = false;
+			BeginRenameActor(PrimaryActor);
 		}
 		//ImGui::SameLine();
 
@@ -3578,6 +3594,7 @@ void FEditorPropertyWidget::BeginRenameActor(AActor* TargetActor)
 	RenameTargetActor = TargetActor;
 	RenameTargetComponent = nullptr;
 	bShowDuplicateWarning = false;
+	RenameErrorText.clear();
 
 	const FString CurrentName = TargetActor->GetFName().ToString();
 	strncpy_s(RenameBuffer, sizeof(RenameBuffer), CurrentName.c_str(), _TRUNCATE);
@@ -3597,6 +3614,7 @@ void FEditorPropertyWidget::BeginRenameComponent(UActorComponent* TargetComponen
 	RenameTargetComponent = TargetComponent;
 	RenameTargetActor = nullptr;
 	bShowDuplicateWarning = false;
+	RenameErrorText.clear();
 
 	const FString CurrentName = TargetComponent->GetFName().ToString();
 	strncpy_s(RenameBuffer, sizeof(RenameBuffer), CurrentName.c_str(), _TRUNCATE);
@@ -3623,6 +3641,7 @@ void FEditorPropertyWidget::RenderRenamePopup()
 			RenameTarget = ERenameTarget::None;
 			RenameBuffer[0] = '\0';
 			bShowDuplicateWarning = false;
+			RenameErrorText.clear();
 			ImGui::CloseCurrentPopup();
 			ImGui::EndPopup();
 			return;
@@ -3639,6 +3658,11 @@ void FEditorPropertyWidget::RenderRenamePopup()
 		}
 		
 		const bool bSubmit = ImGui::InputText("##RenameInput", RenameBuffer, sizeof(RenameBuffer), ImGuiInputTextFlags_EnterReturnsTrue);
+
+		if (!RenameErrorText.empty())
+		{
+			ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "%s", RenameErrorText.c_str());
+		}
 
 		if (bShowDuplicateWarning)
 		{
@@ -3669,6 +3693,7 @@ void FEditorPropertyWidget::RenderRenamePopup()
 				RenameTargetComponent = nullptr;
 				RenameBuffer[0] = '\0';
 				bShowDuplicateWarning = false;
+				RenameErrorText.clear();
 				ImGui::CloseCurrentPopup();
 			}
 		}
@@ -3679,6 +3704,7 @@ void FEditorPropertyWidget::RenderRenamePopup()
 			RenameTargetComponent = nullptr;
 			RenameBuffer[0] = '\0';
 			bShowDuplicateWarning = false;
+			RenameErrorText.clear();
 			ImGui::CloseCurrentPopup();
 		}
 
@@ -3700,6 +3726,13 @@ bool FEditorPropertyWidget::TryRenameActor(AActor* TargetActor, const FString& N
 	}
 
 	bShowDuplicateWarning = false;
+	RenameErrorText.clear();
+
+	if (IsBlankRenameName(NewName))
+	{
+		RenameErrorText = "Name cannot be empty.";
+		return false;
+	}
 
 	UWorld* World = EditorEngine ? EditorEngine->GetWorld() : nullptr;
 	if (World)
@@ -3712,7 +3745,7 @@ bool FEditorPropertyWidget::TryRenameActor(AActor* TargetActor, const FString& N
 			}
 			if (Actor->GetFName().ToString() == NewName)
 			{
-				bShowDuplicateWarning = true;
+				RenameErrorText = "An actor with this name already exists.";
 				return false;
 			}
 		}
@@ -3736,6 +3769,7 @@ bool FEditorPropertyWidget::TryRenameComponent(UActorComponent* TargetComponent,
 	}
 
 	bShowDuplicateWarning = false;
+	RenameErrorText.clear();
 
 	AActor* Owner = TargetComponent->GetOwner();
 	if (Owner)

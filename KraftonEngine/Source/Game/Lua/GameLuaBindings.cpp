@@ -4,9 +4,11 @@
 
 #include "Engine/Runtime/Engine.h"
 #include "Engine/Runtime/EngineInitHooks.h"
+#include "Engine/GameFramework/World.h"
 #include "Lua/LuaScriptManager.h"
 #include "Core/ProjectSettings.h"
 #include "Audio/AudioManager.h"
+#include "Game/GameMode/AFinaleGameMode.h"
 
 #include <algorithm>
 
@@ -40,6 +42,32 @@ void RegisterGameLuaBindings(sol::state& Lua)
 			if (GEngine)
 			{
 				GEngine->RequestTransitionToScene(SceneNameOrPath);
+			}
+		}
+	);
+
+	// Game.TogglePause — pause key entry point. Resolves the active GameMode and
+	// lets it decide pause vs. resume from its own phase.
+	sol::table Game = Lua["Game"].valid() ? Lua["Game"] : Lua.create_named_table("Game");
+	Game.set_function(
+		"TogglePause",
+		[]()
+		{
+			if (!GEngine || !GEngine->GetWorld()) return;
+			if (AFinaleGameMode* GM = Cast<AFinaleGameMode>(GEngine->GetWorld()->GetGameMode()))
+			{
+				GM->TogglePause();
+			}
+		}
+	);
+	Game.set_function(
+		"QuitToTitle",
+		[]()
+		{
+			if (!GEngine || !GEngine->GetWorld()) return;
+			if (AFinaleGameMode* GM = Cast<AFinaleGameMode>(GEngine->GetWorld()->GetGameMode()))
+			{
+				GM->OnGameQuit();
 			}
 		}
 	);
