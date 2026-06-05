@@ -632,10 +632,10 @@ void UUIManager::Initialize(ID3D11Device* InDevice)
 		UE_LOG("[RmlUi] Failed to create GameViewport context.");
 	}
 
-	const std::filesystem::path FontPath = ToProjectPath("Content/Font/Maplestory Bold.ttf");
-	if (!Rml::LoadFontFace(ToRmlPath(FontPath), "Maplestory", Rml::Style::FontStyle::Normal, Rml::Style::FontWeight::Bold))
+	const std::filesystem::path FontPath = ToProjectPath("Content/Font/Serpentine.ttf");
+	if (!Rml::LoadFontFace(ToRmlPath(FontPath), "Serpentine", Rml::Style::FontStyle::Normal, Rml::Style::FontWeight::Normal))
 	{
-		UE_LOG("[RmlUi] Failed to load font: Content/Font/Maplestory Bold.ttf");
+		UE_LOG("[RmlUi] Failed to load font: Content/Font/Serpentine.ttf");
 	}
 
 	StartUIHotReloadWatcher();

@@ -5,6 +5,13 @@
 #include "Engine/Runtime/Engine.h"
 #include "Engine/Runtime/EngineInitHooks.h"
 #include "Lua/LuaScriptManager.h"
+#include "Core/ProjectSettings.h"
+#include "Audio/AudioManager.h"
+
+#include <algorithm>
+
+
+
 
 // ============================================================
 // 게임-특화 Lua 바인딩 등록 위치 — 현재는 비어 있음.
@@ -34,6 +41,38 @@ void RegisterGameLuaBindings(sol::state& Lua)
 			{
 				GEngine->RequestTransitionToScene(SceneNameOrPath);
 			}
+		}
+	);
+
+	// ---- Options ----
+	// 런타임 source of truth 는 FProjectSettings (in-memory singleton).
+	// SetMasterVolume: 메모리 갱신 + FAudioManager 에 즉시 적용(apply-on-change).
+	// Save: ProjectSettings.ini 에 영속화 (load→mutate→save 라 다른 설정을 안 덮어씀).
+	sol::table Options = Lua.create_named_table("Options");
+
+	Options.set_function(
+		"GetMasterVolume",
+		[]() -> float
+		{
+			return FProjectSettings::Get().Audio.MasterVolume;
+		}
+	);
+
+	Options.set_function(
+		"SetMasterVolume",
+		[](float Volume)
+		{
+			const float Clamped = std::clamp(Volume, 0.0f, 1.0f);
+			FProjectSettings::Get().Audio.MasterVolume = Clamped;
+			FAudioManager::Get().SetMasterVolume(Clamped);
+		}
+	);
+
+	Options.set_function(
+		"Save",
+		[]()
+		{
+			FProjectSettings::Get().SaveToFile(FProjectSettings::GetDefaultPath());
 		}
 	);
 }

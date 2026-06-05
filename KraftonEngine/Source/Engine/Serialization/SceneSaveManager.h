@@ -43,6 +43,7 @@ public:
 	static std::wstring GetSceneDirectory() { return FPaths::SceneDir(); }
 
 	static void SaveSceneAsJSON(const string& SceneName, FWorldContext& WorldContext, const struct FMinimalViewInfo* PerspectivePOV = nullptr);
+	static void SaveSceneToJSON(const string& FilePath, FWorldContext& WorldContext, const struct FMinimalViewInfo* PerspectivePOV = nullptr);
 	// OverrideWorldType: 호출자가 World 의 WorldType 을 명시 — Game 빌드처럼 scene 파일에
 	// 기록된 EWorldType (보통 Editor) 을 무시하고 강제로 다른 타입으로 시작하고 싶을 때 사용.
 	// nullptr 이면 scene 파일의 값을 따른다 (없으면 Editor). UWorld 의 default WorldType
@@ -82,6 +83,7 @@ private:
 	static void CollectWorldObjectIds(UWorld* World, FSceneSaveContext& Context);
 	static void CollectActorObjectIds(AActor* Actor, FSceneSaveContext& Context);
 	static void CollectSceneComponentObjectIds(USceneComponent* Comp, FSceneSaveContext& Context);
+	static void SaveSceneToFile(const std::filesystem::path& FileDestination, const string& SceneName, FWorldContext& WorldContext, const FMinimalViewInfo* PerspectivePOV);
 	static json::JSON SerializeWorld(UWorld* World, const FWorldContext& Ctx, const FMinimalViewInfo* PerspectivePOV, FSceneSaveContext& Context);
 	static json::JSON SerializeActor(AActor* Actor, FSceneSaveContext& Context);
 	static json::JSON SerializeSceneComponentTree(USceneComponent* Comp, FSceneSaveContext& Context);

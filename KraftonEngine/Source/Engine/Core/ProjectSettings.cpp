@@ -34,6 +34,9 @@ namespace PSKey
 	constexpr const char* GameSection = "Game";
 	constexpr const char* StartLevelName = "StartLevelName";
 	constexpr const char* GameModeClassName = "GameModeClassName";
+
+	constexpr const char* AudioSection = "Audio";
+	constexpr const char* MasterVolume = "MasterVolume";
 }
 
 void FProjectSettings::SaveToFile(const FString& Path) const
@@ -71,6 +74,10 @@ void FProjectSettings::SaveToFile(const FString& Path) const
 	GameObj[PSKey::StartLevelName] = Game.StartLevelName;
 	GameObj[PSKey::GameModeClassName] = Game.GameModeClassName;
 	Root[PSKey::GameSection] = GameObj;
+
+	JSON AudioObj = Object();
+	AudioObj[PSKey::MasterVolume] = Audio.MasterVolume;
+	Root[PSKey::AudioSection] = AudioObj;
 
 	std::filesystem::path FilePath(FPaths::ToWide(Path));
 	if (FilePath.has_parent_path())
@@ -148,6 +155,16 @@ void FProjectSettings::LoadFromFile(const FString& Path)
 			Game.StartLevelName = G[PSKey::StartLevelName].ToString();
 		if (G.hasKey(PSKey::GameModeClassName))
 			Game.GameModeClassName = G[PSKey::GameModeClassName].ToString();
+	}
+
+	if (Root.hasKey(PSKey::AudioSection))
+	{
+		JSON A = Root[PSKey::AudioSection];
+		if (A.hasKey(PSKey::MasterVolume))
+		{
+			float v = static_cast<float>(A[PSKey::MasterVolume].ToFloat());
+			Audio.MasterVolume = (std::max)(0.0f, (std::min)(v, 1.0f));
+		}
 	}
 
 	if (Root.hasKey(PSKey::Shadow))

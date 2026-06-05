@@ -1,19 +1,48 @@
 -- ============================================================
 -- TitleMenu.lua
 -- Attach to a single controller actor placed in the Title scene.
--- On BeginPlay it builds the title menu (Title.rml) and wires the
--- four buttons:
+-- On BeginPlay it builds the title menu (Title.rml) + the Options
+-- overlay (Options.rml), and wires the four buttons:
 --
 --   start_btn   -> transition to the gameplay scene
---   options_btn -> open Options screen      (TODO)
+--   options_btn -> show Options overlay
 --   credits_btn -> transition to the credits scene
 --   exit_btn    -> quit the application
 -- ============================================================
 
-local START_SCENE   = "Game/GamePlay"
-local CREDITS_SCENE = "Game/GameCredits"
+local START_SCENE    = "Game/GamePlay.Scene"
+local CREDITS_SCENE  = "Game/GameCredits.Scene"
+local OPTIONS_ZORDER = 11       -- above the title menu (default ZOrder 0)
+local VOLUME_STEP    = 0.1      -- master-volume increment per -/+ click
 
-local widget = nil          -- title menu
+local widget  = nil             -- title menu
+local options = nil             -- options overlay (created hidden, toggled on click)
+
+-- Master volume is stored/applied by the engine (Options.* bindings); the UI
+-- only mirrors it. Show it as a rounded percentage.
+local function RefreshVolumeLabel()
+    if options == nil then return end
+    local pct = math.floor(Options.GetMasterVolume() * 100 + 0.5)
+    options:SetText("vol_value", tostring(pct) .. "%")
+end
+
+local function ChangeVolume(delta)
+    Options.SetMasterVolume(Options.GetMasterVolume() + delta)  -- clamps + applies live
+    RefreshVolumeLabel()
+end
+
+local function ShowOptions()
+    if options == nil then return end
+    options:SetWantsMouse(true)
+    RefreshVolumeLabel()                 -- sync label to current value before showing
+    options:AddToViewportZ(OPTIONS_ZORDER)
+end
+
+local function HideOptions()
+    if options == nil then return end
+    Options.Save()                       -- persist to ProjectSettings.ini on close
+    options:RemoveFromParent()
+end
 
 function BeginPlay()
     widget = UI.CreateWidget("Content/Game/UI/Title.rml")
@@ -26,14 +55,21 @@ function BeginPlay()
     widget:SetWantsMouse(true)
     widget:AddToViewport()
 
+    -- Build the Options overlay once, but don't show it yet.
+    options = UI.CreateWidget("Content/Game/UI/Options.rml")
+    if options ~= nil then
+        options:bind_click("vol_down", function() ChangeVolume(-VOLUME_STEP) end)
+        options:bind_click("vol_up",   function() ChangeVolume( VOLUME_STEP) end)
+        options:bind_click("back_btn", HideOptions)
+    else
+        print("[TitleMenu] failed to create Options.rml widget")
+    end
+
     widget:bind_click("start_btn", function()
         Engine.OpenScene(START_SCENE)
     end)
 
-    widget:bind_click("options_btn", function()
-        -- TODO: open Options screen
-        print("[TitleMenu] Options clicked")
-    end)
+    widget:bind_click("options_btn", ShowOptions)
 
     widget:bind_click("credits_btn", function()
         Engine.OpenScene(CREDITS_SCENE)
@@ -45,6 +81,10 @@ function BeginPlay()
 end
 
 function EndPlay()
+    if options ~= nil then
+        options:RemoveFromParent()
+        options = nil
+    end
     if widget ~= nil then
         widget:RemoveFromParent()
         widget = nil

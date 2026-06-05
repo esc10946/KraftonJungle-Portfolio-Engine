@@ -1,0 +1,30 @@
+<rml>
+<head>
+    <title>Options</title>
+    <link type="text/rcss" href="Options.rcss"/>
+</head>
+<body id="options-screen">
+    <!-- Overlay shown on top of the title. The body dims the title behind. -->
+    <div id="options-panel">
+        <div id="options-heading">OPTIONS</div>
+
+        <div class="opt-row">
+            <span class="opt-label">Master Volume</span>
+            <div class="opt-control">
+                <div id="vol_down" class="step-btn">-</div>
+                <span id="vol_value" class="opt-value">100%</span>
+                <div id="vol_up" class="step-btn">+</div>
+            </div>
+        </div>
+
+        <!-- TODO: Fullscreen toggle.
+             - Add an FVideoOption { bool bFullscreen } to FProjectSettings (mirror FAudioOption).
+             - Expose Options.GetFullscreen()/SetFullscreen(bool) in GameLuaBindings.cpp;
+               SetFullscreen should drive the window (GEngine->GetWindow()) + apply-on-change.
+             - Add a row here with an id'd toggle element (e.g. fullscreen_toggle) showing On/Off,
+               bound in TitleMenu.lua, and persisted via Options.Save() on Back. -->
+
+        <div id="back_btn" class="text-btn">RETURN TO TITLE</div>
+    </div>
+</body>
+</rml>

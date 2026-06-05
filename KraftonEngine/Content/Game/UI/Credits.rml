@@ -4,11 +4,13 @@
     <link type="text/rcss" href="Credits.rcss"/>
 </head>
 <body id="credits-screen">
-    <!-- The body dims the title screen behind. #panel holds the PNG frame + text. -->
+    <!-- Logo on top, role/name text centered underneath. -->
     <div id="credits-panel">
-        <div id="credits-heading">CREDITS</div>
+        <div id="credits-logo"></div>
 
         <div id="credits-body">
+            <p class="thanks">Powered by KraftonEngine</p>
+
             <!-- TODO: replace with real names/roles -->
             <p class="role">Game Flow &amp; UI</p>
             <p class="name">Hyungjun Kim</p>
@@ -18,11 +20,9 @@
 
             <p class="role">Art &amp; Assets</p>
             <p class="name">TODO</p>
-
-            <p class="thanks">Made on KraftonEngine</p>
         </div>
 
-        <div id="back_btn" class="text-btn">BACK</div>
+        <div id="back_btn" class="text-btn">RETURN TO TITLE</div>
     </div>
 </body>
 </rml>

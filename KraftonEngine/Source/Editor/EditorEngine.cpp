@@ -43,10 +43,21 @@ FString BuildScenePathFromStem(const FString& InStem)
 	return FPaths::ToUtf8(ScenePath.wstring());
 }
 
-FString GetFileStem(const FString& InPath)
+FString NormalizeSceneSavePath(const FString& InPath)
 {
 	const std::filesystem::path Path(FPaths::ToWide(InPath));
-	return FPaths::ToUtf8(Path.stem().wstring());
+	if (Path.empty())
+	{
+		return FString();
+	}
+
+	std::filesystem::path SavePath = Path;
+	if (SavePath.extension().empty())
+	{
+		SavePath += FSceneSaveManager::SceneExtension;
+	}
+
+	return FPaths::ToUtf8(SavePath.lexically_normal().wstring());
 }
 
 std::wstring GetSceneDialogDirectory()
@@ -716,8 +727,18 @@ void UEditorEngine::RestoreViewportCamera(const FPerspectiveCameraData& CamData)
 
 bool UEditorEngine::SaveSceneAs(const FString& InSceneName)
 {
-	FScopedGarbageCollectionBlocker GCBlocker;
 	if (InSceneName.empty())
+	{
+		return false;
+	}
+
+	return SaveSceneToPath(BuildScenePathFromStem(InSceneName));
+}
+
+bool UEditorEngine::SaveSceneToPath(const FString& InScenePath)
+{
+	FScopedGarbageCollectionBlocker GCBlocker;
+	if (InScenePath.empty())
 	{
 		return false;
 	}
@@ -731,8 +752,8 @@ bool UEditorEngine::SaveSceneAs(const FString& InSceneName)
 
 	FMinimalViewInfo SavePOV;
 	const bool bHasPOV = FindSceneViewportPOV(SavePOV);
-	FSceneSaveManager::SaveSceneAsJSON(InSceneName, *Context, bHasPOV ? &SavePOV : nullptr);
-	CurrentLevelFilePath = BuildScenePathFromStem(InSceneName);
+	FSceneSaveManager::SaveSceneToJSON(InScenePath, *Context, bHasPOV ? &SavePOV : nullptr);
+	CurrentLevelFilePath = NormalizeSceneSavePath(InScenePath);
 	return true;
 }
 
@@ -740,7 +761,7 @@ bool UEditorEngine::SaveScene()
 {
 	if (HasCurrentLevelFilePath())
 	{
-		return SaveSceneAs(GetFileStem(CurrentLevelFilePath));
+		return SaveSceneToPath(CurrentLevelFilePath);
 	}
 
 	return SaveSceneAsWithDialog();
@@ -769,7 +790,7 @@ bool UEditorEngine::SaveSceneAsWithDialog()
 		return false;
 	}
 
-	return SaveSceneAs(GetFileStem(SelectedPath));
+	return SaveSceneToPath(SelectedPath);
 }
 
 bool UEditorEngine::LoadSceneFromPath(const FString& InScenePath)

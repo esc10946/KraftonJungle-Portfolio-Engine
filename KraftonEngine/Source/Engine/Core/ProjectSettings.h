@@ -59,10 +59,19 @@ class FProjectSettings : public TSingleton<FProjectSettings>
 		                            // 잘못된 이름이거나 AGameModeBase 파생이 아니면 디폴트 fallback.
 	};
 
+	// --- Audio ---
+	// 플레이어 옵션. 런타임 source of truth 는 이 in-memory 값이고, FAudioManager 에
+	// 적용(SetMasterVolume)된다. ini 는 부팅 시 load / 변경 시 save 용 영속화일 뿐이다.
+	struct FAudioOption
+	{
+		float MasterVolume = 1.0f;  // 0..1
+	};
+
 public:
 	FShadowOption Shadow;
 	FPhysicsOption Physics;
 	FGameOption Game;
+	FAudioOption Audio;
 
 	// --- 직렬화 ---
 	void SaveToFile(const FString& Path) const;

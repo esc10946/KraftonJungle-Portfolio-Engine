@@ -1,4 +1,4 @@
-#include "GameFramework/World.h"
+﻿#include "GameFramework/World.h"
 #include "Object/Reflection/ObjectFactory.h"
 #include "Component/PrimitiveComponent.h"
 #include "Component/Primitive/StaticMeshComponent.h"
@@ -211,7 +211,8 @@ void UWorld::UnregisterPhysicsSnapshotReceiver(uint64 Handle)
 // PIE/Game 경로는 매니저가 매 프레임 채우는 CameraCachePOV (shake/blend 적용된 최종값) 사용.
 bool UWorld::GetActivePOV(FMinimalViewInfo& OutPOV) const
 {
-	if (APlayerController* PC = GetFirstPlayerController())
+	APlayerController* PC = GetFirstPlayerController();
+	if (PC)
 	{
 		if (APlayerCameraManager* CM = PC->GetPlayerCameraManager())
 		{

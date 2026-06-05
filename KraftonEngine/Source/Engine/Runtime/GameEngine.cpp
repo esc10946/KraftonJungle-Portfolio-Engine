@@ -1,4 +1,4 @@
-#include "Engine/Runtime/GameEngine.h"
+﻿#include "Engine/Runtime/GameEngine.h"
 
 #include "Engine/Runtime/GameRenderPipeline.h"
 #include "Engine/Runtime/EngineInitHooks.h"
@@ -13,6 +13,7 @@
 #include "GameFramework/GameMode/GameModeBase.h"
 #include "Object/Reflection/UClass.h"
 #include "Core/ProjectSettings.h"
+#include "Audio/AudioManager.h"
 #include "Core/Logging/Log.h"
 
 void UGameEngine::Init(FWindowsWindow* InWindow)
@@ -24,6 +25,9 @@ void UGameEngine::Init(FWindowsWindow* InWindow)
 	FEngineInitHooks::RunAll();
 
 	FProjectSettings::Get().LoadFromFile(FProjectSettings::GetDefaultPath());
+
+	// Audio 는 UEngine::Init 에서 이미 초기화됨 — 영속화된 master volume 을 즉시 적용.
+	FAudioManager::Get().SetMasterVolume(FProjectSettings::Get().Audio.MasterVolume);
 
 	StandaloneViewport = new FViewport();
 	StandaloneViewport->Initialize(
@@ -183,6 +187,7 @@ void UGameEngine::ProcessPendingTransition()
 			Ctx->World->BeginPlay();
 		}
 	}
+	UE_LOG("[GameEngine] Scene loaded successfully");
 
 	// Timer 리셋 — destroy + load + BeginPlay 가 한 frame 안에서 통째로 일어나면 다음
 	// Tick 의 dt 가 그 로드 시간만큼 부풀어 PhysX 가 거대한 step (예: 2~3 초) 을 한 번에
