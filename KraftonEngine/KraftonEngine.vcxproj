@@ -528,6 +528,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Engine\Component\AI\AIBlackboardComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\AIDecisionTraceComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\AIPerceptionComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\AI\AwarenessComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\EncounterComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\EnemyAIBrainComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\EnemyAttackComponent.cpp" />
@@ -538,6 +539,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Engine\Component\Character\CharacterStateMachineComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Combat\CombatMoveComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Combat\CombatStateComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\Combat\ExecutionComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Combat\HealthComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Debug\BoneDebugComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Debug\GizmoComponent.cpp" />
@@ -1009,6 +1011,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\Component\AI\AIBlackboardComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\AIDecisionTraceComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\AIPerceptionComponent.h" />
+    <ClInclude Include="Source\Engine\Component\AI\AwarenessComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\EncounterComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\EnemyAIBrainComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\EnemyAttackComponent.h" />
@@ -1019,6 +1022,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\Component\Character\CharacterStateMachineComponent.h" />
     <ClInclude Include="Source\Engine\Component\Combat\CombatMoveComponent.h" />
     <ClInclude Include="Source\Engine\Component\Combat\CombatStateComponent.h" />
+    <ClInclude Include="Source\Engine\Component\Combat\ExecutionComponent.h" />
     <ClInclude Include="Source\Engine\Component\Combat\CombatTypes.h" />
     <ClInclude Include="Source\Engine\Component\Combat\HealthComponent.h" />
     <ClInclude Include="Source\Engine\Component\Debug\BoneDebugComponent.h" />

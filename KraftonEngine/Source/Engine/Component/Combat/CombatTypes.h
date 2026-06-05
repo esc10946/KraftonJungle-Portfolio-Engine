@@ -256,3 +256,81 @@ struct FEnemyPhaseData
 	FName PhaseName = FName::None;
 
 };
+
+// ── 데스블로우/처형
+// ───────────────────────────────────────────
+// 세키로 핵심 승패: 자세가 0이 되면 즉사가 아니라 "처형 가능(DeathblowReady)" 상태로
+// 짧은 창이 열린다. 그 창 안에서 처형되면 스톡을 1개 소비한다. 졸개는 스톡 1개라
+// 즉사, 강적은 여러 스톡을 거쳐야 죽는다. 창이 만료되면 자세를 회복해 전투로 복귀.
+UENUM()
+enum class EExecutionState : uint8
+{
+	None = 0,           // 평시
+	DeathblowReady = 1, // 자세 붕괴 — 처형 창 열림
+	Executed = 2,       // 마지막 스톡 소비, 사망 확정
+};
+
+inline const char* GExecutionStateNames[] = {
+	"None",
+	"DeathblowReady",
+	"Executed",
+};
+inline constexpr uint32 GExecutionStateCount = sizeof(GExecutionStateNames) / sizeof(GExecutionStateNames[0]);
+
+// ── 위험공격 종류별 결과표 ─────────────────────────────────────
+// 위험공격은 "강한 공격"이 아니라 "대응을 검사하는 질문"이다. 찌르기/하단/잡기 각각
+// 대응 성공·실패의 결과가 다르다. 방어자·공격자 양쪽 결과를 종류별로 분리해 둔다.
+// 런타임 소비처: 탄기 해소(공격자 체간 반사 배수), 피해 적용(대응 실패 시 피해 배수).
+USTRUCT()
+struct FPerilousResolution
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Edit, Save, Category="Perilous", DisplayName="Type", Enum=EPerilousType)
+	EPerilousType Type = EPerilousType::None;
+
+	// 대응 실패(그냥 맞음) 시 방어자가 받는 체간 피해 배수.
+	UPROPERTY(Edit, Save, Category="Perilous", DisplayName="Defender Fail Poise Scale", Min=0.0f, Max=10.0f, Speed=0.05f)
+	float DefenderFailPoiseScale = 1.5f;
+
+	// 대응 실패 시 방어자가 받는 체력 피해 배수.
+	UPROPERTY(Edit, Save, Category="Perilous", DisplayName="Defender Fail Health Scale", Min=0.0f, Max=10.0f, Speed=0.05f)
+	float DefenderFailHealthScale = 1.25f;
+
+	// 올바른 대응 성공(찌르기=간파/탄기, 하단=점프, 잡기=이탈) 시 공격자 체간 반사 배수.
+	UPROPERTY(Edit, Save, Category="Perilous", DisplayName="Answer Reflect Poise Scale", Min=0.0f, Max=10.0f, Speed=0.05f)
+	float AnswerReflectPoiseScale = 1.5f;
+
+	// 대응 성공 후 공격자에게 열리는 빈틈(초) — punish 창.
+	UPROPERTY(Edit, Save, Category="Perilous", DisplayName="Answer Punish Window", Min=0.0f, Max=5.0f, Speed=0.05f)
+	float AnswerPunishWindow = 0.6f;
+};
+
+// 종류별 기본 결과. 디자이너가 per-actor 테이블로 덮어쓰기 전의 합리적 기본값.
+// 찌르기: 간파/탄기 성공 시 공격자 자세 대손실. 하단: 점프 성공 시 큰 punish. 잡기: 이탈 성공 시 최대 빈틈.
+inline FPerilousResolution GetPerilousResolution(EPerilousType Type)
+{
+	FPerilousResolution R;
+	R.Type = Type;
+	switch (Type)
+	{
+	case EPerilousType::Thrust:
+		R.DefenderFailPoiseScale = 1.6f;  R.DefenderFailHealthScale = 1.4f;
+		R.AnswerReflectPoiseScale = 2.0f; R.AnswerPunishWindow = 0.5f;
+		break;
+	case EPerilousType::Sweep:
+		R.DefenderFailPoiseScale = 1.4f;  R.DefenderFailHealthScale = 1.2f;
+		R.AnswerReflectPoiseScale = 1.2f; R.AnswerPunishWindow = 0.8f;
+		break;
+	case EPerilousType::Grab:
+		R.DefenderFailPoiseScale = 2.0f;  R.DefenderFailHealthScale = 1.8f;
+		R.AnswerReflectPoiseScale = 0.0f; R.AnswerPunishWindow = 1.0f;
+		break;
+	case EPerilousType::None:
+	default:
+		R.DefenderFailPoiseScale = 1.0f;  R.DefenderFailHealthScale = 1.0f;
+		R.AnswerReflectPoiseScale = 1.0f; R.AnswerPunishWindow = 0.0f;
+		break;
+	}
+	return R;
+}

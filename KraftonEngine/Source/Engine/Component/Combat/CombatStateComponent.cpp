@@ -84,6 +84,8 @@ bool UCombatStateComponent::ApplyPoiseDamage(float PoiseDamage)
 	CurrentPoise = FMath::Clamp(CurrentPoise - PoiseDamage, 0.0f, MaxPoise);
 	if (CurrentPoise <= 0.0f)
 	{
+		// 자세 붕괴 신호 — ExecutionComponent 가 데스블로우 창을 연다. stagger 는 시각적 취약 표시로 유지.
+		OnPostureBroken.Broadcast(this);
 		StartStagger(DefaultStaggerDuration);
 		return true;
 	}
@@ -216,11 +218,14 @@ EDeflectGrade UCombatStateComponent::ConsumeDeflect(AActor* Attacker)
 	}
 
 	// 공격자에게 체간 반사 — 탄기가 공격자의 체간을 깎아 인살 창을 연다.
+	// 위험공격 종류별 결과표(보고서 1군 #4)로 반사량을 보정한다: 찌르기 간파 성공은 큰 자세 손실,
+	// 잡기는 탄기로 해결되지 않으므로 반사 0(점프/이탈로 대응해야 함).
 	if (Attacker && ReflectScale > 0.0f && DeflectReflectPoise > 0.0f)
 	{
 		if (UCombatStateComponent* AttackerCombat = Attacker->GetComponentByClass<UCombatStateComponent>())
 		{
-			AttackerCombat->ApplyPoiseDamage(DeflectReflectPoise * ReflectScale);
+			const FPerilousResolution Resolution = GetPerilousResolution(AttackerCombat->GetActivePerilousType());
+			AttackerCombat->ApplyPoiseDamage(DeflectReflectPoise * ReflectScale * Resolution.AnswerReflectPoiseScale);
 		}
 	}
 

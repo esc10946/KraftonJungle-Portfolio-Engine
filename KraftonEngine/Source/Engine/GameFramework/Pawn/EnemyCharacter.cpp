@@ -7,15 +7,18 @@
 #include "Component/AI/AIBlackboardComponent.h"
 #include "Component/AI/AIPerceptionComponent.h"
 #include "Component/AI/AIDecisionTraceComponent.h"
+#include "Component/AI/AwarenessComponent.h"
 #include "AI/SquadCoordinator.h"
 #include "AI/CombatTargetRegistry.h"
 #include "Component/Character/CharacterStateMachineComponent.h"
 #include "Component/Combat/CombatStateComponent.h"
 #include "Component/Combat/CombatMoveComponent.h"
+#include "Component/Combat/ExecutionComponent.h"
 #include "Component/Combat/HealthComponent.h"
 #include "Component/Movement/CharacterMovementComponent.h"
 #include "Component/Shape/CapsuleComponent.h"
 #include "Component/Script/LuaScriptComponent.h"
+#include "Core/Types/CollisionTypes.h"
 #include "GameFramework/Controller/AIController.h"
 #include "GameFramework/World.h"
 #include "Object/Reflection/UClass.h"
@@ -91,6 +94,8 @@ void AEnemyCharacter::InitDefaultComponents(const FString& SkeletalMeshFileName,
 	Perception = AddComponent<UAIPerceptionComponent>();
 	DecisionTrace = AddComponent<UAIDecisionTraceComponent>();
 	CombatMove = AddComponent<UCombatMoveComponent>();
+	Execution = AddComponent<UExecutionComponent>();
+	Awareness = AddComponent<UAwarenessComponent>();
 	LuaScriptComponent = AddComponent<ULuaScriptComponent>();
 	if (LuaScriptComponent)
 	{
@@ -120,7 +125,15 @@ void AEnemyCharacter::OnPostLoad(FArchive& Ar)
 void AEnemyCharacter::RebindEnemyComponents()
 {
 	AIBrainComponent = GetComponentByClass<UEnemyAIBrainComponent>();
+	if (!AIBrainComponent.IsValid())
+	{
+		AIBrainComponent = AddComponent<UEnemyAIBrainComponent>();
+	}
 	AttackComponent = GetComponentByClass<UEnemyAttackComponent>();
+	if (!AttackComponent.IsValid())
+	{
+		AttackComponent = AddComponent<UEnemyAttackComponent>();
+	}
 	LuaScriptComponent = GetComponentByClass<ULuaScriptComponent>();
 	if (!LuaScriptComponent.IsValid())
 	{
@@ -131,9 +144,35 @@ void AEnemyCharacter::RebindEnemyComponents()
 		LuaScriptComponent->SetScriptFile(BrainScriptFile);
 	}
 	Blackboard = GetComponentByClass<UAIBlackboardComponent>();
+	if (!Blackboard.IsValid())
+	{
+		Blackboard = AddComponent<UAIBlackboardComponent>();
+	}
 	Perception = GetComponentByClass<UAIPerceptionComponent>();
+	if (!Perception.IsValid())
+	{
+		Perception = AddComponent<UAIPerceptionComponent>();
+	}
 	DecisionTrace = GetComponentByClass<UAIDecisionTraceComponent>();
+	if (!DecisionTrace.IsValid())
+	{
+		DecisionTrace = AddComponent<UAIDecisionTraceComponent>();
+	}
 	CombatMove = GetComponentByClass<UCombatMoveComponent>();
+	if (!CombatMove.IsValid())
+	{
+		CombatMove = AddComponent<UCombatMoveComponent>();
+	}
+	Execution = GetComponentByClass<UExecutionComponent>();
+	if (!Execution.IsValid())
+	{
+		Execution = AddComponent<UExecutionComponent>();
+	}
+	Awareness = GetComponentByClass<UAwarenessComponent>();
+	if (!Awareness.IsValid())
+	{
+		Awareness = AddComponent<UAwarenessComponent>();
+	}
 	if (!AIControllerClass)
 	{
 		AIControllerClass = AAIController::StaticClass();
@@ -341,10 +380,6 @@ bool AEnemyCharacter::StartAttackExecution(const FEnemyAttackData& Attack)
 	{
 		return false;
 	}
-	if (!Attack.Montage)
-	{
-		return false;
-	}
 
 	FEnemyAttackData ExecutingAttack = Attack;
 	StretchAttackFramesToDuration(ExecutingAttack, GetAttackExecutionDuration(Attack));
@@ -353,6 +388,11 @@ bool AEnemyCharacter::StartAttackExecution(const FEnemyAttackData& Attack)
 	CurrentAttackElapsed = 0.0f;
 	bCurrentAttackActive = true;
 	CurrentAttackDamagedActors.clear();
+	// 공격 문법 분기용 결과 캐시 리셋(보고서 1군 #3).
+	LastAttackResult = ECombatDamageResult::None;
+	bLastAttackConnected = false;
+	// 몽타주 없는 공격이면 timed 폴백 경로(UpdateAttackExecution 에서 active 프레임에 데미지).
+	bCurrentAttackMontageless = (CurrentAttack.Montage == nullptr);
 	// 프레임 데이터 타임라인 시작 — startup/active/recovery + 위험표식.
 	if (UCombatMoveComponent* Move = CombatMove.Get())
 	{
@@ -375,10 +415,12 @@ bool AEnemyCharacter::StartAttackExecution(const FEnemyAttackData& Attack)
 		Combat->MarkAttacking(GetAttackExecutionDuration(CurrentAttack));
 	}
 
-	const bool bMontageStarted = PlayCombatMontage(CurrentAttack.Montage);
+	// 몽타주가 없으면(에셋 미제작) 재생을 건너뛰고 timed 공격으로 진행한다.
+	const bool bMontageStarted = CurrentAttack.Montage ? PlayCombatMontage(CurrentAttack.Montage) : true;
 	if (!bMontageStarted)
 	{
 		bCurrentAttackActive = false;
+		bCurrentAttackMontageless = false;
 		CurrentAttack = FEnemyAttackData();
 		CurrentAttackDamagedActors.clear();
 		if (!IsDead())
@@ -459,8 +501,11 @@ bool AEnemyCharacter::ApplyCurrentAttackDamageToActor(AActor* Target, const FVec
 	Spec.HitDirection = HitDirection.IsNearlyZero() ? GetActorForward() : HitDirection.Normalized();
 
 	const FCombatDamageReport Report = TargetHealth->ApplyDamageSpec(Spec);
+	// 공격 문법 분기용 결과 캐시: 탄기당함/적중을 Lua 가 읽어 후속을 바꾼다.
+	LastAttackResult = Report.Result;
 	if (Report.Result == ECombatDamageResult::Damaged || Report.Result == ECombatDamageResult::Killed)
 	{
+		bLastAttackConnected = true;
 		MarkCurrentAttackDamagedActor(Target);
 		return true;
 	}
@@ -507,11 +552,31 @@ void AEnemyCharacter::UpdateAttackExecution(float DeltaTime)
 	CurrentAttackElapsed += DeltaTime;
 	FaceTarget(DeltaTime);
 
+	// 몽타주 없는 timed 공격의 폴백 데미지: active 프레임 동안 사정권 내 타깃에 1회 적용한다.
+	// (몽타주가 있으면 AnimNotifyState_AttackHitWindow 가 전담하므로 이 경로는 타지 않는다.)
+	if (bCurrentAttackMontageless)
+	{
+		UCombatMoveComponent* Move = CombatMove.Get();
+		UEnemyAIBrainComponent* Brain = AIBrainComponent.Get();
+		if (Move && Move->GetPhaseInt() == static_cast<int32>(ECombatMovePhase::Active) && Brain && Brain->HasValidTarget())
+		{
+			if (AActor* Tgt = Brain->GetTarget())
+			{
+				const float Reach = (CurrentAttack.MaxRange > 0.0f ? CurrentAttack.MaxRange : DefaultAttackRange) + GetActorCapsuleRadius(Tgt) + 0.3f;
+				if (Brain->GetFlatDistanceToTarget() <= Reach)
+				{
+					ApplyCurrentAttackDamageToActor(Tgt, Tgt->GetActorLocation());
+				}
+			}
+		}
+	}
+
 	const float Duration = GetAttackExecutionDuration(CurrentAttack);
 	if (CurrentAttackElapsed >= Duration)
 	{
 		Brain_ReleaseAttackToken();
 		bCurrentAttackActive = false;
+		bCurrentAttackMontageless = false;
 		CurrentAttackElapsed = 0.0f;
 		CurrentAttack = FEnemyAttackData();
 		CurrentAttackDamagedActors.clear();
@@ -529,6 +594,7 @@ void AEnemyCharacter::HandleDeath(UHealthComponent* Component, AActor* DamageCau
 	bCanRotate = false;
 	bCanAttack = false;
 	bCurrentAttackActive = false;
+	bCurrentAttackMontageless = false;
 	CurrentAttack = FEnemyAttackData();
 	CurrentAttackDamagedActors.clear();
 	if (UCombatMoveComponent* Move = CombatMove.Get())
@@ -724,7 +790,8 @@ bool AEnemyCharacter::CanUseAttackDataNow(const FEnemyAttackData& Attack) const
 	{
 		return false;
 	}
-	if (!Attack.AttackName.IsValid() || !Attack.Montage || Attack.Weight <= 0.0f)
+	// 몽타주는 필수 아님 — 미제작 데이터에서도 timed 공격으로 실행 가능(StartAttackExecution 폴백).
+	if (!Attack.AttackName.IsValid() || Attack.Weight <= 0.0f)
 	{
 		return false;
 	}
@@ -1061,6 +1128,67 @@ void AEnemyCharacter::Brain_OpenDeflect()
 	SetRuntimeState(FName("Deflect"));
 }
 
+// 은신 인지 노출 ──
+int32 AEnemyCharacter::Brain_GetAwarenessState() const
+{
+	return Awareness.IsValid() ? Awareness->GetAwarenessStateInt() : 3; // 없으면 Alert 로 간주
+}
+
+float AEnemyCharacter::Brain_GetSuspicion() const
+{
+	return Awareness.IsValid() ? Awareness->GetSuspicion() : 1.0f;
+}
+
+bool AEnemyCharacter::Brain_IsAlerted() const
+{
+	// 게이팅이 꺼져 있으면 항상 전투 허용(기존 동작 보존). 켜져 있으면 Awareness 가 Alert 일 때만.
+	if (!bUseAwarenessGating)
+	{
+		return true;
+	}
+	return Awareness.IsValid() ? Awareness->IsInCombat() : true;
+}
+
+bool AEnemyCharacter::Brain_IsUnaware() const
+{
+	if (!bUseAwarenessGating)
+	{
+		return false;
+	}
+	return Awareness.IsValid() ? Awareness->IsUnaware() : false;
+}
+
+void AEnemyCharacter::Brain_Investigate()
+{
+	if (!Awareness.IsValid())
+	{
+		return;
+	}
+	RequestMoveToLocation(Awareness->GetInvestigateLocation(), -1.0f, true);
+}
+
+// 공격 문법 분기 신호 ──
+bool AEnemyCharacter::Brain_LastAttackWasDeflected() const
+{
+	return LastAttackResult == ECombatDamageResult::Deflected;
+}
+
+bool AEnemyCharacter::Brain_LastAttackConnected() const
+{
+	return bLastAttackConnected;
+}
+
+// 데스블로우 스톡 노출 ──
+int32 AEnemyCharacter::Brain_GetStocks() const
+{
+	return Execution.IsValid() ? Execution->GetCurrentStocks() : 0;
+}
+
+bool AEnemyCharacter::Brain_IsDeathblowReady() const
+{
+	return Execution.IsValid() ? Execution->IsDeathblowReady() : false;
+}
+
 bool AEnemyCharacter::Brain_AcquireAttackToken()
 {
 	return AcquireAttackTokenForDuration(SquadTokenDuration);
@@ -1084,6 +1212,15 @@ int32 AEnemyCharacter::Brain_GetSquadSlot() const
 		return -1;
 	}
 	return FSquadCoordinator::Get().GetSlotIndex(const_cast<AEnemyCharacter*>(this), Brain->GetTarget(), World->GetGameTimeSeconds());
+}
+
+int32 AEnemyCharacter::Brain_GetSquadRole() const
+{
+	// 링 슬롯(CachedSquadSlot)에서 파생. 0번=Closer(전열), 1번=Harasser(차열), 그 외/미교전=Reserve(후열).
+	if (CachedSquadSlot < 0)  return 2; // 미교전 → Reserve
+	if (CachedSquadSlot == 0) return 0; // Closer
+	if (CachedSquadSlot == 1) return 1; // Harasser
+	return 2;                            // Reserve
 }
 
 void AEnemyCharacter::UpdateAILOD()

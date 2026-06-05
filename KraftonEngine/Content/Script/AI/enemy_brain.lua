@@ -176,7 +176,8 @@ local function select_attack()
     return false
 end
 
-local function should_deflect(style)
+local function should_deflect(style, bias)
+    bias = bias or 1.0
     if call(obj, "Brain_TargetThreatening") ~= true then return false end
     local distance = call(obj, "Brain_GetDistance") or 9999.0
     local range = call(obj, "Brain_GetAttackRange") or 3.0
@@ -185,7 +186,7 @@ local function should_deflect(style)
     if not ((call(obj, "Brain_CanSeeTarget") == true and call(obj, "Brain_HasLineOfSight") == true) or call(obj, "Brain_IsInProximity") == true) then
         return false
     end
-    return math.random() < style.react * style.deflect
+    return math.random() < style.react * style.deflect * bias
 end
 
 local function decide_movement(style)
@@ -230,7 +231,7 @@ end
 function BeginPlay()
     define_runtime_states()
     S = {
-        isBoss = type(call(obj, "GetBossPhase")) == "number",
+        isBoss = call(obj, "Brain_IsBoss") == true,
     }
     pcall(function() math.randomseed((tonumber(obj.UUID) or os.time() or 1) + 13) end)
 end
@@ -251,16 +252,33 @@ function Tick(dt)
         return
     end
 
+    -- 은신 인지 게이팅(보고서 1군 #2): 전투 확정(Alert) 전에는 추격/공격하지 않는다.
+    -- bUseAwarenessGating 이 꺼져 있으면 Brain_IsAlerted 가 항상 true → 기존 동작 유지.
+    if call(obj, "Brain_IsAlerted") == false then
+        local aw = call(obj, "Brain_GetAwarenessState") or 3
+        if aw == 2 or aw == 4 then      -- Investigating / Searching
+            call(obj, "Brain_Investigate")
+        else
+            call(obj, "Brain_Idle")
+        end
+        return
+    end
+
     call(obj, "Brain_FaceTarget")
 
     local style = current_style()
-    if should_deflect(style) then
+    -- 공격 문법 분기(보고서 1군 #3): 직전 공격이 탄기당했으면 무리한 재돌입 대신 받아치기 성향↑.
+    local deflectBias = (call(obj, "Brain_LastAttackWasDeflected") == true) and 2.2 or 1.0
+    if should_deflect(style, deflectBias) then
         call(obj, "Brain_OpenDeflect")
         return
     end
 
     local distance = call(obj, "Brain_GetDistance") or 9999.0
     local range = call(obj, "Brain_GetAttackRange") or 3.0
+    -- 동시 공격자 제한은 공격 토큰(Brain_AcquireAttackToken)이 전담한다. 역할(Brain_GetSquadRole)은
+    -- 디버그/포지셔닝 참고용으로만 노출하고, 공격 개시를 막지 않는다(후열이 영영 공격 못 해
+    -- strafe 만 반복하는 것을 방지).
     if distance <= range * 2.5 and style.attack > 0.0 then
         if call(obj, "Brain_AcquireAttackToken") == true then
             if select_attack() and call(obj, "Brain_PlaySelectedAttack") == true then

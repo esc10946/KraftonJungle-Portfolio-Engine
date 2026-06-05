@@ -14,6 +14,8 @@ class UAIBlackboardComponent;
 class UAIPerceptionComponent;
 class UAIDecisionTraceComponent;
 class UCombatMoveComponent;
+class UExecutionComponent;
+class UAwarenessComponent;
 class FArchive;
 
 #include "Source/Engine/GameFramework/Pawn/EnemyCharacter.generated.h"
@@ -48,6 +50,10 @@ public:
 	UAIDecisionTraceComponent* GetDecisionTrace() const { return DecisionTrace; }
 	UFUNCTION(Pure, Category="Enemy|AICore")
 	UCombatMoveComponent* GetCombatMove() const { return CombatMove; }
+	UFUNCTION(Pure, Category="Enemy|AICore")
+	UExecutionComponent* GetExecution() const { return Execution; }
+	UFUNCTION(Pure, Category="Enemy|AICore")
+	UAwarenessComponent* GetAwareness() const { return Awareness; }
 	UFUNCTION(Pure, Category="Enemy|AICore")
 	int32 GetAIPhase() const { return GetCurrentAIPhase(); }
 
@@ -117,6 +123,8 @@ public:
 	bool Brain_IsInProximity() const;
 	UFUNCTION(Pure, Category="Enemy|Brain")
 	int32 Brain_GetPhase() const;
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	bool Brain_IsBoss() const { return IsBossCharacter(); }
 	UFUNCTION(Pure, Category="Enemy|Brain")
 	float Brain_GetStateTime() const;
 	UFUNCTION(Pure, Category="Enemy|Brain")
@@ -198,6 +206,36 @@ public:
 	UFUNCTION(Callable, Category="Enemy|Brain")
 	void Brain_OpenDeflect();
 
+	// 은신 인지 상태 (AwarenessComponent 가 갱신, Lua 가 행동 게이팅) ──
+	// 0=Unaware 1=Suspicious 2=Investigating 3=Alert 4=Searching 5=Returning
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	int32 Brain_GetAwarenessState() const;
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	float Brain_GetSuspicion() const;
+	// 전투 확정(Alert) 여부 — 평소엔 추격/공격을 시작하지 않고 수상/탐색만.
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	bool Brain_IsAlerted() const;
+	// 미인지(Unaware/Suspicious) — 스텔스 데스블로우 대상 자격.
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	bool Brain_IsUnaware() const;
+	// 마지막 소음/목격 위치로 이동(수색/조사). 경로탐색을 사용.
+	UFUNCTION(Callable, Category="Enemy|Brain")
+	void Brain_Investigate();
+
+	// ── 공격 문법 분기 신호 (직전 공격 결과) ──
+	// 직전 내 공격이 탄기당했는가 — 다음은 가드/이탈로 분기할 근거.
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	bool Brain_LastAttackWasDeflected() const;
+	// 직전 내 공격이 적중했는가 — 콤보/압박으로 이어갈 근거.
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	bool Brain_LastAttackConnected() const;
+
+	// ── 데스블로우 스톡 (Lua 가 페이즈/연출 트리거로 사용) ──
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	int32 Brain_GetStocks() const;
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	bool Brain_IsDeathblowReady() const;
+
 	// ── Phase 3 협동 (공격 토큰) ──
 	// 공격 토큰을 시도/획득. 타깃에 이미 동시공격 상한만큼 나가 있으면 false → 지원/재배치.
 	UFUNCTION(Callable, Category="Enemy|Brain")
@@ -206,6 +244,10 @@ public:
 	void Brain_ReleaseAttackToken();
 	UFUNCTION(Pure, Category="Enemy|Brain")
 	int32 Brain_GetSquadSlot() const;
+	// 전투 역할: 0 Closer(전열) / 1 Harasser(차열) / 2 Reserve(후열). 링 슬롯에서 파생.
+	// Reserve 는 무리하게 파고들지 않고 거리를 유지 → 다수전 화면 가독성↑.
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	int32 Brain_GetSquadRole() const;
 
 	UPROPERTY(Edit, Save, Category="Enemy|Movement", DisplayName="Can Move")
 	bool bCanMove = true;
@@ -223,6 +265,10 @@ public:
 	FString BrainScriptFile = "AI/enemy_brain.lua";
 	UPROPERTY(Edit, Save, Category="Enemy|AI", DisplayName="Target Search Range", Min=0.0f, Max=1000.0f, Speed=0.5f)
 	float TargetSearchRange = 16.0f;
+	// 은신 인지 게이팅. false면 기존처럼 즉시 전투(하위호환). true면 Awareness 가
+	// Alert 가 되기 전에는 추격/공격을 시작하지 않고 수상/탐색만 한다.
+	UPROPERTY(Edit, Save, Category="Enemy|AI", DisplayName="Use Awareness Gating")
+	bool bUseAwarenessGating = false;
 	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Default Attack Range", Min=0.0f, Max=1000.0f, Speed=0.1f)
 	float DefaultAttackRange = 1.7f;
 
@@ -260,6 +306,8 @@ protected:
 	void Tick(float DeltaTime) override;
 	void HandleDeath(UHealthComponent* Component, AActor* DamageCauser, AActor* InstigatorActor) override;
 	virtual int32 GetCurrentAIPhase() const { return 1; }
+	// 파생 보스 클래스가 true 로 재정의. Brain_IsBoss 가 이 가상 함수를 통해 안전히 분기한다.
+	virtual bool IsBossCharacter() const { return false; }
 	void RebindEnemyComponents();
 	void UpdateAttackExecution(float DeltaTime);
 	// Phase 4: 타깃과의 거리로 LOD 를 정해 전투 시계 스텝 주기를 조절(원거리 적은 저빈도 think).
@@ -283,12 +331,21 @@ protected:
 	TWeakObjectPtr<UAIPerceptionComponent> Perception = nullptr;
 	TWeakObjectPtr<UAIDecisionTraceComponent> DecisionTrace = nullptr;
 	TWeakObjectPtr<UCombatMoveComponent> CombatMove = nullptr;
+	TWeakObjectPtr<UExecutionComponent> Execution = nullptr;
+	TWeakObjectPtr<UAwarenessComponent> Awareness = nullptr;
 
 private:
 	bool bCurrentAttackActive = false;
 	float CurrentAttackElapsed = 0.0f;
 	FEnemyAttackData CurrentAttack;
 	TArray<TWeakObjectPtr<AActor>> CurrentAttackDamagedActors;
+
+	// 직전 공격 결과(공격 문법 분기용). 공격 시작 시 리셋, 피해 적용 시 갱신.
+	ECombatDamageResult LastAttackResult = ECombatDamageResult::None;
+	bool bLastAttackConnected = false;
+	// 현재 공격이 몽타주 없는 timed 공격인가. 몽타주 미제작 데이터에서도 AI가 공격하도록,
+	// 이 경우 active 프레임에 폴백 데미지를 적용한다(몽타주가 있으면 노티파이가 전담 → 충돌 없음).
+	bool bCurrentAttackMontageless = false;
 
 	// 전투 고정틱 시계 + Lua 두뇌 파사드 런타임 상태.
 	FCombatClock CombatClock;

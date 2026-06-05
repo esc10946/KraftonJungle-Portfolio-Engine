@@ -221,7 +221,32 @@ void UPathFollowingComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	Direction.Z = 0.0f;
 	if (!Direction.IsNearlyZero())
 	{
-		Character->AddMovementInput(Direction.Normalized(), MoveInputScale);
+		const float DistToWaypoint = Direction.Length();
+		float Scale = MoveInputScale;
+
+		// 관성 overshoot(공전/루프) 방지: 최종 목표 가까이서, 또는 다음 웨이포인트로 급회전일 때
+		// 가까울수록 입력을 줄여 미리 감속한다(정지거리 > 수용반경이라 안 하면 목표를 지나쳐 돈다).
+		const bool bFinal = CurrentPathIndex >= Path.Num() - 1;
+		float SlowRadius = bFinal ? ArrivalSlowdownRadius : 0.0f;
+		if (!bFinal && CurrentPathIndex + 1 < Path.Num())
+		{
+			FVector ToNext = Path.GetPathPointLocation(CurrentPathIndex + 1) - Target;
+			ToNext.Z = 0.0f;
+			if (!ToNext.IsNearlyZero())
+			{
+				const FVector CurDir  = Direction.Normalized();
+				const FVector NextDir = ToNext.Normalized();
+				const float   Dot     = CurDir.X * NextDir.X + CurDir.Y * NextDir.Y; // 1=직진, -1=U턴
+				const float   Turn    = (1.0f - Dot) * 0.5f;                          // 0=직진, 1=U턴
+				SlowRadius = CornerSlowdownRadius * Turn;
+			}
+		}
+		if (SlowRadius > 0.01f && DistToWaypoint < SlowRadius)
+		{
+			Scale *= std::max(MinArrivalScale, DistToWaypoint / SlowRadius);
+		}
+
+		Character->AddMovementInput(Direction.Normalized(), Scale);
 	}
 
 	const FVector CurrentLocation = Character->GetActorLocation();

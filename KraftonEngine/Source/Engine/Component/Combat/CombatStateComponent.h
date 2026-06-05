@@ -132,6 +132,9 @@ public:
 	FCombatStateSignature OnStaggerEnded;
 	FCombatPerilousSignature OnPerilousCue;
 	FCombatDeflectSignature OnDeflectResolved;
+	// 자세가 0이 되는 순간 발행 — ExecutionComponent 가 받아 데스블로우 창을 연다.
+	// 자세 붕괴와 "처형으로 전환"을 분리하기 위한 신호. 리스너가 없으면 종전처럼 stagger 만 일어난다.
+	FCombatStateSignature OnPostureBroken;
 
 private:
 	float GetHealthRatioSafe() const;
