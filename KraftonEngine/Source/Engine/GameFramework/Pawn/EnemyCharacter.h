@@ -191,6 +191,20 @@ public:
 	float GapCloserRangeScale = 2.5f;
 	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Gap Closer Dash Scale", Min=0.0f, Max=3.0f, Speed=0.05f)
 	float GapCloserDashScale = 1.2f;
+	// 공격 가능 판단의 공통 수직 허용값. 개별 공격 FEnemyAttackData::MaxVerticalDelta 가 더 작으면 그 값을 우선한다.
+	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Attack Vertical Tolerance", Min=0.0f, Max=100.0f, Speed=0.05f)
+	float AttackVerticalTolerance = 1.25f;
+	// 토큰 만료가 공격 회복보다 먼저 오는 것을 막기 위한 여유 시간. 실제 토큰 길이는
+	// max(SquadTokenDuration, SelectedAttackDuration + 이 값)이다.
+	UPROPERTY(Edit, Save, Category="Enemy|Squad", DisplayName="Attack Token Safety Buffer", Min=0.0f, Max=5.0f, Speed=0.05f)
+	float AttackTokenSafetyBuffer = 0.15f;
+	// Built-in 반응 행동: 타깃 공격 커밋을 감지했을 때 탄기 시도 확률/쿨다운/정면 각도.
+	UPROPERTY(Edit, Save, Category="Enemy|Deflect", DisplayName="Deflect Chance", Min=0.0f, Max=1.0f, Speed=0.05f)
+	float DeflectChance = 0.25f;
+	UPROPERTY(Edit, Save, Category="Enemy|Deflect", DisplayName="Deflect Cooldown", Min=0.0f, Max=10.0f, Speed=0.05f)
+	float DeflectCooldown = 1.2f;
+	UPROPERTY(Edit, Save, Category="Enemy|Deflect", DisplayName="Deflect Max Abs Angle", Min=0.0f, Max=180.0f, Speed=1.0f)
+	float DeflectMaxAbsAngle = 80.0f;
 	UPROPERTY(Edit, Save, Category="Enemy|LOD", DisplayName="LOD Near Distance", Min=0.0f, Max=1000.0f, Speed=0.5f)
 	float LODNearDistance = 25.0f;
 	UPROPERTY(Edit, Save, Category="Enemy|LOD", DisplayName="LOD Far Distance", Min=0.0f, Max=2000.0f, Speed=0.5f)
@@ -213,6 +227,9 @@ protected:
 	float GetCurrentHealthRatio() const;
 	bool IsTargetHostileDamageReceiver(AActor* Target) const;
 	bool IsTargetInsideCurrentAttackFallback(AActor* Target) const;
+	void StopPathFollowingOnly();
+	bool AcquireAttackTokenForDuration(float DesiredDuration);
+	float GetEffectiveThinkInterval() const;
 
 	TWeakObjectPtr<UEnemyAIBrainComponent> AIBrainComponent = nullptr;
 	TWeakObjectPtr<UEnemyAttackComponent> AttackComponent = nullptr;
@@ -238,6 +255,7 @@ private:
 	FName SelectedAttackName = FName::None;
 	bool bStrafeClockwise = true;
 	int32 CurrentLODLevel = 0; // 0=near(60Hz), 1=mid(30Hz), 2=far(10Hz)
+	float DeflectCooldownRemaining = 0.0f;
 	int32 CachedSquadSlot = -1;
 	int32 CachedEngagerCount = 0;
 };

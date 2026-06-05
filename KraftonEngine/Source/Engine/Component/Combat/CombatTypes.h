@@ -219,6 +219,11 @@ struct FEnemyAttackData
 	UPROPERTY(Edit, Save, Category="Attack|Range", DisplayName="Max Range", Min=0.0f, Max=100000.0f, Speed=1.0f)
 	float MaxRange = 300.0f;
 
+	// 수평 사거리와 별도로 허용할 최대 높이 차. 높낮이 맵에서 flat 거리만 보고
+	// 벽 위/아래 타깃을 때리는 것을 막는다. 0 이하면 수직 제한을 적용하지 않는다.
+	UPROPERTY(Edit, Save, Category="Attack|Range", DisplayName="Max Vertical Delta", Min=0.0f, Max=100000.0f, Speed=0.05f)
+	float MaxVerticalDelta = 1.25f;
+
 	UPROPERTY(Edit, Save, Category="Attack|Angle", DisplayName="Max Abs Angle", Min=0.0f, Max=180.0f, Speed=1.0f)
 	float MaxAbsAngle = 70.0f;
 

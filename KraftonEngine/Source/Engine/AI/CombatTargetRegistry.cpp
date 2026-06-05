@@ -1,6 +1,7 @@
 #include "AI/CombatTargetRegistry.h"
 
 #include "Component/Combat/CombatStateComponent.h"
+#include "Component/Combat/HealthComponent.h"
 #include "GameFramework/AActor.h"
 #include "Object/Object.h"
 
@@ -88,6 +89,13 @@ AActor* FCombatTargetRegistry::FindNearestHostile(const UCombatStateComponent* O
         {
             continue;
         }
+        if (UHealthComponent* Health = CandidateActor->GetComponentByClass<UHealthComponent>())
+        {
+            if (Health->IsDead())
+            {
+                continue;
+            }
+        }
         FVector Delta = CandidateActor->GetActorLocation() - From;
         Delta.Z = 0.0f; // 평면 거리 — 시야/추적 정책과 일관
         const float DistSq = Delta.X * Delta.X + Delta.Y * Delta.Y;
@@ -131,6 +139,13 @@ FVector FCombatTargetRegistry::ComputeSeparation(const UCombatStateComponent* Ow
         if (!IsValid(CandidateActor))
         {
             continue;
+        }
+        if (UHealthComponent* Health = CandidateActor->GetComponentByClass<UHealthComponent>())
+        {
+            if (Health->IsDead())
+            {
+                continue;
+            }
         }
         FVector Away = From - CandidateActor->GetActorLocation();
         Away.Z = 0.0f;

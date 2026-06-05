@@ -31,6 +31,7 @@ struct FUtilityScoreBreakdown
     float Phase      = 1.0f;
     float Repetition = 1.0f;
     float Recovery   = 1.0f; // 타깃 후딜 중 punish 보너스 (Phase 2)
+    float Perception = 1.0f; // CanSee/LOS/proximity/수직 허용/갭클로저 모드 게이트
     float Final      = 0.0f;
 };
 

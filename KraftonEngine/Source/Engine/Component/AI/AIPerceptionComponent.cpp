@@ -32,6 +32,8 @@ namespace
     const FName Key_Distance3D        = FName("Distance3D");
     const FName Key_VerticalDelta     = FName("VerticalDelta");
     const FName Key_HasLOS            = FName("HasLOS");
+    const FName Key_InProximity       = FName("InProximity");
+    const FName Key_LastSeenValid     = FName("LastSeenValid");
 }
 
 void UAIPerceptionComponent::AgeStimuli()
@@ -140,6 +142,8 @@ void UAIPerceptionComponent::UpdateSenses()
         bHasLineOfSight = false;
         BB->SetBool(Key_CanSee, false);
         BB->SetBool(Key_HasLOS, false);
+        BB->SetBool(Key_InProximity, false);
+        BB->SetBool(Key_LastSeenValid, false);
         BB->SetFloat(Key_Distance, 9999.0f);
         BB->SetFloat(Key_Distance3D, 9999.0f);
         BB->SetFloat(Key_ThreatScore, 0.0f);
@@ -193,9 +197,11 @@ void UAIPerceptionComponent::UpdateSenses()
     const bool bInFov   = AbsAngle <= (FieldOfViewDegrees * 0.5f);
     bHasLineOfSight     = (!bRequireLineOfSight) || ComputeLineOfSight(TargetActor);
     const bool bVisible = bInRange && bInFov && bHasLineOfSight;
+    const bool bInProximity = FlatDist <= ProximityRange;
     bCanSeeTarget       = bVisible;
     BB->SetBool(Key_CanSee, bVisible);
     BB->SetBool(Key_HasLOS, bHasLineOfSight);
+    BB->SetBool(Key_InProximity, bInProximity);
 
     // ── 위협 점수: 타깃이 공격을 커밋했고 사정권이면 1 ──
     const float ThreatScore = (TargetThreat > 0.0f && FlatDist <= SightRange) ? 1.0f : 0.0f;
@@ -205,9 +211,10 @@ void UAIPerceptionComponent::UpdateSenses()
     {
         const FVector TargetLoc = TargetActor->GetActorLocation();
         BB->SetLastSeenLocation(TargetLoc);
+        BB->SetBool(Key_LastSeenValid, true);
         RecordStimulus(EAISenseType::Sight, TargetActor, TargetLoc, 1.0f);
     }
-    if (FlatDist <= ProximityRange)
+    if (bInProximity)
     {
         RecordStimulus(EAISenseType::Proximity, TargetActor, TargetActor->GetActorLocation(), 1.0f);
     }

@@ -17,6 +17,11 @@ namespace
     const FName Key_TargetPosture = FName("TargetPosture");
     const FName Key_TargetInRecovery = FName("TargetInRecovery");
     const FName Key_PhaseAggression  = FName("PhaseAggression");
+    const FName Key_CanSee           = FName("CanSee");
+    const FName Key_HasLOS           = FName("HasLOS");
+    const FName Key_InProximity      = FName("InProximity");
+    const FName Key_VerticalDelta    = FName("VerticalDelta");
+    const FName Key_AttackModeGapCloserOnly = FName("AttackModeGapCloserOnly");
 
     // 거리 곡선: 공격 사정대(MinRange~MaxRange) 중앙에서 1, 가장자리에서 0.4.
     float RangeCurve(const FEnemyAttackData& Attack, float Distance)
@@ -68,6 +73,12 @@ FName UUtilityReasonerComponent::SelectBestAction()
     const float TargetThreat  = BB->GetFloat(Key_TargetThreat);
     const float TargetPosture = BB->GetFloat(Key_TargetPosture);
     const bool  bTargetInRecovery = BB->GetBool(Key_TargetInRecovery);
+    const bool  bCanSee = BB->GetBool(Key_CanSee);
+    const bool  bHasLOS = BB->GetBool(Key_HasLOS);
+    const bool  bInProximity = BB->GetBool(Key_InProximity);
+    const bool  bGapCloserOnly = BB->GetBool(Key_AttackModeGapCloserOnly);
+    const float VerticalDelta = BB->GetFloat(Key_VerticalDelta);
+    const bool  bPerceptuallyAttackable = (bCanSee && bHasLOS) || bInProximity;
     // 보스 페이즈 감독기가 기록(없으면 1.0 = 중립). 높은 페이즈일수록 공격성 상승.
     const float PhaseAggression = BB->HasFloat(Key_PhaseAggression) ? BB->GetFloat(Key_PhaseAggression) : 1.0f;
 
@@ -79,6 +90,18 @@ FName UUtilityReasonerComponent::SelectBestAction()
 
     for (const FEnemyAttackData& Attack : AttackComp->Attacks)
     {
+        if (bGapCloserOnly && !Attack.bIsGapCloser && Attack.Tactic != EEnemyAttackTactic::GapCloser)
+        {
+            continue;
+        }
+        if (!bPerceptuallyAttackable)
+        {
+            continue;
+        }
+        if (Attack.MaxVerticalDelta > 0.0f && VerticalDelta > Attack.MaxVerticalDelta)
+        {
+            continue;
+        }
         if (!AttackComp->CanUseAttack(Attack, Phase, Distance, AbsAngle))
         {
             continue;
@@ -142,7 +165,18 @@ FName UUtilityReasonerComponent::SelectBestAction()
         const float RepeatScale = FMath::Clamp(Attack.RepeatWeightScale, 0.0f, 1.0f);
         B.Repetition = std::pow(RepeatScale, static_cast<float>(RepeatCount));
 
-        B.Final = B.Base * B.Range * B.Angle * B.Threat * B.Posture * B.Phase * B.Recovery * B.Repetition;
+        B.Perception = 1.0f;
+        if (bInProximity && (!bCanSee || !bHasLOS))
+        {
+            // 근접 감지만으로 허용한 공격은 가능하지만, 시야가 열린 공격보다 우선도는 낮춘다.
+            B.Perception = 0.75f;
+        }
+        if (bGapCloserOnly && (Attack.bIsGapCloser || Attack.Tactic == EEnemyAttackTactic::GapCloser))
+        {
+            B.Perception *= 1.15f;
+        }
+
+        B.Final = B.Base * B.Range * B.Angle * B.Threat * B.Posture * B.Phase * B.Recovery * B.Repetition * B.Perception;
 
         FUtilityCandidate Candidate;
         Candidate.ActionId  = Attack.AttackName;

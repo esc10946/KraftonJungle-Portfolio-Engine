@@ -3,6 +3,7 @@
 #include "AI/CombatTargetRegistry.h"
 #include "Component/Character/CharacterStateMachineComponent.h"
 #include "Component/Combat/CombatStateComponent.h"
+#include "Component/Combat/HealthComponent.h"
 #include "GameFramework/AActor.h"
 #include "GameFramework/Pawn/EnemyCharacter.h"
 #include "GameFramework/Controller/AIController.h"
@@ -71,6 +72,34 @@ namespace
 	{
 		return State == ECharacterState::Dead || State == ECharacterState::Staggered || State == ECharacterState::Hit;
 	}
+
+	bool IsAliveTarget(AActor* Actor)
+	{
+		if (!IsValid(Actor))
+		{
+			return false;
+		}
+		if (UHealthComponent* Health = Actor->GetComponentByClass<UHealthComponent>())
+		{
+			return !Health->IsDead();
+		}
+		return true;
+	}
+
+	bool IsHostileOrTaggedFallback(AActor* OwnerActor, AActor* Candidate, const FName& FallbackTag)
+	{
+		if (!OwnerActor || !Candidate || Candidate == OwnerActor)
+		{
+			return false;
+		}
+		UCombatStateComponent* OwnerCombat = OwnerActor->GetComponentByClass<UCombatStateComponent>();
+		UCombatStateComponent* CandidateCombat = Candidate->GetComponentByClass<UCombatStateComponent>();
+		if (OwnerCombat && CandidateCombat)
+		{
+			return OwnerCombat->IsHostileTo(CandidateCombat);
+		}
+		return FallbackTag.IsValid() && Candidate->HasTag(FallbackTag);
+	}
 }
 
 void UEnemyAIBrainComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction& ThisTickFunction)
@@ -93,6 +122,11 @@ void UEnemyAIBrainComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 	}
 	StateTime += DeltaTime; // fallback 캐시 — GetStateTime 은 SM 이 있으면 그쪽을 우선.
 
+	if (TargetActor.IsValid() && !HasValidTarget())
+	{
+		ClearTarget();
+		return;
+	}
 	if (HasValidTarget() && LoseTargetRange > 0.0f && GetDistanceToTarget() > LoseTargetRange)
 	{
 		ClearTarget();
@@ -122,7 +156,19 @@ void UEnemyAIBrainComponent::ClearTarget()
 
 bool UEnemyAIBrainComponent::HasValidTarget() const
 {
-	return TargetActor.IsValid();
+	AActor* Target = TargetActor.Get();
+	AActor* OwnerActor = GetOwner();
+	if (!IsAliveTarget(Target) || !OwnerActor || Target == OwnerActor)
+	{
+		return false;
+	}
+	UCombatStateComponent* OwnerCombat = OwnerActor->GetComponentByClass<UCombatStateComponent>();
+	UCombatStateComponent* TargetCombat = Target->GetComponentByClass<UCombatStateComponent>();
+	if (OwnerCombat && TargetCombat)
+	{
+		return OwnerCombat->IsHostileTo(TargetCombat);
+	}
+	return Target->HasTag(DefaultTargetTag) || Target->HasTag(FName("HitTarget"));
 }
 
 AActor* UEnemyAIBrainComponent::AcquireTargetByTag(const FName& Tag)
@@ -139,11 +185,17 @@ AActor* UEnemyAIBrainComponent::AcquireTargetByTag(const FName& Tag)
 	const FVector OwnerLocation = OwnerActor ? OwnerActor->GetActorLocation() : FVector::ZeroVector;
 	for (AActor* Candidate : World->GetActors())
 	{
-		if (!IsValid(Candidate) || Candidate == OwnerActor || !Candidate->HasTag(Tag))
+		if (!IsAliveTarget(Candidate) || Candidate == OwnerActor || !Candidate->HasTag(Tag))
 		{
 			continue;
 		}
-		const float DistSq = FVector::DistSquared(Candidate->GetActorLocation(), OwnerLocation);
+		if (!IsHostileOrTaggedFallback(OwnerActor, Candidate, Tag))
+		{
+			continue;
+		}
+		FVector Delta = Candidate->GetActorLocation() - OwnerLocation;
+		Delta.Z = 0.0f;
+		const float DistSq = Delta.X * Delta.X + Delta.Y * Delta.Y;
 		if (DetectionRange > 0.0f && DistSq > DetectionRange * DetectionRange)
 		{
 			continue;
@@ -256,7 +308,7 @@ float UEnemyAIBrainComponent::GetAngleToTarget() const
 
 bool UEnemyAIBrainComponent::IsTargetInRange(float Range) const
 {
-	return HasValidTarget() && GetDistanceToTarget() <= Range;
+	return HasValidTarget() && GetFlatDistanceToTarget() <= Range;
 }
 
 bool UEnemyAIBrainComponent::IsTargetInFront(float MaxAbsAngleDegrees) const

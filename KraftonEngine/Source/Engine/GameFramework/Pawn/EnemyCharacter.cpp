@@ -25,6 +25,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 
 #include "Core/Logging/Log.h"
 
@@ -40,7 +41,18 @@ namespace
 	float GetAttackExecutionDuration(const FEnemyAttackData& Attack)
 	{
 		const float FallbackEnd = Attack.bUseFallbackDamage ? Attack.FallbackDamageDelay + 0.1f : 0.0f;
-		return (std::max)(0.05f, (std::max)(Attack.RecoveryTime, FallbackEnd));
+		const float FrameDuration = static_cast<float>(Attack.StartupFrames + Attack.ActiveFrames + Attack.RecoveryFrames) / 60.0f;
+		return (std::max)(0.05f, (std::max)((std::max)(Attack.RecoveryTime, FallbackEnd), FrameDuration));
+	}
+
+	void StretchAttackFramesToDuration(FEnemyAttackData& Attack, float Duration)
+	{
+		const int32 RequiredTotalFrames = static_cast<int32>(std::ceil((std::max)(0.05f, Duration) * 60.0f));
+		const int32 CurrentTotalFrames = Attack.StartupFrames + Attack.ActiveFrames + Attack.RecoveryFrames;
+		if (CurrentTotalFrames < RequiredTotalFrames)
+		{
+			Attack.RecoveryFrames += RequiredTotalFrames - CurrentTotalFrames;
+		}
 	}
 
 	// 액터의 캡슐 반경(없으면 기본값). 전투 거리/슬롯/분리를 "몸통 크기" 인식으로 만든다.
@@ -128,6 +140,10 @@ void AEnemyCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	LastTickDelta = DeltaTime;
+	DeflectCooldownRemaining = (std::max)(0.0f, DeflectCooldownRemaining - DeltaTime);
+	// LOD 는 Built-in/Lua 모두에 적용한다. Built-in 은 이 값으로 think interval 을 늘리고,
+	// Lua 는 CombatClock step 을 조절한다.
+	UpdateAILOD();
 	// 프레임 데이터 타임라인은 어느 결정 경로에서든(내장/Lua) 진행 — 위험표식·후딜 창을 만든다.
 	if (UCombatMoveComponent* Move = CombatMove.Get())
 	{
@@ -145,7 +161,6 @@ void AEnemyCharacter::Tick(float DeltaTime)
 		// 은 C++ 가 계속 실행해 준다 — "결정은 Lua, 실행은 C++".
 		// 전투 고정틱 시계를 누적해 Lua 가 Brain_ConsumeCombatStep 으로 결정을 게이트한다.
 		// LOD 가 거리별로 스텝 주기를 조절(원거리 적은 저빈도) — Phase 4.
-		UpdateAILOD();
 		CombatClock.Accumulate(DeltaTime);
 		UpdateAttackExecution(DeltaTime);
 	}
@@ -214,14 +229,19 @@ void AEnemyCharacter::FaceTarget(float DeltaTime, float OverrideYawRate)
 
 void AEnemyCharacter::StopEnemyMovement()
 {
-	if (AAIController* Controller = GetEnemyAIController())
-	{
-		Controller->StopMovement();
-	}
+	StopPathFollowingOnly();
 	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
 	{
 		Movement->ClearInputVector();
 		Movement->StopHorizontalMovementImmediately();
+	}
+}
+
+void AEnemyCharacter::StopPathFollowingOnly()
+{
+	if (AAIController* Controller = GetEnemyAIController())
+	{
+		Controller->StopMovement();
 	}
 }
 
@@ -311,7 +331,7 @@ bool AEnemyCharacter::SelectAndCommitAttack(int32 Phase, FEnemyAttackData& OutAt
 	{
 		return false;
 	}
-	const float Distance = AIBrainComponent->GetDistanceToTarget();
+	const float Distance = AIBrainComponent->GetFlatDistanceToTarget();
 	const float AbsAngle = fabsf(AIBrainComponent->GetAngleToTarget());
 	OutAttack = AttackComponent->SelectAttackForStyle(
 		Phase,
@@ -324,7 +344,27 @@ bool AEnemyCharacter::SelectAndCommitAttack(int32 Phase, FEnemyAttackData& OutAt
 	{
 		return false;
 	}
-	return AttackComponent->CommitAttackData(OutAttack);
+	const float VerticalDelta = AIBrainComponent->GetVerticalDeltaToTarget();
+	const float VerticalTolerance = OutAttack.MaxVerticalDelta > 0.0f ? OutAttack.MaxVerticalDelta : AttackVerticalTolerance;
+	if (VerticalTolerance > 0.0f && VerticalDelta > VerticalTolerance)
+	{
+		return false;
+	}
+	// 이름과 달리 기존 구현은 공격 실행 없이 쿨다운만 소비했다. 이제 실행 시작이
+	// 성공한 뒤에만 commit 하여 외부 호출에서도 cooldown-only 상태가 생기지 않는다.
+	if (!StartAttackExecution(OutAttack))
+	{
+		return false;
+	}
+	const bool bCommitted = AttackComponent->CommitAttackData(OutAttack);
+	if (bCommitted)
+	{
+		if (UAIBlackboardComponent* BB = Blackboard.Get())
+		{
+			BB->PushRecentMove(OutAttack.AttackName);
+		}
+	}
+	return bCommitted;
 }
 
 bool AEnemyCharacter::CommitAndStartAttack(int32 Phase)
@@ -346,11 +386,21 @@ bool AEnemyCharacter::CommitAndStartAttack(int32 Phase)
 	{
 		return false;
 	}
+	const float VerticalDelta = AIBrainComponent->GetVerticalDeltaToTarget();
+	const float VerticalTolerance = Attack.MaxVerticalDelta > 0.0f ? Attack.MaxVerticalDelta : AttackVerticalTolerance;
+	if (VerticalTolerance > 0.0f && VerticalDelta > VerticalTolerance)
+	{
+		return false;
+	}
 	if (!StartAttackExecution(Attack))         // 실행 시작이 성공해야
 	{
 		return false;
 	}
 	AttackComponent->CommitAttackData(Attack); // 그 다음에야 쿨다운 커밋(소비-누락 방지)
+	if (UAIBlackboardComponent* BB = Blackboard.Get())
+	{
+		BB->PushRecentMove(Attack.AttackName);
+	}
 	return true;
 }
 
@@ -370,7 +420,10 @@ bool AEnemyCharacter::StartAttackExecution(const FEnemyAttackData& Attack)
 		return false;
 	}
 
-	CurrentAttack = Attack;
+	FEnemyAttackData ExecutingAttack = Attack;
+	StretchAttackFramesToDuration(ExecutingAttack, GetAttackExecutionDuration(Attack));
+
+	CurrentAttack = ExecutingAttack;
 	CurrentAttackElapsed = 0.0f;
 	bCurrentAttackActive = true;
 	bFallbackDamageAttempted = false;
@@ -378,13 +431,13 @@ bool AEnemyCharacter::StartAttackExecution(const FEnemyAttackData& Attack)
 	// 프레임 데이터 타임라인 시작 — startup/active/recovery + 위험표식.
 	if (UCombatMoveComponent* Move = CombatMove.Get())
 	{
-		Move->BeginMove(Attack.PerilousType, Attack.StartupFrames, Attack.ActiveFrames, Attack.RecoveryFrames, Attack.PerilousCueFrame, Attack.bCanBeDeflected);
+		Move->BeginMove(CurrentAttack.PerilousType, CurrentAttack.StartupFrames, CurrentAttack.ActiveFrames, CurrentAttack.RecoveryFrames, CurrentAttack.PerilousCueFrame, CurrentAttack.bCanBeDeflected);
 	}
 	StopEnemyMovement();
 	// 갭클로저는 "이동형 공격" — 상태머신에 전진 대시를 걸어 root motion 이 없어도 거리를 좁힌다.
-	if (Attack.bIsGapCloser && GapCloserDashScale > 0.0f)
+	if (CurrentAttack.bIsGapCloser && GapCloserDashScale > 0.0f)
 	{
-		const float DashSeconds = (std::max)(0.15f, static_cast<float>(Attack.StartupFrames + Attack.ActiveFrames) / 60.0f);
+		const float DashSeconds = (std::max)(0.15f, static_cast<float>(CurrentAttack.StartupFrames + CurrentAttack.ActiveFrames) / 60.0f);
 		if (UCharacterStateMachineComponent* SM = GetStateMachine())
 		{
 			SM->BeginDash(DashSeconds, GapCloserDashScale);
@@ -398,11 +451,11 @@ bool AEnemyCharacter::StartAttackExecution(const FEnemyAttackData& Attack)
 	// 플레이어/다른 AI 가 이 적의 공격을 폴링해 패링·회피할 수 있게 한다.
 	if (UCombatStateComponent* Combat = GetCombatStateComponent())
 	{
-		Combat->MarkAttacking(GetAttackExecutionDuration(Attack));
+		Combat->MarkAttacking(GetAttackExecutionDuration(CurrentAttack));
 	}
 
-	const bool bMontageStarted = PlayCombatMontage(Attack.Montage);
-	if (!bMontageStarted && !Attack.bUseFallbackDamage)
+	const bool bMontageStarted = PlayCombatMontage(CurrentAttack.Montage);
+	if (!bMontageStarted && !CurrentAttack.bUseFallbackDamage)
 	{
 		bCurrentAttackActive = false;
 		CurrentAttack = FEnemyAttackData();
@@ -469,8 +522,16 @@ bool AEnemyCharacter::IsTargetInsideCurrentAttackFallback(AActor* Target) const
 		return false;
 	}
 	const float Radius = CurrentAttack.FallbackHitRadius > 0.0f ? CurrentAttack.FallbackHitRadius : CurrentAttack.MaxRange;
-	const float Distance = FVector::Distance(GetActorLocation(), Target->GetActorLocation());
+	FVector Delta = Target->GetActorLocation() - GetActorLocation();
+	const float VerticalDelta = fabsf(Delta.Z);
+	Delta.Z = 0.0f;
+	const float Distance = Delta.Length();
 	if (Distance > Radius)
+	{
+		return false;
+	}
+	const float VerticalTolerance = CurrentAttack.MaxVerticalDelta > 0.0f ? CurrentAttack.MaxVerticalDelta : AttackVerticalTolerance;
+	if (VerticalTolerance > 0.0f && VerticalDelta > VerticalTolerance)
 	{
 		return false;
 	}
@@ -517,6 +578,50 @@ float AEnemyCharacter::GetCurrentHealthRatio() const
 	return HealthComponent ? HealthComponent->GetHealthRatio() : 1.0f;
 }
 
+bool AEnemyCharacter::AcquireAttackTokenForDuration(float DesiredDuration)
+{
+	UEnemyAIBrainComponent* Brain = AIBrainComponent.Get();
+	UWorld* World = GetWorld();
+	if (!Brain || !Brain->HasValidTarget() || !World)
+	{
+		return false;
+	}
+	AActor* Target = Brain->GetTarget();
+	if (!Target)
+	{
+		return false;
+	}
+	const float Now = World->GetGameTimeSeconds();
+	const float TokenDuration = (std::max)(SquadTokenDuration, DesiredDuration);
+	const bool bOk = FSquadCoordinator::Get().TryAcquireToken(this, Target, Now, TokenDuration, SquadMaxSimultaneousAttackers);
+	if (UAIBlackboardComponent* BB = Blackboard.Get())
+	{
+		BB->SetBool(FName("HoldingToken"), bOk);
+		BB->SetFloat(FName("ActiveAttackers"), static_cast<float>(FSquadCoordinator::Get().CountActiveAttackers(Target, Now)));
+		BB->SetFloat(FName("SquadSlot"), static_cast<float>(FSquadCoordinator::Get().GetSlotIndex(this, Target, Now)));
+	}
+	return bOk;
+}
+
+float AEnemyCharacter::GetEffectiveThinkInterval() const
+{
+	const float Base = (std::max)(0.0f, ThinkInterval);
+	if (Base <= 0.0f)
+	{
+		return 0.0f;
+	}
+	switch (CurrentLODLevel)
+	{
+	case 1:
+		return Base * 2.0f;
+	case 2:
+		return Base * 5.0f;
+	case 0:
+	default:
+		return Base;
+	}
+}
+
 void AEnemyCharacter::UpdateAttackExecution(float DeltaTime)
 {
 	if (!bCurrentAttackActive)
@@ -540,6 +645,7 @@ void AEnemyCharacter::UpdateAttackExecution(float DeltaTime)
 	const float Duration = GetAttackExecutionDuration(CurrentAttack);
 	if (CurrentAttackElapsed >= Duration)
 	{
+		Brain_ReleaseAttackToken();
 		bCurrentAttackActive = false;
 		bFallbackDamageAttempted = false;
 		CurrentAttackElapsed = 0.0f;
@@ -597,51 +703,97 @@ void AEnemyCharacter::RunBuiltInDecisionLogic(float DeltaTime)
 		}
 		return;
 	}
-	ThinkTimer = (std::max)(0.0f, ThinkInterval);
+	ThinkTimer = GetEffectiveThinkInterval();
 
 	// ── 통합 의사결정 파이프라인 ──────────────────────────────────────────────
-	// Built-in 도 Lua 와 "동일한" facade 동사를 동일 순서로 호출한다 — 두 두뇌가
-	// Perception → Blackboard → (Squad token) → UtilityReasoner → DecisionTrace → Action
-	// 라는 하나의 파이프라인을 공유한다. 차이는 "정책을 누가 작성하나"(C++ vs Lua)뿐.
-	Brain_Sense();                 // Perception → Blackboard 갱신 + 상태머신 이동 타깃
-	if (!Brain_AcquireTarget())    // 타깃 검증/획득(없으면 Idle)
+	// 1) 타깃을 먼저 검증/획득한다. 2) 그 타깃으로 Perception/Blackboard 를 갱신한다.
+	// 이전 순서(Sense→Acquire)는 첫 획득 프레임에서 Blackboard 가 HasTarget=false/Distance=9999
+	// 상태로 남아 UtilityReasoner 가 낡은 데이터를 읽을 수 있었다.
+	if (!Brain_AcquireTarget())
 	{
 		Brain_Idle();
 		return;
 	}
+	Brain_Sense();
 	FaceTarget(DeltaTime);
 
 	const EEnemyAIBehaviorStyle Style = GetResolvedBehaviorStyle();
-	// 공격/추적은 flat(XY) 거리로 판단 — 높낮이 차로 "멀리서 공격" 오판 방지.
-	const float FlatDistance      = AIBrainComponent->GetFlatDistanceToTarget();
-	const float AttackRange       = AIBrainComponent->AttackRange;
-	const bool  bInMeleeRange     = FlatDistance <= AttackRange;
-	// 갭클로저는 더 먼 거리에서도 시도 가능(돌진해 거리를 좁힌다). 이 범위에선 reasoner 의
-	// 사거리 게이트상 갭클로저 공격만 viable 하므로, 일반 공격이 멀리서 나가는 일은 없다.
+	const float FlatDistance   = AIBrainComponent->GetFlatDistanceToTarget();
+	const float VerticalDelta  = AIBrainComponent->GetVerticalDeltaToTarget();
+	const float AbsAngle       = fabsf(AIBrainComponent->GetAngleToTarget());
+	const float AttackRange    = AIBrainComponent->AttackRange;
+	const bool  bInMeleeRange  = FlatDistance <= AttackRange;
 	const bool  bInGapCloserRange = FlatDistance <= AttackRange * GapCloserRangeScale;
 
-	// 공격 시도: 사정권(또는 갭클로저 범위)일 때만 + Squad 토큰 확보 + Utility 후보 평가(+Trace).
-	bool bActed = false;
-	if (bCanAttack && Style != EEnemyAIBehaviorStyle::Passive && (bInMeleeRange || bInGapCloserRange))
+	UAIBlackboardComponent* BB = Blackboard.Get();
+	const bool bCanSee = BB ? BB->GetBool(FName("CanSee")) : false;
+	const bool bHasLOS = BB ? BB->GetBool(FName("HasLOS")) : false;
+	const bool bInProximity = BB ? BB->GetBool(FName("InProximity")) : false;
+	const bool bPerceptuallyAware = (bCanSee && bHasLOS) || bInProximity;
+	const bool bVerticalAttackable = AttackVerticalTolerance <= 0.0f || VerticalDelta <= AttackVerticalTolerance;
+
+	// 반응 행동: 타깃이 공격을 커밋했고, 인지 가능/정면/수직 허용이면 공격보다 먼저 탄기를 고려한다.
+	if (Style != EEnemyAIBehaviorStyle::Passive &&
+		DeflectCooldownRemaining <= 0.0f &&
+		DeflectChance > 0.0f &&
+		bPerceptuallyAware &&
+		bVerticalAttackable &&
+		AbsAngle <= DeflectMaxAbsAngle &&
+		FlatDistance <= AttackRange * 1.8f &&
+		Brain_TargetThreatening())
 	{
-		if (Brain_AcquireAttackToken())
+		const float Roll = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
+		if (Roll <= DeflectChance)
 		{
-			if (Brain_SelectAttack()) // UtilityReasoner + DecisionTrace 기록
+			DeflectCooldownRemaining = (std::max)(0.0f, DeflectCooldown);
+			Brain_OpenDeflect();
+			return;
+		}
+	}
+
+	// 공격 시도. 사거리 밖에서는 GapCloser 전용 모드만 연다. UtilityReasoner 도 같은 모드 키를
+	// 읽어 일반 장거리 공격 후보를 배제한다.
+	bool bActed = false;
+	const bool bCanTryImmediateAttack = bInMeleeRange;
+	const bool bCanTryGapCloserAttack = !bInMeleeRange && bInGapCloserRange;
+	if (BB)
+	{
+		BB->SetBool(FName("AttackModeGapCloserOnly"), bCanTryGapCloserAttack);
+	}
+	if (bCanAttack &&
+		Style != EEnemyAIBehaviorStyle::Passive &&
+		bPerceptuallyAware &&
+		bVerticalAttackable &&
+		(bCanTryImmediateAttack || bCanTryGapCloserAttack))
+	{
+		if (Brain_SelectAttack())
+		{
+			const FEnemyAttackData Attack = AttackComponent->FindAttackByName(SelectedAttackName);
+			if (Attack.AttackName.IsValid())
 			{
-				bActed = Brain_PlaySelectedAttack();
-			}
-			if (!bActed)
-			{
-				Brain_ReleaseAttackToken(); // 공격 못 했으면 토큰 반환(다른 적에게 양보)
+				const float TokenDuration = GetAttackExecutionDuration(Attack) + AttackTokenSafetyBuffer;
+				if (AcquireAttackTokenForDuration(TokenDuration))
+				{
+					bActed = Brain_PlaySelectedAttack();
+					if (!bActed)
+					{
+						Brain_ReleaseAttackToken();
+					}
+				}
 			}
 		}
+	}
+	if (BB)
+	{
+		BB->SetBool(FName("AttackModeGapCloserOnly"), false);
 	}
 	if (bActed)
 	{
 		return;
 	}
 
-	// 공격 안/못 함 → 거리·성향에 따라 추적 / 후퇴 / 게걸음.
+	// 공격 안/못 함 → 거리·성향에 따라 추적 / 후퇴 / 게걸음. 보이지 않는 타깃은 Brain_Chase가
+	// last seen 위치로 보낸다. 공격 정책과 달리 추적은 target actor를 계속 유지할 수 있다.
 	if (Style == EEnemyAIBehaviorStyle::Defensive && FlatDistance < DefensiveRetreatDistance)
 	{
 		Brain_Reposition();
@@ -652,7 +804,7 @@ void AEnemyCharacter::RunBuiltInDecisionLogic(float DeltaTime)
 		Brain_Chase();
 		return;
 	}
-	Brain_Strafe(); // 사정권이지만 공격 불가(쿨다운/토큰 없음 등) → 간격 유지
+	Brain_Strafe();
 }
 
 void AEnemyCharacter::HandleDeath(UHealthComponent* Component, AActor* DamageCauser, AActor* InstigatorActor)
@@ -746,6 +898,18 @@ void AEnemyCharacter::ApplySeparationSteering()
 	{
 		return;
 	}
+	if (UCharacterStateMachineComponent* SM = GetStateMachine())
+	{
+		const ECharacterState State = SM->GetState();
+		if (State == ECharacterState::Attack ||
+			State == ECharacterState::Defend ||
+			State == ECharacterState::Hit ||
+			State == ECharacterState::Staggered ||
+			State == ECharacterState::Dead)
+		{
+			return;
+		}
+	}
 	if (!AIBrainComponent.IsValid() || !AIBrainComponent->HasValidTarget())
 	{
 		return;
@@ -787,7 +951,7 @@ void AEnemyCharacter::Brain_FaceTarget()
 
 float AEnemyCharacter::Brain_GetDistance() const
 {
-	return AIBrainComponent.IsValid() ? AIBrainComponent->GetDistanceToTarget() : 9999.0f;
+	return AIBrainComponent.IsValid() ? AIBrainComponent->GetFlatDistanceToTarget() : 9999.0f;
 }
 
 float AEnemyCharacter::Brain_GetAttackRange() const
@@ -863,19 +1027,33 @@ void AEnemyCharacter::Brain_Chase()
 		return;
 	}
 	Brain->SetState(FName("Chase"));
-	// 타깃 중심이 아니라 배정된 링 슬롯으로 이동 → 여러 적이 한 점에 뭉치지 않는다.
-	const FVector SlotLocation = ComputeSlotLocation(Brain->GetTarget());
 	const float Acceptance = (std::max)(0.3f, Brain->AttackRange * 0.4f);
-	if (!RequestMoveToLocation(SlotLocation, Acceptance, true) && !Brain->IsMoveActive())
+	FVector GoalLocation = ComputeSlotLocation(Brain->GetTarget());
+
+	// 시야가 끊긴 상태에서는 actor 현재 위치가 아니라 마지막으로 본 위치로 이동한다.
+	// 이렇게 해야 벽 너머 actor pointer를 직접 추적하면서 비정상적인 공격/회전/슬롯팅을 하지 않는다.
+	if (UAIBlackboardComponent* BB = Blackboard.Get())
+	{
+		const bool bCanSee = BB->GetBool(FName("CanSee"));
+		const bool bInProximity = BB->GetBool(FName("InProximity"));
+		const bool bLastSeenValid = BB->GetBool(FName("LastSeenValid"));
+		if (!bCanSee && !bInProximity && bLastSeenValid)
+		{
+			GoalLocation = BB->GetLastSeenLocation();
+		}
+	}
+
+	if (!RequestMoveToLocation(GoalLocation, Acceptance, true) && !Brain->IsMoveActive())
 	{
 		StopEnemyMovement();
-		UE_LOG("[EnemyAI] Brain_Chase slot move failed. Enemy=%s Reason=%s", GetName().c_str(), Brain->GetLastMoveFailureReason().c_str());
+		UE_LOG("[EnemyAI] Brain_Chase move failed. Enemy=%s Reason=%s", GetName().c_str(), Brain->GetLastMoveFailureReason().c_str());
 	}
 }
 
 void AEnemyCharacter::Brain_Strafe()
 {
-	// 상태만 요청 — 게걸음 이동은 상태머신(Strafe locomotion mode)이 매 틱 적용한다.
+	// 기존 Chase path 입력과 상태머신 Strafe 입력이 합쳐지지 않도록 pathfollowing만 끊는다.
+	StopPathFollowingOnly();
 	if (UEnemyAIBrainComponent* Brain = AIBrainComponent.Get())
 	{
 		Brain->SetState(FName("Strafe"));
@@ -884,7 +1062,8 @@ void AEnemyCharacter::Brain_Strafe()
 
 void AEnemyCharacter::Brain_Reposition()
 {
-	// 상태만 요청 — 후퇴 이동은 상태머신(Retreat locomotion mode)이 적용한다.
+	// 기존 Chase path 입력과 상태머신 Retreat 입력이 합쳐지지 않도록 pathfollowing만 끊는다.
+	StopPathFollowingOnly();
 	if (UEnemyAIBrainComponent* Brain = AIBrainComponent.Get())
 	{
 		Brain->SetState(FName("Reposition"));
@@ -919,7 +1098,7 @@ bool AEnemyCharacter::Brain_TargetThreatening() const
 	{
 		return false;
 	}
-	return Brain->GetDistanceToTarget() <= Brain->AttackRange * 1.8f;
+	return Brain->GetFlatDistanceToTarget() <= Brain->AttackRange * 1.8f;
 }
 
 bool AEnemyCharacter::Brain_TargetInRecovery() const
@@ -938,6 +1117,7 @@ int32 AEnemyCharacter::Brain_GetTargetPerilous() const
 
 void AEnemyCharacter::Brain_OpenDeflect()
 {
+	StopEnemyMovement();
 	if (UCombatStateComponent* Combat = GetCombatStateComponent())
 	{
 		Combat->OpenDeflectWindow(0.0f); // 0 → 컴포넌트 기본 윈도우 길이
@@ -950,26 +1130,7 @@ void AEnemyCharacter::Brain_OpenDeflect()
 
 bool AEnemyCharacter::Brain_AcquireAttackToken()
 {
-	UEnemyAIBrainComponent* Brain = AIBrainComponent.Get();
-	UWorld* World = GetWorld();
-	if (!Brain || !Brain->HasValidTarget() || !World)
-	{
-		return false;
-	}
-	AActor* Target = Brain->GetTarget();
-	if (!Target)
-	{
-		return false;
-	}
-	const float Now  = World->GetGameTimeSeconds();
-	const bool  bOk  = FSquadCoordinator::Get().TryAcquireToken(this, Target, Now, SquadTokenDuration, SquadMaxSimultaneousAttackers);
-	if (UAIBlackboardComponent* BB = Blackboard.Get())
-	{
-		BB->SetBool(FName("HoldingToken"), bOk);
-		BB->SetFloat(FName("ActiveAttackers"), static_cast<float>(FSquadCoordinator::Get().CountActiveAttackers(Target, Now)));
-		BB->SetFloat(FName("SquadSlot"), static_cast<float>(FSquadCoordinator::Get().GetSlotIndex(this, Target, Now)));
-	}
-	return bOk;
+	return AcquireAttackTokenForDuration(SquadTokenDuration);
 }
 
 void AEnemyCharacter::Brain_ReleaseAttackToken()
@@ -997,7 +1158,7 @@ void AEnemyCharacter::UpdateAILOD()
 	float Distance = 9999.0f;
 	if (AIBrainComponent.IsValid() && AIBrainComponent->HasValidTarget())
 	{
-		Distance = AIBrainComponent->GetDistanceToTarget();
+		Distance = AIBrainComponent->GetFlatDistanceToTarget();
 	}
 
 	int32 Lod;
