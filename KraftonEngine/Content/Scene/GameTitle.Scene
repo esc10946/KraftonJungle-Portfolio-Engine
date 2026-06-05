@@ -4,7 +4,7 @@
       "Name" : "AStaticMeshActor_7",
       "NonSceneComponents" : [{
           "ClassName" : "ULuaScriptComponent",
-          "ObjectId" : 4,
+          "ObjectId" : 5,
           "Properties" : {
             "ScriptFile" : "Game/TitleMenu.lua",
             "bAutoActivate" : true,
@@ -24,7 +24,31 @@
         "bNeedsTick" : true
       },
       "RootComponent" : {
-        "Children" : [],
+        "Children" : [{
+            "Children" : [],
+            "ClassName" : "UCameraComponent",
+            "ObjectId" : 4,
+            "Properties" : {
+              "AttachSocketName" : "Name_None",
+              "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
+              "CameraState.FOV" : 1.047198,
+              "CameraState.FarZ" : 1000.000000,
+              "CameraState.NearZ" : 0.100000,
+              "CameraState.OrthoWidth" : 10.000000,
+              "CameraState.bIsOrthogonal" : false,
+              "Letterbox.Amount" : 1.000000,
+              "Letterbox.Color" : [0.000000, 0.000000, 0.000000, 1.000000],
+              "Letterbox.Thickness" : 0.120000,
+              "Letterbox.bEnabled" : false,
+              "RelativeTransform.Location" : [0.000000, 0.000000, 0.000000],
+              "RelativeTransform.Scale" : [1.000000, 1.000000, 1.000000],
+              "bAutoActivate" : true,
+              "bEditorOnly" : false,
+              "bHiddenInComponentTree" : false,
+              "bIsActive" : true,
+              "bTickEnable" : true
+            }
+          }],
         "ClassName" : "UStaticMeshComponent",
         "ObjectId" : 3,
         "Properties" : {

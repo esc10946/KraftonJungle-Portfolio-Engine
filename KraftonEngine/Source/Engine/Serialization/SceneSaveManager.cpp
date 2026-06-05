@@ -1,5 +1,6 @@
 ﻿#include "SceneSaveManager.h"
 
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <chrono>
@@ -812,12 +813,23 @@ TArray<FString> FSceneSaveManager::GetSceneFileList()
 		return Result;
 	}
 
-	for (auto& Entry : std::filesystem::directory_iterator(SceneDir))
+	std::error_code Error;
+	for (std::filesystem::recursive_directory_iterator It(
+			SceneDir,
+			std::filesystem::directory_options::skip_permission_denied,
+			Error),
+		End;
+		!Error && It != End;
+		It.increment(Error))
 	{
+		const std::filesystem::directory_entry& Entry = *It;
 		if (Entry.is_regular_file() && Entry.path().extension() == SceneExtension)
 		{
-			Result.push_back(FPaths::ToUtf8(Entry.path().stem().wstring()));
+			std::filesystem::path RelativePath = Entry.path().lexically_relative(SceneDir);
+			RelativePath.replace_extension();
+			Result.push_back(FPaths::ToUtf8(RelativePath.generic_wstring()));
 		}
 	}
+	std::sort(Result.begin(), Result.end());
 	return Result;
 }

@@ -1,0 +1,28 @@
+<rml>
+<head>
+    <title>Credits</title>
+    <link type="text/rcss" href="Credits.rcss"/>
+</head>
+<body id="credits-screen">
+    <!-- The body dims the title screen behind. #panel holds the PNG frame + text. -->
+    <div id="credits-panel">
+        <div id="credits-heading">CREDITS</div>
+
+        <div id="credits-body">
+            <!-- TODO: replace with real names/roles -->
+            <p class="role">Game Flow &amp; UI</p>
+            <p class="name">Hyungjun Kim</p>
+
+            <p class="role">Programming</p>
+            <p class="name">TODO</p>
+
+            <p class="role">Art &amp; Assets</p>
+            <p class="name">TODO</p>
+
+            <p class="thanks">Made on KraftonEngine</p>
+        </div>
+
+        <div id="back_btn" class="text-btn">BACK</div>
+    </div>
+</body>
+</rml>

@@ -1,4 +1,4 @@
-#include "UI/UserWidget.h"
+﻿#include "UI/UserWidget.h"
 
 #include "Object/Reflection/ObjectFactory.h"
 #include "UI/UIManager.h"
@@ -11,6 +11,10 @@ void UUserWidget::BeginDestroy()
 	// regular UIManager shutdown path, so detach listeners and release the document
 	// handle before the UObject enters PendingKill/Garbage state.
 	ClearEventListeners();
+
+	// Clear saved Lua callbacks before the Lua VM can shut down; otherwise final
+	// widget GC may crash in sol::reference::deref while destroying these refs.
+	PendingClickBindings.clear();
 	if (Document)
 	{
 		Document->Close();
