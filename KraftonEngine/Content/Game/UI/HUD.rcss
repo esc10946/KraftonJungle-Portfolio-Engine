@@ -1,0 +1,274 @@
+/* ============================================================
+   In-game HUD stylesheet
+   Expected location:
+   Content/UI/HUD.rcss
+
+   Image path assumption:
+   Content/Texture/HUD/SB_FE/
+   ============================================================ */
+
+body#hud-screen {
+    width: 100%;
+    height: 100%;
+    background-color: transparent;
+}
+
+/* ============================================================
+   Player HUD - Bottom Left
+   ============================================================ */
+
+#player-hud {
+    position: absolute;
+
+    left: 28px;
+    bottom: 32px;
+
+    width: 301px;
+    height: 77px;
+}
+
+/* ------------------------------------------------------------
+   Main dark background brush
+
+   Suggested atlas sprite:
+   sprite_081_x2562_y922_w153_h56.png
+
+   나중에 배경 이미지를 바꾸려면 여기만 교체.
+   ------------------------------------------------------------ */
+#player-hud-bg {
+    position: absolute;
+    left: 34px;
+    top: 0px;
+    width: 250px;
+    height: 76px;
+
+    background-color: rgba(0, 0, 0, 0.15);
+
+    decorator: image("../Texture/HUD/SB_FE/sprite_004_x3017_y12_w228_h217.png" cover);
+}
+
+/* ------------------------------------------------------------
+   Top circular icons
+   ------------------------------------------------------------ */
+
+.player-top-icon {
+    position: absolute;
+    top: 0px;
+
+    width: 27px;
+    height: 27px;
+}
+
+/* Left icon
+
+   Suggested atlas sprite:
+   sprite_029_x3452_y387_w96_h93.png
+*/
+#player-icon-left {
+    left: 52px;
+
+    decorator: image("../Texture/HUD/SB_FE/sprite_029_x3452_y387_w96_h93.png" contain);
+}
+
+/* Right icon
+
+   Suggested atlas sprite:
+   sprite_030_x3567_y395_w79_h79.png
+*/
+#player-icon-right {
+    left: 82px;
+
+    decorator: image("../Texture/HUD/SB_FE/sprite_030_x3567_y395_w79_h79.png" contain);
+}
+
+/* ============================================================
+   HP Bar
+   ============================================================ */
+
+#player-hp-frame {
+    position: absolute;
+    left: 54px;
+    top: 31px;
+
+    width: 93px;
+    height: 13px;
+    //decorator: image("../Texture/HUD/SB_FE/sprite_027_x1940_y399_w582_h74.png" cover);
+}
+
+/* HP fill clipping area
+
+   Runtime에서 width만 변경:
+   100% = full hp
+   0%   = dead
+*/
+#player-hp-mask {
+    position: absolute;
+    left: 2px;
+    top: 2px;
+
+    width: 84%;
+    height: 9px;
+
+    overflow: hidden;
+}
+
+/* HP fill image
+
+   Suggested atlas sprite:
+   sprite_033_x1928_y496_w580_h68.png
+
+   주의:
+   이 div의 width는 고정한다.
+   체력 변화는 parent인 #player-hp-mask width로 처리한다.
+*/
+#player-hp-fill {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+
+    width: 90px;
+    height: 9px;
+
+    //background-color: #ff0000;
+
+    decorator: image("../Texture/HUD/SB_FE/sprite_076_x1644_y925_w255_h11.png" cover);
+}
+
+/* HP bar frame / background
+
+   Suggested atlas sprite:
+   sprite_027_x1940_y399_w582_h74.png
+
+   fill 위에 덮는 프레임 역할.
+*/
+#player-hp-border {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+
+    width: 93px;
+    height: 13px;
+
+    background-color: transparent;
+
+    /* 일단 제거 */
+    /* decorator: image("../Texture/HUD/SB_FE/sprite_027_x1940_y399_w582_h74.png" cover); */
+}
+
+/* ============================================================
+   Bottom red token / state icon
+   ============================================================ */
+
+#player-token {
+    position: absolute;
+    left: 55px;
+    top: 53px;
+
+    width: 22px;
+    height: 22px;
+
+    /*
+       여기에 부활 토큰 / 상태 아이콘 이미지를 넣으면 됨.
+       지금 DDS 추출본 기준으로 정확히 같은 작은 붉은 글자 아이콘이 애매하면
+       별도 crop PNG를 만들어서 이 자리에 넣는 게 맞다.
+    */
+
+    background-color: transparent;
+
+    /* Example placeholder */
+    decorator: image("../Texture/HUD/SB_FE/sprite_055_x3539_y753_w98_h128.png" contain);
+}
+
+
+/* ============================================================
+   Enemy HUD - Top Center
+   ============================================================ */
+
+#enemy-panel {
+    position: absolute;
+    left: 50%;
+    top: 18px;
+    width: 520px;
+    height: 60px;
+    margin-left: -260px;
+}
+
+/* Enemy HP background */
+#enemy-hp-bg {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 520px;
+    height: 18px;
+    background-color: #24100c;
+}
+
+/* Enemy HP fill */
+#enemy-hp-fill {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 72%;
+    height: 18px;
+    background-color: #a61010;
+}
+
+/* Enemy posture background */
+#enemy-posture-bg {
+    position: absolute;
+    left: 40px;
+    top: 25px;
+    width: 440px;
+    height: 8px;
+    background-color: #25190b;
+}
+
+/* Enemy posture fill */
+#enemy-posture-fill {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 58%;
+    height: 8px;
+    background-color: #d0901c;
+}
+
+
+/* ============================================================
+   Item HUD - Bottom Right
+   ============================================================ */
+
+#item-panel {
+    position: absolute;
+    right: 35px;
+    bottom: 35px;
+    width: 150px;
+    height: 80px;
+}
+
+.item-slot {
+    position: absolute;
+    width: 46px;
+    height: 46px;
+    background-color: #1b1712;
+}
+
+#item-slot-main {
+    left: 0px;
+    top: 0px;
+}
+
+#item-slot-sub {
+    left: 56px;
+    top: 0px;
+}
+
+#item-count {
+    position: absolute;
+    left: 8px;
+    top: 50px;
+    width: 60px;
+    height: 24px;
+    color: #ffffff;
+    font-size: 18px;
+}
