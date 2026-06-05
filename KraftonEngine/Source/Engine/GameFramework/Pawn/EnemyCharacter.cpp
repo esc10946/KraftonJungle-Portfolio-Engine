@@ -4,9 +4,17 @@
 #include "Animation/Montage/AnimMontage.h"
 #include "Component/AI/EnemyAIBrainComponent.h"
 #include "Component/AI/EnemyAttackComponent.h"
+#include "Component/AI/AIBlackboardComponent.h"
+#include "Component/AI/AIPerceptionComponent.h"
+#include "Component/AI/AIDecisionTraceComponent.h"
+#include "AI/SquadCoordinator.h"
+#include "AI/CombatTargetRegistry.h"
+#include "Component/Character/CharacterStateMachineComponent.h"
 #include "Component/Combat/CombatStateComponent.h"
+#include "Component/Combat/CombatMoveComponent.h"
 #include "Component/Combat/HealthComponent.h"
 #include "Component/Movement/CharacterMovementComponent.h"
+#include "Component/Shape/CapsuleComponent.h"
 #include "Component/Script/LuaScriptComponent.h"
 #include "GameFramework/Controller/AIController.h"
 #include "GameFramework/World.h"
@@ -16,6 +24,8 @@
 
 #include <algorithm>
 #include <cmath>
+
+#include "Core/Logging/Log.h"
 
 namespace
 {
@@ -28,8 +38,31 @@ namespace
 
 	float GetAttackExecutionDuration(const FEnemyAttackData& Attack)
 	{
-		const float FallbackEnd = Attack.bUseFallbackDamage ? Attack.FallbackDamageDelay + 0.1f : 0.0f;
-		return (std::max)(0.05f, (std::max)(Attack.RecoveryTime, FallbackEnd));
+		const float FrameDuration = static_cast<float>(Attack.StartupFrames + Attack.ActiveFrames + Attack.RecoveryFrames) / 60.0f;
+		return (std::max)(0.05f, (std::max)(Attack.RecoveryTime, FrameDuration));
+	}
+
+	void StretchAttackFramesToDuration(FEnemyAttackData& Attack, float Duration)
+	{
+		const int32 RequiredTotalFrames = static_cast<int32>(std::ceil((std::max)(0.05f, Duration) * 60.0f));
+		const int32 CurrentTotalFrames = Attack.StartupFrames + Attack.ActiveFrames + Attack.RecoveryFrames;
+		if (CurrentTotalFrames < RequiredTotalFrames)
+		{
+			Attack.RecoveryFrames += RequiredTotalFrames - CurrentTotalFrames;
+		}
+	}
+
+	// 액터의 캡슐 반경(없으면 기본값). 전투 거리/슬롯/분리를 "몸통 크기" 인식으로 만든다.
+	float GetActorCapsuleRadius(AActor* Actor)
+	{
+		if (ACharacter* Character = Cast<ACharacter>(Actor))
+		{
+			if (UCapsuleComponent* Capsule = Character->GetCapsuleComponent())
+			{
+				return Capsule->GetScaledCapsuleRadius();
+			}
+		}
+		return 0.5f;
 	}
 }
 
@@ -53,10 +86,16 @@ void AEnemyCharacter::InitDefaultComponents(const FString& SkeletalMeshFileName,
 	Super::InitDefaultComponents(SkeletalMeshFileName);
 	AIBrainComponent = AddComponent<UEnemyAIBrainComponent>();
 	AttackComponent = AddComponent<UEnemyAttackComponent>();
+	// 세키로식 전투 AI 코어 계층 — 책임 분리된 엔진 컴포넌트.
+	Blackboard = AddComponent<UAIBlackboardComponent>();
+	Perception = AddComponent<UAIPerceptionComponent>();
+	DecisionTrace = AddComponent<UAIDecisionTraceComponent>();
+	CombatMove = AddComponent<UCombatMoveComponent>();
 	LuaScriptComponent = AddComponent<ULuaScriptComponent>();
-	if (LuaScriptComponent && !ScriptFile.empty())
+	if (LuaScriptComponent)
 	{
-		LuaScriptComponent->SetScriptFile(ScriptFile);
+		const FString PolicyScript = !ScriptFile.empty() ? ScriptFile : BrainScriptFile;
+		LuaScriptComponent->SetScriptFile(PolicyScript);
 	}
 	bAutoInputWASD = false;
 	bAutoInputMouseLook = false;
@@ -83,6 +122,18 @@ void AEnemyCharacter::RebindEnemyComponents()
 	AIBrainComponent = GetComponentByClass<UEnemyAIBrainComponent>();
 	AttackComponent = GetComponentByClass<UEnemyAttackComponent>();
 	LuaScriptComponent = GetComponentByClass<ULuaScriptComponent>();
+	if (!LuaScriptComponent.IsValid())
+	{
+		LuaScriptComponent = AddComponent<ULuaScriptComponent>();
+	}
+	if (LuaScriptComponent.IsValid() && LuaScriptComponent->GetScriptFile().empty() && !BrainScriptFile.empty())
+	{
+		LuaScriptComponent->SetScriptFile(BrainScriptFile);
+	}
+	Blackboard = GetComponentByClass<UAIBlackboardComponent>();
+	Perception = GetComponentByClass<UAIPerceptionComponent>();
+	DecisionTrace = GetComponentByClass<UAIDecisionTraceComponent>();
+	CombatMove = GetComponentByClass<UCombatMoveComponent>();
 	if (!AIControllerClass)
 	{
 		AIControllerClass = AAIController::StaticClass();
@@ -92,16 +143,18 @@ void AEnemyCharacter::RebindEnemyComponents()
 void AEnemyCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	if (bUseBuiltInDecisionLogic)
+	LastTickDelta = DeltaTime;
+
+	UpdateAILOD();
+	if (UCombatMoveComponent* Move = CombatMove.Get())
 	{
-		RunBuiltInDecisionLogic(DeltaTime);
+		Move->TickMove(DeltaTime);
 	}
-	else
-	{
-		// Lua 두뇌가 의사결정을 가져간 경우에도, 진행 중인 공격 스윙(타격 윈도우·회복 종료)
-		// 은 C++ 가 계속 실행해 준다 — "결정은 Lua, 실행은 C++".
-		UpdateAttackExecution(DeltaTime);
-	}
+	ApplySeparationSteering();
+
+	// 의사결정은 Lua Blueprint가 전담한다. C++은 센서/이동/공격 실행 타임라인만 진행한다.
+	CombatClock.Accumulate(DeltaTime);
+	UpdateAttackExecution(DeltaTime);
 }
 
 AAIController* AEnemyCharacter::SpawnDefaultAIController()
@@ -167,15 +220,35 @@ void AEnemyCharacter::FaceTarget(float DeltaTime, float OverrideYawRate)
 
 void AEnemyCharacter::StopEnemyMovement()
 {
+	StopPathFollowingOnly();
+	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+	{
+		Movement->ClearInputVector();
+		Movement->StopHorizontalMovementImmediately();
+	}
+}
+
+void AEnemyCharacter::StopPathFollowingOnly()
+{
 	if (AAIController* Controller = GetEnemyAIController())
 	{
 		Controller->StopMovement();
 	}
-	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+}
+
+bool AEnemyCharacter::SetRuntimeState(const FName& StateName, bool bForce)
+{
+	UCharacterStateMachineComponent* SM = GetStateMachine();
+	if (!SM || !StateName.IsValid())
 	{
-		Movement->ClearInputVector();
-		Movement->StopMovementImmediately();
+		return false;
 	}
+	if (bForce)
+	{
+		SM->ForceState(StateName);
+		return true;
+	}
+	return SM->RequestState(StateName);
 }
 
 void AEnemyCharacter::StrafeAroundTarget(float Scale, bool bClockwise)
@@ -232,7 +305,7 @@ bool AEnemyCharacter::RequestMoveToActor(AActor* Target, float AcceptanceRadius,
 	{
 		return false;
 	}
-	const float Radius = AcceptanceRadius > 0.0f ? AcceptanceRadius : (AIBrainComponent ? AIBrainComponent->AttackRange : 3.0f);
+	const float Radius = AcceptanceRadius > 0.0f ? AcceptanceRadius : DefaultAttackRange;
 	return Controller->MoveToActor(Target, Radius, true, bUsePathfinding) != EPathFollowingRequestResult::Failed;
 }
 
@@ -257,29 +330,6 @@ bool AEnemyCharacter::IsPathFollowing() const
 	return Controller && Controller->IsFollowingPath();
 }
 
-bool AEnemyCharacter::SelectAndCommitAttack(int32 Phase, FEnemyAttackData& OutAttack)
-{
-	OutAttack = FEnemyAttackData();
-	if (!bCanAttack || !AIBrainComponent || !AttackComponent || !AIBrainComponent->HasValidTarget())
-	{
-		return false;
-	}
-	const float Distance = AIBrainComponent->GetDistanceToTarget();
-	const float AbsAngle = fabsf(AIBrainComponent->GetAngleToTarget());
-	OutAttack = AttackComponent->SelectAttackForStyle(
-		Phase,
-		Distance,
-		AbsAngle,
-		GetResolvedBehaviorStyle(),
-		AIBrainComponent->GetStateTime(),
-		GetCurrentHealthRatio());
-	if (!OutAttack.AttackName.IsValid())
-	{
-		return false;
-	}
-	return AttackComponent->CommitAttackData(OutAttack);
-}
-
 bool AEnemyCharacter::PlayAttackMontage(const FEnemyAttackData& Attack)
 {
 	return StartAttackExecution(Attack);
@@ -291,37 +341,49 @@ bool AEnemyCharacter::StartAttackExecution(const FEnemyAttackData& Attack)
 	{
 		return false;
 	}
-	if (!Attack.Montage && !Attack.bUseFallbackDamage)
+	if (!Attack.Montage)
 	{
 		return false;
 	}
 
-	CurrentAttack = Attack;
+	FEnemyAttackData ExecutingAttack = Attack;
+	StretchAttackFramesToDuration(ExecutingAttack, GetAttackExecutionDuration(Attack));
+
+	CurrentAttack = ExecutingAttack;
 	CurrentAttackElapsed = 0.0f;
 	bCurrentAttackActive = true;
-	bFallbackDamageAttempted = false;
 	CurrentAttackDamagedActors.clear();
-	StopEnemyMovement();
-	if (AIBrainComponent)
+	// 프레임 데이터 타임라인 시작 — startup/active/recovery + 위험표식.
+	if (UCombatMoveComponent* Move = CombatMove.Get())
 	{
-		AIBrainComponent->SetState(FName("Attack"));
+		Move->BeginMove(CurrentAttack.PerilousType, CurrentAttack.StartupFrames, CurrentAttack.ActiveFrames, CurrentAttack.RecoveryFrames, CurrentAttack.PerilousCueFrame, CurrentAttack.bCanBeDeflected);
 	}
-	// 적 본인도 "공격 중" 으로 표시 — fallback 데미지(노티파이 없는) 공격까지 커버하고,
-	// 플레이어/다른 AI 가 이 적의 공격을 폴링해 패링·회피할 수 있게 한다.
+	StopEnemyMovement();
+	// 갭클로저는 "이동형 공격" — 상태머신에 전진 대시를 걸어 root motion 이 없어도 거리를 좁힌다.
+	if (CurrentAttack.bIsGapCloser && GapCloserDashScale > 0.0f)
+	{
+		const float DashSeconds = (std::max)(0.15f, static_cast<float>(CurrentAttack.StartupFrames + CurrentAttack.ActiveFrames) / 60.0f);
+		if (UCharacterStateMachineComponent* SM = GetStateMachine())
+		{
+			SM->BeginDash(DashSeconds, GapCloserDashScale);
+		}
+	}
+	SetRuntimeState(FName("Attack"));
+	// 적 본인도 "공격 중" 으로 표시해 플레이어/다른 AI가 패링·회피 판단에 사용할 수 있게 한다.
 	if (UCombatStateComponent* Combat = GetCombatStateComponent())
 	{
-		Combat->MarkAttacking(GetAttackExecutionDuration(Attack));
+		Combat->MarkAttacking(GetAttackExecutionDuration(CurrentAttack));
 	}
 
-	const bool bMontageStarted = PlayCombatMontage(Attack.Montage);
-	if (!bMontageStarted && !Attack.bUseFallbackDamage)
+	const bool bMontageStarted = PlayCombatMontage(CurrentAttack.Montage);
+	if (!bMontageStarted)
 	{
 		bCurrentAttackActive = false;
 		CurrentAttack = FEnemyAttackData();
 		CurrentAttackDamagedActors.clear();
-		if (AIBrainComponent && !IsDead())
+		if (!IsDead())
 		{
-			AIBrainComponent->SetState(FName("Guard"));
+			SetRuntimeState(FName("Guard"), true);
 		}
 		return false;
 	}
@@ -374,25 +436,6 @@ bool AEnemyCharacter::IsTargetHostileDamageReceiver(AActor* Target) const
 	return Target->HasTag(FName("Player")) || Target->HasTag(FName("HitTarget"));
 }
 
-bool AEnemyCharacter::IsTargetInsideCurrentAttackFallback(AActor* Target) const
-{
-	if (!HasCurrentAttack() || !IsValid(Target))
-	{
-		return false;
-	}
-	const float Radius = CurrentAttack.FallbackHitRadius > 0.0f ? CurrentAttack.FallbackHitRadius : CurrentAttack.MaxRange;
-	const float Distance = FVector::Distance(GetActorLocation(), Target->GetActorLocation());
-	if (Distance > Radius)
-	{
-		return false;
-	}
-	if (CurrentAttack.bRequiresTargetInFront && AIBrainComponent && AIBrainComponent->GetTarget() == Target)
-	{
-		return fabsf(AIBrainComponent->GetAngleToTarget()) <= CurrentAttack.MaxAbsAngle;
-	}
-	return true;
-}
-
 bool AEnemyCharacter::ApplyCurrentAttackDamageToActor(AActor* Target, const FVector& HitLocation)
 {
 	if (!HasCurrentAttack() || !IsTargetHostileDamageReceiver(Target) || HasCurrentAttackDamagedActor(Target))
@@ -429,6 +472,31 @@ float AEnemyCharacter::GetCurrentHealthRatio() const
 	return HealthComponent ? HealthComponent->GetHealthRatio() : 1.0f;
 }
 
+bool AEnemyCharacter::AcquireAttackTokenForDuration(float DesiredDuration)
+{
+	UEnemyAIBrainComponent* Brain = AIBrainComponent.Get();
+	UWorld* World = GetWorld();
+	if (!Brain || !Brain->HasValidTarget() || !World)
+	{
+		return false;
+	}
+	AActor* Target = Brain->GetTarget();
+	if (!Target)
+	{
+		return false;
+	}
+	const float Now = World->GetGameTimeSeconds();
+	const float TokenDuration = (std::max)(SquadTokenDuration, DesiredDuration);
+	const bool bOk = FSquadCoordinator::Get().TryAcquireToken(this, Target, Now, TokenDuration, SquadMaxSimultaneousAttackers);
+	if (UAIBlackboardComponent* BB = Blackboard.Get())
+	{
+		BB->SetBool(FName("HoldingToken"), bOk);
+		BB->SetFloat(FName("ActiveAttackers"), static_cast<float>(FSquadCoordinator::Get().CountActiveAttackers(Target, Now)));
+		BB->SetFloat(FName("SquadSlot"), static_cast<float>(FSquadCoordinator::Get().GetSlotIndex(this, Target, Now)));
+	}
+	return bOk;
+}
+
 void AEnemyCharacter::UpdateAttackExecution(float DeltaTime)
 {
 	if (!bCurrentAttackActive)
@@ -439,142 +507,19 @@ void AEnemyCharacter::UpdateAttackExecution(float DeltaTime)
 	CurrentAttackElapsed += DeltaTime;
 	FaceTarget(DeltaTime);
 
-	if (CurrentAttack.bUseFallbackDamage && !bFallbackDamageAttempted && CurrentAttackElapsed >= CurrentAttack.FallbackDamageDelay)
-	{
-		bFallbackDamageAttempted = true;
-		AActor* Target = AIBrainComponent ? AIBrainComponent->GetTarget() : nullptr;
-		if (IsTargetInsideCurrentAttackFallback(Target))
-		{
-			ApplyCurrentAttackDamageToActor(Target, Target->GetActorLocation());
-		}
-	}
-
 	const float Duration = GetAttackExecutionDuration(CurrentAttack);
 	if (CurrentAttackElapsed >= Duration)
 	{
+		Brain_ReleaseAttackToken();
 		bCurrentAttackActive = false;
-		bFallbackDamageAttempted = false;
 		CurrentAttackElapsed = 0.0f;
 		CurrentAttack = FEnemyAttackData();
 		CurrentAttackDamagedActors.clear();
-		if (AIBrainComponent && !IsDead())
+		if (!IsDead())
 		{
-			AIBrainComponent->SetState(FName("Recover"));
+			SetRuntimeState(FName("Recover"), true);
 		}
 	}
-}
-
-void AEnemyCharacter::RunBuiltInDecisionLogic(float DeltaTime)
-{
-	if (!bUseBuiltInDecisionLogic)
-	{
-		return;
-	}
-	if (!AIBrainComponent || !AttackComponent)
-	{
-		RebindEnemyComponents();
-	}
-	if (!AIBrainComponent || !AttackComponent)
-	{
-		return;
-	}
-	if (IsDead())
-	{
-		AIBrainComponent->SetState(FName("Dead"));
-		StopEnemyMovement();
-		return;
-	}
-	if (UCombatStateComponent* CombatState = GetCombatStateComponent())
-	{
-		if (CombatState->IsStaggered())
-		{
-			AIBrainComponent->SetState(FName("Staggered"));
-			StopEnemyMovement();
-			return;
-		}
-	}
-
-	UpdateAttackExecution(DeltaTime);
-	if (bCurrentAttackActive)
-	{
-		return;
-	}
-
-	ThinkTimer -= DeltaTime;
-	RepathTimer -= DeltaTime;
-	if (ThinkTimer > 0.0f)
-	{
-		if (AIBrainComponent->HasValidTarget())
-		{
-			FaceTarget(DeltaTime);
-		}
-		return;
-	}
-	ThinkTimer = (std::max)(0.0f, ThinkInterval);
-
-	if (!AIBrainComponent->HasValidTarget())
-	{
-		AIBrainComponent->AcquireDefaultTarget();
-	}
-	if (!AIBrainComponent->HasValidTarget())
-	{
-		AIBrainComponent->SetState(FName("Idle"));
-		StopEnemyMovement();
-		return;
-	}
-
-	FaceTarget(DeltaTime);
-	const float Distance = AIBrainComponent->GetDistanceToTarget();
-	const EEnemyAIBehaviorStyle Style = GetResolvedBehaviorStyle();
-
-	FEnemyAttackData Attack;
-	if (Style != EEnemyAIBehaviorStyle::Passive && bCanAttack)
-	{
-		Attack = AttackComponent->SelectAttackForStyle(
-			GetCurrentAIPhase(),
-			AIBrainComponent->GetDistanceToTarget(),
-			fabsf(AIBrainComponent->GetAngleToTarget()),
-			Style,
-			AIBrainComponent->GetStateTime(),
-			GetCurrentHealthRatio());
-		if (Attack.AttackName.IsValid() && StartAttackExecution(Attack))
-		{
-			AttackComponent->CommitAttackData(Attack);
-			return;
-		}
-	}
-
-	if (Style == EEnemyAIBehaviorStyle::Defensive && Distance < DefensiveRetreatDistance)
-	{
-		AIBrainComponent->SetState(FName("Reposition"));
-		StopEnemyMovement();
-		const FVector Away = AIBrainComponent->GetFlatDirectionToTarget() * -1.0f;
-		if (!Away.IsNearlyZero())
-		{
-			AddMovementInput(Away, DefensiveRetreatInputScale);
-		}
-		return;
-	}
-
-	const float Acceptance = (std::max)(0.1f, AIBrainComponent->AttackRange * 0.85f);
-	if (Distance > AIBrainComponent->AttackRange)
-	{
-		AIBrainComponent->SetState(FName("Chase"));
-		bool bMoveRequested = false;
-		if (RepathTimer <= 0.0f)
-		{
-			bMoveRequested = AIBrainComponent->RequestMoveToTarget(Acceptance, true);
-			RepathTimer = (std::max)(0.0f, RepathInterval);
-		}
-		if (!bMoveRequested && !AIBrainComponent->IsMoveActive())
-		{
-			MoveToTarget(1.0f);
-		}
-		return;
-	}
-
-	AIBrainComponent->SetState(FName("Guard"));
-	StopEnemyMovement();
 }
 
 void AEnemyCharacter::HandleDeath(UHealthComponent* Component, AActor* DamageCauser, AActor* InstigatorActor)
@@ -586,9 +531,591 @@ void AEnemyCharacter::HandleDeath(UHealthComponent* Component, AActor* DamageCau
 	bCurrentAttackActive = false;
 	CurrentAttack = FEnemyAttackData();
 	CurrentAttackDamagedActors.clear();
-	StopEnemyMovement();
-	if (AIBrainComponent)
+	if (UCombatMoveComponent* Move = CombatMove.Get())
 	{
-		AIBrainComponent->SetState(FName("Dead"));
+		Move->EndMove();
+	}
+	FSquadCoordinator::Get().ReleaseToken(this);   // 죽으면 공격 토큰 반환 → 다른 적이 압박 이어감
+	FSquadCoordinator::Get().ReleaseEngager(this); // 링 슬롯도 반환 → 남은 적이 재배치
+	StopEnemyMovement();
+	SetRuntimeState(FName("Dead"), true);
+}
+
+// =============================================================================
+//  Brain 동사 파사드 — Lua Blueprint 정책 ↔ C++ 코어 컴포넌트의 경계.
+//  블루프린트는 이 무인자 동사들만 호출한다. 내부에서 Perception/Reasoner/
+//  Blackboard/Brain 컴포넌트로 위임한다.
+// =============================================================================
+void AEnemyCharacter::Brain_Sense()
+{
+	if (UAIPerceptionComponent* P = Perception.Get())
+	{
+		P->UpdateSenses();
+	}
+	// 단일 권위 상태머신에 이동 타깃 공급 — Strafe/Retreat/조준이 이 타깃을 쓴다.
+	if (UCharacterStateMachineComponent* SM = GetStateMachine())
+	{
+		SM->SetMovementTarget(AIBrainComponent.IsValid() ? AIBrainComponent->GetTarget() : nullptr);
+	}
+
+	// 다수 적 슬롯팅: 타깃 교전 등록 → 슬롯/인원 캐시(겹침 없는 링 배치용).
+	if (AIBrainComponent.IsValid() && AIBrainComponent->HasValidTarget())
+	{
+		AActor* Target = AIBrainComponent->GetTarget();
+		UWorld* World  = GetWorld();
+		if (Target && World)
+		{
+			const float Now    = World->GetGameTimeSeconds();
+			CachedSquadSlot    = FSquadCoordinator::Get().RegisterEngager(this, Target, Now, SquadTokenDuration);
+			CachedEngagerCount = FSquadCoordinator::Get().GetEngagerCount(Target, Now);
+			if (UAIBlackboardComponent* BB = Blackboard.Get())
+			{
+				BB->SetFloat(FName("SquadSlot"), static_cast<float>(CachedSquadSlot));
+				BB->SetFloat(FName("EngagerCount"), static_cast<float>(CachedEngagerCount));
+			}
+		}
+	}
+	else
+	{
+		CachedSquadSlot    = -1;
+		CachedEngagerCount = 0;
+	}
+}
+
+FVector AEnemyCharacter::ComputeSlotLocation(AActor* Target) const
+{
+	if (!IsValid(Target))
+	{
+		return GetActorLocation();
+	}
+	const FVector TargetLoc    = Target->GetActorLocation();
+	const float   AttackRange  = DefaultAttackRange;
+	// 링 반경은 캡슐 반경 합 이상으로 — 슬롯에 서도 타깃/서로 몸통이 겹치지 않는다.
+	const float   SelfRadius   = GetActorCapsuleRadius(const_cast<AEnemyCharacter*>(this));
+	const float   TargetRadius = GetActorCapsuleRadius(Target);
+	const float   MinRing      = SelfRadius + TargetRadius + 0.1f;
+	const float   RingRadius   = (std::max)(MinRing, AttackRange * CombatRingRadiusScale);
+	const int32   Count        = (std::max)(1, CachedEngagerCount);
+	const int32   Slot        = (CachedSquadSlot >= 0) ? CachedSquadSlot : 0;
+	const float   Angle       = (2.0f * 3.14159265f) * (static_cast<float>(Slot) / static_cast<float>(Count));
+	const FVector Dir(cosf(Angle), sinf(Angle), 0.0f);
+	FVector Loc = TargetLoc + Dir * RingRadius;
+	Loc.Z = TargetLoc.Z;
+	return Loc;
+}
+
+void AEnemyCharacter::ApplySeparationSteering()
+{
+	if (!bCanMove || IsDead() || HasCurrentAttack())
+	{
+		return;
+	}
+	if (UCharacterStateMachineComponent* SM = GetStateMachine())
+	{
+		if (SM->IsMovementLocked())
+		{
+			return;
+		}
+	}
+	if (!AIBrainComponent.IsValid() || !AIBrainComponent->HasValidTarget())
+	{
+		return;
+	}
+	UCombatStateComponent* Combat = GetCombatStateComponent();
+	if (!Combat)
+	{
+		return;
+	}
+	// 분리 반경은 몸통 크기 인식 — 캡슐이 큰 적은 더 멀리서부터 서로 밀어낸다(경량 RVO).
+	const float   EffectiveRadius = (std::max)(SeparationRadius, GetActorCapsuleRadius(this) * 2.2f);
+	const FVector Separation = FCombatTargetRegistry::Get().ComputeSeparation(Combat, GetActorLocation(), EffectiveRadius);
+	if (Separation.IsNearlyZero())
+	{
+		return;
+	}
+	const float Crowd = (std::min)(1.0f, Separation.Length());
+	AddMovementInput(Separation.Normalized(), SeparationStrength * Crowd);
+}
+
+bool AEnemyCharacter::Brain_AcquireTarget()
+{
+	UEnemyAIBrainComponent* Brain = AIBrainComponent.Get();
+	if (!Brain)
+	{
+		return false;
+	}
+	if (!Brain->HasValidTarget())
+	{
+		Brain->AcquireNearestHostileTarget(TargetSearchRange);
+	}
+	return Brain->HasValidTarget();
+}
+
+void AEnemyCharacter::Brain_FaceTarget()
+{
+	FaceTarget(LastTickDelta);
+}
+
+float AEnemyCharacter::Brain_GetDistance() const
+{
+	return AIBrainComponent.IsValid() ? AIBrainComponent->GetFlatDistanceToTarget() : 9999.0f;
+}
+
+float AEnemyCharacter::Brain_GetAttackRange() const
+{
+	return DefaultAttackRange;
+}
+
+bool AEnemyCharacter::Brain_ConsumeCombatStep()
+{
+	return CombatClock.ConsumeStep();
+}
+
+bool AEnemyCharacter::Brain_IsBusy() const
+{
+	if (IsDead() || HasCurrentAttack())
+	{
+		return true;
+	}
+	if (UCombatStateComponent* Combat = GetCombatStateComponent())
+	{
+		if (Combat->IsStaggered())
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+
+const FEnemyAttackData* AEnemyCharacter::GetAttackDataByIndex(int32 Index) const
+{
+	if (!AttackComponent.IsValid())
+	{
+		return nullptr;
+	}
+	const TArray<FEnemyAttackData>& Attacks = AttackComponent->Attacks;
+	if (Index < 0 || Index >= static_cast<int32>(Attacks.size()))
+	{
+		return nullptr;
+	}
+	return &Attacks[Index];
+}
+
+bool AEnemyCharacter::Brain_SetSelectedAttack(const FName& AttackName)
+{
+	SelectedAttackName = FName::None;
+	if (!AttackName.IsValid() || !AttackComponent.IsValid())
+	{
+		return false;
+	}
+	const FEnemyAttackData Attack = AttackComponent->FindAttackByName(AttackName);
+	if (!Attack.AttackName.IsValid() || !CanUseAttackDataNow(Attack))
+	{
+		return false;
+	}
+	SelectedAttackName = Attack.AttackName;
+	return true;
+}
+
+bool AEnemyCharacter::CanUseAttackDataNow(const FEnemyAttackData& Attack) const
+{
+	if (!AttackComponent.IsValid() || !AIBrainComponent.IsValid() || !AIBrainComponent->HasValidTarget())
+	{
+		return false;
+	}
+	if (!Attack.AttackName.IsValid() || !Attack.Montage || Attack.Weight <= 0.0f)
+	{
+		return false;
+	}
+	const int32 Phase = GetCurrentAIPhase();
+	if (Phase < Attack.MinPhase || Phase > Attack.MaxPhase)
+	{
+		return false;
+	}
+	const float Distance = AIBrainComponent->GetFlatDistanceToTarget();
+	const float AllowedMaxRange = Attack.bIsGapCloser ? Attack.MaxRange * GapCloserRangeScale : Attack.MaxRange;
+	if (Distance < Attack.MinRange || Distance > AllowedMaxRange)
+	{
+		return false;
+	}
+	const float VerticalDelta = AIBrainComponent->GetVerticalDeltaToTarget();
+	const float VerticalTolerance = Attack.MaxVerticalDelta > 0.0f ? Attack.MaxVerticalDelta : AttackVerticalTolerance;
+	if (VerticalTolerance > 0.0f && VerticalDelta > VerticalTolerance)
+	{
+		return false;
+	}
+	if (Attack.bRequiresTargetInFront && fabsf(AIBrainComponent->GetAngleToTarget()) > Attack.MaxAbsAngle)
+	{
+		return false;
+	}
+	return AttackComponent->GetGlobalCooldownRemaining() <= 0.0f && !AttackComponent->IsAttackOnCooldown(Attack.AttackName);
+}
+
+bool AEnemyCharacter::Brain_PlaySelectedAttack()
+{
+	if (!SelectedAttackName.IsValid() || !AttackComponent.IsValid())
+	{
+		return false;
+	}
+	const FEnemyAttackData Attack = AttackComponent->FindAttackByName(SelectedAttackName);
+	if (!Attack.AttackName.IsValid() || !CanUseAttackDataNow(Attack))
+	{
+		return false;
+	}
+	const float TokenDuration = GetAttackExecutionDuration(Attack) + AttackTokenSafetyBuffer;
+	if (!AcquireAttackTokenForDuration(TokenDuration))
+	{
+		return false;
+	}
+	if (!StartAttackExecution(Attack))
+	{
+		Brain_ReleaseAttackToken();
+		return false;
+	}
+	AttackComponent->CommitAttackData(Attack);
+	if (UAIBlackboardComponent* BB = Blackboard.Get())
+	{
+		BB->PushRecentMove(Attack.AttackName);
+	}
+	return true;
+}
+
+bool AEnemyCharacter::Brain_PlayAttackByName(const FName& AttackName)
+{
+	return Brain_SetSelectedAttack(AttackName) && Brain_PlaySelectedAttack();
+}
+
+float AEnemyCharacter::Brain_GetAbsAngle() const
+{
+	return AIBrainComponent.IsValid() ? fabsf(AIBrainComponent->GetAngleToTarget()) : 180.0f;
+}
+
+float AEnemyCharacter::Brain_GetVerticalDelta() const
+{
+	return AIBrainComponent.IsValid() ? AIBrainComponent->GetVerticalDeltaToTarget() : 9999.0f;
+}
+
+float AEnemyCharacter::Brain_GetSelfHealthRatio() const
+{
+	return GetCurrentHealthRatio();
+}
+
+float AEnemyCharacter::Brain_GetTargetHealthRatio() const
+{
+	return Blackboard.IsValid() ? Blackboard->GetFloat(FName("TargetHealth")) : 1.0f;
+}
+
+float AEnemyCharacter::Brain_GetTargetPostureRatio() const
+{
+	return Blackboard.IsValid() ? Blackboard->GetFloat(FName("TargetPosture")) : 1.0f;
+}
+
+bool AEnemyCharacter::Brain_CanSeeTarget() const
+{
+	return Blackboard.IsValid() && Blackboard->GetBool(FName("CanSee"));
+}
+
+bool AEnemyCharacter::Brain_HasLineOfSight() const
+{
+	return Blackboard.IsValid() && Blackboard->GetBool(FName("HasLOS"));
+}
+
+bool AEnemyCharacter::Brain_IsInProximity() const
+{
+	return Blackboard.IsValid() && Blackboard->GetBool(FName("InProximity"));
+}
+
+int32 AEnemyCharacter::Brain_GetPhase() const
+{
+	return GetCurrentAIPhase();
+}
+
+float AEnemyCharacter::Brain_GetStateTime() const
+{
+	return GetStateMachine() ? GetStateMachine()->GetTimeInState() : 0.0f;
+}
+
+int32 AEnemyCharacter::Brain_GetLODLevel() const
+{
+	return CurrentLODLevel;
+}
+
+int32 AEnemyCharacter::Brain_GetAttackCount() const
+{
+	return AttackComponent.IsValid() ? static_cast<int32>(AttackComponent->Attacks.size()) : 0;
+}
+
+FName AEnemyCharacter::Brain_GetAttackName(int32 Index) const
+{
+	const FEnemyAttackData* Attack = GetAttackDataByIndex(Index);
+	return Attack ? Attack->AttackName : FName::None;
+}
+
+bool AEnemyCharacter::Brain_CanUseAttackIndex(int32 Index) const
+{
+	const FEnemyAttackData* Attack = GetAttackDataByIndex(Index);
+	return Attack && CanUseAttackDataNow(*Attack);
+}
+
+float AEnemyCharacter::Brain_GetAttackBaseWeight(int32 Index) const
+{
+	const FEnemyAttackData* Attack = GetAttackDataByIndex(Index);
+	return Attack ? Attack->Weight : 0.0f;
+}
+
+float AEnemyCharacter::Brain_GetAttackPriority(int32 Index) const
+{
+	const FEnemyAttackData* Attack = GetAttackDataByIndex(Index);
+	return Attack ? Attack->Priority : 0.0f;
+}
+
+float AEnemyCharacter::Brain_GetAttackMinRange(int32 Index) const
+{
+	const FEnemyAttackData* Attack = GetAttackDataByIndex(Index);
+	return Attack ? Attack->MinRange : 0.0f;
+}
+
+float AEnemyCharacter::Brain_GetAttackMaxRange(int32 Index) const
+{
+	const FEnemyAttackData* Attack = GetAttackDataByIndex(Index);
+	return Attack ? Attack->MaxRange : 0.0f;
+}
+
+float AEnemyCharacter::Brain_GetAttackMaxAbsAngle(int32 Index) const
+{
+	const FEnemyAttackData* Attack = GetAttackDataByIndex(Index);
+	return Attack ? Attack->MaxAbsAngle : 0.0f;
+}
+
+float AEnemyCharacter::Brain_GetAttackMaxVerticalDelta(int32 Index) const
+{
+	const FEnemyAttackData* Attack = GetAttackDataByIndex(Index);
+	return Attack ? Attack->MaxVerticalDelta : 0.0f;
+}
+
+float AEnemyCharacter::Brain_GetAttackRepeatWeightScale(int32 Index) const
+{
+	const FEnemyAttackData* Attack = GetAttackDataByIndex(Index);
+	return Attack ? Attack->RepeatWeightScale : 1.0f;
+}
+
+FName AEnemyCharacter::Brain_GetAttackTacticTag(int32 Index) const
+{
+	const FEnemyAttackData* Attack = GetAttackDataByIndex(Index);
+	return Attack ? Attack->TacticTag : FName::None;
+}
+
+bool AEnemyCharacter::Brain_IsAttackGapCloser(int32 Index) const
+{
+	const FEnemyAttackData* Attack = GetAttackDataByIndex(Index);
+	return Attack && Attack->bIsGapCloser;
+}
+
+int32 AEnemyCharacter::Brain_GetAttackPerilousType(int32 Index) const
+{
+	const FEnemyAttackData* Attack = GetAttackDataByIndex(Index);
+	return Attack ? static_cast<int32>(Attack->PerilousType) : 0;
+}
+
+bool AEnemyCharacter::Brain_AttackRequiresPreviousAttack(int32 Index) const
+{
+	const FEnemyAttackData* Attack = GetAttackDataByIndex(Index);
+	return Attack && Attack->bRequiresPreviousAttack;
+}
+
+FName AEnemyCharacter::Brain_GetAttackRequiredPreviousAttack(int32 Index) const
+{
+	const FEnemyAttackData* Attack = GetAttackDataByIndex(Index);
+	return Attack ? Attack->RequiredPreviousAttack : FName::None;
+}
+
+int32 AEnemyCharacter::Brain_GetRecentAttackRepeat(const FName& AttackName) const
+{
+	return Blackboard.IsValid() ? Blackboard->GetRecentMoveRepeat(AttackName) : 0;
+}
+
+FName AEnemyCharacter::Brain_GetLastAttackName() const
+{
+	return AttackComponent.IsValid() ? AttackComponent->GetLastAttackName() : FName::None;
+}
+
+void AEnemyCharacter::Brain_BeginDecisionTrace()
+{
+	if (UAIDecisionTraceComponent* Trace = DecisionTrace.Get())
+	{
+		Trace->BeginDecision(GetStateMachine() ? GetStateMachine()->GetState() : FName::None);
+	}
+}
+
+void AEnemyCharacter::Brain_AddDecisionCandidate(const FName& ActionName, float Score)
+{
+	if (UAIDecisionTraceComponent* Trace = DecisionTrace.Get())
+	{
+		Trace->AddCandidate(ActionName, Score);
+	}
+}
+
+void AEnemyCharacter::Brain_CommitDecisionTrace(const FName& ChosenAction)
+{
+	if (UAIDecisionTraceComponent* Trace = DecisionTrace.Get())
+	{
+		Trace->CommitDecision(ChosenAction);
+	}
+}
+
+void AEnemyCharacter::Brain_Chase()
+{
+	UEnemyAIBrainComponent* Brain = AIBrainComponent.Get();
+	if (!Brain || !Brain->HasValidTarget())
+	{
+		return;
+	}
+	SetRuntimeState(FName("Chase"));
+	const float Acceptance = (std::max)(0.3f, DefaultAttackRange * 0.4f);
+	FVector GoalLocation = ComputeSlotLocation(Brain->GetTarget());
+
+	// 시야가 끊긴 상태에서는 actor 현재 위치가 아니라 마지막으로 본 위치로 이동한다.
+	// 이렇게 해야 벽 너머 actor pointer를 직접 추적하면서 비정상적인 공격/회전/슬롯팅을 하지 않는다.
+	if (UAIBlackboardComponent* BB = Blackboard.Get())
+	{
+		const bool bCanSee = BB->GetBool(FName("CanSee"));
+		const bool bInProximity = BB->GetBool(FName("InProximity"));
+		const bool bLastSeenValid = BB->GetBool(FName("LastSeenValid"));
+		if (!bCanSee && !bInProximity && bLastSeenValid)
+		{
+			GoalLocation = BB->GetLastSeenLocation();
+		}
+	}
+
+	if (!RequestMoveToLocation(GoalLocation, Acceptance, true) && !Brain->IsMoveActive())
+	{
+		StopEnemyMovement();
+		UE_LOG("[EnemyAI] Brain_Chase move failed. Enemy=%s Reason=%s", GetName().c_str(), Brain->GetLastMoveFailureReason().c_str());
+	}
+}
+
+void AEnemyCharacter::Brain_Strafe()
+{
+	// 기존 Chase path 입력과 상태머신 Strafe 입력이 합쳐지지 않도록 pathfollowing만 끊는다.
+	StopPathFollowingOnly();
+	SetRuntimeState(FName("Strafe"));
+}
+
+void AEnemyCharacter::Brain_Reposition()
+{
+	// 기존 Chase path 입력과 상태머신 Retreat 입력이 합쳐지지 않도록 pathfollowing만 끊는다.
+	StopPathFollowingOnly();
+	SetRuntimeState(FName("Reposition"));
+}
+
+void AEnemyCharacter::Brain_Idle()
+{
+	SetRuntimeState(FName("Idle"));
+	FSquadCoordinator::Get().ReleaseToken(this);   // 타깃 없음 → 토큰 반환
+	FSquadCoordinator::Get().ReleaseEngager(this); // 링 슬롯도 반환
+	StopEnemyMovement();
+}
+
+bool AEnemyCharacter::Brain_TargetThreatening() const
+{
+	const UEnemyAIBrainComponent* Brain = AIBrainComponent.Get();
+	if (!Brain || !Brain->HasValidTarget())
+	{
+		return false;
+	}
+	AActor* Target = Brain->GetTarget();
+	if (!Target)
+	{
+		return false;
+	}
+	UCombatStateComponent* TargetCombat = Target->GetComponentByClass<UCombatStateComponent>();
+	if (!TargetCombat || !TargetCombat->IsAttacking())
+	{
+		return false;
+	}
+	return Brain->GetFlatDistanceToTarget() <= DefaultAttackRange * 1.8f;
+}
+
+bool AEnemyCharacter::Brain_TargetInRecovery() const
+{
+	return Blackboard.IsValid() && Blackboard->GetBool(FName("TargetInRecovery"));
+}
+
+int32 AEnemyCharacter::Brain_GetTargetPerilous() const
+{
+	if (!Blackboard.IsValid())
+	{
+		return 0;
+	}
+	return static_cast<int32>(Blackboard->GetFloat(FName("TargetPerilous")) + 0.5f);
+}
+
+void AEnemyCharacter::Brain_OpenDeflect()
+{
+	StopEnemyMovement();
+	if (UCombatStateComponent* Combat = GetCombatStateComponent())
+	{
+		Combat->OpenDeflectWindow(0.0f); // 0 → 컴포넌트 기본 윈도우 길이
+	}
+	SetRuntimeState(FName("Deflect"));
+}
+
+bool AEnemyCharacter::Brain_AcquireAttackToken()
+{
+	return AcquireAttackTokenForDuration(SquadTokenDuration);
+}
+
+void AEnemyCharacter::Brain_ReleaseAttackToken()
+{
+	FSquadCoordinator::Get().ReleaseToken(this);
+	if (UAIBlackboardComponent* BB = Blackboard.Get())
+	{
+		BB->SetBool(FName("HoldingToken"), false);
+	}
+}
+
+int32 AEnemyCharacter::Brain_GetSquadSlot() const
+{
+	const UEnemyAIBrainComponent* Brain = AIBrainComponent.Get();
+	UWorld* World = GetWorld();
+	if (!Brain || !Brain->HasValidTarget() || !World)
+	{
+		return -1;
+	}
+	return FSquadCoordinator::Get().GetSlotIndex(const_cast<AEnemyCharacter*>(this), Brain->GetTarget(), World->GetGameTimeSeconds());
+}
+
+void AEnemyCharacter::UpdateAILOD()
+{
+	float Distance = 9999.0f;
+	if (AIBrainComponent.IsValid() && AIBrainComponent->HasValidTarget())
+	{
+		Distance = AIBrainComponent->GetFlatDistanceToTarget();
+	}
+
+	int32 Lod;
+	float StepSeconds;
+	if (Distance <= LODNearDistance)
+	{
+		Lod = 0;
+		StepSeconds = 1.0f / 60.0f; // 근접: 풀레이트 정밀 틱
+	}
+	else if (Distance <= LODFarDistance)
+	{
+		Lod = 1;
+		StepSeconds = 1.0f / 30.0f;
+	}
+	else
+	{
+		Lod = 2;
+		StepSeconds = 1.0f / 10.0f; // 원거리: 저빈도 think 로 CPU 예산 절감
+	}
+
+	CurrentLODLevel = Lod;
+	CombatClock.StepSeconds = StepSeconds;
+	if (UAIBlackboardComponent* BB = Blackboard.Get())
+	{
+		BB->SetFloat(FName("LOD"), static_cast<float>(Lod));
 	}
 }

@@ -11,9 +11,9 @@ class AActor;
 
 #include "Source/Engine/Component/AI/EnemyAIBrainComponent.generated.h"
 
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FEnemyAIStateChangedSignature, class UEnemyAIBrainComponent*, FName, FName);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FEnemyAITargetChangedSignature, class UEnemyAIBrainComponent*, AActor*);
 
+// Target/query/move façade. 행동 정책과 상태 전이는 Lua Blueprint 또는 상위 pawn이 소유한다.
 UCLASS()
 class UEnemyAIBrainComponent : public UActorComponent
 {
@@ -32,14 +32,16 @@ public:
 	bool HasValidTarget() const;
 
 	UFUNCTION(Callable, Category="EnemyAI|Target")
-	AActor* AcquireTargetByTag(const FName& Tag);
+	AActor* AcquireTargetByTag(const FName& Tag, float SearchRange = 0.0f);
 	UFUNCTION(Callable, Category="EnemyAI|Target")
 	AActor* AcquireNearestHostileTarget(float SearchRange);
-	UFUNCTION(Callable, Category="EnemyAI|Target")
-	AActor* AcquireDefaultTarget();
 
 	UFUNCTION(Pure, Category="EnemyAI|Target")
 	float GetDistanceToTarget() const;
+	UFUNCTION(Pure, Category="EnemyAI|Target")
+	float GetFlatDistanceToTarget() const;
+	UFUNCTION(Pure, Category="EnemyAI|Target")
+	float GetVerticalDeltaToTarget() const;
 	UFUNCTION(Pure, Category="EnemyAI|Target")
 	FVector GetDirectionToTarget() const;
 	UFUNCTION(Pure, Category="EnemyAI|Target")
@@ -53,22 +55,13 @@ public:
 	UFUNCTION(Pure, Category="EnemyAI|Target")
 	bool IsTargetBehind(float MinAbsAngleDegrees = 120.0f) const;
 
-	UFUNCTION(Callable, Category="EnemyAI|State")
-	void SetState(const FName& NewState);
-	UFUNCTION(Pure, Category="EnemyAI|State")
-	FName GetState() const { return CurrentState; }
-	UFUNCTION(Pure, Category="EnemyAI|State")
-	FName GetPreviousState() const { return PreviousState; }
-	UFUNCTION(Pure, Category="EnemyAI|State")
-	float GetStateTime() const { return StateTime; }
-
 	UFUNCTION(Callable, Category="EnemyAI|Move")
 	bool RequestMoveToTarget(float AcceptanceRadius = -1.0f, bool bUsePathfinding = true);
 	UFUNCTION(Callable, Category="EnemyAI|Move")
 	void StopMove();
 	UFUNCTION(Pure, Category="EnemyAI|Move")
 	bool IsMoveActive() const;
-	UFUNCTION(Pure, Category="EnemyAI|Move")
+	UFUNCTION(Pure, Category="EnemyAI|Move")	
 	EPathFollowingStatus GetMoveStatus() const;
 	UFUNCTION(Pure, Category="EnemyAI|Move")
 	EPathFollowingRequestResult GetLastMoveRequestResult() const;
@@ -79,28 +72,8 @@ public:
 
 	void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction& ThisTickFunction) override;
 
-	UPROPERTY(Edit, Save, Category="EnemyAI|Target", DisplayName="Default Target Tag")
-	FName DefaultTargetTag = FName("Player");
-
-	UPROPERTY(Edit, Save, Category="EnemyAI|Sense", DisplayName="Detection Range", Min=0.0f, Max=1000.0f, Speed=0.5f)
-	float DetectionRange = 40.0f;
-
-	UPROPERTY(Edit, Save, Category="EnemyAI|Sense", DisplayName="Lose Target Range", Min=0.0f, Max=1000.0f, Speed=0.5f)
-	float LoseTargetRange = 55.0f;
-
-	UPROPERTY(Edit, Save, Category="EnemyAI|Combat", DisplayName="Attack Range", Min=0.0f, Max=1000.0f, Speed=0.1f)
-	float AttackRange = 3.0f;
-
-	UPROPERTY(Edit, Save, Category="EnemyAI|State", DisplayName="Initial State")
-	FName InitialState = FName("Idle");
-
-	FEnemyAIStateChangedSignature OnStateChanged;
 	FEnemyAITargetChangedSignature OnTargetChanged;
 
 private:
 	TWeakObjectPtr<AActor> TargetActor = nullptr;
-	FName CurrentState = FName("Idle");
-	FName PreviousState = FName::None;
-	float StateTime = 0.0f;
-	bool bHasInitializedState = false;
 };

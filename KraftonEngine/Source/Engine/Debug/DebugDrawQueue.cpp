@@ -2,7 +2,7 @@
 #include <cmath>
 
 void FDebugDrawQueue::AddLine(const FVector& Start, const FVector& End,
-	const FColor& Color, float Duration)
+	const FColor& Color, float Duration, EDebugDrawCategory Category)
 {
 	FDebugDrawItem Item;
 	Item.Start = Start;
@@ -10,11 +10,12 @@ void FDebugDrawQueue::AddLine(const FVector& Start, const FVector& End,
 	Item.Color = Color;
 	Item.RemainingTime = Duration;
 	Item.bOneFrame = (Duration <= 0.0f);
+	Item.Category = Category;
 	Items.push_back(Item);
 }
 
 void FDebugDrawQueue::AddBox(const FVector& Center, const FVector& Extent,
-	const FColor& Color, float Duration)
+	const FColor& Color, float Duration, EDebugDrawCategory Category)
 {
 	// 8개 꼭짓점
 	FVector V[8];
@@ -36,12 +37,12 @@ void FDebugDrawQueue::AddBox(const FVector& Center, const FVector& Extent,
 
 	for (const auto& E : Edges)
 	{
-		AddLine(V[E[0]], V[E[1]], Color, Duration);
+		AddLine(V[E[0]], V[E[1]], Color, Duration, Category);
 	}
 }
 
 void FDebugDrawQueue::AddSphere(const FVector& Center, float Radius, int32 Segments,
-	const FColor& Color, float Duration)
+	const FColor& Color, float Duration, EDebugDrawCategory Category)
 {
 	if (Segments < 4) Segments = 4;
 
@@ -55,7 +56,7 @@ void FDebugDrawQueue::AddSphere(const FVector& Center, float Radius, int32 Segme
 		AddLine(
 			Center + FVector(cosf(A0) * Radius, sinf(A0) * Radius, 0.0f),
 			Center + FVector(cosf(A1) * Radius, sinf(A1) * Radius, 0.0f),
-			Color, Duration);
+			Color, Duration, Category);
 	}
 
 	// XZ 평면 (Y축 기준 원)
@@ -66,7 +67,7 @@ void FDebugDrawQueue::AddSphere(const FVector& Center, float Radius, int32 Segme
 		AddLine(
 			Center + FVector(cosf(A0) * Radius, 0.0f, sinf(A0) * Radius),
 			Center + FVector(cosf(A1) * Radius, 0.0f, sinf(A1) * Radius),
-			Color, Duration);
+			Color, Duration, Category);
 	}
 
 	// YZ 평면 (X축 기준 원)
@@ -77,8 +78,32 @@ void FDebugDrawQueue::AddSphere(const FVector& Center, float Radius, int32 Segme
 		AddLine(
 			Center + FVector(0.0f, cosf(A0) * Radius, sinf(A0) * Radius),
 			Center + FVector(0.0f, cosf(A1) * Radius, sinf(A1) * Radius),
-			Color, Duration);
+			Color, Duration, Category);
 	}
+}
+
+void FDebugDrawQueue::ClearCategory(EDebugDrawCategory Category)
+{
+	for (int32 i = static_cast<int32>(Items.size()) - 1; i >= 0; --i)
+	{
+		if (Items[i].Category == Category)
+		{
+			Items.erase(Items.begin() + i);
+		}
+	}
+}
+
+int32 FDebugDrawQueue::GetItemCount(EDebugDrawCategory Category) const
+{
+	int32 Count = 0;
+	for (const FDebugDrawItem& Item : Items)
+	{
+		if (Item.Category == Category)
+		{
+			++Count;
+		}
+	}
+	return Count;
 }
 
 void FDebugDrawQueue::Tick(float DeltaTime)

@@ -25,16 +25,6 @@ namespace physx
     class PxShape;
 }
 
-struct FActorCompoundBody
-{
-    uint32 OwnerActorId    = 0;
-    uint32 RootComponentId = 0;
-    uint32 RootGeneration  = 0;
-
-    FPhysicsBodyHandle Body;
-
-    TArray<uint32> Components;
-};
 
 class FPhysXPhysicsRuntime : public IPhysicsRuntime
 {
@@ -238,9 +228,6 @@ private:
     void BuildWorldSnapshot_Internal();
     void BuildDebugSnapshot_Internal();
 
-    FActorCompoundBody*       FindCompoundByActorId(uint32 ActorId);
-    const FActorCompoundBody* FindCompoundByActorId(uint32 ActorId) const;
-
 private:
     UWorld* World = nullptr;
 
@@ -260,7 +247,6 @@ private:
     TArray<uint32>                               ConstraintGenerations;
 
     // UObject raw pointer를 보관하지 않는다. Game Thread에서 복사한 UUID/handle만 runtime map의 key/value로 사용한다.
-    TMap<uint32, FActorCompoundBody>  ActorCompounds;
     TMap<uint32, FPhysicsBodyHandle>  ComponentToBody;
     TMap<uint32, FPhysicsShapeHandle> ComponentToShape;
 

@@ -10,12 +10,20 @@
 #include "Animation/Notify/AnimNotify_EnableAttack.h"
 #include "Component/Primitive/SkeletalMeshComponent.h"
 #include "Component/Primitive/StaticMeshComponent.h"
+#include "Engine/GameFramework/World.h"
+#include "Engine/GameFramework/GameMode/PlayerController.h"
+#include "Engine/GameFramework/Camera/PlayerCameraManager.h"
 #include "Lua/LuaScriptManager.h"
 #include "Core/ProjectSettings.h"
 #include "Core/Logging/Log.h"
 #include "Audio/AudioManager.h"
+#include "Game/GameMode/AFinaleGameMode.h"
+#include "Game/GameMode/GameState.h"
+#include "Game/Leaderboard/LeaderboardStore.h"
+#include "Engine/Core/Logging/Log.h"
 
 #include <algorithm>
+#include <vector>
 
 
 
@@ -116,6 +124,206 @@ void RegisterGameLuaBindings(sol::state& Lua)
 			return WeaponMesh;
 		}
 	);
+
+	// Game.TogglePause — pause key entry point. Resolves the active GameMode and
+	// lets it decide pause vs. resume from its own phase.
+	sol::table Game = Lua["Game"].valid() ? Lua["Game"] : Lua.create_named_table("Game");
+	Game.set_function(
+		"TogglePause",
+		[]()
+		{
+			if (!GEngine || !GEngine->GetWorld()) return;
+			if (AFinaleGameMode* GM = Cast<AFinaleGameMode>(GEngine->GetWorld()->GetGameMode()))
+			{
+				GM->TogglePause();
+			}
+		}
+	);
+	Game.set_function(
+		"QuitToTitle",
+		[]()
+		{
+			if (!GEngine || !GEngine->GetWorld()) return;
+			if (AFinaleGameMode* GM = Cast<AFinaleGameMode>(GEngine->GetWorld()->GetGameMode()))
+			{
+				GM->OnGameQuit();
+			}
+		}
+	);
+	// Phase string (e.g. "Playing", "Dead", "Defeated") — GameFlowController
+	// polls this each Tick to drive phase-dependent UI (death overlay, etc.).
+	Game.set_function(
+		"GetPhase",
+		[]() -> FString
+		{
+			if (!GEngine || !GEngine->GetWorld()) return "None";
+			if (AFinaleGameMode* GM = Cast<AFinaleGameMode>(GEngine->GetWorld()->GetGameMode()))
+			{
+				if (AFinaleGameState* GS = Cast<AFinaleGameState>(GM->GetGameState()))
+				{
+					return GS->GetPhaseString();
+				}
+			}
+			return "None";
+		}
+	);
+	Game.set_function(
+		"Revive",
+		[]()
+		{
+			if (!GEngine || !GEngine->GetWorld()) return;
+			if (AFinaleGameMode* GM = Cast<AFinaleGameMode>(GEngine->GetWorld()->GetGameMode()))
+			{
+				GM->OnPlayerRevive();
+			}
+		}
+	);
+	Game.set_function(
+		"Defeated",
+		[]()
+		{
+			if (!GEngine || !GEngine->GetWorld()) return;
+			if (AFinaleGameMode* GM = Cast<AFinaleGameMode>(GEngine->GetWorld()->GetGameMode()))
+			{
+				GM->OnPlayerDefeated();
+			}
+		}
+	);
+	// Current camera fade alpha (0..1). Lets UI track the engine post-process
+	// fade exactly (e.g. redden the death icon in lockstep with the fade-out).
+	Game.set_function(
+		"GetCameraFade",
+		[]() -> float
+		{
+			if (!GEngine || !GEngine->GetWorld()) return 0.0f;
+			APlayerController* PC = GEngine->GetWorld()->GetFirstPlayerController();
+			APlayerCameraManager* Manager = PC ? PC->GetPlayerCameraManager() : nullptr;
+			return Manager ? Manager->GetFadeAmount() : 0.0f;
+		}
+	);
+	// Fade (black) from an explicit alpha — unlike CameraManager.FadeIn which
+	// always starts at 1.0. Lets a revive continue from the death fade's current
+	// alpha instead of snapping to black first.
+	Game.set_function(
+		"CameraFade",
+		[](float FromAlpha, float ToAlpha, float Duration)
+		{
+			if (!GEngine || !GEngine->GetWorld()) return;
+			APlayerController* PC = GEngine->GetWorld()->GetFirstPlayerController();
+			APlayerCameraManager* Manager = PC ? PC->GetPlayerCameraManager() : nullptr;
+			if (Manager)
+			{
+				Manager->StartCameraFade(FromAlpha, ToAlpha, Duration, FLinearColor::Black(), false, true);
+			}
+		}
+	);
+	// Game.ViewLeaderboard — victory/defeat LEADERBOARD button. Drives the phase
+	// to Leaderboard (gated in OnLeaderBoardView); the leaderboard screen is TODO.
+	Game.set_function(
+		"ViewLeaderboard",
+		[]()
+		{
+			if (!GEngine || !GEngine->GetWorld()) return;
+			if (AFinaleGameMode* GM = Cast<AFinaleGameMode>(GEngine->GetWorld()->GetGameMode()))
+			{
+				GM->OnLeaderBoardView();
+			}
+		}
+	);
+	// Game.GetActiveTime — seconds of Playing time elapsed up to victory. The
+	// leaderboard reads this at submit (the run is frozen by then) for the record.
+	Game.set_function(
+		"GetActiveTime",
+		[]() -> float
+		{
+			if (!GEngine || !GEngine->GetWorld()) return 0.0f;
+			if (AFinaleGameMode* GM = Cast<AFinaleGameMode>(GEngine->GetWorld()->GetGameMode()))
+			{
+				return GM->GetActiveTime();
+			}
+			return 0.0f;
+		}
+	);
+	// Game.GetReviveCount — number of revives the player used this run.
+	Game.set_function(
+		"GetReviveCount",
+		[]() -> int
+		{
+			if (!GEngine || !GEngine->GetWorld()) return 0;
+			if (AFinaleGameMode* GM = Cast<AFinaleGameMode>(GEngine->GetWorld()->GetGameMode()))
+			{
+				return static_cast<int>(GM->GetReviveCount());
+			}
+			return 0;
+		}
+	);
+
+	// ============================================================
+	// Leaderboard — file-backed top-N store (Saves/Leaderboard.txt). The UI is an
+	// RmlUi overlay driven from GameFlowController.lua: submit on victory (writes a
+	// record), view-only elsewhere (defeat/pause/title). Lua has no file I/O, so
+	// persistence lives in C++ (GameLeaderboard, see LeaderboardStore.h).
+	// ============================================================
+	sol::table Leaderboard = Lua["Leaderboard"].valid() ? Lua["Leaderboard"] : Lua.create_named_table("Leaderboard");
+	Leaderboard.set_function(
+		"Submit",
+		[](const FString& Name, float TimeSec, int Revives)
+		{
+			GameLeaderboard::Submit(Name, TimeSec, Revives);
+		}
+	);
+	// Returns a 1-based array of { name, time, revives } sorted best-first.
+	Leaderboard.set_function(
+		"GetEntries",
+		[](sol::this_state S) -> sol::table
+		{
+			sol::state_view View(S);
+			sol::table Out = View.create_table();
+			std::vector<GameLeaderboard::FEntry> Entries = GameLeaderboard::Load();
+			int Index = 1;
+			for (const GameLeaderboard::FEntry& E : Entries)
+			{
+				sol::table Row = View.create_table();
+				Row["name"]    = E.Name;
+				Row["time"]    = E.TimeSec;
+				Row["revives"] = E.Revives;
+				Out[Index++]   = Row;
+			}
+			return Out;
+		}
+	);
+
+	// ============================================================
+	// Debug flow triggers (dev only)
+	// Bound to number keys in GameFlowController.lua to drive the macro state
+	// machine without real combat/gameplay. Each fires one flow event on the
+	// active GameMode; the handlers self-gate on EGamePhase, so a key pressed
+	// in the wrong phase is a harmless no-op. Strip the DEBUG_KEYS block in the
+	// Lua controller (or this table) before shipping.
+	// ============================================================
+	auto ResolveFinaleGM = []() -> AFinaleGameMode*
+	{
+		if (!GEngine || !GEngine->GetWorld()) return nullptr;
+		return Cast<AFinaleGameMode>(GEngine->GetWorld()->GetGameMode());
+	};
+
+	sol::table Debug = Lua["Debug"].valid() ? Lua["Debug"] : Lua.create_named_table("Debug");
+	Debug.set_function("PlayerDeath",  [ResolveFinaleGM]() { if (AFinaleGameMode* GM = ResolveFinaleGM()) GM->OnPlayerDeath(); });
+	Debug.set_function("PlayerRevive", [ResolveFinaleGM]() { if (AFinaleGameMode* GM = ResolveFinaleGM()) GM->OnPlayerRevive(); });
+	Debug.set_function("BossSlain",   [ResolveFinaleGM]() { if (AFinaleGameMode* GM = ResolveFinaleGM()) GM->OnBossSlain(FName("DebugBoss")); });
+	Debug.set_function("Victory",     [ResolveFinaleGM]() { if (AFinaleGameMode* GM = ResolveFinaleGM()) GM->OnVictory(); });
+	Debug.set_function("Cutscene",    [ResolveFinaleGM]() { if (AFinaleGameMode* GM = ResolveFinaleGM()) GM->OnEnteringCutscene(); });
+	Debug.set_function("Leaderboard", [ResolveFinaleGM]() { if (AFinaleGameMode* GM = ResolveFinaleGM()) GM->OnLeaderBoardView(); });
+	Debug.set_function("PrintPhase",  [ResolveFinaleGM]()
+	{
+		if (AFinaleGameMode* GM = ResolveFinaleGM())
+		{
+			if (AFinaleGameState* GS = Cast<AFinaleGameState>(GM->GetGameState()))
+			{
+				UE_LOG("[Debug] Current phase: %s", GS->GetPhaseString().c_str());
+			}
+		}
+	});
 
 	// ---- Options ----
 	// 런타임 source of truth 는 FProjectSettings (in-memory singleton).

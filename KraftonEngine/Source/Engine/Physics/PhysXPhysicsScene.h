@@ -165,7 +165,6 @@ private:
     void ConsumeCreationResults_GameThread();
 
     TMap<uint32, FPhysicsComponentBinding> GameThreadBindings;
-    TMap<uint32, FPhysicsBodyHandle>       GameThreadActorBodies;
 
 	UWorld* World = nullptr;
 

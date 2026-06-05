@@ -32,6 +32,7 @@
 #include "Editor/UI/Asset/LuaBlueprint/LuaBlueprintEditorWidget.h"
 #include "Editor/UI/Asset/Material/MaterialEditorWidget.h"
 #include "Editor/UI/Asset/Physics/PhysicsAssetEditorWidget.h"
+#include "Editor/UI/Asset/Rml/RmlWidgetEditorWidget.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -95,6 +96,8 @@ FDocumentTabVisual GetDocumentTabVisual(EEditorDocumentTabKind Kind)
 		return { ImVec4(0.84f, 0.38f, 0.30f, 1.0f), "Physics Asset Editor" };
     case EEditorDocumentTabKind::MaterialEditor:
         return { ImVec4(0.92f, 0.44f, 0.24f, 1.0f), "Material Graph Editor" };
+	case EEditorDocumentTabKind::RmlWidgetEditor:
+		return { ImVec4(0.28f, 0.62f, 0.94f, 1.0f), "RML Widget Editor" };
 	case EEditorDocumentTabKind::Unsupported:
 	default:
 		return { ImVec4(0.58f, 0.62f, 0.70f, 1.0f), "Editor Tab" };
@@ -114,6 +117,8 @@ const char* GetDocumentTabKindName(EEditorDocumentTabKind Kind)
 	case EEditorDocumentTabKind::PhysicsAssetEditor: return "PhysicsAsset";
     case EEditorDocumentTabKind::MaterialEditor:
         return "Material";
+	case EEditorDocumentTabKind::RmlWidgetEditor:
+		return "RmlWidget";
 	case EEditorDocumentTabKind::Unsupported:
 	default:
 		return "Unsupported";
@@ -205,6 +210,7 @@ void FEditorMainPanel::Create(FWindowsWindow* InWindow, FRenderer& InRenderer, U
 	ContentBrowserWidget.Initialize(InEditorEngine, InRenderer.GetFD3DDevice().GetDevice());
 	ShadowMapDebugWidget.Initialize(InEditorEngine);
 	AnimationDebugWidget.Initialize(InEditorEngine);
+	AIDebugWidget.Initialize(InEditorEngine);
 	AssetEditorManager.Initialize(InEditorEngine);
 
 	AssetEditorManager.RegisterEditor<FFloatCurveEditorWidget>();
@@ -215,6 +221,7 @@ void FEditorMainPanel::Create(FWindowsWindow* InWindow, FRenderer& InRenderer, U
 	AssetEditorManager.RegisterEditor<FParticleEditorWidget>();
 	AssetEditorManager.RegisterEditor<FLuaBlueprintEditorWidget>();
     AssetEditorManager.RegisterEditor<FMaterialEditorWidget>();
+	AssetEditorManager.RegisterEditor<FRmlWidgetEditorWidget>();
 }
 
 void FEditorMainPanel::Release()
@@ -301,6 +308,12 @@ void FEditorMainPanel::Render(float DeltaTime)
 	{
 		SCOPE_STAT_CAT("AnimationDebugWidget.Render", "5_UI");
 		AnimationDebugWidget.Render(DeltaTime);
+	}
+
+	if (!bHideEditorWindows && bLevelDocumentActive && Settings.UI.bAIDebug)
+	{
+		SCOPE_STAT_CAT("AIDebugWidget.Render", "5_UI");
+		AIDebugWidget.Render(DeltaTime);
 	}
 
 	ProjectSettingsWidget.Render();
@@ -397,6 +410,7 @@ void FEditorMainPanel::RenderMainMenuBar()
 		ImGui::Checkbox("Editor Debug", &Settings.UI.bEditorDebug);
 		ImGui::Checkbox("Shadow Map Debug", &Settings.UI.bShadowMapDebug);
 		ImGui::Checkbox("Animation Debug", &Settings.UI.bAnimationDebug);
+		ImGui::Checkbox("AI Debug", &Settings.UI.bAIDebug);
 		ImGui::Separator();
 		ImGui::Checkbox("IMGUI_Setting", &Settings.UI.bImGUISettings);
 		ImGui::EndPopup();

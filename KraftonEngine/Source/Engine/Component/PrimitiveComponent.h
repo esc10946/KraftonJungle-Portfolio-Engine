@@ -89,6 +89,11 @@ public:
 	FBoundingBox GetWorldBoundingBox() const;
 	void MarkWorldBoundsDirty();
 
+	UFUNCTION(Callable, Exec, Category="Navigation")
+	void SetCanEverAffectNavigation(bool bInAffectNavigation);
+	UFUNCTION(Pure, Category="Navigation")
+	bool CanEverAffectNavigation() const { return bCanEverAffectNavigation; }
+
 	//Collision
 	virtual void UpdateWorldAABB() const;
 	virtual bool LineTraceComponent(const FRay& Ray, FHitResult& OutHitResult);
@@ -295,6 +300,8 @@ protected:
 	bool bKinematic = false;
 	UPROPERTY(Edit, Save, Category="Collision", DisplayName="Generate Overlap Events")
 	bool bGenerateOverlapEvents = false;
+	UPROPERTY(Edit, Save, Category="Navigation", DisplayName="Affect Navigation")
+	bool bCanEverAffectNavigation = true;
 
 	// Degree-of-Freedom lock 상태 — SetLinearLock/SetAngularLock 으로 설정. body 재생성 시
 	// BuildBodyDescFromComponent 가 읽어 PhysX 에 다시 적용한다.

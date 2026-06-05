@@ -1367,7 +1367,6 @@ void FPhysXPhysicsScene::Shutdown()
     Runtime.Shutdown();
 
     GameThreadBindings.clear();
-    GameThreadActorBodies.clear();
 
     if (DefaultMaterial)
     {
@@ -1458,20 +1457,9 @@ void FPhysXPhysicsScene::UnregisterComponent(UPrimitiveComponent* Comp)
     Binding.bPendingDestroy = true;
     Binding.bPendingCreate  = false;
 
-    bool bActorStillHasLiveBinding = false;
-    for (const auto& Pair : GameThreadBindings)
-    {
-        const FPhysicsComponentBinding& Other = Pair.second;
-        if (Other.ActorId == Binding.ActorId && !Other.bPendingDestroy)
-        {
-            bActorStillHasLiveBinding = true;
-            break;
-        }
-    }
-    if (!bActorStillHasLiveBinding)
-    {
-        GameThreadActorBodies.erase(Binding.ActorId);
-    }
+    Binding.Body                 = FPhysicsBodyHandle {};
+    Binding.Shape                = FPhysicsShapeHandle {};
+    Binding.BodyOwnerComponentId = Binding.ComponentId;
 }
 
 void FPhysXPhysicsScene::RebuildBody(UPrimitiveComponent* Comp)
@@ -1481,65 +1469,34 @@ void FPhysXPhysicsScene::RebuildBody(UPrimitiveComponent* Comp)
         return;
     }
 
-    AActor*      OwnerActor = Comp->GetOwner();
-    const uint32 ActorId    = OwnerActor ? OwnerActor->GetUUID() : 0;
-
-    TArray<UPrimitiveComponent*> ComponentsToRebuild;
-    if (ActorId != 0)
+    // Physics body ownership is component-local. Rebuilding one component must not
+    // tear down every primitive owned by the same actor; otherwise a child mesh,
+    // hitbox, or weapon collider can accidentally recreate the character capsule
+    // with the wrong body type/sync mode.
+    if (EventCallback)
     {
-        for (const auto& Pair : GameThreadBindings)
-        {
-            const FPhysicsComponentBinding& Binding = Pair.second;
-            if (Binding.ActorId != ActorId || Binding.bPendingDestroy)
-            {
-                continue;
-            }
-
-            UPrimitiveComponent* BoundComponent = Cast<UPrimitiveComponent>(UObjectManager::Get().FindByUUID(Binding.ComponentId));
-            if (IsValid(BoundComponent) && BoundComponent->IsCollisionEnabled())
-            {
-                ComponentsToRebuild.push_back(BoundComponent);
-            }
-        }
+        EventCallback->NotifyComponentUnregistered(Comp);
     }
 
-    if (ComponentsToRebuild.empty())
+    FPhysicsComponentBinding& Binding = TouchBinding_GameThread(Comp);
+
+    FPhysicsObjectKey Object;
+    Object.ActorId             = Binding.ActorId;
+    Object.ComponentId         = Binding.ComponentId;
+    Object.ComponentGeneration = Binding.Generation;
+    Object.Domain              = EPhysicsBodyDomain::ActorComponent;
+    Runtime.UnregisterComponent(Object);
+
+    ++Binding.Generation;
+    Binding.bPendingDestroy      = true;
+    Binding.bPendingCreate       = false;
+    Binding.Body                 = FPhysicsBodyHandle {};
+    Binding.Shape                = FPhysicsShapeHandle {};
+    Binding.BodyOwnerComponentId = Binding.ComponentId;
+
+    if (IsValid(Comp) && Comp->IsCollisionEnabled())
     {
-        ComponentsToRebuild.push_back(Comp);
-    }
-
-    for (UPrimitiveComponent* RebuildComp : ComponentsToRebuild)
-    {
-        if (EventCallback)
-        {
-            EventCallback->NotifyComponentUnregistered(RebuildComp);
-        }
-
-        FPhysicsComponentBinding& Binding = TouchBinding_GameThread(RebuildComp);
-
-        FPhysicsObjectKey Object;
-        Object.ActorId             = Binding.ActorId;
-        Object.ComponentId         = Binding.ComponentId;
-        Object.ComponentGeneration = Binding.Generation;
-        Object.Domain              = EPhysicsBodyDomain::ActorComponent;
-        Runtime.UnregisterComponent(Object);
-
-        ++Binding.Generation;
-        Binding.bPendingDestroy = true;
-        Binding.bPendingCreate  = false;
-    }
-
-    if (ActorId != 0)
-    {
-        GameThreadActorBodies.erase(ActorId);
-    }
-
-    for (UPrimitiveComponent* RebuildComp : ComponentsToRebuild)
-    {
-        if (IsValid(RebuildComp) && RebuildComp->IsCollisionEnabled())
-        {
-            RegisterComponent(RebuildComp);
-        }
+        RegisterComponent(Comp);
     }
 }
 
@@ -1734,42 +1691,29 @@ FPhysicsBodyCreatePayload FPhysXPhysicsScene::BuildRegisterPayload_GameThread(
         return Payload;
     }
 
-    UPrimitiveComponent* RootPrim = Cast<UPrimitiveComponent>(OwnerActor->GetRootComponent());
-    if (!RootPrim)
-    {
-        RootPrim = Comp;
-    }
+    // Structural rule: one UPrimitiveComponent owns one PhysX actor body.
+    // Child primitives are no longer folded into the actor root body. This keeps
+    // SimulatePhysics/Kinematic/Static, sync mode, mass, locks, CCD, and transform
+    // authority local to the component that actually owns the shape.
+    const uint32 ActorId     = OwnerActor->GetUUID();
+    const uint32 ComponentId = Comp->GetUUID();
 
-    FPhysicsComponentBinding& RootBinding = TouchBinding_GameThread(RootPrim);
-    const uint32              ActorId     = OwnerActor->GetUUID();
-
-    FPhysicsBodyHandle BodyHandle;
-    auto               ActorBodyIt = GameThreadActorBodies.find(ActorId);
-    if (ActorBodyIt != GameThreadActorBodies.end() && ActorBodyIt->second.IsValid())
-    {
-        BodyHandle = ActorBodyIt->second;
-    }
-    else
-    {
-        BodyHandle                     = Runtime.ReserveBodyHandle_GameThread();
-        GameThreadActorBodies[ActorId] = BodyHandle;
-    }
-
+    const FPhysicsBodyHandle  BodyHandle  = Runtime.ReserveBodyHandle_GameThread();
     const FPhysicsShapeHandle ShapeHandle = Runtime.ReserveShapeHandle_GameThread();
 
-    FBodyCreationDesc BodyDesc  = BuildBodyDescFromComponent_GameThread(RootPrim, RootBinding.Generation);
-    FPhysicsShapeDesc ShapeDesc = BuildShapeDescFromComponent_GameThread(Comp, RootPrim);
+    FBodyCreationDesc BodyDesc  = BuildBodyDescFromComponent_GameThread(Comp, Binding.Generation);
+    FPhysicsShapeDesc ShapeDesc = BuildShapeDescFromComponent_GameThread(Comp, Comp);
 
     Payload.ReservedBody  = BodyHandle;
     Payload.ReservedShape = ShapeHandle;
 
     Payload.BodyOwner.ActorId             = ActorId;
-    Payload.BodyOwner.ComponentId         = RootPrim->GetUUID();
-    Payload.BodyOwner.ComponentGeneration = RootBinding.Generation;
+    Payload.BodyOwner.ComponentId         = ComponentId;
+    Payload.BodyOwner.ComponentGeneration = Binding.Generation;
     Payload.BodyOwner.Domain              = EPhysicsBodyDomain::ActorComponent;
 
     Payload.ShapeOwner.ActorId             = ActorId;
-    Payload.ShapeOwner.ComponentId         = Binding.ComponentId;
+    Payload.ShapeOwner.ComponentId         = ComponentId;
     Payload.ShapeOwner.ComponentGeneration = Binding.Generation;
     Payload.ShapeOwner.Domain              = EPhysicsBodyDomain::ActorComponent;
 
@@ -1795,11 +1739,10 @@ FPhysicsBodyCreatePayload FPhysXPhysicsScene::BuildRegisterPayload_GameThread(
     Payload.bGenerateOverlapEvents       = BodyDesc.bGenerateOverlapEvents;
     Payload.Shapes.push_back(ShapeDesc);
 
-    RootBinding.Body     = BodyHandle;
-    RootBinding.SyncMode = Payload.SyncMode;
-    Binding.Body         = BodyHandle;
-    Binding.Shape        = ShapeHandle;
-    Binding.SyncMode     = Payload.SyncMode;
+    Binding.Body                 = BodyHandle;
+    Binding.Shape                = ShapeHandle;
+    Binding.SyncMode             = Payload.SyncMode;
+    Binding.BodyOwnerComponentId = ComponentId;
 
     return Payload;
 }
@@ -2067,6 +2010,14 @@ void FPhysXPhysicsScene::EnqueueEngineTransformSync_GameThread()
         }
         if (Binding.SyncMode != EPhysicsSyncMode::EngineToPhysics &&
             Binding.SyncMode != EPhysicsSyncMode::KinematicTarget)
+        {
+            continue;
+        }
+
+        // This binding may represent a child shape on an actor-owned shared body.
+        // In that case the child component transform must not overwrite the shared
+        // PhysX actor transform; only the body owner/root component drives it.
+        if (Binding.BodyOwnerComponentId != 0 && Binding.ComponentId != Binding.BodyOwnerComponentId)
         {
             continue;
         }

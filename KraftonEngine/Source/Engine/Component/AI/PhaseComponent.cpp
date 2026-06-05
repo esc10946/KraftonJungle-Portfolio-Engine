@@ -29,26 +29,3 @@ FEnemyPhaseData UPhaseComponent::GetCurrentPhaseData() const
 	}
 	return FEnemyPhaseData();
 }
-
-int32 UPhaseComponent::FindAutoPhaseForHealthRatio(float HealthRatio) const
-{
-	int32 BestPhase = CurrentPhase;
-	for (const FEnemyPhaseData& PhaseData : Phases)
-	{
-		if (!PhaseData.bAutoEnterAtOrBelowHealthRatio)
-		{
-			continue;
-		}
-		if (HealthRatio <= PhaseData.HealthRatioThreshold && PhaseData.Phase > BestPhase)
-		{
-			BestPhase = PhaseData.Phase;
-		}
-	}
-	return BestPhase;
-}
-
-bool UPhaseComponent::TrySetPhaseByHealthRatio(float HealthRatio)
-{
-	const int32 Phase = FindAutoPhaseForHealthRatio(HealthRatio);
-	return SetPhase(Phase);
-}

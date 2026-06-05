@@ -1,5 +1,7 @@
 #include "Component/Combat/CombatStateComponent.h"
 
+#include "AI/CombatTargetRegistry.h"
+#include "Component/Combat/HealthComponent.h"
 #include "GameFramework/AActor.h"
 #include "GameFramework/World.h"
 #include "Math/MathUtils.h"
@@ -24,6 +26,14 @@ void UCombatStateComponent::BeginPlay()
 		MaxPoise = 0.0f;
 	}
 	CurrentPoise = FMath::Clamp(CurrentPoise, 0.0f, MaxPoise);
+	// 전투원 등록 — AI 타깃 획득이 이 등록소만 질의하면 World 전체 스캔이 사라진다.
+	FCombatTargetRegistry::Get().Register(this);
+}
+
+void UCombatStateComponent::EndPlay()
+{
+	FCombatTargetRegistry::Get().Unregister(this);
+	UActorComponent::EndPlay();
 }
 
 void UCombatStateComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction& ThisTickFunction)
@@ -42,8 +52,26 @@ void UCombatStateComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 
 	if (PoiseRecoveryPerSecond > 0.0f && CurrentPoise < MaxPoise)
 	{
-		CurrentPoise = FMath::Clamp(CurrentPoise + PoiseRecoveryPerSecond * DeltaTime, 0.0f, MaxPoise);
+		float Rate = PoiseRecoveryPerSecond;
+		if (bPostureRecoveryScalesWithHealth)
+		{
+			// 체력 100%→1.0배, 0%→0.4배. 체력이 낮을수록 체간 회복이 느려진다.
+			Rate *= 0.4f + 0.6f * FMath::Clamp(GetHealthRatioSafe(), 0.0f, 1.0f);
+		}
+		CurrentPoise = FMath::Clamp(CurrentPoise + Rate * DeltaTime, 0.0f, MaxPoise);
 	}
+}
+
+float UCombatStateComponent::GetHealthRatioSafe() const
+{
+	if (AActor* OwnerActor = GetOwner())
+	{
+		if (UHealthComponent* Health = OwnerActor->GetComponentByClass<UHealthComponent>())
+		{
+			return Health->GetHealthRatio();
+		}
+	}
+	return 1.0f;
 }
 
 bool UCombatStateComponent::ApplyPoiseDamage(float PoiseDamage)
@@ -119,6 +147,87 @@ float UCombatStateComponent::GetAttackThreatRemaining() const
 {
 	const float Now = GetOwnerGameTimeSeconds(this);
 	return (std::max)(0.0f, AttackThreatUntilSeconds - Now);
+}
+
+void UCombatStateComponent::MarkPerilous(EPerilousType InType, float Duration)
+{
+	if (InType == EPerilousType::None || Duration <= 0.0f)
+	{
+		return;
+	}
+	ActivePerilousType   = InType;
+	PerilousUntilSeconds = GetOwnerGameTimeSeconds(this) + Duration;
+	OnPerilousCue.Broadcast(this, InType);
+}
+
+bool UCombatStateComponent::IsPerilousActive() const
+{
+	return GetOwnerGameTimeSeconds(this) < PerilousUntilSeconds;
+}
+
+EPerilousType UCombatStateComponent::GetActivePerilousType() const
+{
+	return IsPerilousActive() ? ActivePerilousType : EPerilousType::None;
+}
+
+void UCombatStateComponent::OpenDeflectWindow(float Seconds)
+{
+	const float Now = GetOwnerGameTimeSeconds(this);
+	const float Len = Seconds > 0.0f ? Seconds : DeflectWindowSeconds;
+	DeflectOpenedAtSeconds = Now;
+	DeflectUntilSeconds    = Now + Len;
+	DeflectWindowLen       = Len;
+}
+
+bool UCombatStateComponent::IsDeflecting() const
+{
+	return GetOwnerGameTimeSeconds(this) < DeflectUntilSeconds;
+}
+
+EDeflectGrade UCombatStateComponent::ConsumeDeflect(AActor* Attacker)
+{
+	if (!IsDeflecting())
+	{
+		LastDeflectGrade = EDeflectGrade::None;
+		return EDeflectGrade::None;
+	}
+
+	const float Now       = GetOwnerGameTimeSeconds(this);
+	const float Remaining = DeflectUntilSeconds - Now;
+	const float Frac      = DeflectWindowLen > 0.0f ? FMath::Clamp(Remaining / DeflectWindowLen, 0.0f, 1.0f) : 0.0f;
+
+	// 윈도우 초반(많이 남음)에 받아넘길수록 정확 — Perfect/Good/Late.
+	EDeflectGrade Grade;
+	float ReflectScale;
+	if (Frac >= 0.5f)
+	{
+		Grade        = EDeflectGrade::Perfect;
+		ReflectScale = 1.0f;
+	}
+	else if (Frac >= 0.15f)
+	{
+		Grade        = EDeflectGrade::Good;
+		ReflectScale = 0.6f;
+	}
+	else
+	{
+		Grade        = EDeflectGrade::Late;
+		ReflectScale = 0.0f;
+	}
+
+	// 공격자에게 체간 반사 — 탄기가 공격자의 체간을 깎아 인살 창을 연다.
+	if (Attacker && ReflectScale > 0.0f && DeflectReflectPoise > 0.0f)
+	{
+		if (UCombatStateComponent* AttackerCombat = Attacker->GetComponentByClass<UCombatStateComponent>())
+		{
+			AttackerCombat->ApplyPoiseDamage(DeflectReflectPoise * ReflectScale);
+		}
+	}
+
+	DeflectUntilSeconds = Now; // 윈도우 닫기
+	LastDeflectGrade    = Grade;
+	OnDeflectResolved.Broadcast(this, Grade, Attacker);
+	return Grade;
 }
 
 bool UCombatStateComponent::IsHostileTo(const UCombatStateComponent* Other) const

@@ -438,9 +438,12 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Editor\UI\Asset\Mesh\StaticMeshEditorWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\Asset\Particle\ParticleEditorWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\Asset\Physics\PhysicsAssetEditorWidget.cpp" />
+    <ClCompile Include="Source\Editor\UI\Asset\Rml\RmlLivePreview.cpp" />
+    <ClCompile Include="Source\Editor\UI\Asset\Rml\RmlWidgetEditorWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\ContentBrowser\ContentBrowser.cpp" />
     <ClCompile Include="Source\Editor\UI\ContentBrowser\ContentBrowserElement.cpp" />
     <ClCompile Include="Source\Editor\UI\ContentBrowser\EditorPrefabWidget.cpp" />
+    <ClCompile Include="Source\Editor\UI\Debug\EditorAIDebugWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\Debug\EditorAnimationDebugWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\Debug\EditorShadowMapDebugWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\Dialog\FbxImportOptionsDialog.cpp" />
@@ -465,6 +468,8 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Editor\Viewport\Asset\MeshEditorViewportClient.cpp" />
     <ClCompile Include="Source\Editor\Viewport\Asset\StaticMeshEditorViewportClient.cpp" />
     <ClCompile Include="Source\Editor\Viewport\Level\FLevelViewportLayout.cpp" />
+    <ClCompile Include="Source\Engine\AI\CombatTargetRegistry.cpp" />
+    <ClCompile Include="Source\Engine\AI\SquadCoordinator.cpp" />
     <ClCompile Include="Source\Engine\AI\Navigation\PathFollowingComponent.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimInstance.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimationManager.cpp" />
@@ -521,6 +526,9 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Engine\Component\PrimitiveComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\SceneComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\ShapeComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\AI\AIBlackboardComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\AI\AIDecisionTraceComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\AI\AIPerceptionComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\EncounterComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\EnemyAIBrainComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\EnemyAttackComponent.cpp" />
@@ -528,6 +536,8 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Engine\Component\Camera\CameraComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Camera\CineCameraComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Camera\SpringArmComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\Character\CharacterStateMachineComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\Combat\CombatMoveComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Combat\CombatStateComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Combat\HealthComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Debug\BoneDebugComponent.cpp" />
@@ -828,6 +838,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Engine\Serialization\SceneSaveManager.cpp" />
     <ClCompile Include="Source\Engine\Texture\Texture2D.cpp" />
     <ClCompile Include="Source\Engine\Texture\stb_image_impl.cpp" />
+    <ClCompile Include="Source\Engine\UI\RmlWidgetManager.cpp" />
     <ClCompile Include="Source\Engine\UI\UIManager.cpp" />
     <ClCompile Include="Source\Engine\UI\UserWidget.cpp" />
     <ClCompile Include="Source\Engine\Viewport\GameViewportClient.cpp" />
@@ -835,6 +846,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Engine\Viewport\ViewportClient.cpp" />
     <ClCompile Include="Source\Game\GameActorPlacements.cpp" />
     <ClCompile Include="Source\Game\GameMode\AFinaleGameMode.cpp" />
+    <ClCompile Include="Source\Game\GameMode\GameState.cpp" />
     <ClCompile Include="Source\Game\Lua\GameLuaBindings.cpp" />
     <ClCompile Include="Source\ObjViewer\ObjViewerEngine.cpp" />
     <ClCompile Include="Source\ObjViewer\ObjViewerPanel.cpp" />
@@ -889,11 +901,14 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Editor\UI\Asset\Mesh\StaticMeshEditorWidget.h" />
     <ClInclude Include="Source\Editor\UI\Asset\Particle\ParticleEditorWidget.h" />
     <ClInclude Include="Source\Editor\UI\Asset\Physics\PhysicsAssetEditorWidget.h" />
+    <ClInclude Include="Source\Editor\UI\Asset\Rml\RmlLivePreview.h" />
+    <ClInclude Include="Source\Editor\UI\Asset\Rml\RmlWidgetEditorWidget.h" />
     <ClInclude Include="Source\Editor\UI\ContentBrowser\ContentBrowser.h" />
     <ClInclude Include="Source\Editor\UI\ContentBrowser\ContentBrowserContext.h" />
     <ClInclude Include="Source\Editor\UI\ContentBrowser\ContentBrowserElement.h" />
     <ClInclude Include="Source\Editor\UI\ContentBrowser\ContentItem.h" />
     <ClInclude Include="Source\Editor\UI\ContentBrowser\EditorPrefabWidget.h" />
+    <ClInclude Include="Source\Editor\UI\Debug\EditorAIDebugWidget.h" />
     <ClInclude Include="Source\Editor\UI\Debug\EditorAnimationDebugWidget.h" />
     <ClInclude Include="Source\Editor\UI\Debug\EditorShadowMapDebugWidget.h" />
     <ClInclude Include="Source\Editor\UI\Dialog\FbxImportOptionsDialog.h" />
@@ -921,6 +936,9 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Editor\Viewport\Asset\StaticMeshEditorViewportClient.h" />
     <ClInclude Include="Source\Editor\Viewport\Level\FLevelViewportLayout.h" />
     <ClInclude Include="Source\Editor\Viewport\Level\LevelEditorViewportClient.h" />
+    <ClInclude Include="Source\Engine\AI\CombatClock.h" />
+    <ClInclude Include="Source\Engine\AI\CombatTargetRegistry.h" />
+    <ClInclude Include="Source\Engine\AI\SquadCoordinator.h" />
     <ClInclude Include="Source\Engine\AI\Navigation\PathFollowingComponent.h" />
     <ClInclude Include="Source\Engine\Animation\AnimExtractContext.h" />
     <ClInclude Include="Source\Engine\Animation\AnimInstance.h" />
@@ -990,6 +1008,9 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\Component\PrimitiveComponent.h" />
     <ClInclude Include="Source\Engine\Component\SceneComponent.h" />
     <ClInclude Include="Source\Engine\Component\ShapeComponent.h" />
+    <ClInclude Include="Source\Engine\Component\AI\AIBlackboardComponent.h" />
+    <ClInclude Include="Source\Engine\Component\AI\AIDecisionTraceComponent.h" />
+    <ClInclude Include="Source\Engine\Component\AI\AIPerceptionComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\EncounterComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\EnemyAIBrainComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\EnemyAttackComponent.h" />
@@ -997,6 +1018,8 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\Component\Camera\CameraComponent.h" />
     <ClInclude Include="Source\Engine\Component\Camera\CineCameraComponent.h" />
     <ClInclude Include="Source\Engine\Component\Camera\SpringArmComponent.h" />
+    <ClInclude Include="Source\Engine\Component\Character\CharacterStateMachineComponent.h" />
+    <ClInclude Include="Source\Engine\Component\Combat\CombatMoveComponent.h" />
     <ClInclude Include="Source\Engine\Component\Combat\CombatStateComponent.h" />
     <ClInclude Include="Source\Engine\Component\Combat\CombatTypes.h" />
     <ClInclude Include="Source\Engine\Component\Combat\HealthComponent.h" />
@@ -1378,6 +1401,8 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\Serialization\SceneSaveManager.h" />
     <ClInclude Include="Source\Engine\Serialization\WindowsArchive.h" />
     <ClInclude Include="Source\Engine\Texture\Texture2D.h" />
+    <ClInclude Include="Source\Engine\UI\RmlWidgetAsset.h" />
+    <ClInclude Include="Source\Engine\UI\RmlWidgetManager.h" />
     <ClInclude Include="Source\Engine\UI\UIManager.h" />
     <ClInclude Include="Source\Engine\UI\UserWidget.h" />
     <ClInclude Include="Source\Engine\Viewport\GameViewportClient.h" />

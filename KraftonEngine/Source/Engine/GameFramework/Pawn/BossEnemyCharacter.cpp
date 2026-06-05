@@ -45,10 +45,6 @@ void ABossEnemyCharacter::RebindBossComponents()
 	}
 }
 
-EEnemyAIBehaviorStyle ABossEnemyCharacter::GetResolvedBehaviorStyle() const
-{
-	return BehaviorStyle == EEnemyAIBehaviorStyle::Balanced ? EEnemyAIBehaviorStyle::Boss : BehaviorStyle;
-}
 
 bool ABossEnemyCharacter::StartBossEncounter()
 {
@@ -75,19 +71,9 @@ int32 ABossEnemyCharacter::GetBossPhase() const
 	return PhaseComponent ? PhaseComponent->GetCurrentPhase() : 1;
 }
 
-bool ABossEnemyCharacter::TryUpdatePhaseFromHealth()
-{
-	if (!PhaseComponent || !HealthComponent)
-	{
-		return false;
-	}
-	return PhaseComponent->TrySetPhaseByHealthRatio(HealthComponent->GetHealthRatio());
-}
-
 void ABossEnemyCharacter::HandleDamaged(UHealthComponent* Component, float Damage, float NewHealth, AActor* DamageCauser, AActor* InstigatorActor)
 {
 	Super::HandleDamaged(Component, Damage, NewHealth, DamageCauser, InstigatorActor);
-	TryUpdatePhaseFromHealth();
 }
 
 void ABossEnemyCharacter::HandleDeath(UHealthComponent* Component, AActor* DamageCauser, AActor* InstigatorActor)
@@ -99,24 +85,18 @@ void ABossEnemyCharacter::HandleDeath(UHealthComponent* Component, AActor* Damag
 void ABossEnemyCharacter::HandlePhaseChanged(UPhaseComponent* /*Component*/, int32 /*OldPhase*/, int32 NewPhase)
 {
 	SetAnimGraphInt(FName("Phase"), NewPhase);
-	if (AIBrainComponent)
-	{
-		AIBrainComponent->SetState(FName("PhaseChanged"));
-	}
+	SetRuntimeState(FName("PhaseChanged"));
 }
 
 void ABossEnemyCharacter::HandleEncounterStarted(UEncounterComponent* /*Component*/)
 {
-	if (AIBrainComponent)
-	{
-		AIBrainComponent->SetState(FName("Intro"));
-	}
+	SetRuntimeState(FName("Intro"));
 }
 
 void ABossEnemyCharacter::HandleEncounterCompleted(UEncounterComponent* /*Component*/)
 {
-	if (AIBrainComponent && !IsDead())
+	if (!IsDead())
 	{
-		AIBrainComponent->SetState(FName("EncounterCompleted"));
+		SetRuntimeState(FName("EncounterCompleted"));
 	}
 }

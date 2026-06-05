@@ -20,6 +20,19 @@ void ANavMeshBoundsVolume::PostDuplicate()
 	BoundsComponent = GetComponentByClass<UBoxComponent>();
 }
 
+UBoxComponent* ANavMeshBoundsVolume::GetBoundsComponent() const
+{
+	// BoundsComponent는 직렬화되지 않는 런타임 캐시다. PostDuplicate(PIE 복제)에서는 재바인딩되지만
+	// 씬 로드(역직렬화) 경로에는 대응 훅이 없어 에디터 월드에서 null로 남는다. 그 경우 CollectBuildBounds가
+	// 이 볼륨을 건너뛰고 fallback(전체 지오메트리 AABB)으로 빠져, 에디터/PIE의 navmesh 범위가 어긋난다.
+	// 모든 경로(로드/복제/스폰)를 덮도록 null이면 지연 resolve 한다.
+	if (!BoundsComponent.IsValid())
+	{
+		const_cast<ANavMeshBoundsVolume*>(this)->BoundsComponent = GetComponentByClass<UBoxComponent>();
+	}
+	return BoundsComponent.Get();
+}
+
 bool ANavMeshBoundsVolume::ContainsPoint(const FVector& Point) const
 {
 	UBoxComponent* Box = BoundsComponent.Get();

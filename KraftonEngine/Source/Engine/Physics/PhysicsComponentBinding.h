@@ -13,6 +13,11 @@ struct FPhysicsComponentBinding
     uint32 ComponentId = 0; // = UObject UUID
     uint32 Generation  = 1;
 
+    // Multiple primitive components owned by one actor can share one PhysX actor body.
+    // Only this component is allowed to drive the shared body transform from engine->physics.
+    // Shape-only bindings must not push their own component transform into the shared body.
+    uint32 BodyOwnerComponentId = 0;
+
     FPhysicsBodyHandle  Body;
     FPhysicsShapeHandle Shape;
     EPhysicsSyncMode    SyncMode = EPhysicsSyncMode::EngineToPhysics;

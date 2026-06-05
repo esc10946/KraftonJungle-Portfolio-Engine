@@ -1,4 +1,4 @@
-﻿#include "GameFramework/World.h"
+#include "GameFramework/World.h"
 #include "Object/Reflection/ObjectFactory.h"
 #include "Component/PrimitiveComponent.h"
 #include "Component/Primitive/StaticMeshComponent.h"
@@ -559,6 +559,10 @@ void UWorld::InitWorld()
 	PersistentLevel->SetWorld(this);
 
 	NavigationSystem = UObjectManager::Get().CreateObject<UNavigationSystem>(this);
+	if (NavigationSystem)
+	{
+		NavigationSystem->ApplyWorldSettings(WorldSettings.Navigation);
+	}
 
 	// E.2/3: CameraManager spawn 은 PC 의 BeginPlay 가 담당. World 는 보유하지 않음.
 
@@ -621,6 +625,10 @@ void UWorld::Tick(float DeltaTime, ELevelTick TickType)
 	}
 
 	Scene.GetDebugDrawQueue().Tick(DeltaTime);
+	if (NavigationSystem)
+	{
+		NavigationSystem->Tick(DeltaTime);
+	}
 
 	// bPaused 동안 PhysicsScene + TickManager skip — GameMode 타이머, Lua Tick, 차량
 	// 이동, PhysX 시뮬레이션 모두 정지. Render / UI / Input poll 은 호출자 (UEngine::Tick)
@@ -648,6 +656,7 @@ void UWorld::Tick(float DeltaTime, ELevelTick TickType)
     }
 
     TickManager.TickGroup(TG_PrePhysics, DeltaTime, TickType);
+    TickManager.TickGroup(TG_PrePhysicsMovement, DeltaTime, TickType);
 
     uint64 SubmittedPhysicsFrame = 0;
     if (bHasBegunPlay && PhysicsScene)

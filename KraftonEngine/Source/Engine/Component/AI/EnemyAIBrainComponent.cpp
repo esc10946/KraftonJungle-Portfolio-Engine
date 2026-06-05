@@ -1,6 +1,8 @@
 #include "Component/AI/EnemyAIBrainComponent.h"
 
+#include "AI/CombatTargetRegistry.h"
 #include "Component/Combat/CombatStateComponent.h"
+#include "Component/Combat/HealthComponent.h"
 #include "GameFramework/AActor.h"
 #include "GameFramework/Pawn/EnemyCharacter.h"
 #include "GameFramework/Controller/AIController.h"
@@ -33,21 +35,25 @@ namespace
 		}
 		return Angle;
 	}
+
+	bool IsAliveTarget(AActor* Actor)
+	{
+		if (!IsValid(Actor))
+		{
+			return false;
+		}
+		if (UHealthComponent* Health = Actor->GetComponentByClass<UHealthComponent>())
+		{
+			return !Health->IsDead();
+		}
+		return true;
+	}
 }
 
 void UEnemyAIBrainComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction& ThisTickFunction)
 {
 	UActorComponent::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	if (!bHasInitializedState)
-	{
-		CurrentState = InitialState;
-		PreviousState = FName::None;
-		StateTime = 0.0f;
-		bHasInitializedState = true;
-	}
-	StateTime += DeltaTime;
-
-	if (HasValidTarget() && LoseTargetRange > 0.0f && GetDistanceToTarget() > LoseTargetRange)
+	if (TargetActor.IsValid() && !HasValidTarget())
 	{
 		ClearTarget();
 	}
@@ -76,29 +82,39 @@ void UEnemyAIBrainComponent::ClearTarget()
 
 bool UEnemyAIBrainComponent::HasValidTarget() const
 {
-	return TargetActor.IsValid();
+	AActor* Target = TargetActor.Get();
+	AActor* OwnerActor = GetOwner();
+	if (!IsAliveTarget(Target) || !OwnerActor || Target == OwnerActor)
+	{
+		return false;
+	}
+	UCombatStateComponent* OwnerCombat = OwnerActor->GetComponentByClass<UCombatStateComponent>();
+	UCombatStateComponent* TargetCombat = Target->GetComponentByClass<UCombatStateComponent>();
+	return OwnerCombat && TargetCombat && OwnerCombat->IsHostileTo(TargetCombat);
 }
 
-AActor* UEnemyAIBrainComponent::AcquireTargetByTag(const FName& Tag)
+AActor* UEnemyAIBrainComponent::AcquireTargetByTag(const FName& Tag, float SearchRange)
 {
 	AActor* OwnerActor = GetOwner();
 	UWorld* World = OwnerActor ? OwnerActor->GetWorld() : nullptr;
-	if (!World || !Tag.IsValid())
+	if (!World || !OwnerActor || !Tag.IsValid())
 	{
 		return nullptr;
 	}
 
 	AActor* BestActor = nullptr;
 	float BestDistanceSq = FLT_MAX;
-	const FVector OwnerLocation = OwnerActor ? OwnerActor->GetActorLocation() : FVector::ZeroVector;
+	const FVector OwnerLocation = OwnerActor->GetActorLocation();
 	for (AActor* Candidate : World->GetActors())
 	{
-		if (!IsValid(Candidate) || Candidate == OwnerActor || !Candidate->HasTag(Tag))
+		if (!IsAliveTarget(Candidate) || Candidate == OwnerActor || !Candidate->HasTag(Tag))
 		{
 			continue;
 		}
-		const float DistSq = FVector::DistSquared(Candidate->GetActorLocation(), OwnerLocation);
-		if (DetectionRange > 0.0f && DistSq > DetectionRange * DetectionRange)
+		FVector Delta = Candidate->GetActorLocation() - OwnerLocation;
+		Delta.Z = 0.0f;
+		const float DistSq = Delta.X * Delta.X + Delta.Y * Delta.Y;
+		if (SearchRange > 0.0f && DistSq > SearchRange * SearchRange)
 		{
 			continue;
 		}
@@ -115,50 +131,14 @@ AActor* UEnemyAIBrainComponent::AcquireTargetByTag(const FName& Tag)
 AActor* UEnemyAIBrainComponent::AcquireNearestHostileTarget(float SearchRange)
 {
 	AActor* OwnerActor = GetOwner();
-	UWorld* World = OwnerActor ? OwnerActor->GetWorld() : nullptr;
 	UCombatStateComponent* OwnerCombat = OwnerActor ? OwnerActor->GetComponentByClass<UCombatStateComponent>() : nullptr;
-	if (!World || !OwnerCombat)
+	if (!OwnerActor || !OwnerCombat)
 	{
 		return nullptr;
 	}
-
-	AActor* BestActor = nullptr;
-	float BestDistanceSq = FLT_MAX;
-	const FVector OwnerLocation = OwnerActor->GetActorLocation();
-	const float Range = SearchRange > 0.0f ? SearchRange : DetectionRange;
-	for (AActor* Candidate : World->GetActors())
-	{
-		if (!IsValid(Candidate) || Candidate == OwnerActor)
-		{
-			continue;
-		}
-		UCombatStateComponent* CandidateCombat = Candidate->GetComponentByClass<UCombatStateComponent>();
-		if (!CandidateCombat || !OwnerCombat->IsHostileTo(CandidateCombat))
-		{
-			continue;
-		}
-		const float DistSq = FVector::DistSquared(Candidate->GetActorLocation(), OwnerLocation);
-		if (Range > 0.0f && DistSq > Range * Range)
-		{
-			continue;
-		}
-		if (DistSq < BestDistanceSq)
-		{
-			BestDistanceSq = DistSq;
-			BestActor = Candidate;
-		}
-	}
+	AActor* BestActor = FCombatTargetRegistry::Get().FindNearestHostile(OwnerCombat, OwnerActor->GetActorLocation(), SearchRange);
 	SetTarget(BestActor);
 	return BestActor;
-}
-
-AActor* UEnemyAIBrainComponent::AcquireDefaultTarget()
-{
-	if (AActor* Hostile = AcquireNearestHostileTarget(DetectionRange))
-	{
-		return Hostile;
-	}
-	return AcquireTargetByTag(DefaultTargetTag);
 }
 
 float UEnemyAIBrainComponent::GetDistanceToTarget() const
@@ -170,6 +150,30 @@ float UEnemyAIBrainComponent::GetDistanceToTarget() const
 		return FLT_MAX;
 	}
 	return FVector::Distance(OwnerActor->GetActorLocation(), Target->GetActorLocation());
+}
+
+float UEnemyAIBrainComponent::GetFlatDistanceToTarget() const
+{
+	AActor* OwnerActor = GetOwner();
+	AActor* Target = TargetActor.Get();
+	if (!OwnerActor || !IsValid(Target))
+	{
+		return FLT_MAX;
+	}
+	FVector Delta = Target->GetActorLocation() - OwnerActor->GetActorLocation();
+	Delta.Z = 0.0f;
+	return Delta.Length();
+}
+
+float UEnemyAIBrainComponent::GetVerticalDeltaToTarget() const
+{
+	AActor* OwnerActor = GetOwner();
+	AActor* Target = TargetActor.Get();
+	if (!OwnerActor || !IsValid(Target))
+	{
+		return FLT_MAX;
+	}
+	return fabsf(Target->GetActorLocation().Z - OwnerActor->GetActorLocation().Z);
 }
 
 FVector UEnemyAIBrainComponent::GetDirectionToTarget() const
@@ -211,7 +215,7 @@ float UEnemyAIBrainComponent::GetAngleToTarget() const
 
 bool UEnemyAIBrainComponent::IsTargetInRange(float Range) const
 {
-	return HasValidTarget() && GetDistanceToTarget() <= Range;
+	return HasValidTarget() && GetFlatDistanceToTarget() <= Range;
 }
 
 bool UEnemyAIBrainComponent::IsTargetInFront(float MaxAbsAngleDegrees) const
@@ -231,7 +235,7 @@ bool UEnemyAIBrainComponent::RequestMoveToTarget(float AcceptanceRadius, bool bU
 	{
 		return false;
 	}
-	const float Radius = AcceptanceRadius > 0.0f ? AcceptanceRadius : AttackRange;
+	const float Radius = AcceptanceRadius > 0.0f ? AcceptanceRadius : 0.5f;
 	return Enemy->RequestMoveToTarget(Radius, bUsePathfinding);
 }
 
@@ -275,18 +279,4 @@ FString UEnemyAIBrainComponent::GetLastMoveFailureReason() const
 	const AEnemyCharacter* Enemy = Cast<AEnemyCharacter>(GetOwner());
 	AAIController* Controller = Enemy ? Enemy->GetEnemyAIController() : nullptr;
 	return Controller ? Controller->GetLastMoveFailureReason() : "No AIController";
-}
-
-void UEnemyAIBrainComponent::SetState(const FName& NewState)
-{
-	if (CurrentState == NewState)
-	{
-		return;
-	}
-	const FName OldState = CurrentState;
-	PreviousState = OldState;
-	CurrentState = NewState;
-	StateTime = 0.0f;
-	bHasInitializedState = true;
-	OnStateChanged.Broadcast(this, OldState, NewState);
 }

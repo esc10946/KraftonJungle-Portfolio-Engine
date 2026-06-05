@@ -1,290 +1,274 @@
 -- =============================================================================
---  enemy_brain.lua  —  소울/세키로형 적 AI 두뇌 (정책 레이어)
+--  enemy_brain.lua — 적 AI 정책 레이어
 -- =============================================================================
---  설계: "결정은 Lua, 실행은 C++".
---    - C++ (actuator/sensor) : 길찾기, 거리/각도, 공격 데이터·몽타주, 포이즈/경직,
---                              위협 신호(CombatState:IsAttacking), Strafe/Retreat 동사.
---    - Lua  (이 파일)        : 매 think tick 마다 동사별 효용을 점수내 최고점을 실행.
---                              공격 / 접근 / 게걸음 / 후퇴 / 회피 / 패링 을 한 점수판에서
---                              경쟁시켜 "절묘한 조화" 를 만든다. 핫리로드로 즉시 튜닝.
---
---  부착:
---    AEnemyCharacter 의 ULuaScriptComponent.ScriptFile = "AI/enemy_brain.lua"
---    (BeginPlay 에서 bUseBuiltInDecisionLogic 을 자동으로 끈다.)
---
---  성향: AEnemyCharacter.BehaviorStyle (Passive/Balanced/Aggressive/Defensive/Boss)
---        → 아래 STYLES 테이블이 공격·방어·이동 가중치를 모두 관통한다.
+--  C++은 센서/블랙보드/이동/공격 실행만 제공하고, 행동 선택·공격 점수·반응·페이즈
+--  정책은 이 Lua 계층에서 결정한다.
 -- =============================================================================
 
--- ── 성향 데이터 (전부 데이터. 빌드 없이 핫리로드로 튜닝) ──────────────────────
--- 키 = EEnemyAIBehaviorStyle enum 정수 (Passive=0 .. Boss=4)
-local STYLES = {
-    [0] = { name="Passive",    attack=0.0, approach=0.4, strafe=0.7, retreat=1.0,
-            dodge=1.1, parry=0.2, reactChance=0.45, reactDelay=0.14 },
-    [1] = { name="Balanced",   attack=1.0, approach=1.0, strafe=0.6, retreat=0.3,
-            dodge=1.0, parry=0.8, reactChance=0.50, reactDelay=0.16 },
-    [2] = { name="Aggressive", attack=1.5, approach=1.2, strafe=0.4, retreat=0.1,
-            dodge=0.6, parry=0.35, reactChance=0.40, reactDelay=0.18 },
-    [3] = { name="Defensive",  attack=0.8, approach=0.7, strafe=0.9, retreat=0.7,
-            dodge=1.2, parry=1.7, reactChance=0.75, reactDelay=0.12 },
-    [4] = { name="Boss",       attack=1.3, approach=1.0, strafe=0.5, retreat=0.2,
-            dodge=1.0, parry=1.1, reactChance=0.85, reactDelay=0.14 },
+local STYLE = {
+    Passive    = { attack=0.0, approach=0.4, strafe=0.8, retreat=1.2, deflect=0.15, react=0.35 },
+    Balanced   = { attack=1.0, approach=1.0, strafe=0.7, retreat=0.35, deflect=0.75, react=0.55 },
+    Aggressive = { attack=1.45, approach=1.15, strafe=0.45, retreat=0.15, deflect=0.45, react=0.45 },
+    Defensive  = { attack=0.75, approach=0.75, strafe=0.95, retreat=0.85, deflect=1.45, react=0.75 },
+    Boss       = { attack=1.30, approach=1.0, strafe=0.55, retreat=0.20, deflect=1.15, react=0.85 },
 }
 
--- ── 튜닝 상수 ────────────────────────────────────────────────────────────────
-local THINK_INTERVAL       = 0.12   -- 의사결정 주기(초). 매 프레임이 아니라 이 간격으로만 생각.
-local IFRAME_DURATION      = 0.45   -- 회피 무적(i-frame) 지속. SetInvincible 로 구현.
-local PARRY_STANCE_DURATION= 0.30   -- 패링 스탠스(슈퍼아머) 지속. SetSuperArmor 로 구현.
-local DODGE_MOVE_SCALE     = 1.0    -- 회피 시 후퇴 이동 강도.
-local STRAFE_SCALE         = 0.7
-local RETREAT_SCALE        = 0.7
-local APPROACH_ACCEPT      = 0.85   -- 접근 정지 반경 = AttackRange * 이 값.
-local CLOSE_RATIO          = 0.6    -- AttackRange * 이 값보다 가까우면 "너무 가까움".
-local STRAFE_FLIP_PERIOD   = 1.6    -- 게걸음 방향(좌/우) 전환 주기(초).
+local TACTIC = {
+    Neutral     = "Neutral",
+    Opener      = "Opener",
+    Pressure    = "Pressure",
+    Combo       = "Combo",
+    GapCloser   = "GapCloser",
+    Punish      = "Punish",
+    Retreat     = "Retreat",
+    PhaseChange = "PhaseChange",
+}
 
-local S = nil  -- 런타임 상태 (BeginPlay 에서 초기화)
+local S = nil
 
--- ── 얇은 헬퍼 ────────────────────────────────────────────────────────────────
+local LOCOMOTION = {
+    Locked = 0,
+    InputAllowed = 1,
+    Strafe = 2,
+    Retreat = 3,
+}
+
 local function call(o, fn, ...)
     if not o then return nil end
     return Reflection.Call(o, fn, ...)
 end
 
--- 어떤 액터든(플레이어 클래스 무관) CombatStateComponent 를 안전하게 얻는다.
-local function get_combat(actor)
-    if not actor then return nil end
-    local ok, c = pcall(function() return actor:GetCombatStateComponent() end)
-    if ok and c then return c end
-    return nil
-end
-
 local function clamp(v, lo, hi)
-    if v < lo then return lo elseif v > hi then return hi else return v end
+    if v < lo then return lo end
+    if v > hi then return hi end
+    return v
 end
 
--- ── 수명주기 ─────────────────────────────────────────────────────────────────
-function BeginPlay()
-    S = {
-        brain  = obj:GetEnemyAIBrainComponent(),
-        combat = obj:GetCombatStateComponent(),
-        health = obj:GetHealthComponent(),
-        now    = 0.0,
-        think  = 0.0,
-        intent = "idle",          -- 매 프레임 적용되는 지속 이동 의도
-        clockwise = true,
-        nextFlip = STRAFE_FLIP_PERIOD,
-        reactKind = nil,          -- 예약된 반응("Dodge"/"Parry")
-        reactAt   = 0.0,
-        invincibleUntil = 0.0,    -- 회피 i-frame 만료 시각
-        superArmorUntil = 0.0,    -- 패링 스탠스 만료 시각
-    }
+local function name_to_string(v)
+    if v == nil then return "" end
+    return tostring(v)
+end
 
-    -- C++ 내장 결정 로직을 끄고 이 Lua 두뇌가 운전대를 잡는다.
-    Reflection.SetProperty(obj, "bUseBuiltInDecisionLogic", false)
+local function is_name_valid(v)
+    local s = name_to_string(v)
+    return s ~= "" and s ~= "None"
+end
 
-    -- AttackRange 캐싱.
-    local r = Reflection.GetProperty(S.brain, "AttackRange")
-    S.attackRange = (type(r) == "number" and r > 0) and r or 3.0
+local function current_style()
+    if S and S.isBoss then return STYLE.Boss end
+    return STYLE.Balanced
+end
 
-    -- 보스 여부 1회 판별 (GetBossPhase 가 있으면 보스). 보스면 Boss 성향 강제.
-    local bp = Reflection.Call(obj, "GetBossPhase")
-    S.isBoss = (type(bp) == "number")
+local function range_curve(distance, minRange, maxRange)
+    local span = math.max(1.0, maxRange - minRange)
+    local t = clamp((distance - minRange) / span, 0.0, 1.0)
+    local off = math.abs(t - 0.5) * 2.0
+    return 1.0 - 0.6 * off
+end
 
-    -- 성향 결정.
-    local idx
-    if S.isBoss then
-        idx = 4
-    else
-        local prop = Reflection.GetProperty(obj, "BehaviorStyle")
-        idx = (type(prop) == "number") and prop or 1
+local function angle_curve(absAngle, maxAbsAngle)
+    local limit = math.max(1.0, maxAbsAngle)
+    local t = clamp(absAngle / limit, 0.0, 1.0)
+    return 1.0 - 0.7 * t
+end
+
+local function norm_tag(v)
+    local s = tostring(v or "Neutral")
+    s = s:gsub("_", ""):gsub("%s+", "")
+    return s:lower()
+end
+
+local function tactic_scale(tactic, isGapCloser, targetThreatening, targetRecovery, targetPosture, phase, style)
+    local tag = norm_tag(tactic)
+    local scale = 1.0
+    if tag == norm_tag(TACTIC.Opener) then
+        scale = scale * (call(obj, "Brain_GetStateTime") <= 1.5 and 1.35 or 0.75)
+    elseif tag == norm_tag(TACTIC.Pressure) then
+        scale = scale * (1.0 + 0.35 * style.attack)
+    elseif tag == norm_tag(TACTIC.Combo) then
+        scale = scale * (is_name_valid(call(obj, "Brain_GetLastAttackName")) and 1.55 or 0.35)
+    elseif tag == norm_tag(TACTIC.GapCloser) or isGapCloser then
+        scale = scale * (1.05 + 0.30 * style.approach)
+    elseif tag == norm_tag(TACTIC.Punish) then
+        scale = scale * (targetRecovery and 1.65 or 0.85)
+    elseif tag == norm_tag(TACTIC.Retreat) then
+        scale = scale * (0.7 + style.retreat)
+    elseif tag == norm_tag(TACTIC.PhaseChange) then
+        scale = scale * (S.isBoss and 1.35 or 0.55)
     end
-    S.style = STYLES[idx] or STYLES[1]
 
-    -- 적마다 RNG 시드 분리 — 안 하면 모든 적이 같은 난수열로 똑같이 움직인다.
-    pcall(function() math.randomseed((tonumber(obj.UUID) or 0) + 1) end)
+    if targetThreatening and (tag == norm_tag(TACTIC.Punish) or tag == norm_tag(TACTIC.Retreat)) then
+        scale = scale * 1.25
+    end
+    if targetPosture > 0.0 and targetPosture < 0.4 and (tag == norm_tag(TACTIC.Pressure) or tag == norm_tag(TACTIC.Combo)) then
+        scale = scale * 1.35
+    end
+    if phase >= 2 and (tag == norm_tag(TACTIC.Pressure) or tag == norm_tag(TACTIC.GapCloser) or tag == norm_tag(TACTIC.PhaseChange) or isGapCloser) then
+        scale = scale * (1.0 + 0.12 * (phase - 1))
+    end
+    return scale
+end
+
+local function combo_gate(index)
+    if not call(obj, "Brain_AttackRequiresPreviousAttack", index) then
+        return true
+    end
+    local required = call(obj, "Brain_GetAttackRequiredPreviousAttack", index)
+    return is_name_valid(required) and name_to_string(required) == name_to_string(call(obj, "Brain_GetLastAttackName"))
+end
+
+local function select_attack()
+    local count = call(obj, "Brain_GetAttackCount") or 0
+    if count <= 0 then return false end
+
+    local style = current_style()
+    local distance = call(obj, "Brain_GetDistance") or 9999.0
+    local absAngle = call(obj, "Brain_GetAbsAngle") or 180.0
+    local phase = call(obj, "Brain_GetPhase") or 1
+    local targetPosture = call(obj, "Brain_GetTargetPostureRatio") or 1.0
+    local targetRecovery = call(obj, "Brain_TargetInRecovery") == true
+    local targetThreatening = call(obj, "Brain_TargetThreatening") == true
+    local perceptualScale = ((call(obj, "Brain_CanSeeTarget") == true and call(obj, "Brain_HasLineOfSight") == true) or call(obj, "Brain_IsInProximity") == true) and 1.0 or 0.0
+
+    call(obj, "Brain_BeginDecisionTrace")
+
+    local bestName = nil
+    local bestScore = -1.0
+
+    for i = 0, count - 1 do
+        if call(obj, "Brain_CanUseAttackIndex", i) and combo_gate(i) then
+            local name = call(obj, "Brain_GetAttackName", i)
+            local weight = call(obj, "Brain_GetAttackBaseWeight", i) or 0.0
+            local priority = call(obj, "Brain_GetAttackPriority", i) or 1.0
+            local minRange = call(obj, "Brain_GetAttackMinRange", i) or 0.0
+            local maxRange = call(obj, "Brain_GetAttackMaxRange", i) or 1.0
+            local maxAngle = call(obj, "Brain_GetAttackMaxAbsAngle", i) or 70.0
+            local repeatScale = call(obj, "Brain_GetAttackRepeatWeightScale", i) or 1.0
+            local repeatCount = call(obj, "Brain_GetRecentAttackRepeat", name) or 0
+            local tactic = call(obj, "Brain_GetAttackTacticTag", i) or "Neutral"
+            local isGapCloser = call(obj, "Brain_IsAttackGapCloser", i) == true
+
+            local score = math.max(0.0001, weight)
+                * math.max(0.1, priority)
+                * range_curve(distance, minRange, maxRange)
+                * angle_curve(absAngle, maxAngle)
+                * math.pow(clamp(repeatScale, 0.0, 1.0), repeatCount)
+                * tactic_scale(tactic, isGapCloser, targetThreatening, targetRecovery, targetPosture, phase, style)
+                * style.attack
+                * perceptualScale
+
+            score = score * (0.92 + math.random() * 0.16)
+            call(obj, "Brain_AddDecisionCandidate", name, score)
+
+            if score > bestScore then
+                bestScore = score
+                bestName = name
+            end
+        end
+    end
+
+    if bestName and bestScore > 0.05 and call(obj, "Brain_SetSelectedAttack", bestName) then
+        call(obj, "Brain_CommitDecisionTrace", bestName)
+        return true
+    end
+
+    call(obj, "Brain_CommitDecisionTrace", "None")
+    return false
+end
+
+local function should_deflect(style)
+    if call(obj, "Brain_TargetThreatening") ~= true then return false end
+    local distance = call(obj, "Brain_GetDistance") or 9999.0
+    local range = call(obj, "Brain_GetAttackRange") or 3.0
+    local angle = call(obj, "Brain_GetAbsAngle") or 180.0
+    if distance > range * 1.8 or angle > 80.0 then return false end
+    if not ((call(obj, "Brain_CanSeeTarget") == true and call(obj, "Brain_HasLineOfSight") == true) or call(obj, "Brain_IsInProximity") == true) then
+        return false
+    end
+    return math.random() < style.react * style.deflect
+end
+
+local function decide_movement(style)
+    local distance = call(obj, "Brain_GetDistance") or 9999.0
+    local range = call(obj, "Brain_GetAttackRange") or 3.0
+    local hp = call(obj, "Brain_GetSelfHealthRatio") or 1.0
+
+    if distance > range then
+        call(obj, "Brain_Chase")
+        return
+    end
+
+    local retreatScore = style.retreat * ((hp < 0.35) and 1.7 or 1.0) * ((distance < range * 0.55) and 1.35 or 0.7)
+    local strafeScore = style.strafe * (0.85 + math.random() * 0.3)
+    if retreatScore > strafeScore then
+        call(obj, "Brain_Reposition")
+    else
+        call(obj, "Brain_Strafe")
+    end
+end
+
+local function define_runtime_states()
+    local sm = call(obj, "GetStateMachine")
+    if not sm then return end
+    call(sm, "ClearStateDefinitions")
+    call(sm, "DefineState", "Idle", LOCOMOTION.InputAllowed, 0, true, false)
+    call(sm, "DefineState", "Chase", LOCOMOTION.InputAllowed, 1, true, true)
+    call(sm, "DefineState", "Strafe", LOCOMOTION.Strafe, 2, true, true)
+    call(sm, "DefineState", "Reposition", LOCOMOTION.Retreat, 3, true, true)
+    call(sm, "DefineState", "Attack", LOCOMOTION.Locked, 4, false, false)
+    call(sm, "DefineState", "Deflect", LOCOMOTION.Locked, 5, true, true)
+    call(sm, "DefineState", "Guard", LOCOMOTION.Locked, 5, true, true)
+    call(sm, "DefineState", "Recover", LOCOMOTION.InputAllowed, 6, true, false)
+    call(sm, "DefineState", "Hit", LOCOMOTION.Locked, 7, true, false)
+    call(sm, "DefineState", "Staggered", LOCOMOTION.Locked, 8, true, false)
+    call(sm, "DefineState", "Dead", LOCOMOTION.Locked, 9, false, false)
+    call(sm, "DefineState", "Intro", LOCOMOTION.Locked, 10, true, true)
+    call(sm, "DefineState", "PhaseChanged", LOCOMOTION.Locked, 11, true, true)
+    call(sm, "DefineState", "EncounterCompleted", LOCOMOTION.InputAllowed, 12, true, false)
+end
+
+function BeginPlay()
+    define_runtime_states()
+    S = {
+        isBoss = type(call(obj, "GetBossPhase")) == "number",
+    }
+    pcall(function() math.randomseed((tonumber(obj.UUID) or os.time() or 1) + 13) end)
 end
 
 function EndPlay()
-    -- 종료 시 임시 상태(무적/슈퍼아머) 원복.
-    if S then
-        if S.invincibleUntil > 0 then call(S.combat, "SetInvincible", false) end
-        if S.superArmorUntil > 0 then call(S.combat, "SetSuperArmor", false) end
-    end
+    call(obj, "Brain_ReleaseAttackToken")
 end
 
--- ── 임시 상태(i-frame / 패링 스탠스) 만료 처리 ───────────────────────────────
-local function update_temp_states()
-    if S.invincibleUntil > 0 and S.now >= S.invincibleUntil then
-        call(S.combat, "SetInvincible", false)
-        S.invincibleUntil = 0
-    end
-    if S.superArmorUntil > 0 and S.now >= S.superArmorUntil then
-        call(S.combat, "SetSuperArmor", false)
-        S.superArmorUntil = 0
-    end
-end
-
--- ── 반응 실행 (예약된 회피/패링을 reactDelay 후 발동 = 공정성) ────────────────
-local function execute_reaction()
-    if S.reactKind == "Dodge" then
-        call(S.combat, "SetInvincible", true)
-        S.invincibleUntil = S.now + IFRAME_DURATION
-        S.intent = "dodge"                       -- i-frame 동안 후퇴 이동
-        call(S.brain, "SetState", "Dodge")
-    elseif S.reactKind == "Parry" then
-        call(S.combat, "SetSuperArmor", true)
-        S.superArmorUntil = S.now + PARRY_STANCE_DURATION
-        S.intent = "hold"
-        call(S.brain, "SetState", "Parry")
-    end
-    S.reactKind = nil
-end
-
--- ── 매 프레임 적용되는 지속 이동 (think tick 이 정한 intent 를 부드럽게 유지) ──
-local function apply_movement()
-    if S.intent == "strafe" then
-        call(obj, "StrafeAroundTarget", STRAFE_SCALE, S.clockwise)
-    elseif S.intent == "retreat" then
-        call(obj, "RetreatFromTarget", RETREAT_SCALE)
-    elseif S.intent == "dodge" then
-        call(obj, "RetreatFromTarget", DODGE_MOVE_SCALE)
-    end
-    -- "approach" 는 길찾기(RequestMoveToTarget)가 think tick 에서 처리. "hold"/"idle" 은 정지.
-end
-
--- ── 의사결정 (think 주기마다 1회) ────────────────────────────────────────────
-local function think()
-    local brain = S.brain
-    if not brain then return end
-
-    -- 타깃 확보.
-    if not call(brain, "HasValidTarget") then
-        call(brain, "AcquireDefaultTarget")
-    end
-    if not call(brain, "HasValidTarget") then
-        call(brain, "SetState", "Idle")
-        call(brain, "StopMove")
-        S.intent = "idle"
-        return
-    end
-
-    -- 반응(회피/패링)이 이미 예약/진행 중이면 새 결정을 내리지 않고 대기.
-    if S.reactKind or S.invincibleUntil > 0 or S.superArmorUntil > 0 then
-        return
-    end
-
-    -- 컨텍스트 수집.
-    local dist  = call(brain, "GetDistanceToTarget") or 9999
-    local hp    = call(S.health, "GetHealthRatio") or 1.0
-    local St    = S.style
-    local inRange = dist <= S.attackRange
-
-    -- 위협(타깃이 지금 공격 중인가) — 회피/패링의 근거.
-    local target = call(brain, "GetTarget")
-    local tcombat = get_combat(target)
-    local threat = tcombat and (call(tcombat, "GetAttackThreatRemaining") or 0) or 0
-    local underThreat = threat > 0 and dist <= (S.attackRange * 1.6)
-
-    -- ① 위협 대응: 회피 vs 패링 을 성향 가중치로 선택 + 확률·지연으로 공정하게.
-    if underThreat and not S.reactKind then
-        if math.random() < St.reactChance then
-            local pick = (St.parry * math.random() > St.dodge * math.random()) and "Parry" or "Dodge"
-            S.reactKind = pick
-            S.reactAt   = S.now + St.reactDelay   -- 즉시가 아니라 사람처럼 한 박자 늦게
-            call(brain, "StopMove")
-            S.intent = "hold"
-            return
-        end
-        -- 확률 실패 → 그냥 평소 행동으로 흘려보냄(가끔 못 막는 게 공정함).
-    end
-
-    -- ② 평소: 동사별 효용 점수 → 최고점 실행. (약간의 랜덤으로 패턴화 방지)
-    local score = {
-        Attack   = inRange and St.attack or 0,
-        Approach = (not inRange) and St.approach or 0,
-        Strafe   = inRange and St.strafe or (St.strafe * 0.3),
-        Retreat  = St.retreat
-                   * ((hp < 0.3) and 1.8 or 1.0)
-                   * ((dist < S.attackRange * CLOSE_RATIO) and 1.3 or 0.6),
-    }
-
-    local bestKey, bestVal = "Strafe", -1
-    for k, v in pairs(score) do
-        local jittered = v * (0.85 + math.random() * 0.3)
-        if jittered > bestVal then bestVal, bestKey = jittered, k end
-    end
-
-    if bestKey == "Attack" then
-        -- 어떤 공격인지는 C++ 가중치 시스템(SelectAttackForStyle)에 위임.
-        local phase = S.isBoss and (call(obj, "GetBossPhase") or 1) or 1
-        local res = call(obj, "SelectAndCommitAttack", phase)
-        if type(res) == "table" and res.ReturnValue and res.OutAttack then
-            call(obj, "PlayAttackMontage", res.OutAttack)   -- C++ Tick 이 스윙을 실행/종료
-            S.intent = "hold"
-        else
-            S.intent = "strafe"   -- 쿨다운 등으로 공격 불가 → 간격 유지
-        end
-    elseif bestKey == "Approach" then
-        call(brain, "SetState", "Chase")
-        call(brain, "RequestMoveToTarget", S.attackRange * APPROACH_ACCEPT, true)
-        S.intent = "approach"
-    elseif bestKey == "Retreat" then
-        call(brain, "SetState", "Reposition")
-        call(brain, "StopMove")
-        S.intent = "retreat"
-    else -- Strafe
-        call(brain, "SetState", "Strafe")
-        call(brain, "StopMove")
-        S.intent = "strafe"
-    end
-end
-
--- ── 메인 틱 ──────────────────────────────────────────────────────────────────
 function Tick(dt)
     if not S then return end
-    S.now = S.now + dt
 
-    update_temp_states()
+    call(obj, "Brain_Sense")
+    if call(obj, "Brain_IsBusy") == true then return end
+    if call(obj, "Brain_ConsumeCombatStep") ~= true then return end
 
-    -- 죽음/경직 중에는 두뇌 정지(C++ 가 처리).
-    if call(obj, "IsDead") then
-        S.intent = "idle"
-        return
-    end
-    if call(S.combat, "IsStaggered") then
-        call(S.brain, "StopMove")
-        S.intent = "idle"
+    if call(obj, "Brain_AcquireTarget") ~= true then
+        call(obj, "Brain_Idle")
         return
     end
 
-    -- 항상 타깃을 바라본다(가볍다). HasValidTarget 은 C++ 가 내부 체크.
-    -- 두 번째 인자(OverrideYawRate)는 명시적으로 -1 → TurnSpeed 사용.
-    call(obj, "FaceTarget", dt, -1.0)
+    call(obj, "Brain_FaceTarget")
 
-    -- 공격 스윙 진행 중이면 C++ 가 실행. Lua 는 대기.
-    if call(obj, "HasCurrentAttack") then
+    local style = current_style()
+    if should_deflect(style) then
+        call(obj, "Brain_OpenDeflect")
         return
     end
 
-    -- 예약된 반응(회피/패링)을 지연 시간 경과 시 발동.
-    if S.reactKind and S.now >= S.reactAt then
-        execute_reaction()
+    local distance = call(obj, "Brain_GetDistance") or 9999.0
+    local range = call(obj, "Brain_GetAttackRange") or 3.0
+    if distance <= range * 2.5 and style.attack > 0.0 then
+        if call(obj, "Brain_AcquireAttackToken") == true then
+            if select_attack() and call(obj, "Brain_PlaySelectedAttack") == true then
+                return
+            end
+            call(obj, "Brain_ReleaseAttackToken")
+        end
     end
 
-    -- 게걸음 방향 주기적 전환.
-    S.nextFlip = S.nextFlip - dt
-    if S.nextFlip <= 0 then
-        S.clockwise = not S.clockwise
-        S.nextFlip = STRAFE_FLIP_PERIOD
-    end
-
-    -- 의사결정은 think 주기마다.
-    S.think = S.think - dt
-    if S.think <= 0 then
-        S.think = THINK_INTERVAL
-        think()
-    end
-
-    -- think 이 정한 지속 이동을 매 프레임 적용(부드러운 이동).
-    apply_movement()
+    decide_movement(style)
 end

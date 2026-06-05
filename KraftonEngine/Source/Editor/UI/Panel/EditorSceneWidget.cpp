@@ -3,9 +3,30 @@
 #include "Editor/EditorEngine.h"
 #include "Editor/Viewport/Level/LevelEditorViewportClient.h"
 #include "Engine/Input/InputSystem.h"
+#include "GameFramework/AActor.h"
+#include "Object/FName.h"
 
 #include "ImGui/imgui.h"
 #include "Profiling/Stats/Stats.h"
+
+#include <cctype>
+#include <cstring>
+
+namespace
+{
+	bool IsBlankRenameName(const FString& Name)
+	{
+		for (const char Ch : Name)
+		{
+			if (!std::isspace(static_cast<unsigned char>(Ch)))
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+}
 
 void FEditorSceneWidget::Initialize(UEditorEngine* InEditorEngine)
 {
@@ -27,6 +48,7 @@ void FEditorSceneWidget::Render(float DeltaTime)
 	// 씬 파일 작업은 상단 메뉴로 옮기고, Scene Manager는 액터 목록만 유지한다.
 	RenderActorOutliner();
 	HandleSceneManagerShortcuts();
+	RenderRenamePopup();
 
 	ImGui::End();
 }
@@ -49,6 +71,16 @@ void FEditorSceneWidget::HandleSceneManagerShortcuts()
 	if (Input.GetKeyDown(VK_DELETE))
 	{
 		Selection.DeleteSelectedActors();
+		return;
+	}
+
+	if (Input.GetKeyDown(VK_F2))
+	{
+		const TArray<AActor*>& SelectedActors = Selection.GetSelectedActors();
+		if (SelectedActors.size() == 1)
+		{
+			BeginRenameActor(SelectedActors[0]);
+		}
 		return;
 	}
 
@@ -115,9 +147,138 @@ void FEditorSceneWidget::RenderActorOutliner()
 					Selection.Select(Actor);
 				}
 			}
+			if (ImGui::BeginPopupContextItem("ActorContext"))
+			{
+				if (ImGui::MenuItem("Rename"))
+				{
+					BeginRenameActor(Actor);
+				}
+				ImGui::EndPopup();
+			}
 			ImGui::PopID();
 		}
 	}
 
 	ImGui::EndChild();
+}
+
+void FEditorSceneWidget::BeginRenameActor(AActor* TargetActor)
+{
+	if (!TargetActor)
+	{
+		return;
+	}
+
+	RenameTargetActor = TargetActor;
+	RenameErrorText.clear();
+
+	const FString CurrentName = TargetActor->GetFName().ToString();
+	strncpy_s(RenameBuffer, sizeof(RenameBuffer), CurrentName.c_str(), _TRUNCATE);
+
+	bRenamePopupRequested = true;
+	bFocusRenameInputNextFrame = true;
+}
+
+void FEditorSceneWidget::RenderRenamePopup()
+{
+	if (bRenamePopupRequested)
+	{
+		ImGui::OpenPopup("Rename Actor");
+		bRenamePopupRequested = false;
+	}
+
+	if (ImGui::BeginPopupModal("Rename Actor", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+	{
+		if (!IsValid(RenameTargetActor.Get()))
+		{
+			RenameTargetActor = nullptr;
+			RenameBuffer[0] = '\0';
+			RenameErrorText.clear();
+			ImGui::CloseCurrentPopup();
+			ImGui::EndPopup();
+			return;
+		}
+
+		ImGui::TextUnformatted("Actor Name");
+		ImGui::SetNextItemWidth(320.0f);
+
+		if (bFocusRenameInputNextFrame)
+		{
+			ImGui::SetKeyboardFocusHere();
+			bFocusRenameInputNextFrame = false;
+		}
+
+		const bool bSubmit = ImGui::InputText("##ActorRenameInput", RenameBuffer, sizeof(RenameBuffer), ImGuiInputTextFlags_EnterReturnsTrue);
+
+		if (!RenameErrorText.empty())
+		{
+			ImGui::TextColored(ImVec4(1.0f, 0.3f, 0.3f, 1.0f), "%s", RenameErrorText.c_str());
+		}
+
+		const bool bApply = bSubmit || ImGui::Button("OK");
+		ImGui::SameLine();
+		const bool bCancel = ImGui::Button("Cancel");
+
+		if (bApply)
+		{
+			const FString NewName(RenameBuffer);
+			if (TryRenameActor(RenameTargetActor.Get(), NewName))
+			{
+				RenameTargetActor = nullptr;
+				RenameBuffer[0] = '\0';
+				RenameErrorText.clear();
+				ImGui::CloseCurrentPopup();
+			}
+		}
+		else if (bCancel)
+		{
+			RenameTargetActor = nullptr;
+			RenameBuffer[0] = '\0';
+			RenameErrorText.clear();
+			ImGui::CloseCurrentPopup();
+		}
+
+		ImGui::EndPopup();
+	}
+}
+
+bool FEditorSceneWidget::TryRenameActor(AActor* TargetActor, const FString& NewName)
+{
+	if (!IsValid(TargetActor))
+	{
+		return false;
+	}
+
+	if (IsBlankRenameName(NewName))
+	{
+		RenameErrorText = "Name cannot be empty.";
+		return false;
+	}
+
+	const FString CurrentName = TargetActor->GetFName().ToString();
+	if (NewName == CurrentName)
+	{
+		return true;
+	}
+
+	UWorld* World = EditorEngine ? EditorEngine->GetWorld() : nullptr;
+	if (World)
+	{
+		for (AActor* Actor : World->GetActors())
+		{
+			if (!Actor || Actor == TargetActor)
+			{
+				continue;
+			}
+
+			if (Actor->GetFName().ToString() == NewName)
+			{
+				RenameErrorText = "An actor with this name already exists.";
+				return false;
+			}
+		}
+	}
+
+	TargetActor->SetFName(FName(NewName));
+	return true;
 }

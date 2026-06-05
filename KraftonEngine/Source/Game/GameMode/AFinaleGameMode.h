@@ -3,6 +3,8 @@
 
 #include "Source/Game/GameMode/AFinaleGameMode.generated.h"
 
+enum class EGamePhase : uint8;
+
 UCLASS()
 class AFinaleGameMode : public AGameModeBase
 {
@@ -13,14 +15,25 @@ public:
 	void OnPossessedPawnEnteredTrigger(ATriggerVolumeBase* Trigger, APawn* Pawn) override;
 	void OnPossessedPawnExitedTrigger(ATriggerVolumeBase* Trigger, APawn* Pawn)  override;
 
-	// Change the scene to the target when called
-	// TODO: Change the uint8 to enum when it rolls in
-	void TransitScene(uint8 TargetScene);
+	void TogglePause();
+	void OnGamePaused();
+	void OnGameResumed();
+	void OnEnteringCutscene();
+	void OnGameQuit();			// Quit means returned to title here
+	void OnLeaderBoardView();
 	void OnPlayerDeath();
+	void OnPlayerRevive();
+	void OnPlayerDefeated();	// True death
 	void OnBossSlain(FName BossId);
 	void OnVictory();
 
-private:
+	// Returns the number of times the user exploited revive in this play
+	uint16 GetReviveCount() const;
+	float  GetActiveTime()  const;
 
+private:
+	void SetGamePhase(EGamePhase InPhase);
+	bool CheckGamePhase(EGamePhase InPase);
+	FString GetGamePhaseString();
 
 };

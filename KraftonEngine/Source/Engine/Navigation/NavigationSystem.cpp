@@ -5,6 +5,7 @@
 #include "Core/Types/EngineTypes.h"
 #include "GameFramework/Actor/NavMeshBoundsVolume.h"
 #include "GameFramework/World.h"
+#include "GameFramework/WorldSettings.h"
 #include "Math/MathUtils.h"
 #include "Math/Quat.h"
 
@@ -171,13 +172,100 @@ AGridNavMesh* UNavigationSystem::EnsureGridNavMeshActor()
 	{
 		return nullptr;
 	}
-	Created->SetCellSize(CellSize);
-	Created->MaxSearchNodes = MaxSearchNodes;
-	Created->ProjectionUp = ProjectionUp;
-	Created->ProjectionDown = ProjectionDown;
-	Created->DirectPathSegmentLength = DirectPathSegmentLength;
+	PushSettingsToGridNavMesh(*Created);
 	CachedMainNavData.Reset(Created);
 	return Created;
+}
+
+void UNavigationSystem::PushSettingsToGridNavMesh(AGridNavMesh& Grid) const
+{
+	Grid.SetCellSize(CellSize);
+	FNavAgentProperties BuildAgent;
+	BuildAgent.Radius = AgentRadius;
+	BuildAgent.Height = AgentHeight;
+	BuildAgent.StepHeight = AgentStepHeight;
+	BuildAgent.MaxClimbHeight = AgentMaxClimbHeight;
+	BuildAgent.MaxDropHeight = AgentMaxDropHeight;
+	BuildAgent.MaxSlopeDegrees = AgentMaxSlopeDegrees;
+	Grid.SetSupportedAgentForBuild(BuildAgent);
+	Grid.MaxSearchNodes = MaxSearchNodes;
+	Grid.ProjectionUp = ProjectionUp;
+	Grid.ProjectionDown = ProjectionDown;
+	Grid.DirectPathSegmentLength = DirectPathSegmentLength;
+	Grid.ObstaclePadding = ObstaclePadding;
+	Grid.bUsePhysicsProjectionFallback = bUsePhysicsProjectionFallback;
+	Grid.bDrawDebugOnBuild = bDrawDebugOnBuild;
+	Grid.bDrawBlockedCells = bDrawBlockedCells;
+	Grid.bDrawHeightColors = bDrawHeightColors;
+	Grid.bDrawHeightContours = bDrawHeightContours;
+	Grid.DebugHeightContourInterval = DebugHeightContourInterval;
+	Grid.DebugDrawDuration = DebugDrawDuration;
+	Grid.DebugDrawMaxCells = DebugDrawMaxCells;
+}
+
+void UNavigationSystem::ApplyWorldSettings(const FNavigationWorldSettings& Settings)
+{
+	CellSize = std::max(0.25f, Settings.CellSize);
+	MaxSearchNodes = std::max(16, Settings.MaxSearchNodes);
+	AgentRadius = std::max(0.01f, Settings.AgentRadius);
+	AgentHeight = std::max(AgentRadius * 2.0f, Settings.AgentHeight);
+	AgentStepHeight = std::max(0.0f, Settings.AgentStepHeight);
+	AgentMaxClimbHeight = std::max(0.0f, Settings.AgentMaxClimbHeight);
+	AgentMaxDropHeight = std::max(0.0f, Settings.AgentMaxDropHeight);
+	AgentMaxSlopeDegrees = std::max(0.0f, std::min(89.0f, Settings.AgentMaxSlopeDegrees));
+	ProjectionUp = std::max(0.0f, Settings.ProjectionUp);
+	ProjectionDown = std::max(0.0f, Settings.ProjectionDown);
+	DirectPathSegmentLength = std::max(0.1f, Settings.DirectPathSegmentLength);
+	ObstaclePadding = std::max(0.0f, Settings.ObstaclePadding);
+	bUsePhysicsProjectionFallback = Settings.bUsePhysicsProjectionFallback;
+	bUseNavigationData = Settings.bUseNavigationData;
+	bAutoRebuildOnPathRequest = Settings.bAutoRebuildOnPathRequest;
+	bAllowRuntimeFallback = Settings.bAllowRuntimeFallback;
+	bEnableRuntimeAutoRebuild = Settings.bEnableRuntimeAutoRebuild;
+	RuntimeRebuildDelay = std::max(0.0f, Settings.RuntimeRebuildDelay);
+	RuntimeRebuildMinInterval = std::max(0.0f, Settings.RuntimeRebuildMinInterval);
+	bDrawDebugOnBuild = Settings.bDrawDebugOnBuild;
+	bDrawBlockedCells = Settings.bDrawBlockedCells;
+	bDrawHeightColors = Settings.bDrawHeightColors;
+	bDrawHeightContours = Settings.bDrawHeightContours;
+	DebugHeightContourInterval = std::max(0.0f, Settings.DebugHeightContourInterval);
+	DebugDrawDuration = std::max(0.0f, Settings.DebugDrawDuration);
+	DebugDrawMaxCells = std::max(0, Settings.DebugDrawMaxCells);
+
+	if (AGridNavMesh* Grid = GetGridNavMesh())
+	{
+		PushSettingsToGridNavMesh(*Grid);
+	}
+}
+
+void UNavigationSystem::ExportWorldSettings(FNavigationWorldSettings& OutSettings) const
+{
+	OutSettings.CellSize = CellSize;
+	OutSettings.MaxSearchNodes = MaxSearchNodes;
+	OutSettings.AgentRadius = AgentRadius;
+	OutSettings.AgentHeight = AgentHeight;
+	OutSettings.AgentStepHeight = AgentStepHeight;
+	OutSettings.AgentMaxClimbHeight = AgentMaxClimbHeight;
+	OutSettings.AgentMaxDropHeight = AgentMaxDropHeight;
+	OutSettings.AgentMaxSlopeDegrees = AgentMaxSlopeDegrees;
+	OutSettings.ProjectionUp = ProjectionUp;
+	OutSettings.ProjectionDown = ProjectionDown;
+	OutSettings.DirectPathSegmentLength = DirectPathSegmentLength;
+	OutSettings.ObstaclePadding = ObstaclePadding;
+	OutSettings.bUsePhysicsProjectionFallback = bUsePhysicsProjectionFallback;
+	OutSettings.bUseNavigationData = bUseNavigationData;
+	OutSettings.bAutoRebuildOnPathRequest = bAutoRebuildOnPathRequest;
+	OutSettings.bAllowRuntimeFallback = bAllowRuntimeFallback;
+	OutSettings.bEnableRuntimeAutoRebuild = bEnableRuntimeAutoRebuild;
+	OutSettings.RuntimeRebuildDelay = RuntimeRebuildDelay;
+	OutSettings.RuntimeRebuildMinInterval = RuntimeRebuildMinInterval;
+	OutSettings.bDrawDebugOnBuild = bDrawDebugOnBuild;
+	OutSettings.bDrawBlockedCells = bDrawBlockedCells;
+	OutSettings.bDrawHeightColors = bDrawHeightColors;
+	OutSettings.bDrawHeightContours = bDrawHeightContours;
+	OutSettings.DebugHeightContourInterval = DebugHeightContourInterval;
+	OutSettings.DebugDrawDuration = DebugDrawDuration;
+	OutSettings.DebugDrawMaxCells = DebugDrawMaxCells;
 }
 
 ANavigationData* UNavigationSystem::GetMainNavigationData() const
@@ -198,9 +286,58 @@ bool UNavigationSystem::HasBuiltNavigationData() const
 
 void UNavigationSystem::InvalidateNavigationData()
 {
+	if (bEnableRuntimeAutoRebuild)
+	{
+		RequestNavigationRebuild("Navigation data invalidated", false);
+		return;
+	}
+
 	if (ANavigationData* Data = FindNavigationDataActor())
 	{
 		Data->ClearNavigationData();
+	}
+}
+
+void UNavigationSystem::RequestNavigationRebuild(const FString& Reason, bool bImmediate)
+{
+	if (bImmediate || !bEnableRuntimeAutoRebuild)
+	{
+		RebuildNavigation();
+		return;
+	}
+
+	bRebuildPending = true;
+	PendingRebuildAge = 0.0f;
+	PendingRebuildReason = Reason.empty() ? FString("Navigation data changed") : Reason;
+	LastQueryMessage = FString("Navigation rebuild queued: ") + PendingRebuildReason;
+}
+
+void UNavigationSystem::Tick(float DeltaTime)
+{
+	TimeSinceLastRebuild += std::max(0.0f, DeltaTime);
+	if (!bRebuildPending || !bEnableRuntimeAutoRebuild)
+	{
+		return;
+	}
+
+	PendingRebuildAge += std::max(0.0f, DeltaTime);
+	if (PendingRebuildAge < RuntimeRebuildDelay)
+	{
+		return;
+	}
+	if (TimeSinceLastRebuild < RuntimeRebuildMinInterval)
+	{
+		return;
+	}
+
+	const FString Reason = PendingRebuildReason;
+	bRebuildPending = false;
+	PendingRebuildAge = 0.0f;
+	PendingRebuildReason.clear();
+	RebuildNavigation();
+	if (!Reason.empty())
+	{
+		LastQueryMessage += FString("; Trigger=") + Reason;
 	}
 }
 
@@ -210,20 +347,18 @@ bool UNavigationSystem::RebuildNavigation()
 	AGridNavMesh* Grid = EnsureGridNavMeshActor();
 	if (Grid)
 	{
-		Grid->SetCellSize(CellSize);
-		Grid->MaxSearchNodes = MaxSearchNodes;
-		Grid->ProjectionUp = ProjectionUp;
-		Grid->ProjectionDown = ProjectionDown;
-		Grid->DirectPathSegmentLength = DirectPathSegmentLength;
+		PushSettingsToGridNavMesh(*Grid);
 		const bool bBuilt = Grid->RebuildNavigationData();
 		CachedMainNavData.Reset(Grid);
 		LastQueryMessage = Grid->GetLastBuildMessage();
+		TimeSinceLastRebuild = 0.0f;
 		return bBuilt;
 	}
 
 	ANavigationData* Data = FindNavigationDataActor();
 	const bool bBuilt = Data && Data->RebuildNavigationData();
 	LastQueryMessage = bBuilt ? "RebuildNavigation succeeded" : "RebuildNavigation failed: no NavigationData";
+	TimeSinceLastRebuild = 0.0f;
 	return bBuilt;
 }
 
@@ -244,6 +379,12 @@ FString UNavigationSystem::GetDebugSummary() const
 	}
 	return FString("NavigationData=") + Data->GetName()
 		+ "; Built=" + (Data->IsNavigationDataBuilt() ? "true" : "false")
+		+ "; Pending=" + (bRebuildPending ? "true" : "false")
+		+ "; CellSize=" + std::to_string(CellSize)
+		+ "; AgentRadius=" + std::to_string(AgentRadius)
+		+ "; Climb=" + std::to_string(AgentMaxClimbHeight)
+		+ "; Drop=" + std::to_string(AgentMaxDropHeight)
+		+ "; Padding=" + std::to_string(ObstaclePadding)
 		+ "; Nodes=" + std::to_string(Data->GetNavigationNodeCount())
 		+ "; Blocked=" + std::to_string(Data->GetBlockedNodeCount())
 		+ "; LastQuery=" + LastQueryMessage;
@@ -414,8 +555,13 @@ bool UNavigationSystem::CanTraverseSegmentRuntime(const FVector& Start, const FV
 	{
 		return false;
 	}
-	const float HeightDelta = fabsf(End.Z - Start.Z);
-	if (HeightDelta > std::max(AgentProps.StepHeight, CellSize * 0.5f))
+	const float DeltaZ = End.Z - Start.Z;
+	const float HeightTolerance = 0.02f;
+	if (DeltaZ > AgentProps.GetEffectiveMaxClimbHeight() + HeightTolerance)
+	{
+		return false;
+	}
+	if (-DeltaZ > AgentProps.GetEffectiveMaxDropHeight() + HeightTolerance)
 	{
 		return false;
 	}

@@ -8,6 +8,7 @@
 class UCapsuleComponent;
 class USkeletalMeshComponent;
 class UCharacterMovementComponent;
+class UCharacterStateMachineComponent;
 class UPrimitiveComponent;
 
 enum class ECharacterPhysicsOwnershipMode : uint8
@@ -117,6 +118,9 @@ public:
 	USkeletalMeshComponent* GetMesh()              const { return Mesh; }
 	UFUNCTION(Pure, Category="Character|Components")
 	UCharacterMovementComponent* GetCharacterMovement() const { return CharacterMovement; }
+	// 단일 상태 권위 — 이동·애니·정책이 이 상태에서 파생된다(모든 캐릭터 공통).
+	UFUNCTION(Pure, Category="Character|Components")
+	UCharacterStateMachineComponent* GetStateMachine() const { return StateMachine; }
 
 	// 자동 WASD 매핑/binding — SetupInputComponent 가 InputComponent 에 등록.
 	// 게임에선 보통 false 로 끄고 자식이 자기 매핑/binding 추가. 데모 편의용 기본 true.
@@ -146,6 +150,7 @@ protected:
 	void ApplyCharacterDrivenCollisionPolicy();
 	void ApplyFullRagdollCollisionPolicy();
 	void ApplyPartialRagdollCollisionPolicy();
+	void ApplyCharacterPhysicsOwnershipPolicy();
 	void ReconcileCharacterCollisionOwnership();
 	ECollisionEnabled ResolveCharacterDrivenCapsuleCollisionEnabled() const;
 	ECollisionEnabled ResolveCharacterDrivenMeshCollisionEnabled() const;
@@ -160,6 +165,7 @@ protected:
 	TWeakObjectPtr<UCapsuleComponent>           CapsuleComponent  = nullptr;
 	TWeakObjectPtr<USkeletalMeshComponent>      Mesh              = nullptr;
 	TWeakObjectPtr<UCharacterMovementComponent> CharacterMovement = nullptr;
+	TWeakObjectPtr<UCharacterStateMachineComponent> StateMachine  = nullptr;
 	ECharacterPhysicsOwnershipMode PhysicsOwnershipMode = ECharacterPhysicsOwnershipMode::CharacterDriven;
 	ECharacterPhysicsCollisionMode CharacterPhysicsCollisionMode = ECharacterPhysicsCollisionMode::CharacterDriven;
 	ECharacterQueryCollisionMode CharacterQueryCollisionMode = ECharacterQueryCollisionMode::CharacterDriven;

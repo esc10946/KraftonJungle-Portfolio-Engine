@@ -4,6 +4,7 @@
 #include "Core/Types/CollisionTypes.h"   // FHitResult
 #include "Math/Vector.h"
 #include "Math/Transform.h"
+#include "Object/Ptr/WeakObjectPtr.h"
 
 // UE 의 EMovementMode minimal subset — 후속 단계에서 NavWalking/Swimming 등 확장.
 UENUM()
@@ -21,9 +22,12 @@ enum class EMovementMode : uint8
 //   - Jump: 후속 phase (F-5).
 //
 // Floor detection: IPhysicsScene::Raycast — capsule 중심에서 down 으로 (HalfHeight + Probe).
+// WorldStatic/WorldDynamic floor를 모두 볼 수 있어 moving platform도 base로 잡는다.
 // Owner 는 ignore 해서 자기 capsule 안 잡힘. XY/Z 이동은 capsule sweep으로 벽 관통을 막는다.
 
 #include "Source/Engine/Component/Movement/CharacterMovementComponent.generated.h"
+
+class UPrimitiveComponent;
 
 UCLASS()
 class UCharacterMovementComponent : public UMovementComponent
@@ -77,8 +81,15 @@ public:
 
 	UFUNCTION(Callable, Category="CharacterMovement")
 	void           StopMovementImmediately();
+	void           StopMovementImmediately(bool bPreserveVerticalVelocity);
+	void           StopHorizontalMovementImmediately();
+
+	// Physics/contact bridge. Dynamic bodies or scripted impacts can feed an impulse
+	// back into the controller-owned character without making the capsule a Dynamic body.
+	void           AddExternalImpulse(const FVector& WorldImpulse);
 
 	// UMovementComponent:
+	void BeginPlay() override;
 	void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction& ThisTickFunction) override;
 	void Serialize(FArchive& Ar) override;
 
@@ -92,11 +103,28 @@ public:
 	UPROPERTY(Edit, Save, Category="CharacterMovement", DisplayName="Gravity", Min=0.0f, Max=100.0f, Speed=0.1f)
 	float Gravity            = 9.8f;     // m/s^2 (positive — 적용 시 Velocity.Z -= Gravity*dt)
 	UPROPERTY(Edit, Save, Category="CharacterMovement", DisplayName="Floor Probe Distance", Min=0.0f, Max=5.0f, Speed=0.01f)
-	float FloorProbeDistance = 0.1f;     // capsule HalfHeight 아래 추가 probe 거리
+	float FloorProbeDistance = 0.35f;    // capsule HalfHeight 아래 추가 probe 거리
 	UPROPERTY(Edit, Save, Category="CharacterMovement", DisplayName="Jump Z Velocity", Min=0.0f, Max=50.0f, Speed=0.1f)
 	float JumpZVelocity      = 6.0f;     // m/s — Jump 시 Velocity.Z 에 박는 값
 	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Sweep Pullback Distance", Min=0.0f, Max=10.0f, Speed=0.01f)
 	float SweepPullbackDistance = 0.01f;
+	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Ground Snap Distance", Min=0.0f, Max=5.0f, Speed=0.01f)
+	float GroundSnapDistance = 0.45f;
+	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Falling Landing Snap Distance", Min=0.0f, Max=1.0f, Speed=0.01f)
+	float FallingLandingSnapDistance = 0.08f;
+	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Max Step Height", Min=0.0f, Max=2.0f, Speed=0.01f)
+	float MaxStepHeight = 0.45f;
+	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Max Drop Height", Min=0.0f, Max=5.0f, Speed=0.01f)
+	float MaxDropHeight = 0.75f;
+	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Walkable Floor Z", Min=0.0f, Max=1.0f, Speed=0.01f)
+	float WalkableFloorZ = 0.5f;
+	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Max Slide Iterations", Min=1.0f, Max=8.0f, Speed=1.0f)
+	float MaxSlideIterations = 3.0f;
+	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Max Depenetration Iterations", Min=0.0f, Max=16.0f, Speed=1.0f)
+	float MaxDepenetrationIterations = 8.0f;
+	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Depenetration Skin", Min=0.0f, Max=0.2f, Speed=0.001f)
+	float DepenetrationSkin = 0.02f;
+
 
 	// UE 패턴 — true 면 매 frame Updated 의 yaw 를 현재 Velocity.XY 방향으로 lerp 회전.
 	// 이동 중에만 회전 (정지 시 마지막 facing 유지). Pawn::bUseControllerRotationYaw 와 동시
@@ -116,13 +144,28 @@ protected:
 	void  TickWalking(float DeltaTime, const FVector& RootMotionWorldXY);
 	void  TickFalling(float DeltaTime, const FVector& RootMotionWorldXY);
 
-	// capsule 중심에서 down raycast — bHit + WorldHitLocation 사용.
+	// Character controller core. Dynamic rigid-body simulation is intentionally not used for locomotion.
+	void  EnforceCharacterControllerPolicy();
+	bool  RecoverFromPenetration();
+	bool  ProbePenetration(FHitResult& OutHit) const;
 	bool  TraceFloor(FHitResult& OutHit) const;
+	bool  TraceFloorWithProbeDistance(float ProbeDistance, FHitResult& OutHit) const;
+	bool  IsWalkableFloor(const FHitResult& Hit) const;
+	bool  SnapToFloor(float ProbeDistance);
+	bool  MoveWithSlide(const FVector& Delta, FHitResult* OutHit = nullptr);
+	bool  TryStepUp(const FVector& MoveDelta, const FHitResult& BlockingHit);
     bool  SafeMoveUpdatedComponent(const FVector& Delta, FHitResult* OutHit = nullptr);
+	void  ApplyBasedMovement();
+	void  UpdateMovementBaseFromFloor(const FHitResult& FloorHit);
+	void  ClearMovementBase();
+	void  HandleBlockingHitPhysicsInteraction(const FVector& AttemptedMove, const FHitResult& Hit);
+	uint32 GetFloorObjectTypeMask() const;
 	float GetCapsuleHalfHeight() const;
+	float GetCapsuleRadius() const;
 
 	FVector       AccumulatedInput = FVector(0.0f, 0.0f, 0.0f);
 	FVector       Velocity         = FVector(0.0f, 0.0f, 0.0f);
+	FVector       PendingExternalImpulse = FVector::ZeroVector;
 	// 시작 시 floor 잡힐 때까지 Falling — 첫 frame TickFalling 이 raycast 후 자동 Walking 전환.
 	EMovementMode MovementMode     = EMovementMode::Falling;
 
@@ -137,6 +180,16 @@ protected:
 	// 직전 TickComponent 에서 root motion yaw 가 실제 적용됐는지 (외부 query 용 — Character 의 yaw 가드).
 	// 매 Tick 시작에 reset 후 yaw 적용 시 true.
 	bool          bAppliedRootMotionYawThisFrame = false;
+	bool          bNeedsInitialGrounding = true;
+	TWeakObjectPtr<UPrimitiveComponent> CurrentMovementBase = nullptr;
+	FVector       LastMovementBaseLocation = FVector::ZeroVector;
+	bool          bHasMovementBase = false;
+
+	// Character↔dynamic bridge. The character remains controller-owned, but blocking
+	// hits against simulating bodies can push those bodies through impulses.
+	bool          bEnablePhysicsInteraction = true;
+	float         PhysicsPushImpulseScale = 12.0f;
+	float         PhysicsPushMinSpeed = 0.05f;
 
 	// 평면 속도 기준 yaw 를 RotationYawRate * dt 로 lerp. TickComponent 끝에서 적용.
 	void  PhysOrientToMovement(float DeltaTime);

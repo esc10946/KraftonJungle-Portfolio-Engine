@@ -20,7 +20,7 @@ public:
 	void PostEditProperty(const char* PropertyName) override;
 
 	UFUNCTION(Pure, Category="Navigation")
-	UBoxComponent* GetBoundsComponent() const { return BoundsComponent; }
+	UBoxComponent* GetBoundsComponent() const;
 	UFUNCTION(Pure, Category="Navigation")
 	bool ContainsPoint(const FVector& Point) const;
 

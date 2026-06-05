@@ -8,6 +8,7 @@
 class AAIController;
 class APawn;
 class ACharacter;
+class UCapsuleComponent;
 
 #include "Source/Engine/AI/Navigation/PathFollowingComponent.generated.h"
 
@@ -65,6 +66,16 @@ public:
 	float BlockedTimeout = 1.2f;
 	UPROPERTY(Edit, Save, Category="AI|PathFollowing", DisplayName="Blocked Min Move Distance", Min=0.0f, Max=10.0f, Speed=0.01f)
 	float BlockedMinMoveDistance = 0.15f;
+	UPROPERTY(Edit, Save, Category="AI|PathFollowing", DisplayName="Use Agent Radius For Corner Acceptance")
+	bool bUseAgentRadiusForCornerAcceptance = true;
+	UPROPERTY(Edit, Save, Category="AI|PathFollowing", DisplayName="Corner Acceptance Radius Scale", Min=0.05f, Max=2.0f, Speed=0.01f)
+	float CornerAcceptanceRadiusScale = 0.45f;
+	UPROPERTY(Edit, Save, Category="AI|PathFollowing", DisplayName="Min Corner Acceptance Radius", Min=0.02f, Max=10.0f, Speed=0.01f)
+	float MinCornerAcceptanceRadius = 0.15f;
+	UPROPERTY(Edit, Save, Category="AI|PathFollowing|Debug", DisplayName="Draw Path On Request")
+	bool bDrawDebugPathOnRequest = true;
+	UPROPERTY(Edit, Save, Category="AI|PathFollowing|Debug", DisplayName="Debug Path Draw Duration", Min=0.0f, Max=60.0f, Speed=0.1f)
+	float DebugPathDrawDuration = 5.0f;
 
 	FPathFollowingFinishedSignature OnMoveFinished;
 
@@ -72,6 +83,8 @@ private:
 	AAIController* GetControllerOwner() const;
 	APawn* GetPawnOwner() const;
 	ACharacter* GetCharacterOwner() const;
+	float GetOwnerAgentRadius() const;
+	float GetEffectivePathPointAcceptanceRadius(bool bFinalPoint) const;
 	void AdvancePathIfNeeded();
 
 	FNavigationPath Path;
