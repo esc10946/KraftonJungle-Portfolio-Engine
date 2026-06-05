@@ -1232,6 +1232,9 @@
     <ClCompile Include="Source\Engine\Component\Camera\SpringArmComponent.cpp">
       <Filter>Source\Engine\Component\Camera</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Component\Combat\CombatMoveComponent.cpp">
+      <Filter>Source\Engine\Component\Combat</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\Component\Combat\CombatStateComponent.cpp">
       <Filter>Source\Engine\Component\Combat</Filter>
     </ClCompile>
@@ -2647,6 +2650,9 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\Camera\SpringArmComponent.h">
       <Filter>Source\Engine\Component\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Component\Combat\CombatMoveComponent.h">
+      <Filter>Source\Engine\Component\Combat</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\Combat\CombatStateComponent.h">
       <Filter>Source\Engine\Component\Combat</Filter>

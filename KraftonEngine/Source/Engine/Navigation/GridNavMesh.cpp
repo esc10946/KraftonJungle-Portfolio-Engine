@@ -3,6 +3,7 @@
 #include "Component/PrimitiveComponent.h"
 #include "Component/Shape/BoxComponent.h"
 #include "Debug/DrawDebugHelpers.h"
+#include "Debug/DebugDrawQueue.h"
 #include "GameFramework/Actor/NavMeshBoundsVolume.h"
 #include "GameFramework/World.h"
 #include "Math/MathUtils.h"
@@ -11,6 +12,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstring>
 #include <string>
 #include <cmath>
 #include <cfloat>
@@ -65,11 +67,62 @@ namespace
 		}
 		Path.PathPoints.emplace_back(Location);
 	}
+
+	bool IsGridNavigationRelevantPrimitive(const UPrimitiveComponent* Primitive)
+	{
+		if (!Primitive)
+		{
+			return false;
+		}
+		if (Cast<ANavMeshBoundsVolume>(Primitive->GetOwner()))
+		{
+			return false;
+		}
+		return Primitive->CanEverAffectNavigation()
+			&& Primitive->IsQueryCollisionEnabled()
+			&& Primitive->GetCollisionObjectType() == ECollisionChannel::WorldStatic;
+	}
+
+	int32 ComputeDebugDrawStride(int32 TotalCells, int32 MaxCells)
+	{
+		if (MaxCells <= 0 || TotalCells <= MaxCells)
+		{
+			return 1;
+		}
+		return std::max(1, static_cast<int32>(ceilf(static_cast<float>(TotalCells) / static_cast<float>(MaxCells))));
+	}
+
+	float Clamp01(float Value)
+	{
+		return std::max(0.0f, std::min(1.0f, Value));
+	}
+
+	uint32 LerpByte(uint32 A, uint32 B, float Alpha)
+	{
+		const float T = Clamp01(Alpha);
+		return static_cast<uint32>(static_cast<float>(A) + (static_cast<float>(B) - static_cast<float>(A)) * T);
+	}
+
+	FColor LerpColor(const FColor& A, const FColor& B, float Alpha)
+	{
+		return FColor(
+			LerpByte(A.R, B.R, Alpha),
+			LerpByte(A.G, B.G, Alpha),
+			LerpByte(A.B, B.B, Alpha),
+			LerpByte(A.A, B.A, Alpha));
+	}
 }
+
 
 AGridNavMesh::AGridNavMesh()
 {
 	bNeedsTick = false;
+	SupportedAgent.Radius = 0.42f;
+	SupportedAgent.Height = 2.10f;
+	SupportedAgent.StepHeight = 0.60f;
+	SupportedAgent.MaxClimbHeight = 0.60f;
+	SupportedAgent.MaxDropHeight = 0.60f;
+	SupportedAgent.MaxSlopeDegrees = 50.0f;
 }
 
 UNavigationSystem* AGridNavMesh::GetNavigationSystem() const
@@ -80,13 +133,83 @@ UNavigationSystem* AGridNavMesh::GetNavigationSystem() const
 
 void AGridNavMesh::SetCellSize(float InCellSize)
 {
-	CellSize = std::max(0.5f, InCellSize);
+	CellSize = std::max(0.25f, InCellSize);
 	bNavigationDataBuilt = false;
+}
+
+void AGridNavMesh::SetSupportedAgentForBuild(const FNavAgentProperties& InAgent)
+{
+	SupportedAgent.Radius = std::max(0.01f, InAgent.Radius);
+	SupportedAgent.Height = std::max(SupportedAgent.Radius * 2.0f, InAgent.Height);
+	SupportedAgent.StepHeight = std::max(0.0f, InAgent.StepHeight);
+	SupportedAgent.MaxClimbHeight = std::max(0.0f, InAgent.GetEffectiveMaxClimbHeight());
+	SupportedAgent.MaxDropHeight = std::max(0.0f, InAgent.GetEffectiveMaxDropHeight());
+	SupportedAgent.MaxSlopeDegrees = std::max(0.0f, std::min(89.0f, InAgent.MaxSlopeDegrees));
+	bNavigationDataBuilt = false;
+}
+
+void AGridNavMesh::PostEditProperty(const char* PropertyName)
+{
+	Super::PostEditProperty(PropertyName);
+
+	if (!PropertyName)
+	{
+		return;
+	}
+
+	const bool bNavigationBuildProperty =
+		strcmp(PropertyName, "CellSize") == 0 || strcmp(PropertyName, "Cell Size") == 0 ||
+		strcmp(PropertyName, "MaxSearchNodes") == 0 || strcmp(PropertyName, "Max Search Nodes") == 0 ||
+		strcmp(PropertyName, "ProjectionUp") == 0 || strcmp(PropertyName, "Projection Up") == 0 ||
+		strcmp(PropertyName, "ProjectionDown") == 0 || strcmp(PropertyName, "Projection Down") == 0 ||
+		strcmp(PropertyName, "DirectPathSegmentLength") == 0 || strcmp(PropertyName, "Direct Path Segment Length") == 0 ||
+		strcmp(PropertyName, "WalkableFloorMaxThickness") == 0 || strcmp(PropertyName, "Walkable Floor Max Thickness") == 0 ||
+		strcmp(PropertyName, "ObstaclePadding") == 0 || strcmp(PropertyName, "Obstacle Padding") == 0 ||
+		strcmp(PropertyName, "bUsePhysicsProjectionFallback") == 0 || strcmp(PropertyName, "Physics Projection Fallback") == 0 ||
+		strcmp(PropertyName, "NearestCellSearchRings") == 0 || strcmp(PropertyName, "Nearest Cell Search Rings") == 0 ||
+		strcmp(PropertyName, "bDrawDebugOnBuild") == 0 || strcmp(PropertyName, "Draw On Build") == 0 ||
+		strcmp(PropertyName, "bDrawBlockedCells") == 0 || strcmp(PropertyName, "Draw Blocked Cells") == 0 ||
+		strcmp(PropertyName, "bDrawHeightColors") == 0 || strcmp(PropertyName, "Draw Height Colors") == 0 ||
+		strcmp(PropertyName, "bDrawHeightContours") == 0 || strcmp(PropertyName, "Draw Height Contours") == 0 ||
+		strcmp(PropertyName, "DebugHeightContourInterval") == 0 || strcmp(PropertyName, "Height Contour Interval") == 0 ||
+		strcmp(PropertyName, "DebugDrawDuration") == 0 || strcmp(PropertyName, "Debug Draw Duration") == 0 ||
+		strcmp(PropertyName, "DebugDrawMaxCells") == 0 || strcmp(PropertyName, "Debug Draw Max Cells") == 0;
+
+	if (!bNavigationBuildProperty)
+	{
+		return;
+	}
+
+	SetCellSize(CellSize);
+	MaxSearchNodes = std::max(16, MaxSearchNodes);
+	ProjectionUp = std::max(0.0f, ProjectionUp);
+	ProjectionDown = std::max(0.0f, ProjectionDown);
+	DirectPathSegmentLength = std::max(0.1f, DirectPathSegmentLength);
+	WalkableFloorMaxThickness = std::max(0.01f, WalkableFloorMaxThickness);
+	ObstaclePadding = std::max(0.0f, ObstaclePadding);
+	NearestCellSearchRings = std::max(1, NearestCellSearchRings);
+	DebugHeightContourInterval = std::max(0.0f, DebugHeightContourInterval);
+	DebugDrawDuration = std::max(0.0f, DebugDrawDuration);
+	DebugDrawMaxCells = std::max(0, DebugDrawMaxCells);
+
+	if (UNavigationSystem* NavSys = GetNavigationSystem())
+	{
+		NavSys->RequestNavigationRebuild("GridNavMesh property edited", false);
+	}
+	else
+	{
+		RebuildNavigationData();
+	}
 }
 
 void AGridNavMesh::ClearNavigationData()
 {
+	if (UWorld* World = GetWorld())
+	{
+		World->GetScene().GetDebugDrawQueue().ClearCategory(EDebugDrawCategory::Navigation);
+	}
 	WalkableCells.clear();
+	BlockedCells.clear();
 	BlockedCellCount = 0;
 	LastBuildBoundsCount = 0;
 	LastBuildCandidateCount = 0;
@@ -144,7 +267,7 @@ bool AGridNavMesh::CollectBuildBounds(TArray<FBuildBounds>& OutBounds) const
 		}
 		for (UPrimitiveComponent* Primitive : Actor->GetPrimitiveComponents())
 		{
-			if (!Primitive || !Primitive->IsQueryCollisionEnabled() || Primitive->GetCollisionObjectType() != ECollisionChannel::WorldStatic)
+			if (!IsGridNavigationRelevantPrimitive(Primitive))
 			{
 				continue;
 			}
@@ -171,9 +294,46 @@ bool AGridNavMesh::CollectBuildBounds(TArray<FBuildBounds>& OutBounds) const
 	return true;
 }
 
+void AGridNavMesh::CollectNavigationPrimitives(TArray<FNavigationPrimitiveBounds>& OutPrimitives) const
+{
+	OutPrimitives.clear();
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+
+	const float MaxFloorThickness = std::max(0.01f, WalkableFloorMaxThickness);
+	for (AActor* Actor : World->GetActors())
+	{
+		if (!Actor || Cast<ANavMeshBoundsVolume>(Actor))
+		{
+			continue;
+		}
+		for (UPrimitiveComponent* Primitive : Actor->GetPrimitiveComponents())
+		{
+			if (!IsGridNavigationRelevantPrimitive(Primitive))
+			{
+				continue;
+			}
+			const FBoundingBox Bounds = Primitive->GetWorldBoundingBox();
+			if (!Bounds.IsValid())
+			{
+				continue;
+			}
+			const FVector Extent = Bounds.GetExtent();
+			FNavigationPrimitiveBounds Entry;
+			Entry.Bounds = Bounds;
+			Entry.bFloorCandidate = Extent.Z <= MaxFloorThickness;
+			Entry.bObstacle = !Entry.bFloorCandidate;
+			OutPrimitives.push_back(Entry);
+		}
+	}
+}
+
 FGridNavCellKey AGridNavMesh::WorldToCell(const FVector& Point) const
 {
-	const float Grid = std::max(0.5f, CellSize);
+	const float Grid = std::max(0.25f, CellSize);
 	return FGridNavCellKey{
 		static_cast<int32>(floorf(Point.X / Grid)),
 		static_cast<int32>(floorf(Point.Y / Grid))
@@ -182,7 +342,7 @@ FGridNavCellKey AGridNavMesh::WorldToCell(const FVector& Point) const
 
 FVector AGridNavMesh::CellToWorldGuess(const FGridNavCellKey& Key, float Z) const
 {
-	const float Grid = std::max(0.5f, CellSize);
+	const float Grid = std::max(0.25f, CellSize);
 	return FVector((static_cast<float>(Key.X) + 0.5f) * Grid, (static_cast<float>(Key.Y) + 0.5f) * Grid, Z);
 }
 
@@ -202,10 +362,13 @@ bool AGridNavMesh::IsInsideAnyBuildBounds(const FVector& Point, const TArray<FBu
 	return false;
 }
 
-bool AGridNavMesh::ProjectPointToWalkableSurfaceByPrimitiveBounds(const FVector& Guess, const TArray<FBuildBounds>& Bounds, FVector& OutProjectedLocation) const
+bool AGridNavMesh::ProjectPointToWalkableSurfaceByPrimitiveBounds(
+	const FVector& Guess,
+	const TArray<FBuildBounds>& Bounds,
+	const TArray<FNavigationPrimitiveBounds>& Primitives,
+	FVector& OutProjectedLocation) const
 {
-	UWorld* World = GetWorld();
-	if (!World || !IsInsideAnyBuildBounds(Guess, Bounds))
+	if (!IsInsideAnyBuildBounds(Guess, Bounds))
 	{
 		return false;
 	}
@@ -213,50 +376,34 @@ bool AGridNavMesh::ProjectPointToWalkableSurfaceByPrimitiveBounds(const FVector&
 	const float HalfCell = std::max(0.05f, CellSize * 0.5f);
 	const float StartZ = Guess.Z + ProjectionUp;
 	const float EndZ = Guess.Z - ProjectionDown;
-	const float MaxFloorThickness = std::max(0.01f, WalkableFloorMaxThickness);
 	bool bFound = false;
-	float BestZ = FLT_MAX;
+	float BestZ = -FLT_MAX;
 
-	for (AActor* Actor : World->GetActors())
+	for (const FNavigationPrimitiveBounds& PrimitiveBounds : Primitives)
 	{
-		if (!Actor || Cast<ANavMeshBoundsVolume>(Actor))
+		if (!PrimitiveBounds.bFloorCandidate)
 		{
 			continue;
 		}
-		for (UPrimitiveComponent* Primitive : Actor->GetPrimitiveComponents())
+		const FBoundingBox& B = PrimitiveBounds.Bounds;
+		if (!B.IsValid())
 		{
-			if (!Primitive || !Primitive->IsQueryCollisionEnabled() || Primitive->GetCollisionObjectType() != ECollisionChannel::WorldStatic)
-			{
-				continue;
-			}
-			const FBoundingBox B = Primitive->GetWorldBoundingBox();
-			if (!B.IsValid())
-			{
-				continue;
-			}
-			const FVector Extent = B.GetExtent();
-			// Box/mesh bounds that are tall compared to the agent step are treated as
-			// obstacles, not walkable floor tops. This prevents pillars/walls from
-			// becoming accidental nav surfaces in small test scenes.
-			if (Extent.Z > MaxFloorThickness)
-			{
-				continue;
-			}
-			if (Guess.X < B.Min.X - HalfCell || Guess.X > B.Max.X + HalfCell ||
-				Guess.Y < B.Min.Y - HalfCell || Guess.Y > B.Max.Y + HalfCell)
-			{
-				continue;
-			}
-			const float TopZ = B.Max.Z;
-			if (TopZ < EndZ || TopZ > StartZ)
-			{
-				continue;
-			}
-			if (TopZ < BestZ)
-			{
-				BestZ = TopZ;
-				bFound = true;
-			}
+			continue;
+		}
+		if (Guess.X < B.Min.X - HalfCell || Guess.X > B.Max.X + HalfCell ||
+			Guess.Y < B.Min.Y - HalfCell || Guess.Y > B.Max.Y + HalfCell)
+		{
+			continue;
+		}
+		const float TopZ = B.Max.Z;
+		if (TopZ < EndZ || TopZ > StartZ)
+		{
+			continue;
+		}
+		if (TopZ > BestZ)
+		{
+			BestZ = TopZ;
+			bFound = true;
 		}
 	}
 
@@ -268,110 +415,81 @@ bool AGridNavMesh::ProjectPointToWalkableSurfaceByPrimitiveBounds(const FVector&
 	return IsInsideAnyBuildBounds(OutProjectedLocation, Bounds);
 }
 
-bool AGridNavMesh::HasAgentFootprintByPrimitiveBounds(const FVector& ProjectedLocation) const
+bool AGridNavMesh::HasAgentFootprintByPrimitiveBounds(const FVector& ProjectedLocation, const TArray<FNavigationPrimitiveBounds>& Primitives) const
 {
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return false;
-	}
-	const float Radius = std::max(0.05f, SupportedAgent.Radius);
+	const float Radius = std::max(0.05f, SupportedAgent.Radius + std::max(0.0f, ObstaclePadding));
 	const float AgentBottom = ProjectedLocation.Z + 0.05f;
 	const float AgentTop = ProjectedLocation.Z + std::max(Radius * 2.0f, SupportedAgent.Height);
 
-	for (AActor* Actor : World->GetActors())
+	for (const FNavigationPrimitiveBounds& PrimitiveBounds : Primitives)
 	{
-		if (!Actor || Cast<ANavMeshBoundsVolume>(Actor))
+		if (!PrimitiveBounds.bObstacle)
 		{
 			continue;
 		}
-		for (UPrimitiveComponent* Primitive : Actor->GetPrimitiveComponents())
+		const FBoundingBox& B = PrimitiveBounds.Bounds;
+		if (!B.IsValid())
 		{
-			if (!Primitive || !Primitive->IsQueryCollisionEnabled() || Primitive->GetCollisionObjectType() != ECollisionChannel::WorldStatic)
-			{
-				continue;
-			}
-			const FBoundingBox B = Primitive->GetWorldBoundingBox();
-			if (!B.IsValid())
-			{
-				continue;
-			}
-			// The supporting floor ends at or below the projected floor height; it
-			// should not block its own walkable cell.
-			if (B.Max.Z <= ProjectedLocation.Z + 0.02f)
-			{
-				continue;
-			}
-			if (B.Min.Z >= AgentTop || B.Max.Z <= AgentBottom)
-			{
-				continue;
-			}
-			if (ProjectedLocation.X >= B.Min.X - Radius && ProjectedLocation.X <= B.Max.X + Radius &&
-				ProjectedLocation.Y >= B.Min.Y - Radius && ProjectedLocation.Y <= B.Max.Y + Radius)
-			{
-				return false;
-			}
+			continue;
+		}
+		if (B.Max.Z <= ProjectedLocation.Z + 0.02f)
+		{
+			continue;
+		}
+		if (B.Min.Z >= AgentTop || B.Max.Z <= AgentBottom)
+		{
+			continue;
+		}
+		if (ProjectedLocation.X >= B.Min.X - Radius && ProjectedLocation.X <= B.Max.X + Radius &&
+			ProjectedLocation.Y >= B.Min.Y - Radius && ProjectedLocation.Y <= B.Max.Y + Radius)
+		{
+			return false;
 		}
 	}
 	return true;
 }
 
-bool AGridNavMesh::HasAgentFootprint(const FVector& ProjectedLocation) const
+bool AGridNavMesh::HasAgentFootprint(const FVector& ProjectedLocation, const TArray<FNavigationPrimitiveBounds>& Primitives) const
 {
-	if (!HasAgentFootprintByPrimitiveBounds(ProjectedLocation))
-	{
-		return false;
-	}
-	UWorld* World = GetWorld();
-	if (!World)
-	{
-		return false;
-	}
-	const float Radius = std::max(0.05f, SupportedAgent.Radius);
-	const float HalfHeight = std::max(Radius, SupportedAgent.Height * 0.5f);
-	const FVector Center(ProjectedLocation.X, ProjectedLocation.Y, ProjectedLocation.Z + HalfHeight);
-	const FCollisionShape Shape = FCollisionShape::MakeSphere(Radius);
-	FHitResult Hit;
-	if (!World->PhysicsSweepByObjectTypes(Center, Center + FVector(0.0f, 0.0f, 0.1f), FQuat(), Shape, Hit, ObjectTypeBit(ECollisionChannel::WorldStatic)))
-	{
-		return true;
-	}
-
-	// Physics sweep can report the supporting floor as an initial overlap on
-	// simple mesh collision.  Bounds-based clearance above already filtered real
-	// blockers, so do not fail the cell only because of that conservative hit.
-	return true;
+	return HasAgentFootprintByPrimitiveBounds(ProjectedLocation, Primitives);
 }
 
-bool AGridNavMesh::BuildCell(const FGridNavCellKey& Key, float GuessZ, const TArray<FBuildBounds>& Bounds, FGridNavCell& OutCell) const
+AGridNavMesh::FBuildCellResult AGridNavMesh::BuildCell(
+	const FGridNavCellKey& Key,
+	float GuessZ,
+	const TArray<FBuildBounds>& Bounds,
+	const TArray<FNavigationPrimitiveBounds>& Primitives,
+	FGridNavCell& OutCell) const
 {
-	UNavigationSystem* NavSys = GetNavigationSystem();
-	if (!NavSys)
-	{
-		return false;
-	}
+	FBuildCellResult Result;
 	const FVector Guess = CellToWorldGuess(Key, GuessZ);
 	if (!IsInsideAnyBuildBounds(Guess, Bounds))
 	{
-		return false;
+		return Result;
 	}
 	FVector Projected;
-	if (!ProjectPointToWalkableSurfaceByPrimitiveBounds(Guess, Bounds, Projected) &&
-		!NavSys->ProjectPointToNavigationRuntime(Guess, Projected, SupportedAgent, ProjectionUp, ProjectionDown))
+	bool bProjected = ProjectPointToWalkableSurfaceByPrimitiveBounds(Guess, Bounds, Primitives, Projected);
+	if (!bProjected && bUsePhysicsProjectionFallback)
 	{
-		return false;
+		if (UNavigationSystem* NavSys = GetNavigationSystem())
+		{
+			bProjected = NavSys->ProjectPointToNavigationRuntime(Guess, Projected, SupportedAgent, ProjectionUp, ProjectionDown);
+		}
 	}
-	if (!IsInsideAnyBuildBounds(Projected, Bounds))
+	if (!bProjected || !IsInsideAnyBuildBounds(Projected, Bounds))
 	{
-		return false;
+		return Result;
 	}
-	if (!HasAgentFootprint(Projected))
+	Result.DebugLocation = Projected;
+	if (!HasAgentFootprint(Projected, Primitives))
 	{
-		return false;
+		Result.bBlockedByObstacle = true;
+		return Result;
 	}
 	OutCell.Location = Projected;
 	OutCell.bWalkable = true;
-	return true;
+	Result.bWalkable = true;
+	return Result;
 }
 
 bool AGridNavMesh::RebuildNavigationData()
@@ -393,7 +511,10 @@ bool AGridNavMesh::RebuildNavigationData()
 		CachedBounds.Expand(B.Bounds.Max);
 	}
 
-	const float Grid = std::max(0.5f, CellSize);
+	TArray<FNavigationPrimitiveBounds> NavigationPrimitives;
+	CollectNavigationPrimitives(NavigationPrimitives);
+
+	const float Grid = std::max(0.25f, CellSize);
 	for (const FBuildBounds& B : Bounds)
 	{
 		const int32 MinX = static_cast<int32>(floorf(B.Bounds.Min.X / Grid)) - 1;
@@ -413,12 +534,14 @@ bool AGridNavMesh::RebuildNavigationData()
 					continue;
 				}
 				FGridNavCell Cell;
-				if (BuildCell(Key, GuessZ, Bounds, Cell))
+				const FBuildCellResult Result = BuildCell(Key, GuessZ, Bounds, NavigationPrimitives, Cell);
+				if (Result.bWalkable)
 				{
 					WalkableCells[Key] = Cell;
 				}
-				else
+				else if (Result.bBlockedByObstacle)
 				{
+					BlockedCells[Key] = Result.DebugLocation;
 					++BlockedCellCount;
 				}
 			}
@@ -432,6 +555,7 @@ bool AGridNavMesh::RebuildNavigationData()
 		+ (bNavigationDataBuilt ? "succeeded" : "failed")
 		+ "; Bounds=" + std::to_string(LastBuildBoundsCount)
 		+ "; Candidates=" + std::to_string(LastBuildCandidateCount)
+		+ "; NavPrimitives=" + std::to_string(static_cast<int32>(NavigationPrimitives.size()))
 		+ "; Walkable=" + std::to_string(GetNavigationNodeCount())
 		+ "; Blocked=" + std::to_string(BlockedCellCount)
 		+ "; TimeMs=" + std::to_string(LastBuildDurationMs);
@@ -446,6 +570,22 @@ const FGridNavCell* AGridNavMesh::FindCell(const FGridNavCellKey& Key) const
 {
 	auto It = WalkableCells.find(Key);
 	return It != WalkableCells.end() ? &It->second : nullptr;
+}
+
+bool AGridNavMesh::FindCellAtPointStrict(const FVector& Point, FGridNavCellKey& OutKey, FVector& OutLocation) const
+{
+	if (!bNavigationDataBuilt || WalkableCells.empty())
+	{
+		return false;
+	}
+	OutKey = WorldToCell(Point);
+	const FGridNavCell* Cell = FindCell(OutKey);
+	if (!Cell)
+	{
+		return false;
+	}
+	OutLocation = Cell->Location;
+	return true;
 }
 
 bool AGridNavMesh::FindNearestCell(const FVector& Point, FGridNavCellKey& OutKey, FVector& OutLocation) const
@@ -498,6 +638,17 @@ bool AGridNavMesh::ProjectPointToNavigation(const FVector& Point, FVector& OutPr
 	return FindNearestCell(Point, Key, OutProjectedPoint);
 }
 
+bool AGridNavMesh::IsHeightTransitionAllowed(float FromZ, float ToZ, const FNavAgentProperties& AgentProps) const
+{
+	const float DeltaZ = ToZ - FromZ;
+	const float Tolerance = 0.02f;
+	if (DeltaZ > 0.0f)
+	{
+		return DeltaZ <= AgentProps.GetEffectiveMaxClimbHeight() + Tolerance;
+	}
+	return -DeltaZ <= AgentProps.GetEffectiveMaxDropHeight() + Tolerance;
+}
+
 bool AGridNavMesh::HasCachedSegment(const FVector& Start, const FVector& End, const FNavAgentProperties& AgentProps) const
 {
 	if (!bNavigationDataBuilt || WalkableCells.empty())
@@ -505,28 +656,40 @@ bool AGridNavMesh::HasCachedSegment(const FVector& Start, const FVector& End, co
 		return false;
 	}
 	const float Dist = sqrtf(HorizontalDistanceSquared(Start, End));
-	const float Grid = std::max(0.5f, CellSize);
+	const float Grid = std::max(0.25f, CellSize);
 	const int32 Segments = std::max(1, static_cast<int32>(ceilf(Dist / std::max(0.1f, Grid * 0.5f))));
 	FVector Previous = Start;
+	FGridNavCellKey PreviousKey;
+	bool bHasPreviousKey = false;
 	for (int32 Index = 0; Index <= Segments; ++Index)
 	{
 		const float Alpha = static_cast<float>(Index) / static_cast<float>(Segments);
 		const FVector Sample(Start.X + (End.X - Start.X) * Alpha, Start.Y + (End.Y - Start.Y) * Alpha, Start.Z + (End.Z - Start.Z) * Alpha);
 		FGridNavCellKey Key;
 		FVector CellLocation;
-		if (!FindNearestCell(Sample, Key, CellLocation))
+		if (!FindCellAtPointStrict(Sample, Key, CellLocation))
 		{
 			return false;
 		}
-		if (HorizontalDistanceSquared(Sample, CellLocation) > (Grid * 1.5f) * (Grid * 1.5f))
+		if (bHasPreviousKey)
 		{
-			return false;
+			const FGridNavCellKey Step{ Key.X - PreviousKey.X, Key.Y - PreviousKey.Y };
+			if (std::abs(Step.X) > 1 || std::abs(Step.Y) > 1)
+			{
+				return false;
+			}
+			if (!IsDiagonalMoveAllowed(PreviousKey, Step))
+			{
+				return false;
+			}
 		}
-		if (fabsf(CellLocation.Z - Previous.Z) > std::max(AgentProps.StepHeight, Grid * 0.5f))
+		if (!IsHeightTransitionAllowed(Previous.Z, CellLocation.Z, AgentProps))
 		{
 			return false;
 		}
 		Previous = CellLocation;
+		PreviousKey = Key;
+		bHasPreviousKey = true;
 	}
 	return true;
 }
@@ -540,8 +703,9 @@ bool AGridNavMesh::BuildDirectCachedPath(const FVector& Start, const FVector& En
 	{
 		const float Alpha = static_cast<float>(Index) / static_cast<float>(Segments);
 		const FVector Sample(Start.X + (End.X - Start.X) * Alpha, Start.Y + (End.Y - Start.Y) * Alpha, Start.Z + (End.Z - Start.Z) * Alpha);
+		FGridNavCellKey SampleKey;
 		FVector Projected;
-		if (!ProjectPointToNavigation(Sample, Projected, AgentProps))
+		if (!FindCellAtPointStrict(Sample, SampleKey, Projected))
 		{
 			return false;
 		}
@@ -809,6 +973,44 @@ void AGridNavMesh::SmoothPath(const FNavAgentProperties& AgentProps, FNavigation
 	InOutPath.PathPoints = Smoothed;
 }
 
+FColor AGridNavMesh::GetHeightDebugColor(float HeightZ, float MinZ, float MaxZ) const
+{
+	if (!bDrawHeightColors || MaxZ <= MinZ + 0.001f)
+	{
+		return FColor(40, 180, 80);
+	}
+
+	const float T = Clamp01((HeightZ - MinZ) / (MaxZ - MinZ));
+	// Low to high: deep blue -> cyan -> green -> yellow -> red.  This makes
+	// walkable surfaces on top of walls/boxes immediately stand out from floor cells.
+	if (T < 0.25f)
+	{
+		return LerpColor(FColor(45, 90, 220), FColor(40, 210, 220), T / 0.25f);
+	}
+	if (T < 0.50f)
+	{
+		return LerpColor(FColor(40, 210, 220), FColor(40, 190, 80), (T - 0.25f) / 0.25f);
+	}
+	if (T < 0.75f)
+	{
+		return LerpColor(FColor(40, 190, 80), FColor(230, 220, 45), (T - 0.50f) / 0.25f);
+	}
+	return LerpColor(FColor(230, 220, 45), FColor(230, 60, 45), (T - 0.75f) / 0.25f);
+}
+
+bool AGridNavMesh::ShouldDrawHeightContour(float HeightZ, float MinZ) const
+{
+	if (!bDrawHeightColors || !bDrawHeightContours || DebugHeightContourInterval <= 0.001f)
+	{
+		return false;
+	}
+	const float LocalHeight = HeightZ - MinZ;
+	const float Interval = std::max(0.001f, DebugHeightContourInterval);
+	const float Mod = fmodf(fabsf(LocalHeight), Interval);
+	const float DistanceToLine = std::min(Mod, Interval - Mod);
+	return DistanceToLine <= std::max(0.015f, Interval * 0.06f);
+}
+
 void AGridNavMesh::DebugDrawNavigationData(float Duration) const
 {
 	UWorld* World = GetWorld();
@@ -816,13 +1018,92 @@ void AGridNavMesh::DebugDrawNavigationData(float Duration) const
 	{
 		return;
 	}
-	const float Half = std::max(0.5f, CellSize) * 0.42f;
+
+	FDebugDrawQueue& Queue = World->GetScene().GetDebugDrawQueue();
+	Queue.ClearCategory(EDebugDrawCategory::Navigation);
+
+	const float Grid = std::max(0.25f, CellSize);
+	const float Half = Grid * 0.42f;
+	const int32 TotalCells = static_cast<int32>(WalkableCells.size() + (bDrawBlockedCells ? BlockedCells.size() : 0));
+	const int32 Stride = ComputeDebugDrawStride(TotalCells, std::max(0, DebugDrawMaxCells));
+
+	float MinHeight = FLT_MAX;
+	float MaxHeight = -FLT_MAX;
 	for (const auto& Pair : WalkableCells)
 	{
+		MinHeight = std::min(MinHeight, Pair.second.Location.Z);
+		MaxHeight = std::max(MaxHeight, Pair.second.Location.Z);
+	}
+	if (WalkableCells.empty())
+	{
+		MinHeight = 0.0f;
+		MaxHeight = 0.0f;
+	}
+
+	auto AddNavLine = [&Queue, Duration](const FVector& A, const FVector& B, const FColor& Color)
+	{
+		Queue.AddLine(A, B, Color, Duration, EDebugDrawCategory::Navigation);
+	};
+
+	auto AddNavBox = [&Queue, Duration](const FVector& Center, const FVector& Extent, const FColor& Color)
+	{
+		Queue.AddBox(Center, Extent, Color, Duration, EDebugDrawCategory::Navigation);
+	};
+
+	auto DrawCellSquare = [&AddNavLine, Half](const FVector& Center, const FColor& Color)
+	{
+		const FVector A = Center + FVector(-Half, -Half, 0.0f);
+		const FVector B = Center + FVector(Half, -Half, 0.0f);
+		const FVector C = Center + FVector(Half, Half, 0.0f);
+		const FVector D = Center + FVector(-Half, Half, 0.0f);
+		AddNavLine(A, B, Color);
+		AddNavLine(B, C, Color);
+		AddNavLine(C, D, Color);
+		AddNavLine(D, A, Color);
+	};
+
+	auto DrawContourMark = [&AddNavLine, Half](const FVector& Center)
+	{
+		const float Inner = Half * 0.55f;
+		AddNavLine(Center + FVector(-Inner, 0.0f, 0.0f), Center + FVector(Inner, 0.0f, 0.0f), FColor(245, 245, 245));
+		AddNavLine(Center + FVector(0.0f, -Inner, 0.0f), Center + FVector(0.0f, Inner, 0.0f), FColor(245, 245, 245));
+	};
+
+	if (CachedBounds.IsValid())
+	{
+		AddNavBox(CachedBounds.GetCenter(), CachedBounds.GetExtent(), FColor(80, 160, 255));
+	}
+
+	int32 DrawIndex = 0;
+	for (const auto& Pair : WalkableCells)
+	{
+		if ((DrawIndex++ % Stride) != 0)
+		{
+			continue;
+		}
 		const FVector Center = Pair.second.Location + FVector(0.0f, 0.0f, 4.0f);
-		DrawDebugLine(World, Center + FVector(-Half, -Half, 0.0f), Center + FVector(Half, -Half, 0.0f), FColor(40, 180, 80), Duration);
-		DrawDebugLine(World, Center + FVector(Half, -Half, 0.0f), Center + FVector(Half, Half, 0.0f), FColor(40, 180, 80), Duration);
-		DrawDebugLine(World, Center + FVector(Half, Half, 0.0f), Center + FVector(-Half, Half, 0.0f), FColor(40, 180, 80), Duration);
-		DrawDebugLine(World, Center + FVector(-Half, Half, 0.0f), Center + FVector(-Half, -Half, 0.0f), FColor(40, 180, 80), Duration);
+		DrawCellSquare(Center, GetHeightDebugColor(Pair.second.Location.Z, MinHeight, MaxHeight));
+		if (ShouldDrawHeightContour(Pair.second.Location.Z, MinHeight))
+		{
+			DrawContourMark(Center + FVector(0.0f, 0.0f, 0.02f));
+		}
+	}
+
+	// Blocked cells must be drawn last and above the walkable grid.  Otherwise an
+	// obstacle footprint can be correctly blocked but still look green because a
+	// nearby walkable surface line is drawn over it.
+	if (bDrawBlockedCells)
+	{
+		for (const auto& Pair : BlockedCells)
+		{
+			if ((DrawIndex++ % Stride) != 0)
+			{
+				continue;
+			}
+			const FVector Center = Pair.second + FVector(0.0f, 0.0f, 7.0f);
+			AddNavLine(Center + FVector(-Half, -Half, 0.0f), Center + FVector(Half, Half, 0.0f), FColor(230, 35, 35));
+			AddNavLine(Center + FVector(Half, -Half, 0.0f), Center + FVector(-Half, Half, 0.0f), FColor(230, 35, 35));
+			DrawCellSquare(Center, FColor(180, 30, 30));
+		}
 	}
 }

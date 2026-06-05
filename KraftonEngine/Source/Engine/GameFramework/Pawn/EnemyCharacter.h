@@ -14,6 +14,7 @@ class UAIBlackboardComponent;
 class UAIPerceptionComponent;
 class UUtilityReasonerComponent;
 class UAIDecisionTraceComponent;
+class UCombatMoveComponent;
 class FArchive;
 
 #include "Source/Engine/GameFramework/Pawn/EnemyCharacter.generated.h"
@@ -48,6 +49,8 @@ public:
 	UUtilityReasonerComponent* GetReasoner() const { return Reasoner; }
 	UFUNCTION(Pure, Category="Enemy|AICore")
 	UAIDecisionTraceComponent* GetDecisionTrace() const { return DecisionTrace; }
+	UFUNCTION(Pure, Category="Enemy|AICore")
+	UCombatMoveComponent* GetCombatMove() const { return CombatMove; }
 	UFUNCTION(Pure, Category="Enemy|AICore")
 	int32 GetAIPhase() const { return GetCurrentAIPhase(); }
 
@@ -118,6 +121,20 @@ public:
 	UFUNCTION(Callable, Category="Enemy|Brain")
 	void Brain_Idle();
 
+	// ── Phase 2 반응 동사 (체간/탄기/위험공격) ──
+	// 타깃이 공격을 커밋했고 사정권이면 탄기 반응을 고려할 근거.
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	bool Brain_TargetThreatening() const;
+	// 타깃이 후딜(Recovery) 중인가 — punish 기회.
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	bool Brain_TargetInRecovery() const;
+	// 타깃의 활성 위험공격 종류(EPerilousType, 0=None).
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	int32 Brain_GetTargetPerilous() const;
+	// 탄기 윈도우를 연다(방어자 반응). 들어오는 피격이 윈도우 안이면 받아넘긴다.
+	UFUNCTION(Callable, Category="Enemy|Brain")
+	void Brain_OpenDeflect();
+
 	UPROPERTY(Edit, Save, Category="Enemy|Movement", DisplayName="Can Move")
 	bool bCanMove = true;
 	UPROPERTY(Edit, Save, Category="Enemy|Movement", DisplayName="Can Rotate")
@@ -164,6 +181,7 @@ protected:
 	TWeakObjectPtr<UAIPerceptionComponent> Perception = nullptr;
 	TWeakObjectPtr<UUtilityReasonerComponent> Reasoner = nullptr;
 	TWeakObjectPtr<UAIDecisionTraceComponent> DecisionTrace = nullptr;
+	TWeakObjectPtr<UCombatMoveComponent> CombatMove = nullptr;
 
 private:
 	float ThinkTimer = 0.0f;

@@ -15,6 +15,7 @@ namespace
     const FName Key_Phase         = FName("Phase");
     const FName Key_TargetThreat  = FName("TargetThreat");
     const FName Key_TargetPosture = FName("TargetPosture");
+    const FName Key_TargetInRecovery = FName("TargetInRecovery");
 
     // 거리 곡선: 공격 사정대(MinRange~MaxRange) 중앙에서 1, 가장자리에서 0.4.
     float RangeCurve(const FEnemyAttackData& Attack, float Distance)
@@ -65,6 +66,7 @@ FName UUtilityReasonerComponent::SelectBestAction()
     const int32 Phase         = static_cast<int32>(BB->GetFloat(Key_Phase) + 0.5f);
     const float TargetThreat  = BB->GetFloat(Key_TargetThreat);
     const float TargetPosture = BB->GetFloat(Key_TargetPosture);
+    const bool  bTargetInRecovery = BB->GetBool(Key_TargetInRecovery);
 
     // 콤보 게이트용 마지막 사용 기술.
     const TArray<FName>& RecentMoves = BB->GetRecentMoves();
@@ -114,12 +116,20 @@ FName UUtilityReasonerComponent::SelectBestAction()
 
         B.Phase = 1.0f; // MinPhase/MaxPhase 는 CanUseAttack 에서 이미 게이트.
 
+        // 후딜 punish 곡선: 타깃이 후딜(Recovery) 중이면 Punish/GapCloser 가치 상승.
+        B.Recovery = 1.0f;
+        if (bTargetInRecovery &&
+            (Attack.Tactic == EEnemyAttackTactic::Punish || Attack.Tactic == EEnemyAttackTactic::GapCloser))
+        {
+            B.Recovery = 1.6f;
+        }
+
         // 반복 패널티: 최근 같은 기술을 쓸수록 가치 하강.
         const int32 RepeatCount = BB->GetRecentMoveRepeat(Attack.AttackName);
         const float RepeatScale = FMath::Clamp(Attack.RepeatWeightScale, 0.0f, 1.0f);
         B.Repetition = std::pow(RepeatScale, static_cast<float>(RepeatCount));
 
-        B.Final = B.Base * B.Range * B.Angle * B.Threat * B.Posture * B.Phase * B.Repetition;
+        B.Final = B.Base * B.Range * B.Angle * B.Threat * B.Posture * B.Phase * B.Recovery * B.Repetition;
 
         FUtilityCandidate Candidate;
         Candidate.ActionId  = Attack.AttackName;

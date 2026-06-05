@@ -65,6 +65,10 @@ public:
 	float BlockedTimeout = 1.2f;
 	UPROPERTY(Edit, Save, Category="AI|PathFollowing", DisplayName="Blocked Min Move Distance", Min=0.0f, Max=10.0f, Speed=0.01f)
 	float BlockedMinMoveDistance = 0.15f;
+	UPROPERTY(Edit, Save, Category="AI|PathFollowing|Debug", DisplayName="Draw Path On Request")
+	bool bDrawDebugPathOnRequest = true;
+	UPROPERTY(Edit, Save, Category="AI|PathFollowing|Debug", DisplayName="Debug Path Draw Duration", Min=0.0f, Max=60.0f, Speed=0.1f)
+	float DebugPathDrawDuration = 5.0f;
 
 	FPathFollowingFinishedSignature OnMoveFinished;
 

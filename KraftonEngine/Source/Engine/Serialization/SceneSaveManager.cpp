@@ -1,4 +1,4 @@
-﻿#include "SceneSaveManager.h"
+#include "SceneSaveManager.h"
 
 #include <algorithm>
 #include <iostream>
@@ -88,6 +88,33 @@ namespace SceneKeys
 	static constexpr const char* WorldSettings = "WorldSettings";
 	static constexpr const char* GameMode = "GameMode";  // legacy / WorldSettings 내부 키
 	static constexpr const char* Gravity = "Gravity";
+	static constexpr const char* Navigation = "Navigation";
+	static constexpr const char* NavCellSize = "CellSize";
+	static constexpr const char* NavMaxSearchNodes = "MaxSearchNodes";
+	static constexpr const char* NavAgentRadius = "AgentRadius";
+	static constexpr const char* NavAgentHeight = "AgentHeight";
+	static constexpr const char* NavAgentStepHeight = "AgentStepHeight";
+	static constexpr const char* NavAgentMaxClimbHeight = "AgentMaxClimbHeight";
+	static constexpr const char* NavAgentMaxDropHeight = "AgentMaxDropHeight";
+	static constexpr const char* NavAgentMaxSlopeDegrees = "AgentMaxSlopeDegrees";
+	static constexpr const char* NavProjectionUp = "ProjectionUp";
+	static constexpr const char* NavProjectionDown = "ProjectionDown";
+	static constexpr const char* NavDirectPathSegmentLength = "DirectPathSegmentLength";
+	static constexpr const char* NavObstaclePadding = "ObstaclePadding";
+	static constexpr const char* NavUsePhysicsProjectionFallback = "bUsePhysicsProjectionFallback";
+	static constexpr const char* NavUseNavigationData = "bUseNavigationData";
+	static constexpr const char* NavAutoRebuildOnPathRequest = "bAutoRebuildOnPathRequest";
+	static constexpr const char* NavAllowRuntimeFallback = "bAllowRuntimeFallback";
+	static constexpr const char* NavEnableRuntimeAutoRebuild = "bEnableRuntimeAutoRebuild";
+	static constexpr const char* NavRuntimeRebuildDelay = "RuntimeRebuildDelay";
+	static constexpr const char* NavRuntimeRebuildMinInterval = "RuntimeRebuildMinInterval";
+	static constexpr const char* NavDrawDebugOnBuild = "bDrawDebugOnBuild";
+	static constexpr const char* NavDrawBlockedCells = "bDrawBlockedCells";
+	static constexpr const char* NavDrawHeightColors = "bDrawHeightColors";
+	static constexpr const char* NavDrawHeightContours = "bDrawHeightContours";
+	static constexpr const char* NavDebugHeightContourInterval = "DebugHeightContourInterval";
+	static constexpr const char* NavDebugDrawDuration = "DebugDrawDuration";
+	static constexpr const char* NavDebugDrawMaxCells = "DebugDrawMaxCells";
 	static constexpr const char* Actors = "Actors";
 	static constexpr const char* RootComponent = "RootComponent";
 	static constexpr const char* NonSceneComponents = "NonSceneComponents";
@@ -395,6 +422,35 @@ json::JSON FSceneSaveManager::SerializeWorld(UWorld* World, const FWorldContext&
 		JSON WSObj = json::Object();
 		WSObj[SceneKeys::GameMode] = WS.GameModeClassName;
 		WriteVec3(WSObj, SceneKeys::Gravity, WS.Gravity);
+
+		JSON NavObj = json::Object();
+		NavObj[SceneKeys::NavCellSize] = WS.Navigation.CellSize;
+		NavObj[SceneKeys::NavMaxSearchNodes] = WS.Navigation.MaxSearchNodes;
+		NavObj[SceneKeys::NavAgentRadius] = WS.Navigation.AgentRadius;
+		NavObj[SceneKeys::NavAgentHeight] = WS.Navigation.AgentHeight;
+		NavObj[SceneKeys::NavAgentStepHeight] = WS.Navigation.AgentStepHeight;
+		NavObj[SceneKeys::NavAgentMaxClimbHeight] = WS.Navigation.AgentMaxClimbHeight;
+		NavObj[SceneKeys::NavAgentMaxDropHeight] = WS.Navigation.AgentMaxDropHeight;
+		NavObj[SceneKeys::NavAgentMaxSlopeDegrees] = WS.Navigation.AgentMaxSlopeDegrees;
+		NavObj[SceneKeys::NavProjectionUp] = WS.Navigation.ProjectionUp;
+		NavObj[SceneKeys::NavProjectionDown] = WS.Navigation.ProjectionDown;
+		NavObj[SceneKeys::NavDirectPathSegmentLength] = WS.Navigation.DirectPathSegmentLength;
+		NavObj[SceneKeys::NavObstaclePadding] = WS.Navigation.ObstaclePadding;
+		NavObj[SceneKeys::NavUsePhysicsProjectionFallback] = WS.Navigation.bUsePhysicsProjectionFallback;
+		NavObj[SceneKeys::NavUseNavigationData] = WS.Navigation.bUseNavigationData;
+		NavObj[SceneKeys::NavAutoRebuildOnPathRequest] = WS.Navigation.bAutoRebuildOnPathRequest;
+		NavObj[SceneKeys::NavAllowRuntimeFallback] = WS.Navigation.bAllowRuntimeFallback;
+		NavObj[SceneKeys::NavEnableRuntimeAutoRebuild] = WS.Navigation.bEnableRuntimeAutoRebuild;
+		NavObj[SceneKeys::NavRuntimeRebuildDelay] = WS.Navigation.RuntimeRebuildDelay;
+		NavObj[SceneKeys::NavRuntimeRebuildMinInterval] = WS.Navigation.RuntimeRebuildMinInterval;
+		NavObj[SceneKeys::NavDrawDebugOnBuild] = WS.Navigation.bDrawDebugOnBuild;
+		NavObj[SceneKeys::NavDrawBlockedCells] = WS.Navigation.bDrawBlockedCells;
+		NavObj[SceneKeys::NavDrawHeightColors] = WS.Navigation.bDrawHeightColors;
+		NavObj[SceneKeys::NavDrawHeightContours] = WS.Navigation.bDrawHeightContours;
+		NavObj[SceneKeys::NavDebugHeightContourInterval] = WS.Navigation.DebugHeightContourInterval;
+		NavObj[SceneKeys::NavDebugDrawDuration] = WS.Navigation.DebugDrawDuration;
+		NavObj[SceneKeys::NavDebugDrawMaxCells] = WS.Navigation.DebugDrawMaxCells;
+		WSObj[SceneKeys::Navigation] = NavObj;
 		w[SceneKeys::WorldSettings] = WSObj;
 	}
 
@@ -596,6 +652,51 @@ void FSceneSaveManager::LoadSceneFromJSON(const string& filepath, FWorldContext&
 			WSObj[SceneKeys::Gravity].JSONType() == JSON::Class::Array)
 		{
 			WorldSettings.Gravity = ReadVec3(WSObj[SceneKeys::Gravity]);
+		}
+		if (WSObj.hasKey(SceneKeys::Navigation) &&
+			WSObj[SceneKeys::Navigation].JSONType() == JSON::Class::Object)
+		{
+			JSON& NavObj = WSObj[SceneKeys::Navigation];
+			if (NavObj.hasKey(SceneKeys::NavCellSize)) WorldSettings.Navigation.CellSize = static_cast<float>(NavObj[SceneKeys::NavCellSize].ToFloat());
+			if (NavObj.hasKey(SceneKeys::NavMaxSearchNodes)) WorldSettings.Navigation.MaxSearchNodes = static_cast<int32>(NavObj[SceneKeys::NavMaxSearchNodes].ToInt());
+			if (NavObj.hasKey(SceneKeys::NavAgentRadius)) WorldSettings.Navigation.AgentRadius = static_cast<float>(NavObj[SceneKeys::NavAgentRadius].ToFloat());
+			if (NavObj.hasKey(SceneKeys::NavAgentHeight)) WorldSettings.Navigation.AgentHeight = static_cast<float>(NavObj[SceneKeys::NavAgentHeight].ToFloat());
+			if (NavObj.hasKey(SceneKeys::NavAgentStepHeight)) WorldSettings.Navigation.AgentStepHeight = static_cast<float>(NavObj[SceneKeys::NavAgentStepHeight].ToFloat());
+			if (NavObj.hasKey(SceneKeys::NavAgentMaxClimbHeight))
+			{
+				WorldSettings.Navigation.AgentMaxClimbHeight = static_cast<float>(NavObj[SceneKeys::NavAgentMaxClimbHeight].ToFloat());
+			}
+			else if (NavObj.hasKey(SceneKeys::NavAgentStepHeight))
+			{
+				WorldSettings.Navigation.AgentMaxClimbHeight = WorldSettings.Navigation.AgentStepHeight;
+			}
+			if (NavObj.hasKey(SceneKeys::NavAgentMaxDropHeight))
+			{
+				WorldSettings.Navigation.AgentMaxDropHeight = static_cast<float>(NavObj[SceneKeys::NavAgentMaxDropHeight].ToFloat());
+			}
+			else if (NavObj.hasKey(SceneKeys::NavAgentStepHeight))
+			{
+				WorldSettings.Navigation.AgentMaxDropHeight = WorldSettings.Navigation.AgentStepHeight;
+			}
+			if (NavObj.hasKey(SceneKeys::NavAgentMaxSlopeDegrees)) WorldSettings.Navigation.AgentMaxSlopeDegrees = static_cast<float>(NavObj[SceneKeys::NavAgentMaxSlopeDegrees].ToFloat());
+			if (NavObj.hasKey(SceneKeys::NavProjectionUp)) WorldSettings.Navigation.ProjectionUp = static_cast<float>(NavObj[SceneKeys::NavProjectionUp].ToFloat());
+			if (NavObj.hasKey(SceneKeys::NavProjectionDown)) WorldSettings.Navigation.ProjectionDown = static_cast<float>(NavObj[SceneKeys::NavProjectionDown].ToFloat());
+			if (NavObj.hasKey(SceneKeys::NavDirectPathSegmentLength)) WorldSettings.Navigation.DirectPathSegmentLength = static_cast<float>(NavObj[SceneKeys::NavDirectPathSegmentLength].ToFloat());
+			if (NavObj.hasKey(SceneKeys::NavObstaclePadding)) WorldSettings.Navigation.ObstaclePadding = static_cast<float>(NavObj[SceneKeys::NavObstaclePadding].ToFloat());
+			if (NavObj.hasKey(SceneKeys::NavUsePhysicsProjectionFallback)) WorldSettings.Navigation.bUsePhysicsProjectionFallback = NavObj[SceneKeys::NavUsePhysicsProjectionFallback].ToBool();
+			if (NavObj.hasKey(SceneKeys::NavUseNavigationData)) WorldSettings.Navigation.bUseNavigationData = NavObj[SceneKeys::NavUseNavigationData].ToBool();
+			if (NavObj.hasKey(SceneKeys::NavAutoRebuildOnPathRequest)) WorldSettings.Navigation.bAutoRebuildOnPathRequest = NavObj[SceneKeys::NavAutoRebuildOnPathRequest].ToBool();
+			if (NavObj.hasKey(SceneKeys::NavAllowRuntimeFallback)) WorldSettings.Navigation.bAllowRuntimeFallback = NavObj[SceneKeys::NavAllowRuntimeFallback].ToBool();
+			if (NavObj.hasKey(SceneKeys::NavEnableRuntimeAutoRebuild)) WorldSettings.Navigation.bEnableRuntimeAutoRebuild = NavObj[SceneKeys::NavEnableRuntimeAutoRebuild].ToBool();
+			if (NavObj.hasKey(SceneKeys::NavRuntimeRebuildDelay)) WorldSettings.Navigation.RuntimeRebuildDelay = static_cast<float>(NavObj[SceneKeys::NavRuntimeRebuildDelay].ToFloat());
+			if (NavObj.hasKey(SceneKeys::NavRuntimeRebuildMinInterval)) WorldSettings.Navigation.RuntimeRebuildMinInterval = static_cast<float>(NavObj[SceneKeys::NavRuntimeRebuildMinInterval].ToFloat());
+			if (NavObj.hasKey(SceneKeys::NavDrawDebugOnBuild)) WorldSettings.Navigation.bDrawDebugOnBuild = NavObj[SceneKeys::NavDrawDebugOnBuild].ToBool();
+			if (NavObj.hasKey(SceneKeys::NavDrawBlockedCells)) WorldSettings.Navigation.bDrawBlockedCells = NavObj[SceneKeys::NavDrawBlockedCells].ToBool();
+			if (NavObj.hasKey(SceneKeys::NavDrawHeightColors)) WorldSettings.Navigation.bDrawHeightColors = NavObj[SceneKeys::NavDrawHeightColors].ToBool();
+			if (NavObj.hasKey(SceneKeys::NavDrawHeightContours)) WorldSettings.Navigation.bDrawHeightContours = NavObj[SceneKeys::NavDrawHeightContours].ToBool();
+			if (NavObj.hasKey(SceneKeys::NavDebugHeightContourInterval)) WorldSettings.Navigation.DebugHeightContourInterval = static_cast<float>(NavObj[SceneKeys::NavDebugHeightContourInterval].ToFloat());
+			if (NavObj.hasKey(SceneKeys::NavDebugDrawDuration)) WorldSettings.Navigation.DebugDrawDuration = static_cast<float>(NavObj[SceneKeys::NavDebugDrawDuration].ToFloat());
+			if (NavObj.hasKey(SceneKeys::NavDebugDrawMaxCells)) WorldSettings.Navigation.DebugDrawMaxCells = static_cast<int32>(NavObj[SceneKeys::NavDebugDrawMaxCells].ToInt());
 		}
 	}
 	else if (root.hasKey(SceneKeys::GameMode))

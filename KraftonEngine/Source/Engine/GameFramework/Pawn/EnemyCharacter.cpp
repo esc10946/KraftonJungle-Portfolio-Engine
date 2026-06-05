@@ -9,6 +9,7 @@
 #include "Component/AI/UtilityReasonerComponent.h"
 #include "Component/AI/AIDecisionTraceComponent.h"
 #include "Component/Combat/CombatStateComponent.h"
+#include "Component/Combat/CombatMoveComponent.h"
 #include "Component/Combat/HealthComponent.h"
 #include "Component/Movement/CharacterMovementComponent.h"
 #include "Component/Script/LuaScriptComponent.h"
@@ -17,7 +18,7 @@
 #include "Object/Reflection/UClass.h"
 #include "Math/MathUtils.h"
 #include "Math/Rotator.h"
-
+#include "Core/Logging/Log.h"
 #include <algorithm>
 #include <cmath>
 
@@ -62,6 +63,7 @@ void AEnemyCharacter::InitDefaultComponents(const FString& SkeletalMeshFileName,
 	Perception = AddComponent<UAIPerceptionComponent>();
 	Reasoner = AddComponent<UUtilityReasonerComponent>();
 	DecisionTrace = AddComponent<UAIDecisionTraceComponent>();
+	CombatMove = AddComponent<UCombatMoveComponent>();
 	LuaScriptComponent = AddComponent<ULuaScriptComponent>();
 	if (LuaScriptComponent && !ScriptFile.empty())
 	{
@@ -96,6 +98,7 @@ void AEnemyCharacter::RebindEnemyComponents()
 	Perception = GetComponentByClass<UAIPerceptionComponent>();
 	Reasoner = GetComponentByClass<UUtilityReasonerComponent>();
 	DecisionTrace = GetComponentByClass<UAIDecisionTraceComponent>();
+	CombatMove = GetComponentByClass<UCombatMoveComponent>();
 	if (!AIControllerClass)
 	{
 		AIControllerClass = AAIController::StaticClass();
@@ -106,6 +109,11 @@ void AEnemyCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	LastTickDelta = DeltaTime;
+	// 프레임 데이터 타임라인은 어느 결정 경로에서든(내장/Lua) 진행 — 위험표식·후딜 창을 만든다.
+	if (UCombatMoveComponent* Move = CombatMove.Get())
+	{
+		Move->TickMove(DeltaTime);
+	}
 	if (bUseBuiltInDecisionLogic)
 	{
 		RunBuiltInDecisionLogic(DeltaTime);
@@ -317,6 +325,11 @@ bool AEnemyCharacter::StartAttackExecution(const FEnemyAttackData& Attack)
 	bCurrentAttackActive = true;
 	bFallbackDamageAttempted = false;
 	CurrentAttackDamagedActors.clear();
+	// 프레임 데이터 타임라인 시작 — startup/active/recovery + 위험표식.
+	if (UCombatMoveComponent* Move = CombatMove.Get())
+	{
+		Move->BeginMove(Attack.PerilousType, Attack.StartupFrames, Attack.ActiveFrames, Attack.RecoveryFrames, Attack.PerilousCueFrame, Attack.bCanBeDeflected);
+	}
 	StopEnemyMovement();
 	if (AIBrainComponent)
 	{
@@ -577,14 +590,15 @@ void AEnemyCharacter::RunBuiltInDecisionLogic(float DeltaTime)
 	{
 		AIBrainComponent->SetState(FName("Chase"));
 		bool bMoveRequested = false;
-		if (RepathTimer <= 0.0f)
+		if (RepathTimer <= 0.0f || !AIBrainComponent->IsMoveActive())
 		{
 			bMoveRequested = AIBrainComponent->RequestMoveToTarget(Acceptance, true);
 			RepathTimer = (std::max)(0.0f, RepathInterval);
 		}
 		if (!bMoveRequested && !AIBrainComponent->IsMoveActive())
 		{
-			MoveToTarget(1.0f);
+			StopEnemyMovement();
+			UE_LOG("[EnemyAI] Chase path request failed. Enemy=%s Reason=%s", GetName().c_str(), AIBrainComponent->GetLastMoveFailureReason().c_str());
 		}
 		return;
 	}
@@ -602,6 +616,10 @@ void AEnemyCharacter::HandleDeath(UHealthComponent* Component, AActor* DamageCau
 	bCurrentAttackActive = false;
 	CurrentAttack = FEnemyAttackData();
 	CurrentAttackDamagedActors.clear();
+	if (UCombatMoveComponent* Move = CombatMove.Get())
+	{
+		Move->EndMove();
+	}
 	StopEnemyMovement();
 	if (AIBrainComponent)
 	{
@@ -722,7 +740,8 @@ void AEnemyCharacter::Brain_Chase()
 	const float Acceptance = (std::max)(0.1f, Brain->AttackRange * 0.85f);
 	if (!Brain->RequestMoveToTarget(Acceptance, true) && !Brain->IsMoveActive())
 	{
-		MoveToTarget(1.0f);
+		StopEnemyMovement();
+		UE_LOG("[EnemyAI] Brain_Chase path request failed. Enemy=%s Reason=%s", GetName().c_str(), Brain->GetLastMoveFailureReason().c_str());
 	}
 }
 
@@ -754,6 +773,53 @@ void AEnemyCharacter::Brain_Idle()
 	if (UEnemyAIBrainComponent* Brain = AIBrainComponent.Get())
 	{
 		Brain->SetState(FName("Idle"));
+	}
+	StopEnemyMovement();
+}
+
+bool AEnemyCharacter::Brain_TargetThreatening() const
+{
+	const UEnemyAIBrainComponent* Brain = AIBrainComponent.Get();
+	if (!Brain || !Brain->HasValidTarget())
+	{
+		return false;
+	}
+	AActor* Target = Brain->GetTarget();
+	if (!Target)
+	{
+		return false;
+	}
+	UCombatStateComponent* TargetCombat = Target->GetComponentByClass<UCombatStateComponent>();
+	if (!TargetCombat || !TargetCombat->IsAttacking())
+	{
+		return false;
+	}
+	return Brain->GetDistanceToTarget() <= Brain->AttackRange * 1.8f;
+}
+
+bool AEnemyCharacter::Brain_TargetInRecovery() const
+{
+	return Blackboard.IsValid() && Blackboard->GetBool(FName("TargetInRecovery"));
+}
+
+int32 AEnemyCharacter::Brain_GetTargetPerilous() const
+{
+	if (!Blackboard.IsValid())
+	{
+		return 0;
+	}
+	return static_cast<int32>(Blackboard->GetFloat(FName("TargetPerilous")) + 0.5f);
+}
+
+void AEnemyCharacter::Brain_OpenDeflect()
+{
+	if (UCombatStateComponent* Combat = GetCombatStateComponent())
+	{
+		Combat->OpenDeflectWindow(0.0f); // 0 → 컴포넌트 기본 윈도우 길이
+	}
+	if (UEnemyAIBrainComponent* Brain = AIBrainComponent.Get())
+	{
+		Brain->SetState(FName("Deflect"));
 	}
 	StopEnemyMovement();
 }

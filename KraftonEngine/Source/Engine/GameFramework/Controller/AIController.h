@@ -70,6 +70,7 @@ protected:
 
 private:
 	UNavigationSystem* GetNavigationSystem() const;
+	void RefreshNavAgentPropertiesFromPawn(APawn* PawnOverride = nullptr);
 	EPathFollowingRequestResult RequestMoveToCurrentGoal(bool bUsePathfinding);
 	bool ShouldRepathToMovingGoal() const;
 	bool CanReuseCurrentMove(AActor* NewGoalActor, const FVector& NewGoalLocation, float NewAcceptanceRadius, bool bUsePathfinding) const;

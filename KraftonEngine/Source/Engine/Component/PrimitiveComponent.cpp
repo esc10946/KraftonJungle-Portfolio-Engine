@@ -10,6 +10,8 @@
 #include "Render/Scene/FScene.h"
 #include "Render/Proxy/PrimitiveSceneProxy.h"
 #include "GameFramework/World.h"
+#include "GameFramework/Actor/NavMeshBoundsVolume.h"
+#include "Navigation/NavigationSystem.h"
 #include "Object/Reflection/ObjectFactory.h"
 
 #include <cmath>
@@ -31,6 +33,43 @@ namespace
 		}
 
 		return true;
+	}
+
+	bool IsNavigationRelevantPrimitive(const UPrimitiveComponent* Primitive)
+	{
+		if (!Primitive)
+		{
+			return false;
+		}
+		if (Cast<ANavMeshBoundsVolume>(Primitive->GetOwner()))
+		{
+			return true;
+		}
+		return Primitive->CanEverAffectNavigation()
+			&& Primitive->IsQueryCollisionEnabled()
+			&& Primitive->GetCollisionObjectType() == ECollisionChannel::WorldStatic;
+	}
+
+	void RequestNavigationRebuildForPrimitive(const UPrimitiveComponent* Primitive, const char* Reason, bool bForce = false)
+	{
+		if (!bForce && !IsNavigationRelevantPrimitive(Primitive))
+		{
+			return;
+		}
+		const AActor* OwnerActor = Primitive->GetOwner();
+		UWorld* World = OwnerActor ? OwnerActor->GetWorld() : Primitive->GetWorld();
+		if (!World)
+		{
+			return;
+		}
+		if (!World->HasBegunPlay() && World->GetWorldType() != EWorldType::Editor)
+		{
+			return;
+		}
+		if (UNavigationSystem* NavSys = World->GetNavigationSystem())
+		{
+			NavSys->RequestNavigationRebuild(Reason ? FString(Reason) : FString("Navigation relevant primitive changed"), false);
+		}
 	}
 }
 
@@ -166,6 +205,13 @@ void UPrimitiveComponent::SetKinematic(bool bInKinematic)
 	NotifyPhysicsBodyDirty();  // 바디 타입(static↔kinematic dynamic) 변경 → 재등록
 }
 
+void UPrimitiveComponent::SetCanEverAffectNavigation(bool bInAffectNavigation)
+{
+	if (bCanEverAffectNavigation == bInAffectNavigation) return;
+	bCanEverAffectNavigation = bInAffectNavigation;
+	RequestNavigationRebuildForPrimitive(this, bInAffectNavigation ? "Primitive navigation relevance enabled" : "Primitive navigation relevance disabled", true);
+}
+
 void UPrimitiveComponent::MarkProxyDirty(EDirtyFlag Flag) const
 {
 	if (!SceneProxy) return;
@@ -205,6 +251,7 @@ void UPrimitiveComponent::MarkRenderTransformDirty()
 
 	World->UpdateActorInOctree(OwnerActor);
 	World->MarkWorldPrimitivePickingBVHDirty();
+	RequestNavigationRebuildForPrimitive(this, "WorldStatic primitive transform changed");
 }
 
 void UPrimitiveComponent::MarkRenderVisibilityDirty()
@@ -241,6 +288,7 @@ void UPrimitiveComponent::PostEditProperty(const char* PropertyName)
 	}
 	else if (strcmp(PropertyName, "CollisionEnabled") == 0 || strcmp(PropertyName, "Collision Enabled") == 0)
 	{
+		RequestNavigationRebuildForPrimitive(this, "Primitive collision changed", true);
 		// 에디터 property panel 이 enum 값을 직접 바꾼 경우 — 이미 CollisionEnabled 필드는
 		// 갱신된 상태고 setter 를 안 거쳤으니 여기서 Register/Unregister 처리.
 		//
@@ -276,6 +324,7 @@ void UPrimitiveComponent::PostEditProperty(const char* PropertyName)
 	}
 	else if (strcmp(PropertyName, "ObjectType") == 0 || strcmp(PropertyName, "Object Type") == 0)
 	{
+		RequestNavigationRebuildForPrimitive(this, "Primitive object type changed", true);
 		// 에디터 property panel 이 enum 값을 직접 바꾼 경우 setter 를 안 거치므로
 		// shape filter data / trigger role / compound shape 구성을 재생성한다.
 		NotifyPhysicsBodyDirty();
@@ -292,6 +341,10 @@ void UPrimitiveComponent::PostEditProperty(const char* PropertyName)
 	else if (strcmp(PropertyName, "bGenerateOverlapEvents") == 0 || strcmp(PropertyName, "Generate Overlap Events") == 0)
 	{
 		NotifyPhysicsBodyDirty();
+	}
+	else if (strcmp(PropertyName, "bCanEverAffectNavigation") == 0 || strcmp(PropertyName, "Affect Navigation") == 0)
+	{
+		RequestNavigationRebuildForPrimitive(this, bCanEverAffectNavigation ? "Primitive navigation relevance enabled" : "Primitive navigation relevance disabled", true);
 	}
 	else if (strcmp(PropertyName, "CenterOfMassOffset") == 0 || strcmp(PropertyName, "Center Of Mass Offset") == 0)
 	{

@@ -1,9 +1,11 @@
 #include "AI/Navigation/PathFollowingComponent.h"
 
 #include "Component/Movement/CharacterMovementComponent.h"
+#include "Debug/DrawDebugHelpers.h"
 #include "GameFramework/Controller/AIController.h"
 #include "GameFramework/Pawn/Character.h"
 #include "GameFramework/Pawn/Pawn.h"
+#include "GameFramework/World.h"
 
 #include <cfloat>
 #include <cmath>
@@ -52,6 +54,21 @@ bool UPathFollowingComponent::RequestMove(const FNavigationPath& InPath, float I
 	if (APawn* Pawn = GetPawnOwner())
 	{
 		LastMoveLocation = Pawn->GetActorLocation();
+	}
+	if (bDrawDebugPathOnRequest)
+	{
+		UWorld* World = GetWorld();
+		for (int32 Index = 0; World && Index + 1 < Path.Num(); ++Index)
+		{
+			const FVector A = Path.GetPathPointLocation(Index) + FVector(0.0f, 0.0f, 6.0f);
+			const FVector B = Path.GetPathPointLocation(Index + 1) + FVector(0.0f, 0.0f, 6.0f);
+			DrawDebugLine(World, A, B, FColor(255, 220, 40), DebugPathDrawDuration);
+			DrawDebugSphere(World, A, 0.18f, 8, FColor(40, 140, 255), DebugPathDrawDuration);
+		}
+		if (World && Path.Num() > 0)
+		{
+			DrawDebugSphere(World, Path.GetEndLocation() + FVector(0.0f, 0.0f, 6.0f), 0.24f, 8, FColor(255, 80, 40), DebugPathDrawDuration);
+		}
 	}
 	return true;
 }

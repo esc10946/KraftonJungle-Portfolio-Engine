@@ -30,6 +30,7 @@ struct FUtilityScoreBreakdown
     float Posture    = 1.0f;
     float Phase      = 1.0f;
     float Repetition = 1.0f;
+    float Recovery   = 1.0f; // 타깃 후딜 중 punish 보너스 (Phase 2)
     float Final      = 0.0f;
 };
 

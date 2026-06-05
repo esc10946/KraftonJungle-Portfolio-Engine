@@ -4,6 +4,7 @@
 #include "Component/AI/EnemyAIBrainComponent.h"
 #include "Component/AI/PhaseComponent.h"
 #include "Component/Combat/CombatStateComponent.h"
+#include "Component/Combat/CombatMoveComponent.h"
 #include "Component/Combat/HealthComponent.h"
 #include "GameFramework/AActor.h"
 
@@ -23,6 +24,9 @@ namespace
     const FName Key_TargetThreat = FName("TargetThreat");
     const FName Key_ThreatScore  = FName("ThreatScore");
     const FName Key_Phase        = FName("Phase");
+    const FName Key_TargetPerilous   = FName("TargetPerilous");
+    const FName Key_TargetInRecovery = FName("TargetInRecovery");
+    const FName Key_TargetMovePhase  = FName("TargetMovePhase");
 }
 
 void UAIPerceptionComponent::RecordStimulus(EAISenseType Type, AActor* Source, const FVector& Location, float Strength)
@@ -120,14 +124,28 @@ void UAIPerceptionComponent::UpdateSenses()
     {
         TargetHealth = TH->GetHealthRatio();
     }
+    float TargetPerilous = 0.0f;
     if (UCombatStateComponent* TC = TargetActor->GetComponentByClass<UCombatStateComponent>())
     {
         TargetPosture = TC->GetPoiseRatio();
         TargetThreat  = TC->GetAttackThreatRemaining();
+        TargetPerilous = static_cast<float>(static_cast<int32>(TC->GetActivePerilousType()));
     }
     BB->SetFloat(Key_TargetHealth, TargetHealth);
     BB->SetFloat(Key_TargetPosture, TargetPosture);
     BB->SetFloat(Key_TargetThreat, TargetThreat);
+
+    // ── 프레임 데이터: 타깃이 후딜 중이면 punish 기회 (Phase 2) ──
+    bool  TargetInRecovery = false;
+    float TargetMovePhase  = 0.0f;
+    if (UCombatMoveComponent* TM = TargetActor->GetComponentByClass<UCombatMoveComponent>())
+    {
+        TargetInRecovery = TM->IsInRecovery();
+        TargetMovePhase  = static_cast<float>(TM->GetPhaseInt());
+    }
+    BB->SetFloat(Key_TargetPerilous, TargetPerilous);
+    BB->SetBool(Key_TargetInRecovery, TargetInRecovery);
+    BB->SetFloat(Key_TargetMovePhase, TargetMovePhase);
 
     // ── 시야 콘: 거리 + FOV 안쪽 ──
     const bool bInRange = Dist <= SightRange;

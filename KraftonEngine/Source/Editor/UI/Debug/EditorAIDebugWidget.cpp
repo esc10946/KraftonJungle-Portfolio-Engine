@@ -11,6 +11,8 @@
 #include "Component/AI/EnemyAIBrainComponent.h"
 #include "Component/AI/UtilityReasonerComponent.h"
 #include "Component/Combat/CombatStateComponent.h"
+#include "Component/Combat/CombatMoveComponent.h"
+#include "Component/Combat/CombatTypes.h"
 #include "Component/Combat/HealthComponent.h"
 #include "GameFramework/Pawn/EnemyCharacter.h"
 #include "Object/Object.h"
@@ -87,6 +89,8 @@ void FEditorAIDebugWidget::Render(float /*DeltaTime*/)
 	UUtilityReasonerComponent* Reasoner  = Enemy->GetReasoner();
 	UAIDecisionTraceComponent* Trace     = Enemy->GetDecisionTrace();
 	UEnemyAIBrainComponent*    Brain     = Enemy->GetAIBrainComponent();
+	UCombatMoveComponent*      Move      = Enemy->GetCombatMove();
+	UCombatStateComponent*     Combat    = Enemy->GetCombatStateComponent();
 
 	ImGui::Text("Target: %s", Enemy->GetName().c_str());
 	ImGui::SameLine();
@@ -128,6 +132,50 @@ void FEditorAIDebugWidget::Render(float /*DeltaTime*/)
 		}
 	}
 
+	// ── 전투 프레임 데이터 / 위험공격 / 탄기 (Phase 2) ──
+	if (ImGui::CollapsingHeader("Combat Frame Data", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		if (Move && Move->IsMoveActive())
+		{
+			const int32 PhaseIdx  = Move->GetPhaseInt();
+			const char* PhaseName = (PhaseIdx >= 0 && static_cast<uint32>(PhaseIdx) < GCombatMovePhaseCount) ? GCombatMovePhaseNames[PhaseIdx] : "?";
+			const int32 PerilIdx  = Move->GetPerilousTypeInt();
+			const char* PerilName = (PerilIdx >= 0 && static_cast<uint32>(PerilIdx) < GPerilousTypeCount) ? GPerilousTypeNames[PerilIdx] : "?";
+			ImGui::Text("Phase: %s   frame %d/%d   perilous: %s",
+				PhaseName, Move->GetCurrentFrame(), Move->GetTotalFrames(), PerilName);
+
+			const int32 Total = Move->GetTotalFrames();
+			const float Frac  = Total > 0 ? static_cast<float>(Move->GetCurrentFrame()) / static_cast<float>(Total) : 0.0f;
+			ImVec4 Col;
+			switch (static_cast<ECombatMovePhase>(PhaseIdx))
+			{
+				case ECombatMovePhase::Startup:  Col = ImVec4(0.85f, 0.75f, 0.20f, 1.0f); break; // 선딜 노랑
+				case ECombatMovePhase::Active:   Col = ImVec4(0.85f, 0.25f, 0.20f, 1.0f); break; // 활성 빨강
+				case ECombatMovePhase::Recovery: Col = ImVec4(0.25f, 0.55f, 0.85f, 1.0f); break; // 후딜 파랑
+				default:                         Col = ImVec4(0.40f, 0.40f, 0.40f, 1.0f); break;
+			}
+			char Buf[48];
+			std::snprintf(Buf, sizeof(Buf), "S%d A%d R%d", Move->GetStartupFrames(), Move->GetActiveFrames(), Move->GetRecoveryFrames());
+			ImGui::PushStyleColor(ImGuiCol_PlotHistogram, Col);
+			ImGui::ProgressBar(Frac, ImVec2(0.0f, 0.0f), Buf);
+			ImGui::PopStyleColor();
+		}
+		else
+		{
+			ImGui::TextDisabled("No active move.");
+		}
+
+		if (Combat)
+		{
+			const int32 SelfPeril     = Combat->GetActivePerilousTypeInt();
+			const char* SelfPerilName = (SelfPeril >= 0 && static_cast<uint32>(SelfPeril) < GPerilousTypeCount) ? GPerilousTypeNames[SelfPeril] : "?";
+			const int32 GradeIdx      = Combat->GetLastDeflectGradeInt();
+			const char* GradeName     = (GradeIdx >= 0 && static_cast<uint32>(GradeIdx) < GDeflectGradeCount) ? GDeflectGradeNames[GradeIdx] : "?";
+			ImGui::Text("Self perilous: %s   Deflecting: %s   Last deflect: %s",
+				SelfPerilName, Combat->IsDeflecting() ? "YES" : "no", GradeName);
+		}
+	}
+
 	// ── Utility 점수 (히스토그램 + 분해 표) ──
 	if (ImGui::CollapsingHeader("Utility Reasoner", ImGuiTreeNodeFlags_DefaultOpen))
 	{
@@ -149,14 +197,14 @@ void FEditorAIDebugWidget::Render(float /*DeltaTime*/)
 				ImGui::PlotHistogram("Final score", Finals.data(), static_cast<int>(Finals.size()),
 					0, nullptr, 0.0f, FLT_MAX, ImVec2(0.0f, 80.0f));
 
-				ImGui::TextDisabled("name              final  | base rng ang thr pos rep");
+				ImGui::TextDisabled("name           final  | base rng ang thr pos rec rep");
 				for (const FUtilityCandidate& C : Candidates)
 				{
 					const FUtilityScoreBreakdown& B = C.Breakdown;
-					ImGui::Text("%s%-14s %6.3f | %.2f %.2f %.2f %.2f %.2f %.2f",
+					ImGui::Text("%s%-13s %6.3f | %.2f %.2f %.2f %.2f %.2f %.2f %.2f",
 						C.bChosen ? "*" : " ",
 						C.ActionId.ToString().c_str(), B.Final,
-						B.Base, B.Range, B.Angle, B.Threat, B.Posture, B.Repetition);
+						B.Base, B.Range, B.Angle, B.Threat, B.Posture, B.Recovery, B.Repetition);
 				}
 			}
 		}

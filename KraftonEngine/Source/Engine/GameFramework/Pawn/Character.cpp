@@ -223,12 +223,14 @@ void ACharacter::InitDefaultComponents(const FString& SkeletalMeshFileName)
 	CapsuleComponent->SetSimulatePhysics(false);
 	CapsuleComponent->SetKinematic(true);
 	CapsuleComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	CapsuleComponent->SetCanEverAffectNavigation(false);
 
 	// 2) SkeletalMesh — Capsule 의 자식.
 	Mesh = AddComponent<USkeletalMeshComponent>();
 	Mesh->AttachToComponent(CapsuleComponent);
 	Mesh->SetSimulatePhysics(false);
 	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Mesh->SetCanEverAffectNavigation(false);
 
 	ID3D11Device* Device = GEngine->GetRenderer().GetFD3DDevice().GetDevice();
 	if (!SkeletalMeshFileName.empty())
@@ -264,6 +266,14 @@ void ACharacter::OnPostLoad(FArchive& Ar)
 	if (CharacterMovement && CapsuleComponent)
 	{
 		CharacterMovement->SetUpdatedComponent(CapsuleComponent);
+	}
+	if (CapsuleComponent)
+	{
+		CapsuleComponent->SetCanEverAffectNavigation(false);
+	}
+	if (Mesh)
+	{
+		Mesh->SetCanEverAffectNavigation(false);
 	}
 	ReconcileCharacterCollisionOwnership();
 }

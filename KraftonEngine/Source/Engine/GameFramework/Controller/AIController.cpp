@@ -1,6 +1,9 @@
 #include "GameFramework/Controller/AIController.h"
 
 #include "AI/Navigation/PathFollowingComponent.h"
+#include "Component/Movement/CharacterMovementComponent.h"
+#include "Component/Shape/CapsuleComponent.h"
+#include "GameFramework/Pawn/Character.h"
 #include "GameFramework/Pawn/Pawn.h"
 #include "GameFramework/World.h"
 #include "Navigation/NavigationSystem.h"
@@ -38,6 +41,7 @@ void AAIController::OnPossess(APawn* Pawn)
 	{
 		PathFollowingComponent = AddComponent<UPathFollowingComponent>();
 	}
+	RefreshNavAgentPropertiesFromPawn(Pawn);
 }
 
 void AAIController::OnUnPossess(APawn* OldPawn)
@@ -50,6 +54,29 @@ UNavigationSystem* AAIController::GetNavigationSystem() const
 {
 	UWorld* World = GetWorld();
 	return World ? World->GetNavigationSystem() : nullptr;
+}
+
+void AAIController::RefreshNavAgentPropertiesFromPawn(APawn* PawnOverride)
+{
+	APawn* ControlledPawn = PawnOverride ? PawnOverride : GetPawn();
+	if (!ControlledPawn)
+	{
+		return;
+	}
+	if (ACharacter* Character = Cast<ACharacter>(ControlledPawn))
+	{
+		if (UCapsuleComponent* Capsule = Character->GetCapsuleComponent())
+		{
+			NavAgentProperties.Radius = std::max(0.05f, Capsule->GetScaledCapsuleRadius());
+			NavAgentProperties.Height = std::max(NavAgentProperties.Radius * 2.0f, Capsule->GetScaledCapsuleHalfHeight() * 2.0f);
+		}
+		if (UCharacterMovementComponent* Movement = Character->GetCharacterMovement())
+		{
+			NavAgentProperties.StepHeight = Movement->MaxStepHeight;
+			NavAgentProperties.MaxClimbHeight = Movement->MaxStepHeight;
+			NavAgentProperties.MaxDropHeight = Movement->MaxDropHeight;
+		}
+	}
 }
 
 EPathFollowingStatus AAIController::GetMoveStatus() const
@@ -179,6 +206,8 @@ EPathFollowingRequestResult AAIController::RequestMoveToCurrentGoal(bool bUsePat
 	{
 		return SetLastMoveRequestResult(EPathFollowingRequestResult::Failed, "Move request failed: missing PathFollowingComponent");
 	}
+
+	RefreshNavAgentPropertiesFromPawn(ControlledPawn);
 
 	const FVector Start = ControlledPawn->GetActorLocation();
 	const FVector Goal = MoveGoalActor.IsValid() ? MoveGoalActor->GetActorLocation() : MoveGoalLocation;

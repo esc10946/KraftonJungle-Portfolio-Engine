@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "MovementComponent.h"
 #include "Core/Types/CollisionTypes.h"   // FHitResult
@@ -110,6 +110,8 @@ public:
 	float GroundSnapDistance = 0.45f;
 	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Max Step Height", Min=0.0f, Max=2.0f, Speed=0.01f)
 	float MaxStepHeight = 0.45f;
+	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Max Drop Height", Min=0.0f, Max=5.0f, Speed=0.01f)
+	float MaxDropHeight = 0.75f;
 	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Walkable Floor Z", Min=0.0f, Max=1.0f, Speed=0.01f)
 	float WalkableFloorZ = 0.5f;
 	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Max Slide Iterations", Min=1.0f, Max=8.0f, Speed=1.0f)

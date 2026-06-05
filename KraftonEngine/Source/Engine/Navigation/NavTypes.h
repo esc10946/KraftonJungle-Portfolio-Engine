@@ -45,8 +45,27 @@ struct FNavAgentProperties
 	UPROPERTY(Edit, Save, Category="Navigation|Agent", DisplayName="Height", Min=0.01f, Max=200.0f, Speed=0.1f)
 	float Height = 6.0f;
 
+	// Legacy alias used by older scenes and fallback runtime queries.  New path checks use
+	// MaxClimbHeight / MaxDropHeight so different characters can step up and drop down
+	// with separate limits.
 	UPROPERTY(Edit, Save, Category="Navigation|Agent", DisplayName="Step Height", Min=0.0f, Max=50.0f, Speed=0.05f)
 	float StepHeight = 0.6f;
+
+	UPROPERTY(Edit, Save, Category="Navigation|Agent", DisplayName="Max Climb Height", Min=0.0f, Max=50.0f, Speed=0.01f)
+	float MaxClimbHeight = 0.6f;
+
+	UPROPERTY(Edit, Save, Category="Navigation|Agent", DisplayName="Max Drop Height", Min=0.0f, Max=50.0f, Speed=0.01f)
+	float MaxDropHeight = 0.6f;
+
+	float GetEffectiveMaxClimbHeight() const
+	{
+		return MaxClimbHeight > 0.0f ? MaxClimbHeight : StepHeight;
+	}
+
+	float GetEffectiveMaxDropHeight() const
+	{
+		return MaxDropHeight > 0.0f ? MaxDropHeight : StepHeight;
+	}
 
 	UPROPERTY(Edit, Save, Category="Navigation|Agent", DisplayName="Max Slope Degrees", Min=0.0f, Max=89.0f, Speed=1.0f)
 	float MaxSlopeDegrees = 50.0f;
