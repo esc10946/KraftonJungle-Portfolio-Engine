@@ -174,7 +174,6 @@ void FPhysXPhysicsRuntime::Shutdown()
     Bodies.clear();
     BodyGenerations.clear();
 
-    ActorCompounds.clear();
     ComponentToBody.clear();
     ComponentToShape.clear();
     PendingContinuousForces.clear();
@@ -497,43 +496,11 @@ void FPhysXPhysicsRuntime::RegisterComponent_Internal(const FPhysicsBodyCreatePa
         return;
     }
 
-    if (ComponentToShape.find(Payload.ShapeOwner.ComponentId) != ComponentToShape.end())
+    const uint32 ComponentId = Payload.ShapeOwner.ComponentId;
+    if (ComponentToShape.find(ComponentId) != ComponentToShape.end() ||
+        ComponentToBody.find(ComponentId) != ComponentToBody.end())
     {
         return;
-    }
-
-    FActorCompoundBody* Compound = FindCompoundByActorId(Payload.BodyOwner.ActorId);
-
-    if (!Compound)
-    {
-        FBodyCreationDesc BodyDesc = ToBodyCreationDesc(Payload);
-        BodyDesc.Shapes.clear();
-
-        FPhysicsBodyHandle BodyHandle = CreateRigidBody_Internal(BodyDesc);
-        if (!BodyHandle.IsValid())
-        {
-            return;
-        }
-
-        FActorCompoundBody NewCompound;
-        NewCompound.OwnerActorId    = Payload.BodyOwner.ActorId;
-        NewCompound.RootComponentId = Payload.BodyOwner.ComponentId;
-        NewCompound.RootGeneration  = Payload.BodyOwner.ComponentGeneration;
-        NewCompound.Body            = BodyHandle;
-
-        ActorCompounds[Payload.BodyOwner.ActorId] = NewCompound;
-        Compound                                  = &ActorCompounds[Payload.BodyOwner.ActorId];
-    }
-    else if (Payload.BodyOwner.ComponentId == Compound->RootComponentId)
-    {
-        Compound->RootGeneration = Payload.BodyOwner.ComponentGeneration;
-
-        if (FBodyInstance* Body = ResolveBody(Compound->Body))
-        {
-            Body->OwnerComponentGeneration = Payload.BodyOwner.ComponentGeneration;
-            Body->SyncMode                 = Payload.SyncMode;
-            Body->BodyType                 = Payload.BodyType;
-        }
     }
 
     const FPhysicsShapeDesc* ShapeDesc = Payload.Shapes.empty() ? nullptr : &Payload.Shapes[0];
@@ -542,9 +509,21 @@ void FPhysXPhysicsRuntime::RegisterComponent_Internal(const FPhysicsBodyCreatePa
         return;
     }
 
+    // Component-local body ownership. Do not merge child primitives into an
+    // actor-root compound body: each UPrimitiveComponent's physics flags and
+    // transform authority must map to its own PxRigidActor.
+    FBodyCreationDesc BodyDesc = ToBodyCreationDesc(Payload);
+    BodyDesc.Shapes.clear();
+
+    FPhysicsBodyHandle BodyHandle = CreateRigidBody_Internal(BodyDesc);
+    if (!BodyHandle.IsValid())
+    {
+        return;
+    }
+
     FPhysicsShapeHandle ShapeHandle = AddShapeToBody(
-        Compound->Body,
-        Payload.ShapeOwner.ComponentId,
+        BodyHandle,
+        ComponentId,
         Payload.ShapeOwner.ActorId,
         Payload.ShapeOwner.ComponentGeneration,
         *ShapeDesc,
@@ -552,20 +531,21 @@ void FPhysXPhysicsRuntime::RegisterComponent_Internal(const FPhysicsBodyCreatePa
     );
     if (!ShapeHandle.IsValid())
     {
+        DestroyRigidBody_Internal(BodyHandle);
         return;
     }
 
-    if (std::find(Compound->Components.begin(), Compound->Components.end(), Payload.ShapeOwner.ComponentId)
-        == Compound->Components.end())
-    {
-        Compound->Components.push_back(Payload.ShapeOwner.ComponentId);
-    }
+    ComponentToBody[ComponentId]  = BodyHandle;
+    ComponentToShape[ComponentId] = ShapeHandle;
 
-    ComponentToBody[Payload.ShapeOwner.ComponentId]  = Compound->Body;
-    ComponentToShape[Payload.ShapeOwner.ComponentId] = ShapeHandle;
-
-    if (FBodyInstance* Body = ResolveBody(Compound->Body))
+    if (FBodyInstance* Body = ResolveBody(BodyHandle))
     {
+        Body->OwnerActorId             = Payload.BodyOwner.ActorId;
+        Body->OwnerComponentId         = ComponentId;
+        Body->OwnerComponentGeneration = Payload.ShapeOwner.ComponentGeneration;
+        Body->SyncMode                 = Payload.SyncMode;
+        Body->BodyType                 = Payload.BodyType;
+
         if (Body->Actor)
         {
             FBodyCreationDesc MassDesc = ToBodyCreationDesc(Payload);
@@ -587,41 +567,17 @@ void FPhysXPhysicsRuntime::UnregisterComponent_Internal(const FPhysicsObjectKey&
         return;
     }
 
-    auto ShapeIt = ComponentToShape.find(Object.ComponentId);
-    if (ShapeIt == ComponentToShape.end())
+    FBodyInstance* Body = ResolveBody(BodyIt->second);
+    if (!Body ||
+        Body->OwnerComponentId != Object.ComponentId ||
+        Body->OwnerComponentGeneration != Object.ComponentGeneration)
     {
         return;
     }
 
-    FShapeInstance* Shape = ResolveShape(ShapeIt->second);
-    if (!Shape ||
-        Shape->SourceComponentId != Object.ComponentId ||
-        Shape->SourceComponentGeneration != Object.ComponentGeneration)
-    {
-        return;
-    }
-
-    const FPhysicsBodyHandle BodyHandle = BodyIt->second;
-    DetachShape(ShapeIt->second);
-    ComponentToBody.erase(Object.ComponentId);
-
-    FActorCompoundBody* Compound = FindCompoundByActorId(Object.ActorId);
-    if (!Compound)
-    {
-        DestroyRigidBody_Internal(BodyHandle);
-        return;
-    }
-
-    Compound->Components.erase(
-        std::remove(Compound->Components.begin(), Compound->Components.end(), Object.ComponentId),
-        Compound->Components.end()
-    );
-
-    if (Compound->Components.empty())
-    {
-        DestroyRigidBody_Internal(BodyHandle);
-        ActorCompounds.erase(Object.ActorId);
-    }
+    // In the component-local model the component owns the whole PhysX actor.
+    // Destroying the body detaches its shapes and clears ComponentToBody/Shape.
+    DestroyRigidBody_Internal(BodyIt->second);
 }
 
 void FPhysXPhysicsRuntime::RebuildBody_Internal(const TArray<FPhysicsBodyCreatePayload>& Payloads)
@@ -2502,26 +2458,3 @@ void FPhysXPhysicsRuntime::UpdateStats()
     }
 
 }
-
-FActorCompoundBody* FPhysXPhysicsRuntime::FindCompoundByActorId(uint32 ActorId)
-{
-    if (ActorId == 0)
-    {
-        return nullptr;
-    }
-
-    auto It = ActorCompounds.find(ActorId);
-    return It != ActorCompounds.end() ? &It->second : nullptr;
-}
-
-const FActorCompoundBody* FPhysXPhysicsRuntime::FindCompoundByActorId(uint32 ActorId) const
-{
-    if (ActorId == 0)
-    {
-        return nullptr;
-    }
-
-    auto It = ActorCompounds.find(ActorId);
-    return It != ActorCompounds.end() ? &It->second : nullptr;
-}
-

@@ -17,6 +17,9 @@ enum ELevelTick : int
 enum ETickingGroup : int
 {
     TG_PrePhysics,
+    // Movement/input that must be converted into physics commands or kinematic
+    // targets before the physics frame is submitted.
+    TG_PrePhysicsMovement,
     TG_DuringPhysics,
     TG_PostPhysics,
     TG_PostUpdateWork,

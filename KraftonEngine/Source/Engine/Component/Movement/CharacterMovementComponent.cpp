@@ -1,4 +1,4 @@
-#include "CharacterMovementComponent.h"
+﻿#include "CharacterMovementComponent.h"
 
 #include "Animation/AnimInstance.h"
 #include "Component/Shape/CapsuleComponent.h"
@@ -19,21 +19,40 @@
 #include <algorithm>
 #include <cmath>
 
+namespace
+{
+	constexpr float CharacterMoveSmallNumber = 1.0e-5f;
+	constexpr float CharacterPenetrationProbeDistance = 0.02f;
+
+
+	int32 ClampIterationCount(float Value, int32 MinValue, int32 MaxValue)
+	{
+		return (std::max)(MinValue, (std::min)(MaxValue, static_cast<int32>(std::round(Value))));
+	}
+}
+
 UCharacterMovementComponent::UCharacterMovementComponent()
 {
-	// USkeletalMeshComponent::TickComponent (TG_PrePhysics, default) 가 UpdateAnimation 으로
-	// AnimInstance->PendingRootMotion 을 채운 다음에 CMC 가 그 값을 가져가야 같은 frame 데이터를
-	// 쓸 수 있다. Prerequisite API 가 우리 엔진에 없으므로 TickGroup 분리로 순서 보장.
-	// FTickManager 가 group 순서대로 실행하므로 PrePhysics 가 모두 끝난 뒤 DuringPhysics 가 돈다.
-	PrimaryComponentTick.SetTickGroup(TG_DuringPhysics);
-	PrimaryComponentTick.SetEndTickGroup(TG_DuringPhysics);
+	// AI input, root motion and player input are produced in TG_PrePhysics.
+	// CharacterMovement consumes them immediately after, before the physics frame is submitted,
+	// and writes the final kinematic capsule transform for the same frame.
+	PrimaryComponentTick.SetTickGroup(TG_PrePhysicsMovement);
+	PrimaryComponentTick.SetEndTickGroup(TG_PrePhysicsMovement);
+}
+
+void UCharacterMovementComponent::BeginPlay()
+{
+	Super::BeginPlay();
+	EnforceCharacterControllerPolicy();
+	RecoverFromPenetration();
+	SnapToFloor(FloorProbeDistance + GroundSnapDistance);
+	bNeedsInitialGrounding = false;
 }
 
 void UCharacterMovementComponent::AddInputVector(const FVector& WorldDirection, float ScaleValue)
 {
 	AccumulatedInput = AccumulatedInput + WorldDirection * ScaleValue;
 }
-
 
 void UCharacterMovementComponent::ClearInputVector()
 {
@@ -61,19 +80,16 @@ void UCharacterMovementComponent::AddRootMotionDelta(const FTransform& LocalDelt
 		return;
 	}
 
-	// 누적 합성 — AnimInstance::AccumulateRootMotion 과 동일한 매트릭스 곱 패턴.
-	// 같은 frame 에 base + montage 처럼 여러 소스가 push 할 수 있어 합성 보장 필요.
 	const FMatrix M = LocalDelta.ToMatrix() * PendingRootMotion.ToMatrix();
 	PendingRootMotion.Location = FVector(M.M[3][0], M.M[3][1], M.M[3][2]);
 	PendingRootMotion.Rotation = (LocalDelta.Rotation * PendingRootMotion.Rotation).GetNormalized();
-	// Scale 은 root motion 에서 보통 1 — 무시.
 }
 
 bool UCharacterMovementComponent::ConsumePendingRootMotion(FTransform& OutLocalDelta)
 {
 	if (!bHasPendingRootMotion)
 	{
-		OutLocalDelta = FTransform();   // Identity
+		OutLocalDelta = FTransform();
 		return false;
 	}
 	OutLocalDelta = PendingRootMotion;
@@ -86,12 +102,10 @@ void UCharacterMovementComponent::SetMovementMode(EMovementMode NewMode)
 {
 	if (MovementMode == NewMode) return;
 	MovementMode = NewMode;
-	// 추후 OnMovementModeChanged delegate 위치.
 }
 
 void UCharacterMovementComponent::Jump()
 {
-	// Walking 중에만 점프 허용 — 공중 다단 점프 막음. (필요 시 자식 override.)
 	if (MovementMode != EMovementMode::Walking) return;
 	bWantsJump = true;
 }
@@ -104,20 +118,27 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, ELevelTick Tick
 	if (!Updated) return;
 	if (DeltaTime <= 0.0f) return;
 
-	// 매 Tick 회전 적용 상태 reset — 이번 frame 에 root motion 이 yaw 를 적용했는지를
-	// 외부 (Character::Tick) 가 query 할 수 있어야 yaw 충돌 회피 가능.
+	EnforceCharacterControllerPolicy();
+
+	if (bNeedsInitialGrounding)
+	{
+		RecoverFromPenetration();
+		SnapToFloor(FloorProbeDistance + GroundSnapDistance);
+		bNeedsInitialGrounding = false;
+	}
+	else
+	{
+		RecoverFromPenetration();
+	}
+
 	bAppliedRootMotionYawThisFrame = false;
 
 	FVector Input;
 	ConsumeInputVector(Input);
-	Input.Z = 0.0f;   // XY 평면만 — Z 는 mode 가 결정.
+	Input.Z = 0.0f;
 
-	// 1) Input 처리 — XY velocity 갱신 (양 mode 공통).
 	ApplyInputToVelocity(Input, DeltaTime);
 
-	// 1.5) Owner Character 의 Mesh AnimInstance 가 누적해둔 root motion 을 가져와 자기 buffer 로 push.
-	//      Mesh tick (TG_PrePhysics) 이 이미 끝나 PendingRootMotion 이 채워진 상태.
-	//      Mode 가 Ignore 면 가져갈 필요 자체가 없음 (AccumulateRootMotion 측에서 누적도 안 됨).
 	if (ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner()))
 	{
 		if (USkeletalMeshComponent* Mesh = OwnerCharacter->GetMesh())
@@ -132,11 +153,6 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, ELevelTick Tick
 		}
 	}
 
-	// 2) Root motion 소비 — local delta 를 world frame 으로 변환 (Updated 의 yaw 기준).
-	//    XY 만 mode 분기로 위임. Z 는 두 mode 모두 무시:
-	//      Walking — floor stick 이 Z 결정
-	//      Falling — gravity 가 Z 결정
-	//    Climbing/Swimming 같은 mode 추가 시 그때 재검토.
 	FTransform RootMotionDelta;
 	const bool bHadRootMotion = ConsumePendingRootMotion(RootMotionDelta);
 	FVector RootMotionWorldXY(0.0f, 0.0f, 0.0f);
@@ -149,7 +165,6 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, ELevelTick Tick
 		RootMotionWorldXY.Y     = World.Y;
 	}
 
-	// 3) Mode 별 Z 처리 + 위치 적용 (input velocity + root motion XY 합산).
 	if (MovementMode == EMovementMode::Walking)
 	{
 		TickWalking(DeltaTime, RootMotionWorldXY);
@@ -159,10 +174,6 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, ELevelTick Tick
 		TickFalling(DeltaTime, RootMotionWorldXY);
 	}
 
-	// 4) Root motion yaw 적용. yaw 만 추출 — root motion 의 pitch/roll 은 캐릭터 capsule
-	//    회전에 일반적으로 의미 없음 (UE 도 yaw 만 적용).
-	//    yaw 가 적용되면 bAppliedRootMotionYawThisFrame 을 켜서 PhysOrientToMovement /
-	//    Character 의 control yaw 덮어쓰기 둘 다 같은 frame skip 되도록 한다.
 	if (bHadRootMotion)
 	{
 		const FRotator DeltaRot = RootMotionDelta.Rotation.ToRotator();
@@ -175,12 +186,46 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, ELevelTick Tick
 		}
 	}
 
-	// 5) Orient yaw to movement direction. Root motion 이 yaw 를 잡고 있는 frame 은 skip —
-	//    그렇지 않으면 PhysOrient 가 root motion 회전을 Velocity 방향으로 다시 lerp 해
-	//    의도된 회전이 무효화된다 (turn-in-place anim 가장 큰 피해).
 	if (bOrientRotationToMovement && !bAppliedRootMotionYawThisFrame)
 	{
 		PhysOrientToMovement(DeltaTime);
+	}
+}
+
+void UCharacterMovementComponent::EnforceCharacterControllerPolicy()
+{
+	ACharacter* OwnerCharacter = Cast<ACharacter>(GetOwner());
+	if (OwnerCharacter && OwnerCharacter->IsInRagdoll())
+	{
+		return;
+	}
+
+	if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(GetUpdatedComponent()))
+	{
+		// Locomotion capsule is a kinematic query/controller body. It must not become
+		// a dynamic PhysicsToEngine body, because CharacterMovement owns its transform.
+		Primitive->SetSimulatePhysics(false);
+		Primitive->SetKinematic(true);
+		if (Primitive->GetCollisionEnabled() == ECollisionEnabled::NoCollision ||
+			Primitive->GetCollisionEnabled() == ECollisionEnabled::PhysicsOnly ||
+			Primitive->GetCollisionEnabled() == ECollisionEnabled::QueryAndPhysics)
+		{
+			Primitive->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		}
+	}
+
+	if (OwnerCharacter)
+	{
+		if (USkeletalMeshComponent* Mesh = OwnerCharacter->GetMesh())
+		{
+			// The visual mesh is not the locomotion body. Ragdoll uses the physics-asset
+			// instance, not the mesh component primitive body.
+			Mesh->SetSimulatePhysics(false);
+			if (Mesh->GetCollisionEnabled() != ECollisionEnabled::NoCollision)
+			{
+				Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			}
+		}
 	}
 }
 
@@ -189,18 +234,15 @@ void UCharacterMovementComponent::PhysOrientToMovement(float DeltaTime)
 	USceneComponent* Updated = GetUpdatedComponent();
 	if (!Updated) return;
 
-	// 평면 속도 작으면 회전 skip — 마지막 facing 유지.
 	const float SpeedSq2D = Velocity.X * Velocity.X + Velocity.Y * Velocity.Y;
 	constexpr float MinSpeedSq = 1e-4f;
 	if (SpeedSq2D < MinSpeedSq) return;
 
-	// Target yaw — Velocity 방향. UE 의 atan2(Y, X) 는 +X 가 0°, +Y 가 90° (좌표계 가정).
 	const float TargetYaw = std::atan2(Velocity.Y, Velocity.X) * (180.0f / 3.14159265f);
 
 	FRotator R = Updated->GetRelativeRotation();
 	const float CurrentYaw = R.Yaw;
 
-	// 최단 회전 방향 (delta ∈ [-180, 180])
 	float Delta = TargetYaw - CurrentYaw;
 	while (Delta >  180.0f) Delta -= 360.0f;
 	while (Delta < -180.0f) Delta += 360.0f;
@@ -222,14 +264,12 @@ void UCharacterMovementComponent::ApplyInputToVelocity(const FVector& Input, flo
 	const float InputLen = Input.Length();
 	if (InputLen > 0.0f)
 	{
-		// 입력 방향으로 가속 (XY 만).
 		const FVector Direction = Input * (1.0f / InputLen);
 		Velocity.X += Direction.X * MaxAcceleration * DeltaTime;
 		Velocity.Y += Direction.Y * MaxAcceleration * DeltaTime;
 	}
 	else if (MovementMode == EMovementMode::Walking)
 	{
-		// Walking 에선 input 없으면 braking. Falling 중 air control 없음 = 평면 속도 유지.
 		FVector V2D(Velocity.X, Velocity.Y, 0.0f);
 		const float Speed2D = V2D.Length();
 		if (Speed2D > 0.0f)
@@ -241,7 +281,6 @@ void UCharacterMovementComponent::ApplyInputToVelocity(const FVector& Input, flo
 		}
 	}
 
-	// MaxWalkSpeed 클램프 (평면 속도만).
 	FVector V2D(Velocity.X, Velocity.Y, 0.0f);
 	const float Speed2D = V2D.Length();
 	if (Speed2D > MaxWalkSpeed)
@@ -254,174 +293,382 @@ void UCharacterMovementComponent::ApplyInputToVelocity(const FVector& Input, flo
 
 void UCharacterMovementComponent::TickWalking(float DeltaTime, const FVector& RootMotionWorldXY)
 {
-	USceneComponent* Updated = GetUpdatedComponent();
-
-	// Jump 의도가 있으면 — Velocity.Z 박고 즉시 Falling 으로 전환. 이 frame 의 XY 는 그대로 진행.
 	if (bWantsJump)
 	{
 		bWantsJump = false;
 		Velocity.Z = JumpZVelocity;
 		SetMovementMode(EMovementMode::Falling);
-		// XY 이동은 Falling 분기로 위임 — 한 frame 안 mode 전환이라 즉시 falling tick.
 		TickFalling(DeltaTime, RootMotionWorldXY);
 		return;
 	}
 
-	// Walking 중 Z velocity 는 0 — floor stick 으로만 Z 결정.
 	Velocity.Z = 0.0f;
 
-	// XY 이동: input velocity * dt + root motion XY (이미 world frame).
+	// Walking is only valid while we can establish a walkable support. Do this before
+	// the horizontal move as well, so actors loaded slightly sunk into the floor are
+	// pulled into a stable controller pose before the first AI input is consumed.
+	if (!SnapToFloor(FloorProbeDistance + GroundSnapDistance))
+	{
+		SetMovementMode(EMovementMode::Falling);
+		TickFalling(DeltaTime, RootMotionWorldXY);
+		return;
+	}
+
 	const FVector XYOffset(
 		Velocity.X * DeltaTime + RootMotionWorldXY.X,
 		Velocity.Y * DeltaTime + RootMotionWorldXY.Y,
 		0.0f);
-	SafeMoveUpdatedComponent(XYOffset);
+	MoveWithSlide(XYOffset);
 
-	// Floor 잡혔는지 — 이동 직후 위치에서 다시 trace.
-	FHitResult Floor;
-	if (!TraceFloor(Floor))
+	if (!SnapToFloor(FloorProbeDistance + GroundSnapDistance))
 	{
-		// 발 아래 floor 없음 (예: 절벽 끝) → falling 전환.
 		SetMovementMode(EMovementMode::Falling);
 		return;
 	}
-
-	// Floor stick — capsule 중심 = floor.Z + HalfHeight.
-	FVector NewLoc = Updated->GetWorldLocation();
-	NewLoc.Z = Floor.WorldHitLocation.Z + GetCapsuleHalfHeight();
-	Updated->SetWorldLocation(NewLoc);
 }
 
 void UCharacterMovementComponent::TickFalling(float DeltaTime, const FVector& RootMotionWorldXY)
 {
-	USceneComponent* Updated = GetUpdatedComponent();
-
-	// Gravity — Z 만. (양수 Gravity → -Z 가속)
 	Velocity.Z -= Gravity * DeltaTime;
 
-	// Velocity * dt 의 XY 에 root motion XY 합산. Z 는 gravity 가 책임이라 root motion 무시.
 	const FVector Offset(
 		Velocity.X * DeltaTime + RootMotionWorldXY.X,
 		Velocity.Y * DeltaTime + RootMotionWorldXY.Y,
 		Velocity.Z * DeltaTime);
-	SafeMoveUpdatedComponent(Offset);
+	MoveWithSlide(Offset);
 
-	// 올라가는 중 (점프 arc 상승) 엔 floor 체크 skip — 안 그러면 점프 직후 1 frame 의
-	// 작은 상승 (≈ JumpZVelocity * dt) 이 raycast probe 거리 안에 있어 즉시 착지로 잡힘.
-	// UE 도 동일 — Velocity.Z > 0 이면 ground 안 잡음.
 	if (Velocity.Z > 0.0f) return;
 
-	// 떨어지는 중에만 floor 체크.
-	FHitResult Floor;
-	if (!TraceFloor(Floor)) return;
+	if (SnapToFloor(FloorProbeDistance + GroundSnapDistance))
+	{
+		Velocity.Z = 0.0f;
+		SetMovementMode(EMovementMode::Walking);
+	}
+}
 
-	// 착지 — capsule Z 보정 + Walking 전환 + Velocity.Z = 0.
-	// raycast 가 hit 했다는 건 capsule bottom 이 floor 위 (또는 약간 안) 에 있다는 뜻.
-	// hit 위치를 floor 표면으로 보고 그 위에 stick.
-	FVector LandLoc = Updated->GetWorldLocation();
-	LandLoc.Z = Floor.WorldHitLocation.Z + GetCapsuleHalfHeight();
-	Updated->SetWorldLocation(LandLoc);
-	Velocity.Z = 0.0f;
-	SetMovementMode(EMovementMode::Walking);
+bool UCharacterMovementComponent::ProbePenetration(FHitResult& OutHit) const
+{
+	OutHit = FHitResult();
+
+	USceneComponent* Updated = GetUpdatedComponent();
+	if (!Updated) return false;
+	AActor* Owner = GetOwner();
+	if (!Owner) return false;
+	UWorld* World = Owner->GetWorld();
+	if (!World) return false;
+
+	UCapsuleComponent* Capsule = Cast<UCapsuleComponent>(Updated);
+	if (!Capsule) return false;
+
+	const float Radius     = Capsule->GetScaledCapsuleRadius();
+	const float HalfHeight = Capsule->GetScaledCapsuleHalfHeight();
+	if (Radius <= 0.0f || HalfHeight <= 0.0f) return false;
+
+	ECollisionChannel TraceChannel = ECollisionChannel::Pawn;
+	if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Updated))
+	{
+		TraceChannel = Primitive->GetCollisionObjectType();
+	}
+
+	const FVector Start = Updated->GetWorldLocation();
+	const FVector End   = Start + FVector(0.0f, 0.0f, CharacterPenetrationProbeDistance);
+	const FQuat   Rot   = Updated->GetWorldMatrix().ToQuat();
+	const FCollisionShape Shape = FCollisionShape::MakeCapsule(Radius, HalfHeight);
+
+	if (!World->PhysicsSweep(Start, End, Rot, Shape, OutHit, TraceChannel, Owner))
+	{
+		return false;
+	}
+
+	return OutHit.bStartPenetrating;
+}
+
+bool UCharacterMovementComponent::RecoverFromPenetration()
+{
+	USceneComponent* Updated = GetUpdatedComponent();
+	if (!Updated) return false;
+
+	const int32 Iterations = ClampIterationCount(MaxDepenetrationIterations, 0, 16);
+	for (int32 Iter = 0; Iter < Iterations; ++Iter)
+	{
+		FHitResult Hit;
+		if (!ProbePenetration(Hit))
+		{
+			return true;
+		}
+
+		FVector Normal = Hit.ImpactNormal;
+		if (Normal.IsNearlyZero())
+		{
+			Normal = FVector::UpVector;
+		}
+		Normal.Normalize();
+
+		float Depth = Hit.PenetrationDepth;
+		if (Depth <= CharacterMoveSmallNumber)
+		{
+			Depth = DepenetrationSkin;
+		}
+
+		Updated->SetWorldLocation(Updated->GetWorldLocation() + Normal * (Depth + DepenetrationSkin));
+	}
+
+	FHitResult FinalHit;
+	return !ProbePenetration(FinalHit);
 }
 
 bool UCharacterMovementComponent::SafeMoveUpdatedComponent(const FVector& Delta, FHitResult* OutHit)
 {
-    if (OutHit)
-    {
-        *OutHit = FHitResult();
-    }
+	if (OutHit)
+	{
+		*OutHit = FHitResult();
+	}
 
-    if (Delta.Length() <= 1.e-6f)
-    {
-        return true;
-    }
+	if (Delta.Length() <= 1.e-6f)
+	{
+		return true;
+	}
 
-    USceneComponent* Updated = GetUpdatedComponent();
-    if (!Updated)
-    {
-        return false;
-    }
+	USceneComponent* Updated = GetUpdatedComponent();
+	if (!Updated)
+	{
+		return false;
+	}
 
-    AActor* Owner = GetOwner();
-    if (!Owner)
-    {
-        Updated->SetWorldLocation(Updated->GetWorldLocation() + Delta);
-        return true;
-    }
+	AActor* Owner = GetOwner();
+	if (!Owner)
+	{
+		Updated->SetWorldLocation(Updated->GetWorldLocation() + Delta);
+		return true;
+	}
 
-    UWorld* World = Owner->GetWorld();
-    if (!World)
-    {
-        Updated->SetWorldLocation(Updated->GetWorldLocation() + Delta);
-        return true;
-    }
+	UWorld* World = Owner->GetWorld();
+	if (!World)
+	{
+		Updated->SetWorldLocation(Updated->GetWorldLocation() + Delta);
+		return true;
+	}
 
-    UCapsuleComponent* Capsule = Cast<UCapsuleComponent>(Updated);
-    if (!Capsule)
-    {
-        Updated->SetWorldLocation(Updated->GetWorldLocation() + Delta);
-        return true;
-    }
+	UCapsuleComponent* Capsule = Cast<UCapsuleComponent>(Updated);
+	if (!Capsule)
+	{
+		Updated->SetWorldLocation(Updated->GetWorldLocation() + Delta);
+		return true;
+	}
 
-    const float Radius     = Capsule->GetScaledCapsuleRadius();
-    const float HalfHeight = Capsule->GetScaledCapsuleHalfHeight();
-    if (Radius <= 0.0f || HalfHeight <= 0.0f)
-    {
-        Updated->SetWorldLocation(Updated->GetWorldLocation() + Delta);
-        return true;
-    }
+	const float Radius     = Capsule->GetScaledCapsuleRadius();
+	const float HalfHeight = Capsule->GetScaledCapsuleHalfHeight();
+	if (Radius <= 0.0f || HalfHeight <= 0.0f)
+	{
+		Updated->SetWorldLocation(Updated->GetWorldLocation() + Delta);
+		return true;
+	}
 
-    ECollisionChannel TraceChannel = ECollisionChannel::Pawn;
-    if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Updated))
-    {
-        TraceChannel = Primitive->GetCollisionObjectType();
-    }
+	RecoverFromPenetration();
 
-    const FVector Start = Updated->GetWorldLocation();
-    const FVector End   = Start + Delta;
-    const FQuat   Rot   = Updated->GetWorldMatrix().ToQuat();
-    const FCollisionShape Shape = FCollisionShape::MakeCapsule(Radius, HalfHeight);
+	ECollisionChannel TraceChannel = ECollisionChannel::Pawn;
+	if (UPrimitiveComponent* Primitive = Cast<UPrimitiveComponent>(Updated))
+	{
+		TraceChannel = Primitive->GetCollisionObjectType();
+	}
 
-    FHitResult Hit;
-    if (!World->PhysicsSweep(Start, End, Rot, Shape, Hit, TraceChannel, Owner))
-    {
-        Updated->SetWorldLocation(End);
-        return true;
-    }
+	const FVector Start = Updated->GetWorldLocation();
+	const FVector End   = Start + Delta;
+	const FQuat   Rot   = Updated->GetWorldMatrix().ToQuat();
+	const FCollisionShape Shape = FCollisionShape::MakeCapsule(Radius, HalfHeight);
 
-    if (OutHit)
-    {
-        *OutHit = Hit;
-    }
+	FHitResult Hit;
+	if (!World->PhysicsSweep(Start, End, Rot, Shape, Hit, TraceChannel, Owner))
+	{
+		Updated->SetWorldLocation(End);
+		return true;
+	}
 
-    const FVector MoveDir = Delta.Normalized();
-    const float SafeDistance = (std::max)(0.0f, Hit.Distance - SweepPullbackDistance);
-    Updated->SetWorldLocation(Start + MoveDir * SafeDistance);
+	if (Hit.bStartPenetrating)
+	{
+		RecoverFromPenetration();
+		if (!World->PhysicsSweep(Updated->GetWorldLocation(), Updated->GetWorldLocation() + Delta, Rot, Shape, Hit, TraceChannel, Owner))
+		{
+			Updated->SetWorldLocation(Updated->GetWorldLocation() + Delta);
+			return true;
+		}
+	}
 
-    if (UPrimitiveComponent* MovingPrimitive = Cast<UPrimitiveComponent>(Updated))
-    {
-        MovingPrimitive->NotifyComponentHit(
-            MovingPrimitive,
-            Hit.HitActor,
-            Hit.HitComponent,
-            FVector::ZeroVector,
-            Hit
-        );
-    }
+	if (OutHit)
+	{
+		*OutHit = Hit;
+	}
 
-    // 벽/천장/바닥으로 계속 밀어 넣는 속도 성분은 제거한다. 남은 접선 성분은 다음 tick에서 유지되어
-    // 최소한의 slide와 비슷하게 동작한다.
-    if (!Hit.ImpactNormal.IsNearlyZero())
-    {
-        const float VelocityIntoSurface = Velocity.Dot(Hit.ImpactNormal);
-        if (VelocityIntoSurface < 0.0f)
-        {
-            Velocity = Velocity - Hit.ImpactNormal * VelocityIntoSurface;
-        }
-    }
+	const FVector MoveDir = Delta.Normalized();
+	const float SafeDistance = (std::max)(0.0f, Hit.Distance - SweepPullbackDistance);
+	Updated->SetWorldLocation(Start + MoveDir * SafeDistance);
 
-    return false;
+	if (UPrimitiveComponent* MovingPrimitive = Cast<UPrimitiveComponent>(Updated))
+	{
+		MovingPrimitive->NotifyComponentHit(
+			MovingPrimitive,
+			Hit.HitActor,
+			Hit.HitComponent,
+			FVector::ZeroVector,
+			Hit
+		);
+	}
+
+	if (!Hit.ImpactNormal.IsNearlyZero())
+	{
+		const float VelocityIntoSurface = Velocity.Dot(Hit.ImpactNormal);
+		if (VelocityIntoSurface < 0.0f)
+		{
+			Velocity = Velocity - Hit.ImpactNormal * VelocityIntoSurface;
+		}
+	}
+
+	return false;
+}
+
+bool UCharacterMovementComponent::MoveWithSlide(const FVector& Delta, FHitResult* OutHit)
+{
+	if (OutHit)
+	{
+		*OutHit = FHitResult();
+	}
+
+	FVector Remaining = Delta;
+	bool bMovedAtLeastOnce = false;
+	const int32 Iterations = ClampIterationCount(MaxSlideIterations, 1, 8);
+
+	for (int32 Iter = 0; Iter < Iterations; ++Iter)
+	{
+		if (Remaining.Length() <= CharacterMoveSmallNumber)
+		{
+			return true;
+		}
+
+		const FVector Before = GetUpdatedComponent() ? GetUpdatedComponent()->GetWorldLocation() : FVector::ZeroVector;
+		FHitResult Hit;
+		const bool bMovedFreely = SafeMoveUpdatedComponent(Remaining, &Hit);
+		const FVector After = GetUpdatedComponent() ? GetUpdatedComponent()->GetWorldLocation() : Before;
+		const float Progress = FVector::Distance(Before, After);
+		bMovedAtLeastOnce = bMovedAtLeastOnce || Progress > CharacterMoveSmallNumber;
+
+		if (bMovedFreely)
+		{
+			return true;
+		}
+
+		if (OutHit)
+		{
+			*OutHit = Hit;
+		}
+
+		if (MovementMode == EMovementMode::Walking && TryStepUp(Remaining, Hit))
+		{
+			return true;
+		}
+
+		FVector Normal = Hit.ImpactNormal;
+		if (Normal.IsNearlyZero())
+		{
+			Normal = FVector::UpVector;
+		}
+		Normal.Normalize();
+
+		const float RemainingLen = Remaining.Length();
+		const float UsedFraction = RemainingLen > CharacterMoveSmallNumber
+			? (std::max)(0.0f, (std::min)(1.0f, Hit.Distance / RemainingLen))
+			: 1.0f;
+		Remaining = Remaining * (1.0f - UsedFraction);
+
+		const float IntoSurface = Remaining.Dot(Normal);
+		if (IntoSurface < 0.0f)
+		{
+			Remaining = Remaining - Normal * IntoSurface;
+		}
+
+		if (!bMovedAtLeastOnce && Remaining.Length() <= CharacterMoveSmallNumber)
+		{
+			return false;
+		}
+	}
+
+	return bMovedAtLeastOnce;
+}
+
+bool UCharacterMovementComponent::TryStepUp(const FVector& MoveDelta, const FHitResult& BlockingHit)
+{
+	USceneComponent* Updated = GetUpdatedComponent();
+	if (!Updated) return false;
+	if (MaxStepHeight <= CharacterMoveSmallNumber) return false;
+	if (BlockingHit.ImpactNormal.Z > WalkableFloorZ) return false;
+
+	const FVector Horizontal = FVector(MoveDelta.X, MoveDelta.Y, 0.0f);
+	if (Horizontal.Length() <= CharacterMoveSmallNumber) return false;
+
+	const FVector OriginalLocation = Updated->GetWorldLocation();
+
+	FHitResult UpHit;
+	if (!SafeMoveUpdatedComponent(FVector(0.0f, 0.0f, MaxStepHeight), &UpHit))
+	{
+		Updated->SetWorldLocation(OriginalLocation);
+		return false;
+	}
+
+	FHitResult ForwardHit;
+	if (!SafeMoveUpdatedComponent(Horizontal, &ForwardHit))
+	{
+		Updated->SetWorldLocation(OriginalLocation);
+		return false;
+	}
+
+	if (!SnapToFloor(MaxStepHeight + FloorProbeDistance + GroundSnapDistance))
+	{
+		Updated->SetWorldLocation(OriginalLocation);
+		return false;
+	}
+
+	return true;
+}
+
+bool UCharacterMovementComponent::IsWalkableFloor(const FHitResult& Hit) const
+{
+	if (!Hit.bHit)
+	{
+		return false;
+	}
+
+	FVector Normal = Hit.ImpactNormal;
+	if (Normal.IsNearlyZero())
+	{
+		Normal = Hit.WorldNormal;
+	}
+	if (Normal.IsNearlyZero())
+	{
+		return true;
+	}
+	Normal.Normalize();
+	return Normal.Z >= WalkableFloorZ;
+}
+
+bool UCharacterMovementComponent::SnapToFloor(float ProbeDistance)
+{
+	USceneComponent* Updated = GetUpdatedComponent();
+	if (!Updated) return false;
+
+	FHitResult Floor;
+	const float PreviousProbeDistance = FloorProbeDistance;
+	FloorProbeDistance = (std::max)(FloorProbeDistance, ProbeDistance);
+	const bool bHasFloor = TraceFloor(Floor);
+	FloorProbeDistance = PreviousProbeDistance;
+
+	if (!bHasFloor || !IsWalkableFloor(Floor))
+	{
+		return false;
+	}
+
+	FVector NewLoc = Updated->GetWorldLocation();
+	NewLoc.Z = Floor.WorldHitLocation.Z + GetCapsuleHalfHeight();
+	Updated->SetWorldLocation(NewLoc);
+	return true;
 }
 
 bool UCharacterMovementComponent::TraceFloor(FHitResult& OutHit) const
@@ -434,27 +681,30 @@ bool UCharacterMovementComponent::TraceFloor(FHitResult& OutHit) const
 	if (!World) return false;
 
 	const float HalfHeight = GetCapsuleHalfHeight();
-	if (HalfHeight <= 0.0f) return false;   // capsule 아니면 floor 의미 없음
+	if (HalfHeight <= 0.0f) return false;
 
-	// capsule 중심에서 down — bottom 까지 HalfHeight + 약간의 probe.
 	const FVector  Start = Updated->GetWorldLocation();
 	const FVector  Dir(0.0f, 0.0f, -1.0f);
 	const float    MaxDist = HalfHeight + FloorProbeDistance;
 
-	// 바닥은 WorldStatic ObjectType 만 후보로 본다. 채널 raycast (응답=Block) 시맨틱으로 가면
-	// 다이내믹/폰도 기본 응답이 Block 이라 바닥으로 잘못 잡힌다. ObjectType 마스크는
-	// shape의 ObjectType 자체를 검사하므로 다이내믹 박스 위 / 다른 폰 머리 위에서도 바닥으로
-	// 인식되지 않는다.
 	return World->PhysicsRaycastByObjectTypes(Start, Dir, MaxDist, OutHit,
 		ObjectTypeBit(ECollisionChannel::WorldStatic), Owner);
 }
 
 float UCharacterMovementComponent::GetCapsuleHalfHeight() const
 {
-	// UpdatedComponent 가 capsule 이라야 의미 있음 — 다른 shape 면 0.
 	if (UCapsuleComponent* Cap = Cast<UCapsuleComponent>(GetUpdatedComponent()))
 	{
 		return Cap->GetScaledCapsuleHalfHeight();
+	}
+	return 0.0f;
+}
+
+float UCharacterMovementComponent::GetCapsuleRadius() const
+{
+	if (UCapsuleComponent* Cap = Cast<UCapsuleComponent>(GetUpdatedComponent()))
+	{
+		return Cap->GetScaledCapsuleRadius();
 	}
 	return 0.0f;
 }
@@ -471,4 +721,10 @@ void UCharacterMovementComponent::Serialize(FArchive& Ar)
 	Ar << bOrientRotationToMovement;
 	Ar << RotationYawRate;
 	Ar << SweepPullbackDistance;
+	Ar << GroundSnapDistance;
+	Ar << MaxStepHeight;
+	Ar << WalkableFloorZ;
+	Ar << MaxSlideIterations;
+	Ar << MaxDepenetrationIterations;
+	Ar << DepenetrationSkin;
 }

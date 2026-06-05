@@ -1,4 +1,4 @@
-#include "GameFramework/Pawn/Character.h"
+﻿#include "GameFramework/Pawn/Character.h"
 
 #include "Component/PrimitiveComponent.h"
 #include "Component/Shape/CapsuleComponent.h"
@@ -219,11 +219,15 @@ void ACharacter::InitDefaultComponents(const FString& SkeletalMeshFileName)
 	// simulate=false 인 static 바디로는 static trigger 와 overlap 이 발화되지 않으므로 kinematic 으로 등록
 	// (kinematic↔static pair → setKinematicTarget 으로 위치 추적 + trigger 콜백 수신).
 	// ※ overlap 을 받으려면 CollisionEnabled 가 QueryOnly/QueryAndPhysics 여야 물리 씬에 등록됨.
+	CapsuleComponent->SetSimulatePhysics(false);
 	CapsuleComponent->SetKinematic(true);
+	CapsuleComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 
 	// 2) SkeletalMesh — Capsule 의 자식.
 	Mesh = AddComponent<USkeletalMeshComponent>();
 	Mesh->AttachToComponent(CapsuleComponent);
+	Mesh->SetSimulatePhysics(false);
+	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	ID3D11Device* Device = GEngine->GetRenderer().GetFD3DDevice().GetDevice();
 	if (!SkeletalMeshFileName.empty())
@@ -531,26 +535,16 @@ void ACharacter::SavePreRagdollCharacterState()
 
 ECollisionEnabled ACharacter::ResolveCharacterDrivenCapsuleCollisionEnabled() const
 {
-	if (bSavedPreRagdollCharacterState)
-	{
-		return SavedPreRagdollCollisionOwnership.CapsuleCollisionEnabled;
-	}
-
-	return CapsuleComponent
-		? CapsuleComponent->GetCollisionEnabled()
-		: ECollisionEnabled::NoCollision;
+	// Character locomotion collision is query/controller owned. Dynamic rigid-body
+	// simulation is not allowed to own the root capsule transform.
+	return ECollisionEnabled::QueryOnly;
 }
 
 ECollisionEnabled ACharacter::ResolveCharacterDrivenMeshCollisionEnabled() const
 {
-	if (bSavedPreRagdollCharacterState)
-	{
-		return SavedPreRagdollCollisionOwnership.MeshCollisionEnabled;
-	}
-
-	return Mesh
-		? Mesh->GetCollisionEnabled()
-		: ECollisionEnabled::NoCollision;
+	// The visual mesh is not the locomotion collider. Gameplay hitboxes / ragdoll
+	// physics asset bodies should own physical/query interaction separately.
+	return ECollisionEnabled::NoCollision;
 }
 
 ECollisionEnabled ACharacter::ResolveCapsuleCollisionEnabledForCurrentOwnership() const
@@ -604,8 +598,31 @@ ECollisionEnabled ACharacter::ResolveMeshCollisionEnabledForCurrentOwnership() c
 	}
 }
 
+void ACharacter::ApplyCharacterPhysicsOwnershipPolicy()
+{
+	// Character locomotion is controller/CharacterMovement driven. The root capsule
+	// must never become a dynamic PhysicsToEngine body during normal movement or
+	// ragdoll transitions; otherwise the physics snapshot owns the same transform
+	// CharacterMovement is trying to move. Full ragdoll uses independent physics
+	// asset bodies, not the visual mesh component's single primitive body.
+	if (CapsuleComponent)
+	{
+		CapsuleComponent->SetSimulatePhysics(false);
+		CapsuleComponent->SetKinematic(true);
+		CapsuleComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	}
+
+	if (Mesh)
+	{
+		Mesh->SetSimulatePhysics(false);
+		Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+}
+
 void ACharacter::ReconcileCharacterCollisionOwnership()
 {
+	ApplyCharacterPhysicsOwnershipPolicy();
+
 	if (CapsuleComponent)
 	{
 		CapsuleComponent->SetCollisionEnabled(ResolveCapsuleCollisionEnabledForCurrentOwnership());

@@ -3174,7 +3174,7 @@ bool USkeletalMeshComponent::EvaluateAnimInstance(float DeltaTime)
     }
 
     // Root motion 적용은 UCharacterMovementComponent 가 책임.
-    // CMC::TickComponent (TG_DuringPhysics) 가 매 frame 이 AnimInstance->ConsumeRootMotion 으로
+    // CMC::TickComponent (TG_PrePhysicsMovement) 가 매 frame 이 AnimInstance->ConsumeRootMotion 으로
     // 누적값을 가져가 capsule 이동 / 회전에 반영한다 (sweep / floor stick 통과).
     // Mesh 는 actor transform 을 직접 만지지 않는다 — UE 본가 패턴.
     //

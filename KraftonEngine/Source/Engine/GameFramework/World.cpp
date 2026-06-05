@@ -648,6 +648,7 @@ void UWorld::Tick(float DeltaTime, ELevelTick TickType)
     }
 
     TickManager.TickGroup(TG_PrePhysics, DeltaTime, TickType);
+    TickManager.TickGroup(TG_PrePhysicsMovement, DeltaTime, TickType);
 
     uint64 SubmittedPhysicsFrame = 0;
     if (bHasBegunPlay && PhysicsScene)

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "MovementComponent.h"
 #include "Core/Types/CollisionTypes.h"   // FHitResult
@@ -79,6 +79,7 @@ public:
 	void           StopMovementImmediately();
 
 	// UMovementComponent:
+	void BeginPlay() override;
 	void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction& ThisTickFunction) override;
 	void Serialize(FArchive& Ar) override;
 
@@ -92,11 +93,24 @@ public:
 	UPROPERTY(Edit, Save, Category="CharacterMovement", DisplayName="Gravity", Min=0.0f, Max=100.0f, Speed=0.1f)
 	float Gravity            = 9.8f;     // m/s^2 (positive — 적용 시 Velocity.Z -= Gravity*dt)
 	UPROPERTY(Edit, Save, Category="CharacterMovement", DisplayName="Floor Probe Distance", Min=0.0f, Max=5.0f, Speed=0.01f)
-	float FloorProbeDistance = 0.1f;     // capsule HalfHeight 아래 추가 probe 거리
+	float FloorProbeDistance = 0.35f;    // capsule HalfHeight 아래 추가 probe 거리
 	UPROPERTY(Edit, Save, Category="CharacterMovement", DisplayName="Jump Z Velocity", Min=0.0f, Max=50.0f, Speed=0.1f)
 	float JumpZVelocity      = 6.0f;     // m/s — Jump 시 Velocity.Z 에 박는 값
 	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Sweep Pullback Distance", Min=0.0f, Max=10.0f, Speed=0.01f)
 	float SweepPullbackDistance = 0.01f;
+	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Ground Snap Distance", Min=0.0f, Max=5.0f, Speed=0.01f)
+	float GroundSnapDistance = 0.45f;
+	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Max Step Height", Min=0.0f, Max=2.0f, Speed=0.01f)
+	float MaxStepHeight = 0.45f;
+	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Walkable Floor Z", Min=0.0f, Max=1.0f, Speed=0.01f)
+	float WalkableFloorZ = 0.5f;
+	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Max Slide Iterations", Min=1.0f, Max=8.0f, Speed=1.0f)
+	float MaxSlideIterations = 3.0f;
+	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Max Depenetration Iterations", Min=0.0f, Max=16.0f, Speed=1.0f)
+	float MaxDepenetrationIterations = 8.0f;
+	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Depenetration Skin", Min=0.0f, Max=0.2f, Speed=0.001f)
+	float DepenetrationSkin = 0.02f;
+
 
 	// UE 패턴 — true 면 매 frame Updated 의 yaw 를 현재 Velocity.XY 방향으로 lerp 회전.
 	// 이동 중에만 회전 (정지 시 마지막 facing 유지). Pawn::bUseControllerRotationYaw 와 동시
@@ -116,10 +130,18 @@ protected:
 	void  TickWalking(float DeltaTime, const FVector& RootMotionWorldXY);
 	void  TickFalling(float DeltaTime, const FVector& RootMotionWorldXY);
 
-	// capsule 중심에서 down raycast — bHit + WorldHitLocation 사용.
+	// Character controller core. Dynamic rigid-body simulation is intentionally not used for locomotion.
+	void  EnforceCharacterControllerPolicy();
+	bool  RecoverFromPenetration();
+	bool  ProbePenetration(FHitResult& OutHit) const;
 	bool  TraceFloor(FHitResult& OutHit) const;
+	bool  IsWalkableFloor(const FHitResult& Hit) const;
+	bool  SnapToFloor(float ProbeDistance);
+	bool  MoveWithSlide(const FVector& Delta, FHitResult* OutHit = nullptr);
+	bool  TryStepUp(const FVector& MoveDelta, const FHitResult& BlockingHit);
     bool  SafeMoveUpdatedComponent(const FVector& Delta, FHitResult* OutHit = nullptr);
 	float GetCapsuleHalfHeight() const;
+	float GetCapsuleRadius() const;
 
 	FVector       AccumulatedInput = FVector(0.0f, 0.0f, 0.0f);
 	FVector       Velocity         = FVector(0.0f, 0.0f, 0.0f);
@@ -137,6 +159,7 @@ protected:
 	// 직전 TickComponent 에서 root motion yaw 가 실제 적용됐는지 (외부 query 용 — Character 의 yaw 가드).
 	// 매 Tick 시작에 reset 후 yaw 적용 시 true.
 	bool          bAppliedRootMotionYawThisFrame = false;
+	bool          bNeedsInitialGrounding = true;
 
 	// 평면 속도 기준 yaw 를 RotationYawRate * dt 로 lerp. TickComponent 끝에서 적용.
 	void  PhysOrientToMovement(float DeltaTime);

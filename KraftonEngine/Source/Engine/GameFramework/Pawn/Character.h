@@ -146,6 +146,7 @@ protected:
 	void ApplyCharacterDrivenCollisionPolicy();
 	void ApplyFullRagdollCollisionPolicy();
 	void ApplyPartialRagdollCollisionPolicy();
+	void ApplyCharacterPhysicsOwnershipPolicy();
 	void ReconcileCharacterCollisionOwnership();
 	ECollisionEnabled ResolveCharacterDrivenCapsuleCollisionEnabled() const;
 	ECollisionEnabled ResolveCharacterDrivenMeshCollisionEnabled() const;
