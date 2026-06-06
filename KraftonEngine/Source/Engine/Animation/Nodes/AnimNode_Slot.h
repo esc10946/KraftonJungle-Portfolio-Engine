@@ -9,19 +9,19 @@ class UAnimInstance;
 //
 // Update:
 //   1) InputPose.Update → InputLastRM mirror
-//   2) AnimInstance 의 SlotName 매칭 MontageInstance 조회
-//   3) active 면 MontageInstance.Tick(dt) + Slot.LastRM = lerp(InputLastRM, MI.LastRM, W)
+//   2) AnimInstance 의 SlotName 매칭 active/outgoing instances 갱신
+//   3) active montage 의 root motion 만 Slot.LastRM 에 반영
 //
 // Evaluate:
 //   1) InputPose.Evaluate → Output (base pose)
-//   2) Active + W > 0 이면 MontagePose 평가 후 BlendTwoPosesTogether 로 lerp (in-place 안전)
+//   2) Active/outgoing pose 를 각 weight 로 합성 후 base pose 와 blend
 //   3) 없거나 weight 0 이면 InputPose 그대로 pass-through — overhead 무
 //
 // 단일 책임 — Slot 이 자기 slot 의 montage 의 모든 처리 (Tick / Evaluate / RM 합성) 를 맡음.
 // Root motion 은 외부 누적 패턴이라 직접 AccumulateRootMotion 호출 안 함 — Slot.LastRM 만 채움,
 // 부모 (LayeredBlend 또는 RootNode) 가 단일 진입점에서 누적.
 //
-// EffectiveBlendWeight = montage active 면 montage.GetBlendWeight, 아니면 0.
+// EffectiveBlendWeight = active/outgoing weight 합계를 [0, 1]로 clamp.
 // LayeredBlend 의 BlendPose 로 박힐 때 이 값이 자동 weight 가 되어 montage 없을 때 base 100%.
 class FAnimNode_Slot : public FAnimNode_Base
 {

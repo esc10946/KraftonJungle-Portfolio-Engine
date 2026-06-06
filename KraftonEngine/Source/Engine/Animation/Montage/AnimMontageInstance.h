@@ -10,7 +10,7 @@ class UAnimInstance;
 struct FPoseContext;
 
 // Montage 재생 상태 머신.
-//   AnimInstance 가 1 개 보유 — 하나의 montage 만 동시 재생 (UE 의 default slot 모델과 유사).
+//   AnimInstance 슬롯이 active 1개와 blend-out 중인 outgoing 여러 개를 보유한다.
 //
 // 라이프사이클:
 //   Inactive → Play() → BlendingIn → (alpha 도달) → Playing → (section end / Stop)
@@ -46,6 +46,7 @@ public:
     FName         GetCurrentSectionName() const;
     float         GetSectionTime() const { return SectionTime; }
     float         GetBlendWeight() const;
+    void          SetNotifiesEnabled(bool bEnabled) { bNotifiesEnabled = bEnabled; }
 
     // ── 매 프레임 ──
     void Tick(float DeltaSeconds, UAnimInstance* Owner);
@@ -82,6 +83,7 @@ private:
     float  BlendInTime     = 0.25f;
     float  BlendOutTime    = 0.25f;
     float  PlayRate        = 1.0f;
+    bool   bNotifiesEnabled = true;
 
     // 매 Tick 의 raw RM delta (W 곱 안 함). Slot 노드가 GetBlendWeight 로 lerp 책임.
     FTransform LastRootMotionDelta;

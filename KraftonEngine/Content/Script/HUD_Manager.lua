@@ -18,13 +18,25 @@ local ENEMY_BAR_ID_PREFIX = "enemy-bar-"
 local ENEMY_HP_MASK_ID_PREFIX = "enemy-hp-mask-"
 local ENEMY_POSTURE_MASK_ID_PREFIX = "enemy-posture-mask-"
 local ENEMY_BAR_ACTOR_TAG = "Enemy"
-local ENEMY_BAR_HEAD_PADDING_Z = 0.35
-local ENEMY_BAR_FALLBACK_HEAD_OFFSET_Z = 3.5
+local ENEMY_BAR_HEAD_PADDING_Z = 0.15
+local ENEMY_BAR_FALLBACK_HEAD_OFFSET_Z = 1.05
 local ENEMY_BAR_MAX_DISTANCE = 40.0
 local ENEMY_BAR_SCREEN_EDGE_PADDING = 6.0
 local ENEMY_BAR_UPDATE_INTERVAL = 1.0 / 60.0
 local ENEMY_BAR_CHANGE_REVEAL_SECONDS = 3.0
+local ENEMY_BAR_COMBAT_VISIBILITY_GRACE_SECONDS = 0.5
 local ENEMY_BAR_RATIO_CHANGE_EPSILON = 0.0001
+local ENEMY_COMBAT_VISIBLE_STATES = {
+    Chase = true,
+    Strafe = true,
+    Reposition = true,
+    Attack = true,
+    Recover = true,
+    Guard = true,
+    Deflect = true,
+    Hit = true,
+    Staggered = true,
+}
 local widget = nil
 local playerHealth = nil
 local playerHealthBindingId = nil
@@ -297,7 +309,21 @@ local function resolve_enemy_visibility_id(enemyOrId)
 end
 
 local function is_enemy_in_combat_visibility_state(enemy)
-    local brain = safe_call(enemy, "GetAIBrainComponent")
+    local stateMachine = safe_call(enemy, "GetStateMachine")
+
+    if is_valid_object(stateMachine) then
+        local stateName = safe_call(stateMachine, "GetState")
+
+        if ENEMY_COMBAT_VISIBLE_STATES[stateName] == true then
+            return true
+        end
+    end
+
+    local brain = safe_call(enemy, "GetEnemyAIBrainComponent")
+
+    if not is_valid_object(brain) then
+        brain = safe_call(enemy, "GetAIBrainComponent")
+    end
 
     if is_valid_object(brain) and safe_call(brain, "HasValidTarget") == true then
         return true
@@ -352,7 +378,15 @@ local function is_enemy_visibility_requested(enemy, enemyId)
         end
     end
 
-    return is_enemy_in_combat_visibility_state(enemy)
+    if is_enemy_in_combat_visibility_state(enemy) then
+        state = state or get_enemy_visibility_state(enemyId)
+        state.combatVisibleUntil = hudTimeSeconds + ENEMY_BAR_COMBAT_VISIBILITY_GRACE_SECONDS
+        return true
+    end
+
+    return state ~= nil
+        and state.combatVisibleUntil ~= nil
+        and state.combatVisibleUntil > hudTimeSeconds
 end
 
 local function is_enemy_bar_too_far(screen)
@@ -876,8 +910,8 @@ function BeginPlay()
     SetPlayerHpRatio(1.0)
     bind_player_pawn_events()
     SetBossHpRatio(1.0)
-    SetBossPostureRatio(0.9)
-    SetPlayerPostureRatio(1.4)
+    SetBossPostureRatio(1.0)
+    SetPlayerPostureRatio(1.0)
     SetPlayerTokenVisible(true)
 end
 

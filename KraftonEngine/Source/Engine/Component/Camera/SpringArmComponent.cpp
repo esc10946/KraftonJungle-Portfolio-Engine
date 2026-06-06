@@ -48,6 +48,12 @@ namespace
 	}
 }
 
+USpringArmComponent::USpringArmComponent()
+{
+	PrimaryComponentTick.SetTickGroup(TG_PostUpdateWork);
+	PrimaryComponentTick.SetEndTickGroup(TG_PostUpdateWork);
+}
+
 void USpringArmComponent::BeginPlay()
 {
 	Super::BeginPlay();

@@ -23,6 +23,7 @@ namespace
 {
 	constexpr float CharacterMoveSmallNumber = 1.0e-5f;
 	constexpr float CharacterPenetrationProbeDistance = 0.02f;
+	constexpr float CharacterMaxDepenetrationDistancePerFrame = 0.10f;
 
 
 	int32 ClampIterationCount(float Value, int32 MinValue, int32 MaxValue)
@@ -472,30 +473,37 @@ bool UCharacterMovementComponent::RecoverFromPenetration()
 	USceneComponent* Updated = GetUpdatedComponent();
 	if (!Updated) return false;
 
-	const int32 Iterations = ClampIterationCount(MaxDepenetrationIterations, 0, 16);
-	for (int32 Iter = 0; Iter < Iterations; ++Iter)
+	FHitResult Hit;
+	if (!ProbePenetration(Hit))
 	{
-		FHitResult Hit;
-		if (!ProbePenetration(Hit))
-		{
-			return true;
-		}
-
-		FVector Normal = Hit.ImpactNormal;
-		if (Normal.IsNearlyZero())
-		{
-			Normal = FVector::UpVector;
-		}
-		Normal.Normalize();
-
-		float Depth = Hit.PenetrationDepth;
-		if (Depth <= CharacterMoveSmallNumber)
-		{
-			Depth = DepenetrationSkin;
-		}
-
-		Updated->SetWorldLocation(Updated->GetWorldLocation() + Normal * (Depth + DepenetrationSkin));
+		return true;
 	}
+
+	if (ClampIterationCount(MaxDepenetrationIterations, 0, 1) == 0)
+	{
+		return false;
+	}
+
+	FVector Normal = Hit.ImpactNormal;
+	if (Normal.IsNearlyZero())
+	{
+		Normal = FVector::UpVector;
+	}
+	Normal.Normalize();
+
+	const float Depth = std::max(Hit.PenetrationDepth, 0.0f);
+	const float CorrectionDistance = std::clamp(
+		Depth + DepenetrationSkin,
+		0.0f,
+		CharacterMaxDepenetrationDistancePerFrame);
+
+	if (CorrectionDistance <= CharacterMoveSmallNumber)
+	{
+		return false;
+	}
+
+	Updated->SetWorldLocation(
+		Updated->GetWorldLocation() + Normal * CorrectionDistance);
 
 	FHitResult FinalHit;
 	return !ProbePenetration(FinalHit);

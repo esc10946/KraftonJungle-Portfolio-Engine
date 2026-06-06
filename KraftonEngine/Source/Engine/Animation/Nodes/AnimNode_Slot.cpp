@@ -30,34 +30,17 @@ void FAnimNode_Slot::Update(const FAnimationUpdateContext& Context)
 		InputLastRM = FTransform();
 	}
 
-	// 자기 slot 의 montage tick + RM 합성 — Slot 이 단일 책임자.
-	// Pose 합성과 동일 weight 로 LastRM 도 lerp(InputPose.LastRM, MontageRM, W). Montage 의
-	// LastRM 은 raw delta (W 곱 안 함) 라 Slot 측에서 lerp.
+	// Slot runtime이 outgoing pose를 갱신하고 active montage의 root motion만 반영한다.
 	if (IsValid(OwnerAnimInstance))
 	{
-		UAnimMontageInstance* MI = OwnerAnimInstance->GetMontageInstanceForSlot(SlotName);
-		if (MI && MI->IsActive())
-		{
-			MI->Tick(Context.DeltaSeconds, OwnerAnimInstance);
-
-			const float W = MI->GetBlendWeight();
-			if (W > 0.0f)
-			{
-				const FTransform& MontageRM = MI->GetLastRootMotionDelta();
-				InputLastRM.Location = InputLastRM.Location * (1.0f - W) + MontageRM.Location * W;
-				InputLastRM.Rotation = FQuat::Slerp(InputLastRM.Rotation.GetNormalized(),
-				                                    MontageRM.Rotation.GetNormalized(), W).GetNormalized();
-			}
-		}
+		OwnerAnimInstance->UpdateMontageSlot(SlotName, Context.DeltaSeconds, InputLastRM);
 	}
 }
 
 float FAnimNode_Slot::GetEffectiveBlendWeight() const
 {
 	if (!IsValid(OwnerAnimInstance)) return 0.0f;
-	UAnimMontageInstance* MI = OwnerAnimInstance->GetMontageInstanceForSlot(SlotName);
-	if (!MI || !MI->IsActive()) return 0.0f;
-	return MI->GetBlendWeight();
+	return OwnerAnimInstance->GetMontageSlotBlendWeight(SlotName);
 }
 
 void FAnimNode_Slot::Evaluate(FPoseContext& Output)
@@ -72,30 +55,9 @@ void FAnimNode_Slot::Evaluate(FPoseContext& Output)
 		Output.ResetToRefPose();
 	}
 
-	// 2) 이 slot 의 active montage 조회. 없거나 weight 0 이면 pass-through.
+	// 2) 이 slot의 active/outgoing montage pose를 합성한다.
 	if (!IsValid(OwnerAnimInstance)) return;
-	UAnimMontageInstance* MI = OwnerAnimInstance->GetMontageInstanceForSlot(SlotName);
-	if (!MI || !MI->IsActive()) return;
-
-	const float Weight = MI->GetBlendWeight();
-	if (Weight <= 0.0f) return;
-
-	// 3) Montage pose 평가 후 BlendWeight 로 lerp. BlendTwoPosesTogether 가 in-place 안전
-	//    (Output == A 케이스 OK).
-	FPoseContext MontagePose;
-	MontagePose.SkeletalMesh = Output.SkeletalMesh;
-	MontagePose.ResetToRefPose();
-	MI->EvaluateMontagePose(MontagePose);
-
-	if (Weight >= 1.0f)
-	{
-		// 완전 montage — base 무시.
-		Output = MontagePose;
-	}
-	else
-	{
-		FAnimationRuntime::BlendTwoPosesTogether(Output, MontagePose, Weight, Output);
-	}
+	OwnerAnimInstance->EvaluateMontageSlot(SlotName, Output);
 }
 
 

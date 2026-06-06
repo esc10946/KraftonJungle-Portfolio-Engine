@@ -81,7 +81,7 @@ namespace
 				Slot->SlotName.ToString().c_str(),
 				Effective);
 
-			// Active montage 정보.
+			// Active/outgoing montage information.
 			if (AnimInst)
 			{
 				if (UAnimMontageInstance* MI = AnimInst->GetMontageInstanceForSlot(Slot->SlotName))
@@ -89,12 +89,28 @@ namespace
 					if (MI->IsActive())
 					{
 						UAnimMontage* M = MI->GetCurrentMontage();
-						ImGui::Text("%s  ↳ montage: %s  section=%s  W=%.2f",
+						ImGui::Text("%s  active: %s  section=%s  W=%.2f",
 							IndentStr.c_str(),
 							M ? M->GetName().c_str() : "(?)",
 							MI->GetCurrentSectionName().ToString().c_str(),
 							MI->GetBlendWeight());
 					}
+				}
+
+				TArray<UAnimMontageInstance*> OutgoingInstances;
+				AnimInst->GetOutgoingMontageInstancesForSlot(
+					Slot->SlotName,
+					OutgoingInstances);
+				for (size_t Index = 0; Index < OutgoingInstances.size(); ++Index)
+				{
+					UAnimMontageInstance* Outgoing = OutgoingInstances[Index];
+					UAnimMontage* M = Outgoing->GetCurrentMontage();
+					ImGui::Text("%s  outgoing[%zu]: %s  section=%s  W=%.2f",
+						IndentStr.c_str(),
+						Index,
+						M ? M->GetName().c_str() : "(?)",
+						Outgoing->GetCurrentSectionName().ToString().c_str(),
+						Outgoing->GetBlendWeight());
 				}
 			}
 
