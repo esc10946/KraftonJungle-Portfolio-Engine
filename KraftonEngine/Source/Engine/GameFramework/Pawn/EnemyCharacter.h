@@ -17,6 +17,7 @@ class UAIDecisionTraceComponent;
 class UCombatMoveComponent;
 class UExecutionComponent;
 class UAwarenessComponent;
+class UBehaviorTreeComponent;
 class FArchive;
 
 #include "Source/Engine/GameFramework/Pawn/EnemyCharacter.generated.h"
@@ -57,6 +58,8 @@ public:
 	UExecutionComponent* GetExecution() const { return Execution; }
 	UFUNCTION(Pure, Category="Enemy|AICore")
 	UAwarenessComponent* GetAwareness() const { return Awareness; }
+	UFUNCTION(Pure, Category="Enemy|AICore")
+	UBehaviorTreeComponent* GetBehaviorTree() const { return BehaviorTree.Get(); }
 	UFUNCTION(Pure, Category="Enemy|AICore")
 	int32 GetAIPhase() const { return GetCurrentAIPhase(); }
 
@@ -272,6 +275,10 @@ public:
 	// 블루프린트가 로드/컴파일/구동 불가하면 안전하게 Brain Script 로 폴백한다.
 	UPROPERTY(Edit, Save, Category="Enemy|AI", DisplayName="Brain Blueprint", AssetType="ULuaBlueprintAsset")
 	FString BrainBlueprintFile = "";
+	// 정책을 Behavior Tree(.uasset)로 구동한다(최우선 드라이버). 지정·로드 가능하면 BT 가 두뇌를
+	// 구동하고 Blueprint/Script 는 끈다. 비우면 기존 Blueprint→Script 경로로 폴백한다.
+	UPROPERTY(Edit, Save, Category="Enemy|AI", DisplayName="Brain Behavior Tree", AssetType="UBehaviorTreeAsset")
+	FString BrainBehaviorTreeFile = "";
 	UPROPERTY(Edit, Save, Category="Enemy|AI", DisplayName="Target Search Range", Min=0.0f, Max=1000.0f, Speed=0.5f)
 	float TargetSearchRange = 16.0f;
 	// 은신 인지 게이팅. false면 기존처럼 즉시 전투(하위호환). true면 Awareness 가
@@ -346,6 +353,7 @@ protected:
 	TWeakObjectPtr<UCombatMoveComponent> CombatMove = nullptr;
 	TWeakObjectPtr<UExecutionComponent> Execution = nullptr;
 	TWeakObjectPtr<UAwarenessComponent> Awareness = nullptr;
+	TWeakObjectPtr<UBehaviorTreeComponent> BehaviorTree = nullptr;
 
 private:
 	bool bCurrentAttackActive = false;

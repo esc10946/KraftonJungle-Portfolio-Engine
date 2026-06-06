@@ -18,6 +18,8 @@
 #include "Component/Movement/CharacterMovementComponent.h"
 #include "Component/Shape/CapsuleComponent.h"
 #include "Component/Script/LuaScriptComponent.h"
+#include "Component/AI/BehaviorTreeComponent.h"
+#include "AI/BehaviorTree/BehaviorTreeManager.h"
 #include "Component/Script/LuaBlueprintComponent.h"
 #include "LuaBlueprint/LuaBlueprintManager.h"
 #include "LuaBlueprint/LuaBlueprintAsset.h"
@@ -99,6 +101,7 @@ void AEnemyCharacter::InitDefaultComponents(const FString& SkeletalMeshFileName,
 	CombatMove = AddComponent<UCombatMoveComponent>();
 	Execution = AddComponent<UExecutionComponent>();
 	Awareness = AddComponent<UAwarenessComponent>();
+	BehaviorTree = AddComponent<UBehaviorTreeComponent>();
 	LuaScriptComponent = AddComponent<ULuaScriptComponent>();
 	BrainBlueprint = AddComponent<ULuaBlueprintComponent>();
 	// 정책 드라이버 선택(Lua Blueprint 우선, 아니면 raw Lua). ScriptFile 이 명시되면 그것을 강제.
@@ -176,6 +179,11 @@ void AEnemyCharacter::RebindEnemyComponents()
 	{
 		Awareness = AddComponent<UAwarenessComponent>();
 	}
+	BehaviorTree = GetComponentByClass<UBehaviorTreeComponent>();
+	if (!BehaviorTree.IsValid())
+	{
+		BehaviorTree = AddComponent<UBehaviorTreeComponent>();
+	}
 	if (!AIControllerClass)
 	{
 		AIControllerClass = AAIController::StaticClass();
@@ -187,16 +195,32 @@ void AEnemyCharacter::ConfigureBrainDriver(const FString& ExplicitScriptOverride
 {
 	ULuaScriptComponent*    Script = LuaScriptComponent.Get();
 	ULuaBlueprintComponent* Bp     = BrainBlueprint.Get();
+	UBehaviorTreeComponent* BT     = BehaviorTree.Get();
 
 	// 1) 명시적 raw-lua 오버라이드(특수 적/테스트)는 최우선.
 	if (!ExplicitScriptOverride.empty())
 	{
+		if (BT)     BT->SetBehaviorTreePath(FString());
 		if (Bp)     Bp->SetBlueprintPath(FString());
 		if (Script) Script->SetScriptFile(ExplicitScriptOverride);
 		return;
 	}
 
-	// 2) 구동 가능한 Lua Blueprint 가 지정됐으면 그것으로 두뇌를 구동(정책=Lua Blueprint).
+	// 2) 로드 가능한 Behavior Tree 가 지정됐으면 그것으로 두뇌를 구동(최우선 데이터 드라이버).
+	if (BT && !BrainBehaviorTreeFile.empty())
+	{
+		if (FBehaviorTreeManager::Get().Load(BrainBehaviorTreeFile))
+		{
+			if (Script) Script->SetScriptFile(FString()); // 다른 두뇌 끄기(중복 구동 방지)
+			if (Bp)     Bp->SetBlueprintPath(FString());
+			BT->SetBehaviorTreePath(BrainBehaviorTreeFile);
+			return;
+		}
+		UE_LOG("EnemyCharacter Brain Behavior Tree not loadable, falling back: %s", BrainBehaviorTreeFile.c_str());
+	}
+	if (BT) BT->SetBehaviorTreePath(FString()); // BT 미사용 — inert 로
+
+	// 3) 구동 가능한 Lua Blueprint 가 지정됐으면 그것으로 두뇌를 구동(정책=Lua Blueprint).
 	bool bUseBlueprint = false;
 	if (!BrainBlueprintFile.empty())
 	{

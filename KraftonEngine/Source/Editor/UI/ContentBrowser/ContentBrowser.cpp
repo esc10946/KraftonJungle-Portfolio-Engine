@@ -13,6 +13,8 @@
 #include "FloatCurve/FloatCurveManager.h"
 #include "LuaBlueprint/LuaBlueprintAsset.h"
 #include "LuaBlueprint/LuaBlueprintManager.h"
+#include "AI/BehaviorTree/BehaviorTreeAsset.h"
+#include "AI/BehaviorTree/BehaviorTreeManager.h"
 #include "Mesh/MeshManager.h"
 #include "Mesh/Skeletal/SkeletalMesh.h"
 #include "Editor/UI/Asset/Mesh/MeshEditorWidget.h"
@@ -507,6 +509,9 @@ void FEditorContentBrowserWidget::RefreshContent()
 				case EAssetPackageType::LuaBlueprint:
 					Element = std::make_shared<LuaBlueprintElement>();
 					break;
+				case EAssetPackageType::BehaviorTree:
+					Element = std::make_shared<BehaviorTreeElement>();
+					break;
 				case EAssetPackageType::PhysicsAsset:
 					Element = std::make_shared<PhysicsAssetElement>();
 					break;
@@ -694,7 +699,15 @@ void FEditorContentBrowserWidget::DrawContents()
 					}
 				}
 			}
-			if (ImGui::MenuItem("Particle System"))
+			if (ImGui::MenuItem("Behavior Tree"))
+				{
+					FString CreatedPath;
+					if (FAssetFactory::CreateBehaviorTree(FPaths::ToUtf8(BrowserContext.CurrentPath), "NewBehaviorTree", CreatedPath))
+					{
+						Refresh();
+					}
+				}
+				if (ImGui::MenuItem("Particle System"))
 			{
 				FString CreatedPath;
 				if (FAssetFactory::CreateParticleSystem(

@@ -29,6 +29,7 @@
 #include "Editor/UI/Asset/Mesh/MeshEditorWidget.h"
 #include "Editor/UI/Asset/Mesh/StaticMeshEditorWidget.h"
 #include "Editor/UI/Asset/Animation/AnimGraphEditorWidget.h"
+#include "Editor/UI/Asset/BehaviorTree/BehaviorTreeEditorWidget.h"
 #include "Editor/UI/Asset/LuaBlueprint/LuaBlueprintEditorWidget.h"
 #include "Editor/UI/Asset/Material/MaterialEditorWidget.h"
 #include "Editor/UI/Asset/Physics/PhysicsAssetEditorWidget.h"
@@ -98,6 +99,8 @@ FDocumentTabVisual GetDocumentTabVisual(EEditorDocumentTabKind Kind)
         return { ImVec4(0.92f, 0.44f, 0.24f, 1.0f), "Material Graph Editor" };
 	case EEditorDocumentTabKind::RmlWidgetEditor:
 		return { ImVec4(0.28f, 0.62f, 0.94f, 1.0f), "RML Widget Editor" };
+	case EEditorDocumentTabKind::BehaviorTreeEditor:
+		return { ImVec4(0.40f, 0.80f, 0.55f, 1.0f), "Behavior Tree Editor" };
 	case EEditorDocumentTabKind::Unsupported:
 	default:
 		return { ImVec4(0.58f, 0.62f, 0.70f, 1.0f), "Editor Tab" };
@@ -119,6 +122,8 @@ const char* GetDocumentTabKindName(EEditorDocumentTabKind Kind)
         return "Material";
 	case EEditorDocumentTabKind::RmlWidgetEditor:
 		return "RmlWidget";
+	case EEditorDocumentTabKind::BehaviorTreeEditor:
+		return "BehaviorTree";
 	case EEditorDocumentTabKind::Unsupported:
 	default:
 		return "Unsupported";
@@ -222,6 +227,7 @@ void FEditorMainPanel::Create(FWindowsWindow* InWindow, FRenderer& InRenderer, U
 	AssetEditorManager.RegisterEditor<FLuaBlueprintEditorWidget>();
     AssetEditorManager.RegisterEditor<FMaterialEditorWidget>();
 	AssetEditorManager.RegisterEditor<FRmlWidgetEditorWidget>();
+	AssetEditorManager.RegisterEditor<FBehaviorTreeEditorWidget>();
 }
 
 void FEditorMainPanel::Release()

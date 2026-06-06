@@ -127,6 +127,12 @@
     <Filter Include="Source\Engine\AI\Navigation">
       <UniqueIdentifier>{215c1fd4-f045-1ab9-2677-6f0a89e1e7dd}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Engine\AI\BehaviorTree">
+      <UniqueIdentifier>{a1b2c3d4-0001-4a5b-8c6d-000000000001}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\AI\BehaviorTree\Runtime">
+      <UniqueIdentifier>{a1b2c3d4-0002-4a5b-8c6d-000000000002}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source\Engine\Animation">
       <UniqueIdentifier>{883a27c1-1a16-4122-ba2c-ce4f747faae7}</UniqueIdentifier>
     </Filter>
@@ -1222,6 +1228,12 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Component\AI\AIBlackboardComponent.cpp">
       <Filter>Source\Engine\Component\AI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Component\AI\BehaviorTreeComponent.cpp">
+      <Filter>Source\Engine\Component\AI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\AI\BehaviorTree\Runtime\BTTasks.cpp">
+      <Filter>Source\Engine\AI\BehaviorTree\Runtime</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Component\AI\AIDecisionTraceComponent.cpp">
       <Filter>Source\Engine\Component\AI</Filter>
@@ -2662,6 +2674,21 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\AI\AIBlackboardComponent.h">
       <Filter>Source\Engine\Component\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Component\AI\BehaviorTreeComponent.h">
+      <Filter>Source\Engine\Component\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTNodeResult.h">
+      <Filter>Source\Engine\AI\BehaviorTree\Runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTContext.h">
+      <Filter>Source\Engine\AI\BehaviorTree\Runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTNode.h">
+      <Filter>Source\Engine\AI\BehaviorTree\Runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTTasks.h">
+      <Filter>Source\Engine\AI\BehaviorTree\Runtime</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\AI\AIDecisionTraceComponent.h">
       <Filter>Source\Engine\Component\AI</Filter>
