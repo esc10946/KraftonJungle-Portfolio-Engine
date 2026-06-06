@@ -24,6 +24,13 @@ local VICTORY_ICON_IN = 0.8     -- victory icon scales 0.8 -> 1.0 as it settles
 local LB_ZORDER       = 30      -- leaderboard layers ABOVE victory/death (z 20)
 local LB_ROWS         = 6       -- row cells defined in Leaderboard.rml
 local LB_ALPHABET     = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+local UI_SOUND_VOLUME = 1.0
+local SFX_WINDOW_OPEN = "UI_WindowOpen"
+local SFX_WINDOW_CLOSE = "UI_WindowClose"
+local SFX_SUCCESS = "UI_Success"
+local SFX_CANCEL = "UI_Cancel"
+local SFX_DEADWINDOW = "UI_DeadWindow"
+local SFX_RESPAWN = "UI_Respawn"
 
 local pause   = nil             -- pause overlay, created hidden, shown while paused
 local death   = nil             -- death overlay, created hidden, shown while Dead
@@ -42,6 +49,11 @@ local lbSubmitMode   = false    -- true => name entry shown, SUBMIT writes a rec
 local lbLetters      = { 1, 1, 1 } -- 1-based indices into LB_ALPHABET (AAA)
 local lbPendingTime  = 0        -- run time captured when submit mode opened
 local lbPendingRev   = 0        -- revive count captured when submit mode opened
+local pauseVisible   = false
+local deathVisible   = false
+local reviveVisible  = false
+local victoryVisible = false
+local leaderboardVisible = false
 
 -- DEBUG ONLY: number keys fire macro flow events so we can exercise the state
 -- machine without real combat. Set to false (or delete this block + the Tick
@@ -57,15 +69,52 @@ local DEBUG_BINDINGS = {
     { key = "0", fn = function() Debug.PrintPhase()   end },   -- log current phase
 }
 
+local function LoadUISounds()
+    if Audio == nil or Audio.Load == nil then return end
+    Audio.Load(SFX_WINDOW_OPEN, "WindowOpen.wav", false)
+    Audio.Load(SFX_WINDOW_CLOSE, "WindowClose.wav", false)
+    Audio.Load(SFX_SUCCESS, "Success.wav", false)
+    Audio.Load(SFX_CANCEL, "Cancel.wav", false)
+    Audio.Load(SFX_DEADWINDOW, "DeadWindow.wav", false)
+    Audio.Load(SFX_RESPAWN, "Respawn.wav", false)
+end
+
+local function PlayUISound(key)
+    if Audio == nil or Audio.Play == nil then return end
+    Audio.Play(key, UI_SOUND_VOLUME)
+end
+
+local function ShowWindow(widget, zorder, visibleFlag)
+    if widget == nil then return false end
+    widget:AddToViewportZ(zorder)
+
+    if not visibleFlag then
+        PlayUISound(SFX_WINDOW_OPEN)
+    end
+
+    return true
+end
+
+local function HideWindow(widget, visibleFlag)
+    if widget == nil then return false end
+    widget:RemoveFromParent()
+
+    if visibleFlag then
+        PlayUISound(SFX_WINDOW_CLOSE)
+    end
+
+    return false
+end
+
 -- Sync the overlay to the GameMode's pause state. TogglePause may be a no-op
 -- (e.g. while dead), so we read the actual state rather than assuming it flipped.
 local function SyncPauseUI()
     if pause == nil then return end
     if Engine.IsPaused() then
         pause:SetWantsMouse(true)   -- pause menu needs the cursor
-        pause:AddToViewportZ(PAUSE_ZORDER)
+        pauseVisible = ShowWindow(pause, PAUSE_ZORDER, pauseVisible)
     else
-        pause:RemoveFromParent()
+        pauseVisible = HideWindow(pause, pauseVisible)
     end
 end
 
@@ -78,8 +127,9 @@ local function ShowDeath()
     death:SetProperty("leaderboard_btn", "display", "none")
     death:SetProperty("title_btn", "display", "none")
     death:SetWantsMouse(true)
-    death:AddToViewportZ(DEATH_ZORDER)
+    deathVisible = ShowWindow(death, DEATH_ZORDER, deathVisible)
     CameraManager.FadeOut(DEATH_FADE)   -- post-process fade to black, held
+    PlayUISound(SFX_DEADWINDOW)
     deathActive = true
 end
 
@@ -96,7 +146,7 @@ local function ShowDefeated()
 end
 
 local function HideDeath()
-    if death ~= nil then death:RemoveFromParent() end
+    deathVisible = HideWindow(death, deathVisible)
     deathActive = false
 end
 
@@ -107,13 +157,14 @@ local function ShowRevive()
     if revive == nil then return end
     revive:SetProperty("revive-icon", "opacity", "1")
     revive:SetProperty("revive-icon", "transform", "scale(1.0)")
-    revive:AddToViewportZ(REVIVE_ZORDER)
+    reviveVisible = ShowWindow(revive, REVIVE_ZORDER, reviveVisible)
+    PlayUISound(SFX_RESPAWN)
     reviveActive  = true
     reviveElapsed = 0
 end
 
 local function HideRevive()
-    if revive ~= nil then revive:RemoveFromParent() end
+    reviveVisible = HideWindow(revive, reviveVisible)
     reviveActive = false
 end
 
@@ -129,13 +180,13 @@ local function ShowVictory()
     victory:SetProperty("victory-panel", "opacity", "0")
     victory:SetProperty("victory-icon", "transform", "scale(" .. VICTORY_ICON_IN .. ")")
     victory:SetWantsMouse(true)
-    victory:AddToViewportZ(VICTORY_ZORDER)
+    victoryVisible = ShowWindow(victory, VICTORY_ZORDER, victoryVisible)
     victoryActive  = true
     victoryElapsed = 0
 end
 
 local function HideVictory()
-    if victory ~= nil then victory:RemoveFromParent() end
+    victoryVisible = HideWindow(victory, victoryVisible)
     victoryActive = false
 end
 
@@ -189,7 +240,7 @@ local function ShowLeaderboard(submit)
     -- AddToViewport loads the RML document; SetText/SetProperty no-op until then,
     -- so add FIRST, then populate.
     leaderboard:SetWantsMouse(true)
-    leaderboard:AddToViewportZ(LB_ZORDER)
+    leaderboardVisible = ShowWindow(leaderboard, LB_ZORDER, leaderboardVisible)
     lbPopulate()
     if submit then
         lbLetters = { 1, 1, 1 }
@@ -211,19 +262,23 @@ local function ShowLeaderboard(submit)
 end
 
 local function HideLeaderboard()
-    if leaderboard ~= nil then leaderboard:RemoveFromParent() end
+    leaderboardVisible = HideWindow(leaderboard, leaderboardVisible)
 end
 
 function BeginPlay()
+    LoadUISounds()
+
     pause = UI.CreateWidget("Content/Game/UI/Pause.rml")
     if pause == nil then
         print("[GameFlowController] failed to create Pause.rml widget")
     else
         pause:bind_click("resume_btn", function()
+            PlayUISound(SFX_CANCEL)
             Game.TogglePause()
             SyncPauseUI()
         end)
         pause:bind_click("title_btn", function()
+            PlayUISound(SFX_SUCCESS)
             Game.QuitToTitle()
         end)
     end
@@ -238,12 +293,21 @@ function BeginPlay()
         -- black. The icon tracks the fade, and auto-defeat fires once it's black.
         death:bind_click("give_in_btn", function()
             if Game.GetPhase() == "Dead" then
+                PlayUISound(SFX_SUCCESS)
                 Game.CameraFade(Game.GetCameraFade(), 1, GIVE_IN_FADE)
+            else
+                PlayUISound(SFX_CANCEL)
             end
         end)
         -- View-only after a defeat: no record is written from the death screen.
-        death:bind_click("leaderboard_btn", function() ShowLeaderboard(false) end)
-        death:bind_click("title_btn", function() Game.QuitToTitle() end)
+        death:bind_click("leaderboard_btn", function()
+            PlayUISound(SFX_SUCCESS)
+            ShowLeaderboard(false)
+        end)
+        death:bind_click("title_btn", function()
+            PlayUISound(SFX_SUCCESS)
+            Game.QuitToTitle()
+        end)
     end
 
     revive = UI.CreateWidget("Content/Game/UI/Revive.rml")
@@ -258,8 +322,14 @@ function BeginPlay()
         -- LEADERBOARD opens the overlay in submit mode (the run is frozen in the
         -- Victory phase, so its time/revives are final). It layers above this
         -- panel without changing phase, so closing it returns here.
-        victory:bind_click("leaderboard_btn", function() ShowLeaderboard(true) end)
-        victory:bind_click("title_btn", function() Game.QuitToTitle() end)
+        victory:bind_click("leaderboard_btn", function()
+            PlayUISound(SFX_SUCCESS)
+            ShowLeaderboard(true)
+        end)
+        victory:bind_click("title_btn", function()
+            PlayUISound(SFX_SUCCESS)
+            Game.QuitToTitle()
+        end)
     end
 
     leaderboard = UI.CreateWidget("Content/Game/UI/Leaderboard.rml")
@@ -270,28 +340,45 @@ function BeginPlay()
         for i = 1, 3 do
             local slot = i
             leaderboard:bind_click("up" .. (i - 1), function()
+                PlayUISound(SFX_SUCCESS)
                 lbLetters[slot] = (lbLetters[slot] % 26) + 1
                 lbRefreshLetters()
             end)
             leaderboard:bind_click("down" .. (i - 1), function()
+                PlayUISound(SFX_SUCCESS)
                 lbLetters[slot] = ((lbLetters[slot] - 2) % 26) + 1
                 lbRefreshLetters()
             end)
         end
         leaderboard:bind_click("submit_btn", function()
-            if not lbSubmitMode then return end   -- guard: view-only mode
+            if not lbSubmitMode then
+                PlayUISound(SFX_CANCEL)
+                return
+            end   -- guard: view-only mode
+            PlayUISound(SFX_SUCCESS)
             Leaderboard.Submit(lbName(), lbPendingTime, lbPendingRev)
             lbSubmitMode = false
             leaderboard:SetProperty("lb-entry", "display", "none")
             lbPopulate()   -- refresh so the new record shows in rank order
         end)
-        leaderboard:bind_click("close_btn", function() HideLeaderboard() end)
+        leaderboard:bind_click("close_btn", function()
+            PlayUISound(SFX_CANCEL)
+            HideLeaderboard()
+        end)
     end
 
     -- ESC is read un-gated by the engine, so this fires while paused too.
     Engine.SetOnEscape(function()
+        local wasPaused = Engine.IsPaused()
         Game.TogglePause()
         SyncPauseUI()
+        local isPaused = Engine.IsPaused()
+
+        if wasPaused ~= isPaused then
+            PlayUISound(wasPaused and SFX_CANCEL or SFX_SUCCESS)
+        else
+            PlayUISound(SFX_CANCEL)
+        end
     end)
 end
 
@@ -300,22 +387,27 @@ function EndPlay()
     if pause ~= nil then
         pause:RemoveFromParent()
         pause = nil
+        pauseVisible = false
     end
     if death ~= nil then
         death:RemoveFromParent()
         death = nil
+        deathVisible = false
     end
     if revive ~= nil then
         revive:RemoveFromParent()
         revive = nil
+        reviveVisible = false
     end
     if victory ~= nil then
         victory:RemoveFromParent()
         victory = nil
+        victoryVisible = false
     end
     if leaderboard ~= nil then
         leaderboard:RemoveFromParent()
         leaderboard = nil
+        leaderboardVisible = false
     end
 end
 

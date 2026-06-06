@@ -433,6 +433,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Editor\UI\Asset\CameraShake\CameraShakeEditorWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\Asset\Curve\FloatCurveEditorWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\Asset\LuaBlueprint\LuaBlueprintEditorWidget.cpp" />
+    <ClCompile Include="Source\Editor\UI\Asset\BehaviorTree\BehaviorTreeEditorWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\Asset\Material\MaterialEditorWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\Asset\Mesh\MeshEditorWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\Asset\Mesh\StaticMeshEditorWidget.cpp" />
@@ -471,6 +472,13 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Engine\AI\CombatTargetRegistry.cpp" />
     <ClCompile Include="Source\Engine\AI\SquadCoordinator.cpp" />
     <ClCompile Include="Source\Engine\AI\Navigation\PathFollowingComponent.cpp" />
+    <ClCompile Include="Source\Engine\AI\BehaviorTree\Runtime\BTTasks.cpp" />
+    <ClCompile Include="Source\Engine\AI\BehaviorTree\BehaviorTreeAsset.cpp" />
+    <ClCompile Include="Source\Engine\AI\BehaviorTree\BehaviorTreeManager.cpp" />
+    <ClCompile Include="Source\Engine\AI\BehaviorTree\Runtime\BehaviorTreeCompiler.cpp" />
+    <ClCompile Include="Source\Engine\AI\BehaviorTree\Runtime\BTDecorators.cpp" />
+    <ClCompile Include="Source\Engine\AI\BehaviorTree\Runtime\BTServices.cpp" />
+    <ClCompile Include="Source\Engine\AI\BehaviorTree\BTNodeRegistry.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimInstance.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimationManager.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimationRuntime.cpp" />
@@ -528,6 +536,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Engine\Component\SceneComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\ShapeComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\AIBlackboardComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\AI\BehaviorTreeComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\AIDecisionTraceComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\AIPerceptionComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\AwarenessComponent.cpp" />
@@ -901,6 +910,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Editor\UI\Asset\CameraShake\CameraShakeEditorWidget.h" />
     <ClInclude Include="Source\Editor\UI\Asset\Curve\FloatCurveEditorWidget.h" />
     <ClInclude Include="Source\Editor\UI\Asset\LuaBlueprint\LuaBlueprintEditorWidget.h" />
+    <ClInclude Include="Source\Editor\UI\Asset\BehaviorTree\BehaviorTreeEditorWidget.h" />
     <ClInclude Include="Source\Editor\UI\Asset\Material\MaterialEditorWidget.h" />
     <ClInclude Include="Source\Editor\UI\Asset\Mesh\MeshEditorWidget.h" />
     <ClInclude Include="Source\Editor\UI\Asset\Mesh\StaticMeshEditorWidget.h" />
@@ -945,6 +955,17 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\AI\CombatTargetRegistry.h" />
     <ClInclude Include="Source\Engine\AI\SquadCoordinator.h" />
     <ClInclude Include="Source\Engine\AI\Navigation\PathFollowingComponent.h" />
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTNodeResult.h" />
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTContext.h" />
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTNode.h" />
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTTasks.h" />
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\BehaviorTreeTypes.h" />
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\BehaviorTreeAsset.h" />
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\BehaviorTreeManager.h" />
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BehaviorTreeCompiler.h" />
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTDecorators.h" />
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTServices.h" />
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\BTNodeRegistry.h" />
     <ClInclude Include="Source\Engine\Animation\AnimExtractContext.h" />
     <ClInclude Include="Source\Engine\Animation\AnimInstance.h" />
     <ClInclude Include="Source\Engine\Animation\AnimationManager.h" />
@@ -1015,6 +1036,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\Component\SceneComponent.h" />
     <ClInclude Include="Source\Engine\Component\ShapeComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\AIBlackboardComponent.h" />
+    <ClInclude Include="Source\Engine\Component\AI\BehaviorTreeComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\AIDecisionTraceComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\AIPerceptionComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\AwarenessComponent.h" />

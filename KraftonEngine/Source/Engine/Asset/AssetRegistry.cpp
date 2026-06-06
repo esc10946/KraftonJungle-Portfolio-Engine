@@ -23,6 +23,7 @@
 #include "Particle/ParticleSystemManager.h"
 #include "Particle/VectorField/VectorFieldManager.h"
 #include "LuaBlueprint/LuaBlueprintManager.h"
+#include "AI/BehaviorTree/BehaviorTreeManager.h"
 
 namespace FAssetRegistry
 {
@@ -82,6 +83,13 @@ namespace FAssetRegistry
 		{
 			FLuaBlueprintManager::Get().RefreshAvailableBlueprints();
 			return FLuaBlueprintManager::Get().GetAvailableBlueprintFiles();
+		}
+		if (std::strcmp(AssetTypeName, "UBehaviorTreeAsset") == 0
+			|| std::strcmp(AssetTypeName, "BehaviorTree") == 0
+			|| std::strcmp(AssetTypeName, "Behavior Tree") == 0)
+		{
+			FBehaviorTreeManager::Get().RefreshAvailableBehaviorTrees();
+			return FBehaviorTreeManager::Get().GetAvailableBehaviorTreeFiles();
 		}
 		if (std::strcmp(AssetTypeName, "UMaterial") == 0 || std::strcmp(AssetTypeName, "Material") == 0)
 		{

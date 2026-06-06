@@ -1,5 +1,7 @@
 ﻿#include "Editor/Subsystem/AssetFactory.h"
 
+#include "AI/BehaviorTree/BehaviorTreeAsset.h"
+#include "AI/BehaviorTree/BehaviorTreeManager.h"
 #include "Animation/Graph/AnimGraphAsset.h"
 #include "Animation/Graph/AnimGraphManager.h"
 #include "CameraShake/CameraShakeAsset.h"
@@ -333,6 +335,40 @@ bool FAssetFactory::CreateLuaBlueprint(const FString& DirectoryPath, const FStri
 	NewAsset->InitializeDefault();
 
 	const bool bSaved = FLuaBlueprintManager::Get().Save(NewAsset);
+	UObjectManager::Get().DestroyObject(NewAsset);
+
+	if (!bSaved)
+	{
+		return false;
+	}
+
+	OutCreatedPath = FPaths::ToUtf8(AssetPath.wstring());
+	return true;
+}
+
+bool FAssetFactory::CreateBehaviorTree(const FString& DirectoryPath, const FString& AssetName, FString& OutCreatedPath)
+{
+	const std::filesystem::path Directory(FPaths::ToWide(DirectoryPath));
+	if (!std::filesystem::exists(Directory) || !std::filesystem::is_directory(Directory))
+	{
+		return false;
+	}
+
+	const std::filesystem::path AssetPath = BuildUniqueAssetPath(
+		Directory,
+		AssetName.empty() ? "NewBehaviorTree" : AssetName,
+		L".uasset");
+
+	UBehaviorTreeAsset* NewAsset = UObjectManager::Get().CreateObject<UBehaviorTreeAsset>();
+	if (!NewAsset)
+	{
+		return false;
+	}
+
+	NewAsset->SetSourcePath(FPaths::ToUtf8(AssetPath.wstring()));
+	NewAsset->InitializeDefault(); // Root → Selector 기본 그래프.
+
+	const bool bSaved = FBehaviorTreeManager::Get().Save(NewAsset);
 	UObjectManager::Get().DestroyObject(NewAsset);
 
 	if (!bSaved)

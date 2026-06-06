@@ -4,6 +4,8 @@ local PLAYER_HP_MASK_ID = "player-hp-mask"
 local BOSS_HP_MASK_ID = "boss-hp-mask"
 local BOSS_POSTURE_LEFT_MASK_ID = "boss-posture-left-mask"
 local BOSS_POSTURE_RIGHT_MASK_ID = "boss-posture-right-mask"
+local BOSS_PANEL_ID = "boss-panel"
+local BOSS_POSTURE_PANEL_ID = "boss-posture-panel"
 local PLAYER_POSTURE_LEFT_MASK_ID = "player-posture-left-mask"
 local PLAYER_POSTURE_RIGHT_MASK_ID = "player-posture-right-mask"
 
@@ -28,6 +30,7 @@ local widget = nil
 local lastHpRatio = nil
 local lastBossHpRatio = nil
 local lastBossPostureRatio = nil
+local lastBossHudVisible = nil
 local lastPlayerPostureRatio = nil
 local lastTokenVisible = nil
 local enemyBarStates = {}
@@ -522,6 +525,23 @@ function SetBossPostureRatio(ratio)
     lastBossPostureRatio = ratio
 end
 
+function SetBossHUDVisible(visible)
+    visible = visible == true
+
+    if lastBossHudVisible ~= nil and lastBossHudVisible == visible then
+        return
+    end
+
+    set_element_visible(BOSS_PANEL_ID, visible)
+    set_element_visible(BOSS_POSTURE_PANEL_ID, visible)
+
+    lastBossHudVisible = visible
+end
+
+function SetBossVisibility(visible)
+    SetBossHUDVisible(visible)
+end
+
 function SetPlayerTokenVisible(visible)
     visible = visible == true
 
@@ -716,6 +736,8 @@ local function expose_hud_api()
     _G.HUD.SetBossHpRatio = SetBossHpRatio
     _G.HUD.SetPlayerPostureRatio = SetPlayerPostureRatio
     _G.HUD.SetBossPostureRatio = SetBossPostureRatio
+    _G.HUD.SetBossHUDVisible = SetBossHUDVisible
+    _G.HUD.SetBossVisibility = SetBossVisibility
     _G.HUD.SetPlayerTokenVisible = SetPlayerTokenVisible
     _G.HUD.SetPlayerHUD = SetPlayerHUD
     _G.HUD.SetBossHUD = SetBossHUD
@@ -738,6 +760,8 @@ local function clear_hud_api()
         _G.HUD.SetBossHpRatio = nil
         _G.HUD.SetPlayerPostureRatio = nil
         _G.HUD.SetBossPostureRatio = nil
+        _G.HUD.SetBossHUDVisible = nil
+        _G.HUD.SetBossVisibility = nil
         _G.HUD.SetPlayerTokenVisible = nil
         _G.HUD.SetPlayerHUD = nil
         _G.HUD.SetBossHUD = nil
@@ -763,6 +787,7 @@ function BeginPlay()
     widget:AddToViewportZ(0)
     expose_hud_api()
     HideAllEnemyHealthBars()
+    SetBossHUDVisible(false)
     enemyBarUpdateElapsed = ENEMY_BAR_UPDATE_INTERVAL
 
     SetPlayerHpRatio(0.9)
@@ -783,6 +808,7 @@ function EndPlay()
     lastHpRatio = nil
     lastBossHpRatio = nil
     lastBossPostureRatio = nil
+    lastBossHudVisible = nil
     lastPlayerPostureRatio = nil
     lastTokenVisible = nil
     enemyBarStates = {}

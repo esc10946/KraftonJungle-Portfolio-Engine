@@ -13,6 +13,7 @@ enum class EEditorDocumentTabKind : uint8
 	PhysicsAssetEditor,
     MaterialEditor,
 	RmlWidgetEditor,
+	BehaviorTreeEditor,
 	Unsupported,
 };
 
