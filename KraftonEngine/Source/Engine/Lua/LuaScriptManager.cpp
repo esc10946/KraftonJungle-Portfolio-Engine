@@ -32,6 +32,7 @@
 #include "Component/AI/PhaseComponent.h"
 #include "Component/Character/CharacterStateMachineComponent.h"
 #include "AI/Navigation/PathFollowingComponent.h"
+#include "Component/Combat/CombatHitEventComponent.h"
 #include "Component/Combat/CombatStateComponent.h"
 #include "Component/Combat/CombatTypes.h"
 #include "Component/Combat/HealthComponent.h"
@@ -4277,6 +4278,40 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
         "IsValid", [](const FEnemyAttackData& Data) { return Data.AttackName.IsValid(); }
     );
 
+    Lua.new_usertype<FCombatDamageSpec>(
+        "CombatDamageSpec",
+        sol::constructors<FCombatDamageSpec()>(),
+        "Damage", &FCombatDamageSpec::Damage,
+        "PoiseDamage", &FCombatDamageSpec::PoiseDamage,
+        "DamageCauser", &FCombatDamageSpec::DamageCauser,
+        "InstigatorActor", &FCombatDamageSpec::InstigatorActor,
+        "HitLocation", &FCombatDamageSpec::HitLocation,
+        "HitDirection", &FCombatDamageSpec::HitDirection
+    );
+
+    Lua.new_usertype<FCombatDamageReport>(
+        "CombatDamageReport",
+        "Result", sol::property([](const FCombatDamageReport& Report) { return static_cast<int>(Report.Result); }),
+        "RequestedDamage", &FCombatDamageReport::RequestedDamage,
+        "AppliedDamage", &FCombatDamageReport::AppliedDamage,
+        "PreviousHealth", &FCombatDamageReport::PreviousHealth,
+        "NewHealth", &FCombatDamageReport::NewHealth,
+        "Killed", &FCombatDamageReport::bKilled
+    );
+
+    Lua.new_usertype<UCombatHitEventComponent>(
+        "CombatHitEventComponent",
+        sol::base_classes,
+        sol::bases<UActorComponent, UObject>(),
+        "ApplyDamageToTarget",
+        sol::overload(
+            [](UCombatHitEventComponent& C, AActor* Target, const FCombatDamageSpec& DamageSpec) { return C.ApplyDamageSpecToTarget(Target, DamageSpec); },
+            [](UCombatHitEventComponent& C, AActor* Target, float Damage, float PoiseDamage) { return C.ApplyDamageToTarget(Target, Damage, PoiseDamage); },
+            [](UCombatHitEventComponent& C, AActor* Target, float Damage) { return C.ApplyDamageToTarget(Target, Damage); }
+        ),
+        "ApplyDamageSpecToTarget", &UCombatHitEventComponent::ApplyDamageSpecToTarget
+    );
+
     Lua.new_usertype<UHealthComponent>(
         "HealthComponent",
         sol::base_classes,
@@ -5431,6 +5466,12 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
         [](AActor& Actor)
         {
             return Actor.GetComponentByClass<UHealthComponent>();
+        },
+
+        "GetCombatHitEventComponent",
+        [](AActor& Actor)
+        {
+            return Actor.GetComponentByClass<UCombatHitEventComponent>();
         },
 
         "GetCombatStateComponent",

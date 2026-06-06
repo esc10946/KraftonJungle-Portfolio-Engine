@@ -8,6 +8,7 @@
 #include "Animation/AnimationManager.h"
 #include "Animation/Montage/AnimMontage.h"
 #include "Animation/Notify/AnimNotify_EnableAttack.h"
+#include "Animation/Notify/AnimNotifyState_ParryWindow.h"
 #include "Component/Primitive/SkeletalMeshComponent.h"
 #include "Component/Primitive/StaticMeshComponent.h"
 #include "Engine/GameFramework/World.h"
@@ -76,6 +77,27 @@ void RegisterGameLuaBindings(sol::state& Lua)
 		[](UAnimInstance* AnimInstance) -> bool
 		{
 			return UAnimNotify_EnableAttack::ConsumeEnableAttack(AnimInstance);
+		}
+	);
+	Animation.set_function(
+		"IsParryWindowActive",
+		[](UAnimInstance* AnimInstance) -> bool
+		{
+			return UAnimNotifyState_ParryWindow::IsParryWindowActive(AnimInstance);
+		}
+	);
+	Animation.set_function(
+		"ReportSuccessfulParry",
+		[](UAnimInstance* AnimInstance) -> bool
+		{
+			return UAnimNotifyState_ParryWindow::ReportSuccessfulParry(AnimInstance);
+		}
+	);
+	Animation.set_function(
+		"ConsumeSuccessfulParry",
+		[](UAnimInstance* AnimInstance) -> bool
+		{
+			return UAnimNotifyState_ParryWindow::ConsumeSuccessfulParry(AnimInstance);
 		}
 	);
 

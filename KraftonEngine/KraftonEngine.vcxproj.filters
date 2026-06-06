@@ -1127,6 +1127,9 @@
     <ClCompile Include="Source\Engine\Animation\Notify\AnimNotifyState_LogDuration.cpp">
       <Filter>Source\Engine\Animation\Notify</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Animation\Notify\AnimNotifyState_ParryWindow.cpp">
+      <Filter>Source\Engine\Animation\Notify</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\Animation\Notify\AnimNotifyState_Particle.cpp">
       <Filter>Source\Engine\Animation\Notify</Filter>
     </ClCompile>
@@ -1252,6 +1255,9 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Component\Character\CharacterStateMachineComponent.cpp">
       <Filter>Source\Engine\Component\Character</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Component\Combat\CombatHitEventComponent.cpp">
+      <Filter>Source\Engine\Component\Combat</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Component\Combat\CombatMoveComponent.cpp">
       <Filter>Source\Engine\Component\Combat</Filter>
@@ -2549,6 +2555,9 @@
     <ClInclude Include="Source\Engine\Animation\Notify\AnimNotifyState_LogDuration.h">
       <Filter>Source\Engine\Animation\Notify</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\Animation\Notify\AnimNotifyState_ParryWindow.h">
+      <Filter>Source\Engine\Animation\Notify</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Engine\Animation\Notify\AnimNotifyState_Particle.h">
       <Filter>Source\Engine\Animation\Notify</Filter>
     </ClInclude>
@@ -2692,6 +2701,9 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\Character\CharacterStateMachineComponent.h">
       <Filter>Source\Engine\Component\Character</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Component\Combat\CombatHitEventComponent.h">
+      <Filter>Source\Engine\Component\Combat</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\Combat\CombatMoveComponent.h">
       <Filter>Source\Engine\Component\Combat</Filter>

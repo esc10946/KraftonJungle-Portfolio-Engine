@@ -1,5 +1,8 @@
 #include "AnimNotifyState_AttackHitWindow.h"
 
+#include "Animation/AnimInstance.h"
+#include "Animation/Notify/AnimNotifyState_ParryWindow.h"
+#include "Component/Combat/CombatHitEventComponent.h"
 #include "Component/Input/ActionComponent.h"
 #include "Component/PrimitiveComponent.h"
 #include "Component/Primitive/SkeletalMeshComponent.h"
@@ -8,6 +11,7 @@
 #include "Debug/DrawDebugHelpers.h"
 #include "Core/Logging/Log.h"
 #include "GameFramework/AActor.h"
+#include "GameFramework/Pawn/Character.h"
 #include "GameFramework/World.h"
 #include "Mesh/Skeletal/SkeletalMesh.h"
 #include "Mesh/Skeletal/SkeletalMeshAsset.h"
@@ -127,6 +131,89 @@ namespace
 		const FVector Dir = ResolveKnockbackDirection(Attacker, Target, Mode);
 		Action->Knockback(Dir, Distance, Duration);
 	}
+
+	UAnimInstance* GetActorAnimInstance(AActor* Actor)
+	{
+		if (!IsValid(Actor)) return nullptr;
+
+		USkeletalMeshComponent* Mesh = Actor->GetComponentByClass<USkeletalMeshComponent>();
+		return IsValid(Mesh) ? Mesh->GetAnimInstance() : nullptr;
+	}
+
+	bool IsParryTarget(AActor* Target)
+	{
+		return UAnimNotifyState_ParryWindow::IsParryWindowActive(GetActorAnimInstance(Target));
+	}
+
+	bool TryResolveParry(AActor* Attacker, AActor* Target, bool bRagdollAttacker)
+	{
+		UAnimInstance* TargetAnimInstance = GetActorAnimInstance(Target);
+		if (!UAnimNotifyState_ParryWindow::IsParryWindowActive(TargetAnimInstance))
+		{
+			return false;
+		}
+
+		UAnimNotifyState_ParryWindow::ReportSuccessfulParry(TargetAnimInstance);
+		if (bRagdollAttacker)
+		{
+			if (ACharacter* AttackerCharacter = Cast<ACharacter>(Attacker))
+			{
+				AttackerCharacter->EnterRagdoll();
+			}
+		}
+
+		return true;
+	}
+
+	FCombatDamageSpec MakeDamageSpec(AActor* Owner, AActor* Target, const FVector& HitLocation, float Damage, float PoiseDamage)
+	{
+		FCombatDamageSpec DamageSpec;
+		DamageSpec.Damage = Damage;
+		DamageSpec.PoiseDamage = PoiseDamage;
+		DamageSpec.DamageCauser = Owner;
+		DamageSpec.InstigatorActor = Owner;
+		DamageSpec.HitLocation = HitLocation;
+
+		if (IsValid(Owner) && IsValid(Target))
+		{
+			FVector Direction = Target->GetActorLocation() - Owner->GetActorLocation();
+			Direction.Z = 0.0f;
+			DamageSpec.HitDirection = Direction.IsNearlyZero() ? Owner->GetActorForward() : Direction.Normalized();
+		}
+		else
+		{
+			DamageSpec.HitDirection = FVector::ForwardVector;
+		}
+
+		return DamageSpec;
+	}
+
+	void BroadcastAttackHitEvent(AActor* Owner, AActor* Target, UPrimitiveComponent* HitComponent, const FCombatDamageSpec& DamageSpec, FName HitEventName)
+	{
+		if (!IsValid(Owner))
+		{
+			return;
+		}
+
+		if (UCombatHitEventComponent* HitEventComponent = Owner->GetComponentByClass<UCombatHitEventComponent>())
+		{
+			HitEventComponent->BroadcastAttackHit(Target, HitComponent, DamageSpec, HitEventName);
+		}
+	}
+
+	void BroadcastAttackParriedEvent(AActor* Owner, AActor* Defender, UPrimitiveComponent* HitComponent, const FCombatDamageSpec& DamageSpec, FName HitEventName)
+	{
+		if (!IsValid(Owner))
+		{
+			return;
+		}
+
+		if (UCombatHitEventComponent* HitEventComponent = Owner->GetComponentByClass<UCombatHitEventComponent>())
+		{
+			HitEventComponent->BroadcastAttackParried(Defender, HitComponent, DamageSpec, HitEventName);
+		}
+	}
+
 	void PurgeInvalidAttackHitEntries(
 		TMap<TWeakObjectPtr<USkeletalMeshComponent>, TSet<TWeakObjectPtr<AActor>>>& HitActorsByMesh,
 		TMap<TWeakObjectPtr<USkeletalMeshComponent>, TSet<TWeakObjectPtr<AActor>>>& MissLoggedActorsByMesh,
@@ -214,14 +301,15 @@ void UAnimNotifyState_AttackHitWindow::NotifyTick(USkeletalMeshComponent* MeshCo
 		}
 
 		const bool bMatchesTargetActorTag = !TargetActorTag.empty() && Candidate->HasTag(FName(TargetActorTag));
+		const bool bParryTarget = bAllowParry && IsParryTarget(Candidate);
 		if (bRequireTargetActorTag)
 		{
-			if (!bMatchesTargetActorTag)
+			if (!bMatchesTargetActorTag && !bParryTarget)
 			{
 				continue;
 			}
 		}
-		else if (!TargetActorTag.empty() && !bMatchesTargetActorTag)
+		else if (!TargetActorTag.empty() && !bMatchesTargetActorTag && !bParryTarget)
 		{
 			continue;
 		}
@@ -311,6 +399,35 @@ void UAnimNotifyState_AttackHitWindow::NotifyTick(USkeletalMeshComponent* MeshCo
 		}
 
 		HitActors.insert(Candidate);
+		const FCombatDamageSpec DamageSpec = MakeDamageSpec(Owner, Candidate, Center, Damage, PoiseDamage);
+		if (bAllowParry && TryResolveParry(Owner, Candidate, bRagdollOwnerOnParry))
+		{
+			if (bBroadcastCombatEvents)
+			{
+				BroadcastAttackParriedEvent(Owner, Candidate, HitComponent, DamageSpec, HitEventName);
+			}
+			if (bDrawDebugHitWindow)
+			{
+				DrawDebugSphere(World, Center, Radius, DebugDrawSegments, FColor(80, 180, 255), DebugDrawDuration);
+			}
+			if (bLogHits)
+			{
+				UE_LOG("[AttackHitWindow] %s parried by %s via %s (center=%.1f, %.1f, %.1f radius=%.1f)",
+					Owner->GetName().c_str(),
+					Candidate->GetName().c_str(),
+					HitComponent->GetName().c_str(),
+					Center.X,
+					Center.Y,
+					Center.Z,
+					Radius);
+			}
+			return;
+		}
+
+		if (bBroadcastCombatEvents)
+		{
+			BroadcastAttackHitEvent(Owner, Candidate, HitComponent, DamageSpec, HitEventName);
+		}
 		ApplyHitStop(Owner, HitStopDuration, bAutoAddActionComponent);
 		ApplyHitStop(Candidate, HitStopDuration, bAutoAddActionComponent);
 		if (bApplyKnockback)

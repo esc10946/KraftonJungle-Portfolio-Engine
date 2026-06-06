@@ -1,9 +1,11 @@
 #pragma once
 
 #include "AnimNotifyState.h"
+#include "Component/Combat/CombatTypes.h"
 #include "Core/Types/CollisionTypes.h"
 #include "Core/Types/CoreTypes.h"
 #include "Math/Vector.h"
+#include "Object/FName.h"
 #include "Object/Ptr/WeakObjectPtr.h"
 
 #include "Source/Engine/Animation/Notify/AnimNotifyState_AttackHitWindow.generated.h"
@@ -85,6 +87,24 @@ public:
 
 	UPROPERTY(Edit, Save, Category="AttackHitWindow", DisplayName="Target Actor Tag")
 	FString TargetActorTag = "HitTarget";
+
+	UPROPERTY(Edit, Save, Category="AttackHitWindow", DisplayName="Hit Event Name")
+	FName HitEventName = FName("Default");
+
+	UPROPERTY(Edit, Save, Category="AttackHitWindow", DisplayName="Damage", Min=0.0f, Max=100000.0f, Speed=0.5f)
+	float Damage = 10.0f;
+
+	UPROPERTY(Edit, Save, Category="AttackHitWindow", DisplayName="Poise Damage", Min=0.0f, Max=100000.0f, Speed=0.5f)
+	float PoiseDamage = 10.0f;
+
+	UPROPERTY(Edit, Save, Category="AttackHitWindow", DisplayName="Broadcast Combat Events")
+	bool bBroadcastCombatEvents = true;
+
+	UPROPERTY(Edit, Save, Category="AttackHitWindow", DisplayName="Allow Parry")
+	bool bAllowParry = true;
+
+	UPROPERTY(Edit, Save, Category="AttackHitWindow", DisplayName="Ragdoll Owner On Parry")
+	bool bRagdollOwnerOnParry = true;
 
 	UPROPERTY(Edit, Save, Category="AttackHitWindow", DisplayName="Log Hits")
 	bool bLogHits = true;

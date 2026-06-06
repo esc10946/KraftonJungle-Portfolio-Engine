@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Component/ActorComponent.h"
+#include "Component/Combat/CombatTypes.h"
 #include "Core/Delegate.h"
 #include "Math/Vector.h"
 #include "Object/Ptr/WeakObjectPtr.h"
@@ -9,6 +10,7 @@
 #include <sol/sol.hpp>
 
 class UPrimitiveComponent;
+class UCombatHitEventComponent;
 struct FHitResult;
 
 UCLASS()
@@ -50,7 +52,9 @@ protected:
 private:
 	void EnsureDefaultScriptFile();
 	void BindOwnerCollisionEvents();
+	void BindOwnerCombatEvents();
 	void ClearCollisionBindings();
+	void ClearCombatBindings();
 	void ClearLuaRuntime();
 	void InvokeLuaEndPlay();
 	void HandleDeferredLuaCleanup();
@@ -76,6 +80,20 @@ private:
 		UPrimitiveComponent* HitComponent,
 		AActor* OtherActor,
 		UPrimitiveComponent* OtherComp);
+	void HandleAttackHit(
+		UCombatHitEventComponent* EventComponent,
+		AActor* Attacker,
+		AActor* Target,
+		UPrimitiveComponent* HitComponent,
+		const FCombatDamageSpec& DamageSpec,
+		FName HitEventName);
+	void HandleAttackParried(
+		UCombatHitEventComponent* EventComponent,
+		AActor* Attacker,
+		AActor* Defender,
+		UPrimitiveComponent* HitComponent,
+		const FCombatDamageSpec& DamageSpec,
+		FName HitEventName);
 
 	UPROPERTY(Edit, Save, Category="Script", DisplayName="ScriptFile", AssetType="Script")
 	FString ScriptFile;
@@ -88,6 +106,8 @@ private:
 	sol::protected_function LuaOnEndOverlap;
 	sol::protected_function LuaOnHit;
 	sol::protected_function LuaOnEndHit;
+	sol::protected_function LuaOnAttackHit;
+	sol::protected_function LuaOnAttackParried;
 
 	bool bEndPlayRouted = false;
 	bool bHasCalledLuaEndPlay = false;
@@ -128,4 +148,7 @@ private:
 	TArray<FDelegateHandle> EndOverlapHandles;
 	TArray<FDelegateHandle> HitHandles;
 	TArray<FDelegateHandle> EndHitHandles;
+	TWeakObjectPtr<UCombatHitEventComponent> BoundCombatHitEventComponent;
+	FDelegateHandle AttackHitHandle;
+	FDelegateHandle AttackParriedHandle;
 };
