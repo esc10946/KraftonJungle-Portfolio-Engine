@@ -17,6 +17,8 @@
 #include "Component/Primitive/HeightFogComponent.h"
 #include "Component/Primitive/SkinnedMeshComponent.h"
 #include "Component/Primitive/StaticMeshComponent.h"
+#include "Cinematic/CameraCinematicActor.h"
+#include "Cinematic/CinematicWaypointComponent.h"
 #include "GameFramework/AActor.h"
 #include "Asset/AssetRegistry.h"
 #include "Animation/Skeleton/Skeleton.h"
@@ -1346,6 +1348,92 @@ void FEditorPropertyWidget::RenderActorProperties(AActor* PrimaryActor, const TA
 		}
 		ImGui::PopID();
 	}
+
+	RenderCinematicActorTools(PrimaryActor);
+}
+
+void FEditorPropertyWidget::RenderCinematicActorTools(AActor* PrimaryActor)
+{
+	ACameraCinematicActor* Rig = Cast<ACameraCinematicActor>(PrimaryActor);
+	if (!Rig)
+	{
+		return;
+	}
+
+	ImGui::PushID("##CinematicTools");
+	ImGui::Separator();
+	ImGui::Text("Cinematic");
+	ImGui::Spacing();
+
+	ImGui::TextDisabled("Waypoints: %d", Rig->GetWaypointCount());
+
+	if (ImGui::Button("Add at Camera"))
+	{
+		Rig->AddWaypointAtCameraView();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Add at End"))
+	{
+		Rig->AddWaypointAtEnd();
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Clear"))
+	{
+		Rig->ClearWaypoints();
+	}
+
+	TArray<UCinematicWaypointComponent*> WPs = Rig->GetOrderedWaypoints();
+	const int32 Count = static_cast<int32>(WPs.size());
+	bool bStructuralChange = false;
+	for (int32 i = 0; i < Count && !bStructuralChange; ++i)
+	{
+		ImGui::PushID(i);
+		ImGui::AlignTextToFramePadding();
+		ImGui::Text("WP %d", i);
+		ImGui::SameLine();
+		if (ImGui::SmallButton("Up"))
+		{
+			if (i > 0) { Rig->MoveWaypoint(i, i - 1); bStructuralChange = true; }
+		}
+		ImGui::SameLine();
+		if (ImGui::SmallButton("Down"))
+		{
+			if (i + 1 < Count) { Rig->MoveWaypoint(i, i + 1); bStructuralChange = true; }
+		}
+		ImGui::SameLine();
+		if (ImGui::SmallButton("Select"))
+		{
+			EditorEngine->GetSelectionManager().SelectComponent(WPs[i]);
+		}
+		ImGui::SameLine();
+		if (ImGui::SmallButton("X"))
+		{
+			Rig->RemoveWaypoint(i);
+			bStructuralChange = true;
+		}
+		ImGui::PopID();
+	}
+
+	ImGui::Spacing();
+	if (ImGui::Button(Rig->IsPlaying() ? "Stop Preview" : "Play Preview"))
+	{
+		if (Rig->IsPlaying()) { Rig->Stop(); } else { Rig->Play(); }
+	}
+	ImGui::SameLine();
+	if (ImGui::Button("Pause"))
+	{
+		Rig->Pause();
+	}
+
+	float Time = Rig->GetCurrentTime();
+	const float Total = Rig->GetTotalTimeline();
+	ImGui::SetNextItemWidth(-1);
+	if (ImGui::SliderFloat("##CineTime", &Time, 0.0f, Total > 0.0f ? Total : 1.0f, "t = %.2fs"))
+	{
+		Rig->SetTime(Time);
+	}
+
+	ImGui::PopID();
 }
 
 void FEditorPropertyWidget::RenderComponentTree(AActor* Actor)

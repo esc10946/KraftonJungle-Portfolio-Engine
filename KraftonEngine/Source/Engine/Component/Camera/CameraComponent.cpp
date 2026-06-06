@@ -42,19 +42,27 @@ void UCameraComponent::EndPlay()
 
 void UCameraComponent::LookAt(const FVector& Target)
 {
-	FVector Position = GetWorldLocation();
-	FVector Diff = (Target - Position).Normalized();
+	const FVector Position = GetWorldLocation();
+	FVector Diff = Target - Position;
+
+	// 영벡터 방어 — 타깃이 카메라 위치와 같으면 회전 미정의.
+	if (Diff.Length() <= 1.0e-6f) {
+		return;
+	}
+	Diff = Diff.Normalized();
 
 	constexpr float Rad2Deg = 180.0f / 3.14159265358979f;
 
-	FRotator LookRotation = GetRelativeRotation();
-	LookRotation.Pitch = -asinf(Diff.Z) * Rad2Deg;
+	FRotator LookRotation = GetWorldRotation();
+	LookRotation.Pitch = -asinf(FMath::Clamp(Diff.Z, -1.0f, 1.0f)) * Rad2Deg;
 
 	if (fabsf(Diff.Z) < 0.999f) {
 		LookRotation.Yaw = atan2f(Diff.Y, Diff.X) * Rad2Deg;
 	}
 
-	SetRelativeRotation(LookRotation);
+	LookRotation.Roll = 0.0f;
+
+	SetWorldRotation(LookRotation);
 }
 
 void UCameraComponent::OnResize(int32 Width, int32 Height)
@@ -71,7 +79,7 @@ void UCameraComponent::GetCameraView(float /*DeltaTime*/, FMinimalViewInfo& OutP
 {
 	UpdateWorldMatrix();
 	OutPOV.Location    = GetWorldLocation();
-	OutPOV.Rotation    = GetWorldMatrix().ToRotator();
+	OutPOV.Rotation    = GetWorldRotation();
 	OutPOV.FOV         = CameraState.FOV;
 	OutPOV.AspectRatio = CameraState.AspectRatio;
 	OutPOV.OrthoWidth  = CameraState.OrthoWidth;

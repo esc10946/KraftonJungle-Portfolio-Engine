@@ -22,6 +22,12 @@
     <Filter Include="Shaders\Generated\Materials">
       <UniqueIdentifier>{3de592bd-0830-b23c-449c-06a97393139e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\Generated\Preview">
+      <UniqueIdentifier>{06e64ccf-c33d-546a-03f7-b51d5cb948fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Shaders\Generated\Preview\Materials">
+      <UniqueIdentifier>{c3c91e2a-ea29-bc50-1a55-9eae5443bc0f}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Shaders\Geometry">
       <UniqueIdentifier>{a95f0cc6-e11f-2881-9524-de9a7fdc530e}</UniqueIdentifier>
     </Filter>
@@ -67,6 +73,9 @@
     <Filter Include="Source\Editor\UI\Asset\Animation">
       <UniqueIdentifier>{6f6ec3f7-5356-0f05-e9a8-97b2d4dceab7}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Editor\UI\Asset\BehaviorTree">
+      <UniqueIdentifier>{1b87670a-cb04-dac9-6008-26de67111e9a}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source\Editor\UI\Asset\CameraShake">
       <UniqueIdentifier>{e92a4d79-885d-3fed-53fc-d67b7fb36d18}</UniqueIdentifier>
     </Filter>
@@ -79,9 +88,6 @@
     <Filter Include="Source\Editor\UI\Asset\Material">
       <UniqueIdentifier>{994177d8-b52e-61fd-e3e8-c510233e7128}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\Editor\UI\Asset\Rml">
-      <UniqueIdentifier>{6c7ec533-9a91-465d-b44d-4a9cda9c5214}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source\Editor\UI\Asset\Mesh">
       <UniqueIdentifier>{5084842c-4071-bc7f-36a2-4a3bf67026e8}</UniqueIdentifier>
     </Filter>
@@ -90,6 +96,9 @@
     </Filter>
     <Filter Include="Source\Editor\UI\Asset\Physics">
       <UniqueIdentifier>{a9510143-b9c8-a4a8-aa42-31438e50f6bb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Editor\UI\Asset\Rml">
+      <UniqueIdentifier>{6fb13600-ef63-9993-69c0-6041437f335c}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Editor\UI\ContentBrowser">
       <UniqueIdentifier>{09a2ea7f-e891-b580-bef0-471bcd9b5d4b}</UniqueIdentifier>
@@ -124,14 +133,14 @@
     <Filter Include="Source\Engine\AI">
       <UniqueIdentifier>{67d62a53-52ce-a14f-a7a1-a6e905173989}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source\Engine\AI\Navigation">
-      <UniqueIdentifier>{215c1fd4-f045-1ab9-2677-6f0a89e1e7dd}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source\Engine\AI\BehaviorTree">
-      <UniqueIdentifier>{a1b2c3d4-0001-4a5b-8c6d-000000000001}</UniqueIdentifier>
+      <UniqueIdentifier>{7ec5d93a-370b-0bfd-d5f7-debf43d34349}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\AI\BehaviorTree\Runtime">
-      <UniqueIdentifier>{a1b2c3d4-0002-4a5b-8c6d-000000000002}</UniqueIdentifier>
+      <UniqueIdentifier>{5f8240de-caba-1975-baff-591ac828470e}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\AI\Navigation">
+      <UniqueIdentifier>{215c1fd4-f045-1ab9-2677-6f0a89e1e7dd}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Animation">
       <UniqueIdentifier>{883a27c1-1a16-4122-ba2c-ce4f747faae7}</UniqueIdentifier>
@@ -168,6 +177,9 @@
     </Filter>
     <Filter Include="Source\Engine\CameraShake">
       <UniqueIdentifier>{6402e8a9-52cd-5e58-13d2-0638ee5aff09}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Cinematic">
+      <UniqueIdentifier>{970eb20e-7f4a-9490-d7fb-4b619e871db6}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Cloth">
       <UniqueIdentifier>{43fcc25f-e35b-da79-8e36-7dcc2a63c76c}</UniqueIdentifier>
@@ -423,6 +435,9 @@
     </Filter>
     <Filter Include="Source\Game\GameMode">
       <UniqueIdentifier>{180756f8-cd60-823a-2895-cf41347cb361}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Game\Leaderboard">
+      <UniqueIdentifier>{99e248b0-be82-262e-2fcc-fed9cde02d22}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Game\Lua">
       <UniqueIdentifier>{a904550b-6c67-d00d-ee77-c5aaf7b88e71}</UniqueIdentifier>
@@ -741,6 +756,9 @@
     <FxCompile Include="Shaders\Generated\Materials\JungleMenu_Surface.hlsl">
       <Filter>Shaders\Generated\Materials</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\Generated\Materials\MI_Skeleton_Inst.001_Surface.hlsl">
+      <Filter>Shaders\Generated\Materials</Filter>
+    </FxCompile>
     <FxCompile Include="Shaders\Generated\Materials\NewMaterial_1_Decal.hlsl">
       <Filter>Shaders\Generated\Materials</Filter>
     </FxCompile>
@@ -764,6 +782,9 @@
     </FxCompile>
     <FxCompile Include="Shaders\Generated\Materials\water_Surface.hlsl">
       <Filter>Shaders\Generated\Materials</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\Generated\Preview\Materials\MI_Skeleton_Inst.001_Surface.hlsl">
+      <Filter>Shaders\Generated\Preview\Materials</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\Geometry\Decal.hlsl">
       <Filter>Shaders\Geometry</Filter>
@@ -938,6 +959,9 @@
     <ClCompile Include="Source\Editor\UI\Asset\Animation\AnimationTransportBar.cpp">
       <Filter>Source\Editor\UI\Asset\Animation</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Editor\UI\Asset\BehaviorTree\BehaviorTreeEditorWidget.cpp">
+      <Filter>Source\Editor\UI\Asset\BehaviorTree</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Editor\UI\Asset\CameraShake\CameraShakeEditorWidget.cpp">
       <Filter>Source\Editor\UI\Asset\CameraShake</Filter>
     </ClCompile>
@@ -1057,6 +1081,27 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\AI\SquadCoordinator.cpp">
       <Filter>Source\Engine\AI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\AI\BehaviorTree\BTNodeRegistry.cpp">
+      <Filter>Source\Engine\AI\BehaviorTree</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\AI\BehaviorTree\BehaviorTreeAsset.cpp">
+      <Filter>Source\Engine\AI\BehaviorTree</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\AI\BehaviorTree\BehaviorTreeManager.cpp">
+      <Filter>Source\Engine\AI\BehaviorTree</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\AI\BehaviorTree\Runtime\BTDecorators.cpp">
+      <Filter>Source\Engine\AI\BehaviorTree\Runtime</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\AI\BehaviorTree\Runtime\BTServices.cpp">
+      <Filter>Source\Engine\AI\BehaviorTree\Runtime</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\AI\BehaviorTree\Runtime\BTTasks.cpp">
+      <Filter>Source\Engine\AI\BehaviorTree\Runtime</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\AI\BehaviorTree\Runtime\BehaviorTreeCompiler.cpp">
+      <Filter>Source\Engine\AI\BehaviorTree\Runtime</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\AI\Navigation\PathFollowingComponent.cpp">
       <Filter>Source\Engine\AI\Navigation</Filter>
@@ -1181,6 +1226,12 @@
     <ClCompile Include="Source\Engine\CameraShake\CameraShakeManager.cpp">
       <Filter>Source\Engine\CameraShake</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Cinematic\CameraCinematicActor.cpp">
+      <Filter>Source\Engine\Cinematic</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Cinematic\CinematicWaypointComponent.cpp">
+      <Filter>Source\Engine\Cinematic</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\Cloth\ClothCollisionGatherer.cpp">
       <Filter>Source\Engine\Cloth</Filter>
     </ClCompile>
@@ -1232,16 +1283,16 @@
     <ClCompile Include="Source\Engine\Component\AI\AIBlackboardComponent.cpp">
       <Filter>Source\Engine\Component\AI</Filter>
     </ClCompile>
-    <ClCompile Include="Source\Engine\Component\AI\BehaviorTreeComponent.cpp">
-      <Filter>Source\Engine\Component\AI</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Engine\AI\BehaviorTree\Runtime\BTTasks.cpp">
-      <Filter>Source\Engine\AI\BehaviorTree\Runtime</Filter>
-    </ClCompile>
     <ClCompile Include="Source\Engine\Component\AI\AIDecisionTraceComponent.cpp">
       <Filter>Source\Engine\Component\AI</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Component\AI\AIPerceptionComponent.cpp">
+      <Filter>Source\Engine\Component\AI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Component\AI\AwarenessComponent.cpp">
+      <Filter>Source\Engine\Component\AI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Component\AI\BehaviorTreeComponent.cpp">
       <Filter>Source\Engine\Component\AI</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Component\AI\EncounterComponent.cpp">
@@ -1275,6 +1326,9 @@
       <Filter>Source\Engine\Component\Combat</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Component\Combat\CombatStateComponent.cpp">
+      <Filter>Source\Engine\Component\Combat</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Component\Combat\ExecutionComponent.cpp">
       <Filter>Source\Engine\Component\Combat</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Component\Combat\HealthComponent.cpp">
@@ -2198,6 +2252,9 @@
     <ClCompile Include="Source\Game\GameMode\AFinaleGameMode.cpp">
       <Filter>Source\Game\GameMode</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Game\GameMode\GameState.cpp">
+      <Filter>Source\Game\GameMode</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Game\Lua\GameLuaBindings.cpp">
       <Filter>Source\Game\Lua</Filter>
     </ClCompile>
@@ -2252,9 +2309,6 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Intermediate\Generated\Reflection.generated.cpp">
       <Filter>Intermediate\Generated</Filter>
-    </ClCompile>
-    <ClCompile Include="Source\Game\GameMode\GameState.cpp">
-      <Filter>Source\Game\GameMode</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -2332,6 +2386,9 @@
     </ClInclude>
     <ClInclude Include="Source\Editor\UI\Asset\Animation\MorphCurveEditObject.h">
       <Filter>Source\Editor\UI\Asset\Animation</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Editor\UI\Asset\BehaviorTree\BehaviorTreeEditorWidget.h">
+      <Filter>Source\Editor\UI\Asset\BehaviorTree</Filter>
     </ClInclude>
     <ClInclude Include="Source\Editor\UI\Asset\CameraShake\CameraShakeEditorWidget.h">
       <Filter>Source\Editor\UI\Asset\CameraShake</Filter>
@@ -2470,6 +2527,39 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\AI\SquadCoordinator.h">
       <Filter>Source\Engine\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\BTNodeRegistry.h">
+      <Filter>Source\Engine\AI\BehaviorTree</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\BehaviorTreeAsset.h">
+      <Filter>Source\Engine\AI\BehaviorTree</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\BehaviorTreeManager.h">
+      <Filter>Source\Engine\AI\BehaviorTree</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\BehaviorTreeTypes.h">
+      <Filter>Source\Engine\AI\BehaviorTree</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTContext.h">
+      <Filter>Source\Engine\AI\BehaviorTree\Runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTDecorators.h">
+      <Filter>Source\Engine\AI\BehaviorTree\Runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTNode.h">
+      <Filter>Source\Engine\AI\BehaviorTree\Runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTNodeResult.h">
+      <Filter>Source\Engine\AI\BehaviorTree\Runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTServices.h">
+      <Filter>Source\Engine\AI\BehaviorTree\Runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTTasks.h">
+      <Filter>Source\Engine\AI\BehaviorTree\Runtime</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BehaviorTreeCompiler.h">
+      <Filter>Source\Engine\AI\BehaviorTree\Runtime</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\AI\Navigation\PathFollowingComponent.h">
       <Filter>Source\Engine\AI\Navigation</Filter>
@@ -2624,6 +2714,15 @@
     <ClInclude Include="Source\Engine\CameraShake\CameraShakeManager.h">
       <Filter>Source\Engine\CameraShake</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\Cinematic\CameraCinematicActor.h">
+      <Filter>Source\Engine\Cinematic</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Cinematic\CinematicTypes.h">
+      <Filter>Source\Engine\Cinematic</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Cinematic\CinematicWaypointComponent.h">
+      <Filter>Source\Engine\Cinematic</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Engine\Cloth\ClothBackend.h">
       <Filter>Source\Engine\Cloth</Filter>
     </ClInclude>
@@ -2684,25 +2783,16 @@
     <ClInclude Include="Source\Engine\Component\AI\AIBlackboardComponent.h">
       <Filter>Source\Engine\Component\AI</Filter>
     </ClInclude>
-    <ClInclude Include="Source\Engine\Component\AI\BehaviorTreeComponent.h">
-      <Filter>Source\Engine\Component\AI</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTNodeResult.h">
-      <Filter>Source\Engine\AI\BehaviorTree\Runtime</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTContext.h">
-      <Filter>Source\Engine\AI\BehaviorTree\Runtime</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTNode.h">
-      <Filter>Source\Engine\AI\BehaviorTree\Runtime</Filter>
-    </ClInclude>
-    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTTasks.h">
-      <Filter>Source\Engine\AI\BehaviorTree\Runtime</Filter>
-    </ClInclude>
     <ClInclude Include="Source\Engine\Component\AI\AIDecisionTraceComponent.h">
       <Filter>Source\Engine\Component\AI</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\AI\AIPerceptionComponent.h">
+      <Filter>Source\Engine\Component\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Component\AI\AwarenessComponent.h">
+      <Filter>Source\Engine\Component\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Component\AI\BehaviorTreeComponent.h">
       <Filter>Source\Engine\Component\AI</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\AI\EncounterComponent.h">
@@ -2739,6 +2829,9 @@
       <Filter>Source\Engine\Component\Combat</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\Combat\CombatTypes.h">
+      <Filter>Source\Engine\Component\Combat</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Component\Combat\ExecutionComponent.h">
       <Filter>Source\Engine\Component\Combat</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\Combat\HealthComponent.h">
@@ -3905,8 +3998,14 @@
     <ClInclude Include="Source\Game\GameMode\AFinaleGameMode.h">
       <Filter>Source\Game\GameMode</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Game\GameMode\GameSoftPauseState.h">
+      <Filter>Source\Game\GameMode</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Game\GameMode\GameState.h">
       <Filter>Source\Game\GameMode</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Game\Leaderboard\LeaderboardStore.h">
+      <Filter>Source\Game\Leaderboard</Filter>
     </ClInclude>
     <ClInclude Include="Source\Game\Lua\GameLuaBindings.h">
       <Filter>Source\Game\Lua</Filter>

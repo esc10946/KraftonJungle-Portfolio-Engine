@@ -48,6 +48,7 @@
 #include <algorithm>
 
 #include "GameFramework/Actor/ParticleSystemActor.h"
+#include "Cinematic/CameraCinematicActor.h"
 
 namespace
 {
@@ -1745,6 +1746,7 @@ void FLevelViewportLayout::RenderViewportPlaceActorPopup()
 		PlaceActorMenuItem("Enemy Character", EViewportPlaceActorType::EnemyCharacter);
 		PlaceActorMenuItem("Wheeled Vehicle", EViewportPlaceActorType::WheeledVehicle);
 		PlaceActorMenuItem("Particle System",       EViewportPlaceActorType::ParticleSystem);
+		PlaceActorMenuItem("Camera Cinematic",      EViewportPlaceActorType::CameraCinematic);
 
 		// Game 모듈이 등록한 액터들 (예: ACarPawn). 등록 순서대로 표시.
 		const auto& RegistryEntries = FActorPlacementRegistry::Get().GetEntries();
@@ -1767,6 +1769,31 @@ void FLevelViewportLayout::RenderViewportPlaceActorPopup()
 		}
 
 		ImGui::EndMenu();
+	}
+
+	// 선택된 액터가 시네마틱 릭이면 클릭 지점에 핀(웨이포인트)을 바로 추가.
+	if (SelectionManager)
+	{
+		if (ACameraCinematicActor* Rig = Cast<ACameraCinematicActor>(SelectionManager->GetPrimarySelection()))
+		{
+			if (ImGui::MenuItem("Add Cinematic Waypoint Here"))
+			{
+				const int32 Slot = ContextMenuState.PendingSpawnSlot;
+				FVector Location(0.0f, 0.0f, 0.0f);
+				if (TryComputePlacementLocation(Slot, ContextMenuState.PendingSpawnPos, Location))
+				{
+					// 핀이 "현재 뷰포트가 바라보는 방향"을 향하도록 카메라 회전을 캡처.
+					FRotator ViewRotation;
+					if (Slot >= 0 && Slot < static_cast<int32>(LevelViewportClients.size()) && LevelViewportClients[Slot])
+					{
+						FMinimalViewInfo POV;
+						LevelViewportClients[Slot]->GetCameraView(POV);
+						ViewRotation = POV.Rotation;
+					}
+					Rig->AddWaypointAtWorld(Location, ViewRotation);
+				}
+			}
+		}
 	}
 
 	const bool bCanDelete = SelectionManager && !SelectionManager->IsEmpty();
@@ -2079,6 +2106,16 @@ AActor* FLevelViewportLayout::SpawnActorFromViewportMenu(EViewportPlaceActorType
 		{
 			// Mesh 는 default. ULuaScriptComponent 의 ScriptFile 은 사용자가
 			// PropertyWidget 에서 콤보로 지정 (Content/Script/*.lua).
+			Actor->InitDefaultComponents();
+			SpawnedActor = Actor;
+		}
+		break;
+	}
+	case EViewportPlaceActorType::CameraCinematic:
+	{
+		ACameraCinematicActor* Actor = World->SpawnActor<ACameraCinematicActor>();
+		if (Actor)
+		{
 			Actor->InitDefaultComponents();
 			SpawnedActor = Actor;
 		}

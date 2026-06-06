@@ -37,6 +37,8 @@ private:
 	void RenderDetails(AActor* PrimaryActor, const TArray<AActor*>& SelectedActors);
 	void RenderComponentProperties(AActor* Actor, const TArray<AActor*>& SelectedActors);
 	void RenderActorProperties(AActor* PrimaryActor, const TArray<AActor*>& SelectedActors);
+	// ACameraCinematicActor 전용: 웨이포인트 추가/순서/제거 + 프리뷰 재생 도구.
+	void RenderCinematicActorTools(AActor* PrimaryActor);
 	bool RenderPropertyWidget(TArray<struct FPropertyValue>& Props, int32& Index, bool bDispatchChange = true, const FString& PropertyPath = {});
 	bool RenderSoftObjectPropertyWidget(struct FPropertyValue& Prop);
 	bool RenderAttachSocketNameProperty(struct FPropertyValue& Prop);
