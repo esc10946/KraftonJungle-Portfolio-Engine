@@ -1241,6 +1241,9 @@
     <ClCompile Include="Source\Engine\Component\AI\EnemyAttackComponent.cpp">
       <Filter>Source\Engine\Component\AI</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Component\AI\EnemyHitComponent.cpp">
+      <Filter>Source\Engine\Component\AI</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\Component\AI\PhaseComponent.cpp">
       <Filter>Source\Engine\Component\AI</Filter>
     </ClCompile>
@@ -2685,6 +2688,9 @@
       <Filter>Source\Engine\Component\AI</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\AI\EnemyAttackComponent.h">
+      <Filter>Source\Engine\Component\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Component\AI\EnemyHitComponent.h">
       <Filter>Source\Engine\Component\AI</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\AI\PhaseComponent.h">

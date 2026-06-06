@@ -15,8 +15,15 @@ local ATTACK_MONTAGE_PATHS = {
 
 local DEFENSE_IDLE_MONTAGE_PATH = "Content/Montages/DefenseIdle_Montage.uasset"
 local SUCCESS_PARRY_MONTAGE_PATH = "Content/Montages/SuccessParry_Montage.uasset"
+local HIT_MONTAGE_PATHS = {
+    F = "Content/Montages/Hit_F_Montage.uasset",
+    B = "Content/Montages/Hit_B_Montage.uasset",
+    L = "Content/Montages/Hit_L_Montage.uasset",
+    R = "Content/Montages/Hit_R_Montage.uasset",
+}
 
 local attackMontages = {} --Save Loaded Montage"
+local hitMontages = {}
 local defenseIdleMontage = nil
 local successParryMontage = nil
 local animInstance = nil --Cached Character's SkeletalMesh animInstance
@@ -30,6 +37,9 @@ local attackInputQueued = false --Save attack input until EnableAttack opens
 local defensePlaying = false
 local defenseIdlePlaying = false
 local successParryPlaying = false
+local hitPlaying = false
+local currentHitMontage = nil
+local canCancelHit = false --EnableAttack Notify opens hit cancel
 local parryWindowOpen = false
 local movementLocked = false
 local commandList = {}
@@ -96,6 +106,19 @@ local function load_parry_montages()
 
     if successParryMontage == nil then
         successParryMontage = Animation.LoadMontage(SUCCESS_PARRY_MONTAGE_PATH)
+    end
+end
+
+--Load Hit Montages--
+local function load_hit_montages()
+    if Animation == nil or Animation.LoadMontage == nil then
+        return
+    end
+
+    for key, path in pairs(HIT_MONTAGE_PATHS) do
+        if hitMontages[key] == nil then
+            hitMontages[key] = Animation.LoadMontage(path)
+        end
     end
 end
 
@@ -206,7 +229,7 @@ local function is_move_key_down()
 end
 
 local function update_movement_lock()
-    if attackPlaying or defensePlaying or successParryPlaying then
+    if attackPlaying or defensePlaying or successParryPlaying or (hitPlaying and not canCancelHit) then
         lock_movement_for_attack()
         return
     end
@@ -231,6 +254,12 @@ local function reset_parry_state()
     defenseIdlePlaying = false
     successParryPlaying = false
     parryWindowOpen = false
+end
+
+local function reset_hit_state()
+    hitPlaying = false
+    currentHitMontage = nil
+    canCancelHit = false
 end
 
 local function stop_current_montage()
@@ -269,6 +298,16 @@ local function stop_defense()
     defensePlaying = false
     defenseIdlePlaying = false
     parryWindowOpen = false
+    unlock_movement_after_attack()
+end
+
+local function stop_hit_for_cancel()
+    if not hitPlaying or not canCancelHit then
+        return
+    end
+
+    stop_current_montage()
+    reset_hit_state()
     unlock_movement_after_attack()
 end
 
@@ -358,6 +397,102 @@ local function face_camera_forward()
     local yaw = atan2_degrees(forward.Y, forward.X)
     --FVector rotation uses X=Roll, Y=Pitch, Z=Yaw--
     obj.Rotation = Vec3(0.0, 0.0, yaw)
+end
+
+local function normalize_flat_direction(direction)
+    if direction == nil then
+        return nil
+    end
+
+    direction.Z = 0.0
+    if direction:Length() <= 0.0001 then
+        return nil
+    end
+
+    return direction:Normalized()
+end
+
+local function get_damage_source_direction(damageSpec)
+    if damageSpec == nil or obj == nil or obj.Location == nil then
+        return nil
+    end
+
+    --Use attacker position first--
+    if damageSpec.DamageCauser ~= nil and damageSpec.DamageCauser.Location ~= nil then
+        local sourceDirection = damageSpec.DamageCauser.Location - obj.Location
+        local flat = normalize_flat_direction(sourceDirection)
+        if flat ~= nil then
+            return flat
+        end
+    end
+
+    --Fallback to instigator position--
+    if damageSpec.InstigatorActor ~= nil and damageSpec.InstigatorActor.Location ~= nil then
+        local sourceDirection = damageSpec.InstigatorActor.Location - obj.Location
+        return normalize_flat_direction(sourceDirection)
+    end
+
+    --Fallback to attack travel direction--
+    if damageSpec.HitDirection ~= nil then
+        local sourceDirection = damageSpec.HitDirection * -1.0
+        return normalize_flat_direction(sourceDirection)
+    end
+
+    return nil
+end
+
+local function choose_hit_direction_key(damageSpec)
+    local sourceDirection = get_damage_source_direction(damageSpec)
+    if sourceDirection == nil or obj == nil or obj.Forward == nil or obj.Right == nil then
+        return "F"
+    end
+
+    local forward = normalize_flat_direction(obj.Forward)
+    local right = normalize_flat_direction(obj.Right)
+    if forward == nil or right == nil then
+        return "F"
+    end
+
+    local forwardDot = sourceDirection:Dot(forward)
+    local rightDot = sourceDirection:Dot(right)
+    if math.abs(forwardDot) >= math.abs(rightDot) then
+        if forwardDot >= 0.0 then
+            return "F"
+        end
+        return "B"
+    end
+
+    if rightDot >= 0.0 then
+        return "L"
+    end
+    return "R"
+end
+
+--Play Hit Reaction--
+local function play_hit_reaction(damageSpec)
+    load_hit_montages()
+
+    local anim = GetOrCacheAnimInstance()
+    if anim == nil then
+        return
+    end
+
+    local key = choose_hit_direction_key(damageSpec)
+    local montage = hitMontages[key]
+    if montage == nil then
+        return
+    end
+
+    stop_current_montage()
+    reset_attack_state()
+    reset_parry_state()
+    hitPlaying = true
+    currentHitMontage = montage
+    canCancelHit = false
+    lock_movement_for_attack()
+    --Clear old EnableAttack flag--
+    consume_enable_attack(anim)
+    anim:PlayMontage(montage)
 end
 
 --Play Attack--
@@ -450,6 +585,19 @@ local function update_attack_chain_window()
     end
 end
 
+--Consume Hit cancel Notify flag--
+local function update_hit_cancel_window()
+    if not hitPlaying or canCancelHit then
+        return
+    end
+
+    local anim = GetOrCacheAnimInstance()
+    if consume_enable_attack(anim) then
+        canCancelHit = true
+        unlock_movement_after_attack()
+    end
+end
+
 --Play next attack if EnableAttack Notify opened chain--
 local function try_play_next_attack()
     if not attackPlaying or not canChainAttack then
@@ -530,6 +678,14 @@ local function execute_attack_input()
         return
     end
 
+    if hitPlaying then
+        if not canCancelHit then
+            return
+        end
+
+        stop_hit_for_cancel()
+    end
+
     if attackPlaying then
         if not canChainAttack then
             --Queue combo input until EnableAttack Notify opens--
@@ -545,7 +701,7 @@ local function execute_attack_input()
 end
 
 local function execute_parry_input()
-    if attackPlaying or defensePlaying or successParryPlaying then
+    if attackPlaying or defensePlaying or successParryPlaying or hitPlaying then
         return
     end
 
@@ -643,6 +799,23 @@ local function update_success_parry_sequence()
     end
 end
 
+local function update_hit_sequence()
+    if not hitPlaying then
+        return
+    end
+
+    if canCancelHit and is_move_key_down() then
+        stop_hit_for_cancel()
+        return
+    end
+
+    local anim = GetOrCacheAnimInstance()
+    if anim == nil or currentHitMontage == nil or not anim:IsMontagePlaying(currentHitMontage) then
+        reset_hit_state()
+        unlock_movement_after_attack()
+    end
+end
+
 --Register command in Tick order--
 local function register_command(command)
     commandList[#commandList + 1] = command
@@ -680,6 +853,12 @@ local AttackWindowCommand = {}
 
 function AttackWindowCommand:Tick(dt)
     update_attack_chain_window()
+end
+
+local HitCancelWindowCommand = {}
+
+function HitCancelWindowCommand:Tick(dt)
+    update_hit_cancel_window()
 end
 
 local ParryWindowCommand = {}
@@ -763,6 +942,12 @@ function ParryLifecycleCommand:Tick(dt)
     update_success_parry_sequence()
 end
 
+local HitLifecycleCommand = {}
+
+function HitLifecycleCommand:Tick(dt)
+    update_hit_sequence()
+end
+
 --Setup player commands--
 local function setup_commands()
     if #commandList > 0 then
@@ -770,6 +955,7 @@ local function setup_commands()
     end
 
     register_command(AttackWindowCommand)
+    register_command(HitCancelWindowCommand)
     register_command(ParryWindowCommand)
     register_command(ParrySuccessCommand)
     register_command(MovementLockCommand)
@@ -781,6 +967,7 @@ local function setup_commands()
     register_command(GroundSpeedCommand)
     register_command(AttackLifecycleCommand)
     register_command(ParryLifecycleCommand)
+    register_command(HitLifecycleCommand)
 end
 
 function BeginPlay()
@@ -789,9 +976,18 @@ function BeginPlay()
     equip_weapon()
     load_attack_montages()
     load_parry_montages()
+    load_hit_montages()
     setup_commands()
 end
 
 function Tick(dt)
     run_commands(dt)
+end
+
+function OnDamaged(damageSpec, damageReport)
+    if damageReport ~= nil and damageReport.AppliedDamage ~= nil and damageReport.AppliedDamage <= 0.0 then
+        return
+    end
+
+    play_hit_reaction(damageSpec)
 end

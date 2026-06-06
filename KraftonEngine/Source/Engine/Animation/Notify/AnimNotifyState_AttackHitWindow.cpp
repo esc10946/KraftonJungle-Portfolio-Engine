@@ -3,6 +3,7 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/Notify/AnimNotifyState_ParryWindow.h"
 #include "Component/Combat/CombatHitEventComponent.h"
+#include "Component/Combat/HealthComponent.h"
 #include "Component/Input/ActionComponent.h"
 #include "Component/PrimitiveComponent.h"
 #include "Component/Primitive/SkeletalMeshComponent.h"
@@ -212,6 +213,27 @@ namespace
 		{
 			HitEventComponent->BroadcastAttackParried(Defender, HitComponent, DamageSpec, HitEventName);
 		}
+	}
+
+	FCombatDamageReport ApplyDamageToTarget(AActor* Target, const FCombatDamageSpec& DamageSpec)
+	{
+		FCombatDamageReport Report;
+		Report.RequestedDamage = DamageSpec.Damage;
+
+		if (!IsValid(Target))
+		{
+			Report.Result = ECombatDamageResult::Rejected;
+			return Report;
+		}
+
+		UHealthComponent* HealthComponent = Target->GetComponentByClass<UHealthComponent>();
+		if (!HealthComponent)
+		{
+			Report.Result = ECombatDamageResult::Rejected;
+			return Report;
+		}
+
+		return HealthComponent->ApplyDamageSpec(DamageSpec);
 	}
 
 	void PurgeInvalidAttackHitEntries(
@@ -428,6 +450,7 @@ void UAnimNotifyState_AttackHitWindow::NotifyTick(USkeletalMeshComponent* MeshCo
 		{
 			BroadcastAttackHitEvent(Owner, Candidate, HitComponent, DamageSpec, HitEventName);
 		}
+		const FCombatDamageReport DamageReport = ApplyDamageToTarget(Candidate, DamageSpec);
 		ApplyHitStop(Owner, HitStopDuration, bAutoAddActionComponent);
 		ApplyHitStop(Candidate, HitStopDuration, bAutoAddActionComponent);
 		if (bApplyKnockback)
@@ -441,10 +464,14 @@ void UAnimNotifyState_AttackHitWindow::NotifyTick(USkeletalMeshComponent* MeshCo
 
 		if (bLogHits)
 		{
-			UE_LOG("[AttackHitWindow] %s hit %s via %s (center=%.1f, %.1f, %.1f radius=%.1f)",
+			const uint32 ResultIndex = static_cast<uint32>(DamageReport.Result);
+			const char* ResultName = ResultIndex < GCombatDamageResultCount ? GCombatDamageResultNames[ResultIndex] : "Unknown";
+			UE_LOG("[AttackHitWindow] %s hit %s via %s damage=%.1f result=%s (center=%.1f, %.1f, %.1f radius=%.1f)",
 				Owner->GetName().c_str(),
 				Candidate->GetName().c_str(),
 				HitComponent->GetName().c_str(),
+				DamageReport.AppliedDamage,
+				ResultName,
 				Center.X,
 				Center.Y,
 				Center.Z,

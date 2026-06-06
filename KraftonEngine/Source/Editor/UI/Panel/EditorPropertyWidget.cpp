@@ -19,6 +19,8 @@
 #include "Component/Primitive/StaticMeshComponent.h"
 #include "GameFramework/AActor.h"
 #include "Asset/AssetRegistry.h"
+#include "Animation/AnimationManager.h"
+#include "Animation/Montage/AnimMontage.h"
 #include "Animation/Skeleton/Skeleton.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/Graph/AnimGraphInstance.h"
@@ -3397,6 +3399,51 @@ bool FEditorPropertyWidget::RenderPropertyWidget(TArray<FPropertyValue>& Props, 
 				}
 			}
 
+			break;
+		}
+
+		if (AllowedClass == UAnimMontage::StaticClass())
+		{
+			UAnimMontage* CurrentMontage = Cast<UAnimMontage>(Current);
+			const FString CurrentPath = CurrentMontage ? CurrentMontage->GetAssetPathFileName() : FString();
+			Preview = CurrentMontage && !CurrentPath.empty() && CurrentPath != "None"
+				? GetStemFromPath(CurrentPath)
+				: FString("None");
+
+			if (ImGui::BeginCombo("##AnimMontageObject", Preview.c_str()))
+			{
+				const bool bSelectedNone = CurrentMontage == nullptr;
+				if (ImGui::Selectable("None", bSelectedNone))
+				{
+					SetObjectValue(nullptr);
+				}
+				if (bSelectedNone)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+
+				const TArray<FAssetListItem>& MontageFiles = FAssetRegistry::ListByTypeName("UAnimMontage");
+				for (const FAssetListItem& Item : MontageFiles)
+				{
+					const bool bSelected = CurrentMontage && CurrentPath == Item.FullPath;
+					if (ImGui::Selectable(Item.DisplayName.c_str(), bSelected))
+					{
+						if (UAnimMontage* Loaded = FAnimationManager::Get().LoadMontage(Item.FullPath))
+						{
+							SetObjectValue(Loaded);
+						}
+					}
+					if (bSelected)
+					{
+						ImGui::SetItemDefaultFocus();
+					}
+					if (ImGui::IsItemHovered())
+					{
+						ImGui::SetTooltip("%s", Item.FullPath.c_str());
+					}
+				}
+				ImGui::EndCombo();
+			}
 			break;
 		}
 

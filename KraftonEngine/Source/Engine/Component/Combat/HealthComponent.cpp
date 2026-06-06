@@ -90,17 +90,22 @@ FCombatDamageReport UHealthComponent::ApplyDamageSpec(const FCombatDamageSpec& D
 		}
 	}
 
-	OnDamaged.Broadcast(this, Report.AppliedDamage, CurrentHealth, DamageSpec.DamageCauser, DamageSpec.InstigatorActor);
-
 	if (CurrentHealth <= 0.0f)
 	{
 		Report.Result = ECombatDamageResult::Killed;
 		Report.bKilled = true;
-		BroadcastDeathOnce(DamageSpec.DamageCauser, DamageSpec.InstigatorActor);
 	}
 	else
 	{
 		Report.Result = ECombatDamageResult::Damaged;
+	}
+
+	OnDamageApplied.Broadcast(this, Report, DamageSpec);
+	OnDamaged.Broadcast(this, Report.AppliedDamage, CurrentHealth, DamageSpec.DamageCauser, DamageSpec.InstigatorActor);
+
+	if (Report.bKilled)
+	{
+		BroadcastDeathOnce(DamageSpec.DamageCauser, DamageSpec.InstigatorActor);
 	}
 
 	return Report;

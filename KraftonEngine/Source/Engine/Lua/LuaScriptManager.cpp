@@ -1616,7 +1616,7 @@ namespace
         TargetStruct->FindFunctionsByName(FunctionName.c_str(), Functions, true);
         if (Functions.empty())
         {
-            UE_LOG("[LuaReflection] Reflection.Call failed: function not found: %s", FunctionName.c_str());
+            //UE_LOG("[LuaReflection] Reflection.Call failed: function not found: %s", FunctionName.c_str());
             return sol::make_object(Lua, sol::nil);
         }
 
@@ -4085,7 +4085,15 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
         "GetCharacterMovement",
         &ACharacter::GetCharacterMovement,
         "GetStateMachine",
-        &ACharacter::GetStateMachine
+        &ACharacter::GetStateMachine,
+        "EnterRagdoll",
+        &ACharacter::EnterRagdoll,
+        "ExitRagdoll",
+        &ACharacter::ExitRagdoll,
+        "BeginRagdollRecovery",
+        &ACharacter::BeginRagdollRecovery,
+        "IsInRagdoll",
+        &ACharacter::IsInRagdoll
     );
 
 
@@ -4493,7 +4501,16 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
             [](AEnemyCharacter& C, const FVector& Location, float AcceptanceRadius) { return C.RequestMoveToLocation(Location, AcceptanceRadius, true); }
         ),
         "IsPathFollowing", &AEnemyCharacter::IsPathFollowing,
-        "PlayAttackMontage", &AEnemyCharacter::PlayAttackMontage
+        "PlayAttackMontage", &AEnemyCharacter::PlayAttackMontage,
+        "Brain_AcquireTarget", &AEnemyCharacter::Brain_AcquireTarget,
+        "Brain_Chase", &AEnemyCharacter::Brain_Chase,
+        "Brain_Idle", &AEnemyCharacter::Brain_Idle,
+        "Brain_IsBusy", &AEnemyCharacter::Brain_IsBusy,
+        "Brain_GetDistance", &AEnemyCharacter::Brain_GetDistance,
+        "Brain_GetAttackRange", &AEnemyCharacter::Brain_GetAttackRange,
+        "Brain_SetSelectedAttack", [](AEnemyCharacter& C, const FString& AttackName) { return C.Brain_SetSelectedAttack(FName(AttackName)); },
+        "Brain_PlaySelectedAttack", &AEnemyCharacter::Brain_PlaySelectedAttack,
+        "Brain_PlayAttackByName", [](AEnemyCharacter& C, const FString& AttackName) { return C.Brain_PlayAttackByName(FName(AttackName)); }
     );
 
     Lua.new_usertype<ABossEnemyCharacter>(

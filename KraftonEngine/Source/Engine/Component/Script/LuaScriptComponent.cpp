@@ -1,6 +1,7 @@
 #include "LuaScriptComponent.h"
 
 #include "Component/Combat/CombatHitEventComponent.h"
+#include "Component/Combat/HealthComponent.h"
 #include "Component/PrimitiveComponent.h"
 #include "Core/Logging/Log.h"
 #include "GameFramework/AActor.h"
@@ -38,6 +39,7 @@ void ULuaScriptComponent::ClearLuaRuntime()
 	LuaOnEndOverlap = sol::nil;
 	LuaOnHit = sol::nil;
 	LuaOnEndHit = sol::nil;
+	LuaOnDamaged = sol::nil;
 	LuaOnAttackHit = sol::nil;
 	LuaOnAttackParried = sol::nil;
 	Env = sol::environment();
@@ -51,6 +53,7 @@ void ULuaScriptComponent::ReleaseLuaRuntimeForShutdown()
 	FLuaScriptManager::UnregisterComponent(this);
 	ClearCollisionBindings();
 	ClearCombatBindings();
+	ClearDamageBindings();
 	if (LuaCallDepth > 0)
 	{
 		bPendingLuaCleanup = true;
@@ -106,6 +109,7 @@ void ULuaScriptComponent::InitializeLua()
 	LuaOnEndOverlap = Env["OnEndOverlap"];
 	LuaOnHit = Env["OnHit"];
 	LuaOnEndHit = Env["OnEndHit"];
+	LuaOnDamaged = Env["OnDamaged"];
 	LuaOnAttackHit = Env["OnAttackHit"];
 	LuaOnAttackParried = Env["OnAttackParried"];
 }
@@ -114,6 +118,7 @@ void ULuaScriptComponent::ReloadScript()
 {
 	ClearCollisionBindings();
 	ClearCombatBindings();
+	ClearDamageBindings();
 	InitializeLua();
 
 	if (LuaBeginPlay)
@@ -130,6 +135,7 @@ void ULuaScriptComponent::ReloadScript()
 
 	BindOwnerCollisionEvents();
 	BindOwnerCombatEvents();
+	BindOwnerDamageEvents();
 }
 
 void ULuaScriptComponent::BeginPlay()
@@ -154,6 +160,7 @@ void ULuaScriptComponent::BeginPlay()
 
 	BindOwnerCollisionEvents();
 	BindOwnerCombatEvents();
+	BindOwnerDamageEvents();
 }
 
 void ULuaScriptComponent::EndPlay()
@@ -168,6 +175,7 @@ void ULuaScriptComponent::EndPlay()
 	FLuaScriptManager::UnregisterComponent(this);
 	ClearCollisionBindings();
 	ClearCombatBindings();
+	ClearDamageBindings();
 	if (LuaCallDepth > 0)
 	{
 		bPendingLuaEndPlay = true;
@@ -211,6 +219,43 @@ void ULuaScriptComponent::HandleDeferredLuaCleanup()
 		InvokeLuaEndPlay();
 	}
 	ClearLuaRuntime();
+}
+
+void ULuaScriptComponent::BindOwnerDamageEvents()
+{
+	ClearDamageBindings();
+
+	if (!LuaOnDamaged)
+	{
+		return;
+	}
+
+	AActor* OwnerActor = GetOwner();
+	if (!OwnerActor)
+	{
+		return;
+	}
+
+	UHealthComponent* HealthComponent = OwnerActor->GetComponentByClass<UHealthComponent>();
+	if (!HealthComponent)
+	{
+		return;
+	}
+
+	BoundHealthComponent = HealthComponent;
+	DamageAppliedHandle = HealthComponent->OnDamageApplied.AddWeakUObject(this, &ULuaScriptComponent::HandleDamageApplied);
+}
+
+void ULuaScriptComponent::ClearDamageBindings()
+{
+	UHealthComponent* HealthComponent = BoundHealthComponent.Get();
+	if (HealthComponent && DamageAppliedHandle.IsValid())
+	{
+		HealthComponent->OnDamageApplied.Remove(DamageAppliedHandle);
+	}
+
+	BoundHealthComponent.Reset();
+	DamageAppliedHandle.Reset();
 }
 
 void ULuaScriptComponent::BindOwnerCombatEvents()
@@ -518,6 +563,28 @@ void ULuaScriptComponent::HandleAttackParried(
 		{
 			sol::error Err = Result;
 			UE_LOG("Lua OnAttackParried error in %s: %s", ScriptFile.c_str(), Err.what());
+			FLuaDebugManager::OnLuaError(ScriptFile, Err.what(), false);
+		}
+	}
+}
+
+void ULuaScriptComponent::HandleDamageApplied(
+	UHealthComponent* /*HealthComponent*/,
+	const FCombatDamageReport& DamageReport,
+	const FCombatDamageSpec& DamageSpec)
+{
+	if (!IsValid(this) || bPendingLuaCleanup || !Env.valid() || !LuaOnDamaged)
+	{
+		return;
+	}
+
+	{
+		FLuaCallScope Scope(this);
+		sol::protected_function_result Result = LuaOnDamaged(DamageSpec, DamageReport);
+		if (!Result.valid())
+		{
+			sol::error Err = Result;
+			UE_LOG("Lua OnDamaged error in %s: %s", ScriptFile.c_str(), Err.what());
 			FLuaDebugManager::OnLuaError(ScriptFile, Err.what(), false);
 		}
 	}
