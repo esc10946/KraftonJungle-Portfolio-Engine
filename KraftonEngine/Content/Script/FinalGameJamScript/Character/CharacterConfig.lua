@@ -18,8 +18,8 @@ Config.ATTACK_MONTAGE_PATHS = {
     "Content/Montages/Twin_Attack4_Montage.uasset",
 }
 
-Config.DEFENSE_IDLE_MONTAGE_PATH = "Content/Montages/DefenseIdle_Montage.uasset"
-Config.SUCCESS_PARRY_MONTAGE_PATH = "Content/Montages/SuccessParry_Montage.uasset"
+Config.DEFENSE_IDLE_MONTAGE_PATH = "Content/Montages/Twin_Defense_Montage.uasset"
+Config.SUCCESS_PARRY_MONTAGE_PATH = "Content/Montages/Twin_SuccessParry_Montage.uasset"
 
 Config.HIT_MONTAGE_PATHS = {
     F = "Content/Montages/Twin_Hit_F_Montage.uasset",
