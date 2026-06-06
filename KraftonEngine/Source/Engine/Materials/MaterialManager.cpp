@@ -256,7 +256,8 @@ UMaterial* FMaterialManager::LoadMaterialBinary(const FString& UassetPath)
 
 // 임포터용 — JSON 없이 머티리얼을 직접 만들고 .uasset 으로 저장한다.
 UMaterial* FMaterialManager::CreateImportedMaterialAsset(const FString& UassetPath, const FVector4& SectionColor,
-	const FString& DiffuseTexturePath, const FString& NormalTexturePath)
+	const FString& DiffuseTexturePath, const FString& NormalTexturePath, const FString& OpacityMaskTexturePath,
+	float SpecularStrength)
 {
 	MaterialCache.erase(UassetPath);
 
@@ -264,19 +265,33 @@ UMaterial* FMaterialManager::CreateImportedMaterialAsset(const FString& UassetPa
 	if (!Template) return nullptr;
 	auto Buffers = CreateConstantBuffers(Template);
 
+	UTexture2D* DiffuseTex = nullptr;
+	UTexture2D* NormalTex = nullptr;
+	UTexture2D* OpacityMaskTex = nullptr;
+	if (!DiffuseTexturePath.empty())
+		DiffuseTex = UTexture2D::LoadFromFile(DiffuseTexturePath, Device, ETextureColorSpace::SRGB);
+	if (!NormalTexturePath.empty())
+		NormalTex = UTexture2D::LoadFromFile(NormalTexturePath, Device, ETextureColorSpace::Linear);
+	if (!OpacityMaskTexturePath.empty())
+		OpacityMaskTex = UTexture2D::LoadFromFile(OpacityMaskTexturePath, Device, ETextureColorSpace::Linear);
+
 	UMaterial* Material = UObjectManager::Get().CreateObject<UMaterial>();
-	Material->Create(UassetPath, Template, EMaterialDomain::Surface, EBlendMode::Opaque, std::move(Buffers));
+	const bool bHasOpacityMask = OpacityMaskTex != nullptr;
+	Material->Create(UassetPath, Template, EMaterialDomain::Surface, bHasOpacityMask ? EBlendMode::Masked : EBlendMode::Opaque, std::move(Buffers));
 	Material->SetShaderPathForSerialize(DefaultShaderPath);
 	Material->SetVector4Parameter("SectionColor", SectionColor);
-	Material->SetScalarParameter("HasNormalMap", NormalTexturePath.empty() ? 0.0f : 1.0f);
+	Material->SetScalarParameter("HasNormalMap", NormalTex ? 1.0f : 0.0f);
+	Material->SetScalarParameter("HasOpacityMask", bHasOpacityMask ? 1.0f : 0.0f);
+	Material->SetScalarParameter("OpacityMaskClipValue", 0.333f);
 	Material->SetScalarParameter("Opacity", 1.0f); // CB zero-init=0(투명) 방지 — 신규 머티리얼 기본 불투명
+	Material->SetScalarParameter("SpecularStrength", SpecularStrength); // FBX SpecularFactor → highlight 세기. 0 = 무광.
 
-	if (!DiffuseTexturePath.empty())
-		if (UTexture2D* Tex = UTexture2D::LoadFromFile(DiffuseTexturePath, Device, ETextureColorSpace::SRGB))
-			Material->SetTextureParameter("DiffuseTexture", Tex);
-	if (!NormalTexturePath.empty())
-		if (UTexture2D* Tex = UTexture2D::LoadFromFile(NormalTexturePath, Device, ETextureColorSpace::Linear))
-			Material->SetTextureParameter("NormalTexture", Tex);
+	if (DiffuseTex)
+		Material->SetTextureParameter("DiffuseTexture", DiffuseTex);
+	if (NormalTex)
+		Material->SetTextureParameter("NormalTexture", NormalTex);
+	if (OpacityMaskTex)
+		Material->SetTextureParameter("OpacityMaskTexture", OpacityMaskTex);
 
 	Material->RebuildCachedSRVs();
 	SaveMaterial(Material, UassetPath);

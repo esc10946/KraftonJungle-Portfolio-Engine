@@ -1,0 +1,270 @@
+/* Player HUD */
+
+/* ============================================================
+   Player HUD - Bottom Left
+   ============================================================ */
+
+#player-hud {
+    position: absolute;
+
+    left: 28px;
+    bottom: 32px;
+
+    width: 301px;
+    height: 80px;
+}
+
+/* ------------------------------------------------------------
+   Main dark background brush
+
+   나중에 배경 이미지를 바꾸려면 여기만 교체.
+   ------------------------------------------------------------ */
+#player-hud-bg {
+    position: absolute;
+
+    left: 34px;
+    top: 0px;
+    width: 250px;
+    height: 80px;
+}
+
+/* ------------------------------------------------------------
+   Top circular icons
+   ------------------------------------------------------------ */
+
+.player-top-icon {
+    position: absolute;
+    top: 0px;
+
+    width: 27px;
+    height: 27px;
+}
+
+/* Left icon */
+#player-icon-left {
+    left: 50px;
+    decorator: image("../Texture/HUD/SB_FE/Respawn_On_Icon.png" contain);
+
+    position: absolute;}
+
+/* Right icon */
+#player-icon-right {
+    left: 82px;
+    decorator: image("../Texture/HUD/SB_FE/Respawn_On_Icon.png" contain);
+}
+
+/* ============================================================
+   HP Bar
+
+   구조 설명:
+   player-hp-frame  → 전체 바 영역 (BG 이미지)
+     └─ player-hp-mask   → 클리핑 영역 (runtime에서 width 조절)
+          └─ player-hp-fill   → 실제 HP 색상/이미지
+     └─ player-hp-border → BG 프레임을 fill 위에 덮음
+   ============================================================ */
+
+#player-hp-frame {
+    position: absolute;
+    left: 40px;
+    top: 31px;
+
+    width: 200px;
+    height: 20px;
+    
+    decorator: image("../Texture/HUD/SB_FE/HealthBar_BG.png" cover);
+}
+
+/* HP fill clipping area
+
+   Runtime에서 width만 변경:
+   100% = full hp  → width: 196px
+   0%   = dead     → width: 0px
+*/
+#player-hp-mask {
+    position: absolute;
+    left: 1px;
+    top: 2px;
+
+    width: 100%;
+    height: 16px;
+    overflow: hidden;
+    clip: always;
+}
+
+/* HP fill image
+
+   체력 변화는 parent인 #player-hp-mask의 width로 처리한다.
+*/
+#player-hp-fill {
+    position: absolute;
+    left: 1px;
+    top: 0px;
+    width: 197px;
+    height: 100%;
+    decorator: image("../Texture/HUD/SB_FE/HealthBar.png" cover);
+}
+
+/* HP bar border
+   fill 위에 덮는 프레임 역할.
+   frame과 동일한 크기 + 동일한 이미지로 덮어씌움.
+*/
+#player-hp-border {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+
+    width: 200px;
+    height: 20px;
+}
+
+#player-hp-marker-left {
+    left: -3px;
+    top: -15px;
+    width: 8px;
+    height: 50px;
+}
+
+#player-hp-marker-right {
+    right: -3px;
+    top: -15px;
+    width: 8px;
+    height: 50px;
+}
+
+/* ============================================================
+   Bottom red token / state icon
+   ============================================================ */
+
+#player-token {
+    position: absolute;
+    left: 55px;
+    top: 53px;
+
+    width: 22px;
+    height: 22px;
+
+    /*
+       여기에 상태 아이콘 이미지를 넣으면 됨.
+       별도 crop PNG를 만들어서 이 자리에 넣는 게 맞다.
+    */
+}
+
+/* ============================================================
+   Player posture HUD - Bottom Middle
+   ============================================================ */
+
+#player-posture-panel {
+    position: absolute;
+    left: 50%;
+    bottom: 88px;
+    width: 460px;
+    height: 34px;
+    margin-left: -230px;
+}
+
+/* 왼쪽 BG - center 기준 왼쪽 */
+#player-posture-bg-left {
+    position: absolute;
+    right: 232px;       /* center-mark 기준 */
+    top: 0px;
+    width: 227px;
+    height: 34px;
+    decorator: image("../Texture/HUD/SB_FE/PostureBar_Left_BG.png" fill);
+}
+
+/* 오른쪽 BG - center 기준 오른쪽 */
+#player-posture-bg-right {
+    position: absolute;
+    left: 232px;
+    top: 0px;
+    width: 227px;
+    height: 34px;
+    decorator: image("../Texture/HUD/SB_FE/PostureBar_Right_BG.png" fill);
+}
+
+/* 왼쪽 바 마스크 - 런타임에서 width 조절: 0px ~ 227px */
+#player-posture-marker-left {
+    left: -36px;
+    top: 9px;
+    transform: scale(-1, 1);
+
+    height: 16px;
+    width: 95px;}
+
+#player-posture-marker-right {
+    right: -36px;
+    top: 9px;
+
+    height: 16px;
+    width: 95px;}
+
+#player-posture-left-clip {
+    position: absolute;
+    left: 0px;
+    top: 10px;
+
+    width: 227px;   /* 런타임에서 0 ~ 227px */
+    height: 14px;
+
+    overflow: hidden;
+    clip: always;
+}
+
+#player-posture-left-mask {
+    position: absolute;
+    right: 0px;
+    top: 0px;
+    width: 100%;
+    height: 14px;
+}
+
+#player-posture-left-fill {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+
+    width: 227px;
+    height: 14px;
+
+    decorator: image("../Texture/HUD/SB_FE/PostureBar_Left.png" fill);
+}
+
+/* 오른쪽 바 마스크 - 런타임에서 width 조절: 0px ~ 227px */
+#player-posture-right-clip {
+    position: absolute;
+    right: 0px;
+    top: 10px;
+
+    width: 227px;
+    height: 14px;
+
+    overflow: hidden;
+    clip: always;
+}
+
+#player-posture-right-mask {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 100%;
+    height: 14px;
+}
+
+#player-posture-right-fill {
+    position: absolute;
+    right: 0px;
+    top: 0px;
+    width: 227px;
+    height: 14px;
+    decorator: image("../Texture/HUD/SB_FE/PostureBar_Right.png" fill);
+}
+
+/* 중앙 마크 */
+#player-posture-center-mark {
+    position: absolute;
+    left: 228px;
+    top: 11px;
+    width: 4px;
+    height: 12px;
+    background-color: rgb(240, 238, 224);
+}

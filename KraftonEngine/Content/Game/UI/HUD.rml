@@ -2,6 +2,9 @@
 <head>
     <title>HUD</title>
     <link type="text/rcss" href="HUD.rcss"/>
+    <link type="text/rcss" href="HUD_Player.rcss"/>
+    <link type="text/rcss" href="HUD_Boss.rcss"/>
+    <link type="text/rcss" href="HUD_Item.rcss"/>
 </head>
 
 <body id="hud-screen">

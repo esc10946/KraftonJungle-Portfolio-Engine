@@ -185,11 +185,20 @@ namespace EShadowDepthDefines
 	inline const D3D_SHADER_MACRO StaticMesh[] = { {nullptr, nullptr} };
 	// SkeletalMesh: 별도 VS 엔트리포인트가 GPU skinning 경로를 선택한다.
 	inline const D3D_SHADER_MACRO SkeletalMesh[] = { {nullptr, nullptr} };
+	// Masked: SHADOW_MASKED=1 → PS 에서 OpacityMask 샘플 후 clip (알파 테스트 그림자).
+	inline const D3D_SHADER_MACRO StaticMeshMasked[]   = { {"SHADOW_MASKED", "1"}, {nullptr, nullptr} };
+	inline const D3D_SHADER_MACRO SkeletalMeshMasked[] = { {"SHADOW_MASKED", "1"}, {nullptr, nullptr} };
 
-	inline FShaderKey MakePermutationKey(EVertexFactory VF)
+	inline const D3D_SHADER_MACRO* GetDefines(EVertexFactory VF, bool bMasked)
 	{
-		const D3D_SHADER_MACRO* Defines = 
-			(VF == EVertexFactory::SkeletalMesh) ? SkeletalMesh : StaticMesh;
+		if (VF == EVertexFactory::SkeletalMesh)
+			return bMasked ? SkeletalMeshMasked : SkeletalMesh;
+		return bMasked ? StaticMeshMasked : StaticMesh;
+	}
+
+	inline FShaderKey MakePermutationKey(EVertexFactory VF, bool bMasked = false)
+	{
+		const D3D_SHADER_MACRO* Defines = GetDefines(VF, bMasked);
 		const char* VSEntry =
 			(VF == EVertexFactory::SkeletalMesh) ? EntryPoint::SkeletalMeshVS : EntryPoint::StaticMeshVS;
 		return FShaderKey(EShaderPath::ShadowDepth, Defines, VSEntry, EntryPoint::PS);
@@ -300,7 +309,7 @@ public:
 	FShader* GetOrCreate(const FShaderKey& Key, EShaderErrorMode ErrorMode = EShaderErrorMode::Notification);
 	FShader* PreCompile(const FShaderKey& Key, const D3D_SHADER_MACRO* Defines, EShaderErrorMode ErrorMode = EShaderErrorMode::Notification);
 	FShader* GetOrCreate(const FString& Path, EShaderErrorMode ErrorMode = EShaderErrorMode::Notification) { return GetOrCreate(FShaderKey(Path), ErrorMode); }
-	FShader* GetOrCreateShadowDepthPermutation(EShadowDepthDefines::EVertexFactory VF, EShaderErrorMode ErrorMode = EShaderErrorMode::Notification);
+	FShader* GetOrCreateShadowDepthPermutation(EShadowDepthDefines::EVertexFactory VF, bool bMasked = false, EShaderErrorMode ErrorMode = EShaderErrorMode::Notification);
 	FShader* GetOrCreateUberLitPermutation(EUberLitDefines::ELightingModel LightingModel, EUberLitDefines::EVertexFactory VertexFactory,
 		EShaderErrorMode ErrorMode = EShaderErrorMode::Notification);
 	FShader* FindOrCreate(const FString& Path);

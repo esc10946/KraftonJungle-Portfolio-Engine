@@ -67,10 +67,8 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 	{
 		for (FMontageSlotEntry& Entry : MontageSlots)
 		{
-			if (IsValid(Entry.Instance) && Entry.Instance->IsActive())
-			{
-				Entry.Instance->Tick(DeltaSeconds, this);
-			}
+			FTransform UnusedRootMotion;
+			UpdateMontageSlot(Entry.SlotName, DeltaSeconds, UnusedRootMotion);
 		}
 	}
 
@@ -113,33 +111,7 @@ void UAnimInstance::EvaluatePose(FPoseContext& Output)
 	// 만 special-case 합성. 새 코드는 RootNode 경로 사용해 이 path 안 탐.
 	EvaluateAnimation(Output);
 
-	if (UAnimMontageInstance* DefaultMI = GetMontageInstanceForSlot(DefaultMontageSlot))
-	{
-		if (DefaultMI->IsActive())
-		{
-			const float Weight = DefaultMI->GetBlendWeight();
-			if (Weight > 0.0f)
-			{
-				FPoseContext MontagePose;
-				MontagePose.SkeletalMesh = Output.SkeletalMesh;
-				MontagePose.ResetToRefPose();
-				DefaultMI->EvaluateMontagePose(MontagePose);
-
-				if (Weight >= 1.0f)
-				{
-					Output = MontagePose;
-				}
-				else
-				{
-					FPoseContext Blended;
-					Blended.SkeletalMesh = Output.SkeletalMesh;
-					Blended.ResetToRefPose();
-					FAnimationRuntime::BlendTwoPosesTogether(Output, MontagePose, Weight, Blended);
-					Output = Blended;
-				}
-			}
-		}
-	}
+	EvaluateMontageSlot(DefaultMontageSlot, Output);
 
 	PostEvaluatePose(Output);
 }
@@ -288,12 +260,193 @@ void UAnimInstance::AddAnimNotifies(float PreviousTime, float CurrentTime, const
 
 UAnimMontageInstance* UAnimInstance::GetMontageInstanceForSlot(FName SlotName) const
 {
+	const FMontageSlotEntry* Entry = FindMontageSlotEntry(SlotName);
+	if (Entry && IsValid(Entry->ActiveInstance))
+	{
+		return Entry->ActiveInstance;
+	}
+	return nullptr;
+}
+
+UAnimInstance::FMontageSlotEntry* UAnimInstance::FindMontageSlotEntry(FName SlotName)
+{
+	const FName Key = (SlotName == FName::None) ? DefaultMontageSlot : SlotName;
+	for (FMontageSlotEntry& Entry : MontageSlots)
+	{
+		if (Entry.SlotName == Key) return &Entry;
+	}
+	return nullptr;
+}
+
+const UAnimInstance::FMontageSlotEntry* UAnimInstance::FindMontageSlotEntry(FName SlotName) const
+{
 	const FName Key = (SlotName == FName::None) ? DefaultMontageSlot : SlotName;
 	for (const FMontageSlotEntry& Entry : MontageSlots)
 	{
-		if (Entry.SlotName == Key && IsValid(Entry.Instance)) return Entry.Instance;
+		if (Entry.SlotName == Key) return &Entry;
 	}
 	return nullptr;
+}
+
+void UAnimInstance::PruneInactiveMontages(FMontageSlotEntry& Entry)
+{
+	for (int32 Index = static_cast<int32>(Entry.OutgoingInstances.size()) - 1; Index >= 0; --Index)
+	{
+		UAnimMontageInstance* Instance = Entry.OutgoingInstances[Index];
+		if (!IsValid(Instance) || !Instance->IsActive())
+		{
+			if (IsValid(Instance))
+			{
+				UObjectManager::Get().DestroyObject(Instance);
+			}
+			Entry.OutgoingInstances.erase(Entry.OutgoingInstances.begin() + Index);
+		}
+	}
+}
+
+void UAnimInstance::UpdateMontageSlot(FName SlotName, float DeltaSeconds, FTransform& InOutRootMotion)
+{
+	FMontageSlotEntry* Entry = FindMontageSlotEntry(SlotName);
+	if (!Entry) return;
+
+	for (UAnimMontageInstance* Outgoing : Entry->OutgoingInstances)
+	{
+		if (IsValid(Outgoing) && Outgoing->IsActive())
+		{
+			Outgoing->Tick(DeltaSeconds, this);
+		}
+	}
+
+	UAnimMontageInstance* Active = Entry->ActiveInstance;
+	if (IsValid(Active) && Active->IsActive())
+	{
+		Active->Tick(DeltaSeconds, this);
+		if (Active->IsActive())
+		{
+			const float Weight = Active->GetBlendWeight();
+			if (Weight > 0.0f)
+			{
+				const FTransform& MontageRootMotion = Active->GetLastRootMotionDelta();
+				InOutRootMotion.Location =
+					InOutRootMotion.Location * (1.0f - Weight) + MontageRootMotion.Location * Weight;
+				InOutRootMotion.Rotation = FQuat::Slerp(
+					InOutRootMotion.Rotation.GetNormalized(),
+					MontageRootMotion.Rotation.GetNormalized(),
+					Weight).GetNormalized();
+			}
+		}
+	}
+
+	PruneInactiveMontages(*Entry);
+}
+
+float UAnimInstance::GetMontageSlotBlendWeight(FName SlotName) const
+{
+	const FMontageSlotEntry* Entry = FindMontageSlotEntry(SlotName);
+	if (!Entry) return 0.0f;
+
+	float TotalWeight = 0.0f;
+	for (UAnimMontageInstance* Outgoing : Entry->OutgoingInstances)
+	{
+		if (IsValid(Outgoing) && Outgoing->IsActive())
+		{
+			TotalWeight += Outgoing->GetBlendWeight();
+		}
+	}
+	if (IsValid(Entry->ActiveInstance) && Entry->ActiveInstance->IsActive())
+	{
+		TotalWeight += Entry->ActiveInstance->GetBlendWeight();
+	}
+	return std::clamp(TotalWeight, 0.0f, 1.0f);
+}
+
+void UAnimInstance::EvaluateMontageSlot(FName SlotName, FPoseContext& InOutBasePose)
+{
+	FMontageSlotEntry* Entry = FindMontageSlotEntry(SlotName);
+	if (!Entry) return;
+
+	FPoseContext CompositePose;
+	CompositePose.SkeletalMesh = InOutBasePose.SkeletalMesh;
+	CompositePose.ResetToRefPose();
+
+	float CompositeWeight = 0.0f;
+	bool bHasCompositePose = false;
+
+	auto AccumulateMontagePose =
+		[&](UAnimMontageInstance* Instance)
+		{
+			if (!IsValid(Instance) || !Instance->IsActive()) return;
+
+			const float Weight = Instance->GetBlendWeight();
+			if (Weight <= 0.0f) return;
+
+			FPoseContext MontagePose;
+			MontagePose.SkeletalMesh = InOutBasePose.SkeletalMesh;
+			MontagePose.ResetToRefPose();
+			Instance->EvaluateMontagePose(MontagePose);
+
+			if (!bHasCompositePose)
+			{
+				CompositePose = MontagePose;
+				CompositeWeight = Weight;
+				bHasCompositePose = true;
+				return;
+			}
+
+			const float NewTotalWeight = CompositeWeight + Weight;
+			FPoseContext BlendedMontagePose;
+			BlendedMontagePose.SkeletalMesh = InOutBasePose.SkeletalMesh;
+			BlendedMontagePose.ResetToRefPose();
+			FAnimationRuntime::BlendTwoPosesTogether(
+				CompositePose,
+				MontagePose,
+				Weight / NewTotalWeight,
+				BlendedMontagePose);
+			CompositePose = BlendedMontagePose;
+			CompositeWeight = NewTotalWeight;
+		};
+
+	for (UAnimMontageInstance* Outgoing : Entry->OutgoingInstances)
+	{
+		AccumulateMontagePose(Outgoing);
+	}
+	AccumulateMontagePose(Entry->ActiveInstance);
+
+	if (!bHasCompositePose) return;
+
+	const float LayerWeight = std::clamp(CompositeWeight, 0.0f, 1.0f);
+	if (LayerWeight >= 1.0f)
+	{
+		InOutBasePose = CompositePose;
+		return;
+	}
+
+	FPoseContext BlendedOutput;
+	BlendedOutput.SkeletalMesh = InOutBasePose.SkeletalMesh;
+	BlendedOutput.ResetToRefPose();
+	FAnimationRuntime::BlendTwoPosesTogether(
+		InOutBasePose,
+		CompositePose,
+		LayerWeight,
+		BlendedOutput);
+	InOutBasePose = BlendedOutput;
+}
+
+void UAnimInstance::GetOutgoingMontageInstancesForSlot(
+	FName SlotName,
+	TArray<UAnimMontageInstance*>& OutInstances) const
+{
+	OutInstances.clear();
+	const FMontageSlotEntry* Entry = FindMontageSlotEntry(SlotName);
+	if (!Entry) return;
+
+	for (UAnimMontageInstance* Instance : Entry->OutgoingInstances)
+	{
+		if (IsValid(Instance) && Instance->IsActive())
+		{
+			OutInstances.push_back(Instance);
+		}
+	}
 }
 
 UAnimMontageInstance* UAnimInstance::GetMontageInstance() const
@@ -306,25 +459,53 @@ void UAnimInstance::PlayMontage(UAnimMontage* Montage, FName StartSection, float
 	if (!IsValid(Montage) || !IsValid(GetOwningComponent())) return;
 	const FName Key = (SlotName == FName::None) ? DefaultMontageSlot : SlotName;
 
-	// 기존 slot entry 찾거나 새로 만들기 — 첫 PlayMontage 호출 시 lazy 생성.
-	UAnimMontageInstance* Instance = nullptr;
-	for (FMontageSlotEntry& Entry : MontageSlots)
+	FMontageSlotEntry* Entry = FindMontageSlotEntry(Key);
+	if (!Entry)
 	{
-		if (Entry.SlotName == Key && IsValid(Entry.Instance)) { Instance = Entry.Instance; break; }
+		FMontageSlotEntry NewEntry;
+		NewEntry.SlotName = Key;
+		MontageSlots.push_back(NewEntry);
+		Entry = &MontageSlots.back();
 	}
-	if (!Instance)
+
+	PruneInactiveMontages(*Entry);
+
+	UAnimMontageInstance* Instance = Entry->ActiveInstance;
+	if (IsValid(Instance) && Instance->IsActive())
+	{
+		Instance->SetNotifiesEnabled(false);
+		Instance->Stop(-1.0f);
+		if (Instance->IsActive())
+		{
+			Entry->OutgoingInstances.push_back(Instance);
+			Instance = nullptr;
+		}
+	}
+
+	if (!IsValid(Instance))
 	{
 		Instance = UObjectManager::Get().CreateObject<UAnimMontageInstance>(this);
-		MontageSlots.push_back({ Key, Instance });
 	}
+
+	Entry->ActiveInstance = Instance;
 	Instance->Play(Montage, StartSection, PlayRate, BlendInTime);
 }
 
 void UAnimInstance::StopMontage(float BlendOutTime, FName SlotName)
 {
-	if (UAnimMontageInstance* MI = GetMontageInstanceForSlot(SlotName))
+	FMontageSlotEntry* Entry = FindMontageSlotEntry(SlotName);
+	if (!Entry) return;
+
+	if (IsValid(Entry->ActiveInstance))
 	{
-		MI->Stop(BlendOutTime);
+		Entry->ActiveInstance->Stop(BlendOutTime);
+	}
+	for (UAnimMontageInstance* Outgoing : Entry->OutgoingInstances)
+	{
+		if (IsValid(Outgoing))
+		{
+			Outgoing->Stop(BlendOutTime);
+		}
 	}
 }
 
@@ -346,10 +527,9 @@ void UAnimInstance::Montage_SetNextSection(FName From, FName To, FName SlotName)
 
 bool UAnimInstance::IsMontagePlaying(UAnimMontage* Montage, FName SlotName) const
 {
-	UAnimMontageInstance* MI = GetMontageInstanceForSlot(SlotName);
-	if (!MI || !MI->IsActive()) return false;
-	if (!Montage) return true;
-	return IsValid(Montage) && MI->GetCurrentMontage() == Montage;
+	UAnimMontageInstance* Active = GetMontageInstanceForSlot(SlotName);
+	if (!IsValid(Active) || !Active->IsActive()) return false;
+	return !Montage || (IsValid(Montage) && Active->GetCurrentMontage() == Montage);
 }
 
 void UAnimInstance::AccumulateRootMotion(const FTransform& Delta)
@@ -415,7 +595,11 @@ void UAnimInstance::AddReferencedObjects(FReferenceCollector& Collector)
 	// instance through its UPROPERTY and must not be kept alive by the instance.
 	for (const FMontageSlotEntry& Entry : MontageSlots)
 	{
-		Collector.AddReferencedObject(Entry.Instance, "AnimInstance.MontageInstance");
+		Collector.AddReferencedObject(Entry.ActiveInstance, "AnimInstance.ActiveMontageInstance");
+		for (UAnimMontageInstance* Outgoing : Entry.OutgoingInstances)
+		{
+			Collector.AddReferencedObject(Outgoing, "AnimInstance.OutgoingMontageInstance");
+		}
 	}
 	for (const FQueuedAnimNotify& Q : NotifyQueue)
 	{
@@ -454,11 +638,20 @@ void UAnimInstance::BeginDestroy()
 	RecentNotifies.clear();
 	for (FMontageSlotEntry& Entry : MontageSlots)
 	{
-		if (IsValid(Entry.Instance))
+		if (IsValid(Entry.ActiveInstance))
 		{
-			UObjectManager::Get().DestroyObject(Entry.Instance);
+			UObjectManager::Get().DestroyObject(Entry.ActiveInstance);
 		}
-		Entry.Instance = nullptr;
+		Entry.ActiveInstance = nullptr;
+
+		for (UAnimMontageInstance* Outgoing : Entry.OutgoingInstances)
+		{
+			if (IsValid(Outgoing))
+			{
+				UObjectManager::Get().DestroyObject(Outgoing);
+			}
+		}
+		Entry.OutgoingInstances.clear();
 	}
 	MontageSlots.clear();
 	RootNode = nullptr;

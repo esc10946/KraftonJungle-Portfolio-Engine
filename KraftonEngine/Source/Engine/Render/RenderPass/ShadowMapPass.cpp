@@ -40,6 +40,15 @@ static bool ShouldDrawShadowSection(const FMeshSectionDraw& Section)
 	return true;
 }
 
+// Masked(알파 클립) 머티리얼이면서 OpacityMask 텍스처가 바인딩된 섹션인지 판정.
+// 이런 섹션은 그림자 패스에서도 clip() 해야 quad 전체가 아닌 실제 모양만 그림자에 기여한다.
+static bool IsMaskedShadowSection(const FMeshSectionDraw& Section)
+{
+	if (!Section.Material) return false;
+	if (Section.Material->GetBlendMode() != EBlendMode::Masked) return false;
+	return Section.Material->GetCachedSRVs()[static_cast<int>(EMaterialTextureSlot::OpacityMask)] != nullptr;
+}
+
 // ============================================================
 // 생성 / 소멸
 // ============================================================
@@ -56,6 +65,7 @@ FShadowMapPass::~FShadowMapPass()
 {
 	ShadowPerObjectCB.Release();
 	ShadowLightCB.Release();
+	ShadowMaskCB.Release();
 }
 
 void FShadowMapPass::ReleaseSceneState(const FScene* Scene)
@@ -123,6 +133,8 @@ void FShadowMapPass::SetupShadowRenderState(FD3DDevice& Device, FSystemResources
 		ShadowPerObjectCB.Create(Dev, sizeof(FPerObjectConstants), "ShadowPerObjectCB");
 	if (!ShadowLightCB.GetBuffer())
 		ShadowLightCB.Create(Dev, sizeof(FMatrix), "ShadowLightCB");
+	if (!ShadowMaskCB.GetBuffer())
+		ShadowMaskCB.Create(Dev, 16, "ShadowMaskCB"); // float OpacityMaskClipValue + pad (16B 정렬)
 
 	// ImGui 등 외부 코드가 D3D state를 직접 변경할 수 있으므로 캐시 무효화
 	Resources.ResetRenderStateCache();
@@ -675,6 +687,13 @@ void FShadowMapPass::DrawShadowCasters(ID3D11DeviceContext* DC, FScene& Scene, F
 		? FShaderManager::Get().GetOrCreateShadowDepthPermutation(EShadowDepthDefines::EVertexFactory::SkeletalMesh)
 		: StaticShadowShader;
 
+	// Masked(알파 클립) 섹션용 변형 — PS 에서 OpacityMask 를 clip 한다.
+	FShader* StaticShadowShaderMasked = FShaderManager::Get().GetOrCreateShadowDepthPermutation(
+		EShadowDepthDefines::EVertexFactory::StaticMesh, true);
+	FShader* SkeletalShadowShaderMasked = bUseGpuSkinning
+		? FShaderManager::Get().GetOrCreateShadowDepthPermutation(EShadowDepthDefines::EVertexFactory::SkeletalMesh, true)
+		: StaticShadowShaderMasked;
+
 	if (!StaticShadowShader || !StaticShadowShader->IsValid()) return;
 	const bool bCanDrawGpuSkinnedCasters = SkeletalShadowShader && SkeletalShadowShader->IsValid();
 
@@ -736,18 +755,7 @@ void FShadowMapPass::DrawShadowCasters(ID3D11DeviceContext* DC, FScene& Scene, F
 		}
 		if (!ProxyBuffer.VB || !ProxyBuffer.IB) continue;
 
-		FShader* DesiredShader = bGpuSkinned ? SkeletalShadowShader : StaticShadowShader;
-		if (DesiredShader != BoundShader)
-		{
-			DesiredShader->Bind(DC);
-			BoundShader = DesiredShader;
-
-			if (CurrentFilterMode != EShadowFilterMode::VSM)
-			{
-				DC->PSSetShader(nullptr, nullptr, 0);
-			}
-		}
-
+		// 셰이더 바인딩은 섹션별(불투명/Masked)로 결정하므로 여기서는 스킨 행렬만 갱신한다.
 		if (SkinMatrixSRV != BoundSkinMatrixSRV)
 		{
 			DC->VSSetShaderResources(EVertexFactoryTexSlot::SkinMatrices, 1, &SkinMatrixSRV);
@@ -791,6 +799,42 @@ void FShadowMapPass::DrawShadowCasters(ID3D11DeviceContext* DC, FScene& Scene, F
 			for (const FMeshSectionDraw& Section : Proxy->GetSectionDraws())
 			{
 				if (!ShouldDrawShadowSection(Section)) continue;
+
+				// Masked 섹션은 알파 클립 변형 셰이더로, 불투명 섹션은 depth-only 로 그린다.
+				bool bMasked = IsMaskedShadowSection(Section);
+				FShader* MaskedShader = bGpuSkinned ? SkeletalShadowShaderMasked : StaticShadowShaderMasked;
+				if (bMasked && (!MaskedShader || !MaskedShader->IsValid()))
+					bMasked = false; // 변형 컴파일 실패 시 기존(불투명) 경로로 폴백
+
+				FShader* SectionShader = bMasked
+					? MaskedShader
+					: (bGpuSkinned ? SkeletalShadowShader : StaticShadowShader);
+
+				if (SectionShader != BoundShader)
+				{
+					SectionShader->Bind(DC);
+					BoundShader = SectionShader;
+
+					// 불투명 + Hard/PCF 는 depth-only (PS 제거). Masked 는 clip PS 를 유지.
+					if (!bMasked && CurrentFilterMode != EShadowFilterMode::VSM)
+						DC->PSSetShader(nullptr, nullptr, 0);
+				}
+
+				if (bMasked)
+				{
+					// OpacityMask SRV(t2) + clip 임계값 CB(b3) 를 PS 에 바인딩.
+					ID3D11ShaderResourceView* MaskSRV = const_cast<ID3D11ShaderResourceView*>(
+						Section.Material->GetCachedSRVs()[static_cast<int>(EMaterialTextureSlot::OpacityMask)]);
+					DC->PSSetShaderResources(static_cast<UINT>(EMaterialTextureSlot::OpacityMask), 1, &MaskSRV);
+
+					float ClipValue = Section.Material->GetScalarParameterValue("OpacityMaskClipValue");
+					if (ClipValue <= 0.0f) ClipValue = 0.333f; // 메인 패스 기본값과 동일
+					struct FShadowMaskParams { float OpacityMaskClipValue; float Pad[3]; } MaskParams { ClipValue, {0.0f, 0.0f, 0.0f} };
+					ShadowMaskCB.Update(DC, &MaskParams, sizeof(MaskParams));
+					ID3D11Buffer* MaskCB = ShadowMaskCB.GetBuffer();
+					DC->PSSetConstantBuffers(3, 1, &MaskCB); // b3 = ShadowMaskBuffer
+				}
+
 				DC->DrawIndexed(Section.IndexCount, Section.FirstIndex, 0);
 				SHADOW_STATS_ADD_DRAW_CALL();
 			}

@@ -5583,6 +5583,12 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
             return Result;
         },
 
+        "GetCapsuleComponent",
+        [](AActor& Actor)
+        {
+            return Actor.GetComponentByClass<UCapsuleComponent>();
+        },
+
         "GetFloatingPawnMovement",
         [](AActor& Actor)
         {

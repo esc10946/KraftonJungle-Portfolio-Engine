@@ -21,6 +21,7 @@ void UAnimMontageInstance::Play(UAnimMontage* InMontage, FName StartSection, flo
 
     CurrentMontage = InMontage;
     PlayRate       = (InPlayRate > 0.0f) ? InPlayRate : 1.0f;
+    bNotifiesEnabled = true;
 
     // 시작 section 결정 — 지정 없으면 sections[0]. 비어있으면 EnsureDefaultSection 으로 default 1개 보장.
     if (CurrentMontage->GetSections().empty())
@@ -103,8 +104,9 @@ void UAnimMontageInstance::EnterBlendingIn(float InBlendInTime)
 
 void UAnimMontageInstance::EnterBlendingOut(float InBlendOutTime)
 {
+    const float StartWeight = GetBlendWeight();
     State        = EState::BlendingOut;
-    BlendAlpha   = 1.0f;
+    BlendAlpha   = StartWeight;
     BlendOutTime = std::max(InBlendOutTime, 0.0f);
     if (BlendOutTime <= 0.0f)
     {
@@ -213,7 +215,7 @@ void UAnimMontageInstance::Tick(float DeltaSeconds, UAnimInstance* Owner)
 
         // Notify 가시성 임계 가드 — Slot.GetBlendWeight 가 임계 이하면 안 보이는 가지로 간주.
         // SequencePlayer 의 동일 패턴 (FinalBlendWeight > ZERO_ANIMWEIGHT_THRESH) 과 비대칭 해소.
-        if (GetBlendWeight() > 1e-4f)
+        if (bNotifiesEnabled && GetBlendWeight() > 1e-4f)
         {
             Owner->AddAnimNotifies(PrevSeqTime, NextSeqTime, SrcSeq);
         }

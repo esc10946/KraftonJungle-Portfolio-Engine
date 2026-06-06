@@ -1,0 +1,213 @@
+/* Boss HUD */
+
+/* ============================================================
+   Boss HUD - Top Middle
+   ============================================================ */
+
+#boss-panel {
+    position: absolute;
+    left: 22.48%;
+    top: 83px;
+    display: none;
+    width: 760px;
+    height: 42px;
+    margin-left: -380px;
+}
+
+#boss-hp-bg {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 405px;
+    height: 35px;
+    image-color: rgba(255, 255, 255, 150);
+    decorator: image("../Texture/HUD/SB_FE/BossHealthBar_BG.png" fill);
+}
+
+/* 런타임에서 이 width를 % 로 조절 */
+#boss-hp-mask {
+    position: absolute;
+    left: 5px;
+    top: 11px;
+    width: 96%;    /* 런타임: 0% ~ 100% */
+    height: 18px;
+    clip: always;
+}
+
+/* fill은 항상 최대 크기 고정 */
+#boss-hp-fill {
+    position: absolute;
+    left: 3px;
+    top: -5px;
+    width: 390px;   /* 355 - 5 - 5, 항상 고정 */
+    height: 24px;
+    decorator: image("../Texture/HUD/SB_FE/BossHealthBar.png" fill);
+}
+
+#boss-hp-marker-left {
+    left: 7px;
+    top: 2px;
+    width: 10px;
+    height: 32px;
+}
+
+#boss-hp-marker-right {
+    right: 7px;
+    top: 2px;
+    width: 10px;
+    height: 32px;
+}
+
+#boss-name-bg {
+    position: absolute;
+    left: 20px;
+    top: 30px;
+
+    width: 260px;
+    height: 50px;
+
+    decorator: image("../Texture/HUD/SB_FE/BossName_BG.png");
+}
+
+#boss-name {
+    position: absolute;
+    left: 32px;
+    top: 12px;
+
+    width: 110px;
+    height: 24px;
+
+    color: #ffffff;
+    font-family: Serpentine;
+    font-size: 36px;
+
+    line-height: 22px;
+    text-align: center;
+}
+
+
+/* ============================================================
+   Boss posture HUD - Top Middle
+   ============================================================ */
+
+#boss-posture-panel {
+    position: absolute;
+    left: 50%;
+    top: 63px;
+    display: none;
+    width: 460px;
+    height: 42px;
+    margin-left: -230px;
+}
+
+#boss-posture-bg {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    display: block;
+    width: 460px;
+    height: 42px;
+}
+
+#boss-posture-bg-left {
+    position: absolute;
+    right: 232px;
+    top: 0px;
+    width: 227px;
+    height: 42px;
+    decorator: image("../Texture/HUD/SB_FE/PostureBar_Left_BG.png" fill);
+}
+
+#boss-posture-bg-right {
+    position: absolute;
+    left: 232px;
+    top: 0px;
+    width: 227px;
+    height: 42px;
+    decorator: image("../Texture/HUD/SB_FE/PostureBar_Right_BG.png" fill);
+}
+
+#boss-posture-left-clip {
+    position: absolute;
+    left: 0px;
+    top: 12px;
+    display: block;
+    width: 227px;
+    height: 18px;
+    overflow: hidden;
+    clip: always;
+}
+
+#boss-posture-left-mask {
+    position: absolute;
+    right: 0px;
+    top: 0px;
+    display: block;
+    width: 100%;
+    height: 18px;
+}
+
+#boss-posture-left-fill {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    display: block;
+    width: 227px;
+    height: 18px;
+    decorator: image("../Texture/HUD/SB_FE/PostureBar_Left.png" fill);
+}
+
+#boss-posture-right-clip {
+    position: absolute;
+    right: 0px;
+    top: 12px;
+    display: block;
+    width: 227px;
+    height: 18px;
+    overflow: hidden;
+    clip: always;
+}
+
+#boss-posture-right-mask {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    display: block;
+    width: 100%;
+    height: 18px;
+}
+
+#boss-posture-right-fill {
+    position: absolute;
+    right: 0px;
+    top: 0px;
+    display: block;
+    width: 227px;
+    height: 18px;
+    decorator: image("../Texture/HUD/SB_FE/PostureBar_Right.png" fill);
+}
+
+#boss-posture-center-mark {
+    position: absolute;
+    left: 228px;
+    top: 12px;
+    display: block;
+    width: 4px;
+    height: 18px;
+    background-color: rgb(240, 238, 224);
+}
+
+#boss-posture-marker-left {
+    left: -36px;
+    top: 10px;
+    transform: scale(-1, 1);
+    width: 95px;
+    height: 22px;
+}
+
+#boss-posture-marker-right {
+    right: -36px;
+    top: 10px;
+    width: 95px;
+    height: 22px;
+}

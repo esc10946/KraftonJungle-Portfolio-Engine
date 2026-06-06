@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "MovementComponent.h"
 #include "Core/Types/CollisionTypes.h"   // FHitResult
@@ -129,8 +129,10 @@ public:
 	float WalkableFloorZ = 0.5f;
 	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Max Slide Iterations", Min=1.0f, Max=8.0f, Speed=1.0f)
 	float MaxSlideIterations = 3.0f;
-	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Max Depenetration Iterations", Min=0.0f, Max=16.0f, Speed=1.0f)
-	float MaxDepenetrationIterations = 8.0f;
+	// Legacy serialized setting. Runtime intentionally clamps this to 0/1 so each
+	// recovery call applies at most one correction.
+	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Max Depenetration Iterations", Min=0.0f, Max=1.0f, Speed=1.0f)
+	float MaxDepenetrationIterations = 1.0f;
 	UPROPERTY(Edit, Save, Category="CharacterMovement|Collision", DisplayName="Depenetration Skin", Min=0.0f, Max=0.2f, Speed=0.001f)
 	float DepenetrationSkin = 0.02f;
 

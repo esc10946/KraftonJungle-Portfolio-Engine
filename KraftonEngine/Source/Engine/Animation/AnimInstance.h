@@ -149,6 +149,13 @@ public:
 	UFUNCTION(Pure, Category="Animation|Montage")
 	UAnimMontageInstance* GetMontageInstanceForSlot(FName SlotName) const;
 
+	void  UpdateMontageSlot(FName SlotName, float DeltaSeconds, FTransform& InOutRootMotion);
+	void  EvaluateMontageSlot(FName SlotName, FPoseContext& InOutBasePose);
+	float GetMontageSlotBlendWeight(FName SlotName) const;
+	void  GetOutgoingMontageInstancesForSlot(
+		FName SlotName,
+		TArray<UAnimMontageInstance*>& OutInstances) const;
+
 	// Legacy alias — DefaultSlot 의 instance. 새 코드는 GetMontageInstanceForSlot 권장.
 	UFUNCTION(Pure, Category="Animation|Montage")
 	UAnimMontageInstance* GetMontageInstance() const;
@@ -192,14 +199,19 @@ protected:
 	UPROPERTY(Edit, Save, Category="Animation", DisplayName="Root Motion Mode", Enum=ERootMotionMode)
 	ERootMotionMode               RootMotionMode = ERootMotionMode::RootMotionFromEverything;
 
-	// Slot 이름 → montage instance. 보통 1-2 개 (DefaultSlot, UpperBodySlot 등) 라
-	// 선형 탐색 OK. FName 키 TMap 의 hash 지원이 없어 array 사용.
+	// Slot 이름 → active montage + blend-out 중인 interrupted montages.
+	// 슬롯 수는 보통 1-2 개라 선형 탐색을 사용한다.
 	struct FMontageSlotEntry
 	{
 		FName                 SlotName;
-		UAnimMontageInstance* Instance = nullptr;
+		UAnimMontageInstance* ActiveInstance = nullptr;
+		TArray<UAnimMontageInstance*> OutgoingInstances;
 	};
 	TArray<FMontageSlotEntry>     MontageSlots;
+
+	FMontageSlotEntry*       FindMontageSlotEntry(FName SlotName);
+	const FMontageSlotEntry* FindMontageSlotEntry(FName SlotName) const;
+	void                     PruneInactiveMontages(FMontageSlotEntry& Entry);
 
 	// AnimGraph 트리의 root — null 이면 legacy 경로. 모든 노드는 OwnedNodes 가 단일 소유.
 	FAnimNode_Base*                              RootNode = nullptr;

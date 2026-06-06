@@ -195,9 +195,13 @@ namespace
 			AddUniquePath(Directories, ToFilesystemPath(ResolveContext.EmbeddedTextureScratchDirectory));
 		}
 		AddUniquePath(Directories, FbxDir);
+		AddUniquePath(Directories, FbxDir / L"tex");
+		AddUniquePath(Directories, FbxDir / L"Tex");
 		AddUniquePath(Directories, FbxDir / L"textures");
 		AddUniquePath(Directories, FbxDir / L"Textures");
 		AddUniquePath(Directories, ParentDir);
+		AddUniquePath(Directories, ParentDir / L"tex");
+		AddUniquePath(Directories, ParentDir / L"Tex");
 		AddUniquePath(Directories, ParentDir / L"textures");
 		AddUniquePath(Directories, ParentDir / L"Textures");
 		return Directories;
@@ -224,10 +228,14 @@ namespace
 		AddUniquePath(Candidates, RawPath);
 		AddUniquePath(Candidates, FbxDir / RawPath);
 		AddUniquePath(Candidates, FbxDir / FileName);
+		AddUniquePath(Candidates, FbxDir / L"tex" / FileName);
+		AddUniquePath(Candidates, FbxDir / L"Tex" / FileName);
 		AddUniquePath(Candidates, FbxDir / L"textures" / FileName);
 		AddUniquePath(Candidates, FbxDir / L"Textures" / FileName);
 		AddUniquePath(Candidates, ParentDir / RawPath);
 		AddUniquePath(Candidates, ParentDir / FileName);
+		AddUniquePath(Candidates, ParentDir / L"tex" / FileName);
+		AddUniquePath(Candidates, ParentDir / L"Tex" / FileName);
 		AddUniquePath(Candidates, ParentDir / L"textures" / FileName);
 		AddUniquePath(Candidates, ParentDir / L"Textures" / FileName);
 		AddUniquePath(Candidates, EmbeddedDir / FileName);
@@ -414,7 +422,14 @@ namespace
 	{
 		return EndsWithToken(Stem, "_ro") ||
 			EndsWithToken(Stem, "-ro") ||
-			ContainsAnyToken(Stem, { "rough", "_spec", "-spec", " spec", "metal", "_ao", "-ao", " ao" });
+		ContainsAnyToken(Stem, { "rough", "_spec", "-spec", " spec", "metal", "_ao", "-ao", " ao" });
+	}
+
+	bool HasOpacityMaskTextureToken(const FString& Stem)
+	{
+		return EndsWithToken(Stem, "_a") ||
+			EndsWithToken(Stem, "-a") ||
+			ContainsAnyToken(Stem, { "_mask", "-mask", " mask", "_alpha", "-alpha", " alpha", "_opacity", "-opacity", " opacity", "_trans", "-trans", " trans" });
 	}
 
 	bool IsLikelyNormalTexturePath(const FString& TexturePath)
@@ -444,12 +459,12 @@ namespace
 		if (bNormalMap)
 		{
 			if (HasNormalTextureToken(Stem)) Score += 120;
-			if (HasColorTextureToken(Stem) || HasPackedDataTextureToken(Stem)) Score -= 100;
+			if (HasColorTextureToken(Stem) || HasPackedDataTextureToken(Stem) || HasOpacityMaskTextureToken(Stem)) Score -= 100;
 		}
 		else
 		{
 			if (HasColorTextureToken(Stem)) Score += 120;
-			if (HasNormalTextureToken(Stem) || HasPackedDataTextureToken(Stem)) Score -= 100;
+			if (HasNormalTextureToken(Stem) || HasPackedDataTextureToken(Stem) || HasOpacityMaskTextureToken(Stem)) Score -= 100;
 		}
 
 		if (File.find("car") != FString::npos && Mat.find("car") != FString::npos)
@@ -478,6 +493,16 @@ namespace
 					continue;
 				}
 
+				const FString Stem = ToLower(FPaths::ToUtf8(Entry.path().stem().wstring()));
+				if (bNormalMap && !HasNormalTextureToken(Stem))
+				{
+					continue;
+				}
+				if (!bNormalMap && HasOpacityMaskTextureToken(Stem))
+				{
+					continue;
+				}
+
 				const int32 Score = ScoreTextureForRole(Entry.path(), ResolveContext.MaterialName, bNormalMap);
 				if (Score > BestScore)
 				{
@@ -488,6 +513,39 @@ namespace
 		}
 
 		return BestPath.empty() ? FString() : CopyResolvedTextureToProject(BestPath, ResolveContext);
+	}
+
+	FString FindCompanionOpacityMaskTexture(const FString& TexturePath, const FTextureResolveContext& ResolveContext)
+	{
+		if (TexturePath.empty())
+		{
+			return FString();
+		}
+
+		const fs::path SourcePath(FPaths::ToWide(NormalizeTexturePathSeparators(TexturePath)));
+		const fs::path Stem = SourcePath.stem();
+		if (Stem.empty())
+		{
+			return FString();
+		}
+
+		static const TArray<std::wstring> Suffixes = { L"_mask", L"-mask", L"_alpha", L"-alpha", L"_opacity", L"-opacity" };
+		for (const fs::path& Directory : BuildTextureSearchDirectories(ResolveContext))
+		{
+			for (const std::wstring& Suffix : Suffixes)
+			{
+				for (const std::wstring& Extension : GetTextureExtensionFallbacks())
+				{
+					fs::path FoundPath;
+					if (TryResolveTextureCandidate(Directory / (Stem.wstring() + Suffix + Extension), FoundPath))
+					{
+						return CopyResolvedTextureToProject(FoundPath, ResolveContext);
+					}
+				}
+			}
+		}
+
+		return FString();
 	}
 
 	FString ReadFirstTextureFromProperty(const FbxProperty& Property, const FTextureResolveContext& ResolveContext)
@@ -581,6 +639,19 @@ void FFbxMaterialImporter::CollectMaterials(FbxScene* Scene, FFbxImportContext& 
 			}
 		}
 
+		// Specular 강도 — FBX 의 SpecularFactor 를 그대로 머티리얼 SpecularStrength 로 사용.
+		// (엔진은 Blinn-Phong specular 를 셰이더에서 계산하며, 이 값으로 highlight 세기를 제어한다.)
+		FbxProperty SpecularFactorProp = Material->FindProperty(FbxSurfaceMaterial::sSpecularFactor);
+		if (SpecularFactorProp.IsValid())
+		{
+			MaterialInfo.SpecularStrength = static_cast<float>(SpecularFactorProp.Get<FbxDouble>());
+		}
+		UE_LOG(
+			"FBX material specular: Material='%s' SpecularStrength=%.3f",
+			MaterialInfo.Name.c_str(),
+			MaterialInfo.SpecularStrength
+		);
+
 		FbxProperty NormalProp = Material->FindProperty(FbxSurfaceMaterial::sNormalMap);
 		const FString NormalTexturePath = ReadFirstTextureFromProperty(NormalProp, ResolveContext);
 		if (!NormalTexturePath.empty())
@@ -619,6 +690,10 @@ void FFbxMaterialImporter::CollectMaterials(FbxScene* Scene, FFbxImportContext& 
 		if (MaterialInfo.NormalTexturePath.empty())
 		{
 			MaterialInfo.NormalTexturePath = FindBestTextureByRole(ResolveContext, true);
+		}
+		if (MaterialInfo.OpacityMaskTexturePath.empty() && !MaterialInfo.DiffuseTexturePath.empty())
+		{
+			MaterialInfo.OpacityMaskTexturePath = FindCompanionOpacityMaskTexture(MaterialInfo.DiffuseTexturePath, ResolveContext);
 		}
 
 		const int32 GlobalIndex = static_cast<int32>(Context.Materials.size());
@@ -720,8 +795,9 @@ FString FFbxMaterialImporter::CreateOrUpdateMaterialAsset(const FFbxImportedMate
 		: FVector4(1.0f, 1.0f, 1.0f, 1.0f);
 	const FString DiffuseTex = MaterialInfo.DiffuseTexturePath.empty() ? FString() : FPaths::MakeProjectRelative(MaterialInfo.DiffuseTexturePath);
 	const FString NormalTex  = MaterialInfo.NormalTexturePath.empty()  ? FString() : FPaths::MakeProjectRelative(MaterialInfo.NormalTexturePath);
+	const FString OpacityMaskTex = MaterialInfo.OpacityMaskTexturePath.empty() ? FString() : FPaths::MakeProjectRelative(MaterialInfo.OpacityMaskTexturePath);
 
 	// JSON 없이 머티리얼을 직접 빌드해 .uasset(바이너리)으로 저장.
-	FMaterialManager::Get().CreateImportedMaterialAsset(UassetPath, SectionColor, DiffuseTex, NormalTex);
+	FMaterialManager::Get().CreateImportedMaterialAsset(UassetPath, SectionColor, DiffuseTex, NormalTex, OpacityMaskTex, MaterialInfo.SpecularStrength);
 	return UassetPath;
 }

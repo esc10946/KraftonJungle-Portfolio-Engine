@@ -719,9 +719,10 @@ FMinimalViewInfo APlayerCameraManager::LerpPOV(const FMinimalViewInfo& From, con
 {
 	FMinimalViewInfo Result;
 	Result.Location = From.Location + (To.Location - From.Location) * Alpha;
-	Result.Rotation.Pitch = From.Rotation.Pitch + (To.Rotation.Pitch - From.Rotation.Pitch) * Alpha;
-	Result.Rotation.Yaw = From.Rotation.Yaw + (To.Rotation.Yaw - From.Rotation.Yaw) * Alpha;
-	Result.Rotation.Roll = From.Rotation.Roll + (To.Rotation.Roll - From.Rotation.Roll) * Alpha;
+	// 회전은 Euler 선형보간 대신 Quaternion Slerp — 그래야 Yaw 179°→-179° 같은 경계에서
+	// 358° 로 휘도는 대신 최단 경로 2° 로 부드럽게 보간된다. (블렌드 중 카메라 폭주 방지)
+	Result.Rotation = FRotator::FromQuaternion(
+		FQuat::Slerp(From.Rotation.ToQuaternion(), To.Rotation.ToQuaternion(), Alpha));
 	Result.FOV = From.FOV + (To.FOV - From.FOV) * Alpha;
 	Result.AspectRatio = From.AspectRatio + (To.AspectRatio - From.AspectRatio) * Alpha;
 	Result.OrthoWidth = From.OrthoWidth + (To.OrthoWidth - From.OrthoWidth) * Alpha;

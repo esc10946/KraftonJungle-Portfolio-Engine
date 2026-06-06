@@ -430,10 +430,10 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Editor\UI\Asset\Animation\AnimSequencePropertyPanel.cpp" />
     <ClCompile Include="Source\Editor\UI\Asset\Animation\AnimationTimelinePanel.cpp" />
     <ClCompile Include="Source\Editor\UI\Asset\Animation\AnimationTransportBar.cpp" />
+    <ClCompile Include="Source\Editor\UI\Asset\BehaviorTree\BehaviorTreeEditorWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\Asset\CameraShake\CameraShakeEditorWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\Asset\Curve\FloatCurveEditorWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\Asset\LuaBlueprint\LuaBlueprintEditorWidget.cpp" />
-    <ClCompile Include="Source\Editor\UI\Asset\BehaviorTree\BehaviorTreeEditorWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\Asset\Material\MaterialEditorWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\Asset\Mesh\MeshEditorWidget.cpp" />
     <ClCompile Include="Source\Editor\UI\Asset\Mesh\StaticMeshEditorWidget.cpp" />
@@ -471,14 +471,14 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Editor\Viewport\Level\FLevelViewportLayout.cpp" />
     <ClCompile Include="Source\Engine\AI\CombatTargetRegistry.cpp" />
     <ClCompile Include="Source\Engine\AI\SquadCoordinator.cpp" />
-    <ClCompile Include="Source\Engine\AI\Navigation\PathFollowingComponent.cpp" />
-    <ClCompile Include="Source\Engine\AI\BehaviorTree\Runtime\BTTasks.cpp" />
+    <ClCompile Include="Source\Engine\AI\BehaviorTree\BTNodeRegistry.cpp" />
     <ClCompile Include="Source\Engine\AI\BehaviorTree\BehaviorTreeAsset.cpp" />
     <ClCompile Include="Source\Engine\AI\BehaviorTree\BehaviorTreeManager.cpp" />
-    <ClCompile Include="Source\Engine\AI\BehaviorTree\Runtime\BehaviorTreeCompiler.cpp" />
     <ClCompile Include="Source\Engine\AI\BehaviorTree\Runtime\BTDecorators.cpp" />
     <ClCompile Include="Source\Engine\AI\BehaviorTree\Runtime\BTServices.cpp" />
-    <ClCompile Include="Source\Engine\AI\BehaviorTree\BTNodeRegistry.cpp" />
+    <ClCompile Include="Source\Engine\AI\BehaviorTree\Runtime\BTTasks.cpp" />
+    <ClCompile Include="Source\Engine\AI\BehaviorTree\Runtime\BehaviorTreeCompiler.cpp" />
+    <ClCompile Include="Source\Engine\AI\Navigation\PathFollowingComponent.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimInstance.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimationManager.cpp" />
     <ClCompile Include="Source\Engine\Animation\AnimationRuntime.cpp" />
@@ -519,6 +519,8 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Engine\Audio\AudioManager.cpp" />
     <ClCompile Include="Source\Engine\CameraShake\CameraShakeAsset.cpp" />
     <ClCompile Include="Source\Engine\CameraShake\CameraShakeManager.cpp" />
+    <ClCompile Include="Source\Engine\Cinematic\CameraCinematicActor.cpp" />
+    <ClCompile Include="Source\Engine\Cinematic\CinematicWaypointComponent.cpp" />
     <ClCompile Include="Source\Engine\Cloth\ClothCollisionGatherer.cpp" />
     <ClCompile Include="Source\Engine\Cloth\NvClothBackend.cpp" />
     <ClCompile Include="Source\Engine\Cloth\SkeletalClothRuntime.cpp" />
@@ -536,10 +538,10 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Engine\Component\SceneComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\ShapeComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\AIBlackboardComponent.cpp" />
-    <ClCompile Include="Source\Engine\Component\AI\BehaviorTreeComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\AIDecisionTraceComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\AIPerceptionComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\AwarenessComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\AI\BehaviorTreeComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\EncounterComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\EnemyAIBrainComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\EnemyAttackComponent.cpp" />
@@ -907,10 +909,10 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Editor\UI\Asset\Animation\AnimationTimelinePanel.h" />
     <ClInclude Include="Source\Editor\UI\Asset\Animation\AnimationTransportBar.h" />
     <ClInclude Include="Source\Editor\UI\Asset\Animation\MorphCurveEditObject.h" />
+    <ClInclude Include="Source\Editor\UI\Asset\BehaviorTree\BehaviorTreeEditorWidget.h" />
     <ClInclude Include="Source\Editor\UI\Asset\CameraShake\CameraShakeEditorWidget.h" />
     <ClInclude Include="Source\Editor\UI\Asset\Curve\FloatCurveEditorWidget.h" />
     <ClInclude Include="Source\Editor\UI\Asset\LuaBlueprint\LuaBlueprintEditorWidget.h" />
-    <ClInclude Include="Source\Editor\UI\Asset\BehaviorTree\BehaviorTreeEditorWidget.h" />
     <ClInclude Include="Source\Editor\UI\Asset\Material\MaterialEditorWidget.h" />
     <ClInclude Include="Source\Editor\UI\Asset\Mesh\MeshEditorWidget.h" />
     <ClInclude Include="Source\Editor\UI\Asset\Mesh\StaticMeshEditorWidget.h" />
@@ -954,18 +956,18 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\AI\CombatClock.h" />
     <ClInclude Include="Source\Engine\AI\CombatTargetRegistry.h" />
     <ClInclude Include="Source\Engine\AI\SquadCoordinator.h" />
-    <ClInclude Include="Source\Engine\AI\Navigation\PathFollowingComponent.h" />
-    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTNodeResult.h" />
-    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTContext.h" />
-    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTNode.h" />
-    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTTasks.h" />
-    <ClInclude Include="Source\Engine\AI\BehaviorTree\BehaviorTreeTypes.h" />
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\BTNodeRegistry.h" />
     <ClInclude Include="Source\Engine\AI\BehaviorTree\BehaviorTreeAsset.h" />
     <ClInclude Include="Source\Engine\AI\BehaviorTree\BehaviorTreeManager.h" />
-    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BehaviorTreeCompiler.h" />
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\BehaviorTreeTypes.h" />
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTContext.h" />
     <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTDecorators.h" />
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTNode.h" />
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTNodeResult.h" />
     <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTServices.h" />
-    <ClInclude Include="Source\Engine\AI\BehaviorTree\BTNodeRegistry.h" />
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BTTasks.h" />
+    <ClInclude Include="Source\Engine\AI\BehaviorTree\Runtime\BehaviorTreeCompiler.h" />
+    <ClInclude Include="Source\Engine\AI\Navigation\PathFollowingComponent.h" />
     <ClInclude Include="Source\Engine\Animation\AnimExtractContext.h" />
     <ClInclude Include="Source\Engine\Animation\AnimInstance.h" />
     <ClInclude Include="Source\Engine\Animation\AnimationManager.h" />
@@ -1016,6 +1018,9 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\Audio\AudioManager.h" />
     <ClInclude Include="Source\Engine\CameraShake\CameraShakeAsset.h" />
     <ClInclude Include="Source\Engine\CameraShake\CameraShakeManager.h" />
+    <ClInclude Include="Source\Engine\Cinematic\CameraCinematicActor.h" />
+    <ClInclude Include="Source\Engine\Cinematic\CinematicTypes.h" />
+    <ClInclude Include="Source\Engine\Cinematic\CinematicWaypointComponent.h" />
     <ClInclude Include="Source\Engine\Cloth\ClothBackend.h" />
     <ClInclude Include="Source\Engine\Cloth\ClothCollisionGatherer.h" />
     <ClInclude Include="Source\Engine\Cloth\ClothCollisionTypes.h" />
@@ -1036,10 +1041,10 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\Component\SceneComponent.h" />
     <ClInclude Include="Source\Engine\Component\ShapeComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\AIBlackboardComponent.h" />
-    <ClInclude Include="Source\Engine\Component\AI\BehaviorTreeComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\AIDecisionTraceComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\AIPerceptionComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\AwarenessComponent.h" />
+    <ClInclude Include="Source\Engine\Component\AI\BehaviorTreeComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\EncounterComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\EnemyAIBrainComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\EnemyAttackComponent.h" />
@@ -1052,8 +1057,8 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\Component\Combat\CombatHitEventComponent.h" />
     <ClInclude Include="Source\Engine\Component\Combat\CombatMoveComponent.h" />
     <ClInclude Include="Source\Engine\Component\Combat\CombatStateComponent.h" />
-    <ClInclude Include="Source\Engine\Component\Combat\ExecutionComponent.h" />
     <ClInclude Include="Source\Engine\Component\Combat\CombatTypes.h" />
+    <ClInclude Include="Source\Engine\Component\Combat\ExecutionComponent.h" />
     <ClInclude Include="Source\Engine\Component\Combat\HealthComponent.h" />
     <ClInclude Include="Source\Engine\Component\Debug\BoneDebugComponent.h" />
     <ClInclude Include="Source\Engine\Component\Debug\GizmoComponent.h" />
@@ -1444,6 +1449,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Game\GameMode\AFinaleGameMode.h" />
     <ClInclude Include="Source\Game\GameMode\GameSoftPauseState.h" />
     <ClInclude Include="Source\Game\GameMode\GameState.h" />
+    <ClInclude Include="Source\Game\Leaderboard\LeaderboardStore.h" />
     <ClInclude Include="Source\Game\Lua\GameLuaBindings.h" />
     <ClInclude Include="Source\ObjViewer\ObjViewerEngine.h" />
     <ClInclude Include="Source\ObjViewer\ObjViewerPanel.h" />
@@ -2412,6 +2418,13 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ObjViewDebug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Demo|x64'">true</ExcludedFromBuild>
     </FxCompile>
+    <FxCompile Include="Shaders\Generated\Materials\MI_Skeleton_Inst.001_Surface.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Game|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ObjViewDebug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Demo|x64'">true</ExcludedFromBuild>
+    </FxCompile>
     <FxCompile Include="Shaders\Generated\Materials\NewMaterial_1_Decal.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -2462,6 +2475,13 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Demo|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="Shaders\Generated\Materials\water_Surface.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Game|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ObjViewDebug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Demo|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="Shaders\Generated\Preview\Materials\MI_Skeleton_Inst.001_Surface.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Game|x64'">true</ExcludedFromBuild>
@@ -2742,6 +2762,12 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
   <ImportGroup Label="ExtensionTargets">
     <Import Project="packages\directxtk_desktop_win10.2025.10.28.2\build\native\directxtk_desktop_win10.targets" Condition="Exists('packages\directxtk_desktop_win10.2025.10.28.2\build\native\directxtk_desktop_win10.targets')" />
   </ImportGroup>
+  <PropertyGroup>
+    <PythonExe Condition="'$(PythonExe)'==''">$(MSBuildProjectDirectory)\..\Scripts\python\python.exe</PythonExe>
+  </PropertyGroup>
+  <Target Name="GenerateReflectionHeaders" BeforeTargets="ClCompile">
+    <Exec Command="&quot;$(PythonExe)&quot; &quot;$(MSBuildProjectDirectory)\..\Scripts\GenerateHeaders.py&quot; --root &quot;$(MSBuildProjectDirectory)&quot;" WorkingDirectory="$(MSBuildProjectDirectory)" />
+  </Target>
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>
       <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>

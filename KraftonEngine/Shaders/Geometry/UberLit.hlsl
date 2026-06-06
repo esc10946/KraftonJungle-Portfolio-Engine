@@ -30,6 +30,7 @@
 // =============================================================================
 Texture2D DiffuseTexture : register(t0);
 Texture2D NormalTexture : register(t1);
+Texture2D OpacityMaskTexture : register(t2);
 
 // ── Per-Object Material (b2) — 기존 StaticMesh 와 레이아웃 동일 (호환성) ──
 cbuffer PerShader1 : register(b2)
@@ -37,7 +38,10 @@ cbuffer PerShader1 : register(b2)
     float4 SectionColor;
     float HasNormalMap;
     float Opacity;   // 머티리얼 불투명도 [0,1] — _pad.x 재사용(레이아웃 32B 유지). 기본 1, Transparent 블렌드에서만 가시 효과.
-    float2 _pad;
+    float HasOpacityMask;
+    float OpacityMaskClipValue;
+    float SpecularStrength;   // Specular 반사 강도 [0,1]. 0 = 무광(highlight 없음), 1 = 기존 동작. FBX sSpecularFactor 에서 임포트.
+    float3 _pad;             // 16바이트 정렬 유지 (CB 32B → 48B).
 };
 
 
@@ -92,7 +96,7 @@ UberVS_Output VS_StaticMesh(VS_Input_PNCTT input)
 
     float3 V = normalize(CameraWorldPos - output.worldPos);
     output.litDiffuse = AccumulateDiffuseVS(output.worldPos, N);
-    output.litSpecular = AccumulateSpecularVS(output.worldPos, N, V, g_DefaultShininess);
+    output.litSpecular = AccumulateSpecularVS(output.worldPos, N, V, g_DefaultShininess) * SpecularStrength;
 
 #endif
 
@@ -138,7 +142,7 @@ UberVS_Output VS_SkeletalMesh(VS_Input_PNCTTBB input)
 
     float3 V = normalize(CameraWorldPos - output.worldPos);
     output.litDiffuse = AccumulateDiffuseVS(output.worldPos, N);
-    output.litSpecular = AccumulateSpecularVS(output.worldPos, N, V, g_DefaultShininess);
+    output.litSpecular = AccumulateSpecularVS(output.worldPos, N, V, g_DefaultShininess) * SpecularStrength;
 
 #endif
 
@@ -153,6 +157,12 @@ float4 PS(UberVS_Output input) : SV_TARGET
     float4 texColor = DiffuseTexture.Sample(LinearWrapSampler, input.texcoord);
     if (texColor.a < 0.001f)
         texColor = float4(1.0f, 1.0f, 1.0f, 1.0f);
+
+    if (HasOpacityMask > 0.5f)
+    {
+        float mask = OpacityMaskTexture.Sample(LinearWrapSampler, input.texcoord).r;
+        clip(mask - OpacityMaskClipValue);
+    }
 
     float4 baseColor = texColor * input.color;
 
@@ -186,7 +196,7 @@ float4 PS(UberVS_Output input) : SV_TARGET
 
 #elif defined(LIGHTING_MODEL_PHONG) && LIGHTING_MODEL_PHONG
     diffuse = AccumulateDiffuse(input.worldPos, N, input.position);
-    specular = AccumulateSpecular(input.worldPos, N, V, g_DefaultShininess, input.position);
+    specular = AccumulateSpecular(input.worldPos, N, V, g_DefaultShininess, input.position) * SpecularStrength;
 
 #endif
 
