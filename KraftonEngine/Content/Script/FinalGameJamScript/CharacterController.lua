@@ -41,6 +41,7 @@ local successParryPlaying = false
 local hitPlaying = false
 local currentHitMontage = nil
 local canCancelHit = false --EnableAttack Notify opens hit cancel
+local playerDead = false --In the Dead phase: combat suspended, awaiting revive or defeat
 local playerDefeated = false --Prevent duplicate game end
 local parryWindowOpen = false
 local movementLocked = false
@@ -299,6 +300,36 @@ local function request_player_defeated()
     if Game ~= nil and Game.Defeated ~= nil then
         Game.Defeated()
     end
+end
+
+--Player hit 0 HP: enter the Dead phase (death screen + revive window). The
+--game flow decides revive (Dead -> Playing) or defeat; do NOT call Game.Defeated
+--here, that is the terminal stage reached only after GIVE IN / fade-to-black.
+local function request_player_death()
+    if playerDead or playerDefeated then
+        return
+    end
+
+    playerDead = true
+    stop_current_montage()
+    reset_attack_state()
+    reset_parry_state()
+    reset_hit_state()
+    lock_movement_for_attack()
+
+    if Game ~= nil and Game.PlayerDeath ~= nil then
+        Game.PlayerDeath()
+    end
+end
+
+--Restore combat after the game flow revives us (Dead -> Playing). Clears the
+--dead-state lock so Tick resumes running player commands.
+local function reset_after_revive()
+    playerDead = false
+    reset_attack_state()
+    reset_parry_state()
+    reset_hit_state()
+    unlock_movement_after_attack()
 end
 
 local function stop_attack_for_movement()
@@ -1029,6 +1060,17 @@ function Tick(dt)
         return
     end
 
+    if playerDead then
+        --Dead phase: suspend combat. Resume only when the game flow revives us
+        --(phase back to Playing). GIVE IN / defeat leaves the phase elsewhere,
+        --so we stay locked down.
+        if Game ~= nil and Game.GetPhase ~= nil and Game.GetPhase() == "Playing" then
+            reset_after_revive()
+        else
+            return
+        end
+    end
+
     run_commands(dt)
 end
 
@@ -1038,7 +1080,7 @@ function OnDamaged(damageSpec, damageReport)
     end
 
     if should_end_game_from_damage_report(damageReport) then
-        request_player_defeated()
+        request_player_death()
         return
     end
 
