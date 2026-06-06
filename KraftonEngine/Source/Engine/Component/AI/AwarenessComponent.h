@@ -43,6 +43,18 @@ inline const char* GAwarenessStateNames[] = {
 };
 inline constexpr uint32 GAwarenessStateCount = sizeof(GAwarenessStateNames) / sizeof(GAwarenessStateNames[0]);
 
+// 일반 소리 vs 중요 소리는 서로 다른 goal action 을 가진다.
+// 일반(발소리)은 약하게 누적, 중요(사기그릇/휘슬/전투음)는 강하게 누적하고 즉시 조사하러 간다.
+UENUM()
+enum class EAISoundClass : uint8
+{
+	Normal    = 0,
+	Important  = 1,
+};
+
+inline const char* GAISoundClassNames[] = { "Normal", "Important" };
+inline constexpr uint32 GAISoundClassCount = sizeof(GAISoundClassNames) / sizeof(GAISoundClassNames[0]);
+
 UCLASS()
 class UAwarenessComponent : public UActorComponent
 {
@@ -56,8 +68,16 @@ public:
 
 	// 청각 자극 보고 — 발소리/착지/세라믹/휘슬/전투음. 게임플레이/Lua 가 호출한다.
 	// Strength 1.0 ≈ 가까운 분명한 소리. 위치를 InvestigateLocation 으로 기록한다.
+	// ReportNoise = 일반(Normal) 소리. 분류가 필요하면 ReportNoiseClassified 를 쓴다.
 	UFUNCTION(Callable, Category="AI|Awareness")
 	void ReportNoise(const FVector& Location, float Strength);
+
+	// 분류된 소음 보고. SoundClass: 0=Normal(약한 누적), 1=Important(강한 누적 + 즉시 조사).
+	UFUNCTION(Callable, Category="AI|Awareness")
+	void ReportNoiseClassified(const FVector& Location, float Strength, int32 SoundClass);
+
+	UFUNCTION(Pure, Category="AI|Awareness")
+	int32 GetLastSoundClass() const { return LastSoundClass; }
 
 	// 상태/게이지 강제 설정(연출/디버그/리셋).
 	UFUNCTION(Callable, Category="AI|Awareness")
@@ -85,6 +105,9 @@ public:
 	float SuspicionDecayPerSecond = 0.5f;
 	UPROPERTY(Edit, Save, Category="AI|Awareness", DisplayName="Noise Gain Scale", Min=0.0f, Max=5.0f, Speed=0.05f)
 	float NoiseGainScale = 0.6f;
+	// 중요 소리(사기그릇/휘슬/전투음)는 일반 소리 대비 이 배율로 더 크게 의심도를 올린다.
+	UPROPERTY(Edit, Save, Category="AI|Awareness", DisplayName="Important Noise Scale", Min=1.0f, Max=8.0f, Speed=0.05f)
+	float ImportantNoiseScale = 2.5f;
 	UPROPERTY(Edit, Save, Category="AI|Awareness", DisplayName="Suspicious Threshold", Min=0.0f, Max=1.0f, Speed=0.01f)
 	float SuspiciousThreshold = 0.3f;
 	UPROPERTY(Edit, Save, Category="AI|Awareness", DisplayName="Confirm Threshold", Min=0.0f, Max=1.0f, Speed=0.01f)
@@ -110,6 +133,7 @@ private:
 	void PropagateAlertToAllies();
 
 	EAwarenessState State = EAwarenessState::Unaware;
+	int32 LastSoundClass  = -1;   // 마지막으로 들은 소리 분류(-1=없음, 0=Normal, 1=Important)
 	float Suspicion       = 0.0f;
 	float LostTimer       = 0.0f;
 	float SearchTimer     = 0.0f;

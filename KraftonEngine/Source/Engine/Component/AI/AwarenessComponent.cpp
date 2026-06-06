@@ -127,19 +127,39 @@ void UAwarenessComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 
 void UAwarenessComponent::ReportNoise(const FVector& Location, float Strength)
 {
+	ReportNoiseClassified(Location, Strength, static_cast<int32>(EAISoundClass::Normal));
+}
+
+void UAwarenessComponent::ReportNoiseClassified(const FVector& Location, float Strength, int32 SoundClass)
+{
 	if (Strength <= 0.0f)
 	{
 		return;
 	}
-	Suspicion = FMath::Clamp(Suspicion + Strength * NoiseGainScale, 0.0f, 1.0f);
+	const bool bImportant = (SoundClass == static_cast<int32>(EAISoundClass::Important));
+	const float Scale = bImportant ? (ImportantNoiseScale > 1.0f ? ImportantNoiseScale : 1.0f) : 1.0f;
+
+	Suspicion = FMath::Clamp(Suspicion + Strength * NoiseGainScale * Scale, 0.0f, 1.0f);
 	InvestigateLocation = Location;
+	LastSoundClass = SoundClass;
 	if (UAIBlackboardComponent* BB = GetBlackboard())
 	{
 		BB->SetLastHeardLocation(Location);
+		BB->SetFloat(FName("LastSoundClass"), static_cast<float>(SoundClass));
 	}
-	// 무지각 상태에서 소음이 임계를 넘기면 즉시 수상함으로 승격(다음 Tick 이 마저 처리).
-	if (State == EAwarenessState::Unaware && Suspicion >= SuspiciousThreshold)
+
+	if (bImportant)
 	{
+		// 중요 소리(사기그릇/휘슬): 무지각/수상함이라도 즉시 그 위치로 조사하러 간다(세키로식 유인).
+		if (State == EAwarenessState::Unaware || State == EAwarenessState::Suspicious)
+		{
+			SetState(EAwarenessState::Investigating);
+			PublishToBlackboard();
+		}
+	}
+	else if (State == EAwarenessState::Unaware && Suspicion >= SuspiciousThreshold)
+	{
+		// 일반 소리: 임계를 넘겨야 수상함으로 승격(다음 Tick 이 마저 처리).
 		SetState(EAwarenessState::Suspicious);
 		PublishToBlackboard();
 	}
@@ -157,6 +177,7 @@ void UAwarenessComponent::ResetAwareness()
 {
 	Suspicion = 0.0f;
 	LostTimer = SearchTimer = ReturnTimer = 0.0f;
+	LastSoundClass = -1;
 	SetState(EAwarenessState::Unaware);
 	PublishToBlackboard();
 }

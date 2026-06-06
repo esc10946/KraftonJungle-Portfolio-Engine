@@ -96,6 +96,11 @@ void UAIPerceptionComponent::RecordStimulus(EAISenseType Type, AActor* Source, c
 
 void UAIPerceptionComponent::RecordHearing(AActor* Source, const FVector& Location, float Strength)
 {
+    RecordHearingClassified(Source, Location, Strength, static_cast<int32>(EAISoundClass::Normal));
+}
+
+void UAIPerceptionComponent::RecordHearingClassified(AActor* Source, const FVector& Location, float Strength, int32 SoundClass)
+{
     if (Strength <= 0.0f)
     {
         return;
@@ -105,7 +110,7 @@ void UAIPerceptionComponent::RecordHearing(AActor* Source, const FVector& Locati
     {
         if (UAwarenessComponent* Awareness = OwnerActor->GetComponentByClass<UAwarenessComponent>())
         {
-            Awareness->ReportNoise(Location, Strength);
+            Awareness->ReportNoiseClassified(Location, Strength, SoundClass);
         }
     }
 }

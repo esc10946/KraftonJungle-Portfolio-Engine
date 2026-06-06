@@ -10,6 +10,7 @@ class UClass;
 class UEnemyAIBrainComponent;
 class UEnemyAttackComponent;
 class ULuaScriptComponent;
+class ULuaBlueprintComponent;
 class UAIBlackboardComponent;
 class UAIPerceptionComponent;
 class UAIDecisionTraceComponent;
@@ -40,6 +41,8 @@ public:
 	UEnemyAttackComponent* GetAttackComponent() const { return AttackComponent; }
 	UFUNCTION(Pure, Category="Enemy|Components")
 	ULuaScriptComponent* GetLuaScriptComponent() const { return LuaScriptComponent; }
+	UFUNCTION(Pure, Category="Enemy|Components")
+	ULuaBlueprintComponent* GetBrainBlueprint() const { return BrainBlueprint; }
 
 	// ── 세키로식 전투 AI 계층 (엔진 코어 컴포넌트) ──
 	UFUNCTION(Pure, Category="Enemy|AICore")
@@ -263,6 +266,12 @@ public:
 	UClass* AIControllerClass = nullptr;
 	UPROPERTY(Edit, Save, Category="Enemy|AI", DisplayName="Brain Script", AssetType="Script")
 	FString BrainScriptFile = "AI/enemy_brain.lua";
+	// 정책을 Lua Blueprint(.uasset)로 구동한다. 비우면 위 Brain Script(raw Lua)를 쓴다.
+	// 그래프는 에디터에서 작성/JSON Import 후 .uasset 으로 저장한 것을 가리킨다.
+	// 지정 시 ULuaBlueprintComponent 가 그 에셋을 컴파일해 두뇌를 구동하고 raw-lua 경로는 끈다.
+	// 블루프린트가 로드/컴파일/구동 불가하면 안전하게 Brain Script 로 폴백한다.
+	UPROPERTY(Edit, Save, Category="Enemy|AI", DisplayName="Brain Blueprint", AssetType="ULuaBlueprintAsset")
+	FString BrainBlueprintFile = "";
 	UPROPERTY(Edit, Save, Category="Enemy|AI", DisplayName="Target Search Range", Min=0.0f, Max=1000.0f, Speed=0.5f)
 	float TargetSearchRange = 16.0f;
 	// 은신 인지 게이팅. false면 기존처럼 즉시 전투(하위호환). true면 Awareness 가
@@ -309,6 +318,9 @@ protected:
 	// 파생 보스 클래스가 true 로 재정의. Brain_IsBoss 가 이 가상 함수를 통해 안전히 분기한다.
 	virtual bool IsBossCharacter() const { return false; }
 	void RebindEnemyComponents();
+	// 두뇌 드라이버 선택: BrainBlueprintFile 이 지정되고 구동 가능하면 Lua Blueprint 로,
+	// 아니면 raw Lua(BrainScriptFile)로 구동한다. ExplicitScriptOverride 가 있으면 최우선.
+	void ConfigureBrainDriver(const FString& ExplicitScriptOverride);
 	void UpdateAttackExecution(float DeltaTime);
 	// Phase 4: 타깃과의 거리로 LOD 를 정해 전투 시계 스텝 주기를 조절(원거리 적은 저빈도 think).
 	void UpdateAILOD();
@@ -327,6 +339,7 @@ protected:
 	TWeakObjectPtr<UEnemyAIBrainComponent> AIBrainComponent = nullptr;
 	TWeakObjectPtr<UEnemyAttackComponent> AttackComponent = nullptr;
 	TWeakObjectPtr<ULuaScriptComponent> LuaScriptComponent = nullptr;
+	TWeakObjectPtr<ULuaBlueprintComponent> BrainBlueprint = nullptr;
 	TWeakObjectPtr<UAIBlackboardComponent> Blackboard = nullptr;
 	TWeakObjectPtr<UAIPerceptionComponent> Perception = nullptr;
 	TWeakObjectPtr<UAIDecisionTraceComponent> DecisionTrace = nullptr;

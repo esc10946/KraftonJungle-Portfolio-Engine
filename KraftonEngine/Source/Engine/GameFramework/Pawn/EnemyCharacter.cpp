@@ -18,6 +18,9 @@
 #include "Component/Movement/CharacterMovementComponent.h"
 #include "Component/Shape/CapsuleComponent.h"
 #include "Component/Script/LuaScriptComponent.h"
+#include "Component/Script/LuaBlueprintComponent.h"
+#include "LuaBlueprint/LuaBlueprintManager.h"
+#include "LuaBlueprint/LuaBlueprintAsset.h"
 #include "Core/Types/CollisionTypes.h"
 #include "GameFramework/Controller/AIController.h"
 #include "GameFramework/World.h"
@@ -97,11 +100,9 @@ void AEnemyCharacter::InitDefaultComponents(const FString& SkeletalMeshFileName,
 	Execution = AddComponent<UExecutionComponent>();
 	Awareness = AddComponent<UAwarenessComponent>();
 	LuaScriptComponent = AddComponent<ULuaScriptComponent>();
-	if (LuaScriptComponent)
-	{
-		const FString PolicyScript = !ScriptFile.empty() ? ScriptFile : BrainScriptFile;
-		LuaScriptComponent->SetScriptFile(PolicyScript);
-	}
+	BrainBlueprint = AddComponent<ULuaBlueprintComponent>();
+	// 정책 드라이버 선택(Lua Blueprint 우선, 아니면 raw Lua). ScriptFile 이 명시되면 그것을 강제.
+	ConfigureBrainDriver(ScriptFile);
 	bAutoInputWASD = false;
 	bAutoInputMouseLook = false;
 	if (!AIControllerClass)
@@ -139,10 +140,12 @@ void AEnemyCharacter::RebindEnemyComponents()
 	{
 		LuaScriptComponent = AddComponent<ULuaScriptComponent>();
 	}
-	if (LuaScriptComponent.IsValid() && LuaScriptComponent->GetScriptFile().empty() && !BrainScriptFile.empty())
+	BrainBlueprint = GetComponentByClass<ULuaBlueprintComponent>();
+	if (!BrainBlueprint.IsValid())
 	{
-		LuaScriptComponent->SetScriptFile(BrainScriptFile);
+		BrainBlueprint = AddComponent<ULuaBlueprintComponent>();
 	}
+	ConfigureBrainDriver(FString());
 	Blackboard = GetComponentByClass<UAIBlackboardComponent>();
 	if (!Blackboard.IsValid())
 	{
@@ -176,6 +179,47 @@ void AEnemyCharacter::RebindEnemyComponents()
 	if (!AIControllerClass)
 	{
 		AIControllerClass = AAIController::StaticClass();
+	}
+	ConfigureBrainDriver(FString());
+}
+
+void AEnemyCharacter::ConfigureBrainDriver(const FString& ExplicitScriptOverride)
+{
+	ULuaScriptComponent*    Script = LuaScriptComponent.Get();
+	ULuaBlueprintComponent* Bp     = BrainBlueprint.Get();
+
+	// 1) 명시적 raw-lua 오버라이드(특수 적/테스트)는 최우선.
+	if (!ExplicitScriptOverride.empty())
+	{
+		if (Bp)     Bp->SetBlueprintPath(FString());
+		if (Script) Script->SetScriptFile(ExplicitScriptOverride);
+		return;
+	}
+
+	// 2) 구동 가능한 Lua Blueprint 가 지정됐으면 그것으로 두뇌를 구동(정책=Lua Blueprint).
+	bool bUseBlueprint = false;
+	if (!BrainBlueprintFile.empty())
+	{
+		ULuaBlueprintAsset* Asset = FLuaBlueprintManager::Get().Load(BrainBlueprintFile);
+		bUseBlueprint = Asset && Asset->HasRunnableLuaSource();
+		if (!bUseBlueprint)
+		{
+			UE_LOG("EnemyCharacter Brain Blueprint not runnable, falling back to lua: %s", BrainBlueprintFile.c_str());
+		}
+	}
+
+	if (bUseBlueprint)
+	{
+		if (Script) Script->SetScriptFile(FString());      // raw-lua 두뇌 끄기(중복 구동 방지)
+		if (Bp)     Bp->SetBlueprintPath(BrainBlueprintFile);
+	}
+	else
+	{
+		if (Bp) Bp->SetBlueprintPath(FString());
+		if (Script && Script->GetScriptFile().empty() && !BrainScriptFile.empty())
+		{
+			Script->SetScriptFile(BrainScriptFile);
+		}
 	}
 }
 

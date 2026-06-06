@@ -55,6 +55,10 @@ public:
     UFUNCTION(Callable, Category="AI|Perception")
     void RecordHearing(AActor* Source, const FVector& Location, float Strength);
 
+    // 분류된 청각 자극. SoundClass: 0=Normal(발소리), 1=Important(사기그릇/휘슬/전투음).
+    UFUNCTION(Callable, Category="AI|Perception")
+    void RecordHearingClassified(AActor* Source, const FVector& Location, float Strength, int32 SoundClass);
+
     UFUNCTION(Pure, Category="AI|Perception")
     bool CanSeeTarget() const { return bCanSeeTarget; }
     UFUNCTION(Pure, Category="AI|Perception")
