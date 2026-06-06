@@ -14,9 +14,23 @@ local START_SCENE    = "Game/GamePlay.Scene"
 local CREDITS_SCENE  = "Game/GameCredits.Scene"
 local OPTIONS_ZORDER = 11       -- above the title menu (default ZOrder 0)
 local VOLUME_STEP    = 0.1      -- master-volume increment per -/+ click
+local UI_SOUND_VOLUME = 1.0
+local SFX_CURSOR_SELECT = "Title_CursorSelect"
+local SFX_CANCEL = "Title_Cancel"
 
 local widget  = nil             -- title menu
 local options = nil             -- options overlay (created hidden, toggled on click)
+
+local function LoadMenuSounds()
+    if Audio == nil or Audio.Load == nil then return end
+    Audio.Load(SFX_CURSOR_SELECT, "CursorSelect.wav", false)
+    Audio.Load(SFX_CANCEL, "Cancel.wav", false)
+end
+
+local function PlayMenuSound(key)
+    if Audio == nil or Audio.Play == nil then return end
+    Audio.Play(key, UI_SOUND_VOLUME)
+end
 
 -- Master volume is stored/applied by the engine (Options.* bindings); the UI
 -- only mirrors it. Show it as a rounded percentage.
@@ -27,12 +41,14 @@ local function RefreshVolumeLabel()
 end
 
 local function ChangeVolume(delta)
+    PlayMenuSound(SFX_CURSOR_SELECT)
     Options.SetMasterVolume(Options.GetMasterVolume() + delta)  -- clamps + applies live
     RefreshVolumeLabel()
 end
 
 local function ShowOptions()
     if options == nil then return end
+    PlayMenuSound(SFX_CURSOR_SELECT)
     options:SetWantsMouse(true)
     RefreshVolumeLabel()                 -- sync label to current value before showing
     options:AddToViewportZ(OPTIONS_ZORDER)
@@ -40,11 +56,14 @@ end
 
 local function HideOptions()
     if options == nil then return end
+    PlayMenuSound(SFX_CANCEL)
     Options.Save()                       -- persist to ProjectSettings.ini on close
     options:RemoveFromParent()
 end
 
 function BeginPlay()
+    LoadMenuSounds()
+
     widget = UI.CreateWidget("Content/Game/UI/Title.rml")
     if widget == nil then
         print("[TitleMenu] failed to create Title.rml widget")
@@ -66,12 +85,14 @@ function BeginPlay()
     end
 
     widget:bind_click("start_btn", function()
+        PlayMenuSound(SFX_CURSOR_SELECT)
         Engine.OpenScene(START_SCENE)
     end)
 
     widget:bind_click("options_btn", ShowOptions)
 
     widget:bind_click("credits_btn", function()
+        PlayMenuSound(SFX_CURSOR_SELECT)
         Engine.OpenScene(CREDITS_SCENE)
     end)
 
