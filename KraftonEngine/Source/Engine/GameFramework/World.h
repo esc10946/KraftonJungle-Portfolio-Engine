@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "Object/Object.h"
 #include "Object/Ptr/WeakObjectPtr.h"
 #include "Object/Ptr/ObjectPtr.h"
@@ -18,6 +18,9 @@
 #include <Collision/Octree/SpatialPartition.h>
 #include "GameFramework/WorldSettings.h"
 #include "Physics/IPhysicsScene.h"
+
+#include "Game/GameMode/GameSoftPauseState.h"
+
 #include "Source/Engine/GameFramework/World.generated.h"
 #include <memory>
 
@@ -197,6 +200,8 @@ private:
 	TObjectPtr<UNavigationSystem> NavigationSystem = nullptr;
 	UClass* GameModeClass = nullptr;  // GameEngine 등이 BeginPlay 전에 세팅
 
+	FSoftPauseState SoftPauseState;
+
 public:
 	IPhysicsScene* GetPhysicsScene() const { return PhysicsScene.get(); }
 
@@ -237,6 +242,13 @@ public:
 	// without UWorld depending on those concrete component classes. Returns a handle for unregister.
 	uint64 RegisterPhysicsSnapshotReceiver(TFunction<void(const FPhysicsWorldSnapshot&)> Receiver);
 	void UnregisterPhysicsSnapshotReceiver(uint64 Handle);
+
+	FSoftPauseState& GetSoftPauseState() { return SoftPauseState; }
+	void SetSoftPaused(bool InBool) { SoftPauseState.bEnabled = InBool; }
+	void RegisterSoftPause(TWeakObjectPtr<AActor> InActor) { SoftPauseState.AllowedActors.push_back(InActor); }
+	void UnregisterSoftPause(TWeakObjectPtr<AActor> InActor);
+	bool IsSoftPaused() const { return SoftPauseState.bEnabled; }
+	bool IsActorAllowedDuringSoftPause(TWeakObjectPtr<AActor> InActor);
 
 private:
 	TMap<uint64, TFunction<void(const FPhysicsWorldSnapshot&)>> PhysicsSnapshotReceivers;

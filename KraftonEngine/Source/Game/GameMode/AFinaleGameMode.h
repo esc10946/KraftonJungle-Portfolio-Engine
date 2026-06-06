@@ -3,7 +3,7 @@
 
 #include "Source/Game/GameMode/AFinaleGameMode.generated.h"
 
-enum class EGamePhase : uint8;
+enum class EGamePhase : uint16;
 
 UCLASS()
 class AFinaleGameMode : public AGameModeBase

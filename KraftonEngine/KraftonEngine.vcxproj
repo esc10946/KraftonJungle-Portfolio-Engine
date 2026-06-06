@@ -1410,6 +1410,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\Viewport\ViewportClient.h" />
     <ClInclude Include="Source\Game\GameActorPlacements.h" />
     <ClInclude Include="Source\Game\GameMode\AFinaleGameMode.h" />
+    <ClInclude Include="Source\Game\GameMode\GameSoftPauseState.h" />
     <ClInclude Include="Source\Game\GameMode\GameState.h" />
     <ClInclude Include="Source\Game\Lua\GameLuaBindings.h" />
     <ClInclude Include="Source\ObjViewer\ObjViewerEngine.h" />
