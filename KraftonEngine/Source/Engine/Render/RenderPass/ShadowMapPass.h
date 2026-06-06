@@ -120,6 +120,9 @@ private:
 	// Light ViewProj CB (b2) — ShadowDepth 셰이더의 ShadowLightBuffer / VSMBlur params
 	FConstantBuffer ShadowLightCB;
 
+	// 알파 마스크 그림자용 clip 임계값 CB (b3) — Masked 섹션 그릴 때만 사용
+	FConstantBuffer ShadowMaskCB;
+
 	// 이번 프레임 캐시
 	EShadowFilterMode CurrentFilterMode = EShadowFilterMode::Hard;
 	FShadowCBData     ShadowCBCache = {};

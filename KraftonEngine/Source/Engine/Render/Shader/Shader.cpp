@@ -62,12 +62,14 @@ FShader::FShader(FShader&& Other) noexcept
 	, CachedVertexShaderSize(Other.CachedVertexShaderSize)
 	, CachedPixelShaderSize(Other.CachedPixelShaderSize)
 	, ShaderParameterLayout(std::move(Other.ShaderParameterLayout))
+	, TextureBindings(std::move(Other.TextureBindings))
 {
 	Other.VertexShader = nullptr;
 	Other.PixelShader = nullptr;
 	Other.InputLayout = nullptr;
 	Other.CachedVertexShaderSize = 0;
 	Other.CachedPixelShaderSize = 0;
+	Other.TextureBindings.clear();
 }
 
 FShader& FShader::operator=(FShader&& Other) noexcept
@@ -81,11 +83,13 @@ FShader& FShader::operator=(FShader&& Other) noexcept
 		CachedVertexShaderSize = Other.CachedVertexShaderSize;
 		CachedPixelShaderSize = Other.CachedPixelShaderSize;
 		ShaderParameterLayout = std::move(Other.ShaderParameterLayout);
+		TextureBindings = std::move(Other.TextureBindings);
 		Other.VertexShader = nullptr;
 		Other.PixelShader = nullptr;
 		Other.InputLayout = nullptr;
 		Other.CachedVertexShaderSize = 0;
 		Other.CachedPixelShaderSize = 0;
+		Other.TextureBindings.clear();
 	}
 	return *this;
 }

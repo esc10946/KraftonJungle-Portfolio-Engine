@@ -13,6 +13,8 @@ struct FFbxImportedMaterialInfo
 	FVector DiffuseColor = FVector(1.0f, 1.0f, 1.0f);
 	FString DiffuseTexturePath;
 	FString NormalTexturePath;
+	FString OpacityMaskTexturePath;
+	float   SpecularStrength = 1.0f; // FBX sSpecularFactor 에서 임포트. 0 = 무광, 1 = 기존 동작(기본값).
 };
 
 struct FFbxStaticMeshImportResult

@@ -8,6 +8,7 @@ enum class EMaterialTextureSlot : uint32
 {
 	Diffuse = 0,
 	Normal = 1,
+	OpacityMask = 2,
 	Roughness = 2,
 	Metallic = 3,
 	Emissive = 4,
@@ -60,5 +61,19 @@ namespace MaterialTextureSlot
 			|| SlotName == "EmissiveTexture"
 			|| SlotName == "Custom0Texture"
 			|| SlotName == "Custom1Texture";
+	}
+
+	inline bool TryGetFixedSlotForTextureName(const FString& SlotName, uint32& OutSlot)
+	{
+		if (SlotName == "DiffuseTexture") { OutSlot = static_cast<uint32>(EMaterialTextureSlot::Diffuse); return true; }
+		if (SlotName == "NormalTexture") { OutSlot = static_cast<uint32>(EMaterialTextureSlot::Normal); return true; }
+		if (SlotName == "OpacityMaskTexture") { OutSlot = static_cast<uint32>(EMaterialTextureSlot::OpacityMask); return true; }
+		if (SlotName == "RoughnessTexture") { OutSlot = static_cast<uint32>(EMaterialTextureSlot::Roughness); return true; }
+		if (SlotName == "MetallicTexture") { OutSlot = static_cast<uint32>(EMaterialTextureSlot::Metallic); return true; }
+		if (SlotName == "EmissiveTexture") { OutSlot = static_cast<uint32>(EMaterialTextureSlot::Emissive); return true; }
+		if (SlotName == "AOTexture") { OutSlot = static_cast<uint32>(EMaterialTextureSlot::AO); return true; }
+		if (SlotName == "Custom0Texture") { OutSlot = static_cast<uint32>(EMaterialTextureSlot::Custom0); return true; }
+		if (SlotName == "Custom1Texture") { OutSlot = static_cast<uint32>(EMaterialTextureSlot::Custom1); return true; }
+		return false;
 	}
 }
