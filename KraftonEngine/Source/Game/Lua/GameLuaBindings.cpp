@@ -1,4 +1,4 @@
-#include "Game/Lua/GameLuaBindings.h"
+﻿#include "Game/Lua/GameLuaBindings.h"
 
 #include "sol/sol.hpp"
 
@@ -354,6 +354,14 @@ void RegisterGameLuaBindings(sol::state& Lua)
 			return "None";
 		}
 	);
+	Game.set_function(
+		"PlayerDeath",
+		[]() 
+		{
+			if (!GEngine || !GEngine->GetWorld()) return;
+			if (AFinaleGameMode* GM = Cast<AFinaleGameMode>(GEngine->GetWorld()->GetGameMode()))
+				GM->OnPlayerDeath();
+		});
 	Game.set_function(
 		"Revive",
 		[]()
