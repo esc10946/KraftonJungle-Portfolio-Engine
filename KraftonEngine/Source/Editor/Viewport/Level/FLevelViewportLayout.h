@@ -91,6 +91,7 @@ public:
 		SkeletalMesh,
 		Character,
 		LuaCharacter,
+		EnemyCharacter,
 		WheeledVehicle,
 		ParticleSystem,
 		// 게임-특화 액터(ACarPawn 등) 는 enum 에 추가하지 않고 FActorPlacementRegistry
