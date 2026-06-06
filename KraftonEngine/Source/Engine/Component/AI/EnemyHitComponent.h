@@ -75,13 +75,13 @@ public:
 	UPROPERTY(Edit, Save, Category="EnemyAI|Hit", DisplayName="Play Hit When Damage Is Zero")
 	bool bPlayHitWhenDamageIsZero = false;
 
-	UPROPERTY(Edit, Save, Category="EnemyAI|Hit", DisplayName="Clear Attack Cooldowns On Hit")
+	UPROPERTY(Edit, Save, Category="EnemyAI|Hit", DisplayName="Restart Attack Cooldowns On Hit")
 	bool bClearAttackCooldownsOnHit = true;
 
 private:
 	void HandleDamaged(UHealthComponent* Component, float Damage, float NewHealth, AActor* DamageCauser, AActor* InstigatorActor);
 	void HandleDeath(UHealthComponent* Component, AActor* DamageCauser, AActor* InstigatorActor);
-	void ClearAttackCooldowns();
+	void RestartAttackCooldowns();
 	UAnimMontage* SelectMontage(const FEnemyDirectionalMontages& Montages, EEnemyHitDirection Direction) const;
 	bool PlayDirectionalMontage(const FEnemyDirectionalMontages& Montages, EEnemyHitDirection Direction, bool bStopCurrentMontage);
 

@@ -143,7 +143,7 @@ void UEnemyHitComponent::HandleDamaged(
 
 	if (bClearAttackCooldownsOnHit)
 	{
-		ClearAttackCooldowns();
+		RestartAttackCooldowns();
 	}
 	PlayHitMontage(DamageCauser, InstigatorActor);
 }
@@ -152,18 +152,18 @@ void UEnemyHitComponent::HandleDeath(UHealthComponent* /*Component*/, AActor* Da
 {
 	if (bClearAttackCooldownsOnHit)
 	{
-		ClearAttackCooldowns();
+		RestartAttackCooldowns();
 	}
 	PlayDeathMontage(DamageCauser, InstigatorActor);
 }
 
-void UEnemyHitComponent::ClearAttackCooldowns()
+void UEnemyHitComponent::RestartAttackCooldowns()
 {
 	AActor* OwnerActor = GetOwner();
 	UEnemyAttackComponent* AttackComponent = OwnerActor ? OwnerActor->GetComponentByClass<UEnemyAttackComponent>() : nullptr;
 	if (AttackComponent)
 	{
-		AttackComponent->ClearAttackCooldowns();
+		AttackComponent->RestartAttackCooldowns();
 	}
 }
 
