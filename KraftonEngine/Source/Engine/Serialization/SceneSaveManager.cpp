@@ -20,6 +20,8 @@
 #include "Core/Types/PropertyTypes.h"
 #include "Object/FName.h"
 #include "Serialization/JsonArchive.h"
+#include "Animation/AnimationManager.h"
+#include "Animation/Montage/AnimMontage.h"
 #include "Profiling/Time/PlatformTime.h"
 #include "Core/Logging/Log.h"
 
@@ -73,6 +75,38 @@ static bool IsSceneComponentReachableFromRootTree(const USceneComponent* Root, c
 	}
 
 	return false;
+}
+
+static bool WriteSceneAssetReference(const UObject* Object, json::JSON& Node)
+{
+	if (const UAnimMontage* Montage = Cast<UAnimMontage>(Object))
+	{
+		const FString& AssetPath = Montage->GetAssetPathFileName();
+		if (!AssetPath.empty() && AssetPath != "None")
+		{
+			Node = json::Object();
+			Node["ClassName"] = Montage->GetClass()->GetName();
+			Node["AssetPath"] = AssetPath;
+			return true;
+		}
+	}
+
+	return false;
+}
+
+static UObject* LoadSceneAssetReference(const FString& ClassName, const FString& AssetPath)
+{
+	if (AssetPath.empty() || AssetPath == "None")
+	{
+		return nullptr;
+	}
+
+	if (ClassName.empty() || ClassName == UAnimMontage::StaticClass()->GetName())
+	{
+		return FAnimationManager::Get().LoadMontage(AssetPath);
+	}
+
+	return nullptr;
 }
 
 // ---------------------------------------------------------------------------
@@ -139,6 +173,11 @@ protected:
 		return Context.FindObjectId(Object);
 	}
 
+	bool SerializeJsonAssetReference(const UObject* Object, json::JSON& Node) const override
+	{
+		return WriteSceneAssetReference(Object, Node);
+	}
+
 private:
 	const FSceneSaveManager::FSceneSaveContext& Context;
 };
@@ -156,6 +195,11 @@ protected:
 	UObject* ResolveJsonObjectReference(uint32 ObjectId) const override
 	{
 		return ObjectId != 0 ? Context.FindObjectById(ObjectId) : nullptr;
+	}
+
+	UObject* ResolveJsonAssetReference(const FString& ClassName, const FString& AssetPath) const override
+	{
+		return LoadSceneAssetReference(ClassName, AssetPath);
 	}
 
 private:

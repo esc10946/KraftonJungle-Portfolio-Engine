@@ -15,6 +15,7 @@ local ATTACK_MONTAGE_PATHS = {
 
 local DEFENSE_IDLE_MONTAGE_PATH = "Content/Montages/DefenseIdle_Montage.uasset"
 local SUCCESS_PARRY_MONTAGE_PATH = "Content/Montages/SuccessParry_Montage.uasset"
+local ATTACK_PLAY_RATE = 1.8
 local HIT_MONTAGE_PATHS = {
     F = "Content/Montages/Hit_F_Montage.uasset",
     B = "Content/Montages/Hit_B_Montage.uasset",
@@ -40,6 +41,7 @@ local successParryPlaying = false
 local hitPlaying = false
 local currentHitMontage = nil
 local canCancelHit = false --EnableAttack Notify opens hit cancel
+local playerDefeated = false --Prevent duplicate game end
 local parryWindowOpen = false
 local movementLocked = false
 local commandList = {}
@@ -262,11 +264,40 @@ local function reset_hit_state()
     canCancelHit = false
 end
 
+local function should_end_game_from_damage_report(damageReport)
+    if damageReport == nil then
+        return false
+    end
+
+    if damageReport.bKilled == true then
+        return true
+    end
+
+    return damageReport.NewHealth ~= nil and damageReport.NewHealth <= 0.0
+end
+
 local function stop_current_montage()
     local anim = GetOrCacheAnimInstance()
     if anim ~= nil and anim.StopMontage ~= nil then
         --Stop montage immediately--
         anim:StopMontage(0.0)
+    end
+end
+
+local function request_player_defeated()
+    if playerDefeated then
+        return
+    end
+
+    playerDefeated = true
+    stop_current_montage()
+    reset_attack_state()
+    reset_parry_state()
+    reset_hit_state()
+    lock_movement_for_attack()
+
+    if Game ~= nil and Game.Defeated ~= nil then
+        Game.Defeated()
     end
 end
 
@@ -492,7 +523,7 @@ local function play_hit_reaction(damageSpec)
     lock_movement_for_attack()
     --Clear old EnableAttack flag--
     consume_enable_attack(anim)
-    anim:PlayMontage(montage)
+    anim:PlayMontage(montage, nil, ATTACK_PLAY_RATE)
 end
 
 --Play Attack--
@@ -701,7 +732,20 @@ local function execute_attack_input()
 end
 
 local function execute_parry_input()
-    if attackPlaying or defensePlaying or successParryPlaying or hitPlaying then
+    if attackPlaying or defensePlaying or successParryPlaying then
+        return
+    end
+
+    if hitPlaying then
+        if not canCancelHit then
+            return
+        end
+
+        --EnableAttack Notify opens guard cancel from hit--
+        stop_hit_for_cancel()
+    end
+
+    if playerDefeated then
         return
     end
 
@@ -981,11 +1025,20 @@ function BeginPlay()
 end
 
 function Tick(dt)
+    if playerDefeated then
+        return
+    end
+
     run_commands(dt)
 end
 
 function OnDamaged(damageSpec, damageReport)
     if damageReport ~= nil and damageReport.AppliedDamage ~= nil and damageReport.AppliedDamage <= 0.0 then
+        return
+    end
+
+    if should_end_game_from_damage_report(damageReport) then
+        request_player_defeated()
         return
     end
 
