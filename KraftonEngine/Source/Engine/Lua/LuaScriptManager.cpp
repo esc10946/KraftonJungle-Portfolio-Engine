@@ -144,6 +144,162 @@ namespace
 
     TMap<FString, FLuaReflectedEventOverride> GLuaReflectedEventOverrides;
 
+    struct FLuaHealthChangedBinding
+    {
+        TWeakObjectPtr<UHealthComponent> Target;
+        FDelegateHandle Handle;
+        sol::protected_function Callback;
+    };
+
+    TMap<uint64, FLuaHealthChangedBinding> GLuaHealthChangedBindings;
+    uint64 GNextLuaHealthChangedBindingId = 1;
+
+    struct FLuaPlayerPawnChangedBinding
+    {
+        TWeakObjectPtr<UWorld> Target;
+        FDelegateHandle Handle;
+        sol::protected_function Callback;
+    };
+
+    TMap<uint64, FLuaPlayerPawnChangedBinding> GLuaPlayerPawnChangedBindings;
+    uint64 GNextLuaPlayerPawnChangedBindingId = 1;
+
+    void RemoveLuaHealthChangedBinding(uint64 BindingId)
+    {
+        auto It = GLuaHealthChangedBindings.find(BindingId);
+        if (It == GLuaHealthChangedBindings.end())
+        {
+            return;
+        }
+
+        if (UHealthComponent* Target = It->second.Target.Get())
+        {
+            Target->OnHealthChanged.Remove(It->second.Handle);
+        }
+        GLuaHealthChangedBindings.erase(It);
+    }
+
+    void ClearLuaHealthChangedBindings()
+    {
+        while (!GLuaHealthChangedBindings.empty())
+        {
+            RemoveLuaHealthChangedBinding(GLuaHealthChangedBindings.begin()->first);
+        }
+    }
+
+    uint64 BindLuaHealthChanged(UHealthComponent* Target, sol::protected_function Callback)
+    {
+        if (!IsValid(Target) || !Callback.valid())
+        {
+            return 0;
+        }
+
+        const uint64 BindingId = GNextLuaHealthChangedBindingId++;
+        FLuaHealthChangedBinding Binding;
+        Binding.Target = Target;
+        Binding.Callback = std::move(Callback);
+        Binding.Handle = Target->OnHealthChanged.AddLambda(
+            [BindingId](UHealthComponent* Component, float PreviousHealth, float CurrentHealth, float MaxHealth)
+            {
+                auto It = GLuaHealthChangedBindings.find(BindingId);
+                if (It == GLuaHealthChangedBindings.end() || !It->second.Callback.valid())
+                {
+                    return;
+                }
+
+                FScopedGarbageCollectionBlocker GCBlocker;
+                sol::protected_function_result Result =
+                    It->second.Callback(Component, PreviousHealth, CurrentHealth, MaxHealth);
+                if (!Result.valid())
+                {
+                    sol::error Error = Result;
+                    UE_LOG("[Lua] HealthComponent OnHealthChanged callback error: %s", Error.what());
+                }
+            });
+        GLuaHealthChangedBindings.emplace(BindingId, std::move(Binding));
+        return BindingId;
+    }
+
+    bool UnbindLuaHealthChanged(UHealthComponent* Target, uint64 BindingId)
+    {
+        auto It = GLuaHealthChangedBindings.find(BindingId);
+        if (It == GLuaHealthChangedBindings.end() || It->second.Target.Get() != Target)
+        {
+            return false;
+        }
+
+        RemoveLuaHealthChangedBinding(BindingId);
+        return true;
+    }
+
+    void RemoveLuaPlayerPawnChangedBinding(uint64 BindingId)
+    {
+        auto It = GLuaPlayerPawnChangedBindings.find(BindingId);
+        if (It == GLuaPlayerPawnChangedBindings.end())
+        {
+            return;
+        }
+
+        if (UWorld* Target = It->second.Target.Get())
+        {
+            Target->OnPlayerPawnChanged.Remove(It->second.Handle);
+        }
+        GLuaPlayerPawnChangedBindings.erase(It);
+    }
+
+    void ClearLuaPlayerPawnChangedBindings()
+    {
+        while (!GLuaPlayerPawnChangedBindings.empty())
+        {
+            RemoveLuaPlayerPawnChangedBinding(GLuaPlayerPawnChangedBindings.begin()->first);
+        }
+    }
+
+    uint64 BindLuaPlayerPawnChanged(UWorld* Target, sol::protected_function Callback)
+    {
+        if (!IsValid(Target) || !Callback.valid())
+        {
+            return 0;
+        }
+
+        const uint64 BindingId = GNextLuaPlayerPawnChangedBindingId++;
+        FLuaPlayerPawnChangedBinding Binding;
+        Binding.Target = Target;
+        Binding.Callback = std::move(Callback);
+        Binding.Handle = Target->OnPlayerPawnChanged.AddLambda(
+            [BindingId](APlayerController* PlayerController, APawn* OldPawn, APawn* NewPawn)
+            {
+                auto It = GLuaPlayerPawnChangedBindings.find(BindingId);
+                if (It == GLuaPlayerPawnChangedBindings.end() || !It->second.Callback.valid())
+                {
+                    return;
+                }
+
+                FScopedGarbageCollectionBlocker GCBlocker;
+                sol::protected_function_result Result =
+                    It->second.Callback(PlayerController, OldPawn, NewPawn);
+                if (!Result.valid())
+                {
+                    sol::error Error = Result;
+                    UE_LOG("[Lua] World OnPlayerPawnChanged callback error: %s", Error.what());
+                }
+            });
+        GLuaPlayerPawnChangedBindings.emplace(BindingId, std::move(Binding));
+        return BindingId;
+    }
+
+    bool UnbindLuaPlayerPawnChanged(UWorld* Target, uint64 BindingId)
+    {
+        auto It = GLuaPlayerPawnChangedBindings.find(BindingId);
+        if (It == GLuaPlayerPawnChangedBindings.end() || It->second.Target.Get() != Target)
+        {
+            return false;
+        }
+
+        RemoveLuaPlayerPawnChangedBinding(BindingId);
+        return true;
+    }
+
     FString MakeLuaReflectedEventKey(const UObject* Object, const FFunction& Function)
     {
         if (!Object)
@@ -299,6 +455,8 @@ void FLuaScriptManager::Shutdown()
     // 호출하면서 이미 reset 된 lua_State 를 만지면 크래시. 빈 함수로 덮어써 deref 를 지금
     // (Lua 가 valid 한 동안) 일으킨다.
     OnEscapePressedCallback = sol::protected_function();
+    ClearLuaHealthChangedBindings();
+    ClearLuaPlayerPawnChangedBindings();
     GLuaReflectedEventOverrides.clear();
 
     FLuaDebugManager::Shutdown();
@@ -391,6 +549,9 @@ void FLuaScriptManager::FireOnEscapePressed()
 void FLuaScriptManager::FireWorldReset()
 {
     if (!Lua) return;
+
+    ClearLuaHealthChangedBindings();
+    ClearLuaPlayerPawnChangedBindings();
 
     // require 로 한 번 로드된 모듈 테이블은 package.loaded 에 캐시된다. 씬 전환 시에도
     // 살아남기 때문에, 이 두 모듈이 보유한 죽은-월드 참조를 비워준다.
@@ -1616,7 +1777,7 @@ namespace
         TargetStruct->FindFunctionsByName(FunctionName.c_str(), Functions, true);
         if (Functions.empty())
         {
-            UE_LOG("[LuaReflection] Reflection.Call failed: function not found: %s", FunctionName.c_str());
+            //UE_LOG("[LuaReflection] Reflection.Call failed: function not found: %s", FunctionName.c_str());
             return sol::make_object(Lua, sol::nil);
         }
 
@@ -4085,7 +4246,15 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
         "GetCharacterMovement",
         &ACharacter::GetCharacterMovement,
         "GetStateMachine",
-        &ACharacter::GetStateMachine
+        &ACharacter::GetStateMachine,
+        "EnterRagdoll",
+        &ACharacter::EnterRagdoll,
+        "ExitRagdoll",
+        &ACharacter::ExitRagdoll,
+        "BeginRagdollRecovery",
+        &ACharacter::BeginRagdollRecovery,
+        "IsInRagdoll",
+        &ACharacter::IsInRagdoll
     );
 
 
@@ -4330,6 +4499,16 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
         "GetCurrentHealth", &UHealthComponent::GetCurrentHealth,
         "GetMaxHealth", &UHealthComponent::GetMaxHealth,
         "GetHealthRatio", &UHealthComponent::GetHealthRatio,
+        "BindOnHealthChanged",
+        [](UHealthComponent& H, sol::protected_function Callback)
+        {
+            return BindLuaHealthChanged(&H, std::move(Callback));
+        },
+        "UnbindOnHealthChanged",
+        [](UHealthComponent& H, uint64 BindingId)
+        {
+            return UnbindLuaHealthChanged(&H, BindingId);
+        },
         "SetInvincible", &UHealthComponent::SetInvincible,
         "IsInvincible", &UHealthComponent::IsInvincible
     );
@@ -4493,7 +4672,16 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
             [](AEnemyCharacter& C, const FVector& Location, float AcceptanceRadius) { return C.RequestMoveToLocation(Location, AcceptanceRadius, true); }
         ),
         "IsPathFollowing", &AEnemyCharacter::IsPathFollowing,
-        "PlayAttackMontage", &AEnemyCharacter::PlayAttackMontage
+        "PlayAttackMontage", &AEnemyCharacter::PlayAttackMontage,
+        "Brain_AcquireTarget", &AEnemyCharacter::Brain_AcquireTarget,
+        "Brain_Chase", &AEnemyCharacter::Brain_Chase,
+        "Brain_Idle", &AEnemyCharacter::Brain_Idle,
+        "Brain_IsBusy", &AEnemyCharacter::Brain_IsBusy,
+        "Brain_GetDistance", &AEnemyCharacter::Brain_GetDistance,
+        "Brain_GetAttackRange", &AEnemyCharacter::Brain_GetAttackRange,
+        "Brain_SetSelectedAttack", [](AEnemyCharacter& C, const FString& AttackName) { return C.Brain_SetSelectedAttack(FName(AttackName)); },
+        "Brain_PlaySelectedAttack", &AEnemyCharacter::Brain_PlaySelectedAttack,
+        "Brain_PlayAttackByName", [](AEnemyCharacter& C, const FString& AttackName) { return C.Brain_PlayAttackByName(FName(AttackName)); }
     );
 
     Lua.new_usertype<ABossEnemyCharacter>(
@@ -5766,6 +5954,22 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
         []() -> APlayerController*
         {
             return (GEngine && GEngine->GetWorld()) ? GEngine->GetWorld()->GetFirstPlayerController() : nullptr;
+        }
+    );
+    World.set_function(
+        "BindOnPlayerPawnChanged",
+        [](sol::protected_function Callback)
+        {
+            UWorld* Target = GEngine ? GEngine->GetWorld() : nullptr;
+            return BindLuaPlayerPawnChanged(Target, std::move(Callback));
+        }
+    );
+    World.set_function(
+        "UnbindOnPlayerPawnChanged",
+        [](uint64 BindingId)
+        {
+            UWorld* Target = GEngine ? GEngine->GetWorld() : nullptr;
+            return UnbindLuaPlayerPawnChanged(Target, BindingId);
         }
     );
     World.set_function(

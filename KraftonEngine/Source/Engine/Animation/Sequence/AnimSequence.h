@@ -24,6 +24,7 @@ public:
     ~UAnimSequence() override = default;
 
     void Serialize(FArchive& Ar) override;
+    void Serialize(FArchive& Ar, uint32 PackageVersion);
     void AddReferencedObjects(FReferenceCollector& Collector) override;
 
     void SetDataModel(UAnimDataModel* InModel);
@@ -53,6 +54,9 @@ public:
     // 편집 후 RefreshRuntimeNotifies() 로 dispatch 캐시(base Notifies)를 동기화한다.
     TArray<FAnimNotifyEvent>& GetMutableModelNotifies();
     void RefreshRuntimeNotifies();
+    int32 GetNotifyTrackCount() const;
+    int32 AddNotifyTrack();
+    bool RemoveNotifyTrack(int32 TrackIndex);
 
     int32 TimeToFrame(float TimeSeconds) const;
     float FrameToTime(int32 FrameIndex) const;

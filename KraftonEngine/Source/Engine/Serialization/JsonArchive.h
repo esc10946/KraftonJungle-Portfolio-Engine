@@ -200,14 +200,14 @@ public:
 		json::JSON* Node = Current();
 		if (bIsSaving)
 		{
-			if (ObjectId == 0)
-			{
-				*Node = json::JSON();
-			}
-			else
+			if (ObjectId != 0)
 			{
 				*Node = json::Object();
 				(*Node)["ObjectId"] = static_cast<int>(ObjectId);
+			}
+			else if (!Object || !SerializeJsonAssetReference(Object, *Node))
+			{
+				*Node = json::JSON();
 			}
 			return;
 		}
@@ -221,13 +221,26 @@ public:
 		if (Node->JSONType() == json::JSON::Class::Object && Node->hasKey("ObjectId"))
 		{
 			ObjectId = static_cast<uint32>((*Node)["ObjectId"].ToInt());
+			Object = ResolveJsonObjectReference(ObjectId);
+			return;
 		}
-		Object = ResolveJsonObjectReference(ObjectId);
+
+		if (Node->JSONType() == json::JSON::Class::Object && Node->hasKey("AssetPath"))
+		{
+			const FString ClassName = Node->hasKey("ClassName") ? (*Node)["ClassName"].ToString() : FString();
+			const FString AssetPath = (*Node)["AssetPath"].ToString();
+			Object = ResolveJsonAssetReference(ClassName, AssetPath);
+			return;
+		}
+
+		Object = nullptr;
 	}
 
 protected:
 	virtual uint32 ResolveJsonObjectId(const UObject* /*Object*/) const { return 0; }
 	virtual UObject* ResolveJsonObjectReference(uint32 /*ObjectId*/) const { return nullptr; }
+	virtual bool SerializeJsonAssetReference(const UObject* /*Object*/, json::JSON& /*Node*/) const { return false; }
+	virtual UObject* ResolveJsonAssetReference(const FString& /*ClassName*/, const FString& /*AssetPath*/) const { return nullptr; }
 
 private:
 	json::JSON* Current()

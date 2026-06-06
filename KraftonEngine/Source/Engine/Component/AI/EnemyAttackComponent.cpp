@@ -66,6 +66,16 @@ void UEnemyAttackComponent::ClearAttackCooldowns()
 	GlobalCooldownRemaining = 0.0f;
 }
 
+void UEnemyAttackComponent::RestartAttackCooldowns()
+{
+	Cooldowns.clear();
+	for (const FEnemyAttackData& Attack : Attacks)
+	{
+		SetAttackCooldown(Attack.AttackName, Attack.Cooldown);
+	}
+	GlobalCooldownRemaining = (std::max)(0.0f, GlobalCooldown);
+}
+
 bool UEnemyAttackComponent::CanUseAttack(const FEnemyAttackData& Attack, int32 Phase, float Distance, float AbsAngle) const
 {
 	if (!Attack.AttackName.IsValid() || !Attack.Montage)

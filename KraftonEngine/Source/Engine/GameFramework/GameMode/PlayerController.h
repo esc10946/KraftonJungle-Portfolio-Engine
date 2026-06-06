@@ -67,6 +67,8 @@ public:
 		bool bLockOutgoing = false);
 
 private:
+	void NotifyPossessedPawnChanged(APawn* OldPawn, APawn* NewPawn);
+
 	// PlayerCameraManager — UE 의 PC->PlayerCameraManager 와 동일 의미. 직렬화 제외.
 	// 현재(E.2 청크 1)는 World 의 CameraManager 를 reference 로 캐싱. E.2 청크 3 에서
 	// PC 가 BeginPlay 에서 직접 SpawnActor 로 생성하는 owner 로 전환.

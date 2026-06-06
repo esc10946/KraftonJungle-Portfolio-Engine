@@ -204,8 +204,8 @@ private:
     FName EditorRagdollGrabBoneName = FName::None;
     FVector EditorRagdollGrabLocalOffset = FVector::ZeroVector;
     float EditorRagdollGrabDistance = 0.0f;
-    bool bRegenerateUsePCAAnalysis = true;
-    bool bRegenerateUseBoneAxis = false;
+    bool bRegenerateUsePCAAnalysis = false;
+    bool bRegenerateUseBoneAxis = true;
     bool bRegenerateCreateConstraints = true;
     bool bRegenerateDisableConstrainedBodyCollision = true;
     bool bRegenerateReplaceExisting = true;

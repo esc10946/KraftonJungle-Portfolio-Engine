@@ -9,6 +9,7 @@
 #include "Animation/AnimationRuntime.h"
 #include "Animation/Skeleton/Skeleton.h"
 #include "Animation/Skeleton/SkeletonManager.h"
+#include "Asset/AssetPackage.h"
 #include "Mesh/Skeletal/SkeletalMesh.h"
 #include "Mesh/Skeletal/SkeletalMeshAsset.h"
 #include "Object/Object.h"
@@ -478,6 +479,11 @@ namespace
 
 void UAnimSequence::Serialize(FArchive& Ar)
 {
+    Serialize(Ar, FAssetPackageHeader::CurrentVersion);
+}
+
+void UAnimSequence::Serialize(FArchive& Ar, uint32 PackageVersion)
+{
     // 저장 포맷 고정:
     // UObject base + AnimSequence 메타데이터 + UAnimDataModel payload.
     // UAnimSequenceBase::Serialize()는 호출하지 않는다. PlayLength/FrameRate/Notifies는 DataModel의 runtime cache다.
@@ -496,7 +502,7 @@ void UAnimSequence::Serialize(FArchive& Ar)
 
     if (IsValid(DataModel))
     {
-        DataModel->Serialize(Ar);
+        DataModel->Serialize(Ar, PackageVersion);
     }
 
     if (IsValid(DataModel))
@@ -632,6 +638,51 @@ void UAnimSequence::RefreshRuntimeNotifies()
         // 베이스 캐시 = UAnimInstance::AddAnimNotifies 가 읽는 dispatch 소스.
         Notifies = DataModel->Notifies;
     }
+}
+
+int32 UAnimSequence::GetNotifyTrackCount() const
+{
+    return DataModel ? DataModel->GetNotifyTrackCount() : 1;
+}
+
+int32 UAnimSequence::AddNotifyTrack()
+{
+    if (!DataModel)
+    {
+        GetMutableModelNotifies();
+    }
+    return DataModel ? DataModel->AddNotifyTrack() : 0;
+}
+
+bool UAnimSequence::RemoveNotifyTrack(int32 TrackIndex)
+{
+    if (!DataModel || DataModel->GetNotifyTrackCount() <= 1)
+    {
+        return false;
+    }
+
+    const int32 TrackCount = DataModel->GetNotifyTrackCount();
+    if (TrackIndex < 0 || TrackIndex >= TrackCount)
+    {
+        return false;
+    }
+
+    const int32 DestinationTrack = TrackIndex > 0 ? TrackIndex - 1 : 0;
+    for (FAnimNotifyEvent& Notify : DataModel->Notifies)
+    {
+        if (Notify.TrackIndex == TrackIndex)
+        {
+            Notify.TrackIndex = DestinationTrack;
+        }
+        else if (Notify.TrackIndex > TrackIndex)
+        {
+            --Notify.TrackIndex;
+        }
+    }
+
+    DataModel->NotifyTrackCount = TrackCount - 1;
+    RefreshRuntimeNotifies();
+    return true;
 }
 
 int32 UAnimSequence::GetNumberOfFrames() const
@@ -1103,11 +1154,11 @@ UAnimSequence* UAnimSequence::CreateMockWaveSequence(
     {
         UAnimNotify_LogMessage* N1 = UObjectManager::Get().CreateObject<UAnimNotify_LogMessage>(Model);
         N1->Message = "wave-step (early)";
-        Model->Notifies.push_back({ FName("WaveStep"), DurationSeconds * 0.25f, 0.0f, N1 });
+        Model->Notifies.push_back({ FName("WaveStep"), DurationSeconds * 0.25f, 0.0f, 0, N1 });
 
         UAnimNotify_LogMessage* N2 = UObjectManager::Get().CreateObject<UAnimNotify_LogMessage>(Model);
         N2->Message = "wave-step (late)";
-        Model->Notifies.push_back({ FName("WaveStep"), DurationSeconds * 0.75f, 0.0f, N2 });
+        Model->Notifies.push_back({ FName("WaveStep"), DurationSeconds * 0.75f, 0.0f, 0, N2 });
     }
 
     UAnimSequence* Seq = UObjectManager::Get().CreateObject<UAnimSequence>();

@@ -69,6 +69,9 @@ namespace
     constexpr float AutoBodyRadiusPadding = 1.10f;
     constexpr float AutoBodyFallbackRadiusRatio = 0.18f;
     constexpr float AutoBodyMinWeldSize = 1.0e-6f;
+    constexpr float AutoBodyPcaBoneAxisAlignmentThreshold = 0.65f;
+    constexpr float AutoBodyPcaBoneAxisRadiusTolerance = 1.25f;
+    constexpr float AutoBodyPcaRadiusRegressionThreshold = 1.50f;
 
     bool HasBoneName(const FName& BoneName)
     {
@@ -593,6 +596,22 @@ namespace
         return true;
     }
 
+    bool ShouldPreferBoneAxisFitOverPCA(
+        const FAutoBodyFitResult& PcaFit,
+        const FAutoBodyFitResult& BoneAxisFit,
+        const FVector& PcaAxisZ,
+        const FVector& BoneAxisZ)
+    {
+        const float AxisAlignment = std::fabs(PcaAxisZ.Dot(BoneAxisZ));
+        if (PcaFit.CapsuleRadius > BoneAxisFit.CapsuleRadius * AutoBodyPcaRadiusRegressionThreshold)
+        {
+            return true;
+        }
+
+        return AxisAlignment < AutoBodyPcaBoneAxisAlignmentThreshold &&
+            BoneAxisFit.CapsuleRadius <= PcaFit.CapsuleRadius * AutoBodyPcaBoneAxisRadiusTolerance;
+    }
+
     void ComputeSymmetricEigen3x3(const double InMatrix[3][3], double OutValues[3], FVector OutVectors[3])
     {
         double A[3][3] = {};
@@ -742,13 +761,35 @@ namespace
         {
             FVector AxisY;
             BuildBasisFromZAxis(AxisZ, AxisX, AxisY, AxisZ);
-            return FitCapsuleToPointsOnBasis(Points, Mean, AxisX, AxisY, AxisZ, OutFit);
         }
-        AxisX.Normalize();
+        else
+        {
+            AxisX.Normalize();
+        }
         FVector AxisY = SafeNormal(AxisZ.Cross(AxisX), FVector::YAxisVector);
         AxisX = SafeNormal(AxisY.Cross(AxisZ), AxisX);
 
-        return FitCapsuleToPointsOnBasis(Points, Mean, AxisX, AxisY, AxisZ, OutFit);
+        FAutoBodyFitResult PcaFit;
+        if (!FitCapsuleToPointsOnBasis(Points, Mean, AxisX, AxisY, AxisZ, PcaFit))
+        {
+            return false;
+        }
+
+        FVector BoneAxisX;
+        FVector BoneAxisY;
+        FVector BoneAxisZ;
+        BuildBasisFromZAxis(StableBoneAxis, BoneAxisX, BoneAxisY, BoneAxisZ);
+
+        FAutoBodyFitResult BoneAxisFit;
+        if (FitCapsuleToPointsOnBasis(Points, Mean, BoneAxisX, BoneAxisY, BoneAxisZ, BoneAxisFit) &&
+            ShouldPreferBoneAxisFitOverPCA(PcaFit, BoneAxisFit, AxisZ, BoneAxisZ))
+        {
+            OutFit = BoneAxisFit;
+            return true;
+        }
+
+        OutFit = PcaFit;
+        return true;
     }
 
     bool BuildBoneAxisAutoBodyFit(

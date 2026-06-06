@@ -104,11 +104,19 @@ namespace
 	}
 }
 
-void FAnimNotifyEvent::Serialize(FArchive& Ar, UObject* InOuter)
+void FAnimNotifyEvent::Serialize(FArchive& Ar, UObject* InOuter, bool bSerializeTrackIndex)
 {
 	Ar << NotifyName;
 	Ar << TriggerTime;
 	Ar << Duration;
+	if (bSerializeTrackIndex)
+	{
+		Ar << TrackIndex;
+	}
+	else if (Ar.IsLoading())
+	{
+		TrackIndex = 0;
+	}
 
 	SerializeNotifyPointer<UAnimNotify>(Ar, Notify, InOuter);
 	SerializeNotifyPointer<UAnimNotifyState>(Ar, NotifyState, InOuter);

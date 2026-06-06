@@ -26,6 +26,11 @@ local TACTIC = {
 
 local S = nil
 local GROUND_SPEED_VAR = "GroundSpeed"
+local DEATH_DESTROY_DELAY = 2.0
+local bDestroyedByDeath = false
+local bPendingDestroyFromDeath = false
+local deathDestroyDelayRemaining = 0.0
+local bDeathRagdollStarted = false
 
 local LOCOMOTION = {
     Locked = 0,
@@ -67,6 +72,49 @@ end
 local function is_name_valid(v)
     local s = name_to_string(v)
     return s ~= "" and s ~= "None"
+end
+
+local function should_destroy_from_damage_report(damageReport)
+    if damageReport == nil then
+        return false
+    end
+
+    if damageReport.bKilled == true then
+        return true
+    end
+
+    return damageReport.NewHealth ~= nil and damageReport.NewHealth <= 0.0
+end
+
+local function request_destroy_from_death()
+    if bDestroyedByDeath then
+        return
+    end
+
+    bPendingDestroyFromDeath = true
+    deathDestroyDelayRemaining = DEATH_DESTROY_DELAY
+    call(obj, "Brain_ReleaseAttackToken")
+    call(obj, "StopEnemyMovement")
+
+    if not bDeathRagdollStarted then
+        bDeathRagdollStarted = true
+        call(obj, "EnterRagdoll")
+    end
+end
+
+local function destroy_self_from_death()
+    if bDestroyedByDeath then
+        return
+    end
+
+    bPendingDestroyFromDeath = false
+    bDestroyedByDeath = true
+
+    if obj ~= nil and obj.Destroy ~= nil then
+        obj:Destroy()
+    else
+        call(obj, "Destroy")
+    end
 end
 
 local function get_character_movement()
@@ -339,8 +387,22 @@ function EndPlay()
     call(obj, "Brain_ReleaseAttackToken")
 end
 
+function OnDamaged(damageSpec, damageReport)
+    if should_destroy_from_damage_report(damageReport) then
+        request_destroy_from_death()
+    end
+end
+
 function Tick(dt)
-    if not S then return end
+    if bDestroyedByDeath or not S then return end
+
+    if bPendingDestroyFromDeath then
+        deathDestroyDelayRemaining = deathDestroyDelayRemaining - dt
+        if deathDestroyDelayRemaining <= 0.0 then
+            destroy_self_from_death()
+        end
+        return
+    end
 
     update_ground_speed()
 

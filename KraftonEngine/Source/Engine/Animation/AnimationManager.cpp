@@ -74,6 +74,25 @@ namespace
 
         return Result;
     }
+
+    static FString GetAssetNameFromPackagePath(const FString& PackagePath)
+    {
+        return FPaths::ToUtf8(std::filesystem::path(FPaths::ToWide(PackagePath)).stem().wstring());
+    }
+
+    static void SyncObjectNameToAssetPath(UObject* Object, const FString& PackagePath)
+    {
+        if (!Object || PackagePath.empty() || PackagePath == "None")
+        {
+            return;
+        }
+
+        const FString AssetName = GetAssetNameFromPackagePath(PackagePath);
+        if (!AssetName.empty())
+        {
+            Object->SetFName(FName(AssetName));
+        }
+    }
 }
 
 FAnimationManager& FAnimationManager::Get()
@@ -208,7 +227,7 @@ UAnimSequence* FAnimationManager::LoadAnimation(const FString& PackagePath)
     }
 
     UAnimSequence* Sequence = UObjectManager::Get().CreateObject<UAnimSequence>();
-    Sequence->Serialize(Reader);
+    Sequence->Serialize(Reader, Header.Version);
     Sequence->SetAssetPathFileName(NormalizedPath);
 
     if (!Reader.IsValid())
@@ -260,12 +279,13 @@ bool FAnimationManager::SaveAnimation(UAnimSequence* Sequence, const FString& Pa
 
     FAssetImportMetadata Metadata = MakeImportMetadata(SourcePath);
 
-    if (!FAssetPackage::WritePackagePrelude(Writer, EAssetPackageType::AnimSequence, Metadata))
+    FAssetPackageHeader Header;
+    if (!FAssetPackage::WritePackagePrelude(Writer, EAssetPackageType::AnimSequence, Metadata, &Header))
     {
         UE_LOG("Animation save failed: package prelude write failed. Path=%s", NormalizedPath.c_str());
         return false;
     }
-    Sequence->Serialize(Writer);
+    Sequence->Serialize(Writer, Header.Version);
 
     if (!Writer.IsValid())
     {
@@ -530,6 +550,7 @@ UAnimMontage* FAnimationManager::LoadMontage(const FString& PackagePath)
     UAnimMontage* Montage = UObjectManager::Get().CreateObject<UAnimMontage>();
     Montage->Serialize(Reader);
     Montage->SetAssetPathFileName(NormalizedPath);
+    SyncObjectNameToAssetPath(Montage, NormalizedPath);
 
     if (!Reader.IsValid())
     {
@@ -581,6 +602,7 @@ bool FAnimationManager::SaveMontage(UAnimMontage* Montage, const FString& Packag
 
     const FString NormalizedPath = FPaths::MakeProjectRelative(PackagePath);
     Montage->SetAssetPathFileName(NormalizedPath);
+    SyncObjectNameToAssetPath(Montage, NormalizedPath);
 
     // 대상 디렉토리 자동 생성 — AnimSequence save 와 동일 패턴.
     {

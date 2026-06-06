@@ -4,6 +4,7 @@
 #include "Animation/Montage/AnimMontage.h"
 #include "Component/AI/EnemyAIBrainComponent.h"
 #include "Component/AI/EnemyAttackComponent.h"
+#include "Component/AI/EnemyHitComponent.h"
 #include "Component/AI/AIBlackboardComponent.h"
 #include "Component/AI/AIPerceptionComponent.h"
 #include "Component/AI/AIDecisionTraceComponent.h"
@@ -94,6 +95,7 @@ void AEnemyCharacter::InitDefaultComponents(const FString& SkeletalMeshFileName,
 	Super::InitDefaultComponents(SkeletalMeshFileName);
 	AIBrainComponent = AddComponent<UEnemyAIBrainComponent>();
 	AttackComponent = AddComponent<UEnemyAttackComponent>();
+	HitComponent = AddComponent<UEnemyHitComponent>();
 	// 세키로식 전투 AI 코어 계층 — 책임 분리된 엔진 컴포넌트.
 	Blackboard = AddComponent<UAIBlackboardComponent>();
 	Perception = AddComponent<UAIPerceptionComponent>();
@@ -137,6 +139,11 @@ void AEnemyCharacter::RebindEnemyComponents()
 	if (!AttackComponent.IsValid())
 	{
 		AttackComponent = AddComponent<UEnemyAttackComponent>();
+	}
+	HitComponent = GetComponentByClass<UEnemyHitComponent>();
+	if (!HitComponent.IsValid())
+	{
+		HitComponent = AddComponent<UEnemyHitComponent>();
 	}
 	LuaScriptComponent = GetComponentByClass<ULuaScriptComponent>();
 	if (!LuaScriptComponent.IsValid())

@@ -11,6 +11,7 @@
 
 class UPrimitiveComponent;
 class UCombatHitEventComponent;
+class UHealthComponent;
 struct FHitResult;
 
 UCLASS()
@@ -53,8 +54,10 @@ private:
 	void EnsureDefaultScriptFile();
 	void BindOwnerCollisionEvents();
 	void BindOwnerCombatEvents();
+	void BindOwnerDamageEvents();
 	void ClearCollisionBindings();
 	void ClearCombatBindings();
+	void ClearDamageBindings();
 	void ClearLuaRuntime();
 	void InvokeLuaEndPlay();
 	void HandleDeferredLuaCleanup();
@@ -94,6 +97,10 @@ private:
 		UPrimitiveComponent* HitComponent,
 		const FCombatDamageSpec& DamageSpec,
 		FName HitEventName);
+	void HandleDamageApplied(
+		UHealthComponent* HealthComponent,
+		const FCombatDamageReport& DamageReport,
+		const FCombatDamageSpec& DamageSpec);
 
 	UPROPERTY(Edit, Save, Category="Script", DisplayName="ScriptFile", AssetType="Script")
 	FString ScriptFile;
@@ -106,6 +113,7 @@ private:
 	sol::protected_function LuaOnEndOverlap;
 	sol::protected_function LuaOnHit;
 	sol::protected_function LuaOnEndHit;
+	sol::protected_function LuaOnDamaged;
 	sol::protected_function LuaOnAttackHit;
 	sol::protected_function LuaOnAttackParried;
 
@@ -151,4 +159,6 @@ private:
 	TWeakObjectPtr<UCombatHitEventComponent> BoundCombatHitEventComponent;
 	FDelegateHandle AttackHitHandle;
 	FDelegateHandle AttackParriedHandle;
+	TWeakObjectPtr<UHealthComponent> BoundHealthComponent;
+	FDelegateHandle DamageAppliedHandle;
 };

@@ -41,6 +41,8 @@ public:
 	void SetAttackCooldown(const FName& AttackName, float Cooldown);
 	UFUNCTION(Callable, Category="EnemyAI|Attack")
 	void ClearAttackCooldowns();
+	UFUNCTION(Callable, Category="EnemyAI|Attack")
+	void RestartAttackCooldowns();
 
 	UFUNCTION(Pure, Category="EnemyAI|Attack")
 	bool CanUseAttack(const FEnemyAttackData& Attack, int32 Phase, float Distance, float AbsAngle) const;

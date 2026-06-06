@@ -59,6 +59,11 @@ namespace FAssetRegistry
 			FAnimationManager::Get().RefreshAvailableAnimations();
 			return FAnimationManager::Get().GetAvailableAnimationFiles();
 		}
+		if (std::strcmp(AssetTypeName, "UAnimMontage") == 0)
+		{
+			FAnimationManager::Get().RefreshAvailableMontages();
+			return FAnimationManager::Get().GetAvailableMontageFiles();
+		}
 		if (std::strcmp(AssetTypeName, "UAnimGraphAsset") == 0)
 		{
 			// 콤보 열 때마다 재스캔 — 방금 ContentBrowser 에서 만든 자산이 즉시 노출되도록.

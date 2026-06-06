@@ -158,6 +158,10 @@ void AFinaleGameMode::OnPlayerRevive()
 
 void AFinaleGameMode::OnPlayerDefeated()
 {
+	if (CheckGamePhase(EGamePhase::Playing))
+	{
+		OnPlayerDeath();
+	}
 	if (!CheckGamePhase(EGamePhase::Dead)) return;
 	SetGamePhase(EGamePhase::Defeated);
 

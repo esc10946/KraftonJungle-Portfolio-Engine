@@ -9,6 +9,7 @@ class AAIController;
 class UClass;
 class UEnemyAIBrainComponent;
 class UEnemyAttackComponent;
+class UEnemyHitComponent;
 class ULuaScriptComponent;
 class ULuaBlueprintComponent;
 class UAIBlackboardComponent;
@@ -40,6 +41,8 @@ public:
 	UEnemyAIBrainComponent* GetAIBrainComponent() const { return AIBrainComponent; }
 	UFUNCTION(Pure, Category="Enemy|Components")
 	UEnemyAttackComponent* GetAttackComponent() const { return AttackComponent; }
+	UFUNCTION(Pure, Category="Enemy|Components")
+	UEnemyHitComponent* GetHitComponent() const { return HitComponent; }
 	UFUNCTION(Pure, Category="Enemy|Components")
 	ULuaScriptComponent* GetLuaScriptComponent() const { return LuaScriptComponent; }
 	UFUNCTION(Pure, Category="Enemy|Components")
@@ -345,6 +348,7 @@ protected:
 
 	TWeakObjectPtr<UEnemyAIBrainComponent> AIBrainComponent = nullptr;
 	TWeakObjectPtr<UEnemyAttackComponent> AttackComponent = nullptr;
+	TWeakObjectPtr<UEnemyHitComponent> HitComponent = nullptr;
 	TWeakObjectPtr<ULuaScriptComponent> LuaScriptComponent = nullptr;
 	TWeakObjectPtr<ULuaBlueprintComponent> BrainBlueprint = nullptr;
 	TWeakObjectPtr<UAIBlackboardComponent> Blackboard = nullptr;
