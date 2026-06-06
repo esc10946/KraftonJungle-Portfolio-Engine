@@ -1,0 +1,16 @@
+/* Full-screen RmlUi transition sheet. Opacity is driven by SceneTransition.lua. */
+
+body#scene-transition {
+    width: 100%;
+    height: 100%;
+}
+
+#transition-sheet {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #000000;
+    opacity: 0;
+}

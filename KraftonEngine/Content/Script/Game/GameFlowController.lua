@@ -10,6 +10,9 @@
 -- Phase-driven UI is synced by polling Game.GetPhase() each Tick.
 -- ============================================================
 
+local BGMState = require("Game/BGMState")
+local SceneTransition = require("Game/SceneTransition")
+
 local PAUSE_ZORDER    = 20      -- above the gameplay HUD
 local DEATH_ZORDER    = 20      -- pause and death are mutually exclusive phases
 local REVIVE_ZORDER   = 20      -- revive flourish (brief, after death tears down)
@@ -31,6 +34,9 @@ local SFX_SUCCESS = "UI_Success"
 local SFX_CANCEL = "UI_Cancel"
 local SFX_DEADWINDOW = "UI_DeadWindow"
 local SFX_RESPAWN = "UI_Respawn"
+local BGM_BATTLE      = "BGM_Battle"
+local BGM_BATTLE_FILE = "BGM/38534292-japanese-battle (battle_bgm).mp3"
+local BGM_VOLUME      = 0.5     -- BGM sits under SFX; scaled by master volume on top
 
 local pause   = nil             -- pause overlay, created hidden, shown while paused
 local death   = nil             -- death overlay, created hidden, shown while Dead
@@ -77,6 +83,7 @@ local function LoadUISounds()
     Audio.Load(SFX_CANCEL, "Cancel.wav", false)
     Audio.Load(SFX_DEADWINDOW, "DeadWindow.wav", false)
     Audio.Load(SFX_RESPAWN, "Respawn.wav", false)
+    -- BGM is loaded lazily by BGMState.Ensure (only on an actual track switch).
 end
 
 local function PlayUISound(key)
@@ -268,6 +275,12 @@ end
 function BeginPlay()
     LoadUISounds()
 
+    -- Battle theme loops for the whole gameplay scene. Ensure() switches off the
+    -- title theme carried over from the title scene. (Boss BGM will swap in here
+    -- via BGMState.Ensure on the boss phase transition once the boss arrives.)
+    BGMState.Ensure(BGM_BATTLE, BGM_BATTLE_FILE, BGM_VOLUME)
+    SceneTransition.BeginScene()
+
     pause = UI.CreateWidget("Content/Game/UI/Pause.rml")
     if pause == nil then
         print("[GameFlowController] failed to create Pause.rml widget")
@@ -278,8 +291,15 @@ function BeginPlay()
             SyncPauseUI()
         end)
         pause:bind_click("title_btn", function()
+            if SceneTransition.IsActive() then return end
             PlayUISound(SFX_SUCCESS)
-            Game.QuitToTitle()
+            if Engine.IsPaused() then
+                Game.TogglePause()
+                SyncPauseUI()
+            end
+            SceneTransition.FadeOutThen(function()
+                Game.QuitToTitle()
+            end)
         end)
     end
 
@@ -305,8 +325,11 @@ function BeginPlay()
             ShowLeaderboard(false)
         end)
         death:bind_click("title_btn", function()
+            if SceneTransition.IsActive() then return end
             PlayUISound(SFX_SUCCESS)
-            Game.QuitToTitle()
+            SceneTransition.FadeOutThen(function()
+                Game.QuitToTitle()
+            end)
         end)
     end
 
@@ -327,8 +350,11 @@ function BeginPlay()
             ShowLeaderboard(true)
         end)
         victory:bind_click("title_btn", function()
+            if SceneTransition.IsActive() then return end
             PlayUISound(SFX_SUCCESS)
-            Game.QuitToTitle()
+            SceneTransition.FadeOutThen(function()
+                Game.QuitToTitle()
+            end)
         end)
     end
 
@@ -369,6 +395,8 @@ function BeginPlay()
 
     -- ESC is read un-gated by the engine, so this fires while paused too.
     Engine.SetOnEscape(function()
+        if SceneTransition.IsActive() then return end
+
         local wasPaused = Engine.IsPaused()
         Game.TogglePause()
         SyncPauseUI()
@@ -383,6 +411,7 @@ function BeginPlay()
 end
 
 function EndPlay()
+    SceneTransition.EndScene()
     Engine.SetOnEscape(nil)
     if pause ~= nil then
         pause:RemoveFromParent()
@@ -412,6 +441,9 @@ function EndPlay()
 end
 
 function Tick(dt)
+    SceneTransition.Tick(dt)
+    if SceneTransition.IsActive() then return end
+
     if DEBUG_KEYS then
         for _, b in ipairs(DEBUG_BINDINGS) do
             if Input.GetKeyDown(b.key) then
