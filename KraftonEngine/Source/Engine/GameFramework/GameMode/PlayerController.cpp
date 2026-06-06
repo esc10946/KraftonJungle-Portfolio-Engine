@@ -55,12 +55,29 @@ void APlayerController::SetViewTargetWithBlend(
 
 void APlayerController::Possess(APawn* Pawn)
 {
+	APawn* OldPawn = GetPossessedPawn();
 	AController::Possess(Pawn);
+	NotifyPossessedPawnChanged(OldPawn, GetPossessedPawn());
 }
 
 void APlayerController::UnPossess()
 {
+	APawn* OldPawn = GetPossessedPawn();
 	AController::UnPossess();
+	NotifyPossessedPawnChanged(OldPawn, GetPossessedPawn());
+}
+
+void APlayerController::NotifyPossessedPawnChanged(APawn* OldPawn, APawn* NewPawn)
+{
+	if (OldPawn == NewPawn)
+	{
+		return;
+	}
+
+	if (UWorld* World = GetWorld())
+	{
+		World->NotifyPlayerPawnChanged(this, OldPawn, NewPawn);
+	}
 }
 
 void APlayerController::ProcessPlayerInput(const FInputSystemSnapshot& Snapshot, float DeltaTime)

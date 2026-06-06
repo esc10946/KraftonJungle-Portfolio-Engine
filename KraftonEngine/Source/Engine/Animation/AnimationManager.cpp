@@ -227,7 +227,7 @@ UAnimSequence* FAnimationManager::LoadAnimation(const FString& PackagePath)
     }
 
     UAnimSequence* Sequence = UObjectManager::Get().CreateObject<UAnimSequence>();
-    Sequence->Serialize(Reader);
+    Sequence->Serialize(Reader, Header.Version);
     Sequence->SetAssetPathFileName(NormalizedPath);
 
     if (!Reader.IsValid())
@@ -279,12 +279,13 @@ bool FAnimationManager::SaveAnimation(UAnimSequence* Sequence, const FString& Pa
 
     FAssetImportMetadata Metadata = MakeImportMetadata(SourcePath);
 
-    if (!FAssetPackage::WritePackagePrelude(Writer, EAssetPackageType::AnimSequence, Metadata))
+    FAssetPackageHeader Header;
+    if (!FAssetPackage::WritePackagePrelude(Writer, EAssetPackageType::AnimSequence, Metadata, &Header))
     {
         UE_LOG("Animation save failed: package prelude write failed. Path=%s", NormalizedPath.c_str());
         return false;
     }
-    Sequence->Serialize(Writer);
+    Sequence->Serialize(Writer, Header.Version);
 
     if (!Writer.IsValid())
     {

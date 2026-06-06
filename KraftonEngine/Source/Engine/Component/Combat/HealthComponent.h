@@ -11,6 +11,7 @@ class AActor;
 DECLARE_MULTICAST_DELEGATE_FiveParams(FHealthDamagedSignature, class UHealthComponent*, float, float, AActor*, AActor*);
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FHealthDeathSignature, class UHealthComponent*, AActor*, AActor*);
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FHealthDamageAppliedSignature, class UHealthComponent*, const FCombatDamageReport&, const FCombatDamageSpec&);
+DECLARE_MULTICAST_DELEGATE_FourParams(FHealthChangedSignature, class UHealthComponent*, float, float, float);
 
 UCLASS()
 class UHealthComponent : public UActorComponent
@@ -69,7 +70,9 @@ public:
 	FHealthDamagedSignature OnDamaged;
 	FHealthDeathSignature OnDeath;
 	FHealthDamageAppliedSignature OnDamageApplied;
+	FHealthChangedSignature OnHealthChanged;
 
 private:
+	bool SetHealthValue(float NewHealth, bool bReviveIfPositive);
 	void BroadcastDeathOnce(AActor* DamageCauser, AActor* InstigatorActor);
 };

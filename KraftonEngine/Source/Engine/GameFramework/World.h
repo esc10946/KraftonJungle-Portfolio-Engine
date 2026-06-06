@@ -4,6 +4,7 @@
 #include "Object/Ptr/ObjectPtr.h"
 #include "Core/Types/RayTypes.h"
 #include "Core/Types/CollisionTypes.h"
+#include "Core/Delegate.h"
 #include "Collision/BVH/WorldPrimitivePickingBVH.h"
 #include "GameFramework/AActor.h"
 #include "GameFramework/Camera/PlayerCameraManager.h"
@@ -29,9 +30,12 @@ class UPrimitiveComponent;
 class AGameModeBase;
 class AGameStateBase;
 class APlayerController;
+class APawn;
 class UNavigationSystem;
 class UClass;
 struct FPhysicsWorldSnapshot;
+
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FPlayerPawnChangedSignature, APlayerController*, APawn*, APawn*);
 
 UCLASS()
 class UWorld : public UObject {
@@ -235,6 +239,8 @@ public:
 	AGameStateBase* GetGameState() const;
 	UFUNCTION(Pure, Category="World|Game")
 	APlayerController* GetFirstPlayerController() const;
+	void NotifyPlayerPawnChanged(APlayerController* PlayerController, APawn* OldPawn, APawn* NewPawn);
+	FPlayerPawnChangedSignature OnPlayerPawnChanged;
 	UFUNCTION(Pure, Category="World|Navigation")
 	UNavigationSystem* GetNavigationSystem() const { return NavigationSystem.Get(); }
 

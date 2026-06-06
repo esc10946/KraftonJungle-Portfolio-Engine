@@ -186,6 +186,14 @@ APlayerController* UWorld::GetFirstPlayerController() const
 	return GetGameMode() ? GetGameMode()->GetPlayerController() : nullptr;
 }
 
+void UWorld::NotifyPlayerPawnChanged(APlayerController* PlayerController, APawn* OldPawn, APawn* NewPawn)
+{
+	if (OldPawn != NewPawn)
+	{
+		OnPlayerPawnChanged.Broadcast(PlayerController, OldPawn, NewPawn);
+	}
+}
+
 uint64 UWorld::RegisterPhysicsSnapshotReceiver(TFunction<void(const FPhysicsWorldSnapshot&)> Receiver)
 {
 	if (!Receiver)

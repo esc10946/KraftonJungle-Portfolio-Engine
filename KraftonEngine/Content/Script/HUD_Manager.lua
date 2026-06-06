@@ -25,8 +25,10 @@ local ENEMY_BAR_SCREEN_EDGE_PADDING = 6.0
 local ENEMY_BAR_UPDATE_INTERVAL = 1.0 / 60.0
 local ENEMY_BAR_CHANGE_REVEAL_SECONDS = 3.0
 local ENEMY_BAR_RATIO_CHANGE_EPSILON = 0.0001
-
 local widget = nil
+local playerHealth = nil
+local playerHealthBindingId = nil
+local playerPawnChangedBindingId = nil
 local lastHpRatio = nil
 local lastBossHpRatio = nil
 local lastBossPostureRatio = nil
@@ -127,7 +129,88 @@ local function safe_call(target, function_name, ...)
     return result
 end
 
-local function is_valid_object(target)
+local is_valid_object
+
+local function unbind_player_health()
+    if playerHealthBindingId ~= nil and is_valid_object(playerHealth) then
+        safe_call(playerHealth, "UnbindOnHealthChanged", playerHealthBindingId)
+    end
+
+    playerHealth = nil
+    playerHealthBindingId = nil
+end
+
+local function bind_player_health_from_pawn(pawn)
+    unbind_player_health()
+
+    if not is_valid_object(pawn) then
+        return false
+    end
+
+    local health = safe_call(pawn, "GetHealthComponent")
+
+    if not is_valid_object(health) then
+        return false
+    end
+
+    playerHealth = health
+    playerHealthBindingId = safe_call(
+        health,
+        "BindOnHealthChanged",
+        function(_component, _previousHealth, currentHealth, maxHealth)
+            maxHealth = tonumber(maxHealth) or 0.0
+
+            if maxHealth <= 0.0 then
+                SetPlayerHpRatio(0.0)
+                return
+            end
+
+            SetPlayerHpRatio((tonumber(currentHealth) or 0.0) / maxHealth)
+        end
+    )
+
+    if playerHealthBindingId == nil or tonumber(playerHealthBindingId) == 0 then
+        playerHealth = nil
+        playerHealthBindingId = nil
+        return false
+    end
+
+    SetPlayerHpRatio(safe_call(health, "GetHealthRatio") or 0.0)
+    return true
+end
+
+local function bind_player_pawn_events()
+    if World == nil or World.BindOnPlayerPawnChanged == nil then
+        return false
+    end
+
+    playerPawnChangedBindingId = World.BindOnPlayerPawnChanged(
+        function(_controller, _oldPawn, newPawn)
+            bind_player_health_from_pawn(newPawn)
+        end
+    )
+
+    if playerPawnChangedBindingId == nil or tonumber(playerPawnChangedBindingId) == 0 then
+        playerPawnChangedBindingId = nil
+        return false
+    end
+
+    local controller = World.GetFirstPlayerController and World.GetFirstPlayerController() or nil
+    bind_player_health_from_pawn(safe_call(controller, "GetPossessedPawn"))
+    return true
+end
+
+local function unbind_player_pawn_events()
+    if playerPawnChangedBindingId ~= nil
+        and World ~= nil
+        and World.UnbindOnPlayerPawnChanged ~= nil then
+        World.UnbindOnPlayerPawnChanged(playerPawnChangedBindingId)
+    end
+
+    playerPawnChangedBindingId = nil
+end
+
+is_valid_object = function(target)
     if target == nil then
         return false
     end
@@ -790,7 +873,8 @@ function BeginPlay()
     SetBossHUDVisible(false)
     enemyBarUpdateElapsed = ENEMY_BAR_UPDATE_INTERVAL
 
-    SetPlayerHpRatio(0.9)
+    SetPlayerHpRatio(1.0)
+    bind_player_pawn_events()
     SetBossHpRatio(1.0)
     SetBossPostureRatio(0.9)
     SetPlayerPostureRatio(1.4)
@@ -798,6 +882,8 @@ function BeginPlay()
 end
 
 function EndPlay()
+    unbind_player_health()
+    unbind_player_pawn_events()
     clear_hud_api()
 
     if widget ~= nil then
