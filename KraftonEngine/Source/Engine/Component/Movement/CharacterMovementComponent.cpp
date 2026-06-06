@@ -217,11 +217,32 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, ELevelTick Tick
 	FVector RootMotionWorldXY(0.0f, 0.0f, 0.0f);
 	if (bHadRootMotion)
 	{
-		const FRotator ActorRot = Updated->GetWorldRotation();
-		const FQuat    YawOnly  = FRotator(0.0f, 0.0f, ActorRot.Yaw).ToQuaternion();
-		const FVector  World    = YawOnly.RotateVector(RootMotionDelta.Location);
-		RootMotionWorldXY.X     = World.X;
-		RootMotionWorldXY.Y     = World.Y;
+		FVector Forward = Updated->GetForwardVector();
+		FVector Right   = Updated->GetRightVector();
+		Forward.Z = 0.0f;
+		Right.Z   = 0.0f;
+
+		if (!Forward.IsNearlyZero())
+		{
+			Forward.Normalize();
+		}
+		else
+		{
+			Forward = FVector::ForwardVector;
+		}
+
+		if (!Right.IsNearlyZero())
+		{
+			Right.Normalize();
+		}
+		else
+		{
+			Right = FVector(-Forward.Y, Forward.X, 0.0f);
+		}
+
+		const FVector World = Forward * RootMotionDelta.Location.X + Right * RootMotionDelta.Location.Y;
+		RootMotionWorldXY.X = World.X;
+		RootMotionWorldXY.Y = World.Y;
 	}
 
 	if (MovementMode == EMovementMode::Walking)

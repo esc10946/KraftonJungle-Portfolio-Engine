@@ -96,6 +96,25 @@ namespace
 		}
 	}
 
+	static bool HasDirectMeshChild(FbxNode* Node)
+	{
+		if (!Node)
+		{
+			return false;
+		}
+
+		for (int32 ChildIndex = 0; ChildIndex < Node->GetChildCount(); ++ChildIndex)
+		{
+			FbxNode* Child = Node->GetChild(ChildIndex);
+			if (Child && Child->GetMesh())
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	static bool HasSkeletonChild(FbxNode* Node)
 	{
 		if (!Node)
@@ -112,6 +131,24 @@ namespace
 		}
 
 		return false;
+	}
+
+	static void MarkSyntheticRootParent(FbxNode* CommonAncestor, TSet<FbxNode*>& OutRequiredNodes)
+	{
+		FbxNode* Parent = CommonAncestor ? CommonAncestor->GetParent() : nullptr;
+		if (!Parent || !Parent->GetParent())
+		{
+			return;
+		}
+
+		// Blender can export an explicit root bone as a non-skeleton transform node above Hips.
+		// Keep that single node so Root->Hips survives, but do not pull mesh wrapper objects in.
+		if (!FFbxSceneQuery::IsSkeletonNode(Parent) &&
+			FFbxSceneQuery::IsSkeletonNode(CommonAncestor) &&
+			!HasDirectMeshChild(Parent))
+		{
+			OutRequiredNodes.insert(Parent);
+		}
 	}
 
 	static void MarkSkeletonLeafHierarchyNodes(FFbxImportContext& Context, TSet<FbxNode*>& OutRequiredNodes)
@@ -132,6 +169,7 @@ namespace
 
 		FbxNode* CommonAncestor = FindSkinClusterLowestCommonAncestor(LeafNodes);
 		MarkNodesFromLinksToCommonAncestor(LeafNodes, CommonAncestor, OutRequiredNodes);
+		MarkSyntheticRootParent(CommonAncestor, OutRequiredNodes);
 	}
 
 	static void MarkSkinClusterHierarchyNodes(FFbxImportContext& Context, TSet<FbxNode*>& OutRequiredNodes)
@@ -156,6 +194,7 @@ namespace
 				const TArray<FbxNode*> LinkNodes = CollectSkinClusterLinkNodes(Skin);
 				FbxNode* CommonAncestor = FindSkinClusterLowestCommonAncestor(LinkNodes);
 				MarkNodesFromLinksToCommonAncestor(LinkNodes, CommonAncestor, OutRequiredNodes);
+				MarkSyntheticRootParent(CommonAncestor, OutRequiredNodes);
 			}
 		}
 	}
