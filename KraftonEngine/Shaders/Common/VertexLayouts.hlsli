@@ -119,6 +119,7 @@ struct PS_Input_Shadow
 {
     float4 position : SV_POSITION;
     float  depth    : TEXCOORD0;    // VSM용 normalized depth
+    float2 texcoord : TEXCOORD1;    // 알파 마스크 그림자(SHADOW_MASKED)용 UV
 };
 
 #endif // VERTEX_LAYOUTS_HLSL

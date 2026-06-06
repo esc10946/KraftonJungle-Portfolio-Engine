@@ -78,6 +78,7 @@ private:
 	FString PendingStaticMeshImportPath;
 	FString* PendingStaticMeshImportTarget = nullptr;
 	int32 PendingStaticFbxSkinnedMeshPolicy = 0;
+	bool PendingStaticFbxRaiseFloorToOrigin = false;
 
 	FFbxSceneImportDialogState SkeletalFbxImportDialog;
 };

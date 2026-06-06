@@ -159,12 +159,23 @@ bool UMaterial::SetTextureParameter(const FString& ParamName, UTexture2D* Textur
     RuntimeParameterStore.SetValue(ParamName, EMaterialValueType::Texture2D, FVector4(0.0f, 0.0f, 0.0f, 0.0f), Texture ? Texture->GetSourcePath() : FString());
 
 	// 리플렉션 텍스처 바인딩(이름→register)으로 CachedSRV 즉시 갱신 — RebuildCachedSRVs 와 동일 규칙.
+	bool bBoundByReflection = false;
 	for (const FShaderTextureBinding& B : GetTextureBindings())
 	{
 		if (B.Name == ParamName && B.BindPoint < (uint32)EMaterialTextureSlot::Max)
 		{
 			CachedSRVs[B.BindPoint] = (Texture && Texture->GetSRV()) ? Texture->GetSRV() : nullptr;
+			bBoundByReflection = true;
 			break;
+		}
+	}
+
+	if (!bBoundByReflection)
+	{
+		uint32 FixedSlot = 0;
+		if (MaterialTextureSlot::TryGetFixedSlotForTextureName(ParamName, FixedSlot) && FixedSlot < (uint32)EMaterialTextureSlot::Max)
+		{
+			CachedSRVs[FixedSlot] = (Texture && Texture->GetSRV()) ? Texture->GetSRV() : nullptr;
 		}
 	}
 
@@ -286,6 +297,17 @@ void UMaterial::RebuildCachedSRVs()
 				}
 			}
 		}
+		for (const auto& Pair : TextureParameters)
+		{
+			uint32 FixedSlot = 0;
+			if (MaterialTextureSlot::TryGetFixedSlotForTextureName(Pair.first, FixedSlot)
+				&& FixedSlot < (uint32)EMaterialTextureSlot::Max
+				&& CachedSRVs[FixedSlot] == nullptr
+				&& Pair.second && Pair.second->GetSRV())
+			{
+				CachedSRVs[FixedSlot] = Pair.second->GetSRV();
+			}
+		}
 	}
 	else
 	{
@@ -296,6 +318,16 @@ void UMaterial::RebuildCachedSRVs()
 			FString SlotName = MaterialTextureSlot::ToString(s) + "Texture";
 			if (GetTextureParameter(SlotName, Tex) && Tex && Tex->GetSRV())
 				CachedSRVs[s] = Tex->GetSRV();
+		}
+		for (const auto& Pair : TextureParameters)
+		{
+			uint32 FixedSlot = 0;
+			if (MaterialTextureSlot::TryGetFixedSlotForTextureName(Pair.first, FixedSlot)
+				&& FixedSlot < (uint32)EMaterialTextureSlot::Max
+				&& Pair.second && Pair.second->GetSRV())
+			{
+				CachedSRVs[FixedSlot] = Pair.second->GetSRV();
+			}
 		}
 	}
 }

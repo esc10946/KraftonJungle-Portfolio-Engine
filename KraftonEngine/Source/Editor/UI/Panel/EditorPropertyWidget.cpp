@@ -2356,6 +2356,7 @@ bool FEditorPropertyWidget::RenderSoftObjectPropertyWidget(FPropertyValue& Prop)
 				PendingStaticMeshImportTarget = Val; // Legacy raw FString target; soft object paths are applied through SetPath below.
 				PendingStaticFbxSkinnedMeshPolicy =
 					FImportOptions::Default().StaticFbxSkinnedMeshPolicy == EStaticFbxSkinnedMeshPolicy::ImportBindPoseAsStatic ? 1 : 0;
+				PendingStaticFbxRaiseFloorToOrigin = false;
 				ImGui::OpenPopup("Static FBX Import Options");
 			}
 			else
@@ -2376,6 +2377,8 @@ bool FEditorPropertyWidget::RenderSoftObjectPropertyWidget(FPropertyValue& Prop)
 		ImGui::TextUnformatted("Skinned mesh handling");
 		ImGui::RadioButton("Skip skinned meshes", &PendingStaticFbxSkinnedMeshPolicy, 0);
 		ImGui::RadioButton("Import bind pose as static mesh", &PendingStaticFbxSkinnedMeshPolicy, 1);
+		ImGui::Separator();
+		ImGui::Checkbox("Raise mesh floor to actor Z=0", &PendingStaticFbxRaiseFloorToOrigin);
 
 		if (ImGui::Button("Import"))
 		{
@@ -2383,6 +2386,7 @@ bool FEditorPropertyWidget::RenderSoftObjectPropertyWidget(FPropertyValue& Prop)
 			Options.StaticFbxSkinnedMeshPolicy = PendingStaticFbxSkinnedMeshPolicy == 1
 				? EStaticFbxSkinnedMeshPolicy::ImportBindPoseAsStatic
 				: EStaticFbxSkinnedMeshPolicy::Skip;
+			Options.bRaiseStaticFbxFloorToOrigin = PendingStaticFbxRaiseFloorToOrigin;
 
 			ID3D11Device* Device = GEngine->GetRenderer().GetFD3DDevice().GetDevice();
 			UStaticMesh* Loaded = FMeshManager::LoadStaticMesh(PendingStaticMeshImportPath, Options, Device);

@@ -398,8 +398,13 @@ void FDrawCommandBuilder::BuildCommandForProxy(FScene& Scene, const FPrimitiveSc
 
 		// per-section 패스 라우팅: PreDepth 는 Opaque 섹션만, 머티리얼-home 패스는 섹션 패스 일치만 빌드.
 		// SelectionMask 같은 유틸 패스는 (선택된) 모든 섹션을 그려야 하므로 필터하지 않는다.
+		UMaterial* SectionMaterial = GetValidSectionMaterial(Section);
 		const ERenderPass SecPass = SectionRenderPass(Section);
-		if (bDepthOnly) { if (SecPass != ERenderPass::Opaque) continue; }
+		if (bDepthOnly)
+		{
+			if (SecPass != ERenderPass::Opaque) continue;
+			if (SectionMaterial && SectionMaterial->GetBlendMode() == EBlendMode::Masked) continue;
+		}
 		else if (bViewModeMeshReplace) { if (SecPass != ERenderPass::Opaque) continue; }
 		else if (bViewModeMeshOverlay)
 		{
@@ -422,7 +427,6 @@ void FDrawCommandBuilder::BuildCommandForProxy(FScene& Scene, const FPrimitiveSc
 		if (!EffBuffer.IB) continue;
 
 			// 셰이더 도출: custom override 우선, 아니면 (Domain × VertexFactory × Pass × ViewMode).
-			UMaterial* SectionMaterial = GetValidSectionMaterial(Section);
 			FShader* EffectiveShader;
 			if (bUsesViewModeMeshShader)
 			{

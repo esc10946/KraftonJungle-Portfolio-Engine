@@ -53,6 +53,33 @@ struct hash<FFbxStaticVertexKey>
 };
 }
 
+namespace
+{
+	void RaiseStaticMeshFloorToOrigin(FStaticMesh& Mesh)
+	{
+		if (Mesh.Vertices.empty())
+		{
+			return;
+		}
+
+		float MinZ = Mesh.Vertices[0].pos.Z;
+		for (const FNormalVertex& Vertex : Mesh.Vertices)
+		{
+			MinZ = (std::min)(MinZ, Vertex.pos.Z);
+		}
+
+		if (std::abs(MinZ) <= 0.001f)
+		{
+			return;
+		}
+
+		for (FNormalVertex& Vertex : Mesh.Vertices)
+		{
+			Vertex.pos.Z -= MinZ;
+		}
+	}
+}
+
 bool FFbxStaticMeshImporter::Import(FbxScene* Scene, const FString& SourcePath, const FImportOptions* Options, FFbxImportContext& Context, FFbxStaticMeshImportResult& OutResult, FString* OutMessage)
 {
 	OutResult = FFbxStaticMeshImportResult();
@@ -272,6 +299,11 @@ bool FFbxStaticMeshImporter::Import(FbxScene* Scene, const FString& SourcePath, 
 	}
 
 	FFbxTangentBuilder::FinalizeStaticTangents(OutResult.Mesh, StaticTangentSums, StaticBitangentSums);
+	const FImportOptions EffectiveOptions = Options ? *Options : FImportOptions::Default();
+	if (EffectiveOptions.bRaiseStaticFbxFloorToOrigin)
+	{
+		RaiseStaticMeshFloorToOrigin(OutResult.Mesh);
+	}
 	OutResult.Mesh.PathFileName = SourcePath;
 	OutResult.SourceMaterials = Context.Materials;
 
