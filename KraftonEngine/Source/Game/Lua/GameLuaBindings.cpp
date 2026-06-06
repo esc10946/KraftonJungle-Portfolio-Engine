@@ -8,11 +8,13 @@
 #include "Animation/AnimationManager.h"
 #include "Animation/Montage/AnimMontage.h"
 #include "Animation/Notify/AnimNotify_EnableAttack.h"
+#include "Component/Camera/CameraComponent.h"
 #include "Component/Primitive/SkeletalMeshComponent.h"
 #include "Component/Primitive/StaticMeshComponent.h"
 #include "Engine/GameFramework/World.h"
 #include "Engine/GameFramework/GameMode/PlayerController.h"
 #include "Engine/GameFramework/Camera/PlayerCameraManager.h"
+#include "Engine/Render/Types/MinimalViewInfo.h"
 #include "Lua/LuaScriptManager.h"
 #include "Core/ProjectSettings.h"
 #include "Core/Logging/Log.h"
@@ -21,8 +23,11 @@
 #include "Game/GameMode/GameState.h"
 #include "Game/Leaderboard/LeaderboardStore.h"
 #include "Engine/Core/Logging/Log.h"
+#include "Engine/Viewport/GameViewportClient.h"
+#include "Engine/Viewport/Viewport.h"
 
 #include <algorithm>
+#include <cmath>
 #include <vector>
 
 
@@ -39,6 +44,153 @@
 // 등록은 EngineInitHooks 에 자동으로 걸려 GameEngine / EditorEngine 두 엔트리 모두
 // 같은 바인딩이 적용된다 (PIE 호환).
 // ============================================================
+namespace
+{
+	constexpr float ScreenProjectionEpsilon = 1.0e-4f;
+
+	struct FScreenProjectionResult
+	{
+		bool bVisible = false;
+		float ScreenX = 0.0f;
+		float ScreenY = 0.0f;
+		float Distance = 0.0f;
+		float ViewDepth = 0.0f;
+		float ViewportWidth = 0.0f;
+		float ViewportHeight = 0.0f;
+		FVector CameraLocation = FVector::ZeroVector;
+	};
+
+	void ApplyActiveCameraLetterboxAspect(FMinimalViewInfo& POV, UWorld* World, float ViewportWidth, float ViewportHeight)
+	{
+		APlayerController* PlayerController = World ? World->GetFirstPlayerController() : nullptr;
+		APlayerCameraManager* CameraManager = PlayerController ? PlayerController->GetPlayerCameraManager() : nullptr;
+		UCameraComponent* ActiveCamera = CameraManager ? CameraManager->GetActiveCamera() : nullptr;
+		if (!ActiveCamera || ViewportWidth <= 0.0f || ViewportHeight <= 0.0f)
+		{
+			return;
+		}
+
+		const FCameraLetterboxState& Letterbox = ActiveCamera->GetLetterboxSettings();
+		if (!Letterbox.bEnabled || Letterbox.Amount <= 0.0f)
+		{
+			return;
+		}
+
+		const float Thickness = std::clamp(Letterbox.Thickness * Letterbox.Amount, 0.0f, 0.49f);
+		const float VisibleHeightScale = 1.0f - Thickness * 2.0f;
+		if (VisibleHeightScale <= ScreenProjectionEpsilon)
+		{
+			return;
+		}
+
+		POV.AspectRatio = (ViewportWidth / ViewportHeight) / VisibleHeightScale;
+	}
+
+	bool ProjectActiveWorldToScreen(const FVector& WorldPosition, FScreenProjectionResult& OutResult)
+	{
+		if (!GEngine)
+		{
+			return false;
+		}
+
+		UWorld* World = GEngine->GetWorld();
+		UGameViewportClient* ViewportClient = GEngine->GetGameViewportClient();
+		FViewport* Viewport = ViewportClient ? ViewportClient->GetViewport() : nullptr;
+		if (!World || !Viewport)
+		{
+			return false;
+		}
+
+		const float ViewportWidth = static_cast<float>(Viewport->GetWidth());
+		const float ViewportHeight = static_cast<float>(Viewport->GetHeight());
+		OutResult.ViewportWidth = ViewportWidth;
+		OutResult.ViewportHeight = ViewportHeight;
+		if (ViewportWidth <= 1.0f || ViewportHeight <= 1.0f)
+		{
+			return false;
+		}
+
+		FMinimalViewInfo POV;
+		if (!World->GetActivePOV(POV))
+		{
+			return false;
+		}
+
+		const FVector ToPoint = WorldPosition - POV.Location;
+		const FVector ViewForward = POV.Rotation.GetForwardVector();
+		OutResult.CameraLocation = POV.Location;
+		OutResult.Distance = ToPoint.Length();
+		OutResult.ViewDepth = ToPoint.Dot(ViewForward);
+		if (OutResult.ViewDepth <= 0.0f)
+		{
+			return false;
+		}
+
+		ApplyActiveCameraLetterboxAspect(POV, World, ViewportWidth, ViewportHeight);
+
+		const FMatrix ViewProj = POV.CalculateViewProjectionMatrix();
+		const float ClipX =
+			WorldPosition.X * ViewProj.M[0][0] +
+			WorldPosition.Y * ViewProj.M[1][0] +
+			WorldPosition.Z * ViewProj.M[2][0] +
+			ViewProj.M[3][0];
+		const float ClipY =
+			WorldPosition.X * ViewProj.M[0][1] +
+			WorldPosition.Y * ViewProj.M[1][1] +
+			WorldPosition.Z * ViewProj.M[2][1] +
+			ViewProj.M[3][1];
+		const float ClipZ =
+			WorldPosition.X * ViewProj.M[0][2] +
+			WorldPosition.Y * ViewProj.M[1][2] +
+			WorldPosition.Z * ViewProj.M[2][2] +
+			ViewProj.M[3][2];
+		const float ClipW =
+			WorldPosition.X * ViewProj.M[0][3] +
+			WorldPosition.Y * ViewProj.M[1][3] +
+			WorldPosition.Z * ViewProj.M[2][3] +
+			ViewProj.M[3][3];
+		if (std::abs(ClipW) <= ScreenProjectionEpsilon)
+		{
+			return false;
+		}
+
+		const float NdcX = ClipX / ClipW;
+		const float NdcY = ClipY / ClipW;
+		const float NdcZ = ClipZ / ClipW;
+		if (NdcX < -1.0f || NdcX > 1.0f || NdcY < -1.0f || NdcY > 1.0f || NdcZ < 0.0f || NdcZ > 1.0f)
+		{
+			return false;
+		}
+
+		OutResult.ScreenX = (NdcX * 0.5f + 0.5f) * ViewportWidth;
+		OutResult.ScreenY = (0.5f - NdcY * 0.5f) * ViewportHeight;
+		OutResult.bVisible = true;
+		return true;
+	}
+
+	sol::table MakeProjectWorldToScreenResult(sol::this_state State, const FVector& WorldPosition)
+	{
+		sol::state_view Lua(State);
+		sol::table Result = Lua.create_table();
+
+		FScreenProjectionResult Projection;
+		const bool bVisible = ProjectActiveWorldToScreen(WorldPosition, Projection);
+
+		Result["Visible"] = bVisible;
+		Result["X"] = bVisible ? Projection.ScreenX : 0.0f;
+		Result["Y"] = bVisible ? Projection.ScreenY : 0.0f;
+		Result["Distance"] = Projection.Distance;
+		Result["ViewDepth"] = Projection.ViewDepth;
+		Result["ViewportWidth"] = Projection.ViewportWidth;
+		Result["ViewportHeight"] = Projection.ViewportHeight;
+		Result["CameraLocation"] = Projection.CameraLocation;
+		Result["CameraX"] = Projection.CameraLocation.X;
+		Result["CameraY"] = Projection.CameraLocation.Y;
+		Result["CameraZ"] = Projection.CameraLocation.Z;
+		return Result;
+	}
+}
+
 void RegisterGameLuaBindings(sol::state& Lua)
 {
 	// "Engine" 테이블은 엔진 측 바인딩(FLuaScriptManager)이 이미 만들어 두지만,
@@ -57,6 +209,19 @@ void RegisterGameLuaBindings(sol::state& Lua)
 				GEngine->RequestTransitionToScene(SceneNameOrPath);
 			}
 		}
+	);
+	Engine.set_function(
+		"ProjectWorldToScreen",
+		sol::overload(
+			[](sol::this_state State, const FVector& WorldPosition) -> sol::table
+			{
+				return MakeProjectWorldToScreenResult(State, WorldPosition);
+			},
+			[](sol::this_state State, float X, float Y, float Z) -> sol::table
+			{
+				return MakeProjectWorldToScreenResult(State, FVector(X, Y, Z));
+			}
+		)
 	);
 
 	sol::table Animation = Lua["Animation"].valid() ? Lua["Animation"] : Lua.create_named_table("Animation");

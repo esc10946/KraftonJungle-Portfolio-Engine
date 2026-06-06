@@ -5,6 +5,201 @@
 </head>
 
 <body id="hud-screen">
+    <div id="enemy-bars">
+        <div id="enemy-bar-0" class="enemy-healthbar">
+            <div class="enemy-health-bg">
+                <div id="enemy-hp-mask-0" class="enemy-hp-mask">
+                    <div class="enemy-hp-fill"></div>
+                </div>
+            </div>
+            <div class="enemy-posture-bg">
+                <div id="enemy-posture-mask-0" class="enemy-posture-mask">
+                    <div class="enemy-posture-fill"></div>
+                </div>
+            </div>
+        </div>
+        <div id="enemy-bar-1" class="enemy-healthbar">
+            <div class="enemy-health-bg">
+                <div id="enemy-hp-mask-1" class="enemy-hp-mask">
+                    <div class="enemy-hp-fill"></div>
+                </div>
+            </div>
+            <div class="enemy-posture-bg">
+                <div id="enemy-posture-mask-1" class="enemy-posture-mask">
+                    <div class="enemy-posture-fill"></div>
+                </div>
+            </div>
+        </div>
+        <div id="enemy-bar-2" class="enemy-healthbar">
+            <div class="enemy-health-bg">
+                <div id="enemy-hp-mask-2" class="enemy-hp-mask">
+                    <div class="enemy-hp-fill"></div>
+                </div>
+            </div>
+            <div class="enemy-posture-bg">
+                <div id="enemy-posture-mask-2" class="enemy-posture-mask">
+                    <div class="enemy-posture-fill"></div>
+                </div>
+            </div>
+        </div>
+        <div id="enemy-bar-3" class="enemy-healthbar">
+            <div class="enemy-health-bg">
+                <div id="enemy-hp-mask-3" class="enemy-hp-mask">
+                    <div class="enemy-hp-fill"></div>
+                </div>
+            </div>
+            <div class="enemy-posture-bg">
+                <div id="enemy-posture-mask-3" class="enemy-posture-mask">
+                    <div class="enemy-posture-fill"></div>
+                </div>
+            </div>
+        </div>
+        <div id="enemy-bar-4" class="enemy-healthbar">
+            <div class="enemy-health-bg">
+                <div id="enemy-hp-mask-4" class="enemy-hp-mask">
+                    <div class="enemy-hp-fill"></div>
+                </div>
+            </div>
+            <div class="enemy-posture-bg">
+                <div id="enemy-posture-mask-4" class="enemy-posture-mask">
+                    <div class="enemy-posture-fill"></div>
+                </div>
+            </div>
+        </div>
+        <div id="enemy-bar-5" class="enemy-healthbar">
+            <div class="enemy-health-bg">
+                <div id="enemy-hp-mask-5" class="enemy-hp-mask">
+                    <div class="enemy-hp-fill"></div>
+                </div>
+            </div>
+            <div class="enemy-posture-bg">
+                <div id="enemy-posture-mask-5" class="enemy-posture-mask">
+                    <div class="enemy-posture-fill"></div>
+                </div>
+            </div>
+        </div>
+        <div id="enemy-bar-6" class="enemy-healthbar">
+            <div class="enemy-health-bg">
+                <div id="enemy-hp-mask-6" class="enemy-hp-mask">
+                    <div class="enemy-hp-fill"></div>
+                </div>
+            </div>
+            <div class="enemy-posture-bg">
+                <div id="enemy-posture-mask-6" class="enemy-posture-mask">
+                    <div class="enemy-posture-fill"></div>
+                </div>
+            </div>
+        </div>
+        <div id="enemy-bar-7" class="enemy-healthbar">
+            <div class="enemy-health-bg">
+                <div id="enemy-hp-mask-7" class="enemy-hp-mask">
+                    <div class="enemy-hp-fill"></div>
+                </div>
+            </div>
+            <div class="enemy-posture-bg">
+                <div id="enemy-posture-mask-7" class="enemy-posture-mask">
+                    <div class="enemy-posture-fill"></div>
+                </div>
+            </div>
+        </div>
+        <div id="enemy-bar-8" class="enemy-healthbar">
+            <div class="enemy-health-bg">
+                <div id="enemy-hp-mask-8" class="enemy-hp-mask">
+                    <div class="enemy-hp-fill"></div>
+                </div>
+            </div>
+            <div class="enemy-posture-bg">
+                <div id="enemy-posture-mask-8" class="enemy-posture-mask">
+                    <div class="enemy-posture-fill"></div>
+                </div>
+            </div>
+        </div>
+        <div id="enemy-bar-9" class="enemy-healthbar">
+            <div class="enemy-health-bg">
+                <div id="enemy-hp-mask-9" class="enemy-hp-mask">
+                    <div class="enemy-hp-fill"></div>
+                </div>
+            </div>
+            <div class="enemy-posture-bg">
+                <div id="enemy-posture-mask-9" class="enemy-posture-mask">
+                    <div class="enemy-posture-fill"></div>
+                </div>
+            </div>
+        </div>
+        <div id="enemy-bar-10" class="enemy-healthbar">
+            <div class="enemy-health-bg">
+                <div id="enemy-hp-mask-10" class="enemy-hp-mask">
+                    <div class="enemy-hp-fill"></div>
+                </div>
+            </div>
+            <div class="enemy-posture-bg">
+                <div id="enemy-posture-mask-10" class="enemy-posture-mask">
+                    <div class="enemy-posture-fill"></div>
+                </div>
+            </div>
+        </div>
+        <div id="enemy-bar-11" class="enemy-healthbar">
+            <div class="enemy-health-bg">
+                <div id="enemy-hp-mask-11" class="enemy-hp-mask">
+                    <div class="enemy-hp-fill"></div>
+                </div>
+            </div>
+            <div class="enemy-posture-bg">
+                <div id="enemy-posture-mask-11" class="enemy-posture-mask">
+                    <div class="enemy-posture-fill"></div>
+                </div>
+            </div>
+        </div>
+        <div id="enemy-bar-12" class="enemy-healthbar">
+            <div class="enemy-health-bg">
+                <div id="enemy-hp-mask-12" class="enemy-hp-mask">
+                    <div class="enemy-hp-fill"></div>
+                </div>
+            </div>
+            <div class="enemy-posture-bg">
+                <div id="enemy-posture-mask-12" class="enemy-posture-mask">
+                    <div class="enemy-posture-fill"></div>
+                </div>
+            </div>
+        </div>
+        <div id="enemy-bar-13" class="enemy-healthbar">
+            <div class="enemy-health-bg">
+                <div id="enemy-hp-mask-13" class="enemy-hp-mask">
+                    <div class="enemy-hp-fill"></div>
+                </div>
+            </div>
+            <div class="enemy-posture-bg">
+                <div id="enemy-posture-mask-13" class="enemy-posture-mask">
+                    <div class="enemy-posture-fill"></div>
+                </div>
+            </div>
+        </div>
+        <div id="enemy-bar-14" class="enemy-healthbar">
+            <div class="enemy-health-bg">
+                <div id="enemy-hp-mask-14" class="enemy-hp-mask">
+                    <div class="enemy-hp-fill"></div>
+                </div>
+            </div>
+            <div class="enemy-posture-bg">
+                <div id="enemy-posture-mask-14" class="enemy-posture-mask">
+                    <div class="enemy-posture-fill"></div>
+                </div>
+            </div>
+        </div>
+        <div id="enemy-bar-15" class="enemy-healthbar">
+            <div class="enemy-health-bg">
+                <div id="enemy-hp-mask-15" class="enemy-hp-mask">
+                    <div class="enemy-hp-fill"></div>
+                </div>
+            </div>
+            <div class="enemy-posture-bg">
+                <div id="enemy-posture-mask-15" class="enemy-posture-mask">
+                    <div class="enemy-posture-fill"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="boss-panel">
         <div id="boss-hp-bg">
             <div id="boss-hp-mask">

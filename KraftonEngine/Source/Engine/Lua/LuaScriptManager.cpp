@@ -4310,6 +4310,7 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
         "IsInvincible", &UCombatStateComponent::IsInvincible,
         "HasSuperArmor", &UCombatStateComponent::HasSuperArmor,
         "IsStaggered", &UCombatStateComponent::IsStaggered,
+        "IsAttacking", &UCombatStateComponent::IsAttacking,
         "ApplyPoiseDamage", &UCombatStateComponent::ApplyPoiseDamage,
         "ResetPoise", &UCombatStateComponent::ResetPoise,
         "StartStagger", &UCombatStateComponent::StartStagger,
