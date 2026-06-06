@@ -11,6 +11,8 @@
 #include "Animation/Graph/AnimGraphManager.h"
 #include "LuaBlueprint/LuaBlueprintAsset.h"
 #include "LuaBlueprint/LuaBlueprintManager.h"
+#include "AI/BehaviorTree/BehaviorTreeAsset.h"
+#include "AI/BehaviorTree/BehaviorTreeManager.h"
 #include "Platform/Paths.h"
 #include "Serialization/SceneSaveManager.h"
 #include "Mesh/Static/StaticMesh.h"
@@ -686,6 +688,19 @@ void LuaBlueprintElement::OnDoubleLeftClicked(ContentBrowserContext& Context)
 	if (ULuaBlueprintAsset* BlueprintAsset = FLuaBlueprintManager::Get().Load(FilePath))
 	{
 		Context.EditorEngine->OpenAssetEditorForObject(BlueprintAsset);
+	}
+}
+
+void BehaviorTreeElement::OnDoubleLeftClicked(ContentBrowserContext& Context)
+{
+	if (!Context.EditorEngine)
+	{
+		return;
+	}
+	const FString FilePath = FPaths::ToUtf8(ContentItem.Path.wstring());
+	if (UBehaviorTreeAsset* TreeAsset = FBehaviorTreeManager::Get().Load(FilePath))
+	{
+		Context.EditorEngine->OpenAssetEditorForObject(TreeAsset);
 	}
 }
 

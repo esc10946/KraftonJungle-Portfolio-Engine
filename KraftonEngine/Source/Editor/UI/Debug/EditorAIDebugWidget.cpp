@@ -10,6 +10,8 @@
 #include "Component/AI/AIPerceptionComponent.h"
 #include "Component/AI/AwarenessComponent.h"
 #include "Component/AI/EnemyAIBrainComponent.h"
+#include "Component/AI/BehaviorTreeComponent.h"
+#include "AI/BehaviorTree/Runtime/BTNode.h"
 #include "Component/Character/CharacterStateMachineComponent.h"
 #include "Component/Movement/CharacterMovementComponent.h"
 #include "Component/Combat/CombatStateComponent.h"
@@ -233,6 +235,55 @@ void FEditorAIDebugWidget::DrawSensorOverlay(AEnemyCharacter* Enemy)
 	}
 }
 
+namespace
+{
+	const char* BTResultStr(EBTNodeResult R)
+	{
+		switch (R)
+		{
+		case EBTNodeResult::Succeeded:  return "OK";
+		case EBTNodeResult::Failed:     return "Fail";
+		case EBTNodeResult::InProgress: return "Run";
+		case EBTNodeResult::Aborted:    return "Abort";
+		}
+		return "?";
+	}
+
+	// 런타임 BT 노드를 재귀로 그린다. 활성(진행 중) 노드는 시안, 그 외 마지막 결과별 색.
+	void DrawBTNode(const FBTNode_Base* Node)
+	{
+		if (!Node) return;
+		const EBTNodeResult R = Node->GetLastResult();
+		ImVec4 Col;
+		if (Node->IsEntered())
+		{
+			Col = ImVec4(0.45f, 0.95f, 1.0f, 1.0f);
+		}
+		else
+		{
+			switch (R)
+			{
+			case EBTNodeResult::Succeeded: Col = ImVec4(0.55f, 0.90f, 0.55f, 1.0f); break;
+			case EBTNodeResult::Failed:    Col = ImVec4(0.90f, 0.55f, 0.55f, 1.0f); break;
+			case EBTNodeResult::Aborted:   Col = ImVec4(0.85f, 0.72f, 0.40f, 1.0f); break;
+			default:                       Col = ImVec4(0.70f, 0.70f, 0.70f, 1.0f); break;
+			}
+		}
+		ImGui::TextColored(Col, "%s  [%s]  x%lld",
+			Node->GetDebugName(), BTResultStr(R), static_cast<long long>(Node->GetTickCount()));
+
+		if (const TArray<FBTNode_Base*>* Children = Node->GetDebugChildren())
+		{
+			ImGui::Indent();
+			for (const FBTNode_Base* Child : *Children)
+			{
+				DrawBTNode(Child);
+			}
+			ImGui::Unindent();
+		}
+	}
+}
+
 void FEditorAIDebugWidget::Render(float DeltaTime)
 {
 	ImGui::SetNextWindowSize(ImVec2(460.0f, 720.0f), ImGuiCond_FirstUseEver);
@@ -286,6 +337,24 @@ void FEditorAIDebugWidget::Render(float DeltaTime)
 	ImGui::Separator();
 
 	// ── ① 결정 점수 막대(전 후보 히트맵) ─────────────────────────────────────────
+	if (ImGui::CollapsingHeader("Behavior Tree", ImGuiTreeNodeFlags_DefaultOpen))
+	{
+		UBehaviorTreeComponent* BT = Enemy->GetBehaviorTree();
+		if (BT && BT->HasTree())
+		{
+			ImGui::TextDisabled("cyan=active  green=ok  red=fail  amber=abort  (x=ticks)");
+			DrawBTNode(BT->GetRootNode());
+		}
+		else if (BT)
+		{
+			ImGui::TextDisabled("No active tree (set 'Brain Behavior Tree' on the enemy).");
+		}
+		else
+		{
+			ImGui::TextDisabled("No Behavior Tree component.");
+		}
+	}
+
 	if (ImGui::CollapsingHeader("Decision Scores", ImGuiTreeNodeFlags_DefaultOpen))
 	{
 		if (Trace)

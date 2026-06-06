@@ -226,3 +226,14 @@ protected:
 	const char* GetTypeLabel() const override { return "Lua Blueprint"; }
 	uint32 GetAccentColor() const override { return IM_COL32(90, 180, 230, 255); }
 };
+
+class BehaviorTreeElement final : public ContentBrowserElement
+{
+public:
+	void OnDoubleLeftClicked(ContentBrowserContext& Context) override;
+	const char* GetDragItemType() override { return "BehaviorTreeContentItem"; }
+
+protected:
+	const char* GetTypeLabel() const override { return "Behavior Tree"; }
+	uint32 GetAccentColor() const override { return IM_COL32(100, 205, 140, 255); }
+};
