@@ -67,6 +67,7 @@ struct FSkeletalMeshSocket
     FVector  RelativeLocation = FVector::ZeroVector;
     FRotator RelativeRotation;
     FVector  RelativeScale = FVector(1.0f, 1.0f, 1.0f);
+    FString  PreviewStaticMeshPath = "None";
 
     FMatrix GetRelativeTransform() const
     {

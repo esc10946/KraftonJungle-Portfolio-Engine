@@ -35,6 +35,18 @@ public:
 	UFUNCTION(Pure, Category="PlayerController")
 	APawn* GetPossessedPawn() const { return GetPawn(); }
 
+	// ─── Input gating ────────────────────────────────────────────
+	// 플레이어 입력만 mute/unmute 한다 (UE 의 APlayerController::EnableInput/DisableInput).
+	// World->SetPaused 와 달리 물리/Tick/애니메이션은 계속 돌아간다 — 사망 연출처럼
+	// 캐릭터 애니·카메라 페이드는 유지하되 플레이어 조작만 막고 싶을 때 사용.
+	// Possess 는 건드리지 않으므로 카메라 view target 도 그대로 유지된다.
+	UFUNCTION(Callable, Category="PlayerController")
+	void EnableInput() { bInputEnabled = true; }
+	UFUNCTION(Callable, Category="PlayerController")
+	void DisableInput() { bInputEnabled = false; }
+	UFUNCTION(Pure, Category="PlayerController")
+	bool IsInputEnabled() const { return bInputEnabled; }
+
 	void ProcessPlayerInput(const FInputSystemSnapshot& Snapshot, float DeltaTime);
 
 	// ─── Camera Manager ──────────────────────────────────────────
@@ -59,4 +71,8 @@ private:
 	// 현재(E.2 청크 1)는 World 의 CameraManager 를 reference 로 캐싱. E.2 청크 3 에서
 	// PC 가 BeginPlay 에서 직접 SpawnActor 로 생성하는 owner 로 전환.
 	TWeakObjectPtr<APlayerCameraManager> PlayerCameraManager;
+
+	// 입력 게이트 — true 면 ProcessPlayerInput 이 Pawn 으로 입력을 전달, false 면 early-return.
+	// 기본 true. PC 가 재생성되는 scene transition 마다 자동으로 리셋된다.
+	bool bInputEnabled = true;
 };

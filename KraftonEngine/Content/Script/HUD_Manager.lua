@@ -1,6 +1,7 @@
 local HUD_DOCUMENT = "Content/Game/UI/HUD.rml"
 
 local PLAYER_HP_MASK_ID = "player-hp-mask"
+local BOSS_HP_MASK_ID = "boss-hp-mask"
 local BOSS_POSTURE_LEFT_MASK_ID = "boss-posture-left-mask"
 local BOSS_POSTURE_RIGHT_MASK_ID = "boss-posture-right-mask"
 local PLAYER_POSTURE_LEFT_MASK_ID = "player-posture-left-mask"
@@ -10,6 +11,7 @@ local PLAYER_TOKEN_ID = "player-icon-right"
 
 local widget = nil
 local lastHpRatio = nil
+local lastBossHpRatio = nil
 local lastBossPostureRatio = nil
 local lastPlayerPostureRatio = nil
 local lastTokenVisible = nil
@@ -59,6 +61,22 @@ function SetPlayerHpRatio(ratio)
     set_width_ratio(PLAYER_HP_MASK_ID, ratio)
 
     lastHpRatio = ratio
+end
+
+function SetBossHpRatio(ratio)
+    if widget == nil then
+        return
+    end
+
+    ratio = clamp01(ratio)
+
+    if lastBossHpRatio ~= nil and math.abs(lastBossHpRatio - ratio) <= 0.0001 then
+        return
+    end
+
+    set_width_ratio(BOSS_HP_MASK_ID, ratio)
+
+    lastBossHpRatio = ratio
 end
 
 function SetPlayerPostureRatio(ratio)
@@ -116,7 +134,13 @@ function SetPlayerHUD(hpRatio, tokenVisible, postureRatio)
     end
 end
 
-function SetBossHUD(postureRatio)
+function SetBossHUD(hpRatio, postureRatio)
+    if postureRatio == nil then
+        SetBossPostureRatio(hpRatio)
+        return
+    end
+
+    SetBossHpRatio(hpRatio)
     SetBossPostureRatio(postureRatio)
 end
 
@@ -124,6 +148,7 @@ local function expose_hud_api()
     _G.HUD = _G.HUD or {}
 
     _G.HUD.SetPlayerHpRatio = SetPlayerHpRatio
+    _G.HUD.SetBossHpRatio = SetBossHpRatio
     _G.HUD.SetPlayerPostureRatio = SetPlayerPostureRatio
     _G.HUD.SetBossPostureRatio = SetBossPostureRatio
     _G.HUD.SetPlayerTokenVisible = SetPlayerTokenVisible
@@ -138,6 +163,7 @@ local function clear_hud_api()
 
     if _G.HUD.SetBossPostureRatio == SetBossPostureRatio then
         _G.HUD.SetPlayerHpRatio = nil
+        _G.HUD.SetBossHpRatio = nil
         _G.HUD.SetPlayerPostureRatio = nil
         _G.HUD.SetBossPostureRatio = nil
         _G.HUD.SetPlayerTokenVisible = nil
@@ -159,8 +185,9 @@ function BeginPlay()
     expose_hud_api()
 
     SetPlayerHpRatio(0.9)
+    SetBossHpRatio(1.0)
     SetBossPostureRatio(0.9)
-    SetPlayerPostureRatio(0.1)
+    SetPlayerPostureRatio(1.4)
     SetPlayerTokenVisible(true)
 end
 
@@ -173,6 +200,7 @@ function EndPlay()
     end
 
     lastHpRatio = nil
+    lastBossHpRatio = nil
     lastBossPostureRatio = nil
     lastPlayerPostureRatio = nil
     lastTokenVisible = nil

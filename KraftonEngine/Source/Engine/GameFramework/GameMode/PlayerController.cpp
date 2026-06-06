@@ -65,6 +65,12 @@ void APlayerController::UnPossess()
 
 void APlayerController::ProcessPlayerInput(const FInputSystemSnapshot& Snapshot, float DeltaTime)
 {
+	// 입력이 disable 된 동안엔 Pawn 으로 전달하지 않는다 (사망 등). World 는 계속 Tick.
+	if (!bInputEnabled)
+	{
+		return;
+	}
+
 	APawn* Pawn = GetPawn();
 	if (!Pawn)
 	{

@@ -4,17 +4,17 @@
 #include "Source/Game/GameMode/GameState.generated.h"
 
 UENUM()
-enum class EGamePhase : uint8 
+enum class EGamePhase : uint16 
 {
-	None,
-	Playing,
-	Paused,
-	CutScene,
-	Dead,
-	Defeated,	// True death
-	Victory,
-	GameOver,
-	Leaderboard,
+	None		= 1 << 0,
+	Playing		= 1 << 1,
+	Paused		= 1 << 2,
+	CutScene	= 1 << 3,
+	Dead		= 1 << 4,
+	Defeated	= 1 << 5,	// True death
+	Victory		= 1 << 6,
+	GameOver	= 1 << 7,
+	Leaderboard	= 1 << 8,
 };
 
 UCLASS()

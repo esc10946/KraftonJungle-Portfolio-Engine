@@ -507,6 +507,58 @@ namespace
 		return ExistingIndex < 0 || ExistingIndex == CurrentSocketIndex;
 	}
 
+	FString GetStemFromPath(const FString& Path)
+	{
+		if (Path.empty() || Path == "None")
+		{
+			return "None";
+		}
+
+		std::filesystem::path FilePath(FPaths::ToWide(Path));
+		const std::wstring Stem = FilePath.stem().wstring();
+		return Stem.empty() ? Path : FPaths::ToUtf8(Stem);
+	}
+
+	bool RenderSocketPreviewStaticMeshCombo(FSkeletalMeshSocket& Socket)
+	{
+		bool bChanged = false;
+		const FString CurrentPath = Socket.PreviewStaticMeshPath.empty() ? FString("None") : Socket.PreviewStaticMeshPath;
+		const FString Preview = GetStemFromPath(CurrentPath);
+
+		if (ImGui::BeginCombo("Preview Static Mesh", Preview.c_str()))
+		{
+			const bool bSelectedNone = CurrentPath == "None";
+			if (ImGui::Selectable("None", bSelectedNone))
+			{
+				Socket.PreviewStaticMeshPath = "None";
+				bChanged = true;
+			}
+			if (bSelectedNone)
+			{
+				ImGui::SetItemDefaultFocus();
+			}
+
+			const TArray<FAssetListItem>& MeshFiles = FMeshManager::GetAvailableStaticMeshFiles();
+			for (const FAssetListItem& Item : MeshFiles)
+			{
+				const bool bSelected = CurrentPath == Item.FullPath;
+				if (ImGui::Selectable(Item.DisplayName.c_str(), bSelected))
+				{
+					Socket.PreviewStaticMeshPath = Item.FullPath;
+					bChanged = true;
+				}
+				if (bSelected)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+
+			ImGui::EndCombo();
+		}
+
+		return bChanged;
+	}
+
 	FMorphTargetCurve& FindOrAddMorphCurve(UAnimSequence* Seq, const FString& MorphTargetName)
 	{
 		TArray<FMorphTargetCurve>& Curves = Seq->GetMutableMorphTargetCurves();
@@ -1569,9 +1621,16 @@ void FMeshEditorWidget::RenderSkeletonLayout()
 			bSocketChanged = true;
 		}
 
+		if (RenderSocketPreviewStaticMeshCombo(Socket))
+		{
+			bSkeletonDirty = true;
+			bSocketChanged = true;
+		}
+
 		if (bSocketChanged)
 		{
 			ViewportClient.SetSelectedSocket(Cast<USkeletalMesh>(EditedObject), Skeleton, SelectedSocketIndex);
+			ViewportClient.SyncSocketPreviewMeshes(Skeleton);
 		}
 	}
 	else if (Skeleton && SelectedBoneIndex != -1)

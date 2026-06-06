@@ -102,6 +102,11 @@ void FTickManager::GatherTickFunctions(UWorld* World, ELevelTick TickType)
 			continue;
 		}
 
+		if (World->IsSoftPaused() && !World->IsActorAllowedDuringSoftPause(Actor))
+		{
+			continue;
+		}
+
 		QueueTickFunction(Actor->PrimaryActorTick);
 
 		for (UActorComponent* Component : Actor->GetComponents())

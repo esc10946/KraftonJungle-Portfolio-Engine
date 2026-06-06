@@ -39,7 +39,10 @@ void UAnimMontageInstance::Play(UAnimMontage* InMontage, FName StartSection, flo
 void UAnimMontageInstance::Stop(float InBlendOutTime)
 {
     if (State == EState::Inactive) return;
-    EnterBlendingOut(InBlendOutTime > 0.0f ? InBlendOutTime : (IsValid(CurrentMontage) ? CurrentMontage->GetBlendOutTime() : 0.25f));
+    const float ResolvedBlendOutTime = (InBlendOutTime >= 0.0f)
+        ? InBlendOutTime
+        : (IsValid(CurrentMontage) ? CurrentMontage->GetBlendOutTime() : 0.25f);
+    EnterBlendingOut(ResolvedBlendOutTime);
 }
 
 void UAnimMontageInstance::JumpToSection(FName Name)

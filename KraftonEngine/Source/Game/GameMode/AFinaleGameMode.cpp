@@ -3,6 +3,7 @@
 #include "Engine/Core/Logging/Log.h"
 #include "Engine/Object/Reflection/UClass.h"
 #include "Engine/GameFramework/World.h"
+#include "Engine/GameFramework/GameMode/PlayerController.h"
 #include "Engine/Runtime/Engine.h"
 
 void AFinaleGameMode::SetGamePhase(EGamePhase InPhase)
@@ -82,8 +83,6 @@ void AFinaleGameMode::OnGamePaused()
 	{
 		World->SetPaused(true);
 	}
-
-	// TODO: Show pause menu. Show mouse cursor
 }
 
 // Called by player controller or an optional UI button
@@ -97,8 +96,6 @@ void AFinaleGameMode::OnGameResumed()
 	}
 
 	SetGamePhase(EGamePhase::Playing);
-
-	// TODO: Hide pause menu
 }
 
 void AFinaleGameMode::OnEnteringCutscene()
@@ -114,6 +111,7 @@ void AFinaleGameMode::OnGameQuit()
 	if (UWorld* World = GetWorld())
 	{
 		World->SetPaused(false);
+		World->SetSoftPaused(false);
 	}
 
 	if (GEngine)
@@ -133,6 +131,13 @@ void AFinaleGameMode::OnPlayerDeath()
 {
 	if (!CheckGamePhase(EGamePhase::Playing)) return;
 	SetGamePhase(EGamePhase::Dead);
+
+	// Mute player input during death. The World keeps ticking, so the death
+	// animation + camera fade still play; only player control is suppressed.
+	if (APlayerController* PC = GetPlayerController())
+	{
+		PC->DisableInput();
+	}
 }
 
 void AFinaleGameMode::OnPlayerRevive()
@@ -143,12 +148,23 @@ void AFinaleGameMode::OnPlayerRevive()
 	{
 		State->ReviveCount++;
 	}
+
+	// Hand control back to the player.
+	if (APlayerController* PC = GetPlayerController())
+	{
+		PC->EnableInput();
+	}
 }
 
 void AFinaleGameMode::OnPlayerDefeated()
 {
 	if (!CheckGamePhase(EGamePhase::Dead)) return;
 	SetGamePhase(EGamePhase::Defeated);
+
+	if (UWorld* World = GetWorld())
+	{
+		World->SetSoftPaused(true);
+	}
 }
 
 // Boss slain itself is not a state

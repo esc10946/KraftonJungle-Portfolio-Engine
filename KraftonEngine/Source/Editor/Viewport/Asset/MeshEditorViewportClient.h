@@ -21,6 +21,8 @@ class UWorld;
 class AActor;
 class USkeletalMesh;
 class USkeleton;
+class UStaticMeshComponent;
+struct FSkeletalMeshSocket;
 
 class FMeshEditorViewportClient : public FViewportClient, public IEditorPreviewViewportClient, public FGCObject
 {
@@ -66,6 +68,8 @@ public:
 
 	void SetSelectedBone(USkeletalMesh* Mesh, int32 BoneIndex);
 	void SetSelectedSocket(USkeletalMesh* Mesh, USkeleton* Skeleton, int32 SocketIndex);
+	void SyncSocketPreviewMeshes(USkeleton* Skeleton);
+	void ClearSocketPreviewMeshes();
 	void SetSelectedPhysicsAssetElement(
 		UPhysicsAsset* PhysicsAsset,
 		int32 BodyIndex,
@@ -104,6 +108,8 @@ private:
 	void FocusOnLocation(const FVector& TargetLoc, bool bAnimate);
 
 	void SyncGizmo();
+	UStaticMeshComponent* CreateSocketPreviewComponent(const FSkeletalMeshSocket& Socket);
+	void DestroySocketPreviewComponent(UStaticMeshComponent* Component);
 
 	void HandleDragStart(const FRay& Ray);
 	bool TryPickPhysicsAssetPreviewShape(const FRay& Ray);
@@ -126,6 +132,8 @@ private:
 	USkeletalMeshComponent* PreviewMeshComponent = nullptr;
 	UBoneDebugComponent* BoneDebugComponent = nullptr;
 	UPhysicsAssetPreviewComponent* PhysicsAssetPreviewComponent = nullptr;
+	TArray<UStaticMeshComponent*> SocketPreviewMeshComponents;
+	TArray<FString> SocketPreviewMeshPaths;
 	ID3D11Device* RenderDevice = nullptr;
 
 	UWorld* PreviewWorld = nullptr;
