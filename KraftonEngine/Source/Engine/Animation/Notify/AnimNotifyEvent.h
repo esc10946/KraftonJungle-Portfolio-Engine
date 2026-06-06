@@ -24,6 +24,7 @@ struct FAnimNotifyEvent
 	FName NotifyName;
 	float TriggerTime = 0.0f;   // 시퀀스 내 절대 시간 (sec)
 	float Duration    = 0.0f;   // 0 이면 instant (NotifyState 동작 안 함)
+	int32 TrackIndex  = 0;      // Editor track only; runtime dispatch ignores this value.
 
 	UAnimNotify*      Notify      = nullptr;
 	UAnimNotifyState* NotifyState = nullptr;
@@ -42,5 +43,5 @@ struct FAnimNotifyEvent
 	// Outer 인지 직렬화 — Notify/NotifyState 객체의 클래스명 + UPROPERTY(Save) payload 까지.
 	// 로드 시 ObjectFactory::Create 로 클래스 이름으로 인스턴스 생성, Outer 로 InOuter 설정.
 	// InOuter 는 보통 UAnimDataModel — Notify 객체의 라이프타임은 DataModel 과 함께.
-	void Serialize(FArchive& Ar, UObject* InOuter);
+	void Serialize(FArchive& Ar, UObject* InOuter, bool bSerializeTrackIndex = true);
 };

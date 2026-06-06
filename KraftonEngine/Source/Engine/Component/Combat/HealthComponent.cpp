@@ -78,7 +78,7 @@ FCombatDamageReport UHealthComponent::ApplyDamageSpec(const FCombatDamageSpec& D
 		}
 	}
 
-	CurrentHealth = FMath::Clamp(CurrentHealth - EffectiveDamage, 0.0f, MaxHealth);
+	SetHealthValue(CurrentHealth - EffectiveDamage, false);
 	Report.NewHealth = CurrentHealth;
 	Report.AppliedDamage = Report.PreviousHealth - Report.NewHealth;
 
@@ -118,26 +118,23 @@ float UHealthComponent::Heal(float Amount)
 		return 0.0f;
 	}
 	const float Previous = CurrentHealth;
-	CurrentHealth = FMath::Clamp(CurrentHealth + Amount, 0.0f, MaxHealth);
+	SetHealthValue(CurrentHealth + Amount, false);
 	return CurrentHealth - Previous;
 }
 
 void UHealthComponent::SetHealth(float NewHealth)
 {
-	CurrentHealth = FMath::Clamp(NewHealth, 0.0f, MaxHealth > 0.0f ? MaxHealth : 1.0f);
+	SetHealthValue(NewHealth, true);
 	if (CurrentHealth > 0.0f)
 	{
-		bDead = false;
+		return;
 	}
-	else
-	{
-		BroadcastDeathOnce(nullptr, nullptr);
-	}
+	BroadcastDeathOnce(nullptr, nullptr);
 }
 
 void UHealthComponent::Kill(AActor* DamageCauser, AActor* InstigatorActor)
 {
-	CurrentHealth = 0.0f;
+	SetHealthValue(0.0f, false);
 	BroadcastDeathOnce(DamageCauser, InstigatorActor);
 }
 
@@ -147,8 +144,7 @@ void UHealthComponent::ResetHealth()
 	{
 		MaxHealth = 1.0f;
 	}
-	CurrentHealth = MaxHealth;
-	bDead = false;
+	SetHealthValue(MaxHealth, true);
 }
 
 float UHealthComponent::GetHealthRatio() const
@@ -158,6 +154,26 @@ float UHealthComponent::GetHealthRatio() const
 		return 0.0f;
 	}
 	return FMath::Clamp(CurrentHealth / MaxHealth, 0.0f, 1.0f);
+}
+
+bool UHealthComponent::SetHealthValue(float NewHealth, bool bReviveIfPositive)
+{
+	const float PreviousHealth = CurrentHealth;
+	const float ValidMaxHealth = MaxHealth > 0.0f ? MaxHealth : 1.0f;
+	CurrentHealth = FMath::Clamp(NewHealth, 0.0f, ValidMaxHealth);
+
+	if (bReviveIfPositive && CurrentHealth > 0.0f)
+	{
+		bDead = false;
+	}
+
+	if (CurrentHealth == PreviousHealth)
+	{
+		return false;
+	}
+
+	OnHealthChanged.Broadcast(this, PreviousHealth, CurrentHealth, ValidMaxHealth);
+	return true;
 }
 
 void UHealthComponent::BroadcastDeathOnce(AActor* DamageCauser, AActor* InstigatorActor)
