@@ -433,6 +433,43 @@
               "bTickEnable" : true
             },
             "bHiddenInComponentTree" : true
+          }, {
+            "Children" : [],
+            "ClassName" : "UBillboardComponent",
+            "ObjectId" : 16,
+            "Properties" : {
+              "AttachSocketName" : "Name_None",
+              "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
+              "CenterOfMassOffset" : [0.000000, 0.000000, 0.000000],
+              "CollisionEnabled" : 0,
+              "Mass" : 1.000000,
+              "MaterialSlot" : "Content/Material/Editor/DirectionalLight.uasset",
+              "ObjectType" : 0,
+              "RelativeTransform.Location" : [0.000000, 0.000000, 0.000000],
+              "RelativeTransform.Scale" : [1.000000, 1.000000, 1.000000],
+              "ResponseContainer" : {
+                "Responses[0]" : 2,
+                "Responses[1]" : 2,
+                "Responses[2]" : 2,
+                "Responses[3]" : 2,
+                "Responses[4]" : 2
+              },
+              "bAutoActivate" : true,
+              "bCanEverAffectNavigation" : true,
+              "bCastShadow" : true,
+              "bCastShadowAsTwoSided" : false,
+              "bEditorOnly" : true,
+              "bEnableCCD" : false,
+              "bGenerateOverlapEvents" : false,
+              "bHiddenInComponentTree" : true,
+              "bIsActive" : true,
+              "bIsBillboard" : true,
+              "bIsVisible" : true,
+              "bKinematic" : false,
+              "bSimulatePhysics" : false,
+              "bTickEnable" : true
+            },
+            "bHiddenInComponentTree" : true
           }],
         "ClassName" : "UDirectionalLightComponent",
         "ObjectId" : 5,
@@ -461,7 +498,7 @@
       "ClassName" : "AHeightFogActor",
       "Name" : "AHeightFogActor_1",
       "NonSceneComponents" : [],
-      "ObjectId" : 16,
+      "ObjectId" : 17,
       "Properties" : {
         "PendingActorLocation" : [-16.223186, 9.873267, -18.242674],
         "PendingActorRotation" : [-0.000000, 0.000000, 0.000000],
@@ -472,43 +509,6 @@
       },
       "RootComponent" : {
         "Children" : [{
-            "Children" : [],
-            "ClassName" : "UBillboardComponent",
-            "ObjectId" : 18,
-            "Properties" : {
-              "AttachSocketName" : "Name_None",
-              "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
-              "CenterOfMassOffset" : [0.000000, 0.000000, 0.000000],
-              "CollisionEnabled" : 0,
-              "Mass" : 1.000000,
-              "MaterialSlot" : "Content/Material/Editor/HeightFog.uasset",
-              "ObjectType" : 0,
-              "RelativeTransform.Location" : [0.000000, 0.000000, 0.000000],
-              "RelativeTransform.Scale" : [1.000000, 1.000000, 1.000000],
-              "ResponseContainer" : {
-                "Responses[0]" : 2,
-                "Responses[1]" : 2,
-                "Responses[2]" : 2,
-                "Responses[3]" : 2,
-                "Responses[4]" : 2
-              },
-              "bAutoActivate" : true,
-              "bCanEverAffectNavigation" : true,
-              "bCastShadow" : true,
-              "bCastShadowAsTwoSided" : false,
-              "bEditorOnly" : true,
-              "bEnableCCD" : false,
-              "bGenerateOverlapEvents" : false,
-              "bHiddenInComponentTree" : true,
-              "bIsActive" : true,
-              "bIsBillboard" : true,
-              "bIsVisible" : true,
-              "bKinematic" : false,
-              "bSimulatePhysics" : false,
-              "bTickEnable" : true
-            },
-            "bHiddenInComponentTree" : true
-          }, {
             "Children" : [],
             "ClassName" : "UBillboardComponent",
             "ObjectId" : 19,
@@ -804,9 +804,83 @@
               "bTickEnable" : true
             },
             "bHiddenInComponentTree" : true
+          }, {
+            "Children" : [],
+            "ClassName" : "UBillboardComponent",
+            "ObjectId" : 27,
+            "Properties" : {
+              "AttachSocketName" : "Name_None",
+              "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
+              "CenterOfMassOffset" : [0.000000, 0.000000, 0.000000],
+              "CollisionEnabled" : 0,
+              "Mass" : 1.000000,
+              "MaterialSlot" : "Content/Material/Editor/HeightFog.uasset",
+              "ObjectType" : 0,
+              "RelativeTransform.Location" : [0.000000, 0.000000, 0.000000],
+              "RelativeTransform.Scale" : [1.000000, 1.000000, 1.000000],
+              "ResponseContainer" : {
+                "Responses[0]" : 2,
+                "Responses[1]" : 2,
+                "Responses[2]" : 2,
+                "Responses[3]" : 2,
+                "Responses[4]" : 2
+              },
+              "bAutoActivate" : true,
+              "bCanEverAffectNavigation" : true,
+              "bCastShadow" : true,
+              "bCastShadowAsTwoSided" : false,
+              "bEditorOnly" : true,
+              "bEnableCCD" : false,
+              "bGenerateOverlapEvents" : false,
+              "bHiddenInComponentTree" : true,
+              "bIsActive" : true,
+              "bIsBillboard" : true,
+              "bIsVisible" : true,
+              "bKinematic" : false,
+              "bSimulatePhysics" : false,
+              "bTickEnable" : true
+            },
+            "bHiddenInComponentTree" : true
+          }, {
+            "Children" : [],
+            "ClassName" : "UBillboardComponent",
+            "ObjectId" : 28,
+            "Properties" : {
+              "AttachSocketName" : "Name_None",
+              "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
+              "CenterOfMassOffset" : [0.000000, 0.000000, 0.000000],
+              "CollisionEnabled" : 0,
+              "Mass" : 1.000000,
+              "MaterialSlot" : "Content/Material/Editor/HeightFog.uasset",
+              "ObjectType" : 0,
+              "RelativeTransform.Location" : [0.000000, 0.000000, 0.000000],
+              "RelativeTransform.Scale" : [1.000000, 1.000000, 1.000000],
+              "ResponseContainer" : {
+                "Responses[0]" : 2,
+                "Responses[1]" : 2,
+                "Responses[2]" : 2,
+                "Responses[3]" : 2,
+                "Responses[4]" : 2
+              },
+              "bAutoActivate" : true,
+              "bCanEverAffectNavigation" : true,
+              "bCastShadow" : true,
+              "bCastShadowAsTwoSided" : false,
+              "bEditorOnly" : true,
+              "bEnableCCD" : false,
+              "bGenerateOverlapEvents" : false,
+              "bHiddenInComponentTree" : true,
+              "bIsActive" : true,
+              "bIsBillboard" : true,
+              "bIsVisible" : true,
+              "bKinematic" : false,
+              "bSimulatePhysics" : false,
+              "bTickEnable" : true
+            },
+            "bHiddenInComponentTree" : true
           }],
         "ClassName" : "UHeightFogComponent",
-        "ObjectId" : 17,
+        "ObjectId" : 18,
         "Properties" : {
           "AttachSocketName" : "Name_None",
           "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
@@ -830,7 +904,7 @@
       "Name" : "ALuaCharacter_1",
       "NonSceneComponents" : [{
           "ClassName" : "UCharacterMovementComponent",
-          "ObjectId" : 32,
+          "ObjectId" : 34,
           "Properties" : {
             "BrakingFriction" : 8.000000,
             "DepenetrationSkin" : 0.020000,
@@ -858,7 +932,7 @@
           }
         }, {
           "ClassName" : "ULuaScriptComponent",
-          "ObjectId" : 33,
+          "ObjectId" : 35,
           "Properties" : {
             "ScriptFile" : "",
             "bAutoActivate" : true,
@@ -869,7 +943,7 @@
           }
         }, {
           "ClassName" : "UCharacterStateMachineComponent",
-          "ObjectId" : 34,
+          "ObjectId" : 36,
           "Properties" : {
             "FaceYawRate" : 540.000000,
             "InitialState" : "Idle",
@@ -884,7 +958,7 @@
             "bTickEnable" : true
           }
         }],
-      "ObjectId" : 27,
+      "ObjectId" : 29,
       "Properties" : {
         "PendingActorLocation" : [8.948423, -1.895909, -10.380374],
         "PendingActorRotation" : [-0.000000, 0.000000, 0.000000],
@@ -901,7 +975,7 @@
         "Children" : [{
             "Children" : [],
             "ClassName" : "USkeletalMeshComponent",
-            "ObjectId" : 29,
+            "ObjectId" : 31,
             "Properties" : {
               "AnimInstance" : {
                 "ClassName" : "None"
@@ -971,7 +1045,7 @@
             "Children" : [{
                 "Children" : [],
                 "ClassName" : "UCameraComponent",
-                "ObjectId" : 31,
+                "ObjectId" : 33,
                 "Properties" : {
                   "AttachSocketName" : "Name_None",
                   "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
@@ -994,7 +1068,7 @@
                 }
               }],
             "ClassName" : "USpringArmComponent",
-            "ObjectId" : 30,
+            "ObjectId" : 32,
             "Properties" : {
               "AttachSocketName" : "Name_None",
               "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
@@ -1023,7 +1097,7 @@
             }
           }],
         "ClassName" : "UCapsuleComponent",
-        "ObjectId" : 28,
+        "ObjectId" : 30,
         "Properties" : {
           "AttachSocketName" : "Name_None",
           "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
@@ -1064,7 +1138,7 @@
       "Name" : "GameFlowActor",
       "NonSceneComponents" : [{
           "ClassName" : "ULuaScriptComponent",
-          "ObjectId" : 37,
+          "ObjectId" : 39,
           "Properties" : {
             "ScriptFile" : "Game/GameFlowController.lua",
             "bAutoActivate" : true,
@@ -1074,19 +1148,19 @@
             "bTickEnable" : true
           }
         }],
-      "ObjectId" : 35,
+      "ObjectId" : 37,
       "Properties" : {
         "PendingActorLocation" : [30.470772, -23.319799, -1.768655],
         "PendingActorRotation" : [-0.000000, 0.000000, 0.000000],
         "PendingActorScale" : [1.000000, 1.000000, 1.000000],
         "PendingActorVisible" : true,
-        "PendingTagsString" : "",
+        "PendingTagsString" : "SoftPauseImmune",
         "bNeedsTick" : true
       },
       "RootComponent" : {
         "Children" : [],
         "ClassName" : "UBillboardComponent",
-        "ObjectId" : 36,
+        "ObjectId" : 38,
         "Properties" : {
           "AttachSocketName" : "Name_None",
           "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
@@ -1125,7 +1199,7 @@
       "ClassName" : "AGridNavMesh",
       "Name" : "AGridNavMesh_1",
       "NonSceneComponents" : [],
-      "ObjectId" : 38,
+      "ObjectId" : 40,
       "Properties" : {
         "CellSize" : 0.750000,
         "DebugDrawDuration" : 30.000000,
@@ -1163,7 +1237,7 @@
       "Name" : "AEmptyActor_1",
       "NonSceneComponents" : [{
           "ClassName" : "ULuaScriptComponent",
-          "ObjectId" : 41,
+          "ObjectId" : 43,
           "Properties" : {
             "ScriptFile" : "HUD_Manager.lua",
             "bAutoActivate" : true,
@@ -1173,7 +1247,7 @@
             "bTickEnable" : true
           }
         }],
-      "ObjectId" : 39,
+      "ObjectId" : 41,
       "Properties" : {
         "PendingActorLocation" : [-3.737108, -0.377002, -10.380374],
         "PendingActorRotation" : [-0.000000, 0.000000, 0.000000],
@@ -1185,7 +1259,7 @@
       "RootComponent" : {
         "Children" : [],
         "ClassName" : "UBillboardComponent",
-        "ObjectId" : 40,
+        "ObjectId" : 42,
         "Properties" : {
           "AttachSocketName" : "Name_None",
           "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
@@ -1229,9 +1303,9 @@
   "PerspectiveCamera" : {
     "FOV" : 1.047198,
     "FarClip" : 1000.000000,
-    "Location" : [18.151131, -10.002808, -8.698632],
+    "Location" : [26.920794, -49.878620, 5.246236],
     "NearClip" : 0.100000,
-    "Rotation" : [0.000000, 23.100080, -211.348648]
+    "Rotation" : [0.000000, 11.700078, -247.198700]
   },
   "Version" : 2,
   "WorldSettings" : {

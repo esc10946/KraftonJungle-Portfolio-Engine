@@ -1,4 +1,4 @@
-#include "GameFramework/World.h"
+﻿#include "GameFramework/World.h"
 #include "Object/Reflection/ObjectFactory.h"
 #include "Component/PrimitiveComponent.h"
 #include "Component/Primitive/StaticMeshComponent.h"
@@ -776,6 +776,38 @@ void UWorld::TickPlayerCamera() const
 	const FTimer* Timer = GEngine ? GEngine->GetTimer() : nullptr;
 	const float UnscaledDelta = Timer ? Timer->GetRawDeltaTime() : 0.0f;
 	CM->UpdateCamera(UnscaledDelta);
+}
+
+bool UWorld::IsActorAllowedDuringSoftPause(TWeakObjectPtr<AActor> InActor)
+{
+	if (!SoftPauseState.bEnabled)
+	{
+		return true;
+	}
+
+	if (InActor->HasTag(FName("SoftPauseImmune")))
+	{
+		return true;
+	}
+
+	AActor* Actor = InActor.Get();
+	return IsValid(Actor) && SoftPauseState.IsActorAllowed(Actor);
+}
+
+void UWorld::UnregisterSoftPause(TWeakObjectPtr<AActor> InActor)
+{
+	AActor* Actor = InActor.Get();
+	for (auto It = SoftPauseState.AllowedActors.begin(); It != SoftPauseState.AllowedActors.end();)
+	{
+		if (It->Get() == Actor)
+		{
+			It = SoftPauseState.AllowedActors.erase(It);
+		}
+		else
+		{
+			++It;
+		}
+	}
 }
 
 void UWorld::EndPlay()

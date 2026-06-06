@@ -1,6 +1,7 @@
 #include "Component/AI/AIPerceptionComponent.h"
 
 #include "Component/AI/AIBlackboardComponent.h"
+#include "Component/AI/AwarenessComponent.h"
 #include "Component/AI/EnemyAIBrainComponent.h"
 #include "Component/AI/PhaseComponent.h"
 #include "Component/Combat/CombatStateComponent.h"
@@ -90,6 +91,27 @@ void UAIPerceptionComponent::RecordStimulus(EAISenseType Type, AActor* Source, c
     while (static_cast<int32>(Stimuli.size()) > 16)
     {
         Stimuli.pop_back();
+    }
+}
+
+void UAIPerceptionComponent::RecordHearing(AActor* Source, const FVector& Location, float Strength)
+{
+    RecordHearingClassified(Source, Location, Strength, static_cast<int32>(EAISoundClass::Normal));
+}
+
+void UAIPerceptionComponent::RecordHearingClassified(AActor* Source, const FVector& Location, float Strength, int32 SoundClass)
+{
+    if (Strength <= 0.0f)
+    {
+        return;
+    }
+    RecordStimulus(EAISenseType::Hearing, Source, Location, Strength);
+    if (AActor* OwnerActor = GetOwner())
+    {
+        if (UAwarenessComponent* Awareness = OwnerActor->GetComponentByClass<UAwarenessComponent>())
+        {
+            Awareness->ReportNoiseClassified(Location, Strength, SoundClass);
+        }
     }
 }
 

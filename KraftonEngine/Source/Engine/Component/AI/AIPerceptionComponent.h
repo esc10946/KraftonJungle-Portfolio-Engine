@@ -24,7 +24,8 @@ enum class EAISenseType : uint8
 {
     Sight,
     Proximity,
-    Damage
+    Damage,
+    Hearing   // 청각 — 발소리/착지/세라믹/휘슬/전투음
 };
 
 // 디버거가 나열하는 경량 자극 레코드.
@@ -48,6 +49,15 @@ public:
     // 한 think 스텝의 센싱 전체를 실행하고 Blackboard 를 갱신한다. Lua 두뇌가 호출.
     UFUNCTION(Callable, Category="AI|Perception")
     void UpdateSenses();
+
+    // 청각 자극 입력 — 발소리/도구/전투음 발생원이 호출한다. 자극 기억에
+    // Hearing 으로 기록하고, 소유자에 AwarenessComponent 가 있으면 suspicion 으로 전달한다.
+    UFUNCTION(Callable, Category="AI|Perception")
+    void RecordHearing(AActor* Source, const FVector& Location, float Strength);
+
+    // 분류된 청각 자극. SoundClass: 0=Normal(발소리), 1=Important(사기그릇/휘슬/전투음).
+    UFUNCTION(Callable, Category="AI|Perception")
+    void RecordHearingClassified(AActor* Source, const FVector& Location, float Strength, int32 SoundClass);
 
     UFUNCTION(Pure, Category="AI|Perception")
     bool CanSeeTarget() const { return bCanSeeTarget; }

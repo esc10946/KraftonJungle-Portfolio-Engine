@@ -111,6 +111,7 @@ void AFinaleGameMode::OnGameQuit()
 	if (UWorld* World = GetWorld())
 	{
 		World->SetPaused(false);
+		World->SetSoftPaused(false);
 	}
 
 	if (GEngine)
@@ -162,7 +163,7 @@ void AFinaleGameMode::OnPlayerDefeated()
 
 	if (UWorld* World = GetWorld())
 	{
-		World->SetPaused(true);
+		World->SetSoftPaused(true);
 	}
 }
 

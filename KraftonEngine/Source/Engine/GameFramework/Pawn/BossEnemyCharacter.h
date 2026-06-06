@@ -40,6 +40,7 @@ public:
 	int32 GetBossPhase() const;
 protected:
 	int32 GetCurrentAIPhase() const override { return GetBossPhase(); }
+	bool IsBossCharacter() const override { return true; }
 	void HandleDamaged(UHealthComponent* Component, float Damage, float NewHealth, AActor* DamageCauser, AActor* InstigatorActor) override;
 	void HandleDeath(UHealthComponent* Component, AActor* DamageCauser, AActor* InstigatorActor) override;
 	void HandlePhaseChanged(UPhaseComponent* Component, int32 OldPhase, int32 NewPhase);

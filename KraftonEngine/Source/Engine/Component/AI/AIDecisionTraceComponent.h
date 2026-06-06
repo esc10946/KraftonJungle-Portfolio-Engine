@@ -25,6 +25,14 @@ struct FDecisionTraceRecord
     int32 StimulusCount  = 0;
 };
 
+// 가장 최근 결정의 "전체" 후보/점수 스냅샷. top-3 만으로는 점수 막대/히트맵을 그릴 수 없어,
+// 디버거가 한 프레임의 모든 후보를 점수순으로 나열할 수 있도록 별도로 보관한다.
+struct FDecisionCandidate
+{
+    FName Name;
+    float Score = 0.0f;
+};
+
 UCLASS()
 class UAIDecisionTraceComponent : public UActorComponent
 {
@@ -52,6 +60,11 @@ public:
     // ── 디버거/내부용 직접 접근 (가장 최근이 front) ──
     const TArray<FDecisionTraceRecord>& GetRecords() const { return Records; }
 
+    // 가장 최근 결정의 전체 후보(점수 내림차순), 채택 행동, 상태. 점수 막대/히트맵용.
+    const TArray<FDecisionCandidate>& GetLastCandidates() const { return LastCandidates; }
+    const FName&                      GetLastChosen() const { return LastChosen; }
+    const FName&                      GetLastState() const { return LastState; }
+
 private:
     struct FPendingCandidate
     {
@@ -61,6 +74,9 @@ private:
 
     TArray<FDecisionTraceRecord> Records;
     TArray<FPendingCandidate>    PendingCandidates;
+    TArray<FDecisionCandidate>   LastCandidates; // 직전 결정의 전체 후보(점수 내림차순)
+    FName                        LastChosen = FName::None;
+    FName                        LastState  = FName::None;
     FName                        PendingState = FName::None;
     int64                        NextTick = 0;
 };

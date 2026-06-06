@@ -761,9 +761,11 @@ bool AGridNavMesh::HasCachedSegment(const FVector& Start, const FVector& End, co
 	{
 		return false;
 	}
+	const float RequiredRadius = std::max(0.01f, AgentProps.Radius + std::max(0.0f, ObstaclePadding));
 	const float Dist = sqrtf(HorizontalDistanceSquared(Start, End));
 	const float Grid = std::max(0.25f, CellSize);
-	const int32 Segments = std::max(1, static_cast<int32>(ceilf(Dist / std::max(0.1f, Grid * 0.5f))));
+	const float SampleStep = std::max(0.1f, std::min(Grid * 0.5f, RequiredRadius));
+	const int32 Segments = std::max(1, static_cast<int32>(ceilf(Dist / SampleStep)));
 	FVector Previous = Start;
 	FGridNavCellKey PreviousKey;
 	bool bHasPreviousKey = false;
@@ -776,6 +778,17 @@ bool AGridNavMesh::HasCachedSegment(const FVector& Start, const FVector& End, co
 		if (!FindCellAtPointStrict(Sample, AgentProps, Key, CellLocation))
 		{
 			return false;
+		}
+		if (const FGridNavCell* Cell = FindCell(Key))
+		{
+			if (Cell->ClearanceRadius > 0.0f)
+			{
+				const float OffsetH = sqrtf(HorizontalDistanceSquared(Sample, Cell->Location));
+				if (Cell->ClearanceRadius - OffsetH + 0.001f < RequiredRadius)
+				{
+					return false;
+				}
+			}
 		}
 		if (bHasPreviousKey)
 		{

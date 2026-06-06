@@ -68,10 +68,22 @@ public:
 	float BlockedMinMoveDistance = 0.15f;
 	UPROPERTY(Edit, Save, Category="AI|PathFollowing", DisplayName="Use Agent Radius For Corner Acceptance")
 	bool bUseAgentRadiusForCornerAcceptance = true;
-	UPROPERTY(Edit, Save, Category="AI|PathFollowing", DisplayName="Corner Acceptance Radius Scale", Min=0.05f, Max=2.0f, Speed=0.01f)
-	float CornerAcceptanceRadiusScale = 0.45f;
+	// 회귀 수정(8f399bb): 코너 수용 반경이 0.45×반경≈0.19m 로 너무 작아, 정지거리(≈1.8m)로
+	// 달리는 에이전트가 웨이포인트를 지나쳐도 "도착" 판정이 안 나 공전(루프)했다. 작동 가능한
+	// 값으로 키운다(반경 ≈ 0.46m, 최소 0.5m). 도착/코너 감속(아래)과 함께 루프를 없앤다.
+	UPROPERTY(Edit, Save, Category="AI|PathFollowing", DisplayName="Corner Acceptance Radius Scale", Min=0.05f, Max=4.0f, Speed=0.01f)
+	float CornerAcceptanceRadiusScale = 1.1f;
 	UPROPERTY(Edit, Save, Category="AI|PathFollowing", DisplayName="Min Corner Acceptance Radius", Min=0.02f, Max=10.0f, Speed=0.01f)
-	float MinCornerAcceptanceRadius = 0.15f;
+	float MinCornerAcceptanceRadius = 0.5f;
+	// ── 도착/코너 감속 (관성 overshoot 로 인한 공전/루프 방지) ──
+	// 풀입력으로 달리면 정지거리(≈v²/2·brakingFriction)가 수용 반경보다 커서 목표를 지나쳐 되돌아오며
+	// 원을 그린다. 최종 목표 가까이서, 또 급회전 직전에 입력을 줄여 미리 감속한다.
+	UPROPERTY(Edit, Save, Category="AI|PathFollowing", DisplayName="Arrival Slowdown Radius", Min=0.0f, Max=20.0f, Speed=0.05f)
+	float ArrivalSlowdownRadius = 2.0f;
+	UPROPERTY(Edit, Save, Category="AI|PathFollowing", DisplayName="Corner Slowdown Radius", Min=0.0f, Max=20.0f, Speed=0.05f)
+	float CornerSlowdownRadius = 1.5f;
+	UPROPERTY(Edit, Save, Category="AI|PathFollowing", DisplayName="Min Arrival Input Scale", Min=0.02f, Max=1.0f, Speed=0.01f)
+	float MinArrivalScale = 0.15f;
 	UPROPERTY(Edit, Save, Category="AI|PathFollowing|Debug", DisplayName="Draw Path On Request")
 	bool bDrawDebugPathOnRequest = true;
 	UPROPERTY(Edit, Save, Category="AI|PathFollowing|Debug", DisplayName="Debug Path Draw Duration", Min=0.0f, Max=60.0f, Speed=0.1f)

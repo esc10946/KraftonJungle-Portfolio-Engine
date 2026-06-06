@@ -30,6 +30,10 @@ public:
     // 반환은 정규화하지 않은 합 — 호출측이 방향+세기로 쓴다.
     FVector ComputeSeparation(const UCombatStateComponent* OwnerCombat, const FVector& From, float Radius);
 
+    // From 기준 Radius(평면) 안의 살아 있는 같은 편 아군 액터를 모은다(자신 제외).
+    // 경계 전파(보고서 2군: 동료 경계 전파)용 — 한 명이 적을 발견하면 주변 아군에게 알린다.
+    void GatherAllies(const UCombatStateComponent* OwnerCombat, const FVector& From, float Radius, TArray<AActor*>& OutAllies);
+
     int32 GetCombatantCount() const { return static_cast<int32>(Combatants.size()); }
     void  Reset() { Combatants.clear(); }
 

@@ -112,6 +112,51 @@ AActor* FCombatTargetRegistry::FindNearestHostile(const UCombatStateComponent* O
     return Best;
 }
 
+void FCombatTargetRegistry::GatherAllies(const UCombatStateComponent* OwnerCombat, const FVector& From, float Radius, TArray<AActor*>& OutAllies)
+{
+    OutAllies.clear();
+    if (!OwnerCombat || Radius <= 0.0f)
+    {
+        return;
+    }
+    Prune();
+
+    const float RadiusSq = Radius * Radius;
+    for (const TWeakObjectPtr<UCombatStateComponent>& Weak : Combatants)
+    {
+        UCombatStateComponent* Candidate = Weak.Get();
+        if (!Candidate || Candidate == OwnerCombat)
+        {
+            continue;
+        }
+        // 같은 편(아군)만 — 적대 관계는 제외.
+        if (OwnerCombat->IsHostileTo(Candidate))
+        {
+            continue;
+        }
+        AActor* CandidateActor = Candidate->GetOwner();
+        if (!IsValid(CandidateActor))
+        {
+            continue;
+        }
+        if (UHealthComponent* Health = CandidateActor->GetComponentByClass<UHealthComponent>())
+        {
+            if (Health->IsDead())
+            {
+                continue;
+            }
+        }
+        FVector Delta = CandidateActor->GetActorLocation() - From;
+        Delta.Z = 0.0f;
+        const float DistSq = Delta.X * Delta.X + Delta.Y * Delta.Y;
+        if (DistSq > RadiusSq)
+        {
+            continue;
+        }
+        OutAllies.push_back(CandidateActor);
+    }
+}
+
 FVector FCombatTargetRegistry::ComputeSeparation(const UCombatStateComponent* OwnerCombat, const FVector& From, float Radius)
 {
     if (!OwnerCombat || Radius <= 0.0f)

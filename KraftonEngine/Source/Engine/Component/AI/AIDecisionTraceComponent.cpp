@@ -54,6 +54,19 @@ void UAIDecisionTraceComponent::CommitDecision(const FName& ChosenAction)
         Record.TopScore[Slot] = Candidate.Score;
     }
 
+    // 디버거용: 직전 결정의 "전체" 후보를 점수 내림차순으로 스냅샷한다(top-3 와 별개).
+    LastCandidates.clear();
+    LastCandidates.reserve(Order.size());
+    for (int32 Index : Order)
+    {
+        FDecisionCandidate Snapshot;
+        Snapshot.Name = PendingCandidates[Index].ActionName;
+        Snapshot.Score = PendingCandidates[Index].Score;
+        LastCandidates.push_back(Snapshot);
+    }
+    LastChosen = ChosenAction;
+    LastState = PendingState;
+
     if (AActor* Owner = GetOwner())
     {
         if (UAIPerceptionComponent* Perception = Owner->GetComponentByClass<UAIPerceptionComponent>())
