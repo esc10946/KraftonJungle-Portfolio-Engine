@@ -298,7 +298,7 @@ FTransform USkinnedMeshComponent::GetSocketTransform(const FName& SocketName) co
 	}
 
 	const FMatrix SocketWorldMatrix = Socket->GetRelativeTransform() * BoneGlobals[BoneIndex] * GetWorldMatrix();
-	return FTransform(SocketWorldMatrix);
+	return MatrixToEditorTransform(SocketWorldMatrix);
 }
 
 bool USkinnedMeshComponent::SetSkeletalMeshByPath(const FString& InPath)
@@ -504,15 +504,20 @@ FTransform USkinnedMeshComponent::GetBoneLocalTransformByIndex(int32 BoneIndex) 
 
 FTransform USkinnedMeshComponent::GetBoneEditBaseLocalTransformByIndex(int32 BoneIndex) const
 {
+	return MatrixToEditorTransform(GetBoneEditBaseLocalMatrixByIndex(BoneIndex));
+}
+
+FMatrix USkinnedMeshComponent::GetBoneEditBaseLocalMatrixByIndex(int32 BoneIndex) const
+{
 	FSkeletalMesh* Asset = SkeletalMesh ? SkeletalMesh->GetSkeletalMeshAsset() : nullptr;
 	if (!Asset || BoneIndex < 0 || BoneIndex >= (int32)Asset->Bones.size()) return FMatrix::Identity;
 
 	if (bUseBoneEditBasePose && BoneEditBaseLocalMatrices.size() == Asset->Bones.size())
 	{
-		return MatrixToEditorTransform(BoneEditBaseLocalMatrices[BoneIndex]);
+		return BoneEditBaseLocalMatrices[BoneIndex];
 	}
 
-	return MatrixToEditorTransform(Asset->Bones[BoneIndex].GetReferenceLocalPose());
+	return Asset->Bones[BoneIndex].GetReferenceLocalPose();
 }
 
 void USkinnedMeshComponent::SetBoneLocationByIndex(int32 BoneIndex, const FVector& NewLocation)
@@ -752,13 +757,17 @@ void USkinnedMeshComponent::SetBoneLocalTransformByIndex(int32 BoneIndex, const 
 
 void USkinnedMeshComponent::SetBoneEditBaseLocalTransformByIndex(int32 BoneIndex, const FTransform& NewLocalTransform)
 {
+	SetBoneEditBaseLocalMatrixByIndex(BoneIndex, NewLocalTransform.ToMatrix());
+}
+
+void USkinnedMeshComponent::SetBoneEditBaseLocalMatrixByIndex(int32 BoneIndex, const FMatrix& NewLocalMatrix)
+{
 	FSkeletalMesh* Asset = SkeletalMesh ? SkeletalMesh->GetSkeletalMeshAsset() : nullptr;
 	if (!Asset || BoneIndex < 0 || BoneIndex >= (int32)Asset->Bones.size()) return;
 
 	EnsureBoneEditPose();
 	EnsureBoneEditBasePose();
 
-	const FMatrix NewLocalMatrix = NewLocalTransform.ToMatrix();
 	BoneEditLocalMatrices[BoneIndex] = NewLocalMatrix;
 	if (BoneEditBaseLocalMatrices.size() == Asset->Bones.size())
 	{

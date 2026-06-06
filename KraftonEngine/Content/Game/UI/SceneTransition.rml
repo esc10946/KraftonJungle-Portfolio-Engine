@@ -1,0 +1,9 @@
+<rml>
+<head>
+    <title>SceneTransition</title>
+    <link type="text/rcss" href="SceneTransition.rcss"/>
+</head>
+<body id="scene-transition">
+    <div id="transition-sheet"></div>
+</body>
+</rml>
