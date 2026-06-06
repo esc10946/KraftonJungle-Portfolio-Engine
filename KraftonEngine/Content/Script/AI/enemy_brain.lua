@@ -25,6 +25,7 @@ local TACTIC = {
 }
 
 local S = nil
+local GROUND_SPEED_VAR = "GroundSpeed"
 
 local LOCOMOTION = {
     Locked = 0,
@@ -35,7 +36,21 @@ local LOCOMOTION = {
 
 local function call(o, fn, ...)
     if not o then return nil end
-    return Reflection.Call(o, fn, ...)
+
+    local direct = o[fn]
+    if direct ~= nil then
+        return direct(o, ...)
+    end
+
+    if o.CallFunction ~= nil then
+        return o:CallFunction(fn, ...)
+    end
+
+    if Reflection ~= nil and Reflection.Call ~= nil then
+        return Reflection.Call(o, fn, ...)
+    end
+
+    return nil
 end
 
 local function clamp(v, lo, hi)
@@ -52,6 +67,90 @@ end
 local function is_name_valid(v)
     local s = name_to_string(v)
     return s ~= "" and s ~= "None"
+end
+
+local function get_character_movement()
+    if obj == nil then
+        return nil
+    end
+
+    if obj.GetCharacterMovement ~= nil then
+        return obj:GetCharacterMovement()
+    end
+
+    return call(obj, "GetCharacterMovement")
+end
+
+local function get_anim_instance()
+    if obj == nil then
+        return nil
+    end
+
+    local mesh = nil
+    if obj.GetMesh ~= nil then
+        mesh = obj:GetMesh()
+    end
+
+    if mesh == nil then
+        mesh = call(obj, "GetMesh")
+    end
+
+    if mesh == nil and obj.GetSkeletalMeshComponent ~= nil then
+        mesh = obj:GetSkeletalMeshComponent()
+    end
+
+    if mesh == nil then
+        mesh = call(obj, "GetSkeletalMeshComponent")
+    end
+
+    if mesh == nil then
+        return nil
+    end
+
+    if mesh.GetAnimInstance ~= nil then
+        return mesh:GetAnimInstance()
+    end
+
+    return call(mesh, "GetAnimInstance")
+end
+
+local function get_movement_velocity(movement)
+    if movement == nil then
+        return nil
+    end
+
+    if movement.GetVelocity ~= nil then
+        return movement:GetVelocity()
+    end
+
+    if movement.GetVelocityValue ~= nil then
+        return movement:GetVelocityValue()
+    end
+
+    local velocity = call(movement, "GetVelocity")
+    if velocity ~= nil then
+        return velocity
+    end
+
+    return call(movement, "GetVelocityValue")
+end
+
+local function update_ground_speed()
+    local groundSpeed = 0.0
+    local movement = get_character_movement()
+    if movement ~= nil then
+        local velocity = get_movement_velocity(movement)
+        if velocity ~= nil and velocity.X ~= nil and velocity.Y ~= nil then
+            groundSpeed = math.sqrt(velocity.X * velocity.X + velocity.Y * velocity.Y)
+        else
+            groundSpeed = call(movement, "GetSpeed") or 0.0
+        end
+    end
+
+    local anim = get_anim_instance()
+    if anim ~= nil then
+        call(anim, "SetGraphVariableFloat", GROUND_SPEED_VAR, groundSpeed)
+    end
 end
 
 local function current_style()
@@ -242,6 +341,8 @@ end
 
 function Tick(dt)
     if not S then return end
+
+    update_ground_speed()
 
     call(obj, "Brain_Sense")
     if call(obj, "Brain_IsBusy") == true then return end
