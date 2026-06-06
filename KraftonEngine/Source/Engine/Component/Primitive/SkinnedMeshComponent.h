@@ -81,6 +81,7 @@ public:
 	FTransform GetBoneLocalTransformByIndex(int32 BoneIndex) const;
 	UFUNCTION(Pure, Category="Mesh|Bone")
 	FTransform GetBoneEditBaseLocalTransformByIndex(int32 BoneIndex) const;
+	FMatrix GetBoneEditBaseLocalMatrixByIndex(int32 BoneIndex) const;
 	UFUNCTION(Pure, Category="Mesh|Bone")
 	int32 FindBoneIndex(const FName& BoneName) const;
 	UFUNCTION(Pure, Category="Mesh|Bone")
@@ -109,6 +110,7 @@ public:
 	void SetBoneLocalTransformByIndex(int32 BoneIndex, const FTransform& NewLocalTransform);
 	UFUNCTION(Callable, Category="Mesh|Bone")
 	void SetBoneEditBaseLocalTransformByIndex(int32 BoneIndex, const FTransform& NewLocalTransform);
+	void SetBoneEditBaseLocalMatrixByIndex(int32 BoneIndex, const FMatrix& NewLocalMatrix);
 
 	void SetBoneLocalTransforms(const TArray<FTransform>& LocalPose);
 	void SetAnimationPose(const TArray<FTransform>& LocalPose, const TArray<float>& InMorphTargetWeights);

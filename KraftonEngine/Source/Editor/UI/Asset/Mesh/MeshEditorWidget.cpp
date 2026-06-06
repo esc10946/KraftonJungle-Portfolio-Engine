@@ -1650,21 +1650,21 @@ void FMeshEditorWidget::RenderSkeletonLayout()
 		ImGui::Dummy(ImVec2(0, 10));
 
 		USkeletalMeshComponent* PreviewMeshComponent = ViewportClient.GetPreviewMeshComponent();
+		FMatrix LocalMatrix = PreviewMeshComponent
+			? PreviewMeshComponent->GetBoneEditBaseLocalMatrixByIndex(SelectedBoneIndex)
+			: Bone.LocalBindPose;
 		FTransform LocalTransform = PreviewMeshComponent
 			? PreviewMeshComponent->GetBoneEditBaseLocalTransformByIndex(SelectedBoneIndex)
 			: FTransform(Bone.LocalBindPose);
 
-		FVector Location = LocalTransform.Location;
+		FVector Location = LocalMatrix.GetLocation();
 		if (ImGui::DragFloat3("Location", &Location.X, 0.1f))
 		{
+			LocalMatrix.SetLocation(Location);
 			LocalTransform.Location = Location;
 			if (PreviewMeshComponent)
-				PreviewMeshComponent->SetBoneEditBaseLocalTransformByIndex(SelectedBoneIndex, LocalTransform);
-			else
-			{
-				Bone.LocalBindPose = LocalTransform.ToMatrix();
-			}
-			Bone.LocalBindPose = LocalTransform.ToMatrix();
+				PreviewMeshComponent->SetBoneEditBaseLocalMatrixByIndex(SelectedBoneIndex, LocalMatrix);
+			Bone.LocalBindPose = LocalMatrix;
 			Skeleton->RebuildReferenceSkeletonDerivedData();
 			bSkeletonDirty = true;
 		}
