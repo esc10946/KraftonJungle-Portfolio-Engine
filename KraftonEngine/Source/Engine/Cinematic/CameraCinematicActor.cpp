@@ -481,11 +481,7 @@ void ACameraCinematicActor::Play()
 	// 평가 결과를 먼저 cine 카메라에 반영 — view target 전환 시 첫 프레임부터 올바른 POV.
 	ApplyEvaluatedToCineCamera(CurrentTime);
 
-	// 런타임(PIE)에서만 실제 카메라 전환. 에디터에서는 프리뷰(프러스텀)만.
-	// ViewTarget 메커니즘 사용: GetCameraView 가 ViewTarget 을 ActiveCamera 보다 먼저
-	// 해석하므로, ActiveCamera 만 바꾸면 게임의 ViewTarget(폰 카메라)과 충돌해 카메라가
-	// 흔들린다. SetViewTarget(this) 는 ViewTarget+ActiveCamera 를 한 번에 우리 것으로 맞춘다.
-	if (HasActorBegunPlay())
+	if (HasActorBegunPlay() && !bSwitchedCamera)
 	{
 		if (UWorld* World = GetWorld())
 		{
