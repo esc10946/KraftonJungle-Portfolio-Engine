@@ -15,7 +15,7 @@ local ATTACK_MONTAGE_PATHS = {
 
 local DEFENSE_IDLE_MONTAGE_PATH = "Content/Montages/DefenseIdle_Montage.uasset"
 local SUCCESS_PARRY_MONTAGE_PATH = "Content/Montages/SuccessParry_Montage.uasset"
-local ATTACK_PLAY_RATE = 1.8
+local ATTACK_PLAY_RATE = 1.4
 local HIT_MONTAGE_PATHS = {
     F = "Content/Montages/Hit_F_Montage.uasset",
     B = "Content/Montages/Hit_B_Montage.uasset",
@@ -428,6 +428,19 @@ local function face_camera_forward()
     local yaw = atan2_degrees(forward.Y, forward.X)
     --FVector rotation uses X=Roll, Y=Pitch, Z=Yaw--
     obj.Rotation = Vec3(0.0, 0.0, yaw)
+
+    --RootMotion combo should start from the new camera yaw--
+    if obj.GetController ~= nil then
+        local controller = obj:GetController()
+        if controller ~= nil and controller.GetControlRotation ~= nil and controller.SetControlRotation ~= nil then
+            local controlRotation = controller:GetControlRotation()
+            if controlRotation ~= nil then
+                controller:SetControlRotation(Vec3(controlRotation.X or 0.0, controlRotation.Y or 0.0, yaw))
+            else
+                controller:SetControlRotation(Vec3(0.0, 0.0, yaw))
+            end
+        end
+    end
 end
 
 local function normalize_flat_direction(direction)
@@ -523,7 +536,7 @@ local function play_hit_reaction(damageSpec)
     lock_movement_for_attack()
     --Clear old EnableAttack flag--
     consume_enable_attack(anim)
-    anim:PlayMontage(montage, nil, ATTACK_PLAY_RATE)
+    anim:PlayMontage(montage)
 end
 
 --Play Attack--
@@ -548,7 +561,7 @@ local function play_attack(index)
     lock_movement_for_attack()
     --Clear old EnableAttack flag--
     consume_enable_attack(anim)
-    anim:PlayMontage(montage)
+    anim:PlayMontage(montage, nil, ATTACK_PLAY_RATE)
 end
 
 local function is_attack_pressed()
