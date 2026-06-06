@@ -160,10 +160,10 @@ void AFinaleGameMode::OnPlayerDefeated()
 	if (!CheckGamePhase(EGamePhase::Dead)) return;
 	SetGamePhase(EGamePhase::Defeated);
 
-	if (UWorld* World = GetWorld())
-	{
-		World->SetPaused(true);
-	}
+	//if (UWorld* World = GetWorld())
+	//{
+	//	World->SetPaused(true);
+	//}
 }
 
 // Boss slain itself is not a state
