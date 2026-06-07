@@ -88,6 +88,7 @@ namespace
         bool bUseIndependentRagdollCollision,
         ECollisionEnabled IndependentCollisionEnabled,
         bool bIndependentGenerateOverlapEvents,
+        bool bSuppressRagdollSelfCollision,
         bool bIsPartialRagdollBody,
         bool bSuppressSameActorPrimitiveCollisionForPartial,
         bool bSuppressSameActorPrimitiveOverlapForPartial)
@@ -100,12 +101,12 @@ namespace
         OutFilterData.ObjectType = static_cast<uint32>(Component->GetCollisionObjectType());
         OutFilterData.BlockMask = 0;
         OutFilterData.OverlapMask = 0;
-        // Keep ragdoll-vs-ragdoll self-collision decisions at the PhysicsAsset constraint
-        // layer, but still stamp the owning actor so filter policy can reject ragdoll
-        // body vs same-actor character primitive pairs.
+        // By default, ragdoll-vs-ragdoll collision is controlled by PhysicsAsset
+        // constraints. Some editor/runtime preview modes can opt into a broader
+        // same-owner suppression policy to avoid initial interpenetration explosions.
         OutFilterData.IgnoreGroup =
-            (bUseIndependentRagdollCollision && Component->GetOwner())
-                ? Component->GetOwner()->GetUUID()
+            (bUseIndependentRagdollCollision || bSuppressRagdollSelfCollision)
+                ? (Component->GetOwner() ? Component->GetOwner()->GetUUID() : Component->GetUUID())
                 : 0;
         OutFilterData.CollisionEnabled = bUseIndependentRagdollCollision
             ? IndependentCollisionEnabled
@@ -121,6 +122,7 @@ namespace
                 : Component->GetGenerateOverlapEvents());
         OutFilterData.bIsIndependentRagdoll = bUseIndependentRagdollCollision;
         OutFilterData.bIsPartialRagdoll = bIsPartialRagdollBody;
+        OutFilterData.bIgnoreSameActor = bSuppressRagdollSelfCollision;
         OutFilterData.CollisionRole = bIsPartialRagdollBody
             ? EPhysicsCollisionRole::PartialReactionBody
             : (bUseIndependentRagdollCollision
@@ -181,6 +183,7 @@ namespace
                 Options.bUseIndependentRagdollCollision,
                 Options.IndependentCollisionEnabled,
                 Options.bIndependentGenerateOverlapEvents,
+                Options.bSuppressRagdollSelfCollision,
                 Options.bPartialSimulation,
                 Options.bSuppressSameActorPrimitiveCollisionForPartial,
                 Options.bSuppressSameActorPrimitiveOverlapForPartial);

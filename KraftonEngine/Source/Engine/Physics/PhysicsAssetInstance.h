@@ -20,6 +20,7 @@ struct FPhysicsAssetSimulationOptions
     bool bUseIndependentRagdollCollision = false;
     ECollisionEnabled IndependentCollisionEnabled = ECollisionEnabled::QueryAndPhysics;
     bool bIndependentGenerateOverlapEvents = false;
+    bool bSuppressRagdollSelfCollision = false;
     bool bSuppressSameActorPrimitiveCollisionForPartial = false;
     bool bSuppressSameActorPrimitiveOverlapForPartial = false;
     FName SelectedBoneName = FName::None;

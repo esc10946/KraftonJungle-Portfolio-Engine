@@ -1753,6 +1753,18 @@ void FPhysicsAssetEditorWidget::RenderSimulationControls(UPhysicsAsset* PhysicsA
         ImGui::SetTooltip("Simulate the selected body and its descendant body chain. Other bodies are kept kinematic as anchors.");
     }
 
+    ImGui::SameLine();
+    const bool bOldSuppressSelfCollision = bEditorSimulationSuppressSelfCollision;
+    if (ImGui::Checkbox("Suppress Self Collision", &bEditorSimulationSuppressSelfCollision) &&
+        bOldSuppressSelfCollision != bEditorSimulationSuppressSelfCollision)
+    {
+        RequestEditorSimulationRestart();
+    }
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::SetTooltip("Ignore collision between ragdoll bodies owned by this preview actor. This prevents overlapped generated bodies from exploding at simulation start.");
+    }
+
     if (!bCanSimulate)
     {
         ImGui::EndDisabled();
@@ -3738,6 +3750,7 @@ bool FPhysicsAssetEditorWidget::StartEditorSimulation(
     Options.bNoGravity = bEditorSimulationNoGravity;
     Options.bSelectedOnly = bEditorSimulationSelectedOnly;
     Options.bForceQueryAndPhysicsCollision = true;
+    Options.bSuppressRagdollSelfCollision = bEditorSimulationSuppressSelfCollision;
     Options.SelectedBoneName = GetSelectedSimulationRootBoneName(PhysicsAsset);
     if (Options.bSelectedOnly && Options.SelectedBoneName == FName::None)
     {

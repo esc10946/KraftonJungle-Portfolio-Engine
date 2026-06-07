@@ -31,10 +31,12 @@ namespace
         FVector Min = FVector::ZeroVector;
         FVector Max = FVector::ZeroVector;
         TArray<FVector> Points;
+        TArray<float> PointWeights;
 
-        void AddPoint(const FVector& Point)
+        void AddPoint(const FVector& Point, float Weight = 1.0f)
         {
             Points.push_back(Point);
+            PointWeights.push_back((std::max)(Weight, 0.0f));
             if (!bHasPoints)
             {
                 Min = Point;
@@ -70,8 +72,11 @@ namespace
     constexpr float AutoBodyFallbackRadiusRatio = 0.18f;
     constexpr float AutoBodyMinWeldSize = 1.0e-6f;
     constexpr float AutoBodyPcaBoneAxisAlignmentThreshold = 0.65f;
+    constexpr float AutoBodyPcaBoneAxisSoftAlignmentThreshold = 0.85f;
     constexpr float AutoBodyPcaBoneAxisRadiusTolerance = 1.25f;
     constexpr float AutoBodyPcaRadiusRegressionThreshold = 1.50f;
+    constexpr float AutoBodyBoundsTrimWeightFraction = 0.05f;
+    constexpr float AutoBodyTrimmedLengthMinRatio = 0.60f;
 
     bool HasBoneName(const FName& BoneName)
     {
@@ -340,9 +345,11 @@ namespace
         const TArray<FMatrix>* OverrideBoneGlobalMatrices,
         int32 MeshBoneIndex,
         float MinInfluenceWeight,
-        TArray<FVector>& OutPoints)
+        TArray<FVector>& OutPoints,
+        TArray<float>& OutWeights)
     {
         OutPoints.clear();
+        OutWeights.clear();
         if (!MeshAsset || MeshBoneIndex < 0)
         {
             return;
@@ -358,6 +365,7 @@ namespace
                 if (CandidateBoneIndex == MeshBoneIndex && CandidateWeight >= ClampedMinWeight)
                 {
                     OutPoints.push_back(TransformVertexToGenerationPose(MeshAsset, OverrideBoneGlobalMatrices, Vertex));
+                    OutWeights.push_back(CandidateWeight);
                     break;
                 }
             }
@@ -382,9 +390,12 @@ namespace
             return;
         }
 
-        for (const FVector& Point : SourceFit.Points)
+        for (int32 PointIndex = 0; PointIndex < static_cast<int32>(SourceFit.Points.size()); ++PointIndex)
         {
-            TargetFit.AddPoint(Point);
+            const float Weight = PointIndex < static_cast<int32>(SourceFit.PointWeights.size())
+                ? SourceFit.PointWeights[PointIndex]
+                : 1.0f;
+            TargetFit.AddPoint(SourceFit.Points[PointIndex], Weight);
         }
     }
 
@@ -418,10 +429,14 @@ namespace
             }
 
             TArray<FVector> Points;
-            CollectInfluencedBoneVertices(MeshAsset, OverrideBoneGlobalMatrices, MeshBoneIndex, Options.MinInfluenceWeight, Points);
-            for (const FVector& Point : Points)
+            TArray<float> PointWeights;
+            CollectInfluencedBoneVertices(MeshAsset, OverrideBoneGlobalMatrices, MeshBoneIndex, Options.MinInfluenceWeight, Points, PointWeights);
+            for (int32 PointIndex = 0; PointIndex < static_cast<int32>(Points.size()); ++PointIndex)
             {
-                Fits[BoneIndex].AddPoint(Point);
+                const float Weight = PointIndex < static_cast<int32>(PointWeights.size())
+                    ? PointWeights[PointIndex]
+                    : 1.0f;
+                Fits[BoneIndex].AddPoint(Points[PointIndex], Weight);
             }
         }
 
@@ -553,8 +568,134 @@ namespace
         return true;
     }
 
+    float GetPointPCAWeight(const TArray<float>& PointWeights, int32 PointIndex)
+    {
+        if (PointIndex < 0 || PointIndex >= static_cast<int32>(PointWeights.size()))
+        {
+            return 1.0f;
+        }
+        return (std::max)(PointWeights[PointIndex], 0.0f);
+    }
+
+    struct FProjectedFitBounds
+    {
+        FVector Min = FVector(FLT_MAX, FLT_MAX, FLT_MAX);
+        FVector Max = FVector(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+    };
+
+    struct FWeightedProjectionSample
+    {
+        float Value = 0.0f;
+        float Weight = 0.0f;
+    };
+
+    void AccumulateProjectedBounds(FProjectedFitBounds& Bounds, const FVector& Projected)
+    {
+        Bounds.Min.X = (std::min)(Bounds.Min.X, Projected.X);
+        Bounds.Min.Y = (std::min)(Bounds.Min.Y, Projected.Y);
+        Bounds.Min.Z = (std::min)(Bounds.Min.Z, Projected.Z);
+        Bounds.Max.X = (std::max)(Bounds.Max.X, Projected.X);
+        Bounds.Max.Y = (std::max)(Bounds.Max.Y, Projected.Y);
+        Bounds.Max.Z = (std::max)(Bounds.Max.Z, Projected.Z);
+    }
+
+    bool ComputeWeightedTrimmedRange(TArray<FWeightedProjectionSample> Samples, float& OutMin, float& OutMax)
+    {
+        Samples.erase(
+            std::remove_if(
+                Samples.begin(),
+                Samples.end(),
+                [](const FWeightedProjectionSample& Sample)
+                {
+                    return Sample.Weight <= 0.0f;
+                }),
+            Samples.end());
+
+        if (Samples.size() < 4)
+        {
+            return false;
+        }
+
+        std::sort(
+            Samples.begin(),
+            Samples.end(),
+            [](const FWeightedProjectionSample& A, const FWeightedProjectionSample& B)
+            {
+                return A.Value < B.Value;
+            });
+
+        double TotalWeight = 0.0;
+        for (const FWeightedProjectionSample& Sample : Samples)
+        {
+            TotalWeight += static_cast<double>(Sample.Weight);
+        }
+        if (TotalWeight <= 1.0e-8)
+        {
+            return false;
+        }
+
+        const double LowerTarget = TotalWeight * AutoBodyBoundsTrimWeightFraction;
+        const double UpperTarget = TotalWeight * (1.0 - AutoBodyBoundsTrimWeightFraction);
+        double AccumulatedWeight = 0.0;
+        bool bFoundLower = false;
+        OutMin = Samples.front().Value;
+        OutMax = Samples.back().Value;
+
+        for (const FWeightedProjectionSample& Sample : Samples)
+        {
+            AccumulatedWeight += static_cast<double>(Sample.Weight);
+            if (!bFoundLower && AccumulatedWeight >= LowerTarget)
+            {
+                OutMin = Sample.Value;
+                bFoundLower = true;
+            }
+            if (AccumulatedWeight >= UpperTarget)
+            {
+                OutMax = Sample.Value;
+                break;
+            }
+        }
+
+        return OutMax >= OutMin;
+    }
+
+    float SelectTrimmedRangeMin(float FullMin, float FullMax, float TrimmedMin, float TrimmedMax, bool bAllowShorterRange)
+    {
+        const float FullSpan = FullMax - FullMin;
+        const float TrimmedSpan = TrimmedMax - TrimmedMin;
+        if (TrimmedSpan <= 1.0e-6f)
+        {
+            return FullMin;
+        }
+
+        if (!bAllowShorterRange && FullSpan > 1.0e-6f && TrimmedSpan < FullSpan * AutoBodyTrimmedLengthMinRatio)
+        {
+            return FullMin;
+        }
+
+        return TrimmedMin;
+    }
+
+    float SelectTrimmedRangeMax(float FullMin, float FullMax, float TrimmedMin, float TrimmedMax, bool bAllowShorterRange)
+    {
+        const float FullSpan = FullMax - FullMin;
+        const float TrimmedSpan = TrimmedMax - TrimmedMin;
+        if (TrimmedSpan <= 1.0e-6f)
+        {
+            return FullMax;
+        }
+
+        if (!bAllowShorterRange && FullSpan > 1.0e-6f && TrimmedSpan < FullSpan * AutoBodyTrimmedLengthMinRatio)
+        {
+            return FullMax;
+        }
+
+        return TrimmedMax;
+    }
+
     bool FitCapsuleToPointsOnBasis(
         const TArray<FVector>& Points,
+        const TArray<float>& PointWeights,
         const FVector& Origin,
         const FVector& AxisX,
         const FVector& AxisY,
@@ -566,25 +707,51 @@ namespace
             return false;
         }
 
-        FVector Min(FLT_MAX, FLT_MAX, FLT_MAX);
-        FVector Max(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-        for (const FVector& Point : Points)
+        FProjectedFitBounds FullBounds;
+        TArray<FWeightedProjectionSample> WeightedX;
+        TArray<FWeightedProjectionSample> WeightedY;
+        TArray<FWeightedProjectionSample> WeightedZ;
+        WeightedX.reserve(Points.size());
+        WeightedY.reserve(Points.size());
+        WeightedZ.reserve(Points.size());
+
+        for (int32 PointIndex = 0; PointIndex < static_cast<int32>(Points.size()); ++PointIndex)
         {
+            const FVector& Point = Points[PointIndex];
             const FVector Delta = Point - Origin;
             const FVector Projected(Delta.Dot(AxisX), Delta.Dot(AxisY), Delta.Dot(AxisZ));
-            Min.X = (std::min)(Min.X, Projected.X);
-            Min.Y = (std::min)(Min.Y, Projected.Y);
-            Min.Z = (std::min)(Min.Z, Projected.Z);
-            Max.X = (std::max)(Max.X, Projected.X);
-            Max.Y = (std::max)(Max.Y, Projected.Y);
-            Max.Z = (std::max)(Max.Z, Projected.Z);
+            AccumulateProjectedBounds(FullBounds, Projected);
+
+            const float Weight = GetPointPCAWeight(PointWeights, PointIndex);
+            WeightedX.push_back({ Projected.X, Weight });
+            WeightedY.push_back({ Projected.Y, Weight });
+            WeightedZ.push_back({ Projected.Z, Weight });
         }
 
-        const FVector CenterLocal((Min.X + Max.X) * 0.5f, (Min.Y + Max.Y) * 0.5f, (Min.Z + Max.Z) * 0.5f);
+        FProjectedFitBounds FitBounds = FullBounds;
+        float TrimmedMin = 0.0f;
+        float TrimmedMax = 0.0f;
+        if (ComputeWeightedTrimmedRange(WeightedX, TrimmedMin, TrimmedMax))
+        {
+            FitBounds.Min.X = SelectTrimmedRangeMin(FullBounds.Min.X, FullBounds.Max.X, TrimmedMin, TrimmedMax, true);
+            FitBounds.Max.X = SelectTrimmedRangeMax(FullBounds.Min.X, FullBounds.Max.X, TrimmedMin, TrimmedMax, true);
+        }
+        if (ComputeWeightedTrimmedRange(WeightedY, TrimmedMin, TrimmedMax))
+        {
+            FitBounds.Min.Y = SelectTrimmedRangeMin(FullBounds.Min.Y, FullBounds.Max.Y, TrimmedMin, TrimmedMax, true);
+            FitBounds.Max.Y = SelectTrimmedRangeMax(FullBounds.Min.Y, FullBounds.Max.Y, TrimmedMin, TrimmedMax, true);
+        }
+        if (ComputeWeightedTrimmedRange(WeightedZ, TrimmedMin, TrimmedMax))
+        {
+            FitBounds.Min.Z = SelectTrimmedRangeMin(FullBounds.Min.Z, FullBounds.Max.Z, TrimmedMin, TrimmedMax, false);
+            FitBounds.Max.Z = SelectTrimmedRangeMax(FullBounds.Min.Z, FullBounds.Max.Z, TrimmedMin, TrimmedMax, false);
+        }
+
+        const FVector CenterLocal((FitBounds.Min.X + FitBounds.Max.X) * 0.5f, (FitBounds.Min.Y + FitBounds.Max.Y) * 0.5f, (FitBounds.Min.Z + FitBounds.Max.Z) * 0.5f);
         const FVector Center = Origin + AxisX * CenterLocal.X + AxisY * CenterLocal.Y + AxisZ * CenterLocal.Z;
-        const float HalfLength = (std::max)((Max.Z - Min.Z) * 0.5f, AutoBodyMinExtent);
-        const float RadiusX = (std::max)((Max.X - Min.X) * 0.5f, AutoBodyMinExtent);
-        const float RadiusY = (std::max)((Max.Y - Min.Y) * 0.5f, AutoBodyMinExtent);
+        const float HalfLength = (std::max)((FitBounds.Max.Z - FitBounds.Min.Z) * 0.5f, AutoBodyMinExtent);
+        const float RadiusX = (std::max)((FitBounds.Max.X - FitBounds.Min.X) * 0.5f, AutoBodyMinExtent);
+        const float RadiusY = (std::max)((FitBounds.Max.Y - FitBounds.Min.Y) * 0.5f, AutoBodyMinExtent);
         const float Radius = (std::max)((std::max)(RadiusX, RadiusY) * AutoBodyRadiusPadding, AutoBodyMinExtent);
 
         OutFit.BodyComponentTransform.Location = Center;
@@ -603,13 +770,53 @@ namespace
         const FVector& BoneAxisZ)
     {
         const float AxisAlignment = std::fabs(PcaAxisZ.Dot(BoneAxisZ));
+        if (AxisAlignment < AutoBodyPcaBoneAxisAlignmentThreshold)
+        {
+            return true;
+        }
+
         if (PcaFit.CapsuleRadius > BoneAxisFit.CapsuleRadius * AutoBodyPcaRadiusRegressionThreshold)
         {
             return true;
         }
 
-        return AxisAlignment < AutoBodyPcaBoneAxisAlignmentThreshold &&
-            BoneAxisFit.CapsuleRadius <= PcaFit.CapsuleRadius * AutoBodyPcaBoneAxisRadiusTolerance;
+        return AxisAlignment < AutoBodyPcaBoneAxisSoftAlignmentThreshold &&
+            BoneAxisFit.CapsuleRadius <= PcaFit.CapsuleRadius * AutoBodyPcaBoneAxisRadiusTolerance &&
+            BoneAxisFit.CapsuleHalfHeight >= PcaFit.CapsuleHalfHeight * 0.75f;
+    }
+
+    int32 FindPCAAxisMostAlignedWithBone(const FVector EigenVectors[3], const FVector& BoneAxis)
+    {
+        int32 BestIndex = 0;
+        float BestAlignment = -1.0f;
+        for (int32 AxisIndex = 0; AxisIndex < 3; ++AxisIndex)
+        {
+            const float Alignment = std::fabs(EigenVectors[AxisIndex].Dot(BoneAxis));
+            if (Alignment > BestAlignment)
+            {
+                BestAlignment = Alignment;
+                BestIndex = AxisIndex;
+            }
+        }
+        return BestIndex;
+    }
+
+    int32 FindBestPCASecondaryAxisIndex(const double EigenValues[3], int32 PrimaryAxisIndex)
+    {
+        int32 BestIndex = PrimaryAxisIndex == 0 ? 1 : 0;
+        for (int32 AxisIndex = 0; AxisIndex < 3; ++AxisIndex)
+        {
+            if (AxisIndex == PrimaryAxisIndex)
+            {
+                continue;
+            }
+
+            if (AxisIndex != BestIndex && EigenValues[AxisIndex] > EigenValues[BestIndex])
+            {
+                BestIndex = AxisIndex;
+            }
+        }
+        return BestIndex;
     }
 
     void ComputeSymmetricEigen3x3(const double InMatrix[3][3], double OutValues[3], FVector OutVectors[3])
@@ -704,6 +911,7 @@ namespace
 
     bool BuildPCAAutoBodyFit(
         const TArray<FVector>& Points,
+        const TArray<float>& PointWeights,
         const FVector& BoneAxis,
         FAutoBodyFitResult& OutFit)
     {
@@ -713,21 +921,41 @@ namespace
         }
 
         FVector Mean = FVector::ZeroVector;
-        for (const FVector& Point : Points)
+        double TotalWeight = 0.0;
+        for (int32 PointIndex = 0; PointIndex < static_cast<int32>(Points.size()); ++PointIndex)
         {
-            Mean += Point;
+            const double Weight = static_cast<double>(GetPointPCAWeight(PointWeights, PointIndex));
+            if (Weight <= 0.0)
+            {
+                continue;
+            }
+
+            Mean += Points[PointIndex] * static_cast<float>(Weight);
+            TotalWeight += Weight;
         }
-        Mean /= static_cast<float>(Points.size());
+        if (TotalWeight <= 1.0e-8)
+        {
+            return false;
+        }
+        Mean /= static_cast<float>(TotalWeight);
 
         double Covariance[3][3] = {};
-        for (const FVector& Point : Points)
+        for (int32 PointIndex = 0; PointIndex < static_cast<int32>(Points.size()); ++PointIndex)
         {
+            const double Weight = static_cast<double>(GetPointPCAWeight(PointWeights, PointIndex));
+            if (Weight <= 0.0)
+            {
+                continue;
+            }
+
+            const FVector& Point = Points[PointIndex];
             const FVector Delta = Point - Mean;
             for (int32 Row = 0; Row < 3; ++Row)
             {
                 for (int32 Col = 0; Col < 3; ++Col)
                 {
                     Covariance[Row][Col] +=
+                        Weight *
                         static_cast<double>(GetVectorComponent(Delta, Row)) *
                         static_cast<double>(GetVectorComponent(Delta, Col));
                 }
@@ -737,7 +965,7 @@ namespace
         {
             for (int32 Col = 0; Col < 3; ++Col)
             {
-                Covariance[Row][Col] /= static_cast<double>(Points.size());
+                Covariance[Row][Col] /= TotalWeight;
             }
         }
 
@@ -749,14 +977,17 @@ namespace
             return false;
         }
 
-        FVector AxisZ = SafeNormal(EigenVectors[0], FVector::ZAxisVector);
-        const FVector StableBoneAxis = SafeNormal(BoneAxis, AxisZ);
+        const FVector StableBoneAxis = SafeNormal(BoneAxis, EigenVectors[0]);
+        const int32 AxisZIndex = FindPCAAxisMostAlignedWithBone(EigenVectors, StableBoneAxis);
+
+        FVector AxisZ = SafeNormal(EigenVectors[AxisZIndex], StableBoneAxis);
         if (AxisZ.Dot(StableBoneAxis) < 0.0f)
         {
             AxisZ *= -1.0f;
         }
 
-        FVector AxisX = EigenVectors[1] - AxisZ * EigenVectors[1].Dot(AxisZ);
+        const int32 AxisXIndex = FindBestPCASecondaryAxisIndex(EigenValues, AxisZIndex);
+        FVector AxisX = EigenVectors[AxisXIndex] - AxisZ * EigenVectors[AxisXIndex].Dot(AxisZ);
         if (AxisX.IsNearlyZero(1.0e-5f))
         {
             FVector AxisY;
@@ -770,7 +1001,7 @@ namespace
         AxisX = SafeNormal(AxisY.Cross(AxisZ), AxisX);
 
         FAutoBodyFitResult PcaFit;
-        if (!FitCapsuleToPointsOnBasis(Points, Mean, AxisX, AxisY, AxisZ, PcaFit))
+        if (!FitCapsuleToPointsOnBasis(Points, PointWeights, Mean, AxisX, AxisY, AxisZ, PcaFit))
         {
             return false;
         }
@@ -781,7 +1012,7 @@ namespace
         BuildBasisFromZAxis(StableBoneAxis, BoneAxisX, BoneAxisY, BoneAxisZ);
 
         FAutoBodyFitResult BoneAxisFit;
-        if (FitCapsuleToPointsOnBasis(Points, Mean, BoneAxisX, BoneAxisY, BoneAxisZ, BoneAxisFit) &&
+        if (FitCapsuleToPointsOnBasis(Points, PointWeights, Mean, BoneAxisX, BoneAxisY, BoneAxisZ, BoneAxisFit) &&
             ShouldPreferBoneAxisFitOverPCA(PcaFit, BoneAxisFit, AxisZ, BoneAxisZ))
         {
             OutFit = BoneAxisFit;
@@ -797,6 +1028,7 @@ namespace
         const TArray<FMatrix>* OverrideBoneGlobalMatrices,
         int32 MeshBoneIndex,
         const TArray<FVector>& Points,
+        const TArray<float>& PointWeights,
         FAutoBodyFitResult& OutFit)
     {
         FVector SegmentStart;
@@ -811,7 +1043,7 @@ namespace
         FVector AxisZ;
         BuildBasisFromZAxis(SegmentEnd - SegmentStart, AxisX, AxisY, AxisZ);
 
-        if (FitCapsuleToPointsOnBasis(Points, SegmentStart, AxisX, AxisY, AxisZ, OutFit))
+        if (FitCapsuleToPointsOnBasis(Points, PointWeights, SegmentStart, AxisX, AxisY, AxisZ, OutFit))
         {
             return true;
         }
@@ -832,6 +1064,7 @@ namespace
         const TArray<FMatrix>* OverrideBoneGlobalMatrices,
         int32 MeshBoneIndex,
         const TArray<FVector>& Points,
+        const TArray<float>& PointWeights,
         EPhysicsAssetAutoBodyMethod Method,
         bool bAllowBoneAxisFallback,
         FAutoBodyFitResult& OutFit)
@@ -842,7 +1075,7 @@ namespace
         const FVector BoneAxis = SegmentEnd - SegmentStart;
         if (Method == EPhysicsAssetAutoBodyMethod::PCAAnalysis)
         {
-            if (BuildPCAAutoBodyFit(Points, BoneAxis, OutFit))
+            if (BuildPCAAutoBodyFit(Points, PointWeights, BoneAxis, OutFit))
             {
                 return true;
             }
@@ -853,7 +1086,7 @@ namespace
             }
         }
 
-        return BuildBoneAxisAutoBodyFit(MeshAsset, OverrideBoneGlobalMatrices, MeshBoneIndex, Points, OutFit);
+        return BuildBoneAxisAutoBodyFit(MeshAsset, OverrideBoneGlobalMatrices, MeshBoneIndex, Points, PointWeights, OutFit);
     }
 
     FPhysicsAssetShapeSetup BuildShapeSetupFromFit(
@@ -997,6 +1230,7 @@ bool FPhysicsAssetAutoBodyGenerator::Regenerate(
         const FAutoBodyPointFit& ExtraFit = BoneIndex < static_cast<int32>(MergedData.ExtraFits.size()) ? MergedData.ExtraFits[BoneIndex] : EmptyFit;
         const FAutoBodyPointFit CombinedFit = MakeCombinedPointFit(OwnFit, ExtraFit);
         const TArray<FVector>& Points = CombinedFit.Points;
+        const TArray<float>& PointWeights = CombinedFit.PointWeights;
 
         const int32 MinWeightedVertices = (std::max)(Options.MinWeightedVertices, 1);
         if (static_cast<int32>(Points.size()) < MinWeightedVertices && !Options.bAllowBoneAxisFallback)
@@ -1011,6 +1245,7 @@ bool FPhysicsAssetAutoBodyGenerator::Regenerate(
                 OverrideBoneGlobalMatrices,
                 MeshBoneIndex,
                 Points,
+                PointWeights,
                 Options.Method,
                 Options.bAllowBoneAxisFallback,
                 Fit))

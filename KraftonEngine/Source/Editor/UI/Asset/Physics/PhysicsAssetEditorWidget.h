@@ -198,6 +198,7 @@ private:
     bool bEditorSimulationPaused = false;
     bool bEditorSimulationNoGravity = false;
     bool bEditorSimulationSelectedOnly = false;
+    bool bEditorSimulationSuppressSelfCollision = true;
     bool bEditorSimulationRestartRequested = false;
     bool bEditorRagdollGrabActive = false;
     FPhysicsBodyHandle EditorRagdollGrabBody;
