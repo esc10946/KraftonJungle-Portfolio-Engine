@@ -1199,6 +1199,9 @@
     <ClCompile Include="Source\Engine\Animation\Notify\AnimNotify_LogMessage.cpp">
       <Filter>Source\Engine\Animation\Notify</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Animation\Notify\AnimNotify_CameraShake.cpp">
+      <Filter>Source\Engine\Animation\Notify</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\Animation\Notify\AnimNotify_PlaySound.cpp">
       <Filter>Source\Engine\Animation\Notify</Filter>
     </ClCompile>
@@ -1590,6 +1593,9 @@
       <Filter>Source\Engine\GameFramework\Camera</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\GameFramework\Camera\SequenceCameraShake.cpp">
+      <Filter>Source\Engine\GameFramework\Camera</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\GameFramework\Camera\PerlinNoiseCameraShake.cpp">
       <Filter>Source\Engine\GameFramework\Camera</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\GameFramework\Camera\WaveOscillatorCameraShake.cpp">
@@ -2693,6 +2699,9 @@
     <ClInclude Include="Source\Engine\Animation\Notify\AnimNotify_LogMessage.h">
       <Filter>Source\Engine\Animation\Notify</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\Animation\Notify\AnimNotify_CameraShake.h">
+      <Filter>Source\Engine\Animation\Notify</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Engine\Animation\Notify\AnimNotify_PlaySound.h">
       <Filter>Source\Engine\Animation\Notify</Filter>
     </ClInclude>
@@ -3144,6 +3153,9 @@
       <Filter>Source\Engine\GameFramework\Camera</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\GameFramework\Camera\SequenceCameraShake.h">
+      <Filter>Source\Engine\GameFramework\Camera</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\GameFramework\Camera\PerlinNoiseCameraShake.h">
       <Filter>Source\Engine\GameFramework\Camera</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\GameFramework\Camera\WaveOscillatorCameraShake.h">

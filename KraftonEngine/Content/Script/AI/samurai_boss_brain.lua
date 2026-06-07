@@ -199,16 +199,18 @@ local Actions = {
         end,
         run = function(bb) call(obj, "Brain_Dodge"); return true end,
     },
-    -- ▷ 백점프(하드 디스인게이지): 자원 바닥 / 상대 공격적 / 위험공격이면 멀리 도약해 거리를 크게 벌린다.
+    -- ▷ 백점프(하드 디스인게이지 = "빠지고"의 주역): 연타로 자원 바닥나면 크게 도약해 거리를 확 벌린다.
+    --   걷는 후퇴는 속도 상한이 있어 소극적이라, 거대 보스의 "치고 빠지고"는 이 큰 점프가 담당한다.
+    --   (LeapHorizontalForce 가 거리를 결정 — scene/패널에서 상향.) 플레이어 공격만으로는 안 빠짐(도망 방지).
     {
-        name = "leap", commit = 1.8,
+        name = "leap", commit = 1.2,
         score = function(bb)
-            if not bb.perceive or bb.ratio > 1.5 then return 0 end     -- 근접에서만 의미
+            if not bb.perceive or bb.ratio > 1.4 then return 0 end     -- 근접에서 분리할 때만
             local s = 0.0
-            if bb.tempo < 0.20 then s = s + 0.70 end                   -- 자원 바닥 → 멀리 빠져 호흡
-            if bb.acting or bb.threatening then s = s + 0.50 end       -- 상대 공격적 → 멀리 회피
-            if bb.selfHP < 0.35 then s = s + 0.20 end
+            -- 자원 완전 바닥(긴 연타 끝)에서만 가끔 큰 점프. 그 위 구간(0.12~)은 retreat(걷는 후퇴)가 담당.
+            if bb.tempo < 0.12 then s = s + 0.60 end                   -- 깊은 바닥 → 큰 백점프로 확 분리
             if bb.perilous == PERILOUS.Sweep or bb.perilous == PERILOUS.Grab then s = s + 0.30 end
+            if bb.selfHP < 0.25 and (bb.acting or bb.threatening) then s = s + 0.15 end
             return s
         end,
         run = function(bb) call(obj, "Brain_LeapBack"); return true end,
@@ -267,31 +269,33 @@ local Actions = {
     {
         name = "approach", commit = 0.25, loco = true,
         score = function(bb)
-            if bb.ratio <= 1.05 then return 0 end
-            -- 사거리를 벗어나면 빠르게 1로 올라 서클(strafe 0.20)을 확실히 이기고 파고든다.
-            local far = Curve.atLeast(bb.ratio, 1.1, 0.3)
-            return 0.72 * far * Curve.smooth(0.5 + 0.5 * bb.tempo)
+            if bb.ratio <= 0.9 then return 0 end          -- 타격권 안쪽까지 들어오면 멈춤(공격에 양보)
+            -- 타격권 밖이면 강하게 1로 올라 파고든다 — 서성임 대신 압박.
+            local far = Curve.atLeast(bb.ratio, 0.95, 0.35)
+            return 0.85 * far * Curve.smooth(0.55 + 0.45 * bb.tempo)
         end,
         run = function(bb) call(obj, "Brain_Chase"); return true end,
     },
-    -- ▷ 스트레이프(서클/관찰): 낮은 기본값 — 공격이 보통 이기되, 가끔 빈틈을 보며 돈다.
+    -- ▷ 스트레이프(서클/관찰): 아주 낮은 기본값 — 타격권 안에선 접근/공격에 양보, 중거리에서만 가끔 돈다.
     {
         name = "strafe", commit = 0.30, loco = true,
         score = function(bb)
             if not bb.perceive then return 0 end
-            local mid = Curve.bell(bb.ratio, 1.15, 0.7)
-            return 0.20 * (0.55 + 0.45 * mid)
+            -- 사실상 비활성 — 아주 먼 관찰 거리에서만 미세하게. 근접/교전 서성임을 완전히 제거.
+            return 0.06 * Curve.atLeast(bb.ratio, 1.6, 0.4)
         end,
         run = function(bb) call(obj, "Brain_Strafe"); return true end,
     },
-    -- ▷ 후퇴(간격/호흡): 자원 바닥(짧은 휴식)/너무 붙음/패링당함/저체력 → 거리 벌리고 회복.
+    -- ▷ 후퇴(걷는 간격 조절): 속도 상한이 있어 큰 분리는 leap 이 담당. 여긴 보조로 더 오래 걸어 거리 확보.
     {
-        name = "retreat", commit = 0.35, loco = true,
+        name = "retreat", commit = 0.60, loco = true,
         score = function(bb)
             if not bb.perceive then return 0 end
-            local tooClose = 0.40 * Curve.atMost(bb.ratio, 0.7)
-            local rest     = 0.55 * Curve.invquad(bb.tempo)      -- 자원 바닥일 때만 크게 → 짧은 휴식 리듬
-            local parried  = bb.lastDeflect and 0.45 or 0.0
+            local tooClose = 0.30 * Curve.atMost(bb.ratio, 0.50)  -- 거의 겹쳤을 때만 한 발 물러섬
+            -- 연타로 tempo 떨어지면(≈0.25, 3타 후) attack 바닥값(~0.22)을 이겨 "걷는 후퇴"가 걸린다.
+            -- tempo 높을 땐 0 → 자원 있을 땐 안 빠지고 압박. 더 깊은 바닥(<0.12, 긴 연타)은 leap(큰 점프)이 가져감.
+            local rest     = 0.45 * Curve.invquad(bb.tempo)
+            local parried  = bb.lastDeflect and 0.30 or 0.0
             -- 저체력이라고 후퇴하지 않는다(페이즈3 발악 = 압박 유지) → 접근↔후퇴 오실레이션 방지.
             local s = tooClose + rest + parried
             if bb.cornered then s = s * 0.4 end                  -- 코너면 후퇴 대신 스트레이프가 이김
@@ -348,8 +352,8 @@ local function choose_and_run(bb, dt)
         if run_action(e.a, bb) then return end
     end
 
-    AI.action = "strafe"; AI.commit = 0.3
-    call(obj, "Brain_Strafe"); call(obj, "Brain_DriveLocomotion")   -- 폴백(이동)
+    AI.action = "approach"; AI.commit = 0.25
+    call(obj, "Brain_Chase"); call(obj, "Brain_DriveLocomotion")   -- 폴백: 서성이지 말고 파고든다(공격 쿨다운 중에도 압박 유지)
 end
 
 -- ── 8. 런타임 상태 정의 ──────────────────────────────────────────────────────
@@ -414,7 +418,8 @@ function Tick(dt)
     -- 템포 자원 회복 + 행동 커밋 타이머 감소(프레임당 1회). 회복 속도를 페이즈로 달리해 리듬을
     -- 차별화: P1 느림(긴 호흡, 절제) → P3 빠름(짧은 호흡, 연속 압박).
     local _ph = call(obj, "Brain_GetPhase") or 1
-    local _regen = (_ph >= 3) and 0.55 or ((_ph >= 2) and 0.38 or 0.24)
+    -- 회복을 빠르게 → "빠지고" 간격이 짧아져 곧바로 다시 파고든다(긴 후퇴/도망 방지).
+    local _regen = (_ph >= 3) and 0.70 or ((_ph >= 2) and 0.55 or 0.45)
     AI.tempo  = clamp(AI.tempo + _regen * dt, 0.0, 1.0)
     AI.commit = math.max(0.0, AI.commit - dt)
 
