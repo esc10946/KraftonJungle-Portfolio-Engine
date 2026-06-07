@@ -1,11 +1,28 @@
 #include "Component/Combat/HealthComponent.h"
 
+#include "Animation/AnimInstance.h"
+#include "Animation/Notify/AnimNotifyState_ParryWindow.h"
 #include "Component/Combat/CombatStateComponent.h"
+#include "Component/Primitive/SkeletalMeshComponent.h"
 #include "GameFramework/AActor.h"
 #include "Math/MathUtils.h"
 #include "Profiling/Stats/Stats.h"
 
 #include <cmath>
+
+namespace
+{
+	UAnimInstance* GetActorAnimInstance(AActor* Actor)
+	{
+		if (!IsValid(Actor))
+		{
+			return nullptr;
+		}
+
+		USkeletalMeshComponent* Mesh = Actor->GetComponentByClass<USkeletalMeshComponent>();
+		return IsValid(Mesh) ? Mesh->GetAnimInstance() : nullptr;
+	}
+}
 
 void UHealthComponent::BeginPlay()
 {
@@ -70,6 +87,10 @@ FCombatDamageReport UHealthComponent::ApplyDamageSpec(const FCombatDamageSpec& D
 				const EDeflectGrade Grade = CombatState->ConsumeDeflect(Attacker);
 				if (Grade == EDeflectGrade::Perfect || Grade == EDeflectGrade::Good)
 				{
+					UAnimNotifyState_ParryWindow::ReportCounterOpportunity(
+						GetActorAnimInstance(OwnerActor),
+						Attacker,
+						DamageSpec.HitLocation);
 					Report.Result = ECombatDamageResult::Deflected;
 					Report.NewHealth = CurrentHealth;
 					return Report;

@@ -26,6 +26,7 @@ public:
 	static bool ReportSuccessfulParry(UAnimInstance* AnimInstance);
 	static bool ReportSuccessfulParry(UAnimInstance* AnimInstance, AActor* Attacker);
 	static bool ReportSuccessfulParry(UAnimInstance* AnimInstance, AActor* Attacker, const FVector& HitLocation);
+	static bool ReportCounterOpportunity(UAnimInstance* AnimInstance, AActor* Attacker, const FVector& HitLocation);
 	static bool ConsumeSuccessfulParry(UAnimInstance* AnimInstance);
 	static AActor* ConsumeSuccessfulParryAttacker(UAnimInstance* AnimInstance);
 	static bool ConsumeSuccessfulParryData(

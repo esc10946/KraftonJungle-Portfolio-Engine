@@ -62,6 +62,10 @@ local function load_counter_montage(ctx)
     end
 end
 
+local function is_counter_input_pressed(ctx)
+    return Input.GetKeyDown(ctx.config.RMB)
+end
+
 local function load_counter_sounds(ctx)
     if ctx == nil or ctx.cache == nil or ctx.config == nil then
         return
@@ -369,6 +373,7 @@ function Counter.Play(ctx, target, hitLocation)
     end
 
     Context.StopCurrentMontage(ctx)
+    State.ResetAttack(ctx)
     State.ResetGuard(ctx)
     ctx.state.counterPlaying = true
     ctx.state.canCancelCounter = false
@@ -399,7 +404,7 @@ function Counter.StopForCancel(ctx)
 end
 
 function Counter.UpdateOpportunity(ctx)
-    if not ctx.state.defensePlaying then
+    if not ctx.state.defensePlaying and not ctx.state.attackPlaying then
         return
     end
 
@@ -411,6 +416,22 @@ function Counter.UpdateOpportunity(ctx)
             Counter.Play(ctx, opportunityTarget, hitLocation)
         end
     end
+end
+
+function Counter.UpdateInputWindow(ctx)
+    if not ctx.state.attackPlaying or ctx.state.counterPlaying then
+        return
+    end
+
+    if not is_counter_input_pressed(ctx) then
+        return
+    end
+
+    if not Context.IsCounterInputWindowActive(ctx) then
+        return
+    end
+
+    Context.OpenCounterInputDeflect(ctx)
 end
 
 function Counter.UpdateCancelWindow(ctx)
@@ -463,6 +484,7 @@ function Counter.BeginPlay(ctx)
 end
 
 function Counter.Tick(ctx, dt)
+    Counter.UpdateInputWindow(ctx)
     Counter.UpdateOpportunity(ctx)
     Counter.UpdateCancelWindow(ctx)
     Counter.UpdateSequence(ctx, dt)

@@ -156,6 +156,34 @@ bool UAnimNotifyState_ParryWindow::ReportSuccessfulParry(
 	return false;
 }
 
+bool UAnimNotifyState_ParryWindow::ReportCounterOpportunity(
+	UAnimInstance* AnimInstance,
+	AActor* Attacker,
+	const FVector& HitLocation)
+{
+	SCOPE_STAT_CAT("ParryWindow.ReportCounterOpportunity", "Combat");
+	PurgeInvalidParryMeshes();
+
+	USkeletalMeshComponent* MeshComp = GetMeshFromAnimInstance(AnimInstance);
+	if (!MeshComp)
+	{
+		return false;
+	}
+
+	const TWeakObjectPtr<USkeletalMeshComponent> Key(MeshComp);
+	GSuccessfulParryMeshes.insert(Key);
+	if (IsValid(Attacker))
+	{
+		GSuccessfulParryAttackers[Key] = Attacker;
+	}
+	else
+	{
+		GSuccessfulParryAttackers.erase(Key);
+	}
+	GSuccessfulParryHitLocations[Key] = HitLocation;
+	return true;
+}
+
 bool UAnimNotifyState_ParryWindow::ConsumeSuccessfulParry(UAnimInstance* AnimInstance)
 {
 	AActor* Attacker = nullptr;

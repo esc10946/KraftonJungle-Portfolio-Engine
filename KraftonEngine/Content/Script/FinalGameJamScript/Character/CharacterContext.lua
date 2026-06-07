@@ -78,6 +78,7 @@ function Context.Create(owner)
             movement = nil,
             actionComponent = nil,
             healthComponent = nil,
+            combatStateComponent = nil,
             attackMontages = {},
             hitMontages = {},
             defenseIdleMontage = nil,
@@ -169,6 +170,15 @@ function Context.GetHealthComponent(ctx)
     return ctx.cache.healthComponent
 end
 
+function Context.GetCombatStateComponent(ctx)
+    if ctx.cache.combatStateComponent ~= nil then
+        return ctx.cache.combatStateComponent
+    end
+
+    ctx.cache.combatStateComponent = Context.Call(ctx.obj, "GetCombatStateComponent")
+    return ctx.cache.combatStateComponent
+end
+
 function Context.StopCurrentMontage(ctx)
     local anim = Context.GetAnimInstance(ctx)
     if anim ~= nil and anim.StopMontage ~= nil then
@@ -197,6 +207,25 @@ end
 
 function Context.IsCounterWindowActive(ctx)
     return Context.IsParryWindowActive(ctx)
+end
+
+function Context.IsCounterInputWindowActive(ctx)
+    local anim = Context.GetAnimInstance(ctx)
+    if anim == nil or Animation == nil or Animation.IsCounterInputWindowActive == nil then
+        return false
+    end
+
+    return Animation.IsCounterInputWindowActive(anim)
+end
+
+function Context.OpenCounterInputDeflect(ctx)
+    local combat = Context.GetCombatStateComponent(ctx)
+    if combat == nil or combat.OpenDeflectWindow == nil then
+        return false
+    end
+
+    combat:OpenDeflectWindow(ctx.config.COUNTER_INPUT_DEFLECT_WINDOW_SECONDS or 0.12)
+    return true
 end
 
 function Context.ConsumeSuccessfulParry(ctx)

@@ -32,6 +32,7 @@ local commandList = {
     { Tick = HitReaction.UpdateCancelWindow },
     { Tick = Guard.UpdateCounterWindow },
     { Tick = Counter.UpdateParticles },
+    { Tick = Counter.UpdateInputWindow },
     { Tick = Counter.UpdateOpportunity },
     { Tick = Counter.UpdateCancelWindow },
     { Tick = Locomotion.UpdateMovementLock },

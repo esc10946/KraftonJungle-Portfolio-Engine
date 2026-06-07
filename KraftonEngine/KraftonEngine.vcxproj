@@ -502,6 +502,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Engine\Animation\Notify\AnimNotifyEvent.cpp" />
     <ClCompile Include="Source\Engine\Animation\Notify\AnimNotifyState.cpp" />
     <ClCompile Include="Source\Engine\Animation\Notify\AnimNotifyState_AttackHitWindow.cpp" />
+    <ClCompile Include="Source\Engine\Animation\Notify\AnimNotifyState_CounterInputWindow.cpp" />
     <ClCompile Include="Source\Engine\Animation\Notify\AnimNotifyState_LogDuration.cpp" />
     <ClCompile Include="Source\Engine\Animation\Notify\AnimNotifyState_ParryWindow.cpp" />
     <ClCompile Include="Source\Engine\Animation\Notify\AnimNotifyState_Particle.cpp" />
@@ -1004,6 +1005,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\Animation\Notify\AnimNotifyEvent.h" />
     <ClInclude Include="Source\Engine\Animation\Notify\AnimNotifyState.h" />
     <ClInclude Include="Source\Engine\Animation\Notify\AnimNotifyState_AttackHitWindow.h" />
+    <ClInclude Include="Source\Engine\Animation\Notify\AnimNotifyState_CounterInputWindow.h" />
     <ClInclude Include="Source\Engine\Animation\Notify\AnimNotifyState_LogDuration.h" />
     <ClInclude Include="Source\Engine\Animation\Notify\AnimNotifyState_ParryWindow.h" />
     <ClInclude Include="Source\Engine\Animation\Notify\AnimNotifyState_Particle.h" />

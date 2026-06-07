@@ -8,6 +8,7 @@
 #include "Animation/AnimationManager.h"
 #include "Animation/Montage/AnimMontage.h"
 #include "Animation/Notify/AnimNotify_EnableAttack.h"
+#include "Animation/Notify/AnimNotifyState_CounterInputWindow.h"
 #include "Animation/Notify/AnimNotifyState_ParryWindow.h"
 #include "Component/Camera/CameraComponent.h"
 #include "Component/Animation/CharacterLocomotionComponent.h"
@@ -401,6 +402,13 @@ void RegisterGameLuaBindings(sol::state& Lua)
 		[](UAnimInstance* AnimInstance) -> bool
 		{
 			return UAnimNotifyState_ParryWindow::IsParryWindowActive(AnimInstance);
+		}
+	);
+	Animation.set_function(
+		"IsCounterInputWindowActive",
+		[](UAnimInstance* AnimInstance) -> bool
+		{
+			return UAnimNotifyState_CounterInputWindow::IsCounterInputWindowActive(AnimInstance);
 		}
 	);
 	Animation.set_function(

@@ -174,7 +174,20 @@ namespace
 
 	bool IsParryTarget(AActor* Target)
 	{
-		return UAnimNotifyState_ParryWindow::IsParryWindowActive(GetActorAnimInstance(Target));
+		if (UAnimNotifyState_ParryWindow::IsParryWindowActive(GetActorAnimInstance(Target)))
+		{
+			return true;
+		}
+
+		if (IsValid(Target))
+		{
+			if (UCombatStateComponent* TargetCombat = Target->GetComponentByClass<UCombatStateComponent>())
+			{
+				return TargetCombat->IsDeflecting();
+			}
+		}
+
+		return false;
 	}
 
 	bool TryResolveParry(
@@ -185,13 +198,33 @@ namespace
 	{
 		SCOPE_STAT_CAT("AttackHitWindow.TryResolveParry", "Combat");
 		UAnimInstance* TargetAnimInstance = GetActorAnimInstance(Target);
-		if (!UAnimNotifyState_ParryWindow::IsParryWindowActive(TargetAnimInstance))
+		bool bResolved = false;
+		if (UAnimNotifyState_ParryWindow::IsParryWindowActive(TargetAnimInstance))
+		{
+			bResolved = UAnimNotifyState_ParryWindow::ReportSuccessfulParry(TargetAnimInstance, Attacker, HitLocation);
+		}
+		else if (IsValid(Target))
+		{
+			if (UCombatStateComponent* TargetCombat = Target->GetComponentByClass<UCombatStateComponent>())
+			{
+				if (TargetCombat->IsDeflecting())
+				{
+					const EDeflectGrade Grade = TargetCombat->ConsumeDeflect(Attacker);
+					if (Grade == EDeflectGrade::Perfect || Grade == EDeflectGrade::Good)
+					{
+						UAnimNotifyState_ParryWindow::ReportCounterOpportunity(TargetAnimInstance, Attacker, HitLocation);
+						bResolved = true;
+					}
+				}
+			}
+		}
+
+		if (!bResolved)
 		{
 			return false;
 		}
 
 		FaceDefenderTowardAttacker(Target, Attacker);
-		UAnimNotifyState_ParryWindow::ReportSuccessfulParry(TargetAnimInstance, Attacker, HitLocation);
 		if (bRagdollAttacker)
 		{
 			if (ACharacter* AttackerCharacter = Cast<ACharacter>(Attacker))
