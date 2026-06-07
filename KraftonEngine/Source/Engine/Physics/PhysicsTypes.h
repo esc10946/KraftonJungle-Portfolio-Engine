@@ -8,6 +8,13 @@
 #include "Object/FName.h"
 #include "Physics/PhysicsBodyHandle.h"
 
+// Forward declaration — only a non-owning pointer to a cooked triangle mesh is
+// stored in FPhysicsShapeDesc, so the engine-facing header avoids the PhysX include.
+namespace physx
+{
+    class PxTriangleMesh;
+}
+
 enum class EPhysicsBodyType : uint8
 {
     Static,
@@ -203,6 +210,11 @@ struct FPhysicsShapeDesc
 
     float CapsuleRadius     = 50.0f;
     float CapsuleHalfHeight = 100.0f;
+
+    // EPhysicsShapeType::TriangleMesh 전용 — 쿠킹된 메시(에셋 단위로 캐시/공유, 소유하지 않음)와
+    // 인스턴스별 월드 스케일. 정점은 메시 로컬 공간이라 스케일은 PxMeshScale 로 적용한다.
+    physx::PxTriangleMesh* TriangleMesh = nullptr;
+    FVector                MeshScale    = FVector(1.0f, 1.0f, 1.0f);
 
     ECollisionEnabled CollisionEnabled = ECollisionEnabled::QueryAndPhysics;
 

@@ -182,6 +182,23 @@ PxShape* FPhysXBodyBuilder::CreateShape(PxPhysics* Physics, PxMaterial* DefaultM
         ShapeAxisRotation = PxQuat(-PxHalfPi, PxVec3(0.0f, 1.0f, 0.0f));
         bHasGeometry = true;
     }
+    else if (Desc.Type == EPhysicsShapeType::TriangleMesh)
+    {
+        // 정점은 메시 로컬 공간 그대로이고, 인스턴스 스케일은 PxMeshScale 로 적용한다.
+        // PxTriangleMeshGeometry 는 static/kinematic actor 에만 붙일 수 있으므로
+        // dynamic body 로의 라우팅은 호출부(BuildShapeDescFromComponent)에서 막는다.
+        if (!Desc.TriangleMesh ||
+            !IsFiniteGeometryValue(Desc.MeshScale.X) ||
+            !IsFiniteGeometryValue(Desc.MeshScale.Y) ||
+            !IsFiniteGeometryValue(Desc.MeshScale.Z))
+        {
+            return nullptr;
+        }
+
+        const PxMeshScale MeshScale(ToPxVec3(Desc.MeshScale), PxQuat(PxIdentity));
+        Geometry     = PxTriangleMeshGeometry(Desc.TriangleMesh, MeshScale);
+        bHasGeometry = true;
+    }
 
     if (!bHasGeometry)
     {
