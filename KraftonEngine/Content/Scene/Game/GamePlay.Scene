@@ -1771,7 +1771,7 @@
                 "Damage" : 22.000000,
                 "HitTimeFraction" : 0.420000,
                 "MaxAbsAngle" : 72.000000,
-                "MaxPhase" : 1,
+                "MaxPhase" : 3,
                 "MaxRange" : 3.800000,
                 "MaxVerticalDelta" : 2.250000,
                 "MinPhase" : 1,
@@ -1804,7 +1804,7 @@
                 "Damage" : 20.000000,
                 "HitTimeFraction" : 0.420000,
                 "MaxAbsAngle" : 100.000000,
-                "MaxPhase" : 1,
+                "MaxPhase" : 3,
                 "MaxRange" : 4.400000,
                 "MaxVerticalDelta" : 2.250000,
                 "MinPhase" : 1,
@@ -1837,7 +1837,7 @@
                 "Damage" : 26.000000,
                 "HitTimeFraction" : 0.420000,
                 "MaxAbsAngle" : 72.000000,
-                "MaxPhase" : 1,
+                "MaxPhase" : 3,
                 "MaxRange" : 2.800000,
                 "MaxVerticalDelta" : 2.250000,
                 "MinPhase" : 1,
@@ -1870,7 +1870,7 @@
                 "Damage" : 30.000000,
                 "HitTimeFraction" : 0.420000,
                 "MaxAbsAngle" : 64.000000,
-                "MaxPhase" : 2,
+                "MaxPhase" : 3,
                 "MaxRange" : 7.200000,
                 "MaxVerticalDelta" : 2.250000,
                 "MinPhase" : 2,
@@ -1903,7 +1903,7 @@
                 "Damage" : 28.000000,
                 "HitTimeFraction" : 0.420000,
                 "MaxAbsAngle" : 110.000000,
-                "MaxPhase" : 2,
+                "MaxPhase" : 3,
                 "MaxRange" : 4.600000,
                 "MaxVerticalDelta" : 2.250000,
                 "MinPhase" : 2,
@@ -2068,7 +2068,7 @@
                 "Damage" : 24.000000,
                 "HitTimeFraction" : 0.420000,
                 "MaxAbsAngle" : 90.000000,
-                "MaxPhase" : 2,
+                "MaxPhase" : 3,
                 "MaxRange" : 3.200000,
                 "MaxVerticalDelta" : 2.250000,
                 "MinPhase" : 1,
@@ -2215,7 +2215,7 @@
             "FootfallsPerCycle" : 2,
             "FootstepShakeScale" : 0.000000,
             "IdleAnimPath" : "Content/Data/Samura2/source/Standing Idle_mixamo_com.uasset",
-            "JumpAnimPath" : "Content/Data/Samura2/source/Standing Jump_mixamo_com.uasset",
+            "JumpAnimPath" : "Content/Data/Samura2/source/Jumping Up_mixamo_com.uasset",
             "RunAnimPath" : "Content/Data/Samura2/source/Standing Run Forward_mixamo_com.uasset",
             "RunShakeMultiplier" : 1.000000,
             "RunSpeedThreshold" : 4.000000,
@@ -2354,7 +2354,19 @@
           "ClassName" : "UAnimMontage"
         },
         "LeapMontage" : {
-          "AssetPath" : "Content/Montages/Standing Jump_mixamo_com_Montage.uasset",
+          "AssetPath" : "Content/Montages/Jumping Up_mixamo_com_Montage.uasset",
+          "ClassName" : "UAnimMontage"
+        },
+        "JumpUpMontage" : {
+          "AssetPath" : "Content/Montages/Jumping Up_mixamo_com_Montage.uasset",
+          "ClassName" : "UAnimMontage"
+        },
+        "JumpFallMontage" : {
+          "AssetPath" : "Content/Montages/Falling Idle_mixamo_com_Montage.uasset",
+          "ClassName" : "UAnimMontage"
+        },
+        "JumpDownMontage" : {
+          "AssetPath" : "Content/Montages/Jumping Down_mixamo_com_Montage.uasset",
           "ClassName" : "UAnimMontage"
         },
         "LeapDashScale" : 5.000000,

@@ -74,6 +74,11 @@ public:
 	UPROPERTY(Edit, Save, Category="EnemyAI|Hit", DisplayName="Poise Through During Own Attack")
 	bool bPoiseThroughDuringOwnAttack = true;
 
+	// 이동(걷기/달리기) 중이면 일반 피격 경직을 생략한다(걷기 모션이 풀바디 경직에 덮여 슬라이딩처럼
+	// 보이는 것 방지). 가드 리액션은 제외(항상 재생). 정지 상태에서만 경직.
+	UPROPERTY(Edit, Save, Category="EnemyAI|Hit", DisplayName="Skip Hit While Moving")
+	bool bSkipHitWhileMoving = true;
+
 	UPROPERTY(Edit, Save, Category="EnemyAI|Hit", DisplayName="Stop Current Montage Before Hit")
 	bool bStopCurrentMontageBeforeHit = true;
 

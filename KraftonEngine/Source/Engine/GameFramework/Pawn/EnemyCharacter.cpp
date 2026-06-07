@@ -285,6 +285,21 @@ void AEnemyCharacter::Tick(float DeltaTime)
 	}
 	ApplySeparationSteering();
 
+	// 백점프 지연 발사: 준비동작(LeapPrepDelay)이 끝나면 점프(수직)+수평 임펄스를 가한다.
+	if (PendingLeapTime > 0.0f)
+	{
+		PendingLeapTime -= DeltaTime;
+		if (PendingLeapTime <= 0.0f)
+		{
+			Jump(); // 수직 팝 + Falling 모드 전환
+			if (UCharacterMovementComponent* Move = GetComponentByClass<UCharacterMovementComponent>())
+			{
+				Move->AddExternalImpulse(PendingLeapImpulse); // 후방 수평 임펄스(공중 마찰 없음 → 거리)
+			}
+			PendingLeapImpulse = FVector::ZeroVector;
+		}
+	}
+
 	// 의사결정은 Lua Blueprint가 전담한다. C++은 센서/이동/공격 실행 타임라인만 진행한다.
 	CombatClock.Accumulate(DeltaTime);
 	UpdateAttackExecution(DeltaTime);
@@ -1325,13 +1340,13 @@ void AEnemyCharacter::Brain_LeapBack()
 {
 	StopEnemyMovement();
 	SetRuntimeState(FName("Dodge"));
-	// 강한 후방 대시(타깃 반대) + 점프(수직 팝) → 멀리 도약. BeginDash 는 양수면 타깃 방향이므로 음수.
-	if (UCharacterStateMachineComponent* SM = GetStateMachine())
+
+	// 공중 상승 단계 몽타주(준비동작 포함)로 시작 — 이후 Brain_DriveLocomotion 이 Falling/Down 으로 이어간다.
+	if (JumpUpMontage)
 	{
-		SM->BeginDash(0.45f, -LeapDashScale);
+		PlayCombatMontageRated(JumpUpMontage, 1.0f, 0.05f);
 	}
-	Jump();  // ACharacter::Jump — JumpZVelocity 만큼 수직 속도 부여 → 슬라이드가 아닌 도약
-	if (LeapMontage)
+	else if (LeapMontage)
 	{
 		PlayCombatMontageRated(LeapMontage, 1.0f, 0.08f);
 	}
@@ -1339,6 +1354,25 @@ void AEnemyCharacter::Brain_LeapBack()
 	{
 		PlayCombatMontageRated(DodgeMontage, 1.0f, 0.08f);
 	}
+
+	// 발사 방향 = 타깃 반대(수평). 준비동작이 끝난 뒤(LeapPrepDelay) 실제로 점프+수평 임펄스를
+	// 가한다(준비 중에 떠버리지 않게). 공중엔 수평 마찰이 없어 임펄스가 그대로 거리로 환산된다.
+	FVector Away = GetActorForward() * -1.0f;
+	if (UEnemyAIBrainComponent* Brain = AIBrainComponent.Get())
+	{
+		if (AActor* Target = Brain->HasValidTarget() ? Brain->GetTarget() : nullptr)
+		{
+			FVector ToTarget = Target->GetActorLocation() - GetActorLocation();
+			ToTarget.Z = 0.0f;
+			if (!ToTarget.IsNearlyZero())
+			{
+				Away = ToTarget.Normalized() * -1.0f;
+			}
+		}
+	}
+	Away.Z = 0.0f;
+	PendingLeapImpulse = Away * LeapHorizontalForce;
+	PendingLeapTime = (std::max)(0.02f, LeapPrepDelay);
 }
 
 void AEnemyCharacter::Brain_DriveLocomotion()
@@ -1349,10 +1383,38 @@ void AEnemyCharacter::Brain_DriveLocomotion()
 		return;
 	}
 	float Speed = 0.0f;
+	bool bFalling = false;
+	float VerticalVel = 0.0f;
 	if (UCharacterMovementComponent* Move = GetComponentByClass<UCharacterMovementComponent>())
 	{
 		const FVector V = Move->GetVelocityValue();
 		Speed = std::sqrt(V.X * V.X + V.Y * V.Y);
+		VerticalVel = V.Z;
+		bFalling = Move->IsFalling();
+	}
+
+	// 공중(점프/도약) 단계: 세분화된 점프 — 상승=JumpUp, 체공/낙하=JumpFall.
+	if (bFalling)
+	{
+		UAnimMontage* Air = (VerticalVel > 0.5f) ? JumpUpMontage : JumpFallMontage;
+		if (!Air) { Air = JumpUpMontage ? JumpUpMontage : JumpFallMontage; }   // 폴백
+		if (Air && !Anim->IsMontagePlaying(Air))
+		{
+			Anim->PlayMontage(Air, FName::None, 1.0f, 0.08f);
+		}
+		bWasFalling = true;
+		return;
+	}
+
+	// 착지 순간(직전 틱 공중 → 지금 지상): JumpDown(랜딩)을 1회 재생하고, 끝까지 재생되게 양보.
+	if (bWasFalling)
+	{
+		bWasFalling = false;
+		if (JumpDownMontage)
+		{
+			Anim->PlayMontage(JumpDownMontage, FName::None, 1.0f, 0.06f);
+			return;
+		}
 	}
 
 	UAnimMontage* Desired = LocoIdleMontage;

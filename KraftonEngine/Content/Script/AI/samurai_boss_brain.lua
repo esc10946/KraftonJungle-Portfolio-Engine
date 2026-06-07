@@ -201,7 +201,7 @@ local Actions = {
     },
     -- ▷ 백점프(하드 디스인게이지): 자원 바닥 / 상대 공격적 / 위험공격이면 멀리 도약해 거리를 크게 벌린다.
     {
-        name = "leap", commit = 0.45,
+        name = "leap", commit = 1.8,
         score = function(bb)
             if not bb.perceive or bb.ratio > 1.5 then return 0 end     -- 근접에서만 의미
             local s = 0.0
@@ -252,7 +252,9 @@ local Actions = {
             elseif bb.acting then opening = 0.5 end              -- 상대 스윙에 무리 진입 자제(가드 우선)
             if bb.targetHP > 0 and bb.targetHP < 0.3 then opening = opening * 1.2 end
             local parried = bb.lastDeflect and 0.5 or 1.0
-            return 0.85 * fit * fuel * opening * parried
+            -- 페이즈 성향: P1 절제된 검술(공세↓) → P2 → P3 광폭화(공세↑). 각 페이즈를 확연히 다르게.
+            local phaseAggr = (bb.phase >= 3) and 1.20 or ((bb.phase >= 2) and 0.95 or 0.70)
+            return 0.75 * fit * fuel * opening * parried * phaseAggr
         end,
         run = function(bb)
             if try_attack(bb) then
@@ -290,9 +292,9 @@ local Actions = {
             if not bb.perceive then return 0 end
             local tooClose = 0.40 * Curve.atMost(bb.ratio, 0.7)
             local rest     = 0.55 * Curve.invquad(bb.tempo)      -- 자원 바닥일 때만 크게 → 짧은 휴식 리듬
-            local hurt     = (bb.selfHP < 0.35) and 0.30 or 0.0
             local parried  = bb.lastDeflect and 0.45 or 0.0
-            local s = tooClose + rest + hurt + parried
+            -- 저체력이라고 후퇴하지 않는다(페이즈3 발악 = 압박 유지) → 접근↔후퇴 오실레이션 방지.
+            local s = tooClose + rest + parried
             if bb.cornered then s = s * 0.4 end                  -- 코너면 후퇴 대신 스트레이프가 이김
             return s
         end,
@@ -314,8 +316,11 @@ local function run_action(a, bb)
 end
 
 local function choose_and_run(bb, dt)
-    -- 도약 중에는 끝까지 진행한다(공중에선 방향 못 바꿈 — 대시/점프/몽타주가 그대로 재생).
-    if AI.action == "leap" and AI.commit > 0.0 then return end
+    -- 도약 중에는 끝까지 진행한다(공중에선 방향 못 바꿈). 공중 점프 단계 애니(Up/Down)는 계속 구동.
+    if AI.action == "leap" and AI.commit > 0.0 then
+        call(obj, "Brain_DriveLocomotion")
+        return
+    end
 
     -- 관성: 현재 커밋된 이동/관찰 행동이 아직 유효하면 유지(디더링 방지).
     if AI.action and AI.commit > 0.0 then
@@ -403,8 +408,11 @@ function Tick(dt)
     if call(obj, "Brain_IsBusy") == true then return end          -- 공격/경직 중 — 두뇌 정지
     if call(obj, "Brain_ConsumeCombatStep") ~= true then return end
 
-    -- 템포 자원 회복 + 행동 커밋 타이머 감소(프레임당 1회).
-    AI.tempo  = clamp(AI.tempo + 0.40 * dt, 0.0, 1.0)
+    -- 템포 자원 회복 + 행동 커밋 타이머 감소(프레임당 1회). 회복 속도를 페이즈로 달리해 리듬을
+    -- 차별화: P1 느림(긴 호흡, 절제) → P3 빠름(짧은 호흡, 연속 압박).
+    local _ph = call(obj, "Brain_GetPhase") or 1
+    local _regen = (_ph >= 3) and 0.55 or ((_ph >= 2) and 0.38 or 0.24)
+    AI.tempo  = clamp(AI.tempo + _regen * dt, 0.0, 1.0)
     AI.commit = math.max(0.0, AI.commit - dt)
 
     if call(obj, "Brain_AcquireTarget") ~= true then

@@ -5,6 +5,7 @@
 #include "Component/AI/EnemyAttackComponent.h"
 #include "Component/Combat/CombatStateComponent.h"
 #include "Component/Combat/HealthComponent.h"
+#include "Component/Movement/CharacterMovementComponent.h"
 #include "Component/Primitive/SkeletalMeshComponent.h"
 #include "GameFramework/AActor.h"
 #include "GameFramework/Pawn/Character.h"
@@ -157,7 +158,7 @@ void UEnemyHitComponent::HandleDamaged(
 		RestartAttackCooldowns();
 	}
 
-	// 가드 중 피격이면 가드 리액션(막기 흔들림)을, 아니면 방향별 피격 리액션을 재생한다.
+	// 가드 중 피격이면 가드 리액션(막기 흔들림)을 재생(이동 중이어도 가드는 제자리이므로 항상).
 	if (Combat && Combat->IsGuarding() && GuardHitMontage)
 	{
 		ACharacter* Character = Cast<ACharacter>(Owner);
@@ -170,6 +171,20 @@ void UEnemyHitComponent::HandleDamaged(
 			}
 			AnimInstance->PlayMontage(GuardHitMontage);
 			return;
+		}
+	}
+
+	// 이동(걷기/달리기) 중이면 경직 몽타주를 생략한다 — 풀바디 피격 몽타주가 걷기를 덮어 슬라이딩처럼
+	// 보이던 문제 수정(슈퍼아머 보스는 칩 피해를 걸으며 흘린다). 정지 상태에서만 경직.
+	if (bSkipHitWhileMoving && Owner)
+	{
+		if (UCharacterMovementComponent* Move = Owner->GetComponentByClass<UCharacterMovementComponent>())
+		{
+			const FVector V = Move->GetVelocityValue();
+			if (std::sqrt(V.X * V.X + V.Y * V.Y) > 0.3f)
+			{
+				return;
+			}
 		}
 	}
 

@@ -338,13 +338,32 @@ public:
 	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Dodge Dash Scale", Min=0.0f, Max=5.0f, Speed=0.05f)
 	float DodgeDashScale = 2.2f;
 
-	// 백점프(Brain_LeapBack) 비주얼 몽타주(예: Standing Jump).
+	// 백점프(Brain_LeapBack) 비주얼 몽타주(폴백). 보통은 아래 JumpUp/Down 으로 공중 단계가 구동된다.
 	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Leap Montage", Type=ObjectRef, AllowedClass=UAnimMontage)
 	UAnimMontage* LeapMontage = nullptr;
 
-	// 백점프 후방 대시 세기(회피보다 크게 — 멀리 벌림).
+	// 세분화된 점프: 공중 상승(JumpUp)/하강(JumpDown) 단계별 몽타주. Brain_DriveLocomotion 이
+	// 수직 속도로 골라 재생한다(상승=Up, 하강=Down).
+	UPROPERTY(Edit, Save, Category="Enemy|Locomotion", DisplayName="Jump Up Montage", Type=ObjectRef, AllowedClass=UAnimMontage)
+	UAnimMontage* JumpUpMontage = nullptr;
+	// 공중 낙하(상승과 착지 사이의 체공/낙하 단계).
+	UPROPERTY(Edit, Save, Category="Enemy|Locomotion", DisplayName="Jump Fall Montage", Type=ObjectRef, AllowedClass=UAnimMontage)
+	UAnimMontage* JumpFallMontage = nullptr;
+	UPROPERTY(Edit, Save, Category="Enemy|Locomotion", DisplayName="Jump Down Montage", Type=ObjectRef, AllowedClass=UAnimMontage)
+	UAnimMontage* JumpDownMontage = nullptr;
+
+	// 백점프 후방 대시 세기(구버전 폴백 — 현재는 아래 임펄스 방식 사용).
 	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Leap Dash Scale", Min=0.0f, Max=10.0f, Speed=0.1f)
 	float LeapDashScale = 5.0f;
+
+	// 백점프 수평 임펄스 세기(타깃 반대 방향, m/s). 공중에선 수평 마찰이 없어 그대로 거리로 환산됨.
+	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Leap Horizontal Force", Min=0.0f, Max=20.0f, Speed=0.1f)
+	float LeapHorizontalForce = 7.0f;
+
+	// 백점프 준비동작(프렙) 시간(초). JumpUp 몽타주의 도약 직전까지 기다렸다가 실제로 발사한다
+	// (준비 중에 떠버리는 문제 방지). 애님의 takeoff 프레임에 맞춰 조절.
+	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Leap Prep Delay", Min=0.0f, Max=1.0f, Speed=0.01f)
+	float LeapPrepDelay = 0.25f;
 
 	// ── 몽타주 기반 로코모션 (그래프 모드에서 walk/run + 공격 몽타주 공존) ──
 	// 각 몽타주는 NextSection=자기자신으로 무한 루프하도록 저작해야 한다.
@@ -441,6 +460,11 @@ private:
 	bool bCurrentAttackHitApplied = false;
 	// 마지막으로 재생한 공격 몽타주(꼬리 식별용 — 이동 시 걷기로 덮어쓸지/리액션에 양보할지 구분).
 	UAnimMontage* CurrentAttackMontage = nullptr;
+	// 직전 틱에 공중(낙하)이었는가 — 착지 순간 감지해 JumpDown(랜딩)을 1회 재생하기 위함.
+	bool bWasFalling = false;
+	// 백점프 지연 발사: 준비동작 후 실제 점프/임펄스를 가하기 위한 대기 시간과 임펄스 벡터.
+	float PendingLeapTime = 0.0f;
+	FVector PendingLeapImpulse = FVector::ZeroVector;
 
 	// 직전 공격 결과(공격 문법 분기용). 공격 시작 시 리셋, 피해 적용 시 갱신.
 	ECombatDamageResult LastAttackResult = ECombatDamageResult::None;
