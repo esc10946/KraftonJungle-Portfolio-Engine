@@ -1,6 +1,8 @@
-#include "AFinaleGameMode.h"
+﻿#include "AFinaleGameMode.h"
 #include "GameState.h"
 #include "Engine/Core/Logging/Log.h"
+#include "GameFramework/Pawn/Pawn.h"
+#include "GameFramework/Actor/TriggerVolumeBase.h"
 #include "Engine/Object/Reflection/UClass.h"
 #include "Engine/GameFramework/World.h"
 #include "Engine/GameFramework/GameMode/PlayerController.h"
@@ -211,7 +213,18 @@ void AFinaleGameMode::OnVictory()
 
 void AFinaleGameMode::OnPossessedPawnEnteredTrigger(ATriggerVolumeBase* Trigger, APawn* Pawn)
 {
-	// Does nothing for now
+	if (!Trigger || !Pawn || !Pawn->IsPossessed()) return;
+
+	const FName Tag = Trigger->GetTriggerTag();
+
+	UE_LOG("[OnPossessedPawnEnteredTrigger] Trigger Box Invoked");
+
+	if (Tag == FName("TrueDeath"))
+	{
+		UE_LOG("[OnPossessedPawnEnteredTrigger] Kill Box Invoked");
+		OnPlayerDefeated();
+		return;
+	}
 }
 
 void AFinaleGameMode::OnPossessedPawnExitedTrigger(ATriggerVolumeBase* Trigger, APawn* Pawn)

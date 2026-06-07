@@ -466,6 +466,14 @@ function Tick(dt)
     elseif prevPhase == "Dead" and phase == "Defeated" then
         -- True death: keep the overlay (red icon on black) + return-to-title.
         ShowDefeated()
+    elseif phase == "Defeated" and prevPhase ~= "Defeated" then
+        -- Instant true death straight from gameplay (e.g. a "TrueDeath" kill-box
+        -- trigger). The GameMode jumps Playing -> Defeated in one frame, so the
+        -- Dead-phase fade never ran and the overlay was never stood up. Raise it,
+        -- rush the screen to black, and resolve straight to the defeated state.
+        ShowDeath()
+        Game.CameraFade(Game.GetCameraFade(), 1, GIVE_IN_FADE)
+        ShowDefeated()
     elseif phase == "Victory" and prevPhase ~= "Victory" then
         ShowVictory()
     elseif prevPhase == "Victory" and phase ~= "Victory" then
