@@ -4,7 +4,7 @@ Config.LMB = "LeftMouseButton"
 Config.RMB = "RightMouseButton"
 Config.MOVE_KEYS = { "W", "A", "S", "D" }
 
-Config.WEAPON_MESH_PATH = "Content/Data/FGJ_Character/Weapon/Katana_StaticMesh.uasset"
+Config.WEAPON_MESH_PATH = "Content/Data/Weapon/JapanSword/Katana_StaticMesh.uasset"
 Config.RWEAPON_SOCKET = "RH_Socket"
 Config.LWEAPON_SOCKET = "LH_Socket"
 

@@ -4,6 +4,47 @@
 #include "Component/Primitive/SkeletalMeshComponent.h"
 
 #include <algorithm>
+#include <cmath>
+
+namespace
+{
+	constexpr float SocketMatrixDecomposeTolerance = 1.0e-6f;
+
+	FTransform DecomposeSocketMatrix(const FMatrix& Matrix)
+	{
+		FTransform Result;
+		Result.Location = Matrix.GetLocation();
+		Result.Scale = Matrix.GetScale();
+
+		FMatrix RotationMatrix = Matrix;
+		RotationMatrix.M[3][0] = 0.0f;
+		RotationMatrix.M[3][1] = 0.0f;
+		RotationMatrix.M[3][2] = 0.0f;
+		RotationMatrix.M[3][3] = 1.0f;
+
+		if (std::fabs(Result.Scale.X) > SocketMatrixDecomposeTolerance)
+		{
+			RotationMatrix.M[0][0] /= Result.Scale.X;
+			RotationMatrix.M[0][1] /= Result.Scale.X;
+			RotationMatrix.M[0][2] /= Result.Scale.X;
+		}
+		if (std::fabs(Result.Scale.Y) > SocketMatrixDecomposeTolerance)
+		{
+			RotationMatrix.M[1][0] /= Result.Scale.Y;
+			RotationMatrix.M[1][1] /= Result.Scale.Y;
+			RotationMatrix.M[1][2] /= Result.Scale.Y;
+		}
+		if (std::fabs(Result.Scale.Z) > SocketMatrixDecomposeTolerance)
+		{
+			RotationMatrix.M[2][0] /= Result.Scale.Z;
+			RotationMatrix.M[2][1] /= Result.Scale.Z;
+			RotationMatrix.M[2][2] /= Result.Scale.Z;
+		}
+
+		Result.Rotation = RotationMatrix.ToQuat().GetNormalized();
+		return Result;
+	}
+}
 
 FBoneTransformGizmoTarget::FBoneTransformGizmoTarget()
 	: MeshComponent(nullptr), BoneIndex(-1)
@@ -264,7 +305,7 @@ bool FSocketTransformGizmoTarget::GetSocketWorldTransform(FTransform& OutTransfo
 	}
 
 	const FMatrix SocketWorldMatrix = Socket.GetRelativeTransform() * BoneGlobals[BoneIndex] * MeshComponent->GetWorldMatrix();
-	OutTransform = FTransform(SocketWorldMatrix);
+	OutTransform = DecomposeSocketMatrix(SocketWorldMatrix);
 	return true;
 }
 
@@ -292,7 +333,7 @@ bool FSocketTransformGizmoTarget::ApplySocketWorldTransform(const FTransform& Ne
 
 	const FMatrix SocketBaseWorldMatrix = BoneGlobals[BoneIndex] * MeshComponent->GetWorldMatrix();
 	const FMatrix RelativeMatrix = NewWorldTransform.ToMatrix() * SocketBaseWorldMatrix.GetInverse();
-	const FTransform RelativeTransform(RelativeMatrix);
+	const FTransform RelativeTransform = DecomposeSocketMatrix(RelativeMatrix);
 
 	Socket.RelativeLocation = RelativeTransform.Location;
 	Socket.RelativeRotation = RelativeTransform.GetRotator();
