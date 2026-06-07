@@ -122,6 +122,26 @@ local function play_counter_slomo(ctx)
     action:Slomo(ctx.config.COUNTER_SLOMO_DURATION, ctx.config.COUNTER_SLOMO_TIME_DILATION)
 end
 
+local function begin_counter_invincible(ctx)
+    if ctx.state.counterInvincibleApplied then
+        return
+    end
+
+    local health = Context.GetHealthComponent(ctx)
+    if health == nil or health.SetInvincible == nil then
+        return
+    end
+
+    if health.IsInvincible ~= nil then
+        ctx.state.counterPreviousInvincible = health:IsInvincible() == true
+    else
+        ctx.state.counterPreviousInvincible = false
+    end
+
+    health:SetInvincible(true)
+    ctx.state.counterInvincibleApplied = true
+end
+
 local function get_root_primitive(ctx)
     if ctx.obj == nil or ctx.obj.GetRootPrimitiveComponent == nil then
         return nil
@@ -269,6 +289,7 @@ function Counter.Play(ctx, target, hitLocation)
     State.ResetGuard(ctx)
     ctx.state.counterPlaying = true
     ctx.state.canCancelCounter = false
+    begin_counter_invincible(ctx)
     Locomotion.Lock(ctx)
     --Clear old EnableAttack flag--
     Context.ConsumeEnableAttack(ctx)
@@ -278,6 +299,7 @@ function Counter.Play(ctx, target, hitLocation)
     start_reposition_behind_target(ctx, target)
     face_target(ctx, target)
     Equipment.ActivateTrail(ctx)
+    Context.PlayCameraShakeAsset(ctx.config.COUNTER_CAMERA_SHAKE_PATH, ctx.config.COUNTER_CAMERA_SHAKE_SCALE)
     anim:PlayMontage(ctx.cache.counterMontage, ctx.config.COUNTER_SECTION)
 end
 

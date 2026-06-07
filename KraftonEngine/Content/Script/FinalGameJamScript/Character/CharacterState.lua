@@ -18,10 +18,19 @@ function State.ResetGuard(ctx)
 end
 
 function State.ResetCounter(ctx)
+    if ctx.state.counterInvincibleApplied then
+        local health = Context.GetHealthComponent(ctx)
+        if health ~= nil and health.SetInvincible ~= nil then
+            health:SetInvincible(ctx.state.counterPreviousInvincible == true)
+        end
+    end
+
     Equipment.DeactivateTrail(ctx)
     ctx.state.counterPlaying = false
     ctx.state.canCancelCounter = false
     ctx.state.counterMove = nil
+    ctx.state.counterInvincibleApplied = false
+    ctx.state.counterPreviousInvincible = false
 end
 
 function State.ResetHit(ctx)

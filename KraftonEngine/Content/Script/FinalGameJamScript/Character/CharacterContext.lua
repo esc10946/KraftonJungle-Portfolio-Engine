@@ -70,6 +70,8 @@ function Context.Create(owner)
             counterParticleTimeRemaining = 0.0,
             counterMove = nil,
             counterCollision = nil,
+            counterInvincibleApplied = false,
+            counterPreviousInvincible = false,
         },
         cache = {
             animInstance = nil,
@@ -257,6 +259,15 @@ function Context.GetActiveCamera()
     end
 
     return nil
+end
+
+function Context.PlayCameraShakeAsset(path, scale)
+    if path == nil or path == "" or CameraManager == nil or CameraManager.StartCameraShakeAsset == nil then
+        return false
+    end
+
+    CameraManager.StartCameraShakeAsset(path, scale or 1.0)
+    return true
 end
 
 function Context.GetCameraFlatForward()
