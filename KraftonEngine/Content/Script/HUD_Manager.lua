@@ -1,6 +1,7 @@
 local HUD_DOCUMENT = "Content/Game/UI/HUD.rml"
 
 local PLAYER_HP_MASK_ID = "player-hp-mask"
+local PLAYER_HP_DELAY_MASK_ID = "player-hp-delay-mask"
 local BOSS_HP_MASK_ID = "boss-hp-mask"
 local BOSS_POSTURE_LEFT_MASK_ID = "boss-posture-left-mask"
 local BOSS_POSTURE_RIGHT_MASK_ID = "boss-posture-right-mask"
@@ -8,6 +9,15 @@ local BOSS_PANEL_ID = "boss-panel"
 local BOSS_POSTURE_PANEL_ID = "boss-posture-panel"
 local PLAYER_POSTURE_LEFT_MASK_ID = "player-posture-left-mask"
 local PLAYER_POSTURE_RIGHT_MASK_ID = "player-posture-right-mask"
+local PLAYER_POSTURE_PANEL_ID = "player-posture-panel"
+local PLAYER_POSTURE_LEFT_FILL_ID = "player-posture-left-fill"
+local PLAYER_POSTURE_RIGHT_FILL_ID = "player-posture-right-fill"
+local PLAYER_POSTURE_LEFT_WARNING_FILL_ID = "player-posture-left-warning-fill"
+local PLAYER_POSTURE_RIGHT_WARNING_FILL_ID = "player-posture-right-warning-fill"
+local PLAYER_POSTURE_LEFT_CRITICAL_FILL_ID = "player-posture-left-critical-fill"
+local PLAYER_POSTURE_RIGHT_CRITICAL_FILL_ID = "player-posture-right-critical-fill"
+local PLAYER_POSTURE_WARNING_GLOW_ID = "player-posture-warning-glow"
+local PLAYER_POSTURE_CRITICAL_GLOW_ID = "player-posture-critical-glow"
 
 local PLAYER_TOKEN_ID = "player-icon-right"
 
@@ -16,6 +26,7 @@ local ENEMY_BAR_WIDTH = 120.0
 local ENEMY_BAR_HEIGHT = 19.0
 local ENEMY_BAR_ID_PREFIX = "enemy-bar-"
 local ENEMY_HP_MASK_ID_PREFIX = "enemy-hp-mask-"
+local ENEMY_HP_DELAY_MASK_ID_PREFIX = "enemy-hp-delay-mask-"
 local ENEMY_POSTURE_MASK_ID_PREFIX = "enemy-posture-mask-"
 local ENEMY_BAR_ACTOR_TAG = "Enemy"
 local ENEMY_BAR_HEAD_PADDING_Z = 0.15
@@ -26,6 +37,13 @@ local ENEMY_BAR_UPDATE_INTERVAL = 1.0 / 60.0
 local ENEMY_BAR_CHANGE_REVEAL_SECONDS = 3.0
 local ENEMY_BAR_COMBAT_VISIBILITY_GRACE_SECONDS = 0.5
 local ENEMY_BAR_RATIO_CHANGE_EPSILON = 0.0001
+local POSTURE_VISIBILITY_EPSILON = 0.0001
+local POSTURE_WARNING_THRESHOLD = 0.65
+local POSTURE_CRITICAL_THRESHOLD = 0.9
+local POSTURE_WARNING_PULSE_SPEED = 4.0
+local POSTURE_CRITICAL_PULSE_SPEED = 8.0
+local HP_DAMAGE_TRAIL_HOLD_SECONDS = 0.5
+local HP_DAMAGE_TRAIL_SHRINK_PER_SECOND = 0.5
 local ENEMY_COMBAT_VISIBLE_STATES = {
     Chase = true,
     Strafe = true,
@@ -40,12 +58,17 @@ local ENEMY_COMBAT_VISIBLE_STATES = {
 local widget = nil
 local playerHealth = nil
 local playerHealthBindingId = nil
+local playerCombat = nil
+local playerPostureBindingId = nil
 local playerPawnChangedBindingId = nil
 local lastHpRatio = nil
+local playerHpDelayRatio = nil
+local playerHpDelayRemaining = 0.0
 local lastBossHpRatio = nil
 local lastBossPostureRatio = nil
 local lastBossHudVisible = nil
 local lastPlayerPostureRatio = nil
+local playerPostureVisualState = "hidden"
 local lastTokenVisible = nil
 local enemyBarStates = {}
 local enemySlotById = {}
@@ -69,8 +92,8 @@ local function clamp01(value)
     return value
 end
 
-local function posture_fill_ratio(poiseRatio)
-    return 1.0 - clamp01(poiseRatio)
+local function posture_fill_ratio(postureRatio)
+    return clamp01(postureRatio)
 end
 
 local function set_element_visible(element_id, visible)
@@ -90,12 +113,116 @@ local function set_width_ratio(element_id, ratio)
     widget:SetProperty(element_id, "width", width)
 end
 
+local function set_element_opacity(elementId, opacity)
+    widget:SetProperty(elementId, "opacity", string.format("%.3f", clamp01(opacity)))
+end
+
+local function set_player_posture_visual_state(ratio)
+    local state = "normal"
+
+    if ratio <= POSTURE_VISIBILITY_EPSILON then
+        state = "hidden"
+    elseif ratio >= POSTURE_CRITICAL_THRESHOLD then
+        state = "critical"
+    elseif ratio >= POSTURE_WARNING_THRESHOLD then
+        state = "warning"
+    end
+
+    if playerPostureVisualState == state then
+        return
+    end
+
+    playerPostureVisualState = state
+
+    local normalOpacity = state == "normal" and 1.0 or 0.0
+    local warningOpacity = state == "warning" and 1.0 or 0.0
+    local criticalOpacity = state == "critical" and 1.0 or 0.0
+
+    set_element_opacity(PLAYER_POSTURE_LEFT_FILL_ID, normalOpacity)
+    set_element_opacity(PLAYER_POSTURE_RIGHT_FILL_ID, normalOpacity)
+    set_element_opacity(PLAYER_POSTURE_LEFT_WARNING_FILL_ID, warningOpacity)
+    set_element_opacity(PLAYER_POSTURE_RIGHT_WARNING_FILL_ID, warningOpacity)
+    set_element_opacity(PLAYER_POSTURE_LEFT_CRITICAL_FILL_ID, criticalOpacity)
+    set_element_opacity(PLAYER_POSTURE_RIGHT_CRITICAL_FILL_ID, criticalOpacity)
+    set_element_opacity(PLAYER_POSTURE_WARNING_GLOW_ID, state == "warning" and 0.45 or 0.0)
+    set_element_opacity(PLAYER_POSTURE_CRITICAL_GLOW_ID, state == "critical" and 0.65 or 0.0)
+end
+
+local function update_player_posture_effect()
+    if widget == nil then
+        return
+    end
+
+    if playerPostureVisualState == "warning" then
+        local pulse = 0.5 + 0.5 * math.sin(hudTimeSeconds * POSTURE_WARNING_PULSE_SPEED)
+        local fillOpacity = 0.78 + 0.22 * pulse
+        set_element_opacity(PLAYER_POSTURE_LEFT_WARNING_FILL_ID, fillOpacity)
+        set_element_opacity(PLAYER_POSTURE_RIGHT_WARNING_FILL_ID, fillOpacity)
+        set_element_opacity(PLAYER_POSTURE_WARNING_GLOW_ID, 0.28 + 0.32 * pulse)
+    elseif playerPostureVisualState == "critical" then
+        local pulse = 0.5 + 0.5 * math.sin(hudTimeSeconds * POSTURE_CRITICAL_PULSE_SPEED)
+        local fillOpacity = 0.62 + 0.38 * pulse
+        set_element_opacity(PLAYER_POSTURE_LEFT_CRITICAL_FILL_ID, fillOpacity)
+        set_element_opacity(PLAYER_POSTURE_RIGHT_CRITICAL_FILL_ID, fillOpacity)
+        set_element_opacity(PLAYER_POSTURE_CRITICAL_GLOW_ID, 0.45 + 0.5 * pulse)
+    end
+end
+
 local function format_px(value)
     return string.format("%.1fpx", tonumber(value) or 0.0)
 end
 
 local function same_number(lhs, rhs)
     return lhs ~= nil and math.abs(lhs - rhs) <= 0.0001
+end
+
+local function update_delayed_hp_ratio(elementId, delayRatio, delayRemaining, targetRatio, dt)
+    if delayRatio == nil or targetRatio == nil then
+        return delayRatio, delayRemaining
+    end
+
+    if delayRemaining > 0.0 then
+        return delayRatio, math.max(0.0, delayRemaining - dt)
+    end
+
+    if delayRatio <= targetRatio + 0.0001 then
+        return targetRatio, 0.0
+    end
+
+    delayRatio = math.max(
+        targetRatio,
+        delayRatio - HP_DAMAGE_TRAIL_SHRINK_PER_SECOND * dt
+    )
+    set_width_ratio(elementId, delayRatio)
+    return delayRatio, 0.0
+end
+
+local function update_hp_damage_trails(dt)
+    if widget == nil then
+        return
+    end
+
+    playerHpDelayRatio, playerHpDelayRemaining = update_delayed_hp_ratio(
+        PLAYER_HP_DELAY_MASK_ID,
+        playerHpDelayRatio,
+        playerHpDelayRemaining,
+        lastHpRatio,
+        dt
+    )
+
+    for index = 0, ENEMY_BAR_MAX - 1 do
+        local state = enemyBarStates[index]
+
+        if state ~= nil then
+            state.delayRatio, state.delayRemaining = update_delayed_hp_ratio(
+                ENEMY_HP_DELAY_MASK_ID_PREFIX .. index,
+                state.delayRatio,
+                state.delayRemaining,
+                state.hpRatio,
+                dt
+            )
+        end
+    end
 end
 
 local function normalize_enemy_bar_index(index)
@@ -156,6 +283,54 @@ local function unbind_player_health()
     playerHealthBindingId = nil
 end
 
+local function unbind_player_posture()
+    if playerPostureBindingId ~= nil and is_valid_object(playerCombat) then
+        safe_call(playerCombat, "UnbindOnPostureChanged", playerPostureBindingId)
+    end
+
+    playerCombat = nil
+    playerPostureBindingId = nil
+end
+
+local function bind_player_posture_from_pawn(pawn)
+    unbind_player_posture()
+
+    if not is_valid_object(pawn) then
+        return false
+    end
+
+    local combat = safe_call(pawn, "GetCombatStateComponent")
+
+    if not is_valid_object(combat) then
+        return false
+    end
+
+    playerCombat = combat
+    playerPostureBindingId = safe_call(
+        combat,
+        "BindOnPostureChanged",
+        function(_component, _previousPoise, currentPoise, maxPoise)
+            maxPoise = tonumber(maxPoise) or 0.0
+
+            if maxPoise <= 0.0 then
+                SetPlayerPostureRatio(0.0)
+                return
+            end
+
+            SetPlayerPostureRatio((maxPoise - (tonumber(currentPoise) or maxPoise)) / maxPoise)
+        end
+    )
+
+    if playerPostureBindingId == nil or tonumber(playerPostureBindingId) == 0 then
+        playerCombat = nil
+        playerPostureBindingId = nil
+        return false
+    end
+
+    SetPlayerPostureRatio(safe_call(combat, "GetPostureRatio") or 0.0)
+    return true
+end
+
 local function bind_player_health_from_pawn(pawn)
     unbind_player_health()
 
@@ -203,6 +378,7 @@ local function bind_player_pawn_events()
     playerPawnChangedBindingId = World.BindOnPlayerPawnChanged(
         function(_controller, _oldPawn, newPawn)
             bind_player_health_from_pawn(newPawn)
+            bind_player_posture_from_pawn(newPawn)
         end
     )
 
@@ -212,7 +388,9 @@ local function bind_player_pawn_events()
     end
 
     local controller = World.GetFirstPlayerController and World.GetFirstPlayerController() or nil
-    bind_player_health_from_pawn(safe_call(controller, "GetPossessedPawn"))
+    local pawn = safe_call(controller, "GetPossessedPawn")
+    bind_player_health_from_pawn(pawn)
+    bind_player_posture_from_pawn(pawn)
     return true
 end
 
@@ -360,7 +538,7 @@ local function update_enemy_visibility_ratios(enemyId, hpRatio, postureRatio)
         end
     end
 
-    if postureRatio < 1.0 - ENEMY_BAR_RATIO_CHANGE_EPSILON then
+    if postureRatio > ENEMY_BAR_RATIO_CHANGE_EPSILON then
         state.revealUntil = math.max(state.revealUntil or 0.0, hudTimeSeconds + ENEMY_BAR_CHANGE_REVEAL_SECONDS)
     end
 
@@ -440,6 +618,7 @@ local function release_enemy_slot(slot)
 
     slotEnemyIdByIndex[slot] = nil
     SetEnemyHealthBarVisible(slot, false)
+    enemyBarStates[slot] = nil
 end
 
 local function clear_enemy_slot_mapping()
@@ -505,10 +684,10 @@ local function collect_enemy_bar_candidates()
             if enemyId ~= nil and is_valid_object(health) and safe_call(health, "IsDead") ~= true then
                 local combat = safe_call(enemy, "GetCombatStateComponent")
                 local hpRatio = safe_call(health, "GetHealthRatio") or 1.0
-                local postureRatio = 1.0
+                local postureRatio = 0.0
 
                 if is_valid_object(combat) then
-                    postureRatio = safe_call(combat, "GetPoiseRatio") or 1.0
+                    postureRatio = safe_call(combat, "GetPostureRatio") or 0.0
                 end
 
                 update_enemy_visibility_ratios(enemyId, hpRatio, postureRatio)
@@ -595,6 +774,20 @@ function SetPlayerHpRatio(ratio)
         return
     end
 
+    if lastHpRatio == nil then
+        playerHpDelayRatio = ratio
+        playerHpDelayRemaining = 0.0
+        set_width_ratio(PLAYER_HP_DELAY_MASK_ID, ratio)
+    elseif ratio < lastHpRatio then
+        playerHpDelayRatio = math.max(playerHpDelayRatio or lastHpRatio, lastHpRatio)
+        playerHpDelayRemaining = HP_DAMAGE_TRAIL_HOLD_SECONDS
+        set_width_ratio(PLAYER_HP_DELAY_MASK_ID, playerHpDelayRatio)
+    else
+        playerHpDelayRatio = ratio
+        playerHpDelayRemaining = 0.0
+        set_width_ratio(PLAYER_HP_DELAY_MASK_ID, ratio)
+    end
+
     set_width_ratio(PLAYER_HP_MASK_ID, ratio)
 
     lastHpRatio = ratio
@@ -629,6 +822,12 @@ function SetPlayerPostureRatio(ratio)
 
     set_width_ratio(PLAYER_POSTURE_LEFT_MASK_ID, ratio)
     set_width_ratio(PLAYER_POSTURE_RIGHT_MASK_ID, ratio)
+    set_player_posture_visual_state(ratio)
+    widget:SetProperty(
+        PLAYER_POSTURE_PANEL_ID,
+        "opacity",
+        ratio > POSTURE_VISIBILITY_EPSILON and "1" or "0"
+    )
 
     lastPlayerPostureRatio = ratio
 end
@@ -769,6 +968,20 @@ function SetEnemyHealthBar(index, x, y, hpRatio, postureRatio, visible)
         state.top = top
     end
 
+    if state.hpRatio == nil then
+        state.delayRatio = hpRatio
+        state.delayRemaining = 0.0
+        set_width_ratio(ENEMY_HP_DELAY_MASK_ID_PREFIX .. index, hpRatio)
+    elseif hpRatio < state.hpRatio then
+        state.delayRatio = math.max(state.delayRatio or state.hpRatio, state.hpRatio)
+        state.delayRemaining = HP_DAMAGE_TRAIL_HOLD_SECONDS
+        set_width_ratio(ENEMY_HP_DELAY_MASK_ID_PREFIX .. index, state.delayRatio)
+    elseif hpRatio > state.hpRatio then
+        state.delayRatio = hpRatio
+        state.delayRemaining = 0.0
+        set_width_ratio(ENEMY_HP_DELAY_MASK_ID_PREFIX .. index, hpRatio)
+    end
+
     if not same_number(state.hpRatio, hpRatio) then
         set_width_ratio(ENEMY_HP_MASK_ID_PREFIX .. index, hpRatio)
         state.hpRatio = hpRatio
@@ -789,6 +1002,7 @@ function HideAllEnemyHealthBars()
 
     clear_enemy_slot_mapping()
     clear_enemy_visibility_state()
+    enemyBarStates = {}
 end
 
 function SetEnemyHealthBarActorVisible(enemyOrId, visible, durationSeconds)
@@ -918,13 +1132,14 @@ function BeginPlay()
     SetPlayerHpRatio(1.0)
     bind_player_pawn_events()
     SetBossHpRatio(1.0)
-    SetBossPostureRatio(1.0)
-    SetPlayerPostureRatio(1.0)
+    SetBossPostureRatio(0.0)
+    SetPlayerPostureRatio(0.0)
     SetPlayerTokenVisible(true)
 end
 
 function EndPlay()
     unbind_player_health()
+    unbind_player_posture()
     unbind_player_pawn_events()
     clear_hud_api()
 
@@ -934,10 +1149,13 @@ function EndPlay()
     end
 
     lastHpRatio = nil
+    playerHpDelayRatio = nil
+    playerHpDelayRemaining = 0.0
     lastBossHpRatio = nil
     lastBossPostureRatio = nil
     lastBossHudVisible = nil
     lastPlayerPostureRatio = nil
+    playerPostureVisualState = "hidden"
     lastTokenVisible = nil
     enemyBarStates = {}
     enemyBarUpdateElapsed = 0.0
@@ -950,6 +1168,8 @@ function Tick(dt)
     dt = tonumber(dt) or 0.0
     hudTimeSeconds = hudTimeSeconds + dt
     enemyBarUpdateElapsed = enemyBarUpdateElapsed + dt
+    update_hp_damage_trails(dt)
+    update_player_posture_effect()
 
     if enemyBarUpdateElapsed < ENEMY_BAR_UPDATE_INTERVAL then
         return

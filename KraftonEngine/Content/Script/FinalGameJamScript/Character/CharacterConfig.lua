@@ -13,7 +13,7 @@ Config.MOVE_KEYS = {
     Config.MOVE_RIGHT_KEY,
 }
 
-Config.WEAPON_MESH_PATH = "Content/Data/Weapon/JapanSword/Katana_StaticMesh.uasset"
+Config.WEAPON_MESH_PATH = "Content/Data/Weapon/JapanSword/New_Katana_StaticMesh.uasset"
 Config.RWEAPON_SOCKET = "RH_Socket"
 Config.LWEAPON_SOCKET = "LH_Socket"
 

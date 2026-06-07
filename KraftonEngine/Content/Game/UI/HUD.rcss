@@ -61,6 +61,27 @@ body#hud-screen {
     clip: always;
 }
 
+.enemy-hp-delay-mask {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    display: block;
+    width: 100%;
+    height: 10px;
+    overflow: hidden;
+    clip: always;
+}
+
+.enemy-hp-delay-fill {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    display: block;
+    width: 120px;
+    height: 10px;
+    decorator: image("../Texture/HUD/SB_FE/HealthBar_Delay.png" fill);
+}
+
 .enemy-hp-fill {
     position: absolute;
     left: 0px;
@@ -68,7 +89,7 @@ body#hud-screen {
     display: block;
     width: 120px;
     height: 10px;
-    background-color: rgb(182, 32, 28);
+    decorator: image("../Texture/HUD/SB_FE/HealthBar_Bright.png" fill);
 }
 
 .enemy-posture-bg {

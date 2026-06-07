@@ -154,6 +154,16 @@ namespace
     TMap<uint64, FLuaHealthChangedBinding> GLuaHealthChangedBindings;
     uint64 GNextLuaHealthChangedBindingId = 1;
 
+    struct FLuaPostureChangedBinding
+    {
+        TWeakObjectPtr<UCombatStateComponent> Target;
+        FDelegateHandle Handle;
+        sol::protected_function Callback;
+    };
+
+    TMap<uint64, FLuaPostureChangedBinding> GLuaPostureChangedBindings;
+    uint64 GNextLuaPostureChangedBindingId = 1;
+
     struct FLuaPlayerPawnChangedBinding
     {
         TWeakObjectPtr<UWorld> Target;
@@ -229,6 +239,74 @@ namespace
         }
 
         RemoveLuaHealthChangedBinding(BindingId);
+        return true;
+    }
+
+    void RemoveLuaPostureChangedBinding(uint64 BindingId)
+    {
+        auto It = GLuaPostureChangedBindings.find(BindingId);
+        if (It == GLuaPostureChangedBindings.end())
+        {
+            return;
+        }
+
+        if (UCombatStateComponent* Target = It->second.Target.Get())
+        {
+            Target->OnPostureChanged.Remove(It->second.Handle);
+        }
+        GLuaPostureChangedBindings.erase(It);
+    }
+
+    void ClearLuaPostureChangedBindings()
+    {
+        while (!GLuaPostureChangedBindings.empty())
+        {
+            RemoveLuaPostureChangedBinding(GLuaPostureChangedBindings.begin()->first);
+        }
+    }
+
+    uint64 BindLuaPostureChanged(UCombatStateComponent* Target, sol::protected_function Callback)
+    {
+        if (!IsValid(Target) || !Callback.valid())
+        {
+            return 0;
+        }
+
+        const uint64 BindingId = GNextLuaPostureChangedBindingId++;
+        FLuaPostureChangedBinding Binding;
+        Binding.Target = Target;
+        Binding.Callback = std::move(Callback);
+        Binding.Handle = Target->OnPostureChanged.AddLambda(
+            [BindingId](UCombatStateComponent* Component, float PreviousPoise, float CurrentPoise, float MaxPoise)
+            {
+                auto It = GLuaPostureChangedBindings.find(BindingId);
+                if (It == GLuaPostureChangedBindings.end() || !It->second.Callback.valid())
+                {
+                    return;
+                }
+
+                FScopedGarbageCollectionBlocker GCBlocker;
+                sol::protected_function_result Result =
+                    It->second.Callback(Component, PreviousPoise, CurrentPoise, MaxPoise);
+                if (!Result.valid())
+                {
+                    sol::error Error = Result;
+                    UE_LOG("[Lua] CombatStateComponent OnPostureChanged callback error: %s", Error.what());
+                }
+            });
+        GLuaPostureChangedBindings.emplace(BindingId, std::move(Binding));
+        return BindingId;
+    }
+
+    bool UnbindLuaPostureChanged(UCombatStateComponent* Target, uint64 BindingId)
+    {
+        auto It = GLuaPostureChangedBindings.find(BindingId);
+        if (It == GLuaPostureChangedBindings.end() || It->second.Target.Get() != Target)
+        {
+            return false;
+        }
+
+        RemoveLuaPostureChangedBinding(BindingId);
         return true;
     }
 
@@ -456,6 +534,7 @@ void FLuaScriptManager::Shutdown()
     // (Lua 가 valid 한 동안) 일으킨다.
     OnEscapePressedCallback = sol::protected_function();
     ClearLuaHealthChangedBindings();
+    ClearLuaPostureChangedBindings();
     ClearLuaPlayerPawnChangedBindings();
     GLuaReflectedEventOverrides.clear();
 
@@ -551,6 +630,7 @@ void FLuaScriptManager::FireWorldReset()
     if (!Lua) return;
 
     ClearLuaHealthChangedBindings();
+    ClearLuaPostureChangedBindings();
     ClearLuaPlayerPawnChangedBindings();
 
     // require 로 한 번 로드된 모듈 테이블은 package.loaded 에 캐시된다. 씬 전환 시에도
@@ -4530,6 +4610,19 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
         "StartStagger", &UCombatStateComponent::StartStagger,
         "StopStagger", &UCombatStateComponent::StopStagger,
         "GetPoiseRatio", &UCombatStateComponent::GetPoiseRatio,
+        "GetPostureRatio", &UCombatStateComponent::GetPostureRatio,
+        "GetCurrentPoise", &UCombatStateComponent::GetCurrentPoise,
+        "GetMaxPoise", &UCombatStateComponent::GetMaxPoise,
+        "BindOnPostureChanged",
+        [](UCombatStateComponent& C, sol::protected_function Callback)
+        {
+            return BindLuaPostureChanged(&C, std::move(Callback));
+        },
+        "UnbindOnPostureChanged",
+        [](UCombatStateComponent& C, uint64 BindingId)
+        {
+            return UnbindLuaPostureChanged(&C, BindingId);
+        },
         "SetTeam", [](UCombatStateComponent& C, int Team) { C.SetTeam(static_cast<ECombatTeam>(Team)); },
         "GetTeam", [](UCombatStateComponent& C) { return static_cast<int>(C.GetTeam()); },
         "IsHostileTo", &UCombatStateComponent::IsHostileTo
