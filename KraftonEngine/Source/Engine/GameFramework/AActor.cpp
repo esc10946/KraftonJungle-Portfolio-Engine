@@ -242,6 +242,12 @@ void AActor::RegisterComponent(UActorComponent* Comp)
 	PrimitiveCache.clear();
 	MarkPickingDirty();
 	Comp->CreateRenderState();
+
+	// Components added after actor BeginPlay must enter runtime lifecycle immediately.
+	if (bActorHasBegunPlay && !Comp->HasComponentBegunPlay())
+	{
+		Comp->BeginPlay();
+	}
 }
 
 

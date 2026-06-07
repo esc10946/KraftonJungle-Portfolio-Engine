@@ -3,6 +3,7 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/Notify/AnimNotifyState_ParryWindow.h"
 #include "Component/Combat/CombatHitEventComponent.h"
+#include "Component/Combat/CombatStateComponent.h"
 #include "Component/Combat/HealthComponent.h"
 #include "Component/Input/ActionComponent.h"
 #include "Component/PrimitiveComponent.h"
@@ -239,6 +240,7 @@ namespace
 	void PurgeInvalidAttackHitEntries(
 		TMap<TWeakObjectPtr<USkeletalMeshComponent>, TSet<TWeakObjectPtr<AActor>>>& HitActorsByMesh,
 		TMap<TWeakObjectPtr<USkeletalMeshComponent>, TSet<TWeakObjectPtr<AActor>>>& MissLoggedActorsByMesh,
+		TMap<TWeakObjectPtr<USkeletalMeshComponent>, TArray<FAttackHitWindowPendingHit>>& PendingHitsByMesh,
 		TSet<TWeakObjectPtr<USkeletalMeshComponent>>& NoTargetLoggedMeshes)
 	{
 		for (auto It = HitActorsByMesh.begin(); It != HitActorsByMesh.end(); )
@@ -269,6 +271,21 @@ namespace
 			}
 			++It;
 		}
+		for (auto It = PendingHitsByMesh.begin(); It != PendingHitsByMesh.end(); )
+		{
+			if (!IsValid(It->first))
+			{
+				It = PendingHitsByMesh.erase(It);
+				continue;
+			}
+			TArray<FAttackHitWindowPendingHit>& PendingHits = It->second;
+			for (auto HitIt = PendingHits.begin(); HitIt != PendingHits.end(); )
+			{
+				if (!IsValid(HitIt->Target) || !IsValid(HitIt->HitComponent)) HitIt = PendingHits.erase(HitIt);
+				else ++HitIt;
+			}
+			++It;
+		}
 		for (auto It = NoTargetLoggedMeshes.begin(); It != NoTargetLoggedMeshes.end(); )
 		{
 			if (!IsValid(*It)) It = NoTargetLoggedMeshes.erase(It);
@@ -278,9 +295,163 @@ namespace
 
 }
 
+bool UAnimNotifyState_AttackHitWindow::ResolveParryHit(
+	AActor* Owner,
+	AActor* Target,
+	UPrimitiveComponent* HitComponent,
+	const FCombatDamageSpec& DamageSpec,
+	const FVector& Center)
+{
+	if (!bAllowParry || !TryResolveParry(Owner, Target, bRagdollOwnerOnParry))
+	{
+		return false;
+	}
+
+	if (bBroadcastCombatEvents)
+	{
+		BroadcastAttackParriedEvent(Owner, Target, HitComponent, DamageSpec, HitEventName);
+	}
+	if (IsValid(Owner) && DamageSpec.PoiseDamage > 0.0f)
+	{
+		if (UCombatStateComponent* AttackerCombat = Owner->GetComponentByClass<UCombatStateComponent>())
+		{
+			AttackerCombat->ApplyPoiseDamage(DamageSpec.PoiseDamage);
+		}
+	}
+	if (bDrawDebugHitWindow)
+	{
+		UWorld* World = IsValid(Owner) ? Owner->GetWorld() : nullptr;
+		DrawDebugSphere(World, Center, Radius, DebugDrawSegments, FColor(80, 180, 255), DebugDrawDuration);
+	}
+	if (bLogHits)
+	{
+		UE_LOG("[AttackHitWindow] %s parried by %s via %s (center=%.1f, %.1f, %.1f radius=%.1f)",
+			IsValid(Owner) ? Owner->GetName().c_str() : "None",
+			IsValid(Target) ? Target->GetName().c_str() : "None",
+			IsValid(HitComponent) ? HitComponent->GetName().c_str() : "None",
+			Center.X,
+			Center.Y,
+			Center.Z,
+			Radius);
+	}
+	return true;
+}
+
+void UAnimNotifyState_AttackHitWindow::ResolveDamageHit(
+	AActor* Owner,
+	AActor* Target,
+	UPrimitiveComponent* HitComponent,
+	const FCombatDamageSpec& DamageSpec,
+	const FVector& Center)
+{
+	if (bBroadcastCombatEvents)
+	{
+		BroadcastAttackHitEvent(Owner, Target, HitComponent, DamageSpec, HitEventName);
+	}
+
+	const FCombatDamageReport DamageReport = ApplyDamageToTarget(Target, DamageSpec);
+	ApplyHitStop(Owner, HitStopDuration, bAutoAddActionComponent);
+	ApplyHitStop(Target, HitStopDuration, bAutoAddActionComponent);
+	if (bApplyKnockback)
+	{
+		ApplyKnockback(Owner, Target, KnockbackMode, KnockbackDistance, KnockbackDuration, bAutoAddActionComponent);
+	}
+	if (bDrawDebugHitWindow)
+	{
+		UWorld* World = IsValid(Owner) ? Owner->GetWorld() : nullptr;
+		DrawDebugSphere(World, Center, Radius, DebugDrawSegments, FColor(255, 40, 40), DebugDrawDuration);
+	}
+
+	if (bLogHits)
+	{
+		const uint32 ResultIndex = static_cast<uint32>(DamageReport.Result);
+		const char* ResultName = ResultIndex < GCombatDamageResultCount ? GCombatDamageResultNames[ResultIndex] : "Unknown";
+		UE_LOG("[AttackHitWindow] %s hit %s via %s damage=%.1f result=%s (center=%.1f, %.1f, %.1f radius=%.1f)",
+			IsValid(Owner) ? Owner->GetName().c_str() : "None",
+			IsValid(Target) ? Target->GetName().c_str() : "None",
+			IsValid(HitComponent) ? HitComponent->GetName().c_str() : "None",
+			DamageReport.AppliedDamage,
+			ResultName,
+			Center.X,
+			Center.Y,
+			Center.Z,
+			Radius);
+	}
+}
+
+void UAnimNotifyState_AttackHitWindow::ResolvePendingHits(USkeletalMeshComponent* MeshComp, float DeltaTime, bool bForceResolve)
+{
+	if (!IsValid(MeshComp))
+	{
+		return;
+	}
+
+	AActor* Owner = MeshComp->GetOwner();
+	if (!IsValid(Owner))
+	{
+		PendingHitsByMesh.erase(MeshComp);
+		return;
+	}
+
+	auto It = PendingHitsByMesh.find(MeshComp);
+	if (It == PendingHitsByMesh.end())
+	{
+		return;
+	}
+
+	TArray<FAttackHitWindowPendingHit>& PendingHits = It->second;
+	for (auto HitIt = PendingHits.begin(); HitIt != PendingHits.end(); )
+	{
+		AActor* Target = HitIt->Target.Get();
+		UPrimitiveComponent* HitComponent = HitIt->HitComponent.Get();
+		if (!IsValid(Target) || !IsValid(HitComponent))
+		{
+			HitIt = PendingHits.erase(HitIt);
+			continue;
+		}
+
+		HitIt->ElapsedSeconds += DeltaTime;
+		if (ResolveParryHit(Owner, Target, HitComponent, HitIt->DamageSpec, HitIt->Center))
+		{
+			HitIt = PendingHits.erase(HitIt);
+			continue;
+		}
+
+		if (bForceResolve || HitIt->ElapsedSeconds >= ParryResolveDelay)
+		{
+			ResolveDamageHit(Owner, Target, HitComponent, HitIt->DamageSpec, HitIt->Center);
+			HitIt = PendingHits.erase(HitIt);
+			continue;
+		}
+
+		++HitIt;
+	}
+}
+
+void UAnimNotifyState_AttackHitWindow::QueueDelayedHit(
+	USkeletalMeshComponent* MeshComp,
+	AActor* Target,
+	UPrimitiveComponent* HitComponent,
+	const FCombatDamageSpec& DamageSpec,
+	const FVector& Center)
+{
+	if (!IsValid(MeshComp) || !IsValid(Target) || !IsValid(HitComponent))
+	{
+		return;
+	}
+
+	FAttackHitWindowPendingHit PendingHit;
+	PendingHit.Target = Target;
+	PendingHit.HitComponent = HitComponent;
+	PendingHit.DamageSpec = DamageSpec;
+	PendingHit.Center = Center;
+	PendingHit.ElapsedSeconds = 0.0f;
+	PendingHitsByMesh[MeshComp].push_back(PendingHit);
+}
+
 void UAnimNotifyState_AttackHitWindow::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* /*Anim*/, float /*TotalDuration*/)
 {
-	PurgeInvalidAttackHitEntries(HitActorsByMesh, MissLoggedActorsByMesh, NoTargetLoggedMeshes);
+	PurgeInvalidAttackHitEntries(HitActorsByMesh, MissLoggedActorsByMesh, PendingHitsByMesh, NoTargetLoggedMeshes);
 	if (!IsValid(MeshComp))
 	{
 		return;
@@ -288,12 +459,13 @@ void UAnimNotifyState_AttackHitWindow::NotifyBegin(USkeletalMeshComponent* MeshC
 
 	HitActorsByMesh[MeshComp].clear();
 	MissLoggedActorsByMesh[MeshComp].clear();
+	PendingHitsByMesh[MeshComp].clear();
 	NoTargetLoggedMeshes.erase(MeshComp);
 }
 
-void UAnimNotifyState_AttackHitWindow::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* /*Anim*/, float /*FrameDeltaTime*/)
+void UAnimNotifyState_AttackHitWindow::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* /*Anim*/, float FrameDeltaTime)
 {
-	PurgeInvalidAttackHitEntries(HitActorsByMesh, MissLoggedActorsByMesh, NoTargetLoggedMeshes);
+	PurgeInvalidAttackHitEntries(HitActorsByMesh, MissLoggedActorsByMesh, PendingHitsByMesh, NoTargetLoggedMeshes);
 	if (!IsValid(MeshComp) || Radius <= 0.0f)
 	{
 		return;
@@ -305,6 +477,8 @@ void UAnimNotifyState_AttackHitWindow::NotifyTick(USkeletalMeshComponent* MeshCo
 	{
 		return;
 	}
+
+	ResolvePendingHits(MeshComp, FrameDeltaTime, false);
 
 	TSet<TWeakObjectPtr<AActor>>& HitActors = HitActorsByMesh[MeshComp];
 	TSet<TWeakObjectPtr<AActor>>& MissLoggedActors = MissLoggedActorsByMesh[MeshComp];
@@ -422,61 +596,34 @@ void UAnimNotifyState_AttackHitWindow::NotifyTick(USkeletalMeshComponent* MeshCo
 
 		HitActors.insert(Candidate);
 		const FCombatDamageSpec DamageSpec = MakeDamageSpec(Owner, Candidate, Center, Damage, PoiseDamage);
-		if (bAllowParry && TryResolveParry(Owner, Candidate, bRagdollOwnerOnParry))
+		if (bAllowParry && bDelayDamageForParry && ParryResolveDelay > 0.0f)
 		{
-			if (bBroadcastCombatEvents)
-			{
-				BroadcastAttackParriedEvent(Owner, Candidate, HitComponent, DamageSpec, HitEventName);
-			}
+			QueueDelayedHit(MeshComp, Candidate, HitComponent, DamageSpec, Center);
 			if (bDrawDebugHitWindow)
 			{
-				DrawDebugSphere(World, Center, Radius, DebugDrawSegments, FColor(80, 180, 255), DebugDrawDuration);
+				DrawDebugSphere(World, Center, Radius, DebugDrawSegments, FColor(255, 140, 0), DebugDrawDuration);
 			}
 			if (bLogHits)
 			{
-				UE_LOG("[AttackHitWindow] %s parried by %s via %s (center=%.1f, %.1f, %.1f radius=%.1f)",
+				UE_LOG("[AttackHitWindow] %s pending hit %s via %s delay=%.2f (center=%.1f, %.1f, %.1f radius=%.1f)",
 					Owner->GetName().c_str(),
 					Candidate->GetName().c_str(),
 					HitComponent->GetName().c_str(),
+					ParryResolveDelay,
 					Center.X,
 					Center.Y,
 					Center.Z,
 					Radius);
 			}
+			continue;
+		}
+
+		if (ResolveParryHit(Owner, Candidate, HitComponent, DamageSpec, Center))
+		{
 			return;
 		}
 
-		if (bBroadcastCombatEvents)
-		{
-			BroadcastAttackHitEvent(Owner, Candidate, HitComponent, DamageSpec, HitEventName);
-		}
-		const FCombatDamageReport DamageReport = ApplyDamageToTarget(Candidate, DamageSpec);
-		ApplyHitStop(Owner, HitStopDuration, bAutoAddActionComponent);
-		ApplyHitStop(Candidate, HitStopDuration, bAutoAddActionComponent);
-		if (bApplyKnockback)
-		{
-			ApplyKnockback(Owner, Candidate, KnockbackMode, KnockbackDistance, KnockbackDuration, bAutoAddActionComponent);
-		}
-		if (bDrawDebugHitWindow)
-		{
-			DrawDebugSphere(World, Center, Radius, DebugDrawSegments, FColor(255, 40, 40), DebugDrawDuration);
-		}
-
-		if (bLogHits)
-		{
-			const uint32 ResultIndex = static_cast<uint32>(DamageReport.Result);
-			const char* ResultName = ResultIndex < GCombatDamageResultCount ? GCombatDamageResultNames[ResultIndex] : "Unknown";
-			UE_LOG("[AttackHitWindow] %s hit %s via %s damage=%.1f result=%s (center=%.1f, %.1f, %.1f radius=%.1f)",
-				Owner->GetName().c_str(),
-				Candidate->GetName().c_str(),
-				HitComponent->GetName().c_str(),
-				DamageReport.AppliedDamage,
-				ResultName,
-				Center.X,
-				Center.Y,
-				Center.Z,
-				Radius);
-		}
+		ResolveDamageHit(Owner, Candidate, HitComponent, DamageSpec, Center);
 	}
 
 	if (bLogMisses && !bSawTargetCandidate && NoTargetLoggedMeshes.find(MeshComp) == NoTargetLoggedMeshes.end())
@@ -491,8 +638,10 @@ void UAnimNotifyState_AttackHitWindow::NotifyTick(USkeletalMeshComponent* MeshCo
 
 void UAnimNotifyState_AttackHitWindow::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* /*Anim*/)
 {
-	PurgeInvalidAttackHitEntries(HitActorsByMesh, MissLoggedActorsByMesh, NoTargetLoggedMeshes);
+	PurgeInvalidAttackHitEntries(HitActorsByMesh, MissLoggedActorsByMesh, PendingHitsByMesh, NoTargetLoggedMeshes);
+	ResolvePendingHits(MeshComp, 0.0f, true);
 	HitActorsByMesh.erase(MeshComp);
 	MissLoggedActorsByMesh.erase(MeshComp);
+	PendingHitsByMesh.erase(MeshComp);
 	NoTargetLoggedMeshes.erase(MeshComp);
 }

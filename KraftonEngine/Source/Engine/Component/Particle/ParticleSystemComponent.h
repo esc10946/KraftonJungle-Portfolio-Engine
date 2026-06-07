@@ -46,6 +46,10 @@ public:
 	void ResetParticles();
 	UFUNCTION(Pure, Category="Particle|Playback")
 	bool IsActive() const { return bActive; }
+	UFUNCTION(Callable, Category="Particle|Playback")
+	void SetRuntimeSpawnRateScale(float InScale) { RuntimeSpawnRateScale = InScale < 0.0f ? 0.0f : InScale; }
+	UFUNCTION(Pure, Category="Particle|Playback")
+	float GetRuntimeSpawnRateScale() const { return RuntimeSpawnRateScale; }
 
 	// --- 컴포넌트 라이프사이클 ---
 	void BeginPlay() override;
@@ -140,6 +144,7 @@ protected:
 	// 런타임 상태
 	bool bActive = false;
 	float AccumulatedTime = 0.0f;
+	float RuntimeSpawnRateScale = 1.0f;
 
 	// emitter 인스턴스 — PSC 가 owning.
 	TArray<FParticleEmitterInstance*> EmitterInstances;

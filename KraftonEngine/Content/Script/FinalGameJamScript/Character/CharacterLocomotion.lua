@@ -87,7 +87,7 @@ end
 function Locomotion.UpdateMovementLock(ctx)
     if ctx.state.attackPlaying
         or ctx.state.defensePlaying
-        or ctx.state.successParryPlaying
+        or (ctx.state.successParryPlaying and not ctx.state.canCancelSuccessParry)
         or (ctx.state.hitPlaying and not ctx.state.canCancelHit) then
         Locomotion.Lock(ctx)
         return

@@ -69,6 +69,10 @@ local function clamp01(value)
     return value
 end
 
+local function posture_fill_ratio(poiseRatio)
+    return 1.0 - clamp01(poiseRatio)
+end
+
 local function set_element_visible(element_id, visible)
     if widget == nil then
         return
@@ -356,6 +360,10 @@ local function update_enemy_visibility_ratios(enemyId, hpRatio, postureRatio)
         end
     end
 
+    if postureRatio < 1.0 - ENEMY_BAR_RATIO_CHANGE_EPSILON then
+        state.revealUntil = math.max(state.revealUntil or 0.0, hudTimeSeconds + ENEMY_BAR_CHANGE_REVEAL_SECONDS)
+    end
+
     state.lastHpRatio = hpRatio
     state.lastPostureRatio = postureRatio
     state.hasRatioSample = true
@@ -613,7 +621,7 @@ function SetPlayerPostureRatio(ratio)
         return
     end
 
-    ratio = clamp01(ratio)
+    ratio = posture_fill_ratio(ratio)
 
     if lastPlayerPostureRatio ~= nil and math.abs(lastPlayerPostureRatio - ratio) <= 0.0001 then
         return
@@ -630,7 +638,7 @@ function SetBossPostureRatio(ratio)
         return
     end
 
-    ratio = clamp01(ratio)
+    ratio = posture_fill_ratio(ratio)
 
     if lastBossPostureRatio ~= nil and math.abs(lastBossPostureRatio - ratio) <= 0.0001 then
         return
@@ -739,7 +747,7 @@ function SetEnemyHealthBar(index, x, y, hpRatio, postureRatio, visible)
     x = tonumber(x) or 0.0
     y = tonumber(y) or 0.0
     hpRatio = clamp01(hpRatio)
-    postureRatio = clamp01(postureRatio)
+    postureRatio = posture_fill_ratio(postureRatio)
 
     local left = x - ENEMY_BAR_WIDTH * 0.5
     local top = y - ENEMY_BAR_HEIGHT * 0.5

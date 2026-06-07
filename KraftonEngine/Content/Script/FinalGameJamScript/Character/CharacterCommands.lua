@@ -29,7 +29,9 @@ local commandList = {
     { Tick = Combat.UpdateAttackChainWindow },
     { Tick = HitReaction.UpdateCancelWindow },
     { Tick = Guard.UpdateParryWindow },
+    { Tick = Guard.UpdateParryParticles },
     { Tick = Guard.UpdateSuccessParry },
+    { Tick = Guard.UpdateSuccessParryCancelWindow },
     { Tick = Locomotion.UpdateMovementLock },
     {
         IsTriggered = Guard.IsInputTriggered,

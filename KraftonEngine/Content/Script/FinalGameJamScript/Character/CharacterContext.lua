@@ -59,6 +59,7 @@ function Context.Create(owner)
             defensePlaying = false,
             defenseIdlePlaying = false,
             successParryPlaying = false,
+            canCancelSuccessParry = false,
             hitPlaying = false,
             currentHitMontage = nil,
             canCancelHit = false,
@@ -66,6 +67,7 @@ function Context.Create(owner)
             playerDefeated = false,
             parryWindowOpen = false,
             movementLocked = false,
+            parryParticleTimeRemaining = 0.0,
         },
         cache = {
             animInstance = nil,
@@ -74,6 +76,7 @@ function Context.Create(owner)
             hitMontages = {},
             defenseIdleMontage = nil,
             successParryMontage = nil,
+            parryParticles = {},
         },
         equipment = {
             RweaponComponent = nil,

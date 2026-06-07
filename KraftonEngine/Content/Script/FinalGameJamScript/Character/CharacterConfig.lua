@@ -20,6 +20,10 @@ Config.ATTACK_MONTAGE_PATHS = {
 
 Config.DEFENSE_IDLE_MONTAGE_PATH = "Content/Montages/Twin_Defense_Montage.uasset"
 Config.SUCCESS_PARRY_MONTAGE_PATH = "Content/Montages/Twin_SuccessParry_Montage.uasset"
+Config.PARRY_PARTICLE_PATH = "Content/Data/FGJ_Character/Particle/ParryParticle.uasset"
+Config.PARRY_PARTICLE_DURATION = 0.5
+Config.RPARRY_PARTICLE_SOCKET = "RH_Particle"
+Config.LPARRY_PARTICLE_SOCKET = "LH_Particle"
 
 Config.HIT_MONTAGE_PATHS = {
     F = "Content/Montages/Twin_Hit_F_Montage.uasset",

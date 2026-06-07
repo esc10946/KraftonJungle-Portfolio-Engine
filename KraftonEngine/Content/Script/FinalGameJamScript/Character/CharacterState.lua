@@ -11,6 +11,7 @@ function State.ResetGuard(ctx)
     ctx.state.defensePlaying = false
     ctx.state.defenseIdlePlaying = false
     ctx.state.successParryPlaying = false
+    ctx.state.canCancelSuccessParry = false
     ctx.state.parryWindowOpen = false
 end
 

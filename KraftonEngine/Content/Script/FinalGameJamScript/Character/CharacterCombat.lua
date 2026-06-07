@@ -87,8 +87,19 @@ function Combat.StartAttackSequence(ctx)
 end
 
 function Combat.ExecuteInput(ctx)
-    if ctx.state.defensePlaying or ctx.state.successParryPlaying then
+    if ctx.state.defensePlaying then
         return
+    end
+
+    if ctx.state.successParryPlaying then
+        if not ctx.state.canCancelSuccessParry then
+            return
+        end
+
+        Context.StopCurrentMontage(ctx)
+        State.ResetGuard(ctx)
+        Locomotion.Unlock(ctx)
+        Context.ConsumeEnableAttack(ctx)
     end
 
     if ctx.state.hitPlaying then
