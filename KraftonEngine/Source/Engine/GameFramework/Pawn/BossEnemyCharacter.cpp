@@ -122,6 +122,8 @@ void ABossEnemyCharacter::HandlePhaseChanged(UPhaseComponent* /*Component*/, int
 	{
 		Combat->OpenInvulnWindow(PhaseChangeInvulnSeconds);
 	}
+	// 연출 동안 두뇌를 busy 로 잠가 다음 행동(이동/공격/가드)이 전환 몽타주를 덮지 못하게 한다.
+	LockBrainBusy(PhaseChangeInvulnSeconds);
 	if (UParticleSystemComponent* PhaseVFX = GetComponentByClass<UParticleSystemComponent>())
 	{
 		PhaseVFX->Activate(true);

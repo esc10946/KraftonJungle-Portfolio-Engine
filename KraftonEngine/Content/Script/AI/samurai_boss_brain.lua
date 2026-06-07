@@ -228,8 +228,7 @@ local Actions = {
             return clamp(s, 0, 1.1)
         end,
         run = function(bb)
-            call(obj, "Brain_OpenGuard")
-            AI.counterUntil = 0.55   -- 막은 직후 짧은 반격 윈도우 개시 → 다음 틱 반격
+            call(obj, "Brain_OpenGuard")   -- 반격 윈도우는 "선택"이 아니라 "실제로 막은" 순간에만 연다(Tick 참조)
             return true
         end,
     },
@@ -405,6 +404,10 @@ function Tick(dt)
     call(obj, "Brain_Sense")
     -- 반격 윈도우는 공격(busy) 중에도 흘러야 "가드→반격 1회→(여전히 압박 시)가드→반격" 교대가 된다.
     AI.counterUntil = math.max(0.0, AI.counterUntil - dt)
+    -- 실제로 가드로 막은 직후에만 반격 윈도우를 연다(가드 "선택"만으로 반격하지 않음 — 정확한 리포스트).
+    if call(obj, "Brain_GuardBlockedRecently") == true then
+        AI.counterUntil = 0.55
+    end
     if call(obj, "Brain_IsBusy") == true then return end          -- 공격/경직 중 — 두뇌 정지
     if call(obj, "Brain_ConsumeCombatStep") ~= true then return end
 

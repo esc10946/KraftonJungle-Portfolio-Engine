@@ -80,7 +80,7 @@ function Context.Create(owner)
             hitMontages = {},
             defenseIdleMontage = nil,
             counterMontage = nil,
-            counterParticles = {},
+            counterImpactParticle = nil,
             successParryMontage = nil,
             lockOnComponent = nil,
         },
@@ -208,15 +208,28 @@ end
 
 function Context.ConsumeCounterOpportunity(ctx)
     local anim = Context.GetAnimInstance(ctx)
+    if anim ~= nil and Animation ~= nil and Animation.ConsumeCounterOpportunity ~= nil then
+        local opportunity = Animation.ConsumeCounterOpportunity(anim)
+        if opportunity == nil then
+            return nil, nil
+        end
+
+        local target = opportunity.attacker
+        if target == nil then
+            target = true
+        end
+        return target, opportunity.hitLocation
+    end
+
     if anim ~= nil and Animation ~= nil and Animation.ConsumeCounterOpportunityAttacker ~= nil then
-        return Animation.ConsumeCounterOpportunityAttacker(anim)
+        return Animation.ConsumeCounterOpportunityAttacker(anim), nil
     end
 
     if Context.ConsumeSuccessfulParry(ctx) then
-        return true
+        return true, nil
     end
 
-    return nil
+    return nil, nil
 end
 
 function Context.LoadMontage(path)

@@ -357,9 +357,40 @@ namespace
 		return "Shaders/Particle/BeamTrail.hlsl";                        // Beam / Ribbon
 	}
 
-	// emitter 강제 셰이더와 레이아웃(ShaderPathForSerialize)이 일치하는 머티리얼만 노출하는 콤보.
-	// (콤보가 열렸을 때만 머티리얼을 load → 캐시됨. 불일치 머티리얼은 셰이더 레이아웃이 안 맞아 사용 불가.)
-	bool MaterialComboFieldFiltered(const char* Label, FSoftObjectPtr& Value, const FString& RequiredShaderPath)
+	bool IsParticleMaterialCompatible(
+		const UMaterial* Material,
+		const UParticleLODLevel* LOD,
+		const FString& RequiredShaderPath)
+	{
+		if (!Material)
+			return false;
+
+		// Legacy particle materials use the emitter shader directly.
+		if (Material->GetShaderPathForSerialize() == RequiredShaderPath)
+			return true;
+
+		// Graph materials compile their own particle shader, so their generated
+		// path intentionally differs from the legacy fallback shader path.
+		if (!Material->IsGraphMaterial())
+			return false;
+
+		const EMaterialGraphTarget Target = Material->GetGraphDocument().Target;
+		if (!LOD || LOD->TypeDataModule == nullptr)
+			return Target == EMaterialGraphTarget::ParticleSprite;
+		if (Cast<UParticleModuleTypeDataMesh>(LOD->TypeDataModule))
+			return Target == EMaterialGraphTarget::ParticleMesh;
+
+		// Beam/Ribbon graph targets are not implemented yet.
+		return false;
+	}
+
+	// Legacy materials must match the emitter fallback shader. Graph materials
+	// are filtered by graph target because they own a generated particle shader.
+	bool MaterialComboFieldFiltered(
+		const char* Label,
+		FSoftObjectPtr& Value,
+		const UParticleLODLevel* LOD,
+		const FString& RequiredShaderPath)
 	{
 		FString CurrentPath = Value.ToString();
 		if (CurrentPath.empty()) CurrentPath = "None";
@@ -374,8 +405,8 @@ namespace
 			for (const FMaterialAssetListItem& Item : FMaterialManager::Get().GetAvailableMaterialFiles())
 			{
 				UMaterial* Mat = FMaterialManager::Get().GetOrCreateMaterial(Item.FullPath);
-				if (!Mat || Mat->GetShaderPathForSerialize() != RequiredShaderPath)
-					continue; // emitter 강제 셰이더와 레이아웃 불일치 → 제외
+				if (!IsParticleMaterialCompatible(Mat, LOD, RequiredShaderPath))
+					continue;
 
 				const bool bSelected = (CurrentPath == Item.FullPath);
 				if (ImGui::Selectable(Item.DisplayName.c_str(), bSelected)) { Value.SetPath(Item.FullPath); CurrentPath = Item.FullPath; bChanged = true; }
@@ -3025,13 +3056,13 @@ void FParticleEditorWidget::RenderPropertyPanel(ImVec2 Size)
 				if (ImGui::CollapsingHeader("Required", ImGuiTreeNodeFlags_DefaultOpen))
 				{
 					const FString ForcedShader = ParticleForcedShaderPath(LOD);
-					if (MaterialComboFieldFiltered("Material", Required->MaterialSlot, ForcedShader))
+					if (MaterialComboFieldFiltered("Material", Required->MaterialSlot, LOD, ForcedShader))
 					{
 						Required->CachedMaterial = nullptr;
 						bChanged = true;
 					}
-					// 셰이더는 emitter 타입이 강제 → 그 셰이더 레이아웃과 맞는 머티리얼만 위 목록에 표시.
-					ImGui::TextDisabled("Shader (forced by emitter): %s", ForcedShader.c_str());
+					ImGui::TextDisabled("Emitter fallback shader: %s", ForcedShader.c_str());
+					ImGui::TextDisabled("Graph materials: matching Particle target");
 					// Blend State는 Material(.mat)이 결정 — 에디터 비노출. Material 슬롯에서 변경한다.
 					ImGui::TextDisabled("Blend State: from Material (.mat)");
 					bChanged |= ImGui::Checkbox("Use Local Space", &Required->bUseLocalSpace);

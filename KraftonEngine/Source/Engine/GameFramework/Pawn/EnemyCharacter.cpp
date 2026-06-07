@@ -63,11 +63,12 @@ namespace
 
 	float GetAttackExecutionDuration(const FEnemyAttackData& Attack)
 	{
-		// 커밋 = 타격 시점 + 짧은 캔슬 버퍼. 긴 복귀(return) 꼬리는 커밋에 포함하지 않는다 —
+		// 커밋 = 타격 시점 + 짧은 캔슬 버퍼. 긴 복귀(return) 꼬리는 기본적으로 커밋에 포함하지 않는다 —
 		// 보스는 타격 직후 자유로워져 다음 공격을 블렌딩으로 잇는다(빠른 연속 교전, 턴제 느낌 제거).
-		// 다음 공격의 짧은 블렌드인이 이전 몽타주의 복귀 구간을 자연스럽게 캔슬·크로스페이드한다.
+		// 단, 강공격/마무리기는 MinCommitTime 으로 최소 커밋을 보장해 후딜 모션이 걷기로 덮이지 않게 한다.
 		const float CancelBuffer = 0.16f;
-		return (std::max)(0.12f, ComputeAttackHitTime(Attack) + CancelBuffer);
+		float Duration = (std::max)(0.12f, ComputeAttackHitTime(Attack) + CancelBuffer);
+		return (std::max)(Duration, Attack.MinCommitTime);
 	}
 
 	void StretchAttackFramesToDuration(FEnemyAttackData& Attack, float Duration)
@@ -285,16 +286,18 @@ void AEnemyCharacter::Tick(float DeltaTime)
 	}
 	ApplySeparationSteering();
 
-	// 백점프 지연 발사: 준비동작(LeapPrepDelay)이 끝나면 점프(수직)+수평 임펄스를 가한다.
+	// 백점프 지연 발사: 준비동작(LeapPrepDelay)이 끝나면 수평+수직 임펄스를 한 번에 가한다(원자적 발사).
+	// AddExternalImpulse 가 Velocity.Z>0 을 보고 즉시 Falling 으로 전환 → 수평 성분이 공중에서 마찰 없이
+	// 거리로 환산된다. (예전엔 여기서 deferred Jump() 로 수직을 따로 걸어, 임펄스가 지상 마찰에 먹혀
+	//  제자리 점프가 났다. 이제 수직은 PendingLeapImpulse.Z 에 포함되어 있으므로 Jump() 를 호출하지 않는다.)
 	if (PendingLeapTime > 0.0f)
 	{
 		PendingLeapTime -= DeltaTime;
 		if (PendingLeapTime <= 0.0f)
 		{
-			Jump(); // 수직 팝 + Falling 모드 전환
 			if (UCharacterMovementComponent* Move = GetComponentByClass<UCharacterMovementComponent>())
 			{
-				Move->AddExternalImpulse(PendingLeapImpulse); // 후방 수평 임펄스(공중 마찰 없음 → 거리)
+				Move->AddExternalImpulse(PendingLeapImpulse); // 수평(후방)+수직 임펄스 → Falling 전환
 			}
 			PendingLeapImpulse = FVector::ZeroVector;
 		}
@@ -744,6 +747,7 @@ void AEnemyCharacter::HandleDeath(UHealthComponent* Component, AActor* DamageCau
 	bCurrentAttackActive = false;
 	bCurrentAttackMontageless = false;
 	CurrentAttack = FEnemyAttackData();
+	CurrentAttackMontage = nullptr;   // 사망 시 공격 몽타주 포인터 정리(오래된 포인터 오인 방지)
 	CurrentAttackDamagedActors.clear();
 	if (UCombatMoveComponent* Move = CombatMove.Get())
 	{
@@ -891,6 +895,14 @@ bool AEnemyCharacter::Brain_IsBusy() const
 	{
 		return true;
 	}
+	// 강제 busy 락(페이즈 전환 연출 등) — 다음 행동이 연출 몽타주를 덮지 못하게 한다.
+	if (UWorld* World = GetWorld())
+	{
+		if (World->GetGameTimeSeconds() < BrainBusyUntilSeconds)
+		{
+			return true;
+		}
+	}
 	if (UCombatStateComponent* Combat = GetCombatStateComponent())
 	{
 		if (Combat->IsStaggered())
@@ -899,6 +911,18 @@ bool AEnemyCharacter::Brain_IsBusy() const
 		}
 	}
 	return false;
+}
+
+void AEnemyCharacter::LockBrainBusy(float Seconds)
+{
+	if (Seconds <= 0.0f)
+	{
+		return;
+	}
+	if (UWorld* World = GetWorld())
+	{
+		BrainBusyUntilSeconds = (std::max)(BrainBusyUntilSeconds, World->GetGameTimeSeconds() + Seconds);
+	}
 }
 
 
@@ -1320,6 +1344,12 @@ bool AEnemyCharacter::Brain_IsGuarding() const
 	return Combat && Combat->IsGuarding();
 }
 
+bool AEnemyCharacter::Brain_GuardBlockedRecently() const
+{
+	const UCombatStateComponent* Combat = GetCombatStateComponent();
+	return Combat && Combat->WasGuardBlockedWithin(0.35f);
+}
+
 void AEnemyCharacter::Brain_Dodge()
 {
 	StopEnemyMovement();
@@ -1372,6 +1402,14 @@ void AEnemyCharacter::Brain_LeapBack()
 	}
 	Away.Z = 0.0f;
 	PendingLeapImpulse = Away * LeapHorizontalForce;
+	// 수직 성분을 임펄스에 포함해 "원자적 발사" 로 만든다. AddExternalImpulse 가 Velocity.Z>0 을 보고
+	// 즉시 Falling 으로 전환하므로(공중=수평 마찰 없음) 수평 임펄스가 그대로 거리로 환산된다.
+	// (예전엔 발사 시 deferred Jump() 가 수직을 다음 틱에야 적용 → 임펄스가 Walking 상태의 마찰/클램프에
+	//  먹혀 수평이 사라지고 수직만 남아 "제자리 점프" 가 났다.)
+	if (UCharacterMovementComponent* Move = GetCharacterMovement())
+	{
+		PendingLeapImpulse.Z = Move->JumpZVelocity;
+	}
 	PendingLeapTime = (std::max)(0.02f, LeapPrepDelay);
 }
 

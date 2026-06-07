@@ -7,6 +7,7 @@
 #include "Engine/Component/Camera/SpringArmComponent.h"
 #include "Engine/Materials/Material.h"
 #include "Engine/Materials/MaterialManager.h"
+#include "Component/Combat/HealthComponent.h"
 #include "GameFramework/Pawn/EnemyCharacter.h"
 #include "LockOnMarkerComponent.h"
 
@@ -53,6 +54,8 @@ void ULockOnComponent::BeginPlay()
 	AActor* Owner = GetOwner();
 	if (!Owner) return;
 
+	BindOwnerHealthEvents();
+
 	UBillboardComponent* Marker = Owner->AddComponent<ULockOnMarkerComponent>();
 	if (!Marker) return;
 
@@ -88,7 +91,48 @@ void ULockOnComponent::BeginPlay()
 
 void ULockOnComponent::EndPlay()
 {
-	// Does nothing for now
+	ClearLockOn();
+	UnbindOwnerHealthEvents();
+	Super::EndPlay();
+}
+
+void ULockOnComponent::BindOwnerHealthEvents()
+{
+	if (OwnerDeathHandle.IsValid())
+	{
+		return;
+	}
+
+	AActor* OwnerActor = GetOwner();
+	UHealthComponent* HealthComponent = OwnerActor ? OwnerActor->GetComponentByClass<UHealthComponent>() : nullptr;
+	if (!HealthComponent)
+	{
+		return;
+	}
+
+	BoundHealthComponent = HealthComponent;
+	OwnerDeathHandle = HealthComponent->OnDeath.AddWeakUObject(this, &ULockOnComponent::HandleOwnerDeath);
+}
+
+void ULockOnComponent::UnbindOwnerHealthEvents()
+{
+	if (UHealthComponent* HealthComponent = BoundHealthComponent.Get())
+	{
+		if (OwnerDeathHandle.IsValid())
+		{
+			HealthComponent->OnDeath.Remove(OwnerDeathHandle);
+		}
+	}
+
+	OwnerDeathHandle.Reset();
+	BoundHealthComponent.Reset();
+}
+
+void ULockOnComponent::HandleOwnerDeath(
+	UHealthComponent* /*Component*/,
+	AActor* /*DamageCauser*/,
+	AActor* /*InstigatorActor*/)
+{
 	ClearLockOn();
 }
 

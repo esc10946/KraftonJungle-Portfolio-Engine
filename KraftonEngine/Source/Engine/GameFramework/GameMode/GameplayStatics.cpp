@@ -61,7 +61,15 @@ UParticleSystemComponent* FGameplayStatics::SpawnEmitterAtLocation(UWorld* World
 
 	World->AddActor(Actor);           // world 가 BeginPlay 진행 중이면 여기서 BeginPlay → 컴포넌트 등록
 
-	if (bActivate) PSC->Activate(true);
+	if (bActivate)
+	{
+		PSC->Activate(true);
+	}
+	else
+	{
+		PSC->Deactivate();
+		PSC->ResetParticles();
+	}
 	return PSC;
 }
 

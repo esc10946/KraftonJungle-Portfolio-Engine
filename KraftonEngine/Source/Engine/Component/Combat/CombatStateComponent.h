@@ -111,6 +111,12 @@ public:
 	void CloseGuard();
 	UFUNCTION(Pure, Category="Combat|Guard")
 	bool IsGuarding() const;
+	// 실제로 정면 가드로 피해를 막은 순간 호출(HealthComponent). 보스 AI가 이걸 보고 반격을 연다
+	// — 가드 "선택"만으로 반격하지 않고 실제 "막음" 직후에만 반격(riposte)하게 한다.
+	UFUNCTION(Callable, Category="Combat|Guard")
+	void NotifyGuardBlocked();
+	UFUNCTION(Pure, Category="Combat|Guard")
+	bool WasGuardBlockedWithin(float Seconds) const;
 
 	UFUNCTION(Callable, Category="Combat|Team")
 	void SetTeam(ECombatTeam InTeam) { Team = InTeam; }
@@ -197,6 +203,8 @@ private:
 
 	// 가드 윈도우(게임시간).
 	float GuardUntilSeconds = 0.0f;
+	// 마지막으로 실제 가드로 막은 시각(게임시간). 음수=아직 없음.
+	float LastGuardBlockSeconds = -1000.0f;
 
 	// 타이머 무적 윈도우(게임시간).
 	float InvulnUntilSeconds = 0.0f;

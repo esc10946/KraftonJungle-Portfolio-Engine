@@ -30,7 +30,10 @@ local DEATH_DESTROY_DELAY = 2.0
 local bDestroyedByDeath = false
 local bPendingDestroyFromDeath = false
 local deathDestroyDelayRemaining = 0.0
-local bDeathRagdollStarted = false
+
+local SPEAR_PATH = "Content/Data/Weapon/Spear/SM_Yari_StaticMesh.uasset"
+local SPEAR_SOCKET = "Spear"
+local spearComponent = nil
 
 local LOCOMOTION = {
     Locked = 0,
@@ -95,11 +98,6 @@ local function request_destroy_from_death()
     deathDestroyDelayRemaining = DEATH_DESTROY_DELAY
     call(obj, "Brain_ReleaseAttackToken")
     call(obj, "StopEnemyMovement")
-
-    if not bDeathRagdollStarted then
-        bDeathRagdollStarted = true
-        call(obj, "EnterRagdoll")
-    end
 end
 
 local function destroy_self_from_death()
@@ -381,6 +379,16 @@ function BeginPlay()
         isBoss = call(obj, "Brain_IsBoss") == true,
     }
     pcall(function() math.randomseed((tonumber(obj.UUID) or os.time() or 1) + 13) end)
+
+    if not S.isBoss and Equipment and Equipment.AttachStaticMeshToSocket then
+        spearComponent = Equipment.AttachStaticMeshToSocket(
+            obj,
+            SPEAR_PATH,
+            SPEAR_SOCKET,
+            Vec3(1.0, 1.0, 1.0)
+        )
+    end
+
 end
 
 function EndPlay()

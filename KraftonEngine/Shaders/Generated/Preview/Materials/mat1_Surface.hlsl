@@ -1,10 +1,11 @@
-// Generated from C:/Users/jungle/Documents/GitHub/Week14/KraftonEngine/Content/Game/Material/LockOnMarker.uasset
+// Generated from C:/Users/jungle/GitHub/Jungle_Week14_Team6/KraftonEngine/Content/Material/Auto/mat1.uasset
 // Domain: Surface
 
 #include "Common/ConstantBuffers.hlsli"
 #include "Common/VertexLayouts.hlsli"
 #include "Common/Functions.hlsli"
 #include "Common/SystemSamplers.hlsli"
+#include "Common/ForwardLighting.hlsli"
 
 struct FMaterialPixelInput
 {
@@ -28,14 +29,12 @@ struct FMaterialResult
     float Opacity;
 };
 
-Texture2D Tex_Diffuse : register(t0);
-
 FMaterialResult EvaluateMaterial(FMaterialPixelInput Input)
 {
-    float4 n_17 = Tex_Diffuse.Sample(LinearWrapSampler, Input.UV0);
-    float n_3 = (n_17).a;
+    float3 n_1 = float3(1.000000f, 1.000000f, 1.000000f);
+    float n_3 = 1.000000f;
     FMaterialResult Result;
-    Result.BaseColor = (n_17).rgb;
+    Result.BaseColor = n_1;
     Result.Normal = float3(0, 0, 1);
     Result.Roughness = 0.5f;
     Result.Metallic = 0.0f;
@@ -83,7 +82,12 @@ float4 PS(MaterialSurfaceVSOutput input) : SV_TARGET
     FMaterialResult Result = EvaluateMaterial(MaterialInput);
     float3 N = normalize(input.normal);
 
-    float3 finalRgb = Result.BaseColor + Result.Emissive;
+    float3 V = normalize(CameraWorldPos - input.worldPos);
+    float3 diffuse = AccumulateDiffuse(input.worldPos, N, input.position);
+    float3 specular = AccumulateSpecular(input.worldPos, N, V, 32.0f, input.position);
 
-    return float4(finalRgb, saturate(Result.Opacity));
+    float3 finalRgb = Result.BaseColor * diffuse + specular + Result.Emissive;
+    float OutOpacity = saturate(Result.Opacity);
+
+    return float4(finalRgb, OutOpacity);
 }

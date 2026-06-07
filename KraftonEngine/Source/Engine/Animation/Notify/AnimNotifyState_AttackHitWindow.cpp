@@ -72,6 +72,14 @@ namespace
 		return X * X + Y * Y + Z * Z;
 	}
 
+	FVector ClosestPointOnAABB(const FVector& Point, const FBoundingBox& Box)
+	{
+		return FVector(
+			std::max(Box.Min.X, std::min(Point.X, Box.Max.X)),
+			std::max(Box.Min.Y, std::min(Point.Y, Box.Max.Y)),
+			std::max(Box.Min.Z, std::min(Point.Z, Box.Max.Z)));
+	}
+
 	void DrawDebugBounds(UWorld* World, const FBoundingBox& Bounds, const FColor& Color, float Duration)
 	{
 		if (!World || !Bounds.IsValid())
@@ -168,7 +176,11 @@ namespace
 		return UAnimNotifyState_ParryWindow::IsParryWindowActive(GetActorAnimInstance(Target));
 	}
 
-	bool TryResolveParry(AActor* Attacker, AActor* Target, bool bRagdollAttacker)
+	bool TryResolveParry(
+		AActor* Attacker,
+		AActor* Target,
+		const FVector& HitLocation,
+		bool bRagdollAttacker)
 	{
 		UAnimInstance* TargetAnimInstance = GetActorAnimInstance(Target);
 		if (!UAnimNotifyState_ParryWindow::IsParryWindowActive(TargetAnimInstance))
@@ -177,7 +189,7 @@ namespace
 		}
 
 		FaceDefenderTowardAttacker(Target, Attacker);
-		UAnimNotifyState_ParryWindow::ReportSuccessfulParry(TargetAnimInstance, Attacker);
+		UAnimNotifyState_ParryWindow::ReportSuccessfulParry(TargetAnimInstance, Attacker, HitLocation);
 		if (bRagdollAttacker)
 		{
 			if (ACharacter* AttackerCharacter = Cast<ACharacter>(Attacker))
@@ -324,7 +336,7 @@ bool UAnimNotifyState_AttackHitWindow::ResolveParryHit(
 	const FCombatDamageSpec& DamageSpec,
 	const FVector& Center)
 {
-	if (!bAllowParry || !TryResolveParry(Owner, Target, bRagdollOwnerOnParry))
+	if (!bAllowParry || !TryResolveParry(Owner, Target, DamageSpec.HitLocation, bRagdollOwnerOnParry))
 	{
 		return false;
 	}
@@ -610,7 +622,8 @@ void UAnimNotifyState_AttackHitWindow::NotifyTick(USkeletalMeshComponent* MeshCo
 		}
 
 		HitActors.insert(Candidate);
-		const FCombatDamageSpec DamageSpec = MakeDamageSpec(Owner, Candidate, Center, Damage, PoiseDamage);
+		const FVector ImpactLocation = ClosestPointOnAABB(Center, HitComponent->GetWorldBoundingBox());
+		const FCombatDamageSpec DamageSpec = MakeDamageSpec(Owner, Candidate, ImpactLocation, Damage, PoiseDamage);
 		if (bAllowParry && bDelayDamageForParry && ParryResolveDelay > 0.0f)
 		{
 			QueueDelayedHit(MeshComp, Candidate, HitComponent, DamageSpec, Center);

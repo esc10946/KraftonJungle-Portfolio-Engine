@@ -99,6 +99,7 @@ FCombatDamageReport UHealthComponent::ApplyDamageSpec(const FCombatDamageSpec& D
 				{
 					EffectiveDamage *= CombatState->GuardDamageMultiplier;
 					EffectivePoiseDamage *= CombatState->GuardPoiseMultiplier;
+					CombatState->NotifyGuardBlocked();   // 실제로 막았음 → AI 반격(riposte) 트리거
 				}
 			}
 		}
