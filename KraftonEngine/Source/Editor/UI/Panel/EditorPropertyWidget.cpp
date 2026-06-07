@@ -19,6 +19,7 @@
 #include "Component/Primitive/StaticMeshComponent.h"
 #include "Cinematic/CameraCinematicActor.h"
 #include "Cinematic/CinematicWaypointComponent.h"
+#include "Game/Components/LockOnComponent.h"
 #include "GameFramework/AActor.h"
 #include "Asset/AssetRegistry.h"
 #include "Animation/AnimationManager.h"
@@ -1463,6 +1464,8 @@ void FEditorPropertyWidget::RenderComponentTree(AActor* Actor)
 	//AddComponentClassGroup(ComponentGroups, "UBillboardComponent", UBillboardComponent::StaticClass());
 	//AddComponentClassGroup(ComponentGroups, "UMeshComponent", UMeshComponent::StaticClass());
 	AddComponentClassGroup(ComponentGroups, "Primitive", UPrimitiveComponent::StaticClass());
+	// 게임플레이 컴포넌트 — 엔진 기반 클래스에 묶이지 않으므로 명시 그룹으로 노출.
+	AddComponentClassGroup(ComponentGroups, "Gameplay", ULockOnComponent::StaticClass());
 	//AddComponentClassGroup(ComponentGroups, "USceneComponent", USceneComponent::StaticClass());
 	//AddComponentClassGroup(ComponentGroups, "UActorComponent", UActorComponent::StaticClass());
 

@@ -3914,12 +3914,33 @@
             "bEditorOnly" : false,
             "bHiddenInComponentTree" : false,
             "bInitializeFullHealthOnBeginPlay" : true,
-            "bInvincible" : false,
-            "bIsActive" : true,
-            "bTickEnable" : true
-          }
-        }],
-      "ObjectId" : 135,
+              "bInvincible" : false,
+              "bIsActive" : true,
+              "bTickEnable" : true
+            }
+          }, {
+            "ClassName" : "ULockOnComponent",
+            "ObjectId" : 151,
+            "Properties" : {
+              "AcquireAngleDegrees" : 55.000000,
+              "ArmInterpSpeed" : 8.000000,
+              "BreakDistance" : 34.000000,
+              "CameraRotationInterpSpeed" : 12.000000,
+              "LockedMaxArmLength" : 14.000000,
+              "LockedMinArmLength" : 12.000000,
+              "LockedTargetOffset" : [0.000000, 0.000000, 2.000000],
+              "MarkerMaterialPath" : "Content/Game/Material/LockOnMarker.uasset",
+              "MaxLockDistance" : 28.000000,
+              "NormalArmLength" : 10.000000,
+              "NormalTargetOffset" : [0.000000, 0.000000, 0.000000],
+              "bAutoActivate" : true,
+              "bEditorOnly" : false,
+              "bHiddenInComponentTree" : false,
+              "bIsActive" : true,
+              "bTickEnable" : true
+            }
+          }],
+        "ObjectId" : 135,
       "Properties" : {
         "PendingActorLocation" : [49.665085, -7.478400, 13.065545],
         "PendingActorRotation" : [-0.000000, 0.000000, 0.000000],

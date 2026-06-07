@@ -2,6 +2,7 @@ local Config = {}
 
 Config.LMB = "LeftMouseButton"
 Config.RMB = "RightMouseButton"
+Config.LOCK_ON = "MiddleMouseButton"
 Config.MOVE_FORWARD_KEY = "W"
 Config.MOVE_LEFT_KEY = "A"
 Config.MOVE_BACK_KEY = "S"

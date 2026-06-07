@@ -2,6 +2,7 @@ local Combat = require("FinalGameJamScript/Character/CharacterCombat")
 local Counter = require("FinalGameJamScript/Character/CharacterCounter")
 local Guard = require("FinalGameJamScript/Character/CharacterGuard")
 local HitReaction = require("FinalGameJamScript/Character/CharacterHitReaction")
+local LockOn = require("FinalGameJamScript/Character/CharacterLockOn")
 local Locomotion = require("FinalGameJamScript/Character/CharacterLocomotion")
 
 local Commands = {}
@@ -34,6 +35,11 @@ local commandList = {
     { Tick = Counter.UpdateOpportunity },
     { Tick = Counter.UpdateCancelWindow },
     { Tick = Locomotion.UpdateMovementLock },
+    { Tick = LockOn.UpdateSwitchInput },
+    {
+        IsTriggered = LockOn.IsInputTriggered,
+        Execute = LockOn.ExecuteInput,
+    },
     {
         IsTriggered = Guard.IsInputTriggered,
         Execute = Guard.ExecuteInput,

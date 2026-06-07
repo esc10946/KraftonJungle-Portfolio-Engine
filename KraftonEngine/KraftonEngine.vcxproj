@@ -810,6 +810,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Engine\Render\RenderPass\EditorLinesPass.cpp" />
     <ClCompile Include="Source\Engine\Render\RenderPass\FXAAPass.cpp" />
     <ClCompile Include="Source\Engine\Render\RenderPass\FogPass.cpp" />
+    <ClCompile Include="Source\Engine\Render\RenderPass\GameOverlayPass.cpp" />
     <ClCompile Include="Source\Engine\Render\RenderPass\GammaCorrectionPass.cpp" />
     <ClCompile Include="Source\Engine\Render\RenderPass\GizmoInnerPass.cpp" />
     <ClCompile Include="Source\Engine\Render\RenderPass\GizmoOuterPass.cpp" />
@@ -862,6 +863,8 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Engine\Viewport\Viewport.cpp" />
     <ClCompile Include="Source\Engine\Viewport\ViewportClient.cpp" />
     <ClCompile Include="Source\Game\GameActorPlacements.cpp" />
+    <ClCompile Include="Source\Game\Components\LockOnComponent.cpp" />
+    <ClCompile Include="Source\Game\Components\LockOnMarkerComponent.cpp" />
     <ClCompile Include="Source\Game\GameMode\AFinaleGameMode.cpp" />
     <ClCompile Include="Source\Game\GameMode\GameState.cpp" />
     <ClCompile Include="Source\Game\Lua\GameLuaBindings.cpp" />
@@ -1375,6 +1378,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\Render\RenderPass\EditorLinesPass.h" />
     <ClInclude Include="Source\Engine\Render\RenderPass\FXAAPass.h" />
     <ClInclude Include="Source\Engine\Render\RenderPass\FogPass.h" />
+    <ClInclude Include="Source\Engine\Render\RenderPass\GameOverlayPass.h" />
     <ClInclude Include="Source\Engine\Render\RenderPass\GammaCorrectionPass.h" />
     <ClInclude Include="Source\Engine\Render\RenderPass\GizmoInnerPass.h" />
     <ClInclude Include="Source\Engine\Render\RenderPass\GizmoOuterPass.h" />
@@ -1448,6 +1452,8 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\Viewport\Viewport.h" />
     <ClInclude Include="Source\Engine\Viewport\ViewportClient.h" />
     <ClInclude Include="Source\Game\GameActorPlacements.h" />
+    <ClInclude Include="Source\Game\Components\LockOnComponent.h" />
+    <ClInclude Include="Source\Game\Components\LockOnMarkerComponent.h" />
     <ClInclude Include="Source\Game\GameMode\AFinaleGameMode.h" />
     <ClInclude Include="Source\Game\GameMode\GameSoftPauseState.h" />
     <ClInclude Include="Source\Game\GameMode\GameState.h" />
@@ -2420,6 +2426,13 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ObjViewDebug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Demo|x64'">true</ExcludedFromBuild>
     </FxCompile>
+    <FxCompile Include="Shaders\Generated\Materials\LockOnMarker_Surface.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Game|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ObjViewDebug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Demo|x64'">true</ExcludedFromBuild>
+    </FxCompile>
     <FxCompile Include="Shaders\Generated\Materials\MI_Skeleton_Inst.001_Surface.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
@@ -2483,7 +2496,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='ObjViewDebug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Demo|x64'">true</ExcludedFromBuild>
     </FxCompile>
-    <FxCompile Include="Shaders\Generated\Preview\Materials\MI_Skeleton_Inst.001_Surface.hlsl">
+    <FxCompile Include="Shaders\Generated\Preview\Materials\LockOnMarker_Surface.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Game|x64'">true</ExcludedFromBuild>
@@ -2765,7 +2778,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <Import Project="packages\directxtk_desktop_win10.2025.10.28.2\build\native\directxtk_desktop_win10.targets" Condition="Exists('packages\directxtk_desktop_win10.2025.10.28.2\build\native\directxtk_desktop_win10.targets')" />
   </ImportGroup>
   <PropertyGroup>
-    <PythonExe Condition="'$(PythonExe)'==''">$(MSBuildProjectDirectory)\..\Scripts\python\python.exe</PythonExe>
+    <PythonExe Condition="'$(PythonExe)'==''">python</PythonExe>
   </PropertyGroup>
   <Target Name="GenerateReflectionHeaders" BeforeTargets="ClCompile">
     <Exec Command="&quot;$(PythonExe)&quot; &quot;$(MSBuildProjectDirectory)\..\Scripts\GenerateHeaders.py&quot; --root &quot;$(MSBuildProjectDirectory)&quot;" WorkingDirectory="$(MSBuildProjectDirectory)" />
