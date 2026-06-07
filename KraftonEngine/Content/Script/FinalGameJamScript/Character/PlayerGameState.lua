@@ -33,8 +33,51 @@ local function request_player_death(ctx)
     end
 end
 
+local function reset_player_vitals(ctx)
+    if ctx.obj == nil then
+        return
+    end
+
+    local health = nil
+    if ctx.obj.GetHealthComponent ~= nil then
+        health = ctx.obj:GetHealthComponent()
+    else
+        health = Context.Call(ctx.obj, "GetHealthComponent")
+    end
+
+    if health ~= nil then
+        if health.ResetHealth ~= nil then
+            health:ResetHealth()
+        else
+            Context.Call(health, "ResetHealth")
+        end
+    end
+
+    local combat = nil
+    if ctx.obj.GetCombatStateComponent ~= nil then
+        combat = ctx.obj:GetCombatStateComponent()
+    else
+        combat = Context.Call(ctx.obj, "GetCombatStateComponent")
+    end
+
+    if combat ~= nil then
+        if combat.StopStagger ~= nil then
+            combat:StopStagger()
+        else
+            Context.Call(combat, "StopStagger")
+        end
+
+        if combat.ResetPoise ~= nil then
+            combat:ResetPoise()
+        else
+            Context.Call(combat, "ResetPoise")
+        end
+    end
+end
+
 local function reset_after_revive(ctx)
     ctx.state.playerDead = false
+    reset_player_vitals(ctx)
     Counter.RestoreCollision(ctx)
     State.ResetCombat(ctx)
     Locomotion.Unlock(ctx)
