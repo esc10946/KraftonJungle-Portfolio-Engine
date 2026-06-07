@@ -5,6 +5,7 @@
 #include "Core/Logging/Log.h"
 #include "GameFramework/AActor.h"
 #include "Object/Ptr/WeakObjectPtr.h"
+#include "Profiling/Stats/Stats.h"
 
 namespace
 {
@@ -54,6 +55,7 @@ namespace
 
 void UAnimNotifyState_ParryWindow::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* /*Anim*/, float /*TotalDuration*/)
 {
+	SCOPE_STAT_CAT("ParryWindow.NotifyBegin", "Combat");
 	PurgeInvalidParryMeshes();
 	if (!IsValid(MeshComp))
 	{
@@ -70,6 +72,7 @@ void UAnimNotifyState_ParryWindow::NotifyBegin(USkeletalMeshComponent* MeshComp,
 
 void UAnimNotifyState_ParryWindow::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* /*Anim*/)
 {
+	SCOPE_STAT_CAT("ParryWindow.NotifyEnd", "Combat");
 	PurgeInvalidParryMeshes();
 	if (!IsValid(MeshComp))
 	{
@@ -106,6 +109,7 @@ bool UAnimNotifyState_ParryWindow::ReportSuccessfulParry(UAnimInstance* AnimInst
 
 bool UAnimNotifyState_ParryWindow::ReportSuccessfulParry(UAnimInstance* AnimInstance, AActor* Attacker)
 {
+	SCOPE_STAT_CAT("ParryWindow.ReportSuccessful", "Combat");
 	PurgeInvalidParryMeshes();
 
 	USkeletalMeshComponent* MeshComp = GetMeshFromAnimInstance(AnimInstance);
@@ -175,6 +179,7 @@ bool UAnimNotifyState_ParryWindow::ConsumeSuccessfulParryData(
 	FVector& OutHitLocation,
 	bool& bOutHasHitLocation)
 {
+	SCOPE_STAT_CAT("ParryWindow.ConsumeSuccessfulData", "Combat");
 	PurgeInvalidParryMeshes();
 	OutAttacker = nullptr;
 	OutHitLocation = FVector::ZeroVector;

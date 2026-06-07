@@ -36,6 +36,7 @@
 #include "Engine/Viewport/Viewport.h"
 #include "Particle/ParticleSystem.h"
 #include "Particle/ParticleSystemManager.h"
+#include "Profiling/Stats/Stats.h"
 
 #include <algorithm>
 #include <cmath>
@@ -427,6 +428,7 @@ void RegisterGameLuaBindings(sol::state& Lua)
 		"ConsumeCounterOpportunity",
 		[](sol::this_state State, UAnimInstance* AnimInstance) -> sol::object
 		{
+			SCOPE_STAT_CAT("Lua.Animation.ConsumeCounterOpportunity", "Combat");
 			sol::state_view Lua(State);
 			AActor* Attacker = nullptr;
 			FVector HitLocation = FVector::ZeroVector;
@@ -458,6 +460,7 @@ void RegisterGameLuaBindings(sol::state& Lua)
 		"SetRuntimeSpawnRateScale",
 		[](UParticleSystemComponent* Component, float Scale)
 		{
+			SCOPE_STAT_CAT("Lua.Particle.SetRuntimeSpawnRateScale", "Particles");
 			if (!IsValid(Component))
 			{
 				UE_LOG("[Particle] SetRuntimeSpawnRateScale failed: invalid component");
@@ -471,6 +474,7 @@ void RegisterGameLuaBindings(sol::state& Lua)
 		"AttachSystemToSocket",
 		[](AActor* Owner, const FString& TemplatePath, const FString& SocketName) -> UParticleSystemComponent*
 		{
+			SCOPE_STAT_CAT("Lua.Particle.AttachSystemToSocket", "Particles");
 			if (!IsValid(Owner) || TemplatePath.empty() || TemplatePath == "None")
 			{
 				UE_LOG("[Particle] AttachSystemToSocket failed: invalid owner or template path");
@@ -524,6 +528,7 @@ void RegisterGameLuaBindings(sol::state& Lua)
 		"SpawnSystemAtLocation",
 		[](AActor* WorldContext, const FString& TemplatePath, const FVector& Location) -> UParticleSystemComponent*
 		{
+			SCOPE_STAT_CAT("Lua.Particle.SpawnSystemAtLocation", "Particles");
 			if (!IsValid(WorldContext) || !WorldContext->GetWorld())
 			{
 				UE_LOG("[Particle] SpawnSystemAtLocation failed: invalid world context");
@@ -542,6 +547,7 @@ void RegisterGameLuaBindings(sol::state& Lua)
 		"SetSystemWorldLocation",
 		[](UParticleSystemComponent* Component, const FVector& Location)
 		{
+			SCOPE_STAT_CAT("Lua.Particle.SetSystemWorldLocation", "Particles");
 			if (IsValid(Component))
 			{
 				Component->SetWorldLocation(Location);
@@ -552,6 +558,7 @@ void RegisterGameLuaBindings(sol::state& Lua)
 		"SetSystemWorldScale",
 		[](UParticleSystemComponent* Component, float UniformScale)
 		{
+			SCOPE_STAT_CAT("Lua.Particle.SetSystemWorldScale", "Particles");
 			if (IsValid(Component))
 			{
 				const float Scale = std::max(0.0f, UniformScale);

@@ -5,6 +5,7 @@
 #include "GameFramework/AActor.h"
 #include "GameFramework/World.h"
 #include "Math/MathUtils.h"
+#include "Profiling/Stats/Stats.h"
 
 #include <algorithm>
 
@@ -76,6 +77,7 @@ float UCombatStateComponent::GetHealthRatioSafe() const
 
 bool UCombatStateComponent::ApplyPoiseDamage(float PoiseDamage)
 {
+	SCOPE_STAT_CAT("CombatState.ApplyPoiseDamage", "Combat");
 	if (PoiseDamage <= 0.0f || bSuperArmor || MaxPoise <= 0.0f)
 	{
 		return false;
@@ -208,6 +210,7 @@ bool UCombatStateComponent::IsDeflecting() const
 
 EDeflectGrade UCombatStateComponent::ConsumeDeflect(AActor* Attacker)
 {
+	SCOPE_STAT_CAT("CombatState.ConsumeDeflect", "Combat");
 	if (!IsDeflecting())
 	{
 		LastDeflectGrade = EDeflectGrade::None;

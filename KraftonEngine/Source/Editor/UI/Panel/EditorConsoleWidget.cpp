@@ -272,6 +272,8 @@ void FEditorConsoleWidget::RegisterDiagnosticsCommands()
 		"Diagnostics", "stat particles", "Shows the particle overlay stat (counts/memory/CPU time).");
 	RegisterCommand("stat physics", [this](const TArray<FString>& Args) { HandleStatPhysics(Args); },
 		"Diagnostics", "stat physics", "Shows the physics overlay stat (bodies/pairs/queries/timing).");
+	RegisterCommand("stat navmesh", [this](const TArray<FString>& Args) { HandleStatNavMesh(Args); },
+		"Diagnostics", "stat navmesh", "Shows the navigation mesh overlay stat (nodes/build/query state).");
 	RegisterCommand("stat clothcollision", [this](const TArray<FString>& Args) { HandleStatClothCollision(Args); },
 		"Diagnostics", "stat clothcollision", "Shows the cloth collision overlay stat for the level world.");
 	RegisterCommand("stat none", [this](const TArray<FString>& Args) { HandleStatNone(Args); },
@@ -1065,6 +1067,18 @@ void FEditorConsoleWidget::HandleStatPhysics(const TArray<FString>& Args)
 	}
 	const bool bEnabled = EditorEngine->GetOverlayStatSystem().TogglePhysics();
 	AddLog("Overlay stat %s: physics\n", bEnabled ? "enabled" : "disabled");
+}
+
+void FEditorConsoleWidget::HandleStatNavMesh(const TArray<FString>& Args)
+{
+	(void)Args;
+	if (!EditorEngine)
+	{
+		AddLog("[ERROR] EditorEngine is null.\n");
+		return;
+	}
+	const bool bEnabled = EditorEngine->GetOverlayStatSystem().ToggleNavMesh();
+	AddLog("Overlay stat %s: navmesh\n", bEnabled ? "enabled" : "disabled");
 }
 
 void FEditorConsoleWidget::HandleStatClothCollision(const TArray<FString>& Args)

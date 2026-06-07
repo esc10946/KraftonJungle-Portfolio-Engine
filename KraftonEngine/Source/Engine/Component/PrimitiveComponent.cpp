@@ -71,6 +71,19 @@ namespace
 			NavSys->RequestNavigationRebuild(Reason ? FString(Reason) : FString("Navigation relevant primitive changed"), false);
 		}
 	}
+
+	void RequestNavigationRebuildForPrimitivePolicyChange(
+		const UPrimitiveComponent* Primitive,
+		bool bWasNavigationRelevant,
+		const char* Reason)
+	{
+		if (!bWasNavigationRelevant && !IsNavigationRelevantPrimitive(Primitive))
+		{
+			return;
+		}
+
+		RequestNavigationRebuildForPrimitive(Primitive, Reason, true);
+	}
 }
 
 HIDE_FROM_COMPONENT_LIST(UPrimitiveComponent)
@@ -208,8 +221,12 @@ void UPrimitiveComponent::SetKinematic(bool bInKinematic)
 void UPrimitiveComponent::SetCanEverAffectNavigation(bool bInAffectNavigation)
 {
 	if (bCanEverAffectNavigation == bInAffectNavigation) return;
+	const bool bWasNavigationRelevant = IsNavigationRelevantPrimitive(this);
 	bCanEverAffectNavigation = bInAffectNavigation;
-	RequestNavigationRebuildForPrimitive(this, bInAffectNavigation ? "Primitive navigation relevance enabled" : "Primitive navigation relevance disabled", true);
+	RequestNavigationRebuildForPrimitivePolicyChange(
+		this,
+		bWasNavigationRelevant,
+		bInAffectNavigation ? "Primitive navigation relevance enabled" : "Primitive navigation relevance disabled");
 }
 
 void UPrimitiveComponent::MarkProxyDirty(EDirtyFlag Flag) const
@@ -513,9 +530,12 @@ void UPrimitiveComponent::EnsureWorldAABBUpdated() const
 
 void UPrimitiveComponent::SetCollisionEnabled(ECollisionEnabled InEnabled)
 {
+	if (CollisionEnabled == InEnabled) return;
+	const bool bWasNavigationRelevant = IsNavigationRelevantPrimitive(this);
 	bool bWasRegistered = IsCollisionEnabled();
 	CollisionEnabled = InEnabled;
 	bool bShouldRegister = IsCollisionEnabled();
+	RequestNavigationRebuildForPrimitivePolicyChange(this, bWasNavigationRelevant, "Primitive collision changed");
 
 	// 컴포넌트 BeginPlay 전이면 멤버만 변경. BeginPlay에서 한 번 등록되며 그 시점엔
 	// SimulatePhysics 등 다른 셋업이 모두 완료된 상태.
@@ -548,7 +568,9 @@ bool UPrimitiveComponent::IsQueryCollisionEnabled() const
 void UPrimitiveComponent::SetCollisionObjectType(ECollisionChannel InChannel)
 {
 	if (ObjectType == InChannel) return;
+	const bool bWasNavigationRelevant = IsNavigationRelevantPrimitive(this);
 	ObjectType = InChannel;
+	RequestNavigationRebuildForPrimitivePolicyChange(this, bWasNavigationRelevant, "Primitive object type changed");
 	NotifyPhysicsBodyDirty();
 }
 

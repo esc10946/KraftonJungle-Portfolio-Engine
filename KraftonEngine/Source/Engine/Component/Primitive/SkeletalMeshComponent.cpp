@@ -32,6 +32,7 @@
 #include "Physics/IPhysicsScene.h"
 #include "Physics/PhysicsRuntime.h"
 #include "Profiling/Stats/ClothCollisionStats.h"
+#include "Profiling/Stats/Stats.h"
 #include "Render/Proxy/SkeletalMeshSceneProxy.h"
 #include "Render/Types/ViewTypes.h"
 #include "Serialization/Archive.h"
@@ -2800,6 +2801,7 @@ void USkeletalMeshComponent::ClearAnimInstance()
 
 void USkeletalMeshComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction& ThisTickFunction)
 {
+    SCOPE_STAT_CAT("SkeletalMesh.TickComponent", "SkeletalMesh");
     if (!IsValid(this) || IsPendingKill())
     {
         return;
@@ -2833,6 +2835,7 @@ void USkeletalMeshComponent::TickComponent(float DeltaTime, ELevelTick TickType,
 
 void USkeletalMeshComponent::TickClothSimulation(float DeltaTime)
 {
+    SCOPE_STAT_CAT("SkeletalMesh.ClothTick", "SkeletalMesh");
     UWorld* World = GetWorld();
     const bool bRecordClothCollisionStats = World && World->GetWorldType() != EWorldType::EditorPreview;
     if (bRecordClothCollisionStats)
@@ -3145,6 +3148,7 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
 
 bool USkeletalMeshComponent::EvaluateAnimInstance(float DeltaTime)
 {
+    SCOPE_STAT_CAT("SkeletalMesh.EvaluateAnimInstance", "SkeletalMesh");
     if (!IsValid(this) || IsPendingKill()) return false;
     if (!IsValid(AnimInstance))
     {

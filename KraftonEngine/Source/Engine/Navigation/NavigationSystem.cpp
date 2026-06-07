@@ -8,6 +8,7 @@
 #include "GameFramework/WorldSettings.h"
 #include "Math/MathUtils.h"
 #include "Math/Quat.h"
+#include "Profiling/Stats/Stats.h"
 
 #include <algorithm>
 #include <cmath>
@@ -300,9 +301,19 @@ void UNavigationSystem::InvalidateNavigationData()
 
 void UNavigationSystem::RequestNavigationRebuild(const FString& Reason, bool bImmediate)
 {
-	if (bImmediate || !bEnableRuntimeAutoRebuild)
+	if (bImmediate)
 	{
 		RebuildNavigation();
+		return;
+	}
+
+	if (!bEnableRuntimeAutoRebuild)
+	{
+		LastQueryMessage = FString("Navigation rebuild request ignored: runtime auto rebuild disabled");
+		if (!Reason.empty())
+		{
+			LastQueryMessage += FString("; Trigger=") + Reason;
+		}
 		return;
 	}
 
@@ -314,6 +325,7 @@ void UNavigationSystem::RequestNavigationRebuild(const FString& Reason, bool bIm
 
 void UNavigationSystem::Tick(float DeltaTime)
 {
+	SCOPE_STAT_CAT("NavigationSystem.Tick", "NavMesh");
 	TimeSinceLastRebuild += std::max(0.0f, DeltaTime);
 	if (!bRebuildPending || !bEnableRuntimeAutoRebuild)
 	{
@@ -343,6 +355,7 @@ void UNavigationSystem::Tick(float DeltaTime)
 
 bool UNavigationSystem::RebuildNavigation()
 {
+	SCOPE_STAT_CAT("NavigationSystem.Rebuild", "NavMesh");
 	LastQueryMessage.clear();
 	AGridNavMesh* Grid = EnsureGridNavMeshActor();
 	if (Grid)
@@ -458,6 +471,7 @@ bool UNavigationSystem::IsWalkableFloorHit(const FHitResult& Hit, const FNavAgen
 
 bool UNavigationSystem::ProjectPointToNavigation(const FVector& Point, FVector& OutProjectedPoint, const FNavAgentProperties& AgentProps) const
 {
+	SCOPE_STAT_CAT("NavigationSystem.ProjectPoint", "NavMesh");
 	LastQueryMessage.clear();
 	if (bUseNavigationData)
 	{
@@ -487,6 +501,7 @@ bool UNavigationSystem::ProjectPointToNavigation(const FVector& Point, FVector& 
 
 bool UNavigationSystem::ProjectPointToNavigationRuntime(const FVector& Point, FVector& OutProjectedPoint, const FNavAgentProperties& AgentProps, float InProjectionUp, float InProjectionDown) const
 {
+	SCOPE_STAT_CAT("NavigationSystem.ProjectPointRuntime", "NavMesh");
 	UWorld* World = GetOwningWorld();
 	if (!World)
 	{
@@ -527,6 +542,7 @@ bool UNavigationSystem::ProjectPointToNavigationRuntime(const FVector& Point, FV
 
 bool UNavigationSystem::HasBlockingObstacleBetween(const FVector& Start, const FVector& End, const FNavAgentProperties& AgentProps) const
 {
+	SCOPE_STAT_CAT("NavigationSystem.ObstacleSweep", "NavMesh");
 	UWorld* World = GetOwningWorld();
 	if (!World)
 	{
@@ -574,6 +590,7 @@ bool UNavigationSystem::CanTraverseSegmentRuntime(const FVector& Start, const FV
 
 bool UNavigationSystem::NavigationRaycast(const FVector& Start, const FVector& End, const FNavAgentProperties& AgentProps) const
 {
+	SCOPE_STAT_CAT("NavigationSystem.NavigationRaycast", "NavMesh");
 	if (bUseNavigationData)
 	{
 		ANavigationData* Data = FindNavigationDataActor();
@@ -603,6 +620,7 @@ bool UNavigationSystem::NavigationRaycast(const FVector& Start, const FVector& E
 
 bool UNavigationSystem::BuildDirectPathIfReachable(const FVector& Start, const FVector& End, const FNavAgentProperties& AgentProps, FNavigationPath& OutPath) const
 {
+	SCOPE_STAT_CAT("NavigationSystem.BuildDirectPath", "NavMesh");
 	const float Dist = sqrtf(HorizontalDistanceSquared(Start, End));
 	const int32 Segments = std::max(1, static_cast<int32>(ceilf(Dist / std::max(0.1f, DirectPathSegmentLength))));
 	FVector Previous = Start;
@@ -631,6 +649,7 @@ bool UNavigationSystem::BuildDirectPathIfReachable(const FVector& Start, const F
 
 bool UNavigationSystem::FindPathSync(const FVector& Start, const FVector& End, const FNavAgentProperties& AgentProps, FNavigationPath& OutPath) const
 {
+	SCOPE_STAT_CAT("NavigationSystem.FindPathSync", "NavMesh");
 	LastQueryMessage.clear();
 	OutPath.Reset();
 	if (bUseNavigationData)
@@ -677,6 +696,7 @@ bool UNavigationSystem::FindPathSync(const FVector& Start, const FVector& End, c
 
 bool UNavigationSystem::FindGridPath(const FVector& Start, const FVector& End, const FNavAgentProperties& AgentProps, FNavigationPath& OutPath) const
 {
+	SCOPE_STAT_CAT("NavigationSystem.FindGridPath", "NavMesh");
 	const float GridSize = std::max(0.5f, CellSize);
 	const FGridKey StartKey{0, 0};
 	const FGridKey GoalKey = WorldToCell(Start, GridSize, End);

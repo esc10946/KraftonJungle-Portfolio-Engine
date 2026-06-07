@@ -14,6 +14,7 @@
 #include "Physics/PhysicsBodyInstance.h"
 #include "Physics/PhysicsShapeInstance.h"
 #include "Physics/PhysXConversion.h"
+#include "Profiling/Stats/Stats.h"
 
 #include <algorithm>
 #include <chrono>
@@ -2983,6 +2984,7 @@ bool FPhysXPhysicsScene::Raycast(
     const AActor*     IgnoreActor
 )
 {
+    SCOPE_STAT_CAT("Physics.Raycast", "PhysicsQuery");
     OutHit                     = FHitResult();
     const uint32 IgnoreActorId = IgnoreActor ? IgnoreActor->GetUUID() : 0;
 
@@ -3004,6 +3006,7 @@ bool FPhysXPhysicsScene::RaycastByObjectTypes(
     const AActor*  IgnoreActor
 )
 {
+    SCOPE_STAT_CAT("Physics.RaycastByObjectTypes", "PhysicsQuery");
     OutHit                     = FHitResult();
     const uint32 IgnoreActorId = IgnoreActor ? IgnoreActor->GetUUID() : 0;
 
@@ -3025,6 +3028,7 @@ bool FPhysXPhysicsScene::RaycastPhysicsByObjectTypes(
     const AActor*          IgnoreActor
 )
 {
+    SCOPE_STAT_CAT("Physics.RaycastPhysicsByObjectTypes", "PhysicsQuery");
     const uint32 IgnoreActorId = IgnoreActor ? IgnoreActor->GetUUID() : 0;
     return SubmitRaycastQuery_GameThread(
         true,
@@ -3047,6 +3051,7 @@ bool FPhysXPhysicsScene::Sweep(
     const AActor*          IgnoreActor
 )
 {
+    SCOPE_STAT_CAT("Physics.Sweep", "PhysicsQuery");
     OutHit = FHitResult();
 
     const FVector Delta   = End - Start;
@@ -3078,6 +3083,7 @@ bool FPhysXPhysicsScene::SweepByObjectTypes(
     const AActor*          IgnoreActor
 )
 {
+    SCOPE_STAT_CAT("Physics.SweepByObjectTypes", "PhysicsQuery");
     OutHit = FHitResult();
 
     const FVector Delta   = End - Start;

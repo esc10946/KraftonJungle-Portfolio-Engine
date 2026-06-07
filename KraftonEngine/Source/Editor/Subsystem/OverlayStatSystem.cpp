@@ -8,6 +8,8 @@
 #include "Engine/Profiling/Stats/ClothCollisionStats.h"
 #include "Engine/Profiling/Stats/Stats.h"
 #include "GameFramework/World.h"
+#include "Navigation/GridNavMesh.h"
+#include "Navigation/NavigationSystem.h"
 #include "Physics/IPhysicsScene.h"
 #include "Physics/PhysicsRuntime.h"
 #include "Physics/PhysicsStats.h"
@@ -609,6 +611,72 @@ void FOverlayStatSystem::BuildPhysicsLines(const UEditorEngine& Editor, TArray<F
 	}
 }
 
+void FOverlayStatSystem::BuildNavMeshLines(const UEditorEngine& Editor, TArray<FString>& OutLines) const
+{
+	char Buffer[256] = {};
+
+	UWorld* World = Editor.GetWorld();
+	if (!World)
+	{
+		OutLines.push_back(FString("NavMesh world : unavailable"));
+		return;
+	}
+
+	UNavigationSystem* NavSystem = UNavigationSystem::GetCurrent(World);
+	if (!NavSystem)
+	{
+		OutLines.push_back(FString("NavigationSystem : unavailable"));
+		return;
+	}
+
+	AGridNavMesh* Grid = NavSystem->GetGridNavMesh();
+	if (!Grid)
+	{
+		OutLines.push_back(FString("GridNavMesh : unavailable"));
+		snprintf(Buffer, sizeof(Buffer), "Last Query : %s", NavSystem->GetLastQueryMessage().c_str());
+		OutLines.push_back(FString(Buffer));
+		return;
+	}
+
+	const int32 WalkableNodes = Grid->GetNavigationNodeCount();
+	const int32 BlockedNodes = Grid->GetBlockedNodeCount();
+	const int32 TotalNodes = WalkableNodes + BlockedNodes;
+	const float BlockedRatio = TotalNodes > 0
+		? (100.0f * static_cast<float>(BlockedNodes) / static_cast<float>(TotalNodes))
+		: 0.0f;
+
+	snprintf(Buffer, sizeof(Buffer), "Nodes : Walkable %d   Blocked %d   Total %d (%.1f%% blocked)",
+		WalkableNodes,
+		BlockedNodes,
+		TotalNodes,
+		BlockedRatio);
+	OutLines.push_back(FString(Buffer));
+
+	snprintf(Buffer, sizeof(Buffer), "Build : %.3f ms   Bounds %d   Candidates %d",
+		Grid->GetLastBuildDurationMs(),
+		Grid->GetLastBuildBoundsCount(),
+		Grid->GetLastBuildCandidateCount());
+	OutLines.push_back(FString(Buffer));
+
+	snprintf(Buffer, sizeof(Buffer), "Settings : Cell %.2f   MaxSearch %d   DirectSeg %.2f",
+		Grid->GetCellSize(),
+		Grid->MaxSearchNodes,
+		Grid->DirectPathSegmentLength);
+	OutLines.push_back(FString(Buffer));
+
+	snprintf(Buffer, sizeof(Buffer), "Runtime : AutoRebuild %s   Pending %s   Fallback %s",
+		NavSystem->bEnableRuntimeAutoRebuild ? "on" : "off",
+		NavSystem->GetDebugSummary().find("Pending=true") != FString::npos ? "yes" : "no",
+		NavSystem->bAllowRuntimeFallback ? "on" : "off");
+	OutLines.push_back(FString(Buffer));
+
+	snprintf(Buffer, sizeof(Buffer), "Last Build : %s", Grid->GetLastBuildMessage().c_str());
+	OutLines.push_back(FString(Buffer));
+
+	snprintf(Buffer, sizeof(Buffer), "Last Query : %s", NavSystem->GetLastQueryMessage().c_str());
+	OutLines.push_back(FString(Buffer));
+}
+
 void FOverlayStatSystem::BuildClothCollisionLines(TArray<FString>& OutLines) const
 {
 #if STATS
@@ -726,6 +794,10 @@ void FOverlayStatSystem::BuildLines(const UEditorEngine& Editor, TArray<FOverlay
 	{
 		EstimatedLineCount += 11;
 	}
+	if (bShowNavMesh)
+	{
+		EstimatedLineCount += 6;
+	}
 	if (bShowClothCollision)
 	{
 		EstimatedLineCount += 12;
@@ -786,6 +858,13 @@ void FOverlayStatSystem::BuildLines(const UEditorEngine& Editor, TArray<FOverlay
 	{
 		Lines.clear();
 		BuildPhysicsLines(Editor, Lines);
+		AppendGroup(Lines);
+	}
+
+	if (bShowNavMesh)
+	{
+		Lines.clear();
+		BuildNavMeshLines(Editor, Lines);
 		AppendGroup(Lines);
 	}
 
@@ -914,6 +993,13 @@ void FOverlayStatSystem::RenderImGui(const UEditorEngine& Editor, const FRect& V
 		Lines.clear();
 		BuildPhysicsLines(Editor, Lines);
 		RenderWindow("##StatPhysicsOverlay", "Stat Physics", ImVec4(0.09f, 0.08f, 0.05f, 0.62f), Lines);
+	}
+
+	if (bShowNavMesh)
+	{
+		Lines.clear();
+		BuildNavMeshLines(Editor, Lines);
+		RenderWindow("##StatNavMeshOverlay", "Stat NavMesh", ImVec4(0.04f, 0.09f, 0.06f, 0.62f), Lines);
 	}
 
 	if (bShowClothCollision)

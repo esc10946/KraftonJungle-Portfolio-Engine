@@ -349,6 +349,7 @@ void USkinnedMeshComponent::ClearSkeletalMesh()
 // Bounds 섹션: SkeletalMesh culling은 asset local bounds가 아니라 실제 CPU-skinned vertices를 기준으로 한다.
 void USkinnedMeshComponent::UpdateWorldAABB() const
 {
+	SCOPE_STAT_CAT("SkeletalMesh.UpdateWorldAABB", "SkeletalMesh");
 	FSkeletalMesh* Asset = SkeletalMesh ? SkeletalMesh->GetSkeletalMeshAsset() : nullptr;
 	if (!Asset || Asset->Vertices.empty())
 	{
@@ -1320,6 +1321,7 @@ void USkinnedMeshComponent::RefreshSkinningAfterMorphChanged()
 
 void USkinnedMeshComponent::MarkSocketAttachedChildrenDirty()
 {
+	SCOPE_STAT_CAT("SkeletalMesh.MarkSocketChildrenDirty", "SkeletalMesh");
 	for (USceneComponent* Child : GetChildren())
 	{
 		if (Child && Child->GetAttachSocketName().IsValid() && Child->GetAttachSocketName() != FName::None)

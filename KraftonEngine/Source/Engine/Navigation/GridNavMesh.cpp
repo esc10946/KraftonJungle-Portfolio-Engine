@@ -9,6 +9,7 @@
 #include "Math/MathUtils.h"
 #include "Math/Quat.h"
 #include "Navigation/NavigationSystem.h"
+#include "Profiling/Stats/Stats.h"
 
 #include <algorithm>
 #include <chrono>
@@ -229,6 +230,7 @@ void AGridNavMesh::ClearNavigationData()
 
 bool AGridNavMesh::CollectBuildBounds(TArray<FBuildBounds>& OutBounds) const
 {
+	SCOPE_STAT_CAT("GridNavMesh.CollectBuildBounds", "NavMesh");
 	OutBounds.clear();
 	UWorld* World = GetWorld();
 	if (!World)
@@ -304,6 +306,7 @@ bool AGridNavMesh::CollectBuildBounds(TArray<FBuildBounds>& OutBounds) const
 
 void AGridNavMesh::CollectNavigationPrimitives(TArray<FNavigationPrimitiveBounds>& OutPrimitives) const
 {
+	SCOPE_STAT_CAT("GridNavMesh.CollectPrimitives", "NavMesh");
 	OutPrimitives.clear();
 	UWorld* World = GetWorld();
 	if (!World)
@@ -531,6 +534,7 @@ AGridNavMesh::FBuildCellResult AGridNavMesh::BuildCell(
 
 bool AGridNavMesh::RebuildNavigationData()
 {
+	SCOPE_STAT_CAT("GridNavMesh.RebuildNavigationData", "NavMesh");
 	const auto BuildStart = std::chrono::steady_clock::now();
 	ClearNavigationData();
 
@@ -740,6 +744,7 @@ bool AGridNavMesh::FindNearestCellForAgent(const FVector& Point, const FNavAgent
 
 bool AGridNavMesh::ProjectPointToNavigation(const FVector& Point, FVector& OutProjectedPoint, const FNavAgentProperties& AgentProps) const
 {
+	SCOPE_STAT_CAT("GridNavMesh.ProjectPoint", "NavMesh");
 	FGridNavCellKey Key;
 	return FindNearestCellForAgent(Point, AgentProps, Key, OutProjectedPoint);
 }
@@ -815,6 +820,7 @@ bool AGridNavMesh::HasCachedSegment(const FVector& Start, const FVector& End, co
 
 bool AGridNavMesh::BuildDirectCachedPath(const FVector& Start, const FVector& End, const FNavAgentProperties& AgentProps, FNavigationPath& OutPath) const
 {
+	SCOPE_STAT_CAT("GridNavMesh.BuildDirectCachedPath", "NavMesh");
 	const float Dist = sqrtf(HorizontalDistanceSquared(Start, End));
 	const int32 Segments = std::max(1, static_cast<int32>(ceilf(Dist / std::max(0.1f, DirectPathSegmentLength))));
 	FVector Previous = Start;
@@ -857,6 +863,7 @@ bool AGridNavMesh::IsDiagonalMoveAllowed(const FGridNavCellKey& From, const FGri
 
 bool AGridNavMesh::FindPath(const FVector& Start, const FVector& End, const FNavAgentProperties& AgentProps, FNavigationPath& OutPath) const
 {
+	SCOPE_STAT_CAT("GridNavMesh.FindPath", "NavMesh");
 	OutPath.Reset();
 	FGridNavCellKey StartKey;
 	FGridNavCellKey GoalKey;
@@ -1038,6 +1045,7 @@ bool AGridNavMesh::FindPath(const FVector& Start, const FVector& End, const FNav
 
 bool AGridNavMesh::NavigationRaycast(const FVector& Start, const FVector& End, const FNavAgentProperties& AgentProps) const
 {
+	SCOPE_STAT_CAT("GridNavMesh.NavigationRaycast", "NavMesh");
 	FVector ProjectedStart;
 	FVector ProjectedEnd;
 	if (!ProjectPointToNavigation(Start, ProjectedStart, AgentProps) || !ProjectPointToNavigation(End, ProjectedEnd, AgentProps))
@@ -1050,6 +1058,7 @@ bool AGridNavMesh::NavigationRaycast(const FVector& Start, const FVector& End, c
 
 bool AGridNavMesh::GetRandomReachablePointInRadius(const FVector& Origin, float Radius, FVector& OutPoint, const FNavAgentProperties& AgentProps) const
 {
+	SCOPE_STAT_CAT("GridNavMesh.GetRandomReachablePoint", "NavMesh");
 	if (!bNavigationDataBuilt || WalkableCells.empty())
 	{
 		return false;
@@ -1100,6 +1109,7 @@ bool AGridNavMesh::IsLocationOnNavData(const FVector& Location) const
 
 void AGridNavMesh::SmoothPath(const FNavAgentProperties& AgentProps, FNavigationPath& InOutPath) const
 {
+	SCOPE_STAT_CAT("GridNavMesh.SmoothPath", "NavMesh");
 	if (InOutPath.PathPoints.size() <= 2)
 	{
 		return;

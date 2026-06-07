@@ -6,6 +6,7 @@
 #include "Core/ProjectSettings.h"
 #include "Core/Logging/Log.h"
 #include "GameFramework/World.h"
+#include "Profiling/Stats/Stats.h"
 
 #include <algorithm>
 #include <chrono>
@@ -203,6 +204,7 @@ void FPhysXPhysicsRuntime::Shutdown()
 
 void FPhysXPhysicsRuntime::Tick(float DeltaTime)
 {
+    SCOPE_STAT_CAT("Physics.RuntimeTick", "Physics");
     TArray<FPhysicsCommand> FrameCommands;
     DrainPendingCommands_GameThread(FrameCommands);
     Tick(DeltaTime, FrameCommands);
@@ -210,6 +212,7 @@ void FPhysXPhysicsRuntime::Tick(float DeltaTime)
 
 void FPhysXPhysicsRuntime::Tick(float DeltaTime, const TArray<FPhysicsCommand>& FrameCommands)
 {
+    SCOPE_STAT_CAT("Physics.RuntimeTickWithCommands", "Physics");
     std::lock_guard<std::mutex> StateLock(RuntimeStateMutex);
     FrameDeferredDestroys = 0;
 
@@ -282,6 +285,7 @@ void FPhysXPhysicsRuntime::Tick(float DeltaTime, const TArray<FPhysicsCommand>& 
     auto       PreApplyEnd            = PreApplyStart;
     auto       PreSyncEnd             = PreApplyStart;
     {
+        SCOPE_STAT_CAT("Physics.PrePhysicsSync", "Physics");
         PxSceneWriteLock WriteLock(*Scene);
         PendingCommandsAtDrain += static_cast<int32>(FrameCommands.size());
         AppliedCommands        += ApplyCommands(FrameCommands, DeltaTime);
@@ -330,6 +334,7 @@ void FPhysXPhysicsRuntime::Tick(float DeltaTime, const TArray<FPhysicsCommand>& 
             auto       T3 = T1;
             auto       VehicleUpdateEnd = T1;
             {
+                SCOPE_STAT_CAT("Physics.Substep", "Physics");
                 PxSceneWriteLock WriteLock(*Scene);
                 ApplyContinuousForcesForSubstep(SubstepDt);
                 if (VehicleRuntime)
@@ -338,13 +343,20 @@ void FPhysXPhysicsRuntime::Tick(float DeltaTime, const TArray<FPhysicsCommand>& 
                     VehicleRaycastMs += VehicleRuntime->GetLastRaycastMs();
                 }
                 VehicleUpdateEnd = FClock::now();
-                Scene->simulate(SubstepDt);
-                T2 = FClock::now();
-                Scene->fetchResults(true);
-                T3 = FClock::now();
+                {
+                    SCOPE_STAT_CAT("Physics.Simulate", "Physics");
+                    Scene->simulate(SubstepDt);
+                    T2 = FClock::now();
+                }
+                {
+                    SCOPE_STAT_CAT("Physics.FetchResults", "Physics");
+                    Scene->fetchResults(true);
+                    T3 = FClock::now();
+                }
             }
 
             {
+                SCOPE_STAT_CAT("Physics.CacheResults", "Physics");
                 PxSceneReadLock ReadLock(*Scene);
                 for (auto& BodyPtr : Bodies)
                 {
@@ -384,6 +396,7 @@ void FPhysXPhysicsRuntime::Tick(float DeltaTime, const TArray<FPhysicsCommand>& 
 
     Stats.NumSubsteps = StepCount;
     {
+        SCOPE_STAT_CAT("Physics.UpdateStats", "Physics");
         PxSceneReadLock ReadLock(*Scene);
         UpdateStats();
     }
@@ -406,6 +419,7 @@ void FPhysXPhysicsRuntime::Tick(float DeltaTime, const TArray<FPhysicsCommand>& 
 
     const auto SnapStart = FClock::now();
     {
+        SCOPE_STAT_CAT("Physics.BuildWorldSnapshot", "Physics");
         PxSceneReadLock ReadLock(*Scene);
         BuildWorldSnapshot_Internal();
     }
@@ -2392,6 +2406,7 @@ int32 FPhysXPhysicsRuntime::ApplyCommands(const TArray<FPhysicsCommand>& Command
 
 void FPhysXPhysicsRuntime::UpdateStats()
 {
+    SCOPE_STAT_CAT("Physics.GatherStats", "Physics");
     const int32 NumSubsteps = Stats.NumSubsteps;
     Stats = FPhysicsStats();
     Stats.NumSubsteps = NumSubsteps;

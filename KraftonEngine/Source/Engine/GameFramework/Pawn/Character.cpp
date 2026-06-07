@@ -224,6 +224,7 @@ void ACharacter::InitDefaultComponents(const FString& SkeletalMeshFileName)
 	CapsuleComponent->SetSimulatePhysics(false);
 	CapsuleComponent->SetKinematic(true);
 	CapsuleComponent->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	CapsuleComponent->SetCollisionObjectType(ECollisionChannel::Pawn);
 	CapsuleComponent->SetCanEverAffectNavigation(false);
 
 	// 2) SkeletalMesh — Capsule 의 자식.
@@ -231,6 +232,7 @@ void ACharacter::InitDefaultComponents(const FString& SkeletalMeshFileName)
 	Mesh->AttachToComponent(CapsuleComponent);
 	Mesh->SetSimulatePhysics(false);
 	Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	Mesh->SetCollisionObjectType(ECollisionChannel::Pawn);
 	Mesh->SetCanEverAffectNavigation(false);
 
 	ID3D11Device* Device = GEngine->GetRenderer().GetFD3DDevice().GetDevice();

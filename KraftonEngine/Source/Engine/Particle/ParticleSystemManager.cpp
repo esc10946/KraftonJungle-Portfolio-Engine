@@ -9,6 +9,7 @@
 #include "Particle/ParticleLODLevel.h"
 #include "Particle/Modules/ParticleModuleCollision.h"
 #include "Serialization/WindowsArchive.h"
+#include "Profiling/Stats/Stats.h"
 
 #include <algorithm>
 #include <filesystem>
@@ -86,6 +87,7 @@ namespace
 
 UParticleSystem* FParticleSystemManager::Load(const FString& Path)
 {
+	SCOPE_STAT_CAT("ParticleSystemManager.Load", "Particles");
 	const FString NormalizedPath = FPaths::MakeProjectRelative(Path);
 
 	auto It = LoadedParticleSystems.find(NormalizedPath);
@@ -122,7 +124,10 @@ UParticleSystem* FParticleSystemManager::Load(const FString& Path)
 		return nullptr;
 	}
 
-	NewAsset->Serialize(Ar);
+	{
+		SCOPE_STAT_CAT("ParticleSystemManager.SerializeAsset", "Particles");
+		NewAsset->Serialize(Ar);
+	}
 
 	if (!Ar.IsValid())
 	{
@@ -131,7 +136,10 @@ UParticleSystem* FParticleSystemManager::Load(const FString& Path)
 	}
 
 	NewAsset->SetSourcePath(NormalizedPath);
-	NewAsset->BuildEmitters();
+	{
+		SCOPE_STAT_CAT("ParticleSystemManager.BuildEmitters", "Particles");
+		NewAsset->BuildEmitters();
+	}
 	ApplyStage3LowerLODCollisionOverrideIfNeeded(NewAsset);
 
 	LoadedParticleSystems.emplace(NormalizedPath, NewAsset);

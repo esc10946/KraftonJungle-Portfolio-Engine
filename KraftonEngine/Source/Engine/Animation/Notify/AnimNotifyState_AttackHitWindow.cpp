@@ -18,6 +18,7 @@
 #include "Mesh/Skeletal/SkeletalMesh.h"
 #include "Mesh/Skeletal/SkeletalMeshAsset.h"
 #include "Object/Object.h"
+#include "Profiling/Stats/Stats.h"
 
 #include <cfloat>
 #include <cmath>
@@ -182,6 +183,7 @@ namespace
 		const FVector& HitLocation,
 		bool bRagdollAttacker)
 	{
+		SCOPE_STAT_CAT("AttackHitWindow.TryResolveParry", "Combat");
 		UAnimInstance* TargetAnimInstance = GetActorAnimInstance(Target);
 		if (!UAnimNotifyState_ParryWindow::IsParryWindowActive(TargetAnimInstance))
 		{
@@ -226,6 +228,7 @@ namespace
 
 	void BroadcastAttackHitEvent(AActor* Owner, AActor* Target, UPrimitiveComponent* HitComponent, const FCombatDamageSpec& DamageSpec, FName HitEventName)
 	{
+		SCOPE_STAT_CAT("AttackHitWindow.BroadcastHit", "Combat");
 		if (!IsValid(Owner))
 		{
 			return;
@@ -239,6 +242,7 @@ namespace
 
 	void BroadcastAttackParriedEvent(AActor* Owner, AActor* Defender, UPrimitiveComponent* HitComponent, const FCombatDamageSpec& DamageSpec, FName HitEventName)
 	{
+		SCOPE_STAT_CAT("AttackHitWindow.BroadcastParried", "Combat");
 		if (!IsValid(Owner))
 		{
 			return;
@@ -252,6 +256,7 @@ namespace
 
 	FCombatDamageReport ApplyDamageToTarget(AActor* Target, const FCombatDamageSpec& DamageSpec)
 	{
+		SCOPE_STAT_CAT("AttackHitWindow.ApplyDamageToTarget", "Combat");
 		FCombatDamageReport Report;
 		Report.RequestedDamage = DamageSpec.Damage;
 
@@ -336,6 +341,7 @@ bool UAnimNotifyState_AttackHitWindow::ResolveParryHit(
 	const FCombatDamageSpec& DamageSpec,
 	const FVector& Center)
 {
+	SCOPE_STAT_CAT("AttackHitWindow.ResolveParryHit", "Combat");
 	if (!bAllowParry || !TryResolveParry(Owner, Target, DamageSpec.HitLocation, bRagdollOwnerOnParry))
 	{
 		return false;
@@ -371,6 +377,7 @@ void UAnimNotifyState_AttackHitWindow::ResolveDamageHit(
 	const FCombatDamageSpec& DamageSpec,
 	const FVector& Center)
 {
+	SCOPE_STAT_CAT("AttackHitWindow.ResolveDamageHit", "Combat");
 	if (bBroadcastCombatEvents)
 	{
 		BroadcastAttackHitEvent(Owner, Target, HitComponent, DamageSpec, HitEventName);
@@ -408,6 +415,7 @@ void UAnimNotifyState_AttackHitWindow::ResolveDamageHit(
 
 void UAnimNotifyState_AttackHitWindow::ResolvePendingHits(USkeletalMeshComponent* MeshComp, float DeltaTime, bool bForceResolve)
 {
+	SCOPE_STAT_CAT("AttackHitWindow.ResolvePendingHits", "Combat");
 	if (!IsValid(MeshComp))
 	{
 		return;
@@ -462,6 +470,7 @@ void UAnimNotifyState_AttackHitWindow::QueueDelayedHit(
 	const FCombatDamageSpec& DamageSpec,
 	const FVector& Center)
 {
+	SCOPE_STAT_CAT("AttackHitWindow.QueueDelayedHit", "Combat");
 	if (!IsValid(MeshComp) || !IsValid(Target) || !IsValid(HitComponent))
 	{
 		return;
@@ -478,6 +487,7 @@ void UAnimNotifyState_AttackHitWindow::QueueDelayedHit(
 
 void UAnimNotifyState_AttackHitWindow::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* /*Anim*/, float /*TotalDuration*/)
 {
+	SCOPE_STAT_CAT("AttackHitWindow.NotifyBegin", "Combat");
 	PurgeInvalidAttackHitEntries(HitActorsByMesh, MissLoggedActorsByMesh, PendingHitsByMesh, NoTargetLoggedMeshes);
 	if (!IsValid(MeshComp))
 	{
@@ -492,6 +502,7 @@ void UAnimNotifyState_AttackHitWindow::NotifyBegin(USkeletalMeshComponent* MeshC
 
 void UAnimNotifyState_AttackHitWindow::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* /*Anim*/, float FrameDeltaTime)
 {
+	SCOPE_STAT_CAT("AttackHitWindow.NotifyTick", "Combat");
 	PurgeInvalidAttackHitEntries(HitActorsByMesh, MissLoggedActorsByMesh, PendingHitsByMesh, NoTargetLoggedMeshes);
 	if (!IsValid(MeshComp) || Radius <= 0.0f)
 	{
@@ -516,142 +527,145 @@ void UAnimNotifyState_AttackHitWindow::NotifyTick(USkeletalMeshComponent* MeshCo
 	}
 
 	bool bSawTargetCandidate = false;
-	for (AActor* Candidate : World->GetActors())
 	{
-		if (!IsValid(Candidate) || Candidate == Owner)
+		SCOPE_STAT_CAT("AttackHitWindow.ScanCandidates", "Combat");
+		for (AActor* Candidate : World->GetActors())
 		{
-			continue;
-		}
-
-		const bool bMatchesTargetActorTag = !TargetActorTag.empty() && Candidate->HasTag(FName(TargetActorTag));
-		const bool bParryTarget = bAllowParry && IsParryTarget(Candidate);
-		if (bRequireTargetActorTag)
-		{
-			if (!bMatchesTargetActorTag && !bParryTarget)
-			{
-				continue;
-			}
-		}
-		else if (!TargetActorTag.empty() && !bMatchesTargetActorTag && !bParryTarget)
-		{
-			continue;
-		}
-
-		bSawTargetCandidate = true;
-		if (HitActors.find(Candidate) != HitActors.end())
-		{
-			continue;
-		}
-
-		UPrimitiveComponent* HitComponent = nullptr;
-		UPrimitiveComponent* ClosestComponent = nullptr;
-		const char* MissReason = "no primitive components";
-		float ClosestDistanceSquared = FLT_MAX;
-		for (UPrimitiveComponent* Primitive : Candidate->GetPrimitiveComponents())
-		{
-			if (!IsValid(Primitive))
+			if (!IsValid(Candidate) || Candidate == Owner)
 			{
 				continue;
 			}
 
-			const FBoundingBox Bounds = Primitive->GetWorldBoundingBox();
-			if (bRequireQueryCollision && !Primitive->IsQueryCollisionEnabled())
+			const bool bMatchesTargetActorTag = !TargetActorTag.empty() && Candidate->HasTag(FName(TargetActorTag));
+			const bool bParryTarget = bAllowParry && IsParryTarget(Candidate);
+			if (bRequireTargetActorTag)
 			{
+				if (!bMatchesTargetActorTag && !bParryTarget)
+				{
+					continue;
+				}
+			}
+			else if (!TargetActorTag.empty() && !bMatchesTargetActorTag && !bParryTarget)
+			{
+				continue;
+			}
+
+			bSawTargetCandidate = true;
+			if (HitActors.find(Candidate) != HitActors.end())
+			{
+				continue;
+			}
+
+			UPrimitiveComponent* HitComponent = nullptr;
+			UPrimitiveComponent* ClosestComponent = nullptr;
+			const char* MissReason = "no primitive components";
+			float ClosestDistanceSquared = FLT_MAX;
+			for (UPrimitiveComponent* Primitive : Candidate->GetPrimitiveComponents())
+			{
+				if (!IsValid(Primitive))
+				{
+					continue;
+				}
+
+				const FBoundingBox Bounds = Primitive->GetWorldBoundingBox();
+				if (bRequireQueryCollision && !Primitive->IsQueryCollisionEnabled())
+				{
+					if (bDrawDebugTargetBounds)
+					{
+						DrawDebugBounds(World, Bounds, FColor(90, 90, 90), DebugDrawDuration);
+					}
+					MissReason = "query collision disabled";
+					continue;
+				}
+
+				if (!bHitWorldStatic && !bMatchesTargetActorTag && Primitive->GetCollisionObjectType() == ECollisionChannel::WorldStatic)
+				{
+					if (bDrawDebugTargetBounds)
+					{
+						DrawDebugBounds(World, Bounds, FColor(80, 80, 160), DebugDrawDuration);
+					}
+					MissReason = "world static filtered";
+					continue;
+				}
+
+				if (!Bounds.IsValid())
+				{
+					MissReason = "invalid bounds";
+					continue;
+				}
+
+				const float DistanceSquared = DistanceSquaredPointAABB(Center, Bounds);
+				const bool bIntersects = DistanceSquared <= Radius * Radius;
 				if (bDrawDebugTargetBounds)
 				{
-					DrawDebugBounds(World, Bounds, FColor(90, 90, 90), DebugDrawDuration);
+					DrawDebugBounds(World, Bounds, bIntersects ? FColor(255, 40, 40) : FColor(0, 180, 255), DebugDrawDuration);
 				}
-				MissReason = "query collision disabled";
-				continue;
-			}
 
-			if (!bHitWorldStatic && !bMatchesTargetActorTag && Primitive->GetCollisionObjectType() == ECollisionChannel::WorldStatic)
-			{
-				if (bDrawDebugTargetBounds)
+				if (DistanceSquared < ClosestDistanceSquared)
 				{
-					DrawDebugBounds(World, Bounds, FColor(80, 80, 160), DebugDrawDuration);
+					ClosestDistanceSquared = DistanceSquared;
+					ClosestComponent = Primitive;
+					MissReason = "outside radius";
 				}
-				MissReason = "world static filtered";
+
+				if (bIntersects)
+				{
+					HitComponent = Primitive;
+					break;
+				}
+			}
+
+			if (!HitComponent)
+			{
+				if (bLogMisses && MissLoggedActors.find(Candidate) == MissLoggedActors.end())
+				{
+					MissLoggedActors.insert(Candidate);
+					UE_LOG("[AttackHitWindow] miss %s -> %s (%s%s%s center=%.1f, %.1f, %.1f radius=%.1f)",
+						Owner->GetName().c_str(),
+						Candidate->GetName().c_str(),
+						MissReason,
+						ClosestComponent ? " closest=" : "",
+						ClosestComponent ? ClosestComponent->GetName().c_str() : "",
+						Center.X,
+						Center.Y,
+						Center.Z,
+						Radius);
+				}
 				continue;
 			}
 
-			if (!Bounds.IsValid())
+			HitActors.insert(Candidate);
+			const FVector ImpactLocation = ClosestPointOnAABB(Center, HitComponent->GetWorldBoundingBox());
+			const FCombatDamageSpec DamageSpec = MakeDamageSpec(Owner, Candidate, ImpactLocation, Damage, PoiseDamage);
+			if (bAllowParry && bDelayDamageForParry && ParryResolveDelay > 0.0f)
 			{
-				MissReason = "invalid bounds";
+				QueueDelayedHit(MeshComp, Candidate, HitComponent, DamageSpec, Center);
+				if (bDrawDebugHitWindow)
+				{
+					DrawDebugSphere(World, Center, Radius, DebugDrawSegments, FColor(255, 140, 0), DebugDrawDuration);
+				}
+				if (bLogHits)
+				{
+					UE_LOG("[AttackHitWindow] %s pending hit %s via %s delay=%.2f (center=%.1f, %.1f, %.1f radius=%.1f)",
+						Owner->GetName().c_str(),
+						Candidate->GetName().c_str(),
+						HitComponent->GetName().c_str(),
+						ParryResolveDelay,
+						Center.X,
+						Center.Y,
+						Center.Z,
+						Radius);
+				}
 				continue;
 			}
 
-			const float DistanceSquared = DistanceSquaredPointAABB(Center, Bounds);
-			const bool bIntersects = DistanceSquared <= Radius * Radius;
-			if (bDrawDebugTargetBounds)
+			if (ResolveParryHit(Owner, Candidate, HitComponent, DamageSpec, Center))
 			{
-				DrawDebugBounds(World, Bounds, bIntersects ? FColor(255, 40, 40) : FColor(0, 180, 255), DebugDrawDuration);
+				return;
 			}
 
-			if (DistanceSquared < ClosestDistanceSquared)
-			{
-				ClosestDistanceSquared = DistanceSquared;
-				ClosestComponent = Primitive;
-				MissReason = "outside radius";
-			}
-
-			if (bIntersects)
-			{
-				HitComponent = Primitive;
-				break;
-			}
+			ResolveDamageHit(Owner, Candidate, HitComponent, DamageSpec, Center);
 		}
-
-		if (!HitComponent)
-		{
-			if (bLogMisses && MissLoggedActors.find(Candidate) == MissLoggedActors.end())
-			{
-				MissLoggedActors.insert(Candidate);
-				UE_LOG("[AttackHitWindow] miss %s -> %s (%s%s%s center=%.1f, %.1f, %.1f radius=%.1f)",
-					Owner->GetName().c_str(),
-					Candidate->GetName().c_str(),
-					MissReason,
-					ClosestComponent ? " closest=" : "",
-					ClosestComponent ? ClosestComponent->GetName().c_str() : "",
-					Center.X,
-					Center.Y,
-					Center.Z,
-					Radius);
-			}
-			continue;
-		}
-
-		HitActors.insert(Candidate);
-		const FVector ImpactLocation = ClosestPointOnAABB(Center, HitComponent->GetWorldBoundingBox());
-		const FCombatDamageSpec DamageSpec = MakeDamageSpec(Owner, Candidate, ImpactLocation, Damage, PoiseDamage);
-		if (bAllowParry && bDelayDamageForParry && ParryResolveDelay > 0.0f)
-		{
-			QueueDelayedHit(MeshComp, Candidate, HitComponent, DamageSpec, Center);
-			if (bDrawDebugHitWindow)
-			{
-				DrawDebugSphere(World, Center, Radius, DebugDrawSegments, FColor(255, 140, 0), DebugDrawDuration);
-			}
-			if (bLogHits)
-			{
-				UE_LOG("[AttackHitWindow] %s pending hit %s via %s delay=%.2f (center=%.1f, %.1f, %.1f radius=%.1f)",
-					Owner->GetName().c_str(),
-					Candidate->GetName().c_str(),
-					HitComponent->GetName().c_str(),
-					ParryResolveDelay,
-					Center.X,
-					Center.Y,
-					Center.Z,
-					Radius);
-			}
-			continue;
-		}
-
-		if (ResolveParryHit(Owner, Candidate, HitComponent, DamageSpec, Center))
-		{
-			return;
-		}
-
-		ResolveDamageHit(Owner, Candidate, HitComponent, DamageSpec, Center);
 	}
 
 	if (bLogMisses && !bSawTargetCandidate && NoTargetLoggedMeshes.find(MeshComp) == NoTargetLoggedMeshes.end())
@@ -666,6 +680,7 @@ void UAnimNotifyState_AttackHitWindow::NotifyTick(USkeletalMeshComponent* MeshCo
 
 void UAnimNotifyState_AttackHitWindow::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* /*Anim*/)
 {
+	SCOPE_STAT_CAT("AttackHitWindow.NotifyEnd", "Combat");
 	PurgeInvalidAttackHitEntries(HitActorsByMesh, MissLoggedActorsByMesh, PendingHitsByMesh, NoTargetLoggedMeshes);
 	ResolvePendingHits(MeshComp, 0.0f, true);
 	HitActorsByMesh.erase(MeshComp);

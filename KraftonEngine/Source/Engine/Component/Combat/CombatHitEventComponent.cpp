@@ -2,14 +2,17 @@
 
 #include "Component/Combat/HealthComponent.h"
 #include "GameFramework/AActor.h"
+#include "Profiling/Stats/Stats.h"
 
 void UCombatHitEventComponent::BroadcastAttackHit(AActor* Target, UPrimitiveComponent* HitComponent, const FCombatDamageSpec& DamageSpec, FName HitEventName)
 {
+	SCOPE_STAT_CAT("CombatHitEvent.BroadcastAttackHit", "Combat");
 	OnAttackHit.Broadcast(this, GetOwner(), Target, HitComponent, DamageSpec, HitEventName);
 }
 
 void UCombatHitEventComponent::BroadcastAttackParried(AActor* Defender, UPrimitiveComponent* HitComponent, const FCombatDamageSpec& DamageSpec, FName HitEventName)
 {
+	SCOPE_STAT_CAT("CombatHitEvent.BroadcastAttackParried", "Combat");
 	OnAttackParried.Broadcast(this, GetOwner(), Defender, HitComponent, DamageSpec, HitEventName);
 }
 
@@ -26,6 +29,7 @@ FCombatDamageReport UCombatHitEventComponent::ApplyDamageToTarget(AActor* Target
 
 FCombatDamageReport UCombatHitEventComponent::ApplyDamageSpecToTarget(AActor* Target, const FCombatDamageSpec& DamageSpec)
 {
+	SCOPE_STAT_CAT("CombatHitEvent.ApplyDamageSpecToTarget", "Combat");
 	FCombatDamageReport Report;
 	Report.RequestedDamage = DamageSpec.Damage;
 

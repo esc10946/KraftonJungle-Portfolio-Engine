@@ -3,6 +3,7 @@
 #include "Component/Combat/CombatStateComponent.h"
 #include "GameFramework/AActor.h"
 #include "Math/MathUtils.h"
+#include "Profiling/Stats/Stats.h"
 
 #include <cmath>
 
@@ -36,6 +37,7 @@ FCombatDamageReport UHealthComponent::ApplyDamage(float Damage, AActor* DamageCa
 
 FCombatDamageReport UHealthComponent::ApplyDamageSpec(const FCombatDamageSpec& DamageSpec)
 {
+	SCOPE_STAT_CAT("Health.ApplyDamageSpec", "Combat");
 	FCombatDamageReport Report;
 	Report.RequestedDamage = DamageSpec.Damage;
 	Report.PreviousHealth = CurrentHealth;
@@ -63,6 +65,7 @@ FCombatDamageReport UHealthComponent::ApplyDamageSpec(const FCombatDamageSpec& D
 			// Late 는 약화(chip)되어 통과. (윈도우 없으면 종전 동작 그대로 — 비파괴.)
 			if (CombatState->IsDeflecting())
 			{
+				SCOPE_STAT_CAT("Health.ResolveDeflect", "Combat");
 				AActor* Attacker = DamageSpec.InstigatorActor ? DamageSpec.InstigatorActor : DamageSpec.DamageCauser;
 				const EDeflectGrade Grade = CombatState->ConsumeDeflect(Attacker);
 				if (Grade == EDeflectGrade::Perfect || Grade == EDeflectGrade::Good)

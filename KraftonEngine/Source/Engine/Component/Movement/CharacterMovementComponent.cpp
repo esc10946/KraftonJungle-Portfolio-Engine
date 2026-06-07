@@ -287,6 +287,11 @@ void UCharacterMovementComponent::EnforceCharacterControllerPolicy()
 		// a dynamic PhysicsToEngine body, because CharacterMovement owns its transform.
 		Primitive->SetSimulatePhysics(false);
 		Primitive->SetKinematic(true);
+		Primitive->SetCanEverAffectNavigation(false);
+		if (Primitive->GetCollisionObjectType() != ECollisionChannel::Pawn)
+		{
+			Primitive->SetCollisionObjectType(ECollisionChannel::Pawn);
+		}
 		if (Primitive->GetCollisionEnabled() != ECollisionEnabled::QueryAndPhysics)
 		{
 			// Keep the capsule as a kinematic simulation obstacle for dynamic bodies while
@@ -303,6 +308,7 @@ void UCharacterMovementComponent::EnforceCharacterControllerPolicy()
 			// The visual mesh is not the locomotion body. Ragdoll uses the physics-asset
 			// instance, not the mesh component primitive body.
 			Mesh->SetSimulatePhysics(false);
+			Mesh->SetCanEverAffectNavigation(false);
 			if (Mesh->GetCollisionEnabled() != ECollisionEnabled::NoCollision)
 			{
 				Mesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);

@@ -34,6 +34,7 @@ public:
 	void ShowSkinning(bool bEnable = true) { bShowSkinning = bEnable; }
 	void ShowParticles(bool bEnable = true) { bShowParticles = bEnable; }
 	void ShowPhysics(bool bEnable = true) { bShowPhysics = bEnable; }
+	void ShowNavMesh(bool bEnable = true) { bShowNavMesh = bEnable; }
 	void ShowClothCollision(bool bEnable = true) { bShowClothCollision = bEnable; }
 	bool ToggleFPS() { bShowFPS = !bShowFPS; return bShowFPS; }
 	bool ToggleMemory() { bShowMemory = !bShowMemory; return bShowMemory; }
@@ -41,6 +42,7 @@ public:
 	bool ToggleSkinning() { bShowSkinning = !bShowSkinning; return bShowSkinning; }
 	bool ToggleParticles() { bShowParticles = !bShowParticles; return bShowParticles; }
 	bool TogglePhysics() { bShowPhysics = !bShowPhysics; return bShowPhysics; }
+	bool ToggleNavMesh() { bShowNavMesh = !bShowNavMesh; return bShowNavMesh; }
 	bool ToggleClothCollision() { bShowClothCollision = !bShowClothCollision; return bShowClothCollision; }
 	void RecordPickingAttempt(double ElapsedMs);
 	void HideAll()
@@ -52,6 +54,7 @@ public:
 		bShowSkinning = false;
 		bShowParticles = false;
 		bShowPhysics = false;
+		bShowNavMesh = false;
 		bShowClothCollision = false;
 	}
 
@@ -70,6 +73,7 @@ private:
 	void BuildSkinningLines(TArray<FString>& OutLines) const;
 	void BuildParticleLines(TArray<FString>& OutLines) const;
 	void BuildPhysicsLines(const UEditorEngine& Editor, TArray<FString>& OutLines) const;
+	void BuildNavMeshLines(const UEditorEngine& Editor, TArray<FString>& OutLines) const;
 	void BuildClothCollisionLines(TArray<FString>& OutLines) const;
 
 	bool bShowFPS = false;
@@ -79,6 +83,7 @@ private:
 	bool bShowSkinning = false;
 	bool bShowParticles = false;
 	bool bShowPhysics = false;
+	bool bShowNavMesh = false;
 	bool bShowClothCollision = false;
 	double LastPickingTimeMs = 0.0;
 	double AccumulatedPickingTimeMs = 0.0;
