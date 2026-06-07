@@ -66,12 +66,17 @@ bool ABaseCombatCharacter::IsAlive() const
 
 bool ABaseCombatCharacter::PlayCombatMontage(UAnimMontage* Montage)
 {
+	return PlayCombatMontageRated(Montage, 1.0f, -1.0f);
+}
+
+bool ABaseCombatCharacter::PlayCombatMontageRated(UAnimMontage* Montage, float PlayRate, float BlendInTime)
+{
 	UAnimInstance* AnimInstance = GetAnimInstance();
 	if (!AnimInstance || !Montage)
 	{
 		return false;
 	}
-	AnimInstance->PlayMontage(Montage);
+	AnimInstance->PlayMontage(Montage, FName::None, PlayRate > 0.0f ? PlayRate : 1.0f, BlendInTime);
 	return true;
 }
 

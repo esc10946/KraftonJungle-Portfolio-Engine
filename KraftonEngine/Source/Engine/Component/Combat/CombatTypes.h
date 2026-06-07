@@ -242,6 +242,23 @@ struct FEnemyAttackData
 
 	UPROPERTY(Edit, Save, Category="Attack|Perilous", DisplayName="Can Be Deflected")
 	bool bCanBeDeflected = true;
+
+	// 비주얼 몽타주를 재생하면서도 타격 판정은 프레임 데이터(Startup/Active/Recovery) 타임라인으로
+	// 구동한다. 소스 시퀀스에 AttackHitWindow 노티파이를 저작하지 않아도 active 프레임 동안
+	// 사정권 타깃에 1회 데미지가 적용된다(montageless 폴백 경로 재사용). 노티파이가 있는
+	// 공격은 false 로 두어 노티파이가 전담하게 한다.
+	UPROPERTY(Edit, Save, Category="Attack|Behavior", DisplayName="Damage From Frame Data")
+	bool bDamageFromFrameData = false;
+
+	// 몽타주 재생 배속. 1보다 크면 더 빠르게(다이내믹한 전투), 공격 지속시간도 같은 비율로 짧아진다.
+	UPROPERTY(Edit, Save, Category="Attack|Behavior", DisplayName="Play Rate", Min=0.1f, Max=4.0f, Speed=0.05f)
+	float PlayRate = 1.0f;
+
+	// 타격(데미지)이 들어가는 시점 — 몽타주 (배속 반영) 길이의 비율. 0.4 면 스윙 중간쯤.
+	// 이걸로 데미지를 실제 칼이 닿는 비주얼에 맞춘다. 공격의 "커밋" 길이는 이 타격 시점 +
+	// 짧은 캔슬 버퍼로 정해져, 보스는 타격 직후 자유로워져 다음 공격을 블렌딩으로 잇는다(빠른 연속 교전).
+	UPROPERTY(Edit, Save, Category="Attack|Behavior", DisplayName="Hit Time Fraction", Min=0.05f, Max=0.95f, Speed=0.01f)
+	float HitTimeFraction = 0.42f;
 };
 
 USTRUCT()

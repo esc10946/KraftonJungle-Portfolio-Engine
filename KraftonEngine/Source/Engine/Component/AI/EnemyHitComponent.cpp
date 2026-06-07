@@ -3,6 +3,7 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/Montage/AnimMontage.h"
 #include "Component/AI/EnemyAttackComponent.h"
+#include "Component/Combat/CombatStateComponent.h"
 #include "Component/Combat/HealthComponent.h"
 #include "Component/Primitive/SkeletalMeshComponent.h"
 #include "GameFramework/AActor.h"
@@ -141,10 +142,37 @@ void UEnemyHitComponent::HandleDamaged(
 		return;
 	}
 
+	AActor* Owner = GetOwner();
+	UCombatStateComponent* Combat = Owner ? Owner->GetComponentByClass<UCombatStateComponent>() : nullptr;
+
+	// 슈퍼아머 보스가 자기 공격(선/활성/후딜)을 펼치는 중이면 일반 피격에 경직되지 않고 포즈를
+	// 유지한다. 이러면 공세가 끊기지 않고(쿨다운도 리셋 안 함), 자세가 무너질 때만 stagger 된다.
+	if (bPoiseThroughDuringOwnAttack && Combat && Combat->HasSuperArmor() && Combat->IsAttacking())
+	{
+		return;
+	}
+
 	if (bClearAttackCooldownsOnHit)
 	{
 		RestartAttackCooldowns();
 	}
+
+	// 가드 중 피격이면 가드 리액션(막기 흔들림)을, 아니면 방향별 피격 리액션을 재생한다.
+	if (Combat && Combat->IsGuarding() && GuardHitMontage)
+	{
+		ACharacter* Character = Cast<ACharacter>(Owner);
+		USkeletalMeshComponent* MeshComponent = Character ? Character->GetMesh() : nullptr;
+		if (UAnimInstance* AnimInstance = MeshComponent ? MeshComponent->GetAnimInstance() : nullptr)
+		{
+			if (bStopCurrentMontageBeforeHit)
+			{
+				AnimInstance->StopMontage(0.0f);
+			}
+			AnimInstance->PlayMontage(GuardHitMontage);
+			return;
+		}
+	}
+
 	PlayHitMontage(DamageCauser, InstigatorActor);
 }
 

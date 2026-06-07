@@ -208,12 +208,46 @@ public:
 	// 타깃이 후딜(Recovery) 중인가 — punish 기회.
 	UFUNCTION(Pure, Category="Enemy|Brain")
 	bool Brain_TargetInRecovery() const;
+	// 타깃이 지금 몽타주(공격/가드/피격 등 능동 동작)를 재생 중인가 — 플레이어가 공격을 마킹하지
+	// 않아도 보스가 "상대가 동작 중"임을 감지해 반응형 가드를 열 수 있게 한다.
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	bool Brain_IsTargetActing() const;
 	// 타깃의 활성 위험공격 종류(EPerilousType, 0=None).
 	UFUNCTION(Pure, Category="Enemy|Brain")
 	int32 Brain_GetTargetPerilous() const;
 	// 탄기 윈도우를 연다(방어자 반응). 들어오는 피격이 윈도우 안이면 받아넘긴다.
 	UFUNCTION(Callable, Category="Enemy|Brain")
 	void Brain_OpenDeflect();
+	// 가드(block) 자세에 들어간다 — 정면 피해를 감쇄하되 반사는 없다(패링 아님). 보스 전용 방어.
+	UFUNCTION(Callable, Category="Enemy|Brain")
+	void Brain_OpenGuard();
+	// 회피(백스텝) — 타깃 반대로 빠르게 빠지며 회피 몽타주를 재생. 가드로 못 막는 위험공격
+	// (하단/잡기) 대응이나 거리 재설정에 사용. 날렵하게 피하는 성향 표현.
+	UFUNCTION(Callable, Category="Enemy|Brain")
+	void Brain_Dodge();
+	// 백점프 — 타깃 반대로 크게 도약해 거리를 멀리 벌린다(자원 고갈/압박 시 하드 디스인게이지).
+	// 강한 후방 대시 + 점프(수직 팝) + 도약 몽타주.
+	UFUNCTION(Callable, Category="Enemy|Brain")
+	void Brain_LeapBack();
+	// 이동 속도에 따라 idle/walk/run 루핑 몽타주를 슬롯에 재생(그래프 모드 유지 → 공격 몽타주와
+	// 공존). 브레인이 공격/가드/회피가 아닌 이동·대기 분기에서 매 틱 호출한다. PlayAnimationByPath
+	// (단일노드) 로코모션은 몽타주 시스템을 꺼버리므로 쓰지 않는다.
+	UFUNCTION(Callable, Category="Enemy|Brain")
+	void Brain_DriveLocomotion();
+	// 현재 가드 윈도우가 열려 있는가.
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	bool Brain_IsGuarding() const;
+
+	// ── 지형/공간 인지 동사 (Lua 정책이 후퇴/회피/포지셔닝 판단에 사용) ──
+	// 등 뒤로 직선 이동 가능한 여유 거리(벽/장애물까지). 작을수록 코너에 몰림.
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	float Brain_GetBackClearance() const;
+	// 등 뒤 여유가 임계 이하라 후퇴 대신 측면/전진으로 빠져야 하는 상황.
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	bool Brain_IsCornered() const;
+	// 지정 방위(0=전,1=후,2=좌,3=우)로의 여유 거리. 측면 회피 방향 선택에 사용.
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	float Brain_GetClearanceInDirection(int32 Direction) const;
 
 	// 은신 인지 상태 (AwarenessComponent 가 갱신, Lua 가 행동 게이팅) ──
 	// 0=Unaware 1=Suspicious 2=Investigating 3=Alert 4=Searching 5=Returning
@@ -291,6 +325,44 @@ public:
 	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Default Attack Range", Min=0.0f, Max=1000.0f, Speed=0.1f)
 	float DefaultAttackRange = 1.7f;
 
+	// 가드(block) 자세에서 재생할 몽타주(비주얼). Brain_OpenGuard 가 재생한다. null 이면 포즈 없이
+	// 가드 윈도우만 열린다(기능은 동작).
+	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Guard Montage", Type=ObjectRef, AllowedClass=UAnimMontage)
+	UAnimMontage* GuardMontage = nullptr;
+
+	// 회피(백스텝) 몽타주. Brain_Dodge 가 재생한다(예: Run Back).
+	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Dodge Montage", Type=ObjectRef, AllowedClass=UAnimMontage)
+	UAnimMontage* DodgeMontage = nullptr;
+
+	// 회피 시 타깃 반대로 빠지는 대시 세기.
+	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Dodge Dash Scale", Min=0.0f, Max=5.0f, Speed=0.05f)
+	float DodgeDashScale = 2.2f;
+
+	// 백점프(Brain_LeapBack) 비주얼 몽타주(예: Standing Jump).
+	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Leap Montage", Type=ObjectRef, AllowedClass=UAnimMontage)
+	UAnimMontage* LeapMontage = nullptr;
+
+	// 백점프 후방 대시 세기(회피보다 크게 — 멀리 벌림).
+	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Leap Dash Scale", Min=0.0f, Max=10.0f, Speed=0.1f)
+	float LeapDashScale = 5.0f;
+
+	// ── 몽타주 기반 로코모션 (그래프 모드에서 walk/run + 공격 몽타주 공존) ──
+	// 각 몽타주는 NextSection=자기자신으로 무한 루프하도록 저작해야 한다.
+	UPROPERTY(Edit, Save, Category="Enemy|Locomotion", DisplayName="Loco Idle Montage", Type=ObjectRef, AllowedClass=UAnimMontage)
+	UAnimMontage* LocoIdleMontage = nullptr;
+	UPROPERTY(Edit, Save, Category="Enemy|Locomotion", DisplayName="Loco Walk Montage", Type=ObjectRef, AllowedClass=UAnimMontage)
+	UAnimMontage* LocoWalkMontage = nullptr;
+	UPROPERTY(Edit, Save, Category="Enemy|Locomotion", DisplayName="Loco Run Montage", Type=ObjectRef, AllowedClass=UAnimMontage)
+	UAnimMontage* LocoRunMontage = nullptr;
+	UPROPERTY(Edit, Save, Category="Enemy|Locomotion", DisplayName="Loco Walk Speed Threshold", Min=0.0f, Max=100.0f, Speed=0.05f)
+	float LocoWalkSpeedThreshold = 0.2f;
+	UPROPERTY(Edit, Save, Category="Enemy|Locomotion", DisplayName="Loco Run Speed Threshold", Min=0.0f, Max=100.0f, Speed=0.05f)
+	float LocoRunSpeedThreshold = 4.0f;
+
+	// 등 뒤 여유가 이 거리 이하이면 Brain_IsCornered 가 true — 후퇴 대신 측면/전진을 선택하게 한다.
+	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Cornered Clearance Threshold", Min=0.0f, Max=20.0f, Speed=0.05f)
+	float CorneredClearanceThreshold = 2.5f;
+
 
 	// ── Phase 3 협동 / Phase 4 LOD 튜닝 ──
 	UPROPERTY(Edit, Save, Category="Enemy|Squad", DisplayName="Max Simultaneous Attackers", Min=0.0f, Max=16.0f, Speed=1.0f)
@@ -364,6 +436,11 @@ private:
 	float CurrentAttackElapsed = 0.0f;
 	FEnemyAttackData CurrentAttack;
 	TArray<TWeakObjectPtr<AActor>> CurrentAttackDamagedActors;
+	// 현재 공격의 타격 시점(초, 비주얼 스윙에 맞춤)과 이미 타격을 적용했는지.
+	float CurrentAttackHitTime = 0.0f;
+	bool bCurrentAttackHitApplied = false;
+	// 마지막으로 재생한 공격 몽타주(꼬리 식별용 — 이동 시 걷기로 덮어쓸지/리액션에 양보할지 구분).
+	UAnimMontage* CurrentAttackMontage = nullptr;
 
 	// 직전 공격 결과(공격 문법 분기용). 공격 시작 시 리셋, 피해 적용 시 갱신.
 	ECombatDamageResult LastAttackResult = ECombatDamageResult::None;

@@ -2,6 +2,8 @@
 
 #include "Animation/AnimInstance.h"
 #include "Animation/Montage/AnimMontage.h"
+#include "Animation/Notify/AnimNotifyState_ParryWindow.h"
+#include "Component/Primitive/SkeletalMeshComponent.h"
 #include "Component/AI/EnemyAIBrainComponent.h"
 #include "Component/AI/EnemyAttackComponent.h"
 #include "Component/AI/EnemyHitComponent.h"
@@ -45,10 +47,27 @@ namespace
 		return Delta;
 	}
 
+	// 타격(데미지)이 들어가는 시점(초). 몽타주가 있으면 그 (배속 반영) 길이의 HitTimeFraction
+	// 지점 — 실제 칼이 닿는 비주얼에 데미지를 맞춘다. 없으면 프레임데이터 활성 구간 중앙.
+	float ComputeAttackHitTime(const FEnemyAttackData& Attack)
+	{
+		const float Rate = Attack.PlayRate > 0.0f ? Attack.PlayRate : 1.0f;
+		if (Attack.Montage && Attack.Montage->GetPlayLength() > 0.0f)
+		{
+			const float MontageDur = Attack.Montage->GetPlayLength() / Rate;
+			const float Frac = (std::max)(0.05f, (std::min)(0.95f, Attack.HitTimeFraction));
+			return Frac * MontageDur;
+		}
+		return (static_cast<float>(Attack.StartupFrames) + 0.5f * static_cast<float>(Attack.ActiveFrames)) / 60.0f / Rate;
+	}
+
 	float GetAttackExecutionDuration(const FEnemyAttackData& Attack)
 	{
-		const float FrameDuration = static_cast<float>(Attack.StartupFrames + Attack.ActiveFrames + Attack.RecoveryFrames) / 60.0f;
-		return (std::max)(0.05f, (std::max)(Attack.RecoveryTime, FrameDuration));
+		// 커밋 = 타격 시점 + 짧은 캔슬 버퍼. 긴 복귀(return) 꼬리는 커밋에 포함하지 않는다 —
+		// 보스는 타격 직후 자유로워져 다음 공격을 블렌딩으로 잇는다(빠른 연속 교전, 턴제 느낌 제거).
+		// 다음 공격의 짧은 블렌드인이 이전 몽타주의 복귀 구간을 자연스럽게 캔슬·크로스페이드한다.
+		const float CancelBuffer = 0.16f;
+		return (std::max)(0.12f, ComputeAttackHitTime(Attack) + CancelBuffer);
 	}
 
 	void StretchAttackFramesToDuration(FEnemyAttackData& Attack, float Duration)
@@ -462,12 +481,20 @@ bool AEnemyCharacter::StartAttackExecution(const FEnemyAttackData& Attack)
 	CurrentAttack = ExecutingAttack;
 	CurrentAttackElapsed = 0.0f;
 	bCurrentAttackActive = true;
+	// 타격 시점(비주얼 스윙에 맞춤) — 이 시점부터 짧은 윈도우 동안 데미지가 들어간다.
+	CurrentAttackHitTime = ComputeAttackHitTime(CurrentAttack);
+	bCurrentAttackHitApplied = false;
 	CurrentAttackDamagedActors.clear();
 	// 공격 문법 분기용 결과 캐시 리셋(보고서 1군 #3).
 	LastAttackResult = ECombatDamageResult::None;
 	bLastAttackConnected = false;
-	// 몽타주 없는 공격이면 timed 폴백 경로(UpdateAttackExecution 에서 active 프레임에 데미지).
-	bCurrentAttackMontageless = (CurrentAttack.Montage == nullptr);
+	// 몽타주 없는 공격이거나 bDamageFromFrameData 면 timed 폴백 경로로 데미지를 준다
+	// (UpdateAttackExecution 에서 active 프레임에 적용). 후자는 비주얼 몽타주는 재생하되
+	// 소스 시퀀스에 AttackHitWindow 노티파이가 없어도 프레임데이터 타임라인이 타격을 담당한다.
+	bCurrentAttackMontageless = (CurrentAttack.Montage == nullptr) || CurrentAttack.bDamageFromFrameData;
+	// 로코모션 구동이 "내 공격 몽타주 꼬리"는 이동 시 걷기로 덮어쓰되, 리액션(피격/가드/회피)
+	// 몽타주에는 양보하도록 구분하기 위해 현재 공격 몽타주를 기록.
+	CurrentAttackMontage = CurrentAttack.Montage;
 	// 프레임 데이터 타임라인 시작 — startup/active/recovery + 위험표식.
 	if (UCombatMoveComponent* Move = CombatMove.Get())
 	{
@@ -491,7 +518,10 @@ bool AEnemyCharacter::StartAttackExecution(const FEnemyAttackData& Attack)
 	}
 
 	// 몽타주가 없으면(에셋 미제작) 재생을 건너뛰고 timed 공격으로 진행한다.
-	const bool bMontageStarted = CurrentAttack.Montage ? PlayCombatMontage(CurrentAttack.Montage) : true;
+	// 있으면 공격별 배속으로 재생하고, 콤보가 꼬리에서 이어지도록 짧은 블렌드인으로 크로스페이드한다.
+	const bool bMontageStarted = CurrentAttack.Montage
+		? PlayCombatMontageRated(CurrentAttack.Montage, CurrentAttack.PlayRate, 0.18f)
+		: true;
 	if (!bMontageStarted)
 	{
 		bCurrentAttackActive = false;
@@ -559,6 +589,31 @@ bool AEnemyCharacter::ApplyCurrentAttackDamageToActor(AActor* Target, const FVec
 	{
 		return false;
 	}
+
+	// 플레이어 패링 — 이 공격은 montageless(프레임데이터) 경로라 AttackHitWindow 노티파이를
+	// 타지 않는다. 따라서 여기서 타깃의 패링 윈도우를 직접 확인해 노티파이 경로와 동일하게
+	// 처리한다: 피해 무효 + 패링 보고 + 공격자(보스) 자세 압박 + Deflected 결과 캐시(브레인이
+	// 후속 행동을 가드/재배치로 바꾼다). 보스는 패링이 없고 가드만 하지만, 플레이어의 패링은
+	// 반드시 보스 공격에 통해야 세키로 루프가 성립한다.
+	if (USkeletalMeshComponent* TargetMesh = Target->GetComponentByClass<USkeletalMeshComponent>())
+	{
+		UAnimInstance* TargetAnim = TargetMesh->GetAnimInstance();
+		if (TargetAnim && UAnimNotifyState_ParryWindow::IsParryWindowActive(TargetAnim))
+		{
+			UAnimNotifyState_ParryWindow::ReportSuccessfulParry(TargetAnim);
+			MarkCurrentAttackDamagedActor(Target); // 이 공격으로 같은 타깃을 다시 처리하지 않음
+			LastAttackResult = ECombatDamageResult::Deflected;
+			bLastAttackConnected = false;
+			if (UCombatStateComponent* SelfCombat = GetCombatStateComponent())
+			{
+				// 패링 성공 시 보스 자세를 압박한다(슈퍼아머면 흡수). 위험공격 종류별 반사 배수 반영.
+				const FPerilousResolution Res = GetPerilousResolution(CurrentAttack.PerilousType);
+				SelfCombat->ApplyPoiseDamage(SelfCombat->DeflectReflectPoise * Res.AnswerReflectPoiseScale);
+			}
+			return false;
+		}
+	}
+
 	UHealthComponent* TargetHealth = Target->GetComponentByClass<UHealthComponent>();
 	if (!TargetHealth)
 	{
@@ -627,13 +682,15 @@ void AEnemyCharacter::UpdateAttackExecution(float DeltaTime)
 	CurrentAttackElapsed += DeltaTime;
 	FaceTarget(DeltaTime);
 
-	// 몽타주 없는 timed 공격의 폴백 데미지: active 프레임 동안 사정권 내 타깃에 1회 적용한다.
-	// (몽타주가 있으면 AnimNotifyState_AttackHitWindow 가 전담하므로 이 경로는 타지 않는다.)
-	if (bCurrentAttackMontageless)
+	// 프레임데이터 기반 타격: 타격 시점(CurrentAttackHitTime, 비주얼 스윙에 맞춤)부터 짧은
+	// 윈도우 동안 사정권 내 타깃에 1회 데미지를 적용한다. CombatMove 의 active 프레임이 아니라
+	// 몽타주 진행 비율로 정렬해, "칼이 닿기도 전에 데미지가 들어가는" 어긋남을 없앤다.
+	if (bCurrentAttackMontageless && !bCurrentAttackHitApplied
+		&& CurrentAttackElapsed >= CurrentAttackHitTime
+		&& CurrentAttackElapsed <= CurrentAttackHitTime + 0.12f)
 	{
-		UCombatMoveComponent* Move = CombatMove.Get();
 		UEnemyAIBrainComponent* Brain = AIBrainComponent.Get();
-		if (Move && Move->GetPhaseInt() == static_cast<int32>(ECombatMovePhase::Active) && Brain && Brain->HasValidTarget())
+		if (Brain && Brain->HasValidTarget())
 		{
 			if (AActor* Tgt = Brain->GetTarget())
 			{
@@ -641,6 +698,7 @@ void AEnemyCharacter::UpdateAttackExecution(float DeltaTime)
 				if (Brain->GetFlatDistanceToTarget() <= Reach)
 				{
 					ApplyCurrentAttackDamageToActor(Tgt, Tgt->GetActorLocation());
+					bCurrentAttackHitApplied = true;
 				}
 			}
 		}
@@ -1159,6 +1217,24 @@ void AEnemyCharacter::Brain_Idle()
 	StopEnemyMovement();
 }
 
+bool AEnemyCharacter::Brain_IsTargetActing() const
+{
+	const UEnemyAIBrainComponent* Brain = AIBrainComponent.Get();
+	if (!Brain || !Brain->HasValidTarget())
+	{
+		return false;
+	}
+	AActor* Target = Brain->GetTarget();
+	if (!Target)
+	{
+		return false;
+	}
+	USkeletalMeshComponent* Mesh = Target->GetComponentByClass<USkeletalMeshComponent>();
+	UAnimInstance* Anim = Mesh ? Mesh->GetAnimInstance() : nullptr;
+	// 몽타주가 재생 중이면 상대가 능동 동작(주로 공격) 중 — 보스가 반응 가드 타이밍으로 사용.
+	return Anim && Anim->IsMontagePlaying(nullptr);
+}
+
 bool AEnemyCharacter::Brain_TargetThreatening() const
 {
 	const UEnemyAIBrainComponent* Brain = AIBrainComponent.Get();
@@ -1201,6 +1277,158 @@ void AEnemyCharacter::Brain_OpenDeflect()
 		Combat->OpenDeflectWindow(0.0f); // 0 → 컴포넌트 기본 윈도우 길이
 	}
 	SetRuntimeState(FName("Deflect"));
+}
+
+void AEnemyCharacter::Brain_OpenGuard()
+{
+	StopEnemyMovement();
+	if (UCombatStateComponent* Combat = GetCombatStateComponent())
+	{
+		Combat->OpenGuardWindow(0.0f); // 0 → 컴포넌트 기본 가드 윈도우 길이(매 틱 호출 시 갱신)
+	}
+	SetRuntimeState(FName("Guard"));
+	// 가드 비주얼 — 막기 자세 몽타주. 단, 이미 재생 중이면 재시작하지 않는다(매 틱 가드가
+	// 선택돼도 블렌드인이 리셋되어 자세가 안 보이던 문제 수정).
+	if (GuardMontage)
+	{
+		UAnimInstance* Anim = GetAnimInstance();
+		if (Anim && !Anim->IsMontagePlaying(GuardMontage))
+		{
+			PlayCombatMontageRated(GuardMontage, 1.0f, 0.15f);
+		}
+	}
+}
+
+bool AEnemyCharacter::Brain_IsGuarding() const
+{
+	const UCombatStateComponent* Combat = GetCombatStateComponent();
+	return Combat && Combat->IsGuarding();
+}
+
+void AEnemyCharacter::Brain_Dodge()
+{
+	StopEnemyMovement();
+	SetRuntimeState(FName("Dodge"));
+	// 타깃 반대로 빠지는 백스텝 — BeginDash 는 양수 스케일이면 타깃을 향하므로 음수를 줘서 멀어진다.
+	if (UCharacterStateMachineComponent* SM = GetStateMachine())
+	{
+		const float DashSeconds = 0.35f;
+		SM->BeginDash(DashSeconds, -DodgeDashScale);
+	}
+	if (DodgeMontage)
+	{
+		PlayCombatMontageRated(DodgeMontage, 1.2f, 0.10f);
+	}
+}
+
+void AEnemyCharacter::Brain_LeapBack()
+{
+	StopEnemyMovement();
+	SetRuntimeState(FName("Dodge"));
+	// 강한 후방 대시(타깃 반대) + 점프(수직 팝) → 멀리 도약. BeginDash 는 양수면 타깃 방향이므로 음수.
+	if (UCharacterStateMachineComponent* SM = GetStateMachine())
+	{
+		SM->BeginDash(0.45f, -LeapDashScale);
+	}
+	Jump();  // ACharacter::Jump — JumpZVelocity 만큼 수직 속도 부여 → 슬라이드가 아닌 도약
+	if (LeapMontage)
+	{
+		PlayCombatMontageRated(LeapMontage, 1.0f, 0.08f);
+	}
+	else if (DodgeMontage)
+	{
+		PlayCombatMontageRated(DodgeMontage, 1.0f, 0.08f);
+	}
+}
+
+void AEnemyCharacter::Brain_DriveLocomotion()
+{
+	UAnimInstance* Anim = GetAnimInstance();
+	if (!Anim)
+	{
+		return;
+	}
+	float Speed = 0.0f;
+	if (UCharacterMovementComponent* Move = GetComponentByClass<UCharacterMovementComponent>())
+	{
+		const FVector V = Move->GetVelocityValue();
+		Speed = std::sqrt(V.X * V.X + V.Y * V.Y);
+	}
+
+	UAnimMontage* Desired = LocoIdleMontage;
+	if (Speed >= LocoRunSpeedThreshold && LocoRunMontage)
+	{
+		Desired = LocoRunMontage;
+	}
+	else if (Speed >= LocoWalkSpeedThreshold && LocoWalkMontage)
+	{
+		Desired = LocoWalkMontage;
+	}
+
+	if (!Desired || Anim->IsMontagePlaying(Desired))
+	{
+		return; // 이미 맞는 로코모션 몽타주가 재생 중 — no-op
+	}
+
+	// 양보 규칙: 리액션 몽타주(피격/가드/회피)는 절대 덮어쓰지 않고 양보한다. 단, "내 공격
+	// 몽타주의 꼬리(복귀 구간)"는 이동으로 전환할 때 걷기로 덮어써야 한다(예전엔 양보해서
+	// 공격 포즈로 슬라이딩했다). 즉 비-로코·비-내공격 몽타주가 있을 때만 양보.
+	const bool bLocoActive =
+		(LocoIdleMontage && Anim->IsMontagePlaying(LocoIdleMontage)) ||
+		(LocoWalkMontage && Anim->IsMontagePlaying(LocoWalkMontage)) ||
+		(LocoRunMontage  && Anim->IsMontagePlaying(LocoRunMontage));
+	const bool bAttackTail = CurrentAttackMontage && Anim->IsMontagePlaying(CurrentAttackMontage);
+	if (Anim->IsMontagePlaying(nullptr) && !bLocoActive && !bAttackTail)
+	{
+		return; // 리액션(피격/가드/회피) 몽타주 진행 중 → 양보
+	}
+
+	Anim->PlayMontage(Desired, FName::None, 1.0f, 0.2f);
+}
+
+float AEnemyCharacter::Brain_GetClearanceInDirection(int32 Direction) const
+{
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return 9999.0f;
+	}
+	FVector Dir;
+	switch (Direction)
+	{
+	case 1:  Dir = GetActorForward() * -1.0f; break; // 뒤
+	case 2:  Dir = GetActorRight()   * -1.0f; break; // 좌
+	case 3:  Dir = GetActorRight();          break;  // 우
+	case 0:
+	default: Dir = GetActorForward();        break;  // 앞
+	}
+	Dir.Z = 0.0f;
+	if (Dir.IsNearlyZero())
+	{
+		return 9999.0f;
+	}
+	Dir = Dir.Normalized();
+
+	const float MaxDist = 12.0f;
+	FVector Start = GetActorLocation();
+	Start.Z += 1.0f; // 몸통 높이 — 바닥을 때리지 않도록
+
+	FHitResult Hit;
+	if (World->PhysicsRaycast(Start, Dir, MaxDist, Hit, ECollisionChannel::WorldStatic, this))
+	{
+		return (std::max)(0.0f, Hit.Distance);
+	}
+	return MaxDist;
+}
+
+float AEnemyCharacter::Brain_GetBackClearance() const
+{
+	return Brain_GetClearanceInDirection(1);
+}
+
+bool AEnemyCharacter::Brain_IsCornered() const
+{
+	return Brain_GetBackClearance() <= CorneredClearanceThreshold;
 }
 
 // 은신 인지 노출 ──

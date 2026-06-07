@@ -3,7 +3,9 @@
 #include "Component/AI/EncounterComponent.h"
 #include "Component/AI/EnemyAIBrainComponent.h"
 #include "Component/AI/PhaseComponent.h"
+#include "Component/Combat/CombatStateComponent.h"
 #include "Component/Combat/HealthComponent.h"
+#include "Component/Particle/ParticleSystemComponent.h"
 
 void ABossEnemyCharacter::InitDefaultComponents(const FString& SkeletalMeshFileName)
 {
@@ -110,6 +112,20 @@ void ABossEnemyCharacter::HandlePhaseChanged(UPhaseComponent* /*Component*/, int
 {
 	SetAnimGraphInt(FName("Phase"), NewPhase);
 	SetRuntimeState(FName("PhaseChanged"));
+
+	// 페이즈 전환 연출: 자세변경 플러리시 몽타주 + 짧은 무적(연출 중 끊김 방지) + 파티클 버스트.
+	if (PhaseChangeMontage)
+	{
+		PlayCombatMontage(PhaseChangeMontage);
+	}
+	if (UCombatStateComponent* Combat = GetCombatStateComponent())
+	{
+		Combat->OpenInvulnWindow(PhaseChangeInvulnSeconds);
+	}
+	if (UParticleSystemComponent* PhaseVFX = GetComponentByClass<UParticleSystemComponent>())
+	{
+		PhaseVFX->Activate(true);
+	}
 }
 
 void ABossEnemyCharacter::HandleEncounterStarted(UEncounterComponent* /*Component*/)
