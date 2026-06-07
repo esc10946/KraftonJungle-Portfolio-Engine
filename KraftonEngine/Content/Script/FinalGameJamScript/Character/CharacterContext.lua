@@ -73,6 +73,9 @@ function Context.Create(owner)
             counterInvincibleApplied = false,
             counterPreviousInvincible = false,
             counterInputBufferRemaining = 0.0,
+            executionPlaying = false,
+            executionTarget = nil,
+            executionTargetMontage = nil,
         },
         cache = {
             animInstance = nil,
@@ -86,6 +89,8 @@ function Context.Create(owner)
             counterMontage = nil,
             counterImpactParticle = nil,
             successParryMontage = nil,
+            executionPlayerMontage = nil,
+            executionBossMontage = nil,
             lockOnComponent = nil,
         },
         equipment = {

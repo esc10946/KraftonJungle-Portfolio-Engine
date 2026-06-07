@@ -4,6 +4,7 @@ local Guard = require("FinalGameJamScript/Character/CharacterGuard")
 local HitReaction = require("FinalGameJamScript/Character/CharacterHitReaction")
 local LockOn = require("FinalGameJamScript/Character/CharacterLockOn")
 local Locomotion = require("FinalGameJamScript/Character/CharacterLocomotion")
+local Execution = require("FinalGameJamScript/Character/CharacterExecution")
 
 local Commands = {}
 
@@ -37,17 +38,24 @@ local commandList = {
     { Tick = Counter.UpdateCancelWindow },
     { Tick = Locomotion.UpdateMovementLock },
     { Tick = LockOn.UpdateSwitchInput },
+    { Tick = Execution.Tick },
     {
         IsTriggered = LockOn.IsInputTriggered,
         Execute = LockOn.ExecuteInput,
     },
     {
         IsTriggered = Guard.IsInputTriggered,
+        CanExecute = function(ctx)
+            return not ctx.state.executionPlaying
+        end,
         Execute = Guard.ExecuteInput,
     },
     --Attack input comes before movement cancel to keep combo while holding move key--
     {
         IsTriggered = Combat.IsInputTriggered,
+        CanExecute = function(ctx)
+            return not ctx.state.executionPlaying
+        end,
         Execute = Combat.ExecuteInput,
     },
     {
@@ -59,7 +67,7 @@ local commandList = {
     {
         IsTriggered = Locomotion.IsMoveKeyDown,
         CanExecute = function(ctx)
-            return ctx.state.attackPlaying and ctx.state.canChainAttack
+            return not ctx.state.executionPlaying and ctx.state.attackPlaying and ctx.state.canChainAttack
         end,
         Execute = Combat.StopAttackForMovement,
     },

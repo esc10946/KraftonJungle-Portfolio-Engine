@@ -35,6 +35,7 @@
 #include "Component/Combat/CombatHitEventComponent.h"
 #include "Component/Combat/CombatStateComponent.h"
 #include "Component/Combat/CombatTypes.h"
+#include "Component/Combat/ExecutionComponent.h"
 #include "Component/Combat/HealthComponent.h"
 #include "Component/Input/InputComponent.h"
 #include "Component/Light/AmbientLightComponent.h"
@@ -4750,6 +4751,7 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
         sol::bases<ABaseCombatCharacter, ACharacter, APawn, AActor, UObject>(),
         "GetAIBrainComponent", &AEnemyCharacter::GetAIBrainComponent,
         "GetAttackComponent", &AEnemyCharacter::GetAttackComponent,
+        "GetExecution", [](AEnemyCharacter& C) -> UActorComponent* { return C.GetExecution(); },
         "GetLuaScriptComponent", &AEnemyCharacter::GetLuaScriptComponent,
         "MoveToTarget", sol::overload(
             [](AEnemyCharacter& C, float Scale) { C.MoveToTarget(Scale); },
@@ -5777,6 +5779,12 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
         [](AActor& Actor)
         {
             return Actor.GetComponentByClass<UCombatStateComponent>();
+        },
+
+        "GetExecutionComponent",
+        [](AActor& Actor) -> UActorComponent*
+        {
+            return Actor.GetComponentByClass<UExecutionComponent>();
         },
 
         "GetLockOnComponent",

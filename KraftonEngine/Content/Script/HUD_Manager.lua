@@ -1,5 +1,8 @@
 local HUD_DOCUMENT = "Content/Game/UI/HUD.rml"
 
+local HUD_ROOT_ID = "hud-screen"
+local HUD_Z_ORDER = 0
+local HUD_FORCE_HIDE_FLAG = "BossIntroHUDHidden"
 local PLAYER_HP_MASK_ID = "player-hp-mask"
 local PLAYER_HP_DELAY_MASK_ID = "player-hp-delay-mask"
 local BOSS_HP_MASK_ID = "boss-hp-mask"
@@ -7,6 +10,14 @@ local BOSS_POSTURE_LEFT_MASK_ID = "boss-posture-left-mask"
 local BOSS_POSTURE_RIGHT_MASK_ID = "boss-posture-right-mask"
 local BOSS_PANEL_ID = "boss-panel"
 local BOSS_POSTURE_PANEL_ID = "boss-posture-panel"
+local BOSS_POSTURE_LEFT_FILL_ID = "boss-posture-left-fill"
+local BOSS_POSTURE_RIGHT_FILL_ID = "boss-posture-right-fill"
+local BOSS_POSTURE_LEFT_WARNING_FILL_ID = "boss-posture-left-warning-fill"
+local BOSS_POSTURE_RIGHT_WARNING_FILL_ID = "boss-posture-right-warning-fill"
+local BOSS_POSTURE_LEFT_CRITICAL_FILL_ID = "boss-posture-left-critical-fill"
+local BOSS_POSTURE_RIGHT_CRITICAL_FILL_ID = "boss-posture-right-critical-fill"
+local BOSS_POSTURE_WARNING_GLOW_ID = "boss-posture-warning-glow"
+local BOSS_POSTURE_CRITICAL_GLOW_ID = "boss-posture-critical-glow"
 local PLAYER_POSTURE_LEFT_MASK_ID = "player-posture-left-mask"
 local PLAYER_POSTURE_RIGHT_MASK_ID = "player-posture-right-mask"
 local PLAYER_POSTURE_PANEL_ID = "player-posture-panel"
@@ -20,6 +31,14 @@ local PLAYER_POSTURE_WARNING_GLOW_ID = "player-posture-warning-glow"
 local PLAYER_POSTURE_CRITICAL_GLOW_ID = "player-posture-critical-glow"
 
 local PLAYER_TOKEN_ID = "player-icon-right"
+local HUD_CONTAINER_IDS = {
+    "enemy-bars",
+    BOSS_PANEL_ID,
+    BOSS_POSTURE_PANEL_ID,
+    PLAYER_POSTURE_PANEL_ID,
+    "item-panel",
+    "player-hud",
+}
 
 local ENEMY_BAR_MAX = 16
 local ENEMY_BAR_WIDTH = 120.0
@@ -61,6 +80,11 @@ local playerHealth = nil
 local playerHealthBindingId = nil
 local playerCombat = nil
 local playerPostureBindingId = nil
+local bossActor = nil
+local bossHealth = nil
+local bossHealthBindingId = nil
+local bossCombat = nil
+local bossPostureBindingId = nil
 local playerPawnChangedBindingId = nil
 local lastHpRatio = nil
 local playerHpDelayRatio = nil
@@ -70,6 +94,7 @@ local lastBossPostureRatio = nil
 local lastBossHudVisible = nil
 local lastPlayerPostureRatio = nil
 local playerPostureVisualState = "hidden"
+local bossPostureVisualState = "hidden"
 local lastTokenVisible = nil
 local enemyBarStates = {}
 local enemySlotById = {}
@@ -81,6 +106,8 @@ local enemyActorRefreshElapsed = ENEMY_ACTOR_REFRESH_INTERVAL
 local cachedEnemyActors = {}
 local cachedEnemyIds = {}
 local hudTimeSeconds = 0.0
+local hudVisible = true
+local refresh_hud_document_state = nil
 
 local function clamp01(value)
     value = tonumber(value) or 0.0
@@ -110,6 +137,34 @@ local function set_element_visible(element_id, visible)
     else
         widget:SetProperty(element_id, "display", "none")
     end
+end
+
+local function apply_hud_visibility()
+    if widget == nil then
+        return
+    end
+
+    if not hudVisible then
+        widget:SetProperty(HUD_ROOT_ID, "display", "none")
+
+        for _, elementId in ipairs(HUD_CONTAINER_IDS) do
+            set_element_visible(elementId, false)
+        end
+
+        return
+    end
+
+    widget:SetProperty(HUD_ROOT_ID, "display", "block")
+    set_element_visible("enemy-bars", true)
+    set_element_visible("item-panel", true)
+    set_element_visible("player-hud", true)
+    set_element_visible(PLAYER_POSTURE_PANEL_ID, true)
+    set_element_visible(BOSS_PANEL_ID, lastBossHudVisible == true)
+    set_element_visible(BOSS_POSTURE_PANEL_ID, lastBossHudVisible == true)
+end
+
+local function is_hud_force_hidden()
+    return _G ~= nil and _G[HUD_FORCE_HIDE_FLAG] == true
 end
 
 local function set_width_ratio(element_id, ratio)
@@ -152,6 +207,37 @@ local function set_player_posture_visual_state(ratio)
     set_element_opacity(PLAYER_POSTURE_CRITICAL_GLOW_ID, state == "critical" and 0.65 or 0.0)
 end
 
+local function set_boss_posture_visual_state(ratio)
+    local state = "normal"
+
+    if ratio <= POSTURE_VISIBILITY_EPSILON then
+        state = "hidden"
+    elseif ratio >= POSTURE_CRITICAL_THRESHOLD then
+        state = "critical"
+    elseif ratio >= POSTURE_WARNING_THRESHOLD then
+        state = "warning"
+    end
+
+    if bossPostureVisualState == state then
+        return
+    end
+
+    bossPostureVisualState = state
+
+    local normalOpacity = state == "normal" and 1.0 or 0.0
+    local warningOpacity = state == "warning" and 1.0 or 0.0
+    local criticalOpacity = state == "critical" and 1.0 or 0.0
+
+    set_element_opacity(BOSS_POSTURE_LEFT_FILL_ID, normalOpacity)
+    set_element_opacity(BOSS_POSTURE_RIGHT_FILL_ID, normalOpacity)
+    set_element_opacity(BOSS_POSTURE_LEFT_WARNING_FILL_ID, warningOpacity)
+    set_element_opacity(BOSS_POSTURE_RIGHT_WARNING_FILL_ID, warningOpacity)
+    set_element_opacity(BOSS_POSTURE_LEFT_CRITICAL_FILL_ID, criticalOpacity)
+    set_element_opacity(BOSS_POSTURE_RIGHT_CRITICAL_FILL_ID, criticalOpacity)
+    set_element_opacity(BOSS_POSTURE_WARNING_GLOW_ID, state == "warning" and 0.45 or 0.0)
+    set_element_opacity(BOSS_POSTURE_CRITICAL_GLOW_ID, state == "critical" and 0.65 or 0.0)
+end
+
 local function update_player_posture_effect()
     if widget == nil then
         return
@@ -169,6 +255,26 @@ local function update_player_posture_effect()
         set_element_opacity(PLAYER_POSTURE_LEFT_CRITICAL_FILL_ID, fillOpacity)
         set_element_opacity(PLAYER_POSTURE_RIGHT_CRITICAL_FILL_ID, fillOpacity)
         set_element_opacity(PLAYER_POSTURE_CRITICAL_GLOW_ID, 0.45 + 0.5 * pulse)
+    end
+end
+
+local function update_boss_posture_effect()
+    if widget == nil then
+        return
+    end
+
+    if bossPostureVisualState == "warning" then
+        local pulse = 0.5 + 0.5 * math.sin(hudTimeSeconds * POSTURE_WARNING_PULSE_SPEED)
+        local fillOpacity = 0.78 + 0.22 * pulse
+        set_element_opacity(BOSS_POSTURE_LEFT_WARNING_FILL_ID, fillOpacity)
+        set_element_opacity(BOSS_POSTURE_RIGHT_WARNING_FILL_ID, fillOpacity)
+        set_element_opacity(BOSS_POSTURE_WARNING_GLOW_ID, 0.28 + 0.32 * pulse)
+    elseif bossPostureVisualState == "critical" then
+        local pulse = 0.5 + 0.5 * math.sin(hudTimeSeconds * POSTURE_CRITICAL_PULSE_SPEED)
+        local fillOpacity = 0.62 + 0.38 * pulse
+        set_element_opacity(BOSS_POSTURE_LEFT_CRITICAL_FILL_ID, fillOpacity)
+        set_element_opacity(BOSS_POSTURE_RIGHT_CRITICAL_FILL_ID, fillOpacity)
+        set_element_opacity(BOSS_POSTURE_CRITICAL_GLOW_ID, 0.45 + 0.5 * pulse)
     end
 end
 
@@ -296,6 +402,30 @@ local function unbind_player_posture()
     playerPostureBindingId = nil
 end
 
+local function unbind_boss_health()
+    if bossHealthBindingId ~= nil and is_valid_object(bossHealth) then
+        safe_call(bossHealth, "UnbindOnHealthChanged", bossHealthBindingId)
+    end
+
+    bossHealth = nil
+    bossHealthBindingId = nil
+end
+
+local function unbind_boss_posture()
+    if bossPostureBindingId ~= nil and is_valid_object(bossCombat) then
+        safe_call(bossCombat, "UnbindOnPostureChanged", bossPostureBindingId)
+    end
+
+    bossCombat = nil
+    bossPostureBindingId = nil
+end
+
+local function unbind_boss_actor()
+    unbind_boss_health()
+    unbind_boss_posture()
+    bossActor = nil
+end
+
 local function bind_player_posture_from_pawn(pawn)
     unbind_player_posture()
 
@@ -371,6 +501,90 @@ local function bind_player_health_from_pawn(pawn)
     end
 
     SetPlayerHpRatio(safe_call(health, "GetHealthRatio") or 0.0)
+    return true
+end
+
+local function bind_boss_health_from_actor(actor)
+    unbind_boss_health()
+
+    if not is_valid_object(actor) then
+        return false
+    end
+
+    local health = safe_call(actor, "GetHealthComponent")
+
+    if not is_valid_object(health) then
+        return false
+    end
+
+    bossHealth = health
+    bossHealthBindingId = safe_call(
+        health,
+        "BindOnHealthChanged",
+        function(_component, _previousHealth, currentHealth, maxHealth)
+            maxHealth = tonumber(maxHealth) or 0.0
+
+            if maxHealth <= 0.0 then
+                SetBossHpRatio(0.0)
+                SetBossHUDVisible(false)
+                return
+            end
+
+            local ratio = (tonumber(currentHealth) or 0.0) / maxHealth
+            SetBossHpRatio(ratio)
+
+            if ratio <= 0.0 then
+                SetBossHUDVisible(false)
+            end
+        end
+    )
+
+    if bossHealthBindingId == nil or tonumber(bossHealthBindingId) == 0 then
+        bossHealth = nil
+        bossHealthBindingId = nil
+        return false
+    end
+
+    SetBossHpRatio(safe_call(health, "GetHealthRatio") or 0.0)
+    return true
+end
+
+local function bind_boss_posture_from_actor(actor)
+    unbind_boss_posture()
+
+    if not is_valid_object(actor) then
+        return false
+    end
+
+    local combat = safe_call(actor, "GetCombatStateComponent")
+
+    if not is_valid_object(combat) then
+        return false
+    end
+
+    bossCombat = combat
+    bossPostureBindingId = safe_call(
+        combat,
+        "BindOnPostureChanged",
+        function(_component, _previousPoise, currentPoise, maxPoise)
+            maxPoise = tonumber(maxPoise) or 0.0
+
+            if maxPoise <= 0.0 then
+                SetBossPostureRatio(0.0)
+                return
+            end
+
+            SetBossPostureRatio((maxPoise - (tonumber(currentPoise) or maxPoise)) / maxPoise)
+        end
+    )
+
+    if bossPostureBindingId == nil or tonumber(bossPostureBindingId) == 0 then
+        bossCombat = nil
+        bossPostureBindingId = nil
+        return false
+    end
+
+    SetBossPostureRatio(safe_call(combat, "GetPostureRatio") or 0.0)
     return true
 end
 
@@ -886,6 +1100,7 @@ function SetBossPostureRatio(ratio)
 
     set_width_ratio(BOSS_POSTURE_LEFT_MASK_ID, ratio)
     set_width_ratio(BOSS_POSTURE_RIGHT_MASK_ID, ratio)
+    set_boss_posture_visual_state(ratio)
 
     lastBossPostureRatio = ratio
 end
@@ -893,18 +1108,53 @@ end
 function SetBossHUDVisible(visible)
     visible = visible == true
 
-    if lastBossHudVisible ~= nil and lastBossHudVisible == visible then
-        return
-    end
-
-    set_element_visible(BOSS_PANEL_ID, visible)
-    set_element_visible(BOSS_POSTURE_PANEL_ID, visible)
-
     lastBossHudVisible = visible
+    set_element_visible(BOSS_PANEL_ID, visible and hudVisible)
+    set_element_visible(BOSS_POSTURE_PANEL_ID, visible and hudVisible)
 end
 
 function SetBossVisibility(visible)
     SetBossHUDVisible(visible)
+end
+
+function SetHUDVisible(visible)
+    local requestedVisible = visible == true
+
+    if requestedVisible and is_hud_force_hidden() then
+        requestedVisible = false
+    end
+
+    hudVisible = requestedVisible
+
+    if widget == nil then
+        return
+    end
+
+    if hudVisible then
+        if widget.IsInViewport == nil or not widget:IsInViewport() then
+            widget:AddToViewportZ(HUD_Z_ORDER)
+        end
+
+        apply_hud_visibility()
+        if refresh_hud_document_state ~= nil then
+            refresh_hud_document_state()
+        end
+        return
+    end
+
+    apply_hud_visibility()
+
+    if widget.RemoveFromParent ~= nil and (widget.IsInViewport == nil or widget:IsInViewport()) then
+        widget:RemoveFromParent()
+    end
+end
+
+function SetHUDVisibility(visible)
+    SetHUDVisible(visible)
+end
+
+function IsHUDVisible()
+    return hudVisible == true and not is_hud_force_hidden()
 end
 
 function SetPlayerTokenVisible(visible)
@@ -936,6 +1186,28 @@ function SetBossHUD(hpRatio, postureRatio)
 
     SetBossHpRatio(hpRatio)
     SetBossPostureRatio(postureRatio)
+end
+
+function BindBossActor(actor, visible)
+    unbind_boss_actor()
+
+    if not is_valid_object(actor) then
+        SetBossHUDVisible(false)
+        return false
+    end
+
+    bossActor = actor
+
+    local boundHealth = bind_boss_health_from_actor(actor)
+    local boundPosture = bind_boss_posture_from_actor(actor)
+
+    SetBossHUDVisible(visible ~= false)
+    return boundHealth or boundPosture
+end
+
+function ClearBossActor()
+    unbind_boss_actor()
+    SetBossHUDVisible(false)
 end
 
 function SetEnemyHealthBarVisible(index, visible)
@@ -1114,6 +1386,50 @@ function ClearEnemyHealthBarLockOnTarget()
     end
 end
 
+refresh_hud_document_state = function()
+    local hpRatio = lastHpRatio
+    local hpDelayRatio = playerHpDelayRatio
+    local bossHpRatio = lastBossHpRatio
+    local bossPostureRatio = lastBossPostureRatio
+    local playerPostureRatio = lastPlayerPostureRatio
+    local tokenVisible = lastTokenVisible
+    local bossVisible = lastBossHudVisible
+
+    lastHpRatio = nil
+    playerHpDelayRatio = nil
+    lastBossHpRatio = nil
+    lastBossPostureRatio = nil
+    lastPlayerPostureRatio = nil
+    playerPostureVisualState = nil
+    bossPostureVisualState = nil
+    lastTokenVisible = nil
+    lastBossHudVisible = nil
+    enemyBarStates = {}
+
+    if hpRatio ~= nil then
+        SetPlayerHpRatio(hpRatio)
+    end
+    if hpDelayRatio ~= nil then
+        playerHpDelayRatio = hpDelayRatio
+        set_width_ratio(PLAYER_HP_DELAY_MASK_ID, hpDelayRatio)
+    end
+    if bossHpRatio ~= nil then
+        SetBossHpRatio(bossHpRatio)
+    end
+    if bossPostureRatio ~= nil then
+        SetBossPostureRatio(bossPostureRatio)
+    end
+    if playerPostureRatio ~= nil then
+        SetPlayerPostureRatio(playerPostureRatio)
+    end
+    if tokenVisible ~= nil then
+        SetPlayerTokenVisible(tokenVisible)
+    end
+    if bossVisible ~= nil then
+        SetBossHUDVisible(bossVisible)
+    end
+end
+
 local function expose_hud_api()
     _G.HUD = _G.HUD or {}
 
@@ -1121,11 +1437,17 @@ local function expose_hud_api()
     _G.HUD.SetBossHpRatio = SetBossHpRatio
     _G.HUD.SetPlayerPostureRatio = SetPlayerPostureRatio
     _G.HUD.SetBossPostureRatio = SetBossPostureRatio
+    _G.HUD.SetHUDVisible = SetHUDVisible
+    _G.HUD.SetHUDVisibility = SetHUDVisibility
+    _G.HUD.SetVisible = SetHUDVisible
+    _G.HUD.IsHUDVisible = IsHUDVisible
     _G.HUD.SetBossHUDVisible = SetBossHUDVisible
     _G.HUD.SetBossVisibility = SetBossVisibility
     _G.HUD.SetPlayerTokenVisible = SetPlayerTokenVisible
     _G.HUD.SetPlayerHUD = SetPlayerHUD
     _G.HUD.SetBossHUD = SetBossHUD
+    _G.HUD.BindBossActor = BindBossActor
+    _G.HUD.ClearBossActor = ClearBossActor
     _G.HUD.SetEnemyHealthBar = SetEnemyHealthBar
     _G.HUD.SetEnemyHealthBarVisible = SetEnemyHealthBarVisible
     _G.HUD.SetEnemyHealthBarActorVisible = SetEnemyHealthBarActorVisible
@@ -1145,11 +1467,17 @@ local function clear_hud_api()
         _G.HUD.SetBossHpRatio = nil
         _G.HUD.SetPlayerPostureRatio = nil
         _G.HUD.SetBossPostureRatio = nil
+        _G.HUD.SetHUDVisible = nil
+        _G.HUD.SetHUDVisibility = nil
+        _G.HUD.SetVisible = nil
+        _G.HUD.IsHUDVisible = nil
         _G.HUD.SetBossHUDVisible = nil
         _G.HUD.SetBossVisibility = nil
         _G.HUD.SetPlayerTokenVisible = nil
         _G.HUD.SetPlayerHUD = nil
         _G.HUD.SetBossHUD = nil
+        _G.HUD.BindBossActor = nil
+        _G.HUD.ClearBossActor = nil
         _G.HUD.SetEnemyHealthBar = nil
         _G.HUD.SetEnemyHealthBarVisible = nil
         _G.HUD.SetEnemyHealthBarActorVisible = nil
@@ -1169,8 +1497,9 @@ function BeginPlay()
     end
 
     widget:SetWantsMouse(false)
-    widget:AddToViewportZ(0)
+    widget:AddToViewportZ(HUD_Z_ORDER)
     expose_hud_api()
+    SetHUDVisible(not is_hud_force_hidden())
     HideAllEnemyHealthBars()
     SetBossHUDVisible(false)
     enemyBarUpdateElapsed = ENEMY_BAR_UPDATE_INTERVAL
@@ -1188,6 +1517,7 @@ function EndPlay()
     unbind_player_health()
     unbind_player_posture()
     unbind_player_pawn_events()
+    unbind_boss_actor()
     clear_hud_api()
 
     if widget ~= nil then
@@ -1203,6 +1533,7 @@ function EndPlay()
     lastBossHudVisible = nil
     lastPlayerPostureRatio = nil
     playerPostureVisualState = "hidden"
+    bossPostureVisualState = "hidden"
     lastTokenVisible = nil
     enemyBarStates = {}
     enemyBarUpdateElapsed = 0.0
@@ -1210,6 +1541,7 @@ function EndPlay()
     cachedEnemyActors = {}
     cachedEnemyIds = {}
     hudTimeSeconds = 0.0
+    hudVisible = true
     clear_enemy_slot_mapping()
     clear_enemy_visibility_state()
 end
@@ -1217,10 +1549,20 @@ end
 function Tick(dt)
     dt = tonumber(dt) or 0.0
     hudTimeSeconds = hudTimeSeconds + dt
+
+    if is_hud_force_hidden() and hudVisible then
+        SetHUDVisible(false)
+    end
+
+    if not hudVisible then
+        return
+    end
+
     enemyBarUpdateElapsed = enemyBarUpdateElapsed + dt
     enemyActorRefreshElapsed = enemyActorRefreshElapsed + dt
     update_hp_damage_trails(dt)
     update_player_posture_effect()
+    update_boss_posture_effect()
 
     if enemyBarUpdateElapsed < ENEMY_BAR_UPDATE_INTERVAL then
         return
