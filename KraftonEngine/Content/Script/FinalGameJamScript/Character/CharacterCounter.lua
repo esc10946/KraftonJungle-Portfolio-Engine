@@ -1,4 +1,5 @@
 local Context = require("FinalGameJamScript/Character/CharacterContext")
+local Equipment = require("FinalGameJamScript/Character/CharacterEquipment")
 local Locomotion = require("FinalGameJamScript/Character/CharacterLocomotion")
 local State = require("FinalGameJamScript/Character/CharacterState")
 
@@ -311,6 +312,7 @@ function Counter.Play(ctx, target)
     begin_pawn_overlap(ctx)
     start_reposition_behind_target(ctx, target)
     face_target(ctx, target)
+    Equipment.ActivateTrail(ctx)
     anim:PlayMontage(ctx.cache.counterMontage, ctx.config.COUNTER_SECTION)
 end
 

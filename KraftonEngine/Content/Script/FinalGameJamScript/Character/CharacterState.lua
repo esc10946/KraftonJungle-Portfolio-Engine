@@ -1,6 +1,10 @@
+local Equipment = require("FinalGameJamScript/Character/CharacterEquipment")
+local Context = require("FinalGameJamScript/Character/CharacterContext")
+
 local State = {}
 
 function State.ResetAttack(ctx)
+    Equipment.DeactivateTrail(ctx)
     ctx.state.attackPlaying = false
     ctx.state.currentAttackIndex = 0
     ctx.state.canChainAttack = false
@@ -14,12 +18,19 @@ function State.ResetGuard(ctx)
 end
 
 function State.ResetCounter(ctx)
+    Equipment.DeactivateTrail(ctx)
     ctx.state.counterPlaying = false
     ctx.state.canCancelCounter = false
     ctx.state.counterMove = nil
 end
 
 function State.ResetHit(ctx)
+    local health = Context.GetHealthComponent(ctx)
+    if health ~= nil and health.SetInvincible ~= nil then
+        --Hit invincible ends when hit state ends--
+        health:SetInvincible(false)
+    end
+
     ctx.state.hitPlaying = false
     ctx.state.currentHitMontage = nil
     ctx.state.canCancelHit = false

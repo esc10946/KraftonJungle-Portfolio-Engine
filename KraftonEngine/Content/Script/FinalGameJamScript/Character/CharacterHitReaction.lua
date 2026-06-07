@@ -101,6 +101,11 @@ function HitReaction.Play(ctx, damageSpec)
     ctx.state.hitPlaying = true
     ctx.state.currentHitMontage = montage
     ctx.state.canCancelHit = false
+    local health = Context.GetHealthComponent(ctx)
+    if health ~= nil and health.SetInvincible ~= nil then
+        --Ignore extra hits while hit montage is playing--
+        health:SetInvincible(true)
+    end
     Locomotion.Lock(ctx)
     --Clear old EnableAttack flag--
     Context.ConsumeEnableAttack(ctx)

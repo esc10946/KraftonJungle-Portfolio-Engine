@@ -1,4 +1,5 @@
 local Context = require("FinalGameJamScript/Character/CharacterContext")
+local Equipment = require("FinalGameJamScript/Character/CharacterEquipment")
 local Locomotion = require("FinalGameJamScript/Character/CharacterLocomotion")
 local State = require("FinalGameJamScript/Character/CharacterState")
 local HitReaction = require("FinalGameJamScript/Character/CharacterHitReaction")
@@ -37,6 +38,7 @@ function Combat.PlayAttack(ctx, index)
     Locomotion.Lock(ctx)
     --Clear old EnableAttack flag--
     Context.ConsumeEnableAttack(ctx)
+    Equipment.ActivateTrail(ctx)
     anim:PlayMontage(montage, nil, ctx.config.ATTACK_PLAY_RATE)
 end
 

@@ -55,6 +55,8 @@ public:
 	UFUNCTION(Pure, Category="Scene|Socket")
 	virtual bool HasSocket(const FName& SocketName) const;
 	UFUNCTION(Pure, Category="Scene|Socket")
+	virtual FMatrix GetSocketWorldMatrix(const FName& SocketName) const;
+	UFUNCTION(Pure, Category="Scene|Socket")
 	virtual FTransform GetSocketTransform(const FName& SocketName) const;
 	UFUNCTION(Pure, Category="Scene|Socket")
 	FVector GetSocketWorldLocation(const FName& SocketName) const;

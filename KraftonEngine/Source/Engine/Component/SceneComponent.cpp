@@ -67,7 +67,7 @@ static FQuat GetWorldRotationNoScale(const USceneComponent* Component)
 	const FName AttachSocketName = Component->GetAttachSocketName();
 	if (Parent && IsSocketAttachmentNameSet(AttachSocketName) && Parent->HasSocket(AttachSocketName))
 	{
-		const FQuat SocketWorldQuat = GetRotationTranslationWithoutScale(Parent->GetSocketTransform(AttachSocketName).ToMatrix()).ToQuat().GetNormalized();
+		const FQuat SocketWorldQuat = GetRotationTranslationWithoutScale(Parent->GetSocketWorldMatrix(AttachSocketName)).ToQuat().GetNormalized();
 		return (SocketWorldQuat * Component->GetRelativeQuat()).GetNormalized();
 	}
 
@@ -359,7 +359,7 @@ void USceneComponent::UpdateWorldMatrix() const
 
 		if (bParentHasSocket)
 		{
-			const FMatrix SocketMatrix = ParentComponent->GetSocketTransform(AttachSocketName).ToMatrix();
+			const FMatrix SocketMatrix = ParentComponent->GetSocketWorldMatrix(AttachSocketName);
 			CachedWorldMatrix = bAbsoluteScale
 				? RelativeMatrix * GetRotationTranslationWithoutScale(SocketMatrix)
 				: RelativeMatrix * SocketMatrix;
@@ -415,7 +415,12 @@ bool USceneComponent::HasSocket(const FName& /*SocketName*/) const
 
 FTransform USceneComponent::GetSocketTransform(const FName& /*SocketName*/) const
 {
-	return FTransform(GetWorldMatrix());
+	return FTransform(GetSocketWorldMatrix(FName::None));
+}
+
+FMatrix USceneComponent::GetSocketWorldMatrix(const FName& /*SocketName*/) const
+{
+	return GetWorldMatrix();
 }
 
 FVector USceneComponent::GetSocketWorldLocation(const FName& SocketName) const
@@ -641,7 +646,7 @@ void USceneComponent::SetWorldRotation(const FQuat& NewWorldRotation)
 		FQuat ParentWorldQuat = GetWorldRotationNoScale(Parent);
 		if (IsSocketAttachmentNameSet(AttachSocketName) && Parent->HasSocket(AttachSocketName))
 		{
-			ParentWorldQuat = GetRotationTranslationWithoutScale(Parent->GetSocketTransform(AttachSocketName).ToMatrix()).ToQuat().GetNormalized();
+			ParentWorldQuat = GetRotationTranslationWithoutScale(Parent->GetSocketWorldMatrix(AttachSocketName)).ToQuat().GetNormalized();
 		}
 		SetRelativeRotation((ParentWorldQuat.Inverse() * WorldQuat).GetNormalized());
 	}

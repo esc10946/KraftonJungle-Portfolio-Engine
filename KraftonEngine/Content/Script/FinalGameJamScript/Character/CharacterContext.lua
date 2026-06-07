@@ -75,6 +75,7 @@ function Context.Create(owner)
             animInstance = nil,
             movement = nil,
             actionComponent = nil,
+            healthComponent = nil,
             attackMontages = {},
             hitMontages = {},
             defenseIdleMontage = nil,
@@ -86,7 +87,11 @@ function Context.Create(owner)
         equipment = {
             RweaponComponent = nil,
             LweaponComponent = nil,
+            RtrailParticle = nil,
+            LtrailParticle = nil,
+            trailActive = false,
             weaponBindingWarned = false,
+            trailBindingWarned = false,
         },
     }
 end
@@ -146,6 +151,20 @@ function Context.GetActionComponent(ctx)
 
     ctx.cache.actionComponent = owner:GetActionComponent()
     return ctx.cache.actionComponent
+end
+
+function Context.GetHealthComponent(ctx)
+    if ctx.cache.healthComponent ~= nil then
+        return ctx.cache.healthComponent
+    end
+
+    local owner = ctx.obj
+    if owner == nil or owner.GetHealthComponent == nil then
+        return nil
+    end
+
+    ctx.cache.healthComponent = owner:GetHealthComponent()
+    return ctx.cache.healthComponent
 end
 
 function Context.StopCurrentMontage(ctx)

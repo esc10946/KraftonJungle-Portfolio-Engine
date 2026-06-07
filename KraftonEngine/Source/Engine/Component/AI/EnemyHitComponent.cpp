@@ -12,6 +12,14 @@
 
 #include <cmath>
 
+namespace
+{
+	float SanitizeMontagePlayRate(float PlayRate)
+	{
+		return PlayRate > 0.0f ? PlayRate : 1.0f;
+	}
+}
+
 void UEnemyHitComponent::BeginPlay()
 {
 	UActorComponent::BeginPlay();
@@ -114,7 +122,8 @@ bool UEnemyHitComponent::PlayHitMontage(AActor* DamageCauser, AActor* Instigator
 	return PlayDirectionalMontage(
 		HitMontages,
 		ResolveHitDirection(DamageCauser, InstigatorActor),
-		bStopCurrentMontageBeforeHit
+		bStopCurrentMontageBeforeHit,
+		HitMontagePlayRate
 	);
 }
 
@@ -123,7 +132,8 @@ bool UEnemyHitComponent::PlayDeathMontage(AActor* DamageCauser, AActor* Instigat
 	return PlayDirectionalMontage(
 		DeathMontages,
 		ResolveHitDirection(DamageCauser, InstigatorActor),
-		bStopCurrentMontageBeforeDeath
+		bStopCurrentMontageBeforeDeath,
+		DeathMontagePlayRate
 	);
 }
 
@@ -169,7 +179,7 @@ void UEnemyHitComponent::HandleDamaged(
 			{
 				AnimInstance->StopMontage(0.0f);
 			}
-			AnimInstance->PlayMontage(GuardHitMontage);
+			AnimInstance->PlayMontage(GuardHitMontage, FName::None, SanitizeMontagePlayRate(HitMontagePlayRate));
 			return;
 		}
 	}
@@ -230,7 +240,8 @@ UAnimMontage* UEnemyHitComponent::SelectMontage(const FEnemyDirectionalMontages&
 bool UEnemyHitComponent::PlayDirectionalMontage(
 	const FEnemyDirectionalMontages& Montages,
 	EEnemyHitDirection Direction,
-	bool bStopCurrentMontage)
+	bool bStopCurrentMontage,
+	float PlayRate)
 {
 	UAnimMontage* Montage = SelectMontage(Montages, Direction);
 	if (!Montage)
@@ -250,6 +261,6 @@ bool UEnemyHitComponent::PlayDirectionalMontage(
 	{
 		AnimInstance->StopMontage(0.0f);
 	}
-	AnimInstance->PlayMontage(Montage);
+	AnimInstance->PlayMontage(Montage, FName::None, SanitizeMontagePlayRate(PlayRate));
 	return true;
 }

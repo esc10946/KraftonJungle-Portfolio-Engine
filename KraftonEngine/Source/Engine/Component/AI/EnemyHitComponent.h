@@ -66,6 +66,12 @@ public:
 	UPROPERTY(Edit, Save, Category="EnemyAI|Hit", DisplayName="Death Montages")
 	FEnemyDirectionalMontages DeathMontages;
 
+	UPROPERTY(Edit, Save, Category="EnemyAI|Hit", DisplayName="Hit Montage Play Rate", Min=0.01f, Max=10.0f, Speed=0.05f)
+	float HitMontagePlayRate = 1.0f;
+
+	UPROPERTY(Edit, Save, Category="EnemyAI|Hit", DisplayName="Death Montage Play Rate", Min=0.01f, Max=10.0f, Speed=0.05f)
+	float DeathMontagePlayRate = 1.0f;
+
 	// 가드(block) 중 피격 시 재생할 리액션(막기 흔들림). null 이면 방향별 HitMontages 로 폴백.
 	UPROPERTY(Edit, Save, Category="EnemyAI|Hit", DisplayName="Guard Hit Montage", Type=ObjectRef, AllowedClass=UAnimMontage)
 	UAnimMontage* GuardHitMontage = nullptr;
@@ -96,7 +102,7 @@ private:
 	void HandleDeath(UHealthComponent* Component, AActor* DamageCauser, AActor* InstigatorActor);
 	void RestartAttackCooldowns();
 	UAnimMontage* SelectMontage(const FEnemyDirectionalMontages& Montages, EEnemyHitDirection Direction) const;
-	bool PlayDirectionalMontage(const FEnemyDirectionalMontages& Montages, EEnemyHitDirection Direction, bool bStopCurrentMontage);
+	bool PlayDirectionalMontage(const FEnemyDirectionalMontages& Montages, EEnemyHitDirection Direction, bool bStopCurrentMontage, float PlayRate);
 
 	TWeakObjectPtr<UHealthComponent> BoundHealthComponent = nullptr;
 	FDelegateHandle DamagedHandle;
