@@ -150,7 +150,6 @@ function Guard.PlayDefenseIdle(ctx)
 
     Context.StopCurrentMontage(ctx)
     State.ResetAttack(ctx)
-    Context.FaceCameraForward(ctx)
 
     ctx.state.defensePlaying = true
     ctx.state.defenseIdlePlaying = true
@@ -179,7 +178,7 @@ function Guard.PlaySuccessParry(ctx)
     --Clear old EnableAttack flag--
     Context.ConsumeEnableAttack(ctx)
     play_success_parry_particles(ctx)
-    anim:PlayMontage(ctx.cache.successParryMontage)
+    anim:PlayMontage(ctx.cache.successParryMontage, ctx.config.SUCCESS_PARRY_SECTION)
 end
 
 function Guard.StopSuccessParryForCancel(ctx)

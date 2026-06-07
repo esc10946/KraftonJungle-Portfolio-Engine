@@ -20,6 +20,7 @@
 #include "Object/Object.h"
 
 #include <cfloat>
+#include <cmath>
 
 namespace
 {
@@ -142,6 +143,26 @@ namespace
 		return IsValid(Mesh) ? Mesh->GetAnimInstance() : nullptr;
 	}
 
+	void FaceDefenderTowardAttacker(AActor* Defender, AActor* Attacker)
+	{
+		if (!IsValid(Defender) || !IsValid(Attacker))
+		{
+			return;
+		}
+
+		FVector Direction = Attacker->GetActorLocation() - Defender->GetActorLocation();
+		Direction.Z = 0.0f;
+		if (Direction.IsNearlyZero())
+		{
+			return;
+		}
+
+		constexpr float RadiansToDegrees = 57.29577951308232f;
+		const float Yaw = std::atan2(Direction.Y, Direction.X) * RadiansToDegrees;
+		const FRotator CurrentRotation = Defender->GetActorRotation();
+		Defender->SetActorRotation(FRotator(CurrentRotation.Pitch, Yaw, CurrentRotation.Roll));
+	}
+
 	bool IsParryTarget(AActor* Target)
 	{
 		return UAnimNotifyState_ParryWindow::IsParryWindowActive(GetActorAnimInstance(Target));
@@ -155,6 +176,7 @@ namespace
 			return false;
 		}
 
+		FaceDefenderTowardAttacker(Target, Attacker);
 		UAnimNotifyState_ParryWindow::ReportSuccessfulParry(TargetAnimInstance);
 		if (bRagdollAttacker)
 		{

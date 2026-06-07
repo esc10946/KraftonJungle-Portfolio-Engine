@@ -19,7 +19,8 @@ Config.ATTACK_MONTAGE_PATHS = {
 }
 
 Config.DEFENSE_IDLE_MONTAGE_PATH = "Content/Montages/Twin_Defense_Montage.uasset"
-Config.SUCCESS_PARRY_MONTAGE_PATH = "Content/Montages/Twin_SuccessParry_Montage.uasset"
+Config.SUCCESS_PARRY_MONTAGE_PATH = "Content/Montages/Twin_Cross_Montage.uasset"
+Config.SUCCESS_PARRY_SECTION = "Cross"
 Config.PARRY_PARTICLE_PATH = "Content/Data/FGJ_Character/Particle/ParryParticle.uasset"
 Config.PARRY_PARTICLE_DURATION = 0.5
 Config.RPARRY_PARTICLE_SOCKET = "RH_Particle"
