@@ -11,7 +11,7 @@
     <div id="enemy-bars">
         <div id="enemy-bar-0" class="enemy-healthbar">
             <div class="enemy-health-bg">
-                <div id="enemy-hp-delay-mask-0" class="enemy-hp-delay-mask"></div>
+                <div id="enemy-hp-delay-mask-0" class="enemy-hp-delay-mask"><div class="enemy-hp-delay-fill"></div></div>
                 <div id="enemy-hp-mask-0" class="enemy-hp-mask">
                     <div class="enemy-hp-fill"></div>
                 </div>
@@ -24,7 +24,7 @@
         </div>
         <div id="enemy-bar-1" class="enemy-healthbar">
             <div class="enemy-health-bg">
-                <div id="enemy-hp-delay-mask-1" class="enemy-hp-delay-mask"></div>
+                <div id="enemy-hp-delay-mask-1" class="enemy-hp-delay-mask"><div class="enemy-hp-delay-fill"></div></div>
                 <div id="enemy-hp-mask-1" class="enemy-hp-mask">
                     <div class="enemy-hp-fill"></div>
                 </div>
@@ -37,7 +37,7 @@
         </div>
         <div id="enemy-bar-2" class="enemy-healthbar">
             <div class="enemy-health-bg">
-                <div id="enemy-hp-delay-mask-2" class="enemy-hp-delay-mask"></div>
+                <div id="enemy-hp-delay-mask-2" class="enemy-hp-delay-mask"><div class="enemy-hp-delay-fill"></div></div>
                 <div id="enemy-hp-mask-2" class="enemy-hp-mask">
                     <div class="enemy-hp-fill"></div>
                 </div>
@@ -50,7 +50,7 @@
         </div>
         <div id="enemy-bar-3" class="enemy-healthbar">
             <div class="enemy-health-bg">
-                <div id="enemy-hp-delay-mask-3" class="enemy-hp-delay-mask"></div>
+                <div id="enemy-hp-delay-mask-3" class="enemy-hp-delay-mask"><div class="enemy-hp-delay-fill"></div></div>
                 <div id="enemy-hp-mask-3" class="enemy-hp-mask">
                     <div class="enemy-hp-fill"></div>
                 </div>
@@ -63,7 +63,7 @@
         </div>
         <div id="enemy-bar-4" class="enemy-healthbar">
             <div class="enemy-health-bg">
-                <div id="enemy-hp-delay-mask-4" class="enemy-hp-delay-mask"></div>
+                <div id="enemy-hp-delay-mask-4" class="enemy-hp-delay-mask"><div class="enemy-hp-delay-fill"></div></div>
                 <div id="enemy-hp-mask-4" class="enemy-hp-mask">
                     <div class="enemy-hp-fill"></div>
                 </div>
@@ -76,7 +76,7 @@
         </div>
         <div id="enemy-bar-5" class="enemy-healthbar">
             <div class="enemy-health-bg">
-                <div id="enemy-hp-delay-mask-5" class="enemy-hp-delay-mask"></div>
+                <div id="enemy-hp-delay-mask-5" class="enemy-hp-delay-mask"><div class="enemy-hp-delay-fill"></div></div>
                 <div id="enemy-hp-mask-5" class="enemy-hp-mask">
                     <div class="enemy-hp-fill"></div>
                 </div>
@@ -89,7 +89,7 @@
         </div>
         <div id="enemy-bar-6" class="enemy-healthbar">
             <div class="enemy-health-bg">
-                <div id="enemy-hp-delay-mask-6" class="enemy-hp-delay-mask"></div>
+                <div id="enemy-hp-delay-mask-6" class="enemy-hp-delay-mask"><div class="enemy-hp-delay-fill"></div></div>
                 <div id="enemy-hp-mask-6" class="enemy-hp-mask">
                     <div class="enemy-hp-fill"></div>
                 </div>
@@ -102,7 +102,7 @@
         </div>
         <div id="enemy-bar-7" class="enemy-healthbar">
             <div class="enemy-health-bg">
-                <div id="enemy-hp-delay-mask-7" class="enemy-hp-delay-mask"></div>
+                <div id="enemy-hp-delay-mask-7" class="enemy-hp-delay-mask"><div class="enemy-hp-delay-fill"></div></div>
                 <div id="enemy-hp-mask-7" class="enemy-hp-mask">
                     <div class="enemy-hp-fill"></div>
                 </div>
@@ -115,7 +115,7 @@
         </div>
         <div id="enemy-bar-8" class="enemy-healthbar">
             <div class="enemy-health-bg">
-                <div id="enemy-hp-delay-mask-8" class="enemy-hp-delay-mask"></div>
+                <div id="enemy-hp-delay-mask-8" class="enemy-hp-delay-mask"><div class="enemy-hp-delay-fill"></div></div>
                 <div id="enemy-hp-mask-8" class="enemy-hp-mask">
                     <div class="enemy-hp-fill"></div>
                 </div>
@@ -128,7 +128,7 @@
         </div>
         <div id="enemy-bar-9" class="enemy-healthbar">
             <div class="enemy-health-bg">
-                <div id="enemy-hp-delay-mask-9" class="enemy-hp-delay-mask"></div>
+                <div id="enemy-hp-delay-mask-9" class="enemy-hp-delay-mask"><div class="enemy-hp-delay-fill"></div></div>
                 <div id="enemy-hp-mask-9" class="enemy-hp-mask">
                     <div class="enemy-hp-fill"></div>
                 </div>
@@ -141,7 +141,7 @@
         </div>
         <div id="enemy-bar-10" class="enemy-healthbar">
             <div class="enemy-health-bg">
-                <div id="enemy-hp-delay-mask-10" class="enemy-hp-delay-mask"></div>
+                <div id="enemy-hp-delay-mask-10" class="enemy-hp-delay-mask"><div class="enemy-hp-delay-fill"></div></div>
                 <div id="enemy-hp-mask-10" class="enemy-hp-mask">
                     <div class="enemy-hp-fill"></div>
                 </div>
@@ -154,7 +154,7 @@
         </div>
         <div id="enemy-bar-11" class="enemy-healthbar">
             <div class="enemy-health-bg">
-                <div id="enemy-hp-delay-mask-11" class="enemy-hp-delay-mask"></div>
+                <div id="enemy-hp-delay-mask-11" class="enemy-hp-delay-mask"><div class="enemy-hp-delay-fill"></div></div>
                 <div id="enemy-hp-mask-11" class="enemy-hp-mask">
                     <div class="enemy-hp-fill"></div>
                 </div>
@@ -167,7 +167,7 @@
         </div>
         <div id="enemy-bar-12" class="enemy-healthbar">
             <div class="enemy-health-bg">
-                <div id="enemy-hp-delay-mask-12" class="enemy-hp-delay-mask"></div>
+                <div id="enemy-hp-delay-mask-12" class="enemy-hp-delay-mask"><div class="enemy-hp-delay-fill"></div></div>
                 <div id="enemy-hp-mask-12" class="enemy-hp-mask">
                     <div class="enemy-hp-fill"></div>
                 </div>
@@ -180,7 +180,7 @@
         </div>
         <div id="enemy-bar-13" class="enemy-healthbar">
             <div class="enemy-health-bg">
-                <div id="enemy-hp-delay-mask-13" class="enemy-hp-delay-mask"></div>
+                <div id="enemy-hp-delay-mask-13" class="enemy-hp-delay-mask"><div class="enemy-hp-delay-fill"></div></div>
                 <div id="enemy-hp-mask-13" class="enemy-hp-mask">
                     <div class="enemy-hp-fill"></div>
                 </div>
@@ -193,7 +193,7 @@
         </div>
         <div id="enemy-bar-14" class="enemy-healthbar">
             <div class="enemy-health-bg">
-                <div id="enemy-hp-delay-mask-14" class="enemy-hp-delay-mask"></div>
+                <div id="enemy-hp-delay-mask-14" class="enemy-hp-delay-mask"><div class="enemy-hp-delay-fill"></div></div>
                 <div id="enemy-hp-mask-14" class="enemy-hp-mask">
                     <div class="enemy-hp-fill"></div>
                 </div>
@@ -206,7 +206,7 @@
         </div>
         <div id="enemy-bar-15" class="enemy-healthbar">
             <div class="enemy-health-bg">
-                <div id="enemy-hp-delay-mask-15" class="enemy-hp-delay-mask"></div>
+                <div id="enemy-hp-delay-mask-15" class="enemy-hp-delay-mask"><div class="enemy-hp-delay-fill"></div></div>
                 <div id="enemy-hp-mask-15" class="enemy-hp-mask">
                     <div class="enemy-hp-fill"></div>
                 </div>
@@ -267,15 +267,21 @@
         <div id="player-posture-left-clip">
             <div id="player-posture-left-mask">
                 <div id="player-posture-left-fill"></div>
+                <div id="player-posture-left-warning-fill"></div>
+                <div id="player-posture-left-critical-fill"></div>
             </div>
         </div>
         <div id="player-posture-right-clip">
             <div id="player-posture-right-mask">
                 <div id="player-posture-right-fill"></div>
+                <div id="player-posture-right-warning-fill"></div>
+                <div id="player-posture-right-critical-fill"></div>
             </div>
         </div>
 
         <!-- 중앙 마크 -->
+        <div id="player-posture-warning-glow"></div>
+        <div id="player-posture-critical-glow"></div>
         <div id="player-posture-center-mark"></div>
         <div id="player-posture-marker-left" class="posture-bg-marker"></div>
         <div id="player-posture-marker-right" class="posture-bg-marker"></div>

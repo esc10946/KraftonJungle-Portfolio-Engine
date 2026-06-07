@@ -43,14 +43,11 @@
 /* Left icon */
 #player-icon-left {
     left: 50px;
-    decorator: image("../Texture/HUD/SB_FE/Respawn_On_Icon.png" contain);
-
     position: absolute;}
 
 /* Right icon */
 #player-icon-right {
     left: 82px;
-    decorator: image("../Texture/HUD/SB_FE/Respawn_On_Icon.png" contain);
 }
 
 /* ============================================================
@@ -107,8 +104,7 @@
     top: 0px;
     width: 197px;
     height: 100%;
-    image-color: rgb(155, 155, 155);
-    decorator: image("../Texture/HUD/SB_FE/HealthBar.png" cover);
+    decorator: image("../Texture/HUD/SB_FE/HealthBar_Delay.png" cover);
 }
 
 /* HP fill image
@@ -121,7 +117,7 @@
     top: 0px;
     width: 197px;
     height: 100%;
-    decorator: image("../Texture/HUD/SB_FE/HealthBar.png" cover);
+    decorator: image("../Texture/HUD/SB_FE/HealthBar_Bright.png" cover);
 }
 
 /* HP bar border
@@ -180,6 +176,8 @@
     width: 460px;
     height: 34px;
     margin-left: -230px;
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
 }
 
 /* 왼쪽 BG - center 기준 왼쪽 */
@@ -238,15 +236,29 @@
     height: 14px;
 }
 
-#player-posture-left-fill {
+#player-posture-left-fill,
+#player-posture-left-warning-fill,
+#player-posture-left-critical-fill {
     position: absolute;
     left: 0px;
     top: 0px;
 
     width: 227px;
     height: 14px;
+}
 
+#player-posture-left-fill {
     decorator: image("../Texture/HUD/SB_FE/PostureBar_Left.png" fill);
+}
+
+#player-posture-left-warning-fill {
+    opacity: 0;
+    decorator: image("../Texture/HUD/SB_FE/PostureBar_Left_Warning.png" fill);
+}
+
+#player-posture-left-critical-fill {
+    opacity: 0;
+    decorator: image("../Texture/HUD/SB_FE/PostureBar_Left_Critical.png" fill);
 }
 
 /* 오른쪽 바 마스크 - 런타임에서 width 조절: 0px ~ 227px */
@@ -270,13 +282,46 @@
     height: 14px;
 }
 
-#player-posture-right-fill {
+#player-posture-right-fill,
+#player-posture-right-warning-fill,
+#player-posture-right-critical-fill {
     position: absolute;
     right: 0px;
     top: 0px;
     width: 227px;
     height: 14px;
+}
+
+#player-posture-right-fill {
     decorator: image("../Texture/HUD/SB_FE/PostureBar_Right.png" fill);
+}
+
+#player-posture-right-warning-fill {
+    opacity: 0;
+    decorator: image("../Texture/HUD/SB_FE/PostureBar_Right_Warning.png" fill);
+}
+
+#player-posture-right-critical-fill {
+    opacity: 0;
+    decorator: image("../Texture/HUD/SB_FE/PostureBar_Right_Critical.png" fill);
+}
+
+#player-posture-warning-glow,
+#player-posture-critical-glow {
+    position: absolute;
+    left: -150px;
+    top: -15px;
+    width: 760px;
+    height: 64px;
+    opacity: 0;
+}
+
+#player-posture-warning-glow {
+    decorator: image("../Texture/HUD/SB_FE/Normal.png" fill);
+}
+
+#player-posture-critical-glow {
+    decorator: image("../Texture/HUD/SB_FE/Critical.png" fill);
 }
 
 /* 중앙 마크 */

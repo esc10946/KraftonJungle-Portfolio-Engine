@@ -9,6 +9,15 @@ local BOSS_PANEL_ID = "boss-panel"
 local BOSS_POSTURE_PANEL_ID = "boss-posture-panel"
 local PLAYER_POSTURE_LEFT_MASK_ID = "player-posture-left-mask"
 local PLAYER_POSTURE_RIGHT_MASK_ID = "player-posture-right-mask"
+local PLAYER_POSTURE_PANEL_ID = "player-posture-panel"
+local PLAYER_POSTURE_LEFT_FILL_ID = "player-posture-left-fill"
+local PLAYER_POSTURE_RIGHT_FILL_ID = "player-posture-right-fill"
+local PLAYER_POSTURE_LEFT_WARNING_FILL_ID = "player-posture-left-warning-fill"
+local PLAYER_POSTURE_RIGHT_WARNING_FILL_ID = "player-posture-right-warning-fill"
+local PLAYER_POSTURE_LEFT_CRITICAL_FILL_ID = "player-posture-left-critical-fill"
+local PLAYER_POSTURE_RIGHT_CRITICAL_FILL_ID = "player-posture-right-critical-fill"
+local PLAYER_POSTURE_WARNING_GLOW_ID = "player-posture-warning-glow"
+local PLAYER_POSTURE_CRITICAL_GLOW_ID = "player-posture-critical-glow"
 
 local PLAYER_TOKEN_ID = "player-icon-right"
 
@@ -28,6 +37,11 @@ local ENEMY_BAR_UPDATE_INTERVAL = 1.0 / 60.0
 local ENEMY_BAR_CHANGE_REVEAL_SECONDS = 3.0
 local ENEMY_BAR_COMBAT_VISIBILITY_GRACE_SECONDS = 0.5
 local ENEMY_BAR_RATIO_CHANGE_EPSILON = 0.0001
+local POSTURE_VISIBILITY_EPSILON = 0.0001
+local POSTURE_WARNING_THRESHOLD = 0.65
+local POSTURE_CRITICAL_THRESHOLD = 0.9
+local POSTURE_WARNING_PULSE_SPEED = 4.0
+local POSTURE_CRITICAL_PULSE_SPEED = 8.0
 local HP_DAMAGE_TRAIL_HOLD_SECONDS = 0.5
 local HP_DAMAGE_TRAIL_SHRINK_PER_SECOND = 0.5
 local ENEMY_COMBAT_VISIBLE_STATES = {
@@ -54,6 +68,7 @@ local lastBossHpRatio = nil
 local lastBossPostureRatio = nil
 local lastBossHudVisible = nil
 local lastPlayerPostureRatio = nil
+local playerPostureVisualState = "hidden"
 local lastTokenVisible = nil
 local enemyBarStates = {}
 local enemySlotById = {}
@@ -77,8 +92,8 @@ local function clamp01(value)
     return value
 end
 
-local function posture_fill_ratio(poiseRatio)
-    return 1.0 - clamp01(poiseRatio)
+local function posture_fill_ratio(postureRatio)
+    return clamp01(postureRatio)
 end
 
 local function set_element_visible(element_id, visible)
@@ -96,6 +111,61 @@ end
 local function set_width_ratio(element_id, ratio)
     local width = string.format("%.1f%%", clamp01(ratio) * 100.0)
     widget:SetProperty(element_id, "width", width)
+end
+
+local function set_element_opacity(elementId, opacity)
+    widget:SetProperty(elementId, "opacity", string.format("%.3f", clamp01(opacity)))
+end
+
+local function set_player_posture_visual_state(ratio)
+    local state = "normal"
+
+    if ratio <= POSTURE_VISIBILITY_EPSILON then
+        state = "hidden"
+    elseif ratio >= POSTURE_CRITICAL_THRESHOLD then
+        state = "critical"
+    elseif ratio >= POSTURE_WARNING_THRESHOLD then
+        state = "warning"
+    end
+
+    if playerPostureVisualState == state then
+        return
+    end
+
+    playerPostureVisualState = state
+
+    local normalOpacity = state == "normal" and 1.0 or 0.0
+    local warningOpacity = state == "warning" and 1.0 or 0.0
+    local criticalOpacity = state == "critical" and 1.0 or 0.0
+
+    set_element_opacity(PLAYER_POSTURE_LEFT_FILL_ID, normalOpacity)
+    set_element_opacity(PLAYER_POSTURE_RIGHT_FILL_ID, normalOpacity)
+    set_element_opacity(PLAYER_POSTURE_LEFT_WARNING_FILL_ID, warningOpacity)
+    set_element_opacity(PLAYER_POSTURE_RIGHT_WARNING_FILL_ID, warningOpacity)
+    set_element_opacity(PLAYER_POSTURE_LEFT_CRITICAL_FILL_ID, criticalOpacity)
+    set_element_opacity(PLAYER_POSTURE_RIGHT_CRITICAL_FILL_ID, criticalOpacity)
+    set_element_opacity(PLAYER_POSTURE_WARNING_GLOW_ID, state == "warning" and 0.45 or 0.0)
+    set_element_opacity(PLAYER_POSTURE_CRITICAL_GLOW_ID, state == "critical" and 0.65 or 0.0)
+end
+
+local function update_player_posture_effect()
+    if widget == nil then
+        return
+    end
+
+    if playerPostureVisualState == "warning" then
+        local pulse = 0.5 + 0.5 * math.sin(hudTimeSeconds * POSTURE_WARNING_PULSE_SPEED)
+        local fillOpacity = 0.78 + 0.22 * pulse
+        set_element_opacity(PLAYER_POSTURE_LEFT_WARNING_FILL_ID, fillOpacity)
+        set_element_opacity(PLAYER_POSTURE_RIGHT_WARNING_FILL_ID, fillOpacity)
+        set_element_opacity(PLAYER_POSTURE_WARNING_GLOW_ID, 0.28 + 0.32 * pulse)
+    elseif playerPostureVisualState == "critical" then
+        local pulse = 0.5 + 0.5 * math.sin(hudTimeSeconds * POSTURE_CRITICAL_PULSE_SPEED)
+        local fillOpacity = 0.62 + 0.38 * pulse
+        set_element_opacity(PLAYER_POSTURE_LEFT_CRITICAL_FILL_ID, fillOpacity)
+        set_element_opacity(PLAYER_POSTURE_RIGHT_CRITICAL_FILL_ID, fillOpacity)
+        set_element_opacity(PLAYER_POSTURE_CRITICAL_GLOW_ID, 0.45 + 0.5 * pulse)
+    end
 end
 
 local function format_px(value)
@@ -468,7 +538,7 @@ local function update_enemy_visibility_ratios(enemyId, hpRatio, postureRatio)
         end
     end
 
-    if postureRatio < 1.0 - ENEMY_BAR_RATIO_CHANGE_EPSILON then
+    if postureRatio > ENEMY_BAR_RATIO_CHANGE_EPSILON then
         state.revealUntil = math.max(state.revealUntil or 0.0, hudTimeSeconds + ENEMY_BAR_CHANGE_REVEAL_SECONDS)
     end
 
@@ -752,6 +822,12 @@ function SetPlayerPostureRatio(ratio)
 
     set_width_ratio(PLAYER_POSTURE_LEFT_MASK_ID, ratio)
     set_width_ratio(PLAYER_POSTURE_RIGHT_MASK_ID, ratio)
+    set_player_posture_visual_state(ratio)
+    widget:SetProperty(
+        PLAYER_POSTURE_PANEL_ID,
+        "opacity",
+        ratio > POSTURE_VISIBILITY_EPSILON and "1" or "0"
+    )
 
     lastPlayerPostureRatio = ratio
 end
@@ -1056,7 +1132,7 @@ function BeginPlay()
     SetPlayerHpRatio(1.0)
     bind_player_pawn_events()
     SetBossHpRatio(1.0)
-    SetBossPostureRatio(1.0)
+    SetBossPostureRatio(0.0)
     SetPlayerPostureRatio(0.0)
     SetPlayerTokenVisible(true)
 end
@@ -1079,6 +1155,7 @@ function EndPlay()
     lastBossPostureRatio = nil
     lastBossHudVisible = nil
     lastPlayerPostureRatio = nil
+    playerPostureVisualState = "hidden"
     lastTokenVisible = nil
     enemyBarStates = {}
     enemyBarUpdateElapsed = 0.0
@@ -1092,6 +1169,7 @@ function Tick(dt)
     hudTimeSeconds = hudTimeSeconds + dt
     enemyBarUpdateElapsed = enemyBarUpdateElapsed + dt
     update_hp_damage_trails(dt)
+    update_player_posture_effect()
 
     if enemyBarUpdateElapsed < ENEMY_BAR_UPDATE_INTERVAL then
         return

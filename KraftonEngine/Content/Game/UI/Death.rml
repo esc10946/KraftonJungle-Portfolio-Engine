@@ -4,6 +4,7 @@
     <link type="text/rcss" href="Death.rcss"/>
 </head>
 <body id="death-screen">
+    <div id="death-dim"></div>
     <!-- The engine camera fade darkens the scene behind this overlay.
          The 死 icon is two stacked copies: grey at the back, red on top
          whose opacity is raised 0->1 over the fade by GameFlowController. -->
