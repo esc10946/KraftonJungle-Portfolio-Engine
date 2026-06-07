@@ -23,7 +23,10 @@ namespace physx
     class PxScene;
     class PxDefaultCpuDispatcher;
     class PxMaterial;
+    class PxTriangleMesh;
 }
+
+class UStaticMeshComponent;
 
 class FPhysXSimulationCallback;
 
@@ -148,6 +151,10 @@ private:
     FPhysicsBodyCreatePayload BuildRegisterPayload_GameThread(UPrimitiveComponent* Comp, FPhysicsComponentBinding& Binding);
     FBodyCreationDesc         BuildBodyDescFromComponent_GameThread(UPrimitiveComponent* Comp, uint32 Generation) const;
     FPhysicsShapeDesc         BuildShapeDescFromComponent_GameThread(UPrimitiveComponent* Comp, UPrimitiveComponent* RootComponent) const;
+
+    // 정적 메시 에셋을 triangle mesh 로 쿠킹해 에셋 경로 단위로 캐시한다. 쿠킹 실패 시 nullptr.
+    physx::PxTriangleMesh*    GetOrCookTriangleMesh_GameThread(UStaticMeshComponent* MeshComp) const;
+    void                      ReleaseCookedTriangleMeshes();
     void                      EnqueueEngineTransformSync_GameThread();
     bool                      ResolveRaycastResult_GameThread(const FPhysicsRaycastResult& PhysicsResult, FHitResult& OutHit) const;
     bool                      ResolveSweepResult_GameThread(const FPhysicsSweepResult& PhysicsResult, FHitResult& OutHit) const;
@@ -165,6 +172,10 @@ private:
     void ConsumeCreationResults_GameThread();
 
     TMap<uint32, FPhysicsComponentBinding> GameThreadBindings;
+
+    // 쿠킹된 triangle mesh 캐시 (메시 에셋 경로 → PxTriangleMesh). 항목당 ref 1개를 보유하며
+    // Shutdown 에서 해제한다. shape 가 참조 중이면 PhysX refcount 로 계속 살아있다.
+    mutable TMap<FString, physx::PxTriangleMesh*> CookedTriangleMeshCache;
 
 	UWorld* World = nullptr;
 
