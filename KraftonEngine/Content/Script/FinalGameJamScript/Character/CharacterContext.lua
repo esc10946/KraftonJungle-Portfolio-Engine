@@ -80,6 +80,8 @@ function Context.Create(owner)
             defenseIdleMontage = nil,
             counterMontage = nil,
             counterParticles = {},
+            successParryMontage = nil,
+            lockOnComponent = nil,
         },
         equipment = {
             RweaponComponent = nil,

@@ -5,6 +5,7 @@ local Combat = require("FinalGameJamScript/Character/CharacterCombat")
 local Guard = require("FinalGameJamScript/Character/CharacterGuard")
 local Counter = require("FinalGameJamScript/Character/CharacterCounter")
 local HitReaction = require("FinalGameJamScript/Character/CharacterHitReaction")
+local LockOn = require("FinalGameJamScript/Character/CharacterLockOn")
 local PlayerGameState = require("FinalGameJamScript/Character/PlayerGameState")
 local Commands = require("FinalGameJamScript/Character/CharacterCommands")
 
@@ -20,6 +21,7 @@ function BeginPlay()
     Guard.BeginPlay(ctx)
     Counter.BeginPlay(ctx)
     HitReaction.BeginPlay(ctx)
+    LockOn.BeginPlay(ctx)
 end
 
 function Tick(dt)

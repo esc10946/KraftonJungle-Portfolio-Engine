@@ -91,6 +91,7 @@
 #include "GameFramework/Pawn/EnemyCharacter.h"
 #include "GameFramework/Pawn/Pawn.h"
 #include "GameFramework/Pawn/WheeledVehiclePawn.h"
+#include "Game/Components/LockOnComponent.h"
 #include "Input/InputKeyCodes.h"
 #include "Input/InputSystem.h"
 #include "Materials/Material.h"
@@ -4628,6 +4629,16 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
         "IsHostileTo", &UCombatStateComponent::IsHostileTo
     );
 
+    Lua.new_usertype<ULockOnComponent>(
+        "LockOnComponent",
+        sol::base_classes,
+        sol::bases<UActorComponent, UObject>(),
+        "ToggleLockOn", &ULockOnComponent::ToggleLockOn,
+        "ClearLockOn", &ULockOnComponent::ClearLockOn,
+        "AddSwitchInput", &ULockOnComponent::AddSwitchInput,
+        "SwitchLockTarget", &ULockOnComponent::SwitchLockTarget
+    );
+
     Lua.new_usertype<UEnemyAIBrainComponent>(
         "EnemyAIBrainComponent",
         sol::base_classes,
@@ -5766,6 +5777,12 @@ void FLuaScriptManager::RegisterActorBindings(sol::state& Lua)
         [](AActor& Actor)
         {
             return Actor.GetComponentByClass<UCombatStateComponent>();
+        },
+
+        "GetLockOnComponent",
+        [](AActor& Actor)
+        {
+            return Actor.GetComponentByClass<ULockOnComponent>();
         },
 
         "GetEnemyAIBrainComponent",
