@@ -147,14 +147,29 @@
     height: 18px;
 }
 
-#boss-posture-left-fill {
+#boss-posture-left-fill,
+#boss-posture-left-warning-fill,
+#boss-posture-left-critical-fill {
     position: absolute;
     left: 0px;
     top: 0px;
     display: block;
     width: 227px;
     height: 18px;
+}
+
+#boss-posture-left-fill {
     decorator: image("../Texture/HUD/SB_FE/PostureBar_Left.png" fill);
+}
+
+#boss-posture-left-warning-fill {
+    opacity: 0;
+    decorator: image("../Texture/HUD/SB_FE/PostureBar_Left_Warning.png" fill);
+}
+
+#boss-posture-left-critical-fill {
+    opacity: 0;
+    decorator: image("../Texture/HUD/SB_FE/PostureBar_Left_Critical.png" fill);
 }
 
 #boss-posture-right-clip {
@@ -177,14 +192,48 @@
     height: 18px;
 }
 
-#boss-posture-right-fill {
+#boss-posture-right-fill,
+#boss-posture-right-warning-fill,
+#boss-posture-right-critical-fill {
     position: absolute;
     right: 0px;
     top: 0px;
     display: block;
     width: 227px;
     height: 18px;
+}
+
+#boss-posture-right-fill {
     decorator: image("../Texture/HUD/SB_FE/PostureBar_Right.png" fill);
+}
+
+#boss-posture-right-warning-fill {
+    opacity: 0;
+    decorator: image("../Texture/HUD/SB_FE/PostureBar_Right_Warning.png" fill);
+}
+
+#boss-posture-right-critical-fill {
+    opacity: 0;
+    decorator: image("../Texture/HUD/SB_FE/PostureBar_Right_Critical.png" fill);
+}
+
+#boss-posture-warning-glow,
+#boss-posture-critical-glow {
+    position: absolute;
+    left: -150px;
+    top: -11px;
+    display: block;
+    width: 760px;
+    height: 64px;
+    opacity: 0;
+}
+
+#boss-posture-warning-glow {
+    decorator: image("../Texture/HUD/SB_FE/Normal.png" fill);
+}
+
+#boss-posture-critical-glow {
+    decorator: image("../Texture/HUD/SB_FE/Critical.png" fill);
 }
 
 #boss-posture-center-mark {

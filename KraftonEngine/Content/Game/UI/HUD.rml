@@ -246,13 +246,19 @@
             <div id="boss-posture-left-clip">
                 <div id="boss-posture-left-mask">
                     <div id="boss-posture-left-fill"></div>
+                    <div id="boss-posture-left-warning-fill"></div>
+                    <div id="boss-posture-left-critical-fill"></div>
                 </div>
             </div>
             <div id="boss-posture-right-clip">
                 <div id="boss-posture-right-mask">
                     <div id="boss-posture-right-fill"></div>
+                    <div id="boss-posture-right-warning-fill"></div>
+                    <div id="boss-posture-right-critical-fill"></div>
                 </div>
             </div>
+            <div id="boss-posture-warning-glow"></div>
+            <div id="boss-posture-critical-glow"></div>
             <div id="boss-posture-center-mark"></div>
             <div id="boss-posture-marker-left" class="posture-bg-marker"></div>
             <div id="boss-posture-marker-right" class="posture-bg-marker"></div>

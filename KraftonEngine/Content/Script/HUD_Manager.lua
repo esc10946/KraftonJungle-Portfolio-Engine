@@ -10,6 +10,14 @@ local BOSS_POSTURE_LEFT_MASK_ID = "boss-posture-left-mask"
 local BOSS_POSTURE_RIGHT_MASK_ID = "boss-posture-right-mask"
 local BOSS_PANEL_ID = "boss-panel"
 local BOSS_POSTURE_PANEL_ID = "boss-posture-panel"
+local BOSS_POSTURE_LEFT_FILL_ID = "boss-posture-left-fill"
+local BOSS_POSTURE_RIGHT_FILL_ID = "boss-posture-right-fill"
+local BOSS_POSTURE_LEFT_WARNING_FILL_ID = "boss-posture-left-warning-fill"
+local BOSS_POSTURE_RIGHT_WARNING_FILL_ID = "boss-posture-right-warning-fill"
+local BOSS_POSTURE_LEFT_CRITICAL_FILL_ID = "boss-posture-left-critical-fill"
+local BOSS_POSTURE_RIGHT_CRITICAL_FILL_ID = "boss-posture-right-critical-fill"
+local BOSS_POSTURE_WARNING_GLOW_ID = "boss-posture-warning-glow"
+local BOSS_POSTURE_CRITICAL_GLOW_ID = "boss-posture-critical-glow"
 local PLAYER_POSTURE_LEFT_MASK_ID = "player-posture-left-mask"
 local PLAYER_POSTURE_RIGHT_MASK_ID = "player-posture-right-mask"
 local PLAYER_POSTURE_PANEL_ID = "player-posture-panel"
@@ -86,6 +94,7 @@ local lastBossPostureRatio = nil
 local lastBossHudVisible = nil
 local lastPlayerPostureRatio = nil
 local playerPostureVisualState = "hidden"
+local bossPostureVisualState = "hidden"
 local lastTokenVisible = nil
 local enemyBarStates = {}
 local enemySlotById = {}
@@ -198,6 +207,37 @@ local function set_player_posture_visual_state(ratio)
     set_element_opacity(PLAYER_POSTURE_CRITICAL_GLOW_ID, state == "critical" and 0.65 or 0.0)
 end
 
+local function set_boss_posture_visual_state(ratio)
+    local state = "normal"
+
+    if ratio <= POSTURE_VISIBILITY_EPSILON then
+        state = "hidden"
+    elseif ratio >= POSTURE_CRITICAL_THRESHOLD then
+        state = "critical"
+    elseif ratio >= POSTURE_WARNING_THRESHOLD then
+        state = "warning"
+    end
+
+    if bossPostureVisualState == state then
+        return
+    end
+
+    bossPostureVisualState = state
+
+    local normalOpacity = state == "normal" and 1.0 or 0.0
+    local warningOpacity = state == "warning" and 1.0 or 0.0
+    local criticalOpacity = state == "critical" and 1.0 or 0.0
+
+    set_element_opacity(BOSS_POSTURE_LEFT_FILL_ID, normalOpacity)
+    set_element_opacity(BOSS_POSTURE_RIGHT_FILL_ID, normalOpacity)
+    set_element_opacity(BOSS_POSTURE_LEFT_WARNING_FILL_ID, warningOpacity)
+    set_element_opacity(BOSS_POSTURE_RIGHT_WARNING_FILL_ID, warningOpacity)
+    set_element_opacity(BOSS_POSTURE_LEFT_CRITICAL_FILL_ID, criticalOpacity)
+    set_element_opacity(BOSS_POSTURE_RIGHT_CRITICAL_FILL_ID, criticalOpacity)
+    set_element_opacity(BOSS_POSTURE_WARNING_GLOW_ID, state == "warning" and 0.45 or 0.0)
+    set_element_opacity(BOSS_POSTURE_CRITICAL_GLOW_ID, state == "critical" and 0.65 or 0.0)
+end
+
 local function update_player_posture_effect()
     if widget == nil then
         return
@@ -215,6 +255,26 @@ local function update_player_posture_effect()
         set_element_opacity(PLAYER_POSTURE_LEFT_CRITICAL_FILL_ID, fillOpacity)
         set_element_opacity(PLAYER_POSTURE_RIGHT_CRITICAL_FILL_ID, fillOpacity)
         set_element_opacity(PLAYER_POSTURE_CRITICAL_GLOW_ID, 0.45 + 0.5 * pulse)
+    end
+end
+
+local function update_boss_posture_effect()
+    if widget == nil then
+        return
+    end
+
+    if bossPostureVisualState == "warning" then
+        local pulse = 0.5 + 0.5 * math.sin(hudTimeSeconds * POSTURE_WARNING_PULSE_SPEED)
+        local fillOpacity = 0.78 + 0.22 * pulse
+        set_element_opacity(BOSS_POSTURE_LEFT_WARNING_FILL_ID, fillOpacity)
+        set_element_opacity(BOSS_POSTURE_RIGHT_WARNING_FILL_ID, fillOpacity)
+        set_element_opacity(BOSS_POSTURE_WARNING_GLOW_ID, 0.28 + 0.32 * pulse)
+    elseif bossPostureVisualState == "critical" then
+        local pulse = 0.5 + 0.5 * math.sin(hudTimeSeconds * POSTURE_CRITICAL_PULSE_SPEED)
+        local fillOpacity = 0.62 + 0.38 * pulse
+        set_element_opacity(BOSS_POSTURE_LEFT_CRITICAL_FILL_ID, fillOpacity)
+        set_element_opacity(BOSS_POSTURE_RIGHT_CRITICAL_FILL_ID, fillOpacity)
+        set_element_opacity(BOSS_POSTURE_CRITICAL_GLOW_ID, 0.45 + 0.5 * pulse)
     end
 end
 
@@ -1040,6 +1100,7 @@ function SetBossPostureRatio(ratio)
 
     set_width_ratio(BOSS_POSTURE_LEFT_MASK_ID, ratio)
     set_width_ratio(BOSS_POSTURE_RIGHT_MASK_ID, ratio)
+    set_boss_posture_visual_state(ratio)
 
     lastBossPostureRatio = ratio
 end
@@ -1340,6 +1401,7 @@ refresh_hud_document_state = function()
     lastBossPostureRatio = nil
     lastPlayerPostureRatio = nil
     playerPostureVisualState = nil
+    bossPostureVisualState = nil
     lastTokenVisible = nil
     lastBossHudVisible = nil
     enemyBarStates = {}
@@ -1471,6 +1533,7 @@ function EndPlay()
     lastBossHudVisible = nil
     lastPlayerPostureRatio = nil
     playerPostureVisualState = "hidden"
+    bossPostureVisualState = "hidden"
     lastTokenVisible = nil
     enemyBarStates = {}
     enemyBarUpdateElapsed = 0.0
@@ -1499,6 +1562,7 @@ function Tick(dt)
     enemyActorRefreshElapsed = enemyActorRefreshElapsed + dt
     update_hp_damage_trails(dt)
     update_player_posture_effect()
+    update_boss_posture_effect()
 
     if enemyBarUpdateElapsed < ENEMY_BAR_UPDATE_INTERVAL then
         return
