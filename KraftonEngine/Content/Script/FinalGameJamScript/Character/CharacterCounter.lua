@@ -410,6 +410,7 @@ function Counter.UpdateOpportunity(ctx)
 
     local opportunityTarget, hitLocation = Context.ConsumeCounterOpportunity(ctx)
     if opportunityTarget ~= nil then
+        counter_debug_log(ctx, "[CounterInput] opportunity consumed")
         if opportunityTarget == true then
             Counter.Play(ctx, nil, hitLocation)
         else
@@ -418,20 +419,34 @@ function Counter.UpdateOpportunity(ctx)
     end
 end
 
-function Counter.UpdateInputWindow(ctx)
+function Counter.UpdateInputWindow(ctx, dt)
+    if is_counter_input_pressed(ctx) then
+        ctx.state.counterInputBufferRemaining = ctx.config.COUNTER_INPUT_BUFFER_SECONDS or 0.2
+        counter_debug_log(ctx, "[CounterInput] pressed")
+    elseif ctx.state.counterInputBufferRemaining > 0.0 then
+        ctx.state.counterInputBufferRemaining = math.max(0.0, ctx.state.counterInputBufferRemaining - (dt or 0.0))
+    end
+
     if not ctx.state.attackPlaying or ctx.state.counterPlaying then
+        ctx.state.counterInputBufferRemaining = 0.0
         return
     end
 
-    if not is_counter_input_pressed(ctx) then
+    if ctx.state.counterInputBufferRemaining <= 0.0 then
         return
     end
 
     if not Context.IsCounterInputWindowActive(ctx) then
+        counter_debug_log(ctx, "[CounterInput] buffered, waiting for CounterInputWindow")
         return
     end
 
-    Context.OpenCounterInputDeflect(ctx)
+    if Context.OpenCounterInputDeflect(ctx) then
+        counter_debug_log(ctx, "[CounterInput] deflect opened")
+    else
+        counter_debug_log(ctx, "[CounterInput] deflect failed")
+    end
+    ctx.state.counterInputBufferRemaining = 0.0
 end
 
 function Counter.UpdateCancelWindow(ctx)
@@ -484,7 +499,7 @@ function Counter.BeginPlay(ctx)
 end
 
 function Counter.Tick(ctx, dt)
-    Counter.UpdateInputWindow(ctx)
+    Counter.UpdateInputWindow(ctx, dt)
     Counter.UpdateOpportunity(ctx)
     Counter.UpdateCancelWindow(ctx)
     Counter.UpdateSequence(ctx, dt)

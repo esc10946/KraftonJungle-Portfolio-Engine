@@ -72,6 +72,7 @@ function Context.Create(owner)
             counterCollision = nil,
             counterInvincibleApplied = false,
             counterPreviousInvincible = false,
+            counterInputBufferRemaining = 0.0,
         },
         cache = {
             animInstance = nil,

@@ -114,7 +114,7 @@ public:
 	bool bAllowParry = true;
 
 	UPROPERTY(Edit, Save, Category="AttackHitWindow", DisplayName="Delay Damage For Parry")
-	bool bDelayDamageForParry = false;
+	bool bDelayDamageForParry = true;
 
 	UPROPERTY(Edit, Save, Category="AttackHitWindow", DisplayName="Parry Resolve Delay", Min=0.0f, Max=1.0f, Speed=0.01f)
 	float ParryResolveDelay = 0.12f;
