@@ -58,7 +58,7 @@ void UCombatStateComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 			// 체력 100%→1.0배, 0%→0.4배. 체력이 낮을수록 체간 회복이 느려진다.
 			Rate *= 0.4f + 0.6f * FMath::Clamp(GetHealthRatioSafe(), 0.0f, 1.0f);
 		}
-		CurrentPoise = FMath::Clamp(CurrentPoise + Rate * DeltaTime, 0.0f, MaxPoise);
+		SetPoiseValue(CurrentPoise + Rate * DeltaTime);
 	}
 }
 
@@ -81,7 +81,7 @@ bool UCombatStateComponent::ApplyPoiseDamage(float PoiseDamage)
 		return false;
 	}
 
-	CurrentPoise = FMath::Clamp(CurrentPoise - PoiseDamage, 0.0f, MaxPoise);
+	SetPoiseValue(CurrentPoise - PoiseDamage);
 	if (CurrentPoise <= 0.0f)
 	{
 		// 자세 붕괴 신호 — ExecutionComponent 가 데스블로우 창을 연다. stagger 는 시각적 취약 표시로 유지.
@@ -94,7 +94,7 @@ bool UCombatStateComponent::ApplyPoiseDamage(float PoiseDamage)
 
 void UCombatStateComponent::ResetPoise()
 {
-	CurrentPoise = MaxPoise;
+	SetPoiseValue(MaxPoise);
 }
 
 void UCombatStateComponent::StartStagger(float Duration)
@@ -128,6 +128,26 @@ float UCombatStateComponent::GetPoiseRatio() const
 		return 0.0f;
 	}
 	return FMath::Clamp(CurrentPoise / MaxPoise, 0.0f, 1.0f);
+}
+
+float UCombatStateComponent::GetPostureRatio() const
+{
+	return 1.0f - GetPoiseRatio();
+}
+
+bool UCombatStateComponent::SetPoiseValue(float NewPoise)
+{
+	const float PreviousPoise = CurrentPoise;
+	const float ValidMaxPoise = MaxPoise > 0.0f ? MaxPoise : 0.0f;
+	CurrentPoise = FMath::Clamp(NewPoise, 0.0f, ValidMaxPoise);
+
+	if (CurrentPoise == PreviousPoise)
+	{
+		return false;
+	}
+
+	OnPostureChanged.Broadcast(this, PreviousPoise, CurrentPoise, ValidMaxPoise);
+	return true;
 }
 
 void UCombatStateComponent::MarkAttacking(float WindowSeconds)
