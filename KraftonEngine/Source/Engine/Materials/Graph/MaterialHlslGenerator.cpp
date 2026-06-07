@@ -981,36 +981,83 @@ float4 ApplyFogTransparent(float4 color, float3 worldPos, float3 cameraWorldPos)
     FString BuildParticleSpriteMain()
     {
         return R"(
+struct VS_Input_MaterialSpriteParticle
+{
+    float3 cornerSign   : POSITION;
+    float2 baseUV       : TEXTCOORD;
+    float3 center       : INSTANCE_CENTER;
+    float3 velocity     : INSTANCE_VELOCITY;
+    float2 size         : INSTANCE_SIZE;
+    float  rotation     : INSTANCE_ROTATION;
+    float4 instColor    : INSTANCE_COLOR;
+    int    subImage     : INSTANCE_SUBIMAGE;
+    int    alignment    : INSTANCE_ALIGNMENT;
+    float4 dynamicParam : INSTANCE_DYNAMICPARAM;
+};
+
 struct PS_Input_MaterialParticle
 {
     float4 position       : SV_POSITION;
     float2 texcoord       : TEXCOORD0;
     float4 color          : COLOR;
-    float  subImageIndex  : TEXCOORD1;
+    nointerpolation int subImageIndex : TEXCOORD1;
     float4 dynamicParam   : TEXCOORD2;
     float3 worldPos       : TEXCOORD3;
 };
 
-PS_Input_MaterialParticle VS(VS_Input_ParticleQuad quad, VS_Input_ParticleInstance inst)
+PS_Input_MaterialParticle VS(VS_Input_MaterialSpriteParticle input)
 {
-    float sinR = sin(inst.rotation);
-    float cosR = cos(inst.rotation);
+    float sinR = sin(input.rotation);
+    float cosR = cos(input.rotation);
 
-    float2 rotUV = float2(
-        quad.cornerUV.x * cosR - quad.cornerUV.y * sinR,
-        quad.cornerUV.x * sinR + quad.cornerUV.y * cosR
+    float2 rotatedCorner = float2(
+        input.cornerSign.x * cosR - input.cornerSign.y * sinR,
+        input.cornerSign.x * sinR + input.cornerSign.y * cosR
     );
 
-    float3 worldPos = inst.position
-                    + FrameCameraRight * rotUV.x * inst.size
-                    + FrameCameraUp * rotUV.y * inst.size;
+    const int ALIGN_SQUARE = 0;
+    const int ALIGN_VELOCITY = 2;
+    const int ALIGN_FACING = 3;
+    float width = input.size.x;
+    float height = (input.alignment == ALIGN_SQUARE) ? input.size.x : input.size.y;
+
+    float4 clipPosition;
+    float3 worldPos = input.center;
+    if (input.alignment == ALIGN_FACING)
+    {
+        float3 cameraUp = float3(View._m01, View._m11, View._m21);
+        float3 forward = normalize(CameraWorldPos - input.center);
+        float3 right = normalize(cross(cameraUp, forward));
+        float3 up = cross(forward, right);
+        worldPos += (rotatedCorner.x * width) * right
+                  + (rotatedCorner.y * height) * up;
+        clipPosition = ApplyVP(worldPos);
+    }
+    else
+    {
+        float4 viewCenter = mul(float4(input.center, 1.0f), View);
+        float2 axisRight = float2(1, 0);
+        float2 axisUp = float2(0, 1);
+        if (input.alignment == ALIGN_VELOCITY)
+        {
+            float2 viewVelocity = mul(float4(input.velocity, 0.0f), View).xy;
+            if (dot(viewVelocity, viewVelocity) > 1e-8f)
+            {
+                axisUp = normalize(viewVelocity);
+                axisRight = float2(axisUp.y, -axisUp.x);
+            }
+        }
+        viewCenter.xy += (rotatedCorner.x * width) * axisRight
+                       + (rotatedCorner.y * height) * axisUp;
+        clipPosition = mul(viewCenter, Projection);
+    }
 
     PS_Input_MaterialParticle output;
-    output.position       = mul(float4(worldPos, 1.0f), mul(View, Projection));
-    output.texcoord       = quad.cornerUV + 0.5f;
-    output.color          = inst.color;
-    output.subImageIndex  = inst.subImageIndex;
-    output.dynamicParam   = inst.dynamicParam;
+    output.position       = clipPosition;
+    output.texcoord       = input.baseUV;
+    output.color          = input.instColor;
+    output.subImageIndex  = input.subImage;
+    output.dynamicParam   = input.dynamicParam;
     output.worldPos       = worldPos;
     return output;
 }
@@ -1024,7 +1071,7 @@ float4 PS(PS_Input_MaterialParticle input) : SV_TARGET
     MaterialInput.ParticleColor = input.color;
     MaterialInput.VertexColor   = input.color;
     MaterialInput.Time          = Time;
-    MaterialInput.SubImageIndex = input.subImageIndex;
+    MaterialInput.SubImageIndex = (float)input.subImageIndex;
     MaterialInput.DynamicParam  = input.dynamicParam;
 
     FMaterialResult Result = EvaluateMaterial(MaterialInput);
@@ -1039,6 +1086,21 @@ float4 PS(PS_Input_MaterialParticle input) : SV_TARGET
     {
         std::stringstream SS;
         SS << R"(
+struct VS_Input_MaterialMeshParticle
+{
+    float3 position       : POSITION;
+    float3 normal         : NORMAL;
+    float4 color          : COLOR;
+    float2 texcoord       : TEXTCOORD;
+    float4 transform0     : INSTANCE_TRANSFORM0;
+    float4 transform1     : INSTANCE_TRANSFORM1;
+    float4 transform2     : INSTANCE_TRANSFORM2;
+    float4 transform3     : INSTANCE_TRANSFORM3;
+    float4 instColor      : INSTANCE_COLOR;
+    int    subImage       : INSTANCE_SUBIMAGE;
+    float4 dynamicParam   : INSTANCE_DYNAMICPARAM;
+};
+
 struct PS_Input_MaterialMeshParticle
 {
     float4 position       : SV_POSITION;
@@ -1050,25 +1112,31 @@ struct PS_Input_MaterialMeshParticle
     float3 worldPos       : TEXCOORD3;
 };
 
-PS_Input_MaterialMeshParticle VS(VS_Input_PNCT vert, VS_Input_MeshParticleInstance inst)
+PS_Input_MaterialMeshParticle VS(VS_Input_MaterialMeshParticle input)
 {
-    float4 worldPos = mul(float4(vert.position, 1.0f), inst.transform);
+    float4x4 instanceTransform = float4x4(
+        input.transform0,
+        input.transform1,
+        input.transform2,
+        input.transform3
+    );
+    float4 worldPos = mul(float4(input.position, 1.0f), instanceTransform);
     // 비균일 스케일에서 노말 왜곡 방지: 역전치 행렬 사용
-    float3x3 M = (float3x3)inst.transform;
+    float3x3 M = (float3x3)instanceTransform;
     float3x3 invTransM = transpose(float3x3(
         cross(M[1], M[2]),
         cross(M[2], M[0]),
         cross(M[0], M[1])
     ));
-    float3 worldNormal = mul(vert.normal, invTransM);
+    float3 worldNormal = mul(input.normal, invTransM);
 
     PS_Input_MaterialMeshParticle output;
     output.position       = mul(worldPos, mul(View, Projection));
     output.normal         = normalize(worldNormal);
-    output.texcoord       = vert.texcoord;
-    output.color          = vert.color * inst.color;
-    output.subImageIndex  = inst.subImageIndex;
-    output.dynamicParam   = inst.dynamicParam;
+    output.texcoord       = input.texcoord;
+    output.color          = input.color * input.instColor;
+    output.subImageIndex  = input.subImage;
+    output.dynamicParam   = input.dynamicParam;
     output.worldPos       = worldPos.xyz / worldPos.w;
     return output;
 }
