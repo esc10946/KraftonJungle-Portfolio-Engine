@@ -69,6 +69,9 @@ local AI = {
 -- ── 3. 사망 처리 ─────────────────────────────────────────────────────────────
 local DEATH_DESTROY_DELAY = 2.5
 local bDestroyed, bPendingDestroy, deathDelay, bRagdoll = false, false, 0.0, false
+local KATANA_PATH = "Content/Data/Weapon/JapanSword/New_Katana_StaticMesh.uasset"
+local KATANA_SOCKET = "Katana"
+local katanaComponent = nil
 
 local function request_death()
     if bDestroyed then return end
@@ -259,7 +262,7 @@ local Actions = {
         end,
         run = function(bb)
             if try_attack(bb) then
-                AI.tempo = math.max(0.0, AI.tempo - 0.25)        -- 공격은 자원 소모(연타할수록 누적)
+                AI.tempo = math.max(0.0, AI.tempo-3.5)        -- 공격은 자원 소모(연타할수록 누적)
                 return true                                      -- 이후 Brain_IsBusy 로 커밋
             end
             return false                                         -- 실패 시 다른 행동에 양보
@@ -384,6 +387,17 @@ function BeginPlay()
     define_states()
     S = { isBoss = call(obj, "Brain_IsBoss") == true }
     pcall(function() math.randomseed((tonumber(obj.UUID) or os.time() or 1) + 23) end)
+
+    if Equipment ~= nil and Equipment.AttachStaticMeshToSocket ~= nil then
+        katanaComponent = Equipment.AttachStaticMeshToSocket(
+            obj,
+            KATANA_PATH,
+            KATANA_SOCKET,
+            Vec3(1.0, 1.0, 1.0)
+        )
+    else
+        print("[SamuraiBoss] Equipment.AttachStaticMeshToSocket binding missing")
+    end
 end
 
 function EndPlay()
@@ -419,7 +433,7 @@ function Tick(dt)
     -- 차별화: P1 느림(긴 호흡, 절제) → P3 빠름(짧은 호흡, 연속 압박).
     local _ph = call(obj, "Brain_GetPhase") or 1
     -- 회복을 빠르게 → "빠지고" 간격이 짧아져 곧바로 다시 파고든다(긴 후퇴/도망 방지).
-    local _regen = (_ph >= 3) and 0.70 or ((_ph >= 2) and 0.55 or 0.45)
+    local _regen = (_ph >= 3) and 0.50 or ((_ph >= 2) and 0.35 or 0.3)
     AI.tempo  = clamp(AI.tempo + _regen * dt, 0.0, 1.0)
     AI.commit = math.max(0.0, AI.commit - dt)
 
