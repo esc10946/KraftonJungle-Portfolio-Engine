@@ -420,9 +420,9 @@ function Tick(dt)
 
     update_ground_speed()
 
+    if call(obj, "Brain_ConsumeCombatStep") ~= true then return end
     call(obj, "Brain_Sense")
     if call(obj, "Brain_IsBusy") == true then return end
-    if call(obj, "Brain_ConsumeCombatStep") ~= true then return end
 
     if call(obj, "Brain_AcquireTarget") ~= true then
         call(obj, "Brain_Idle")
