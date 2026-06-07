@@ -1,10 +1,13 @@
 ﻿#pragma once
+#include "Core/Delegate.h"
 #include "Engine/Component/ActorComponent.h"
 #include "Engine/Math/Vector.h"
+#include "Object/Ptr/WeakObjectPtr.h"
 
 #include "Source/Game/Components/LockOnComponent.generated.h"
 
 class UBillboardComponent;
+class UHealthComponent;
 class USpringArmComponent;
 class AEnemyCharacter;
 
@@ -47,6 +50,9 @@ private:
 	void UpdateCameraLock(float DeltaTime);
 	void UpdateMarker();
 	void RestoreCamera(float DeltaTime);
+	void BindOwnerHealthEvents();
+	void UnbindOwnerHealthEvents();
+	void HandleOwnerDeath(UHealthComponent* Component, AActor* DamageCauser, AActor* InstigatorActor);
 
 
 public:
@@ -101,6 +107,8 @@ private:
 	TWeakObjectPtr<USpringArmComponent> SpringArmComponent;
 	TWeakObjectPtr<UBillboardComponent> MarkerComponent;
 	TWeakObjectPtr<AActor> LockedTarget;
+	TWeakObjectPtr<UHealthComponent> BoundHealthComponent;
+	FDelegateHandle OwnerDeathHandle;
 	float SwitchInputX = 0.0f;
 	float SwitchCooldownRemaining = 0.0f;
 };
