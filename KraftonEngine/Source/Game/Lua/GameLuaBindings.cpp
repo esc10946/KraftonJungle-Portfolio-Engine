@@ -23,7 +23,7 @@
 #include "Engine/GameFramework/GameMode/GameplayStatics.h"
 #include "Engine/GameFramework/GameMode/PlayerController.h"
 #include "Engine/GameFramework/Camera/PlayerCameraManager.h"
-#include "Engine/GameFramework/Camera/WaveOscillatorCameraShake.h"
+#include "Engine/GameFramework/Camera/PerlinNoiseCameraShake.h"
 #include "Engine/Render/Types/MinimalViewInfo.h"
 #include "Lua/LuaScriptManager.h"
 #include "Core/ProjectSettings.h"
@@ -761,17 +761,111 @@ void RegisterGameLuaBindings(sol::state& Lua)
 
 	// Runtime helpers used by scene directors and encounter scripts.
 	sol::table Camera = Lua["Camera"].valid() ? Lua["Camera"] : Lua.create_named_table("Camera");
+	// Camera.Shake(scale [, params])
+	//   scale  : 전체 세기 배율 (필수).
+	//   params : 선택 테이블. 지정한 키만 펄린 기본값을 덮어쓴다 (노티파이 패널과 동일 9필드 + playSpace).
+	//     duration, blendIn, blendOut, fovAmplitude, fovFrequency : number
+	//     locAmplitude, locFrequency : Vector(x,y,z) 또는 { x=, y=, z= }
+	//     rotAmplitude, rotFrequency : { pitch=, yaw=, roll= } (x/y/z 또는 Vector 도 허용)
+	//     playSpace                  : 0=CameraLocal(기본) 1=World 2=UserDefined
+	//   반환 : 셰이크 핸들 (실패 시 nil). 핸들로 :StopShake() / :IsFinished() 호출 가능.
 	Camera.set_function(
 		"Shake",
-		[](float Scale) -> bool
+		[](float Scale, sol::optional<sol::table> Params) -> UCameraShakeBase*
 		{
 			APlayerCameraManager* Manager = ResolvePlayerCameraManager();
 			if (!Manager)
 			{
-				return false;
+				return nullptr;
 			}
-			Manager->StartCameraShake<UWaveOscillatorCameraShake>(Scale);
-			return true;
+
+			ECameraShakePlaySpace PlaySpace = ECameraShakePlaySpace::CameraLocal;
+			if (Params)
+			{
+				sol::object PS = (*Params)["playSpace"];
+				if (PS.is<int>())
+				{
+					const int V = PS.as<int>();
+					if (V >= 0 && V <= 2)
+					{
+						PlaySpace = static_cast<ECameraShakePlaySpace>(V);
+					}
+				}
+			}
+
+			UPerlinNoiseCameraShake* Shake = Manager->StartCameraShake<UPerlinNoiseCameraShake>(Scale, PlaySpace);
+			if (!Shake)
+			{
+				return nullptr;
+			}
+
+			if (Params)
+			{
+				const sol::table& P = *Params;
+
+				auto ReadFloat = [&P](const char* Key, float Def) -> float
+				{
+					sol::object O = P[Key];
+					return O.is<double>() ? static_cast<float>(O.as<double>()) : Def;
+				};
+				// Vector: Vector(x,y,z) usertype 또는 { x=, y=, z= } 테이블.
+				auto ReadVector = [&P](const char* Key, const FVector& Def) -> FVector
+				{
+					sol::object O = P[Key];
+					if (O.is<FVector>())
+					{
+						return O.as<FVector>();
+					}
+					if (O.is<sol::table>())
+					{
+						sol::table T = O.as<sol::table>();
+						sol::object X = T["x"], Y = T["y"], Z = T["z"];
+						return FVector(
+							X.is<double>() ? static_cast<float>(X.as<double>()) : Def.X,
+							Y.is<double>() ? static_cast<float>(Y.as<double>()) : Def.Y,
+							Z.is<double>() ? static_cast<float>(Z.as<double>()) : Def.Z);
+					}
+					return Def;
+				};
+				// Rotator: { pitch=, yaw=, roll= } (x/y/z 별칭) 또는 Vector(x→pitch,y→yaw,z→roll).
+				auto ReadRotator = [&P](const char* Key, const FRotator& Def) -> FRotator
+				{
+					sol::object O = P[Key];
+					if (O.is<FVector>())
+					{
+						const FVector V = O.as<FVector>();
+						return FRotator(V.X, V.Y, V.Z);
+					}
+					if (O.is<sol::table>())
+					{
+						sol::table T = O.as<sol::table>();
+						auto Pick = [&T](const char* A, const char* B, float D) -> float
+						{
+							sol::object Oa = T[A];
+							if (Oa.is<double>()) return static_cast<float>(Oa.as<double>());
+							sol::object Ob = T[B];
+							return Ob.is<double>() ? static_cast<float>(Ob.as<double>()) : D;
+						};
+						return FRotator(
+							Pick("pitch", "x", Def.Pitch),
+							Pick("yaw",   "y", Def.Yaw),
+							Pick("roll",  "z", Def.Roll));
+					}
+					return Def;
+				};
+
+				Shake->Duration     = ReadFloat("duration",      Shake->Duration);
+				Shake->BlendInTime  = ReadFloat("blendIn",       Shake->BlendInTime);
+				Shake->BlendOutTime = ReadFloat("blendOut",      Shake->BlendOutTime);
+				Shake->LocAmplitude = ReadVector("locAmplitude", Shake->LocAmplitude);
+				Shake->LocFrequency = ReadVector("locFrequency", Shake->LocFrequency);
+				Shake->RotAmplitude = ReadRotator("rotAmplitude", Shake->RotAmplitude);
+				Shake->RotFrequency = ReadRotator("rotFrequency", Shake->RotFrequency);
+				Shake->FOVAmplitude = ReadFloat("fovAmplitude",  Shake->FOVAmplitude);
+				Shake->FOVFrequency = ReadFloat("fovFrequency",  Shake->FOVFrequency);
+			}
+
+			return Shake;
 		}
 	);
 
