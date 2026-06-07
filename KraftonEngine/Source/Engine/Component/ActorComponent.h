@@ -20,7 +20,7 @@ public:
 	GENERATED_BODY()
 
 	virtual void BeginPlay();
-	virtual void EndPlay() {};
+	virtual void EndPlay();
 	virtual void RouteComponentDestroyed();
 	void BeginDestroy() override;
 	void AddReferencedObjects(FReferenceCollector& Collector) override;
@@ -61,6 +61,7 @@ public:
 
 	UFUNCTION(Pure, Category="Component|Activation")
 	inline bool IsActive() { return bIsActive; }
+	bool HasComponentBegunPlay() const { return bHasBegunPlay; }
 
 	void SetOwner(AActor* Actor);
 	UFUNCTION(Pure, Category="Component|Owner")
@@ -84,6 +85,7 @@ protected:
 	
 	TWeakObjectPtr<AActor> Owner;
 	bool bComponentDestroyRouted = false;
+	bool bHasBegunPlay = false;
 	UPROPERTY(Edit, Save, Category="Component", DisplayName="bTickEnable")
 	bool bTickEnable = true;
 

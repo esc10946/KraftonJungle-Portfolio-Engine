@@ -3,12 +3,14 @@
 #include "Animation/AnimInstance.h"
 #include "Component/Primitive/SkeletalMeshComponent.h"
 #include "Core/Logging/Log.h"
+#include "GameFramework/AActor.h"
 #include "Object/Ptr/WeakObjectPtr.h"
 
 namespace
 {
 	TSet<TWeakObjectPtr<USkeletalMeshComponent>> GActiveParryMeshes;
 	TSet<TWeakObjectPtr<USkeletalMeshComponent>> GSuccessfulParryMeshes;
+	TMap<TWeakObjectPtr<USkeletalMeshComponent>, TWeakObjectPtr<AActor>> GSuccessfulParryAttackers;
 
 	void PurgeInvalidParryMeshes()
 	{
@@ -21,6 +23,12 @@ namespace
 		for (auto It = GSuccessfulParryMeshes.begin(); It != GSuccessfulParryMeshes.end(); )
 		{
 			if (!IsValid(*It)) It = GSuccessfulParryMeshes.erase(It);
+			else ++It;
+		}
+
+		for (auto It = GSuccessfulParryAttackers.begin(); It != GSuccessfulParryAttackers.end(); )
+		{
+			if (!IsValid(It->first)) It = GSuccessfulParryAttackers.erase(It);
 			else ++It;
 		}
 	}
@@ -62,6 +70,7 @@ void UAnimNotifyState_ParryWindow::NotifyEnd(USkeletalMeshComponent* MeshComp, U
 	}
 
 	GActiveParryMeshes.erase(TWeakObjectPtr<USkeletalMeshComponent>(MeshComp));
+	GSuccessfulParryAttackers.erase(TWeakObjectPtr<USkeletalMeshComponent>(MeshComp));
 
 	if (bLogState)
 	{
@@ -84,6 +93,11 @@ bool UAnimNotifyState_ParryWindow::IsParryWindowActive(UAnimInstance* AnimInstan
 
 bool UAnimNotifyState_ParryWindow::ReportSuccessfulParry(UAnimInstance* AnimInstance)
 {
+	return ReportSuccessfulParry(AnimInstance, nullptr);
+}
+
+bool UAnimNotifyState_ParryWindow::ReportSuccessfulParry(UAnimInstance* AnimInstance, AActor* Attacker)
+{
 	PurgeInvalidParryMeshes();
 
 	USkeletalMeshComponent* MeshComp = GetMeshFromAnimInstance(AnimInstance);
@@ -99,6 +113,14 @@ bool UAnimNotifyState_ParryWindow::ReportSuccessfulParry(UAnimInstance* AnimInst
 	}
 
 	GSuccessfulParryMeshes.insert(Key);
+	if (IsValid(Attacker))
+	{
+		GSuccessfulParryAttackers[Key] = Attacker;
+	}
+	else
+	{
+		GSuccessfulParryAttackers.erase(Key);
+	}
 	return true;
 }
 
@@ -120,5 +142,35 @@ bool UAnimNotifyState_ParryWindow::ConsumeSuccessfulParry(UAnimInstance* AnimIns
 	}
 
 	GSuccessfulParryMeshes.erase(It);
+	GSuccessfulParryAttackers.erase(Key);
 	return true;
+}
+
+AActor* UAnimNotifyState_ParryWindow::ConsumeSuccessfulParryAttacker(UAnimInstance* AnimInstance)
+{
+	PurgeInvalidParryMeshes();
+
+	USkeletalMeshComponent* MeshComp = GetMeshFromAnimInstance(AnimInstance);
+	if (!MeshComp)
+	{
+		return nullptr;
+	}
+
+	const TWeakObjectPtr<USkeletalMeshComponent> Key(MeshComp);
+	auto SuccessIt = GSuccessfulParryMeshes.find(Key);
+	if (SuccessIt == GSuccessfulParryMeshes.end())
+	{
+		return nullptr;
+	}
+
+	AActor* Attacker = nullptr;
+	auto AttackerIt = GSuccessfulParryAttackers.find(Key);
+	if (AttackerIt != GSuccessfulParryAttackers.end())
+	{
+		Attacker = AttackerIt->second.Get();
+		GSuccessfulParryAttackers.erase(AttackerIt);
+	}
+
+	GSuccessfulParryMeshes.erase(SuccessIt);
+	return Attacker;
 }

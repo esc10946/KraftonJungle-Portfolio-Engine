@@ -39,6 +39,9 @@ void UParticleModuleSpawn::GetRateSpawnAmount(FParticleEmitterInstance* Owner, f
 
 	const float SafeRate = std::max(0.0f, SampledRate);
 	const float SafeRateScale = std::max(0.0f, SampledRateScale);
+	const float RuntimeScale = Owner && Owner->GetComponent()
+		? std::max(0.0f, Owner->GetComponent()->GetRuntimeSpawnRateScale())
+		: 1.0f;
 
-	OutSpawnAmount = SafeRate * SafeRateScale * SafeDeltaTime;
+	OutSpawnAmount = SafeRate * SafeRateScale * RuntimeScale * SafeDeltaTime;
 }

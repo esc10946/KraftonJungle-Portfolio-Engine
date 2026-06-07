@@ -13,8 +13,11 @@
 #include "Component/Animation/CharacterLocomotionComponent.h"
 #include "Component/Combat/CombatStateComponent.h"
 #include "Component/Movement/CharacterMovementComponent.h"
+#include "Component/Particle/ParticleSystemComponent.h"
+#include "Component/PrimitiveComponent.h"
 #include "Component/Primitive/SkeletalMeshComponent.h"
 #include "Component/Primitive/StaticMeshComponent.h"
+#include "Core/Types/CollisionTypes.h"
 #include "Engine/GameFramework/World.h"
 #include "Engine/GameFramework/GameMode/PlayerController.h"
 #include "Engine/GameFramework/Camera/PlayerCameraManager.h"
@@ -30,6 +33,8 @@
 #include "Engine/Core/Logging/Log.h"
 #include "Engine/Viewport/GameViewportClient.h"
 #include "Engine/Viewport/Viewport.h"
+#include "Particle/ParticleSystem.h"
+#include "Particle/ParticleSystemManager.h"
 
 #include <algorithm>
 #include <cmath>
@@ -263,6 +268,54 @@ namespace
 		return WeaponMesh;
 	}
 
+	void LuaPrimitiveSetGenerateOverlapEvents(UPrimitiveComponent* Component, bool bGenerateOverlapEvents)
+	{
+		if (IsValid(Component))
+		{
+			Component->SetGenerateOverlapEvents(bGenerateOverlapEvents);
+		}
+	}
+
+	int32 LuaPrimitiveGetCollisionResponseToChannel(UPrimitiveComponent* Component, int32 Channel)
+	{
+		if (!IsValid(Component))
+		{
+			return static_cast<int32>(ECollisionResponse::Ignore);
+		}
+
+		return static_cast<int32>(
+			Component->GetCollisionResponseToChannel(static_cast<ECollisionChannel>(Channel)));
+	}
+
+	void LuaPrimitiveSetCollisionResponseToChannel(UPrimitiveComponent* Component, int32 Channel, int32 Response)
+	{
+		if (IsValid(Component))
+		{
+			Component->SetCollisionResponseToChannel(
+				static_cast<ECollisionChannel>(Channel),
+				static_cast<ECollisionResponse>(Response));
+		}
+	}
+
+	int32 LuaPrimitiveGetPawnCollisionResponse(UPrimitiveComponent* Component)
+	{
+		if (!IsValid(Component))
+		{
+			return static_cast<int32>(ECollisionResponse::Ignore);
+		}
+
+		return static_cast<int32>(Component->GetCollisionResponseToChannel(ECollisionChannel::Pawn));
+	}
+
+	void LuaPrimitiveSetPawnCollisionResponse(UPrimitiveComponent* Component, int32 Response)
+	{
+		if (IsValid(Component))
+		{
+			Component->SetCollisionResponseToChannel(
+				ECollisionChannel::Pawn,
+				static_cast<ECollisionResponse>(Response));
+		}
+	}
 }
 
 void RegisterGameLuaBindings(sol::state& Lua)
@@ -297,6 +350,17 @@ void RegisterGameLuaBindings(sol::state& Lua)
 			}
 		)
 	);
+
+	sol::object PrimitiveComponentObject = Lua["PrimitiveComponent"];
+	if (PrimitiveComponentObject.is<sol::table>())
+	{
+		sol::table PrimitiveComponent = PrimitiveComponentObject.as<sol::table>();
+		PrimitiveComponent.set_function("SetGenerateOverlapEvents", &LuaPrimitiveSetGenerateOverlapEvents);
+		PrimitiveComponent.set_function("GetCollisionResponseToChannel", &LuaPrimitiveGetCollisionResponseToChannel);
+		PrimitiveComponent.set_function("SetCollisionResponseToChannel", &LuaPrimitiveSetCollisionResponseToChannel);
+		PrimitiveComponent.set_function("GetPawnCollisionResponse", &LuaPrimitiveGetPawnCollisionResponse);
+		PrimitiveComponent.set_function("SetPawnCollisionResponse", &LuaPrimitiveSetPawnCollisionResponse);
+	}
 
 	sol::table Animation = Lua["Animation"].valid() ? Lua["Animation"] : Lua.create_named_table("Animation");
 	Animation.set_function(
@@ -349,6 +413,81 @@ void RegisterGameLuaBindings(sol::state& Lua)
 		[](UAnimInstance* AnimInstance) -> bool
 		{
 			return UAnimNotifyState_ParryWindow::ConsumeSuccessfulParry(AnimInstance);
+		}
+	);
+	Animation.set_function(
+		"ConsumeCounterOpportunityAttacker",
+		[](UAnimInstance* AnimInstance) -> AActor*
+		{
+			return UAnimNotifyState_ParryWindow::ConsumeSuccessfulParryAttacker(AnimInstance);
+		}
+	);
+
+	sol::table Particle = Lua["Particle"].valid() ? Lua["Particle"] : Lua.create_named_table("Particle");
+	Particle.set_function(
+		"SetRuntimeSpawnRateScale",
+		[](UParticleSystemComponent* Component, float Scale)
+		{
+			if (!IsValid(Component))
+			{
+				UE_LOG("[Particle] SetRuntimeSpawnRateScale failed: invalid component");
+				return;
+			}
+
+			Component->SetRuntimeSpawnRateScale(Scale);
+		}
+	);
+	Particle.set_function(
+		"AttachSystemToSocket",
+		[](AActor* Owner, const FString& TemplatePath, const FString& SocketName) -> UParticleSystemComponent*
+		{
+			if (!IsValid(Owner) || TemplatePath.empty() || TemplatePath == "None")
+			{
+				UE_LOG("[Particle] AttachSystemToSocket failed: invalid owner or template path");
+				return nullptr;
+			}
+
+			USkeletalMeshComponent* OwnerMesh = Owner->GetComponentByClass<USkeletalMeshComponent>();
+			if (!IsValid(OwnerMesh))
+			{
+				UE_LOG("[Particle] AttachSystemToSocket failed: owner has no skeletal mesh");
+				return nullptr;
+			}
+
+			if (!OwnerMesh->HasSocket(FName(SocketName)))
+			{
+				UE_LOG("[Particle] AttachSystemToSocket failed: socket not found. Socket='%s'", SocketName.c_str());
+				return nullptr;
+			}
+
+			UParticleSystemComponent* ParticleComponent = Owner->AddComponent<UParticleSystemComponent>();
+			if (!IsValid(ParticleComponent))
+			{
+				UE_LOG("[Particle] AttachSystemToSocket failed: could not create particle component");
+				return nullptr;
+			}
+
+			UParticleSystem* Template = FParticleSystemManager::Get().Load(TemplatePath);
+			if (!IsValid(Template))
+			{
+				UE_LOG("[Particle] AttachSystemToSocket failed: could not load particle system. Path='%s'", TemplatePath.c_str());
+				Owner->RemoveComponent(ParticleComponent);
+				return nullptr;
+			}
+
+			ParticleComponent->SetAutoActivate(false);
+			ParticleComponent->SetTemplate(Template);
+			ParticleComponent->AttachToComponent(OwnerMesh, FName(SocketName));
+			ParticleComponent->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
+			ParticleComponent->SetRelativeRotation(FVector(0.0f, 0.0f, 0.0f));
+			ParticleComponent->SetRelativeScale(FVector(1.0f, 1.0f, 1.0f));
+			ParticleComponent->Deactivate();
+			UE_LOG("[Particle] AttachSystemToSocket success: Owner=%s Socket=%s Template=%s Component=%s",
+				Owner->GetName().c_str(),
+				SocketName.c_str(),
+				TemplatePath.c_str(),
+				ParticleComponent->GetName().c_str());
+			return ParticleComponent;
 		}
 	);
 

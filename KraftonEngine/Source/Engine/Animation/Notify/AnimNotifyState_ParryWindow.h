@@ -3,6 +3,7 @@
 #include "Animation/Notify/AnimNotifyState.h"
 
 class UAnimInstance;
+class AActor;
 
 #include "Source/Engine/Animation/Notify/AnimNotifyState_ParryWindow.generated.h"
 
@@ -22,5 +23,7 @@ public:
 
 	static bool IsParryWindowActive(UAnimInstance* AnimInstance);
 	static bool ReportSuccessfulParry(UAnimInstance* AnimInstance);
+	static bool ReportSuccessfulParry(UAnimInstance* AnimInstance, AActor* Attacker);
 	static bool ConsumeSuccessfulParry(UAnimInstance* AnimInstance);
+	static AActor* ConsumeSuccessfulParryAttacker(UAnimInstance* AnimInstance);
 };

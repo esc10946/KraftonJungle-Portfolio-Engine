@@ -12,6 +12,7 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FCombatStaggerSignature, class UCombatState
 DECLARE_MULTICAST_DELEGATE_OneParam(FCombatStateSignature, class UCombatStateComponent*);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FCombatPerilousSignature, class UCombatStateComponent*, EPerilousType);
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FCombatDeflectSignature, class UCombatStateComponent*, EDeflectGrade, AActor*);
+DECLARE_MULTICAST_DELEGATE_FourParams(FPostureChangedSignature, class UCombatStateComponent*, float, float, float);
 
 UCLASS()
 class UCombatStateComponent : public UActorComponent
@@ -57,6 +58,12 @@ public:
 	void StopStagger();
 	UFUNCTION(Pure, Category="Combat|Poise")
 	float GetPoiseRatio() const;
+	UFUNCTION(Pure, Category="Combat|Poise")
+	float GetPostureRatio() const;
+	UFUNCTION(Pure, Category="Combat|Poise")
+	float GetCurrentPoise() const { return CurrentPoise; }
+	UFUNCTION(Pure, Category="Combat|Poise")
+	float GetMaxPoise() const { return MaxPoise; }
 
 	// ── Attack threat broadcast ──
 	// 공격을 시작한 액터가 자신의 CombatState 에 "지금 공격 중" 을 표시한다(MarkAttacking).
@@ -165,12 +172,14 @@ public:
 	FCombatStateSignature OnStaggerEnded;
 	FCombatPerilousSignature OnPerilousCue;
 	FCombatDeflectSignature OnDeflectResolved;
+	FPostureChangedSignature OnPostureChanged;
 	// 자세가 0이 되는 순간 발행 — ExecutionComponent 가 받아 데스블로우 창을 연다.
 	// 자세 붕괴와 "처형으로 전환"을 분리하기 위한 신호. 리스너가 없으면 종전처럼 stagger 만 일어난다.
 	FCombatStateSignature OnPostureBroken;
 
 private:
 	float GetHealthRatioSafe() const;
+	bool SetPoiseValue(float NewPoise);
 
 	bool bStaggered = false;
 	float StaggerRemainingTime = 0.0f;

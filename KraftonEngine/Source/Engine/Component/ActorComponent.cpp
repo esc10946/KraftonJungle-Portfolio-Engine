@@ -8,10 +8,22 @@ HIDE_FROM_COMPONENT_LIST(UActorComponent)
 
 void UActorComponent::BeginPlay()
 {
+	if (bHasBegunPlay)
+	{
+		return;
+	}
+
+	bHasBegunPlay = true;
+
 	if (bAutoActivate)
 	{
 		Activate();
 	}
+}
+
+void UActorComponent::EndPlay()
+{
+	bHasBegunPlay = false;
 }
 
 void UActorComponent::Activate()
@@ -91,6 +103,7 @@ void UActorComponent::RouteComponentDestroyed()
 	bComponentDestroyRouted = true;
 	PrimaryComponentTick.UnRegisterTickFunction();
 	DestroyRenderState();
+	bHasBegunPlay = false;
 
 	if (AActor* OwnerActor = GetOwnerEvenIfPendingKill())
 	{

@@ -11,6 +11,7 @@
 #include "Source/Engine/Animation/Notify/AnimNotifyState_AttackHitWindow.generated.h"
 
 class AActor;
+class UPrimitiveComponent;
 class USkeletalMeshComponent;
 
 // 히트 시 대상에게 줄 충격 방향. UActionComponent::Knockback 의 Direction 인자로 사용.
@@ -28,6 +29,15 @@ inline const char* GAttackKnockbackModeNames[] = {
 	"AwayFromAttacker",
 };
 inline constexpr uint32 GAttackKnockbackModeCount = sizeof(GAttackKnockbackModeNames) / sizeof(GAttackKnockbackModeNames[0]);
+
+struct FAttackHitWindowPendingHit
+{
+	TWeakObjectPtr<AActor> Target;
+	TWeakObjectPtr<UPrimitiveComponent> HitComponent;
+	FCombatDamageSpec DamageSpec;
+	FVector Center = FVector::ZeroVector;
+	float ElapsedSeconds = 0.0f;
+};
 
 UCLASS()
 class UAnimNotifyState_AttackHitWindow : public UAnimNotifyState
@@ -103,6 +113,12 @@ public:
 	UPROPERTY(Edit, Save, Category="AttackHitWindow", DisplayName="Allow Parry")
 	bool bAllowParry = true;
 
+	UPROPERTY(Edit, Save, Category="AttackHitWindow", DisplayName="Delay Damage For Parry")
+	bool bDelayDamageForParry = false;
+
+	UPROPERTY(Edit, Save, Category="AttackHitWindow", DisplayName="Parry Resolve Delay", Min=0.0f, Max=1.0f, Speed=0.01f)
+	float ParryResolveDelay = 0.12f;
+
 	UPROPERTY(Edit, Save, Category="AttackHitWindow", DisplayName="Ragdoll Owner On Parry")
 	bool bRagdollOwnerOnParry = true;
 
@@ -117,7 +133,13 @@ public:
 	void NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Anim) override;
 
 private:
+	bool ResolveParryHit(AActor* Owner, AActor* Target, UPrimitiveComponent* HitComponent, const FCombatDamageSpec& DamageSpec, const FVector& Center);
+	void ResolveDamageHit(AActor* Owner, AActor* Target, UPrimitiveComponent* HitComponent, const FCombatDamageSpec& DamageSpec, const FVector& Center);
+	void ResolvePendingHits(USkeletalMeshComponent* MeshComp, float DeltaTime, bool bForceResolve);
+	void QueueDelayedHit(USkeletalMeshComponent* MeshComp, AActor* Target, UPrimitiveComponent* HitComponent, const FCombatDamageSpec& DamageSpec, const FVector& Center);
+
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, TSet<TWeakObjectPtr<AActor>>> HitActorsByMesh;
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, TSet<TWeakObjectPtr<AActor>>> MissLoggedActorsByMesh;
+	TMap<TWeakObjectPtr<USkeletalMeshComponent>, TArray<FAttackHitWindowPendingHit>> PendingHitsByMesh;
 	TSet<TWeakObjectPtr<USkeletalMeshComponent>> NoTargetLoggedMeshes;
 };

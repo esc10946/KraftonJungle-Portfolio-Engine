@@ -1101,6 +1101,7 @@ void FParticleEmitterInstance::SpawnParticles(float DeltaTime)
 	if (!LOD || !LOD->bEnabled) return;
 	if (!LOD->SpawnModule) return;
 	if (!IsSpawningAllowed()) return;
+	if (Component && Component->GetRuntimeSpawnRateScale() <= 0.0f) return;
 
 	UParticleModuleSpawn* SpawnModule = LOD->SpawnModule;
 
