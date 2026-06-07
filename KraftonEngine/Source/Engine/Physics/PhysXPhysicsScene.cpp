@@ -2,9 +2,12 @@
 
 #include "Component/PrimitiveComponent.h"
 #include "Component/Primitive/SkeletalMeshComponent.h"
+#include "Component/Primitive/StaticMeshComponent.h"
 #include "Component/Shape/BoxComponent.h"
 #include "Component/Shape/CapsuleComponent.h"
 #include "Component/Shape/SphereComponent.h"
+#include "Mesh/Static/StaticMesh.h"
+#include "Mesh/Static/StaticMeshAsset.h"
 #include "Core/ProjectSettings.h"
 #include "Core/Logging/Log.h"
 #include "GameFramework/AActor.h"
@@ -69,6 +72,7 @@ static PxDefaultAllocator GPhysXAllocator;
 // ============================================================
 static PxFoundation* GSharedFoundation            = nullptr;
 static PxPhysics*    GSharedPhysics               = nullptr;
+static PxCooking*    GSharedCooking               = nullptr;
 static bool          GSharedExtensionsInitialized = false;
 static int32         GSharedRefCount              = 0;
 static bool          GSharedVehicleSDKInitialized = false;
@@ -107,6 +111,14 @@ static void AcquireSharedPhysX(PxFoundation*& OutFoundation, PxPhysics*& OutPhys
                     PxVehicleSetBasisVectors(PxVec3(0.0f, 0.0f, 1.0f), PxVec3(1.0f, 0.0f, 0.0f));
                     PxVehicleSetUpdateMode(PxVehicleUpdateMode::eVELOCITY_CHANGE);
                     GSharedVehicleSDKInitialized = true;
+
+                    // 정적 메시 콜라이더를 런타임에 triangle mesh 로 쿠킹하기 위한 cooking 객체.
+                    PxCookingParams CookingParams(GSharedPhysics->getTolerancesScale());
+                    GSharedCooking = PxCreateCooking(PX_PHYSICS_VERSION, *GSharedFoundation, CookingParams);
+                    if (!GSharedCooking)
+                    {
+                        UE_LOG("[PhysX] Failed to create cooking; static meshes fall back to AABB collision");
+                    }
                 }
             }
         }
@@ -143,6 +155,11 @@ static void ReleaseSharedPhysX()
         {
             PxCloseExtensions();
             GSharedExtensionsInitialized = false;
+        }
+        if (GSharedCooking)
+        {
+            GSharedCooking->release();
+            GSharedCooking = nullptr;
         }
         if (GSharedPhysics)
         {
@@ -1369,6 +1386,9 @@ void FPhysXPhysicsScene::Shutdown()
 
     GameThreadBindings.clear();
 
+    // 셰이프가 모두 해제된 뒤(Runtime.Shutdown) 캐시가 들고 있던 ref 를 풀어 쿠킹 메시를 정리한다.
+    ReleaseCookedTriangleMeshes();
+
     if (DefaultMaterial)
     {
         DefaultMaterial->release();
@@ -1654,25 +1674,129 @@ FPhysicsShapeDesc FPhysXPhysicsScene::BuildShapeDescFromComponent_GameThread(
     }
     else
     {
-        const FBoundingBox Bounds      = Comp->GetWorldBoundingBox();
-        const FVector      WorldCenter = Bounds.GetCenter();
-        FVector            WorldExtent = Bounds.GetExtent();
+        // 스태틱 메시는 실제 삼각형 지오메트리로 쿠킹해 콜라이더를 만든다.
+        // PxTriangleMeshGeometry 는 시뮬레이션하는(non-kinematic) dynamic body 에는 붙일 수 없지만
+        // static / kinematic body 에는 허용된다. arena 처럼 kinematic 인 월드 지오메트리도 포함해야
+        // 하므로 IsKinematic 이 아니라 GetSimulatePhysics 만으로 폴백 여부를 가른다.
+        const bool bOwnerSimulatesPhysics =
+                RootComponent && RootComponent->GetSimulatePhysics();
 
-        if (WorldExtent.X <= 0.0f || WorldExtent.Y <= 0.0f || WorldExtent.Z <= 0.0f)
+        PxTriangleMesh* CookedMesh = nullptr;
+        if (!bOwnerSimulatesPhysics)
         {
-            WorldExtent = FVector(0.5f, 0.5f, 0.5f);
+            if (auto* MeshComp = Cast<UStaticMeshComponent>(Comp))
+            {
+                CookedMesh = GetOrCookTriangleMesh_GameThread(MeshComp);
+            }
         }
 
-        Desc.Type           = EPhysicsShapeType::Box;
-        Desc.BoxHalfExtent  = WorldExtent;
-        Desc.LocalTransform = MakeRelativeTransformFromWorld_GameThread(
-            WorldCenter,
-            GetComponentWorldRotationNoScale_GameThread(Comp),
-            RootComponent
-        );
+        if (CookedMesh)
+        {
+            // 정점은 메시 로컬 공간이라 LocalTransform(루트 기준 식별 변환)은 그대로 두고,
+            // 월드 스케일만 PxMeshScale 로 전달한다.
+            Desc.Type         = EPhysicsShapeType::TriangleMesh;
+            Desc.TriangleMesh = CookedMesh;
+            Desc.MeshScale    = Comp->GetWorldScale();
+        }
+        else
+        {
+            const FBoundingBox Bounds      = Comp->GetWorldBoundingBox();
+            const FVector      WorldCenter = Bounds.GetCenter();
+            FVector            WorldExtent = Bounds.GetExtent();
+
+            if (WorldExtent.X <= 0.0f || WorldExtent.Y <= 0.0f || WorldExtent.Z <= 0.0f)
+            {
+                WorldExtent = FVector(0.5f, 0.5f, 0.5f);
+            }
+
+            Desc.Type           = EPhysicsShapeType::Box;
+            Desc.BoxHalfExtent  = WorldExtent;
+            Desc.LocalTransform = MakeRelativeTransformFromWorld_GameThread(
+                WorldCenter,
+                GetComponentWorldRotationNoScale_GameThread(Comp),
+                RootComponent
+            );
+        }
     }
 
     return Desc;
+}
+
+physx::PxTriangleMesh* FPhysXPhysicsScene::GetOrCookTriangleMesh_GameThread(UStaticMeshComponent* MeshComp) const
+{
+    if (!MeshComp || !GSharedCooking || !GSharedPhysics)
+    {
+        return nullptr;
+    }
+
+    UStaticMesh* StaticMesh = MeshComp->GetStaticMesh();
+    if (!StaticMesh)
+    {
+        return nullptr;
+    }
+
+    FStaticMesh* Asset = StaticMesh->GetStaticMeshAsset();
+    if (!Asset || Asset->Vertices.empty() || Asset->Indices.size() < 3)
+    {
+        return nullptr;
+    }
+
+    const FString CacheKey = StaticMesh->GetAssetPathFileName();
+    const bool    bCacheable = !CacheKey.empty() && CacheKey != "None";
+    if (bCacheable)
+    {
+        auto It = CookedTriangleMeshCache.find(CacheKey);
+        if (It != CookedTriangleMeshCache.end())
+        {
+            return It->second;
+        }
+    }
+
+    // FNormalVertex 는 첫 멤버가 pos(FVector, 3 floats)라 stride 만 맞추면 위치를 바로 읽을 수 있다.
+    PxTriangleMeshDesc MeshDesc;
+    MeshDesc.points.count     = static_cast<PxU32>(Asset->Vertices.size());
+    MeshDesc.points.stride    = sizeof(FNormalVertex);
+    MeshDesc.points.data      = Asset->Vertices.data();
+    MeshDesc.triangles.count  = static_cast<PxU32>(Asset->Indices.size() / 3);
+    MeshDesc.triangles.stride = 3 * sizeof(uint32);
+    MeshDesc.triangles.data   = Asset->Indices.data();
+
+    if (!MeshDesc.isValid())
+    {
+        UE_LOG("[PhysX] Triangle mesh desc invalid for '%s' (verts=%zu, tris=%zu); using AABB fallback",
+            CacheKey.c_str(), Asset->Vertices.size(), Asset->Indices.size() / 3);
+        return nullptr;
+    }
+
+    PxTriangleMesh* Cooked =
+        GSharedCooking->createTriangleMesh(MeshDesc, GSharedPhysics->getPhysicsInsertionCallback());
+
+    if (!Cooked)
+    {
+        UE_LOG("[PhysX] Triangle mesh cook failed for '%s'; using AABB fallback", CacheKey.c_str());
+        return nullptr;
+    }
+
+    UE_LOG("[PhysX] Cooked triangle mesh collider for '%s' (verts=%zu, tris=%zu)",
+        CacheKey.c_str(), Asset->Vertices.size(), Asset->Indices.size() / 3);
+
+    if (bCacheable)
+    {
+        CookedTriangleMeshCache.emplace(CacheKey, Cooked);
+    }
+    return Cooked;
+}
+
+void FPhysXPhysicsScene::ReleaseCookedTriangleMeshes()
+{
+    for (auto& Pair : CookedTriangleMeshCache)
+    {
+        if (Pair.second)
+        {
+            Pair.second->release();
+        }
+    }
+    CookedTriangleMeshCache.clear();
 }
 
 FPhysicsBodyCreatePayload FPhysXPhysicsScene::BuildRegisterPayload_GameThread(

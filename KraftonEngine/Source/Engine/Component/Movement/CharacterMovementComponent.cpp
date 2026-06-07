@@ -376,13 +376,20 @@ void UCharacterMovementComponent::ApplyInputToVelocity(const FVector& Input, flo
 		}
 	}
 
-	FVector V2D(Velocity.X, Velocity.Y, 0.0f);
-	const float Speed2D = V2D.Length();
-	if (Speed2D > MaxWalkSpeed)
+	// 수평 속도 상한은 "지상 이동" 또는 "입력으로 조향 중"일 때만 적용한다.
+	// 공중에서 입력 없이 받은 외부 임펄스(백점프/넉백)는 자르지 않아야 임펄스가 그대로 거리로 환산된다.
+	// (이전엔 모드/입력 무관하게 매 틱 클램프해, LeapHorizontalForce 가 MaxWalkSpeed 로 깎여 "제자리 점프" 가 났다.)
+	const bool bClampToWalkSpeed = (MovementMode == EMovementMode::Walking) || (InputLen > 0.0f);
+	if (bClampToWalkSpeed)
 	{
-		const FVector Dir = V2D * (1.0f / Speed2D);
-		Velocity.X = Dir.X * MaxWalkSpeed;
-		Velocity.Y = Dir.Y * MaxWalkSpeed;
+		FVector V2D(Velocity.X, Velocity.Y, 0.0f);
+		const float Speed2D = V2D.Length();
+		if (Speed2D > MaxWalkSpeed)
+		{
+			const FVector Dir = V2D * (1.0f / Speed2D);
+			Velocity.X = Dir.X * MaxWalkSpeed;
+			Velocity.Y = Dir.Y * MaxWalkSpeed;
+		}
 	}
 }
 

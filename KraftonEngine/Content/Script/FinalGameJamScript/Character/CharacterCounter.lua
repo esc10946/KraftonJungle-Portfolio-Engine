@@ -5,6 +5,12 @@ local State = require("FinalGameJamScript/Character/CharacterState")
 
 local Counter = {}
 
+local function counter_debug_log(ctx, message)
+    if ctx ~= nil and ctx.config ~= nil and ctx.config.COUNTER_DEBUG_LOGS then
+        print(message)
+    end
+end
+
 local function atan2_degrees(y, x)
     if math.atan2 ~= nil then
         return math.deg(math.atan2(y, x))
@@ -42,10 +48,52 @@ local function lerp_vec(a, b, alpha)
     return a + (b - a) * alpha
 end
 
+local function get_owner_location(ctx)
+    if ctx ~= nil and ctx.obj ~= nil and ctx.obj.Location ~= nil then
+        return ctx.obj.Location
+    end
+
+    return nil
+end
+
 local function load_counter_montage(ctx)
     if ctx.cache.counterMontage == nil then
         ctx.cache.counterMontage = Context.LoadMontage(ctx.config.COUNTER_MONTAGE_PATH)
     end
+end
+
+local function load_counter_sounds(ctx)
+    if ctx == nil or ctx.cache == nil or ctx.config == nil then
+        return
+    end
+
+    if ctx.cache.counterParrySoundLoaded then
+        return
+    end
+
+    if Audio == nil or Audio.Load == nil then
+        return
+    end
+
+    local key = ctx.config.COUNTER_PARRY_SOUND_KEY or "Counter_Parry1"
+    local path = ctx.config.COUNTER_PARRY_SOUND_PATH or "Parry1.wav"
+    Audio.Load(key, path, false)
+    ctx.cache.counterParrySoundLoaded = true
+end
+
+local function play_counter_parry_sound(ctx)
+    if ctx == nil or ctx.config == nil then
+        return
+    end
+
+    if Audio == nil or Audio.Play == nil then
+        return
+    end
+
+    load_counter_sounds(ctx)
+    local key = ctx.config.COUNTER_PARRY_SOUND_KEY or "Counter_Parry1"
+    local volume = ctx.config.COUNTER_PARRY_SOUND_VOLUME or 0.6
+    Audio.Play(key, volume)
 end
 
 local function set_particle_spawn_scale(particle, scale)
@@ -60,20 +108,52 @@ local function set_particle_spawn_scale(particle, scale)
     end
 end
 
-local function activate_counter_impact_particle(ctx, hitLocation)
-    if hitLocation == nil or Particle == nil then
-        return
+local function create_counter_impact_particle(ctx, location)
+    if ctx == nil or ctx.cache == nil or ctx.config == nil or Particle == nil then
+        return nil
     end
 
     local particle = ctx.cache.counterImpactParticle
-    if particle == nil and Particle.SpawnSystemAtLocation ~= nil then
-        particle = Particle.SpawnSystemAtLocation(ctx.obj, ctx.config.COUNTER_PARTICLE_PATH, hitLocation)
-        ctx.cache.counterImpactParticle = particle
+    if particle ~= nil then
+        return particle
     end
 
+    if Particle.SpawnSystemAtLocation == nil then
+        return nil
+    end
+
+    local spawnLocation = location or get_owner_location(ctx)
+    if spawnLocation == nil then
+        return nil
+    end
+
+    particle = Particle.SpawnSystemAtLocation(ctx.obj, ctx.config.COUNTER_PARTICLE_PATH, spawnLocation)
+    ctx.cache.counterImpactParticle = particle
     if particle == nil then
-        print("[CharacterCounter] impact particle spawn failed")
-        return
+        counter_debug_log(ctx, "[CharacterCounter] impact particle spawn failed")
+        return nil
+    end
+
+    if Particle.SetSystemWorldScale ~= nil then
+        Particle.SetSystemWorldScale(particle, ctx.config.COUNTER_IMPACT_PARTICLE_SCALE)
+    end
+    set_particle_spawn_scale(particle, 0.0)
+    if particle.ResetParticles ~= nil then
+        particle:ResetParticles()
+    end
+
+    return particle
+end
+
+local function activate_counter_impact_particle(ctx, hitLocation)
+    if hitLocation == nil or Particle == nil then
+        return false
+    end
+
+    local particle = create_counter_impact_particle(ctx, hitLocation)
+    if particle == nil then
+        counter_debug_log(ctx, "[CharacterCounter] impact particle spawn failed")
+        return false
     end
 
     if Particle.SetSystemWorldLocation ~= nil then
@@ -89,6 +169,8 @@ local function activate_counter_impact_particle(ctx, hitLocation)
     if particle.Activate ~= nil then
         particle:Activate(true)
     end
+
+    return true
 end
 
 local function deactivate_counter_impact_particle(ctx)
@@ -104,20 +186,21 @@ local function deactivate_counter_impact_particle(ctx)
 end
 
 local function play_counter_particles(ctx, hitLocation)
-    print("[CharacterCounter] play counter particles")
-    activate_counter_impact_particle(ctx, hitLocation)
+    counter_debug_log(ctx, "[CharacterCounter] play counter particles")
+    if activate_counter_impact_particle(ctx, hitLocation) then
+        play_counter_parry_sound(ctx)
+    end
     ctx.state.counterParticleTimeRemaining = ctx.config.COUNTER_PARTICLE_DURATION
 end
 
 local function play_counter_slomo(ctx)
     local action = Context.GetActionComponent(ctx)
     if action == nil or action.Slomo == nil then
-        print("[Slomo] : skipped, ActionComponent or Slomo binding missing")
+        counter_debug_log(ctx, "[Slomo] : skipped, ActionComponent or Slomo binding missing")
         return
     end
 
-    --Slow world briefly on counter success--
-    print("[Slomo] : play duration=" .. string.format("%.3f", ctx.config.COUNTER_SLOMO_DURATION)
+    counter_debug_log(ctx, "[Slomo] : play duration=" .. string.format("%.3f", ctx.config.COUNTER_SLOMO_DURATION)
         .. " dilation=" .. string.format("%.3f", ctx.config.COUNTER_SLOMO_TIME_DILATION))
     action:Slomo(ctx.config.COUNTER_SLOMO_DURATION, ctx.config.COUNTER_SLOMO_TIME_DILATION)
 end
@@ -375,6 +458,8 @@ end
 
 function Counter.BeginPlay(ctx)
     load_counter_montage(ctx)
+    load_counter_sounds(ctx)
+    create_counter_impact_particle(ctx, get_owner_location(ctx))
 end
 
 function Counter.Tick(ctx, dt)

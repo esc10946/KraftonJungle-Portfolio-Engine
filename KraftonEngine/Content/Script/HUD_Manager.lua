@@ -34,6 +34,7 @@ local ENEMY_BAR_FALLBACK_HEAD_OFFSET_Z = 1.05
 local ENEMY_BAR_MAX_DISTANCE = 40.0
 local ENEMY_BAR_SCREEN_EDGE_PADDING = 6.0
 local ENEMY_BAR_UPDATE_INTERVAL = 1.0 / 60.0
+local ENEMY_ACTOR_REFRESH_INTERVAL = 0.5
 local ENEMY_BAR_CHANGE_REVEAL_SECONDS = 3.0
 local ENEMY_BAR_COMBAT_VISIBILITY_GRACE_SECONDS = 0.5
 local ENEMY_BAR_RATIO_CHANGE_EPSILON = 0.0001
@@ -76,6 +77,9 @@ local slotEnemyIdByIndex = {}
 local enemyVisibilityById = {}
 local lockOnEnemyId = nil
 local enemyBarUpdateElapsed = 0.0
+local enemyActorRefreshElapsed = ENEMY_ACTOR_REFRESH_INTERVAL
+local cachedEnemyActors = {}
+local cachedEnemyIds = {}
 local hudTimeSeconds = 0.0
 
 local function clamp01(value)
@@ -465,6 +469,45 @@ local function is_boss_enemy(enemy)
     return is_valid_object(safe_call(enemy, "GetEncounterComponent"))
 end
 
+local function cache_enemy_actor(enemy)
+    if not is_valid_object(enemy) then
+        return
+    end
+
+    local enemyId = get_actor_id(enemy)
+
+    if enemyId == nil or cachedEnemyIds[enemyId] == true then
+        return
+    end
+
+    cachedEnemyIds[enemyId] = true
+    cachedEnemyActors[#cachedEnemyActors + 1] = enemy
+end
+
+local function refresh_enemy_actor_cache()
+    if enemyActorRefreshElapsed < ENEMY_ACTOR_REFRESH_INTERVAL then
+        return cachedEnemyActors
+    end
+
+    enemyActorRefreshElapsed = 0.0
+    cachedEnemyActors = {}
+    cachedEnemyIds = {}
+
+    if World == nil or World.FindActorsByTag == nil then
+        return cachedEnemyActors
+    end
+
+    local enemies = World.FindActorsByTag(ENEMY_BAR_ACTOR_TAG)
+
+    if enemies ~= nil then
+        for _, enemy in ipairs(enemies) do
+            cache_enemy_actor(enemy)
+        end
+    end
+
+    return cachedEnemyActors
+end
+
 local function get_enemy_visibility_state(enemyId)
     local state = enemyVisibilityById[enemyId]
 
@@ -483,7 +526,8 @@ local function resolve_enemy_visibility_id(enemyOrId)
         return id
     end
 
-    if is_valid_object(enemyOrId) then
+    local valueType = type(enemyOrId)
+    if (valueType == "userdata" or valueType == "table") and is_valid_object(enemyOrId) then
         return get_actor_id(enemyOrId)
     end
 
@@ -666,11 +710,7 @@ local function collect_enemy_bar_candidates()
         return candidates
     end
 
-    local enemies = World.FindActorsByTag(ENEMY_BAR_ACTOR_TAG)
-
-    if enemies == nil then
-        return candidates
-    end
+    local enemies = refresh_enemy_actor_cache()
 
     local viewport = Engine.GetViewportSize and Engine.GetViewportSize() or nil
     local centerX = viewport and (tonumber(viewport.Width) or 0.0) * 0.5 or 0.0
@@ -692,26 +732,27 @@ local function collect_enemy_bar_candidates()
 
                 update_enemy_visibility_ratios(enemyId, hpRatio, postureRatio)
 
-                local anchor = get_enemy_anchor(enemy)
-                local screen = anchor and Engine.ProjectWorldToScreen(anchor) or nil
+                if is_enemy_visibility_requested(enemy, enemyId) then
+                    local anchor = get_enemy_anchor(enemy)
+                    local screen = anchor and Engine.ProjectWorldToScreen(anchor) or nil
 
-                if screen ~= nil
-                    and screen.Visible == true
-                    and is_enemy_visibility_requested(enemy, enemyId)
-                    and not is_enemy_bar_too_far(screen)
-                    and is_enemy_bar_inside_safe_area(screen) then
-                    local dx = (tonumber(screen.X) or 0.0) - centerX
-                    local dy = (tonumber(screen.Y) or 0.0) - centerY
+                    if screen ~= nil
+                        and screen.Visible == true
+                        and not is_enemy_bar_too_far(screen)
+                        and is_enemy_bar_inside_safe_area(screen) then
+                        local dx = (tonumber(screen.X) or 0.0) - centerX
+                        local dy = (tonumber(screen.Y) or 0.0) - centerY
 
-                    candidates[#candidates + 1] = {
-                        id = enemyId,
-                        x = tonumber(screen.X) or 0.0,
-                        y = tonumber(screen.Y) or 0.0,
-                        hp = hpRatio,
-                        posture = postureRatio,
-                        score = dx * dx + dy * dy,
-                        hasSlot = enemySlotById[enemyId] ~= nil,
-                    }
+                        candidates[#candidates + 1] = {
+                            id = enemyId,
+                            x = tonumber(screen.X) or 0.0,
+                            y = tonumber(screen.Y) or 0.0,
+                            hp = hpRatio,
+                            posture = postureRatio,
+                            score = dx * dx + dy * dy,
+                            hasSlot = enemySlotById[enemyId] ~= nil,
+                        }
+                    end
                 end
             end
         end
@@ -1006,6 +1047,11 @@ function HideAllEnemyHealthBars()
 end
 
 function SetEnemyHealthBarActorVisible(enemyOrId, visible, durationSeconds)
+    local valueType = type(enemyOrId)
+    if (valueType == "userdata" or valueType == "table") and is_valid_object(enemyOrId) then
+        cache_enemy_actor(enemyOrId)
+    end
+
     local enemyId = resolve_enemy_visibility_id(enemyOrId)
 
     if enemyId == nil then
@@ -1128,6 +1174,7 @@ function BeginPlay()
     HideAllEnemyHealthBars()
     SetBossHUDVisible(false)
     enemyBarUpdateElapsed = ENEMY_BAR_UPDATE_INTERVAL
+    enemyActorRefreshElapsed = ENEMY_ACTOR_REFRESH_INTERVAL
 
     SetPlayerHpRatio(1.0)
     bind_player_pawn_events()
@@ -1159,6 +1206,9 @@ function EndPlay()
     lastTokenVisible = nil
     enemyBarStates = {}
     enemyBarUpdateElapsed = 0.0
+    enemyActorRefreshElapsed = ENEMY_ACTOR_REFRESH_INTERVAL
+    cachedEnemyActors = {}
+    cachedEnemyIds = {}
     hudTimeSeconds = 0.0
     clear_enemy_slot_mapping()
     clear_enemy_visibility_state()
@@ -1168,6 +1218,7 @@ function Tick(dt)
     dt = tonumber(dt) or 0.0
     hudTimeSeconds = hudTimeSeconds + dt
     enemyBarUpdateElapsed = enemyBarUpdateElapsed + dt
+    enemyActorRefreshElapsed = enemyActorRefreshElapsed + dt
     update_hp_damage_trails(dt)
     update_player_posture_effect()
 

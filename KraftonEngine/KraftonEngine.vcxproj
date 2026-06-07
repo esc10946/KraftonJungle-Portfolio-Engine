@@ -505,6 +505,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Engine\Animation\Notify\AnimNotifyState_LogDuration.cpp" />
     <ClCompile Include="Source\Engine\Animation\Notify\AnimNotifyState_ParryWindow.cpp" />
     <ClCompile Include="Source\Engine\Animation\Notify\AnimNotifyState_Particle.cpp" />
+    <ClCompile Include="Source\Engine\Animation\Notify\AnimNotify_CameraShake.cpp" />
     <ClCompile Include="Source\Engine\Animation\Notify\AnimNotify_EnableAttack.cpp" />
     <ClCompile Include="Source\Engine\Animation\Notify\AnimNotify_LogMessage.cpp" />
     <ClCompile Include="Source\Engine\Animation\Notify\AnimNotify_PlaySound.cpp" />
@@ -636,6 +637,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Engine\GameFramework\Camera\CameraModifier.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\Camera\CameraShakeBase.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\Camera\CameraShakeCameraModifier.cpp" />
+    <ClCompile Include="Source\Engine\GameFramework\Camera\PerlinNoiseCameraShake.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\Camera\PlayerCameraManager.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\Camera\SequenceCameraShake.cpp" />
     <ClCompile Include="Source\Engine\GameFramework\Camera\WaveOscillatorCameraShake.cpp" />
@@ -1005,6 +1007,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\Animation\Notify\AnimNotifyState_LogDuration.h" />
     <ClInclude Include="Source\Engine\Animation\Notify\AnimNotifyState_ParryWindow.h" />
     <ClInclude Include="Source\Engine\Animation\Notify\AnimNotifyState_Particle.h" />
+    <ClInclude Include="Source\Engine\Animation\Notify\AnimNotify_CameraShake.h" />
     <ClInclude Include="Source\Engine\Animation\Notify\AnimNotify_EnableAttack.h" />
     <ClInclude Include="Source\Engine\Animation\Notify\AnimNotify_LogMessage.h" />
     <ClInclude Include="Source\Engine\Animation\Notify\AnimNotify_PlaySound.h" />
@@ -1156,6 +1159,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\GameFramework\Camera\CameraShakeBase.h" />
     <ClInclude Include="Source\Engine\GameFramework\Camera\CameraShakeCameraModifier.h" />
     <ClInclude Include="Source\Engine\GameFramework\Camera\CameraTypes.h" />
+    <ClInclude Include="Source\Engine\GameFramework\Camera\PerlinNoiseCameraShake.h" />
     <ClInclude Include="Source\Engine\GameFramework\Camera\PlayerCameraManager.h" />
     <ClInclude Include="Source\Engine\GameFramework\Camera\SequenceCameraShake.h" />
     <ClInclude Include="Source\Engine\GameFramework\Camera\WaveOscillatorCameraShake.h" />
