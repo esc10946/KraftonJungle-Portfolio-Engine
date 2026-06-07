@@ -52,19 +52,13 @@ struct FMaterialResult
 
 Texture2D Tex_Diffuse : register(t0);
 
-cbuffer PerMaterial : register(b3)
-{
-    float Param_Scalar;
-    float3 _Pad0;
-};
-
 FMaterialResult EvaluateMaterial(FMaterialPixelInput Input)
 {
     float4 n_17 = Tex_Diffuse.Sample(LinearWrapSampler, Input.UV0);
-    float n_74 = Param_Scalar;
-    float3 n_87 = ((n_17).rgb * float3(n_74, n_74, n_74));
     float4 n_34 = Input.ParticleColor;
+    float3 n_46 = ((n_17).rgb * (n_34).rgb);
     float n_96 = ((n_17).a * (n_34).a);
+    float3 n_87 = (n_46 * float3(n_96, n_96, n_96));
     FMaterialResult Result;
     Result.Color = float3(0, 0, 0);
     Result.Emissive = n_87;

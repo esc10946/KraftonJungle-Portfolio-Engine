@@ -47,14 +47,6 @@ local function load_counter_montage(ctx)
     end
 end
 
-local function get_object_name(value)
-    if value == nil or value.GetName == nil then
-        return "nil"
-    end
-
-    return value:GetName()
-end
-
 local function set_particle_spawn_scale(particle, scale)
     if particle == nil then
         return
@@ -67,79 +59,52 @@ local function set_particle_spawn_scale(particle, scale)
     end
 end
 
-local function get_counter_particle(ctx, socketName)
-    if ctx.cache.counterParticles[socketName] ~= nil then
-        return ctx.cache.counterParticles[socketName]
-    end
-
-    if Particle == nil or Particle.AttachSystemToSocket == nil then
-        print("[CharacterCounter] counter particle failed: Particle.AttachSystemToSocket is not bound")
-        return nil
-    end
-
-    local particle = Particle.AttachSystemToSocket(ctx.obj, ctx.config.COUNTER_PARTICLE_PATH, socketName)
-    if particle == nil then
-        print("[CharacterCounter] counter particle failed: socket=" .. socketName .. " path=" .. ctx.config.COUNTER_PARTICLE_PATH)
-        return nil
-    end
-
-    print("[CharacterCounter] counter particle attached: socket=" .. socketName
-        .. " component=" .. get_object_name(particle))
-    ctx.cache.counterParticles[socketName] = particle
-    return particle
-end
-
-local function prepare_counter_particles(ctx)
-    --Attach counter particles once and replay them on counter start--
-    local rparticle = get_counter_particle(ctx, ctx.config.RCOUNTER_PARTICLE_SOCKET)
-    local lparticle = get_counter_particle(ctx, ctx.config.LCOUNTER_PARTICLE_SOCKET)
-
-    if rparticle ~= nil then
-        set_particle_spawn_scale(rparticle, 0.0)
-        rparticle:Activate(true)
-        rparticle:ResetParticles()
-    end
-
-    if lparticle ~= nil then
-        set_particle_spawn_scale(lparticle, 0.0)
-        lparticle:Activate(true)
-        lparticle:ResetParticles()
-    end
-end
-
-local function activate_counter_particle(ctx, socketName)
-    local particle = get_counter_particle(ctx, socketName)
-    if particle ~= nil and particle.Activate ~= nil then
-        --Replay particle from socket--
-        set_particle_spawn_scale(particle, 1.0)
-        if particle.ResetParticles ~= nil then
-            particle:ResetParticles()
-        end
-        particle:Activate(true)
-        print("[CharacterCounter] counter particle activate: socket=" .. socketName
-            .. " component=" .. get_object_name(particle))
+local function activate_counter_impact_particle(ctx, hitLocation)
+    if hitLocation == nil or Particle == nil then
         return
     end
 
-    print("[CharacterCounter] counter particle activate failed: socket=" .. socketName)
-end
+    local particle = ctx.cache.counterImpactParticle
+    if particle == nil and Particle.SpawnSystemAtLocation ~= nil then
+        particle = Particle.SpawnSystemAtLocation(ctx.obj, ctx.config.COUNTER_PARTICLE_PATH, hitLocation)
+        ctx.cache.counterImpactParticle = particle
+    end
 
-local function deactivate_counter_particle(ctx, socketName)
-    local particle = ctx.cache.counterParticles[socketName]
-    if particle ~= nil then
-        --Stop spawn and clear remaining particles--
-        set_particle_spawn_scale(particle, 0.0)
-        if particle.ResetParticles ~= nil then
-            particle:ResetParticles()
-        end
-        print("[CharacterCounter] counter particle deactivate: socket=" .. socketName)
+    if particle == nil then
+        print("[CharacterCounter] impact particle spawn failed")
+        return
+    end
+
+    if Particle.SetSystemWorldLocation ~= nil then
+        Particle.SetSystemWorldLocation(particle, hitLocation)
+    end
+    if Particle.SetSystemWorldScale ~= nil then
+        Particle.SetSystemWorldScale(particle, ctx.config.COUNTER_IMPACT_PARTICLE_SCALE)
+    end
+    set_particle_spawn_scale(particle, 1.0)
+    if particle.ResetParticles ~= nil then
+        particle:ResetParticles()
+    end
+    if particle.Activate ~= nil then
+        particle:Activate(true)
     end
 end
 
-local function play_counter_particles(ctx)
+local function deactivate_counter_impact_particle(ctx)
+    local particle = ctx.cache.counterImpactParticle
+    if particle == nil then
+        return
+    end
+
+    set_particle_spawn_scale(particle, 0.0)
+    if particle.ResetParticles ~= nil then
+        particle:ResetParticles()
+    end
+end
+
+local function play_counter_particles(ctx, hitLocation)
     print("[CharacterCounter] play counter particles")
-    activate_counter_particle(ctx, ctx.config.RCOUNTER_PARTICLE_SOCKET)
-    activate_counter_particle(ctx, ctx.config.LCOUNTER_PARTICLE_SOCKET)
+    activate_counter_impact_particle(ctx, hitLocation)
     ctx.state.counterParticleTimeRemaining = ctx.config.COUNTER_PARTICLE_DURATION
 end
 
@@ -288,7 +253,7 @@ local function update_reposition(ctx, dt)
     end
 end
 
-function Counter.Play(ctx, target)
+function Counter.Play(ctx, target, hitLocation)
     load_counter_montage(ctx)
 
     local anim = Context.GetAnimInstance(ctx)
@@ -306,7 +271,7 @@ function Counter.Play(ctx, target)
     Locomotion.Lock(ctx)
     --Clear old EnableAttack flag--
     Context.ConsumeEnableAttack(ctx)
-    play_counter_particles(ctx)
+    play_counter_particles(ctx, hitLocation)
     play_counter_slomo(ctx)
     begin_pawn_overlap(ctx)
     start_reposition_behind_target(ctx, target)
@@ -331,12 +296,12 @@ function Counter.UpdateOpportunity(ctx)
         return
     end
 
-    local opportunityTarget = Context.ConsumeCounterOpportunity(ctx)
+    local opportunityTarget, hitLocation = Context.ConsumeCounterOpportunity(ctx)
     if opportunityTarget ~= nil then
         if opportunityTarget == true then
-            Counter.Play(ctx, nil)
+            Counter.Play(ctx, nil, hitLocation)
         else
-            Counter.Play(ctx, opportunityTarget)
+            Counter.Play(ctx, opportunityTarget, hitLocation)
         end
     end
 end
@@ -381,13 +346,11 @@ function Counter.UpdateParticles(ctx, dt)
         return
     end
 
-    deactivate_counter_particle(ctx, ctx.config.RCOUNTER_PARTICLE_SOCKET)
-    deactivate_counter_particle(ctx, ctx.config.LCOUNTER_PARTICLE_SOCKET)
+    deactivate_counter_impact_particle(ctx)
 end
 
 function Counter.BeginPlay(ctx)
     load_counter_montage(ctx)
-    prepare_counter_particles(ctx)
 end
 
 function Counter.Tick(ctx, dt)

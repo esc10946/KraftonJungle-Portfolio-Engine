@@ -11,6 +11,7 @@ namespace
 	TSet<TWeakObjectPtr<USkeletalMeshComponent>> GActiveParryMeshes;
 	TSet<TWeakObjectPtr<USkeletalMeshComponent>> GSuccessfulParryMeshes;
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, TWeakObjectPtr<AActor>> GSuccessfulParryAttackers;
+	TMap<TWeakObjectPtr<USkeletalMeshComponent>, FVector> GSuccessfulParryHitLocations;
 
 	void PurgeInvalidParryMeshes()
 	{
@@ -29,6 +30,12 @@ namespace
 		for (auto It = GSuccessfulParryAttackers.begin(); It != GSuccessfulParryAttackers.end(); )
 		{
 			if (!IsValid(It->first)) It = GSuccessfulParryAttackers.erase(It);
+			else ++It;
+		}
+
+		for (auto It = GSuccessfulParryHitLocations.begin(); It != GSuccessfulParryHitLocations.end(); )
+		{
+			if (!IsValid(It->first)) It = GSuccessfulParryHitLocations.erase(It);
 			else ++It;
 		}
 	}
@@ -71,6 +78,7 @@ void UAnimNotifyState_ParryWindow::NotifyEnd(USkeletalMeshComponent* MeshComp, U
 
 	GActiveParryMeshes.erase(TWeakObjectPtr<USkeletalMeshComponent>(MeshComp));
 	GSuccessfulParryAttackers.erase(TWeakObjectPtr<USkeletalMeshComponent>(MeshComp));
+	GSuccessfulParryHitLocations.erase(TWeakObjectPtr<USkeletalMeshComponent>(MeshComp));
 
 	if (bLogState)
 	{
@@ -121,56 +129,85 @@ bool UAnimNotifyState_ParryWindow::ReportSuccessfulParry(UAnimInstance* AnimInst
 	{
 		GSuccessfulParryAttackers.erase(Key);
 	}
+	GSuccessfulParryHitLocations.erase(Key);
 	return true;
+}
+
+bool UAnimNotifyState_ParryWindow::ReportSuccessfulParry(
+	UAnimInstance* AnimInstance,
+	AActor* Attacker,
+	const FVector& HitLocation)
+{
+	if (!ReportSuccessfulParry(AnimInstance, Attacker))
+	{
+		return false;
+	}
+
+	if (USkeletalMeshComponent* MeshComp = GetMeshFromAnimInstance(AnimInstance))
+	{
+		GSuccessfulParryHitLocations[TWeakObjectPtr<USkeletalMeshComponent>(MeshComp)] = HitLocation;
+		return true;
+	}
+
+	return false;
 }
 
 bool UAnimNotifyState_ParryWindow::ConsumeSuccessfulParry(UAnimInstance* AnimInstance)
 {
-	PurgeInvalidParryMeshes();
-
-	USkeletalMeshComponent* MeshComp = GetMeshFromAnimInstance(AnimInstance);
-	if (!MeshComp)
-	{
-		return false;
-	}
-
-	const TWeakObjectPtr<USkeletalMeshComponent> Key(MeshComp);
-	auto It = GSuccessfulParryMeshes.find(Key);
-	if (It == GSuccessfulParryMeshes.end())
-	{
-		return false;
-	}
-
-	GSuccessfulParryMeshes.erase(It);
-	GSuccessfulParryAttackers.erase(Key);
-	return true;
+	AActor* Attacker = nullptr;
+	FVector HitLocation = FVector::ZeroVector;
+	bool bHasHitLocation = false;
+	return ConsumeSuccessfulParryData(AnimInstance, Attacker, HitLocation, bHasHitLocation);
 }
 
 AActor* UAnimNotifyState_ParryWindow::ConsumeSuccessfulParryAttacker(UAnimInstance* AnimInstance)
 {
+	AActor* Attacker = nullptr;
+	FVector HitLocation = FVector::ZeroVector;
+	bool bHasHitLocation = false;
+	ConsumeSuccessfulParryData(AnimInstance, Attacker, HitLocation, bHasHitLocation);
+	return Attacker;
+}
+
+bool UAnimNotifyState_ParryWindow::ConsumeSuccessfulParryData(
+	UAnimInstance* AnimInstance,
+	AActor*& OutAttacker,
+	FVector& OutHitLocation,
+	bool& bOutHasHitLocation)
+{
 	PurgeInvalidParryMeshes();
+	OutAttacker = nullptr;
+	OutHitLocation = FVector::ZeroVector;
+	bOutHasHitLocation = false;
 
 	USkeletalMeshComponent* MeshComp = GetMeshFromAnimInstance(AnimInstance);
 	if (!MeshComp)
 	{
-		return nullptr;
+		return false;
 	}
 
 	const TWeakObjectPtr<USkeletalMeshComponent> Key(MeshComp);
 	auto SuccessIt = GSuccessfulParryMeshes.find(Key);
 	if (SuccessIt == GSuccessfulParryMeshes.end())
 	{
-		return nullptr;
+		return false;
 	}
 
-	AActor* Attacker = nullptr;
 	auto AttackerIt = GSuccessfulParryAttackers.find(Key);
 	if (AttackerIt != GSuccessfulParryAttackers.end())
 	{
-		Attacker = AttackerIt->second.Get();
+		OutAttacker = AttackerIt->second.Get();
 		GSuccessfulParryAttackers.erase(AttackerIt);
 	}
 
+	auto LocationIt = GSuccessfulParryHitLocations.find(Key);
+	if (LocationIt != GSuccessfulParryHitLocations.end())
+	{
+		OutHitLocation = LocationIt->second;
+		bOutHasHitLocation = true;
+		GSuccessfulParryHitLocations.erase(LocationIt);
+	}
+
 	GSuccessfulParryMeshes.erase(SuccessIt);
-	return Attacker;
+	return true;
 }

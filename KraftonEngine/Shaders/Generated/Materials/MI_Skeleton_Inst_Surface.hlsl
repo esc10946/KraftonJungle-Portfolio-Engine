@@ -1,4 +1,4 @@
-// Generated from C:/Users/jungle/GitHub/Jungle_Week14_Team6/KraftonEngine/Content/Material/Auto/MI_Skeleton_Inst.001.uasset
+// Generated from C:/Users/jungle/GitHub/Jungle_Week14_Team6/KraftonEngine/Content/Material/Auto/MI_Skeleton_Inst.uasset
 // Domain: Surface
 
 #include "Common/ConstantBuffers.hlsli"
@@ -36,17 +36,19 @@ Texture2D Tex_Diffuse : register(t4);
 FMaterialResult EvaluateMaterial(FMaterialPixelInput Input)
 {
     float4 n_3 = Tex_DiffuseTexture.Sample(LinearWrapSampler, Input.UV0);
-    float3 n_13 = float3(1.000000f, 1.000000f, 1.000000f);
+    float3 n_13 = float3(0.500000f, 0.500000f, 0.500000f);
     float3 n_15 = ((n_3).rgb * n_13);
     float4 n_23 = Tex_NormalTexture.Sample(LinearWrapSampler, Input.UV0);
-    float4 n_68 = Tex_Diffuse.Sample(LinearWrapSampler, Input.UV0);
+    float4 n_48 = Tex_Diffuse.Sample(LinearWrapSampler, Input.UV0);
+    float n_83 = 0.500000f;
+    float3 n_78 = ((n_48).rgb * float3(n_83, n_83, n_83));
     float n_33 = 1.000000f;
     FMaterialResult Result;
     Result.BaseColor = n_15;
     Result.Normal = (n_23).rgb;
     Result.Roughness = 0.5f;
     Result.Metallic = 0.0f;
-    Result.Emissive = float3((n_68).r, (n_68).r, (n_68).r);
+    Result.Emissive = n_78;
     Result.Opacity = n_33;
     return Result;
 }
