@@ -2,6 +2,7 @@
 
 #include "Component/PrimitiveComponent.h"
 #include "Component/SceneComponent.h"
+#include "Core/Logging/Log.h"
 #include "GameFramework/AActor.h"
 #include "Math/MathUtils.h"
 #include "Object/Object.h"
@@ -268,6 +269,7 @@ void UActionComponent::Slomo(float Duration, float TimeDilation)
 {
 	if (Duration <= 0.0f)
 	{
+		UE_LOG("[Slomo] : rejected, duration=%.3f dilation=%.3f", Duration, TimeDilation);
 		return;
 	}
 
@@ -275,6 +277,10 @@ void UActionComponent::Slomo(float Duration, float TimeDilation)
 	SlomoAction.Duration = Duration;
 	SlomoAction.RemainingTime = Duration;
 	SlomoAction.TimeDilation = FMath::Clamp(TimeDilation, 0.0f, 1.0f);
+	UE_LOG("[Slomo] : start owner=%s duration=%.3f dilation=%.3f",
+		GetOwner() ? GetOwner()->GetName().c_str() : "None",
+		SlomoAction.Duration,
+		SlomoAction.TimeDilation);
 	UpdateTimeDilationRegistration();
 }
 
@@ -326,6 +332,10 @@ void UActionComponent::StopKnockback()
 
 void UActionComponent::StopSlomo()
 {
+	if (SlomoAction.bActive)
+	{
+		UE_LOG("[Slomo] : stop owner=%s", GetOwner() ? GetOwner()->GetName().c_str() : "None");
+	}
 	SlomoAction = FTimedDilationAction();
 	UpdateTimeDilationRegistration();
 }
@@ -402,6 +412,7 @@ void UActionComponent::RefreshGlobalTimeDilation()
 {
 	if (!GEngine || !GEngine->GetTimer())
 	{
+		UE_LOG("[Slomo] : skipped, engine timer missing");
 		return;
 	}
 
@@ -449,6 +460,10 @@ void UActionComponent::RefreshGlobalTimeDilation()
 
 	if (bHasHitStop || bHasSlomo)
 	{
+		UE_LOG("[Slomo] : apply global dilation=%.3f hasHitStop=%d hasSlomo=%d",
+			SelectedDilation,
+			bHasHitStop ? 1 : 0,
+			bHasSlomo ? 1 : 0);
 		GEngine->GetTimer()->SetTimeDilation(SelectedDilation);
 		return;
 	}
@@ -456,6 +471,7 @@ void UActionComponent::RefreshGlobalTimeDilation()
 	TimeDilationComponents.clear();
 	if (bHasCapturedGlobalBaseTimeDilation)
 	{
+		UE_LOG("[Slomo] : restore global dilation=%.3f", GlobalBaseTimeDilation);
 		GEngine->GetTimer()->SetTimeDilation(GlobalBaseTimeDilation);
 		bHasCapturedGlobalBaseTimeDilation = false;
 	}

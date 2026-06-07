@@ -32,6 +32,10 @@ local bPendingDestroyFromDeath = false
 local deathDestroyDelayRemaining = 0.0
 local bDeathRagdollStarted = false
 
+local SPEAR_PATH = "Content/Data/Weapon/Spear/SM_Yari_StaticMesh.uasset"
+local SPEAR_SOCKET = "Spear"
+local spearComponent = nil
+
 local LOCOMOTION = {
     Locked = 0,
     InputAllowed = 1,
@@ -381,6 +385,16 @@ function BeginPlay()
         isBoss = call(obj, "Brain_IsBoss") == true,
     }
     pcall(function() math.randomseed((tonumber(obj.UUID) or os.time() or 1) + 13) end)
+
+    if not S.isBoss and Equipment and Equipment.AttachStaticMeshToSocket then
+        spearComponent = Equipment.AttachStaticMeshToSocket(
+            obj,
+            SPEAR_PATH,
+            SPEAR_SOCKET,
+            Vec3(1.0, 1.0, 1.0)
+        )
+    end
+
 end
 
 function EndPlay()

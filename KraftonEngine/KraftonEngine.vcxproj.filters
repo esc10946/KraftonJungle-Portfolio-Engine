@@ -436,6 +436,9 @@
     <Filter Include="Source\Game">
       <UniqueIdentifier>{7b75b017-e44b-6189-2a88-30dc16a5724f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source\Game\Components">
+      <UniqueIdentifier>{f7181d3d-9318-6723-a7d5-90a66e4eb9c3}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Source\Game\GameMode">
       <UniqueIdentifier>{180756f8-cd60-823a-2895-cf41347cb361}</UniqueIdentifier>
     </Filter>
@@ -759,6 +762,9 @@
     <FxCompile Include="Shaders\Generated\Materials\JungleMenu_Surface.hlsl">
       <Filter>Shaders\Generated\Materials</Filter>
     </FxCompile>
+    <FxCompile Include="Shaders\Generated\Materials\LockOnMarker_Surface.hlsl">
+      <Filter>Shaders\Generated\Materials</Filter>
+    </FxCompile>
     <FxCompile Include="Shaders\Generated\Materials\MI_Skeleton_Inst.001_Surface.hlsl">
       <Filter>Shaders\Generated\Materials</Filter>
     </FxCompile>
@@ -786,7 +792,7 @@
     <FxCompile Include="Shaders\Generated\Materials\water_Surface.hlsl">
       <Filter>Shaders\Generated\Materials</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\Generated\Preview\Materials\MI_Skeleton_Inst.001_Surface.hlsl">
+    <FxCompile Include="Shaders\Generated\Preview\Materials\LockOnMarker_Surface.hlsl">
       <Filter>Shaders\Generated\Preview\Materials</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\Geometry\Decal.hlsl">
@@ -2102,6 +2108,9 @@
     <ClCompile Include="Source\Engine\Render\RenderPass\FogPass.cpp">
       <Filter>Source\Engine\Render\RenderPass</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Render\RenderPass\GameOverlayPass.cpp">
+      <Filter>Source\Engine\Render\RenderPass</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\Render\RenderPass\GammaCorrectionPass.cpp">
       <Filter>Source\Engine\Render\RenderPass</Filter>
     </ClCompile>
@@ -2257,6 +2266,12 @@
     </ClCompile>
     <ClCompile Include="Source\Game\GameActorPlacements.cpp">
       <Filter>Source\Game</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Game\Components\LockOnComponent.cpp">
+      <Filter>Source\Game\Components</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Game\Components\LockOnMarkerComponent.cpp">
+      <Filter>Source\Game\Components</Filter>
     </ClCompile>
     <ClCompile Include="Source\Game\GameMode\AFinaleGameMode.cpp">
       <Filter>Source\Game\GameMode</Filter>
@@ -3791,6 +3806,9 @@
     <ClInclude Include="Source\Engine\Render\RenderPass\FogPass.h">
       <Filter>Source\Engine\Render\RenderPass</Filter>
     </ClInclude>
+    <ClInclude Include="Source\Engine\Render\RenderPass\GameOverlayPass.h">
+      <Filter>Source\Engine\Render\RenderPass</Filter>
+    </ClInclude>
     <ClInclude Include="Source\Engine\Render\RenderPass\GammaCorrectionPass.h">
       <Filter>Source\Engine\Render\RenderPass</Filter>
     </ClInclude>
@@ -4009,6 +4027,12 @@
     </ClInclude>
     <ClInclude Include="Source\Game\GameActorPlacements.h">
       <Filter>Source\Game</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Game\Components\LockOnComponent.h">
+      <Filter>Source\Game\Components</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Game\Components\LockOnMarkerComponent.h">
+      <Filter>Source\Game\Components</Filter>
     </ClInclude>
     <ClInclude Include="Source\Game\GameMode\AFinaleGameMode.h">
       <Filter>Source\Game\GameMode</Filter>

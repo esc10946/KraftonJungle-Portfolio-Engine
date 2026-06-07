@@ -19,6 +19,7 @@
 #include "Component/Primitive/StaticMeshComponent.h"
 #include "Core/Types/CollisionTypes.h"
 #include "Engine/GameFramework/World.h"
+#include "Engine/GameFramework/GameMode/GameplayStatics.h"
 #include "Engine/GameFramework/GameMode/PlayerController.h"
 #include "Engine/GameFramework/Camera/PlayerCameraManager.h"
 #include "Engine/GameFramework/Camera/WaveOscillatorCameraShake.h"
@@ -422,6 +423,35 @@ void RegisterGameLuaBindings(sol::state& Lua)
 			return UAnimNotifyState_ParryWindow::ConsumeSuccessfulParryAttacker(AnimInstance);
 		}
 	);
+	Animation.set_function(
+		"ConsumeCounterOpportunity",
+		[](sol::this_state State, UAnimInstance* AnimInstance) -> sol::object
+		{
+			sol::state_view Lua(State);
+			AActor* Attacker = nullptr;
+			FVector HitLocation = FVector::ZeroVector;
+			bool bHasHitLocation = false;
+			if (!UAnimNotifyState_ParryWindow::ConsumeSuccessfulParryData(
+				AnimInstance,
+				Attacker,
+				HitLocation,
+				bHasHitLocation))
+			{
+				return sol::make_object(Lua, sol::nil);
+			}
+
+			sol::table Result = Lua.create_table();
+			if (IsValid(Attacker))
+			{
+				Result["attacker"] = Attacker;
+			}
+			if (bHasHitLocation)
+			{
+				Result["hitLocation"] = HitLocation;
+			}
+			return sol::make_object(Lua, Result);
+		}
+	);
 
 	sol::table Particle = Lua["Particle"].valid() ? Lua["Particle"] : Lua.create_named_table("Particle");
 	Particle.set_function(
@@ -488,6 +518,45 @@ void RegisterGameLuaBindings(sol::state& Lua)
 				TemplatePath.c_str(),
 				ParticleComponent->GetName().c_str());
 			return ParticleComponent;
+		}
+	);
+	Particle.set_function(
+		"SpawnSystemAtLocation",
+		[](AActor* WorldContext, const FString& TemplatePath, const FVector& Location) -> UParticleSystemComponent*
+		{
+			if (!IsValid(WorldContext) || !WorldContext->GetWorld())
+			{
+				UE_LOG("[Particle] SpawnSystemAtLocation failed: invalid world context");
+				return nullptr;
+			}
+
+			return FGameplayStatics::SpawnEmitterAtLocation(
+				WorldContext->GetWorld(),
+				TemplatePath,
+				Location,
+				FRotator(),
+				false);
+		}
+	);
+	Particle.set_function(
+		"SetSystemWorldLocation",
+		[](UParticleSystemComponent* Component, const FVector& Location)
+		{
+			if (IsValid(Component))
+			{
+				Component->SetWorldLocation(Location);
+			}
+		}
+	);
+	Particle.set_function(
+		"SetSystemWorldScale",
+		[](UParticleSystemComponent* Component, float UniformScale)
+		{
+			if (IsValid(Component))
+			{
+				const float Scale = std::max(0.0f, UniformScale);
+				Component->SetRelativeScale(FVector(Scale, Scale, Scale));
+			}
 		}
 	);
 

@@ -1,4 +1,4 @@
-// Generated from C:/Users/jungle/GitHub/Jungle_Week14_Team6/KraftonEngine/Content/Material/Auto/05___Default.uasset
+// Generated from C:/Users/jungle/Documents/GitHub/Week14/KraftonEngine/Content/Game/Material/LockOnMarker.uasset
 // Domain: Surface
 
 #include "Common/ConstantBuffers.hlsli"
@@ -28,23 +28,19 @@ struct FMaterialResult
     float Opacity;
 };
 
-Texture2D Tex_DiffuseTexture : register(t0);
-Texture2D Tex_NormalTexture : register(t1);
+Texture2D Tex_Diffuse : register(t0);
 
 FMaterialResult EvaluateMaterial(FMaterialPixelInput Input)
 {
-    float4 n_3 = Tex_DiffuseTexture.Sample(LinearWrapSampler, Input.UV0);
-    float3 n_13 = float3(1.000000f, 1.000000f, 1.000000f);
-    float3 n_15 = ((n_3).rgb * n_13);
-    float4 n_23 = Tex_NormalTexture.Sample(LinearWrapSampler, Input.UV0);
-    float n_33 = 1.000000f;
+    float4 n_17 = Tex_Diffuse.Sample(LinearWrapSampler, Input.UV0);
+    float n_3 = (n_17).a;
     FMaterialResult Result;
-    Result.BaseColor = n_15;
-    Result.Normal = (n_23).rgb;
+    Result.BaseColor = (n_17).rgb;
+    Result.Normal = float3(0, 0, 1);
     Result.Roughness = 0.5f;
     Result.Metallic = 0.0f;
     Result.Emissive = float3(0, 0, 0);
-    Result.Opacity = n_33;
+    Result.Opacity = n_3;
     return Result;
 }
 
@@ -88,7 +84,6 @@ float4 PS(MaterialSurfaceVSOutput input) : SV_TARGET
     float3 N = normalize(input.normal);
 
     float3 finalRgb = Result.BaseColor + Result.Emissive;
-    float OutOpacity = saturate(Result.Opacity);
 
-    return float4(finalRgb, OutOpacity);
+    return float4(finalRgb, saturate(Result.Opacity));
 }

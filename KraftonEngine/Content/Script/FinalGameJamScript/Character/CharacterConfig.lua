@@ -2,6 +2,7 @@ local Config = {}
 
 Config.LMB = "LeftMouseButton"
 Config.RMB = "RightMouseButton"
+Config.LOCK_ON = "MiddleMouseButton"
 Config.MOVE_FORWARD_KEY = "W"
 Config.MOVE_LEFT_KEY = "A"
 Config.MOVE_BACK_KEY = "S"
@@ -30,14 +31,15 @@ Config.ATTACK_MONTAGE_PATHS = {
 Config.DEFENSE_IDLE_MONTAGE_PATH = "Content/Montages/Twin_Defense_Montage.uasset"
 Config.COUNTER_MONTAGE_PATH = "Content/Montages/Twin_Cross_Montage.uasset"
 Config.COUNTER_SECTION = "Cross"
-Config.COUNTER_PARTICLE_PATH = "Content/Data/FGJ_Character/Particle/ParryParticle.uasset"
-Config.COUNTER_PARTICLE_DURATION = 0.5
-Config.RCOUNTER_PARTICLE_SOCKET = "RH_Particle"
-Config.LCOUNTER_PARTICLE_SOCKET = "LH_Particle"
+Config.COUNTER_PARTICLE_PATH = "Content/Particle System/Parry.uasset"
+Config.COUNTER_PARTICLE_DURATION = 1.5
+Config.COUNTER_IMPACT_PARTICLE_SCALE = 0.05
 Config.COUNTER_REPOSITION_ENABLED = true
 Config.COUNTER_REPOSITION_DISTANCE = 2.0
 Config.COUNTER_REPOSITION_DURATION = 0.18
 Config.COUNTER_PAWN_OVERLAP_RESPONSE = 1
+Config.COUNTER_SLOMO_DURATION = 0.2
+Config.COUNTER_SLOMO_TIME_DILATION = 0.25
 
 Config.HIT_MONTAGE_PATHS = {
     F = "Content/Montages/Twin_Hit_F_Montage.uasset",

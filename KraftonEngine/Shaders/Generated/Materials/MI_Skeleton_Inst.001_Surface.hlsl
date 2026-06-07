@@ -5,6 +5,7 @@
 #include "Common/VertexLayouts.hlsli"
 #include "Common/Functions.hlsli"
 #include "Common/SystemSamplers.hlsli"
+#include "Common/ForwardLighting.hlsli"
 
 struct FMaterialPixelInput
 {
@@ -45,7 +46,7 @@ FMaterialResult EvaluateMaterial(FMaterialPixelInput Input)
     Result.Normal = (n_23).rgb;
     Result.Roughness = 0.5f;
     Result.Metallic = 0.0f;
-    Result.Emissive = (n_68).rgb;
+    Result.Emissive = float3((n_68).r, (n_68).r, (n_68).r);
     Result.Opacity = n_33;
     return Result;
 }
@@ -89,7 +90,11 @@ float4 PS(MaterialSurfaceVSOutput input) : SV_TARGET
     FMaterialResult Result = EvaluateMaterial(MaterialInput);
     float3 N = normalize(input.normal);
 
-    float3 finalRgb = Result.BaseColor + Result.Emissive;
+    float3 V = normalize(CameraWorldPos - input.worldPos);
+    float3 diffuse = AccumulateDiffuse(input.worldPos, N, input.position);
+    float3 specular = AccumulateSpecular(input.worldPos, N, V, 32.0f, input.position);
+
+    float3 finalRgb = Result.BaseColor * diffuse + specular + Result.Emissive;
     float OutOpacity = saturate(Result.Opacity);
 
     return float4(finalRgb, OutOpacity);

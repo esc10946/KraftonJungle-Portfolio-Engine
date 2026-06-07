@@ -74,11 +74,14 @@ function Context.Create(owner)
         cache = {
             animInstance = nil,
             movement = nil,
+            actionComponent = nil,
             attackMontages = {},
             hitMontages = {},
             defenseIdleMontage = nil,
             counterMontage = nil,
-            counterParticles = {},
+            counterImpactParticle = nil,
+            successParryMontage = nil,
+            lockOnComponent = nil,
         },
         equipment = {
             RweaponComponent = nil,
@@ -131,6 +134,20 @@ function Context.GetCharacterMovement(ctx)
     return nil
 end
 
+function Context.GetActionComponent(ctx)
+    if ctx.cache.actionComponent ~= nil then
+        return ctx.cache.actionComponent
+    end
+
+    local owner = ctx.obj
+    if owner == nil or owner.GetActionComponent == nil then
+        return nil
+    end
+
+    ctx.cache.actionComponent = owner:GetActionComponent()
+    return ctx.cache.actionComponent
+end
+
 function Context.StopCurrentMontage(ctx)
     local anim = Context.GetAnimInstance(ctx)
     if anim ~= nil and anim.StopMontage ~= nil then
@@ -172,15 +189,28 @@ end
 
 function Context.ConsumeCounterOpportunity(ctx)
     local anim = Context.GetAnimInstance(ctx)
+    if anim ~= nil and Animation ~= nil and Animation.ConsumeCounterOpportunity ~= nil then
+        local opportunity = Animation.ConsumeCounterOpportunity(anim)
+        if opportunity == nil then
+            return nil, nil
+        end
+
+        local target = opportunity.attacker
+        if target == nil then
+            target = true
+        end
+        return target, opportunity.hitLocation
+    end
+
     if anim ~= nil and Animation ~= nil and Animation.ConsumeCounterOpportunityAttacker ~= nil then
-        return Animation.ConsumeCounterOpportunityAttacker(anim)
+        return Animation.ConsumeCounterOpportunityAttacker(anim), nil
     end
 
     if Context.ConsumeSuccessfulParry(ctx) then
-        return true
+        return true, nil
     end
 
-    return nil
+    return nil, nil
 end
 
 function Context.LoadMontage(path)

@@ -1,4 +1,4 @@
-// Generated from C:/Users/jungle/GitHub/Jungle_Week14_Team6/KraftonEngine/Content/Material/Auto/09___Default.uasset
+// Generated from C:/Users/jungle/GitHub/Jungle_Week14_Team6/KraftonEngine/Content/Material/Particle/Parry/Spark.uasset
 // Domain: Surface
 
 #include "Common/ConstantBuffers.hlsli"
@@ -28,23 +28,20 @@ struct FMaterialResult
     float Opacity;
 };
 
-Texture2D Tex_DiffuseTexture : register(t0);
-Texture2D Tex_NormalTexture : register(t1);
+Texture2D Tex_Diffuse : register(t0);
 
 FMaterialResult EvaluateMaterial(FMaterialPixelInput Input)
 {
-    float4 n_3 = Tex_DiffuseTexture.Sample(LinearWrapSampler, Input.UV0);
-    float3 n_13 = float3(1.000000f, 1.000000f, 1.000000f);
-    float3 n_15 = ((n_3).rgb * n_13);
-    float4 n_23 = Tex_NormalTexture.Sample(LinearWrapSampler, Input.UV0);
-    float n_33 = 1.000000f;
+    float4 n_17 = Tex_Diffuse.Sample(LinearWrapSampler, Input.UV0);
+    float4 n_34 = Input.ParticleColor;
+    float3 n_46 = ((n_17).rgb * (n_34).rgb);
     FMaterialResult Result;
-    Result.BaseColor = n_15;
-    Result.Normal = (n_23).rgb;
+    Result.BaseColor = n_46;
+    Result.Normal = float3(0, 0, 1);
     Result.Roughness = 0.5f;
     Result.Metallic = 0.0f;
-    Result.Emissive = float3(0, 0, 0);
-    Result.Opacity = n_33;
+    Result.Emissive = (n_34).rgb;
+    Result.Opacity = (n_17).a;
     return Result;
 }
 
