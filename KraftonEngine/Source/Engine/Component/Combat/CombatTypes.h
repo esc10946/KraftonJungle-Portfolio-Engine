@@ -259,6 +259,11 @@ struct FEnemyAttackData
 	// 짧은 캔슬 버퍼로 정해져, 보스는 타격 직후 자유로워져 다음 공격을 블렌딩으로 잇는다(빠른 연속 교전).
 	UPROPERTY(Edit, Save, Category="Attack|Behavior", DisplayName="Hit Time Fraction", Min=0.05f, Max=0.95f, Speed=0.01f)
 	float HitTimeFraction = 0.42f;
+
+	// 공격 최소 커밋(busy) 시간(초). 기본 0이면 "타격시점+캔슬버퍼"의 빠른 커밋을 쓴다(스냅). 강공격
+	// /마무리기는 이 값을 크게 줘서 후딜(회수) 모션이 걷기로 덮이지 않고 충분히 보이게 한다(애니 씹힘 방지).
+	UPROPERTY(Edit, Save, Category="Attack|Behavior", DisplayName="Min Commit Time", Min=0.0f, Max=10.0f, Speed=0.05f)
+	float MinCommitTime = 0.0f;
 };
 
 USTRUCT()

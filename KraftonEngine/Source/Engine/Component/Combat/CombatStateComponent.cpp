@@ -272,6 +272,20 @@ bool UCombatStateComponent::IsGuarding() const
 	return GetOwnerGameTimeSeconds(this) < GuardUntilSeconds;
 }
 
+void UCombatStateComponent::NotifyGuardBlocked()
+{
+	LastGuardBlockSeconds = GetOwnerGameTimeSeconds(this);
+}
+
+bool UCombatStateComponent::WasGuardBlockedWithin(float Seconds) const
+{
+	if (Seconds <= 0.0f)
+	{
+		return false;
+	}
+	return (GetOwnerGameTimeSeconds(this) - LastGuardBlockSeconds) <= Seconds;
+}
+
 void UCombatStateComponent::OpenInvulnWindow(float Seconds)
 {
 	if (Seconds <= 0.0f)

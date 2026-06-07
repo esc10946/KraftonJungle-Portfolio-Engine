@@ -190,6 +190,9 @@ public:
 	bool Brain_ConsumeCombatStep();
 	UFUNCTION(Pure, Category="Enemy|Brain")
 	bool Brain_IsBusy() const;
+	// 지정 시간 동안 두뇌를 강제로 busy 로 잠근다(페이즈 전환 연출 등 — 다음 행동이 몽타주를 덮지 못하게).
+	UFUNCTION(Callable, Category="Enemy|Brain")
+	void LockBrainBusy(float Seconds);
 	UFUNCTION(Callable, Category="Enemy|Brain")
 	bool Brain_PlaySelectedAttack();
 	UFUNCTION(Callable, Category="Enemy|Brain")
@@ -237,6 +240,9 @@ public:
 	// 현재 가드 윈도우가 열려 있는가.
 	UFUNCTION(Pure, Category="Enemy|Brain")
 	bool Brain_IsGuarding() const;
+	// 최근 0.35초 내에 실제로 가드로 막았는가 — Lua가 이걸 보고 반격(riposte) 윈도우를 연다.
+	UFUNCTION(Pure, Category="Enemy|Brain")
+	bool Brain_GuardBlockedRecently() const;
 
 	// ── 지형/공간 인지 동사 (Lua 정책이 후퇴/회피/포지셔닝 판단에 사용) ──
 	// 등 뒤로 직선 이동 가능한 여유 거리(벽/장애물까지). 작을수록 코너에 몰림.
@@ -465,6 +471,8 @@ private:
 	// 백점프 지연 발사: 준비동작 후 실제 점프/임펄스를 가하기 위한 대기 시간과 임펄스 벡터.
 	float PendingLeapTime = 0.0f;
 	FVector PendingLeapImpulse = FVector::ZeroVector;
+	// 두뇌 강제 busy 락 만료 시각(게임시간). 페이즈 전환 연출 등에서 다음 행동을 막는다.
+	float BrainBusyUntilSeconds = 0.0f;
 
 	// 직전 공격 결과(공격 문법 분기용). 공격 시작 시 리셋, 피해 적용 시 갱신.
 	ECombatDamageResult LastAttackResult = ECombatDamageResult::None;
