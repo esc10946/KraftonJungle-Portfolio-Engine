@@ -40,6 +40,9 @@ public:
 
 	UFUNCTION(Callable, Category="Combat|Animation")
 	bool PlayCombatMontage(UAnimMontage* Montage);
+	// 배속/블렌드인 제어판. PlayRate>1 이면 빠르게(더 다이내믹한 전투), BlendInTime<0 이면 몽타주 기본값.
+	UFUNCTION(Callable, Category="Combat|Animation")
+	bool PlayCombatMontageRated(UAnimMontage* Montage, float PlayRate, float BlendInTime = -1.0f);
 	UFUNCTION(Callable, Category="Combat|Animation")	
 	void SetAnimGraphBool(const FName& Name, bool Value);
 	UFUNCTION(Callable, Category="Combat|Animation")

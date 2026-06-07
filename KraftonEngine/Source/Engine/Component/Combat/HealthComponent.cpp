@@ -4,6 +4,8 @@
 #include "GameFramework/AActor.h"
 #include "Math/MathUtils.h"
 
+#include <cmath>
+
 void UHealthComponent::BeginPlay()
 {
 	UActorComponent::BeginPlay();
@@ -73,6 +75,30 @@ FCombatDamageReport UHealthComponent::ApplyDamageSpec(const FCombatDamageSpec& D
 				{
 					EffectiveDamage *= 0.5f;
 					EffectivePoiseDamage *= 0.5f;
+				}
+			}
+			// 가드(block) — 보스는 패링 대신 막기만 한다. 정면(GuardMaxAbsAngle 이내) 공격의
+			// 피해/체간을 감쇄하되 공격자에게 반사는 없다. 측후면 공격은 가드를 관통한다.
+			else if (CombatState->IsGuarding())
+			{
+				FVector ToAttacker = DamageSpec.HitDirection * -1.0f;
+				ToAttacker.Z = 0.0f;
+				bool bFrontal = true;
+				if (OwnerActor && !ToAttacker.IsNearlyZero())
+				{
+					FVector Forward = OwnerActor->GetActorForward();
+					Forward.Z = 0.0f;
+					if (!Forward.IsNearlyZero())
+					{
+						const float Dot = Forward.Normalized().Dot(ToAttacker.Normalized());
+						const float CosLimit = std::cos(CombatState->GuardMaxAbsAngle * 3.14159265f / 180.0f);
+						bFrontal = Dot >= CosLimit;
+					}
+				}
+				if (bFrontal)
+				{
+					EffectiveDamage *= CombatState->GuardDamageMultiplier;
+					EffectivePoiseDamage *= CombatState->GuardPoiseMultiplier;
 				}
 			}
 		}

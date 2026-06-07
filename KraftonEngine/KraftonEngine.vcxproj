@@ -547,6 +547,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Engine\Component\AI\EnemyAttackComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\EnemyHitComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\AI\PhaseComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\Animation\CharacterLocomotionComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Camera\CameraComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Camera\CineCameraComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Camera\SpringArmComponent.cpp" />
@@ -1050,6 +1051,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\Component\AI\EnemyAttackComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\EnemyHitComponent.h" />
     <ClInclude Include="Source\Engine\Component\AI\PhaseComponent.h" />
+    <ClInclude Include="Source\Engine\Component\Animation\CharacterLocomotionComponent.h" />
     <ClInclude Include="Source\Engine\Component\Camera\CameraComponent.h" />
     <ClInclude Include="Source\Engine\Component\Camera\CineCameraComponent.h" />
     <ClInclude Include="Source\Engine\Component\Camera\SpringArmComponent.h" />

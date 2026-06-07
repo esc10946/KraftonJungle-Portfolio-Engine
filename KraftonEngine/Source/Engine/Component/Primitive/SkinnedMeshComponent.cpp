@@ -261,13 +261,16 @@ bool USkinnedMeshComponent::HasSocket(const FName& SocketName) const
 	}
 
 	const FSkeletalMeshSocket* Socket = Skeleton->FindSocket(SocketName);
-	if (!Socket)
+	if (Socket)
 	{
-		return false;
+		int32 BoneIndex = -1;
+		return Skeleton->ResolveSocketBoneIndex(*Socket, BoneIndex);
 	}
 
-	int32 BoneIndex = -1;
-	return Skeleton->ResolveSocketBoneIndex(*Socket, BoneIndex);
+	// Socket이 없는 외부 캐릭터(Mixamo 등)도 손/무기 본에 장착할 수 있게 bone name을
+	// virtual socket처럼 인정한다. AttachToComponent는 이후 GetSocketTransform을 통해
+	// 같은 이름의 본 transform을 따라간다.
+	return FindBoneIndex(SocketName) >= 0;
 }
 
 FTransform USkinnedMeshComponent::GetSocketTransform(const FName& SocketName) const
@@ -279,15 +282,24 @@ FTransform USkinnedMeshComponent::GetSocketTransform(const FName& SocketName) co
 	}
 
 	const FSkeletalMeshSocket* Socket = Skeleton->FindSocket(SocketName);
-	if (!Socket)
-	{
-		return FTransform(GetWorldMatrix());
-	}
-
 	int32 BoneIndex = -1;
-	if (!Skeleton->ResolveSocketBoneIndex(*Socket, BoneIndex))
+	FMatrix RelativeSocketMatrix = FMatrix::Identity;
+
+	if (Socket)
 	{
-		return FTransform(GetWorldMatrix());
+		if (!Skeleton->ResolveSocketBoneIndex(*Socket, BoneIndex))
+		{
+			return FTransform(GetWorldMatrix());
+		}
+		RelativeSocketMatrix = Socket->GetRelativeTransform();
+	}
+	else
+	{
+		BoneIndex = FindBoneIndex(SocketName);
+		if (BoneIndex < 0)
+		{
+			return FTransform(GetWorldMatrix());
+		}
 	}
 
 	TArray<FMatrix> BoneGlobals;
@@ -297,8 +309,8 @@ FTransform USkinnedMeshComponent::GetSocketTransform(const FName& SocketName) co
 		return FTransform(GetWorldMatrix());
 	}
 
-	const FMatrix SocketWorldMatrix = Socket->GetRelativeTransform() * BoneGlobals[BoneIndex] * GetWorldMatrix();
-	return MatrixToEditorTransform(SocketWorldMatrix);
+	const FMatrix SocketWorldMatrix = RelativeSocketMatrix * BoneGlobals[BoneIndex] * GetWorldMatrix();
+	return FTransform(SocketWorldMatrix);
 }
 
 bool USkinnedMeshComponent::SetSkeletalMeshByPath(const FString& InPath)

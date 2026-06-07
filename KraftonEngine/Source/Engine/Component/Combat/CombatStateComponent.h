@@ -27,7 +27,13 @@ public:
 	void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction& ThisTickFunction) override;
 
 	UFUNCTION(Pure, Category="Combat|State")
-	bool CanReceiveDamage() const { return bDamageEnabled && !bInvincible; }
+	bool CanReceiveDamage() const { return bDamageEnabled && !bInvincible && !IsTimedInvuln(); }
+
+	// 자기만료 무적 윈도우 — 페이즈 전환 연출 등 "건드릴 수 없는" 짧은 순간에 사용. 게임시간 기준.
+	UFUNCTION(Callable, Category="Combat|State")
+	void OpenInvulnWindow(float Seconds);
+	UFUNCTION(Pure, Category="Combat|State")
+	bool IsTimedInvuln() const;
 	UFUNCTION(Callable, Category="Combat|State")
 	void SetDamageEnabled(bool bEnabled) { bDamageEnabled = bEnabled; }
 	UFUNCTION(Callable, Category="Combat|State")
@@ -94,6 +100,18 @@ public:
 	UFUNCTION(Pure, Category="Combat|Deflect")
 	int32 GetLastDeflectGradeInt() const { return static_cast<int32>(LastDeflectGrade); }
 
+	// ── 가드(block) ──
+	// 탄기(받아치기)와 달리 가드는 들어오는 공격을 "막기만" 한다: 정면(GuardMaxAbsAngle 이내)
+	// 피해를 GuardDamageMultiplier 로 감쇄하고 체간은 GuardPoiseMultiplier 로 깎이되,
+	// 공격자에게 체간 반사는 없다(보스는 패링 못 함, 가드만). HealthComponent::ApplyDamageSpec
+	// 가 윈도우/정면 여부를 보고 분기한다. 게임시간 self-expiring.
+	UFUNCTION(Callable, Category="Combat|Guard")
+	void OpenGuardWindow(float Seconds);
+	UFUNCTION(Callable, Category="Combat|Guard")
+	void CloseGuard();
+	UFUNCTION(Pure, Category="Combat|Guard")
+	bool IsGuarding() const;
+
 	UFUNCTION(Callable, Category="Combat|Team")
 	void SetTeam(ECombatTeam InTeam) { Team = InTeam; }
 	UFUNCTION(Pure, Category="Combat|Team")
@@ -135,6 +153,21 @@ public:
 	UPROPERTY(Edit, Save, Category="Combat|Deflect", DisplayName="Deflect Reflect Poise", Min=0.0f, Max=100000.0f, Speed=0.5f)
 	float DeflectReflectPoise = 25.0f;
 
+	UPROPERTY(Edit, Save, Category="Combat|Guard", DisplayName="Guard Window Seconds", Min=0.0f, Max=5.0f, Speed=0.05f)
+	float GuardWindowSeconds = 0.7f;
+
+	// 가드 정면 피해 배수(0.25 → 75% 경감). 측후면 공격엔 적용되지 않는다.
+	UPROPERTY(Edit, Save, Category="Combat|Guard", DisplayName="Guard Damage Multiplier", Min=0.0f, Max=1.0f, Speed=0.01f)
+	float GuardDamageMultiplier = 0.25f;
+
+	// 가드해도 체간은 깎인다(연속 가드 → 가드 브레이크). 1.0 보다 작게.
+	UPROPERTY(Edit, Save, Category="Combat|Guard", DisplayName="Guard Poise Multiplier", Min=0.0f, Max=2.0f, Speed=0.01f)
+	float GuardPoiseMultiplier = 0.6f;
+
+	// 이 각도(도) 이내의 정면 공격만 막는다.
+	UPROPERTY(Edit, Save, Category="Combat|Guard", DisplayName="Guard Max Abs Angle", Min=0.0f, Max=180.0f, Speed=1.0f)
+	float GuardMaxAbsAngle = 110.0f;
+
 	FCombatStaggerSignature OnStaggerStarted;
 	FCombatStateSignature OnStaggerEnded;
 	FCombatPerilousSignature OnPerilousCue;
@@ -161,4 +194,10 @@ private:
 	float DeflectOpenedAtSeconds = 0.0f;
 	float DeflectWindowLen = 0.0f;
 	EDeflectGrade LastDeflectGrade = EDeflectGrade::None;
+
+	// 가드 윈도우(게임시간).
+	float GuardUntilSeconds = 0.0f;
+
+	// 타이머 무적 윈도우(게임시간).
+	float InvulnUntilSeconds = 0.0f;
 };

@@ -74,6 +74,7 @@ function Context.Create(owner)
         cache = {
             animInstance = nil,
             movement = nil,
+            actionComponent = nil,
             attackMontages = {},
             hitMontages = {},
             defenseIdleMontage = nil,
@@ -129,6 +130,20 @@ function Context.GetCharacterMovement(ctx)
     end
 
     return nil
+end
+
+function Context.GetActionComponent(ctx)
+    if ctx.cache.actionComponent ~= nil then
+        return ctx.cache.actionComponent
+    end
+
+    local owner = ctx.obj
+    if owner == nil or owner.GetActionComponent == nil then
+        return nil
+    end
+
+    ctx.cache.actionComponent = owner:GetActionComponent()
+    return ctx.cache.actionComponent
 end
 
 function Context.StopCurrentMontage(ctx)

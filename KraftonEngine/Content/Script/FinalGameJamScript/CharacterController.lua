@@ -12,7 +12,7 @@ local ctx = nil
 
 function BeginPlay()
     ctx = Context.Create(obj)
-
+--
     Context.GetAnimInstance(ctx)
     Locomotion.BeginPlay(ctx)
     Equipment.BeginPlay(ctx)

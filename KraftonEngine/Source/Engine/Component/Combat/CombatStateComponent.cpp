@@ -255,6 +255,38 @@ EDeflectGrade UCombatStateComponent::ConsumeDeflect(AActor* Attacker)
 	return Grade;
 }
 
+void UCombatStateComponent::OpenGuardWindow(float Seconds)
+{
+	const float Now = GetOwnerGameTimeSeconds(this);
+	const float Len = Seconds > 0.0f ? Seconds : GuardWindowSeconds;
+	GuardUntilSeconds = (std::max)(GuardUntilSeconds, Now + Len);
+}
+
+void UCombatStateComponent::CloseGuard()
+{
+	GuardUntilSeconds = GetOwnerGameTimeSeconds(this);
+}
+
+bool UCombatStateComponent::IsGuarding() const
+{
+	return GetOwnerGameTimeSeconds(this) < GuardUntilSeconds;
+}
+
+void UCombatStateComponent::OpenInvulnWindow(float Seconds)
+{
+	if (Seconds <= 0.0f)
+	{
+		return;
+	}
+	const float Now = GetOwnerGameTimeSeconds(this);
+	InvulnUntilSeconds = (std::max)(InvulnUntilSeconds, Now + Seconds);
+}
+
+bool UCombatStateComponent::IsTimedInvuln() const
+{
+	return GetOwnerGameTimeSeconds(this) < InvulnUntilSeconds;
+}
+
 bool UCombatStateComponent::IsHostileTo(const UCombatStateComponent* Other) const
 {
 	if (!Other)

@@ -1,4 +1,4 @@
-﻿#include "Game/Lua/GameLuaBindings.h"
+#include "Game/Lua/GameLuaBindings.h"
 
 #include "sol/sol.hpp"
 
@@ -10,6 +10,9 @@
 #include "Animation/Notify/AnimNotify_EnableAttack.h"
 #include "Animation/Notify/AnimNotifyState_ParryWindow.h"
 #include "Component/Camera/CameraComponent.h"
+#include "Component/Animation/CharacterLocomotionComponent.h"
+#include "Component/Combat/CombatStateComponent.h"
+#include "Component/Movement/CharacterMovementComponent.h"
 #include "Component/Particle/ParticleSystemComponent.h"
 #include "Component/PrimitiveComponent.h"
 #include "Component/Primitive/SkeletalMeshComponent.h"
@@ -18,6 +21,7 @@
 #include "Engine/GameFramework/World.h"
 #include "Engine/GameFramework/GameMode/PlayerController.h"
 #include "Engine/GameFramework/Camera/PlayerCameraManager.h"
+#include "Engine/GameFramework/Camera/WaveOscillatorCameraShake.h"
 #include "Engine/Render/Types/MinimalViewInfo.h"
 #include "Lua/LuaScriptManager.h"
 #include "Core/ProjectSettings.h"
@@ -196,6 +200,74 @@ namespace
 		return Result;
 	}
 
+	APlayerCameraManager* ResolvePlayerCameraManager()
+	{
+		if (!GEngine || !GEngine->GetWorld())
+		{
+			return nullptr;
+		}
+		APlayerController* PC = GEngine->GetWorld()->GetFirstPlayerController();
+		return PC ? PC->GetPlayerCameraManager() : nullptr;
+	}
+
+	AFinaleGameMode* ResolveFinaleGameMode()
+	{
+		if (!GEngine || !GEngine->GetWorld())
+		{
+			return nullptr;
+		}
+		return Cast<AFinaleGameMode>(GEngine->GetWorld()->GetGameMode());
+	}
+
+	UStaticMeshComponent* AttachStaticMeshToSkeletalTarget(
+		AActor* Owner,
+		const FString& MeshPath,
+		const FString& AttachName,
+		const FVector& RelativeScale,
+		const FVector& RelativeLocation = FVector::ZeroVector,
+		const FVector& RelativeRotation = FVector::ZeroVector)
+	{
+		if (!IsValid(Owner) || MeshPath.empty() || MeshPath == "None" || AttachName.empty())
+		{
+			UE_LOG("[Equipment] Attach failed: invalid owner, mesh path, or attach name");
+			return nullptr;
+		}
+
+		USkeletalMeshComponent* OwnerMesh = Owner->GetComponentByClass<USkeletalMeshComponent>();
+		if (!IsValid(OwnerMesh))
+		{
+			UE_LOG("[Equipment] Attach failed: owner has no skeletal mesh");
+			return nullptr;
+		}
+
+		const FName AttachPoint(AttachName);
+		if (!OwnerMesh->HasSocket(AttachPoint))
+		{
+			UE_LOG("[Equipment] Attach failed: socket/bone not found. AttachName='%s'", AttachName.c_str());
+			return nullptr;
+		}
+
+		UStaticMeshComponent* WeaponMesh = Owner->AddComponent<UStaticMeshComponent>();
+		if (!IsValid(WeaponMesh))
+		{
+			UE_LOG("[Equipment] Attach failed: could not create static mesh component");
+			return nullptr;
+		}
+
+		if (!WeaponMesh->SetStaticMeshByPath(MeshPath))
+		{
+			UE_LOG("[Equipment] Attach failed: could not load static mesh. Mesh='%s'", MeshPath.c_str());
+			Owner->RemoveComponent(WeaponMesh);
+			return nullptr;
+		}
+
+		WeaponMesh->AttachToComponent(OwnerMesh, AttachPoint);
+		WeaponMesh->SetRelativeLocation(RelativeLocation);
+		WeaponMesh->SetRelativeRotation(RelativeRotation);
+		WeaponMesh->SetRelativeScale(RelativeScale);
+		return WeaponMesh;
+	}
+
 	void LuaPrimitiveSetGenerateOverlapEvents(UPrimitiveComponent* Component, bool bGenerateOverlapEvents)
 	{
 		if (IsValid(Component))
@@ -302,6 +374,19 @@ void RegisterGameLuaBindings(sol::state& Lua)
 			return FAnimationManager::Get().LoadMontage(Path);
 		}
 	);
+	Animation.set_function(
+		"PlayOnActor",
+		[](AActor* Actor, const FString& AnimPath, bool bLooping) -> bool
+		{
+			if (!IsValid(Actor) || AnimPath.empty() || AnimPath == "None")
+			{
+				return false;
+			}
+			USkeletalMeshComponent* Mesh = Actor->GetComponentByClass<USkeletalMeshComponent>();
+			return IsValid(Mesh) ? Mesh->PlayAnimationByPath(AnimPath, bLooping) : false;
+		}
+	);
+
 	Animation.set_function(
 		"ConsumeEnableAttack",
 		[](UAnimInstance* AnimInstance) -> bool
@@ -411,50 +496,47 @@ void RegisterGameLuaBindings(sol::state& Lua)
 		"AttachStaticMeshToSocket",
 		[](AActor* Owner, const FString& MeshPath, const FString& SocketName, const FVector& RelativeScale) -> UStaticMeshComponent*
 		{
-			if (!IsValid(Owner) || MeshPath.empty() || MeshPath == "None")
-			{
-				UE_LOG("[Equipment] AttachStaticMeshToSocket failed: invalid owner or mesh path");
-				return nullptr;
-			}
-
-			USkeletalMeshComponent* OwnerMesh = Owner->GetComponentByClass<USkeletalMeshComponent>();
-			if (!IsValid(OwnerMesh))
-			{
-				UE_LOG("[Equipment] AttachStaticMeshToSocket failed: owner has no skeletal mesh");
-				return nullptr;
-			}
-
-			if (!OwnerMesh->HasSocket(FName(SocketName)))
-			{
-				UE_LOG("[Equipment] AttachStaticMeshToSocket failed: socket not found. Socket='%s'", SocketName.c_str());
-				return nullptr;
-			}
-
-			UStaticMeshComponent* WeaponMesh = Owner->AddComponent<UStaticMeshComponent>();
-			if (!IsValid(WeaponMesh))
-			{
-				UE_LOG("[Equipment] AttachStaticMeshToSocket failed: could not create static mesh component");
-				return nullptr;
-			}
-
-			if (!WeaponMesh->SetStaticMeshByPath(MeshPath))
-			{
-				UE_LOG("[Equipment] AttachStaticMeshToSocket failed: could not load static mesh. Mesh='%s'", MeshPath.c_str());
-				Owner->RemoveComponent(WeaponMesh);
-				return nullptr;
-			}
-
-			WeaponMesh->AttachToComponent(OwnerMesh, FName(SocketName));
-			WeaponMesh->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
-			WeaponMesh->SetRelativeRotation(FVector(0.0f, 0.0f, 0.0f));
-			WeaponMesh->SetRelativeScale(RelativeScale);
-			return WeaponMesh;
+			return AttachStaticMeshToSkeletalTarget(Owner, MeshPath, SocketName, RelativeScale);
 		}
+	);
+	Equipment.set_function(
+		"AttachStaticMeshToBone",
+		sol::overload(
+			[](AActor* Owner, const FString& MeshPath, const FString& BoneName, const FVector& RelativeScale) -> UStaticMeshComponent*
+			{
+				return AttachStaticMeshToSkeletalTarget(Owner, MeshPath, BoneName, RelativeScale);
+			},
+			[](AActor* Owner, const FString& MeshPath, const FString& BoneName, const FVector& RelativeScale, const FVector& RelativeLocation, const FVector& RelativeRotation) -> UStaticMeshComponent*
+			{
+				return AttachStaticMeshToSkeletalTarget(Owner, MeshPath, BoneName, RelativeScale, RelativeLocation, RelativeRotation);
+			}
+		)
 	);
 
 	// Game.TogglePause — pause key entry point. Resolves the active GameMode and
 	// lets it decide pause vs. resume from its own phase.
 	sol::table Game = Lua["Game"].valid() ? Lua["Game"] : Lua.create_named_table("Game");
+	Game.set_function(
+		"EnterCutscene",
+		[]()
+		{
+			if (AFinaleGameMode* GM = ResolveFinaleGameMode())
+			{
+				GM->OnEnteringCutscene();
+			}
+		}
+	);
+	Game.set_function(
+		"ExitCutscene",
+		[]()
+		{
+			if (AFinaleGameMode* GM = ResolveFinaleGameMode())
+			{
+				GM->OnExitingCutscene();
+			}
+		}
+	);
+
 	Game.set_function(
 		"TogglePause",
 		[]()
@@ -590,6 +672,72 @@ void RegisterGameLuaBindings(sol::state& Lua)
 				return static_cast<int>(GM->GetReviveCount());
 			}
 			return 0;
+		}
+	);
+
+	// Runtime helpers used by scene directors and encounter scripts.
+	sol::table Camera = Lua["Camera"].valid() ? Lua["Camera"] : Lua.create_named_table("Camera");
+	Camera.set_function(
+		"Shake",
+		[](float Scale) -> bool
+		{
+			APlayerCameraManager* Manager = ResolvePlayerCameraManager();
+			if (!Manager)
+			{
+				return false;
+			}
+			Manager->StartCameraShake<UWaveOscillatorCameraShake>(Scale);
+			return true;
+		}
+	);
+
+	sol::table Combat = Lua["Combat"].valid() ? Lua["Combat"] : Lua.create_named_table("Combat");
+	Combat.set_function(
+		"SetTeam",
+		[](AActor* Actor, int32 Team) -> bool
+		{
+			if (!IsValid(Actor))
+			{
+				return false;
+			}
+			UCombatStateComponent* CombatState = Actor->GetComponentByClass<UCombatStateComponent>();
+			if (!IsValid(CombatState))
+			{
+				return false;
+			}
+			CombatState->SetTeam(static_cast<ECombatTeam>(Team));
+			return true;
+		}
+	);
+
+	sol::table Locomotion = Lua["Locomotion"].valid() ? Lua["Locomotion"] : Lua.create_named_table("Locomotion");
+	Locomotion.set_function(
+		"SetEnabled",
+		[](AActor* Actor, bool bEnabled) -> bool
+		{
+			if (!IsValid(Actor))
+			{
+				return false;
+			}
+
+			bool bChangedAny = false;
+			if (UCharacterMovementComponent* Movement = Actor->GetComponentByClass<UCharacterMovementComponent>())
+			{
+				Movement->SetMovementInputEnabled(bEnabled);
+				if (!bEnabled)
+				{
+					Movement->StopMovementImmediately();
+				}
+				bChangedAny = true;
+			}
+
+			if (UCharacterLocomotionComponent* Driver = Actor->GetComponentByClass<UCharacterLocomotionComponent>())
+			{
+				Driver->SetDriverEnabled(bEnabled);
+				bChangedAny = true;
+			}
+
+			return bChangedAny;
 		}
 	);
 

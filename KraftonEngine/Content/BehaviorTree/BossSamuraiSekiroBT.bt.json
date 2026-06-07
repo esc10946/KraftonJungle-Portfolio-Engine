@@ -1,0 +1,576 @@
+{
+  "format": "KraftonBehaviorTree",
+  "version": 1,
+  "nodes": [
+    {
+      "id": 1,
+      "type": 0,
+      "displayName": "Root",
+      "pos": [
+        0.0,
+        0.0
+      ],
+      "pins": [
+        {
+          "id": 2,
+          "owningNodeId": 1,
+          "kind": 1,
+          "displayName": "Out"
+        }
+      ],
+      "nameValue": "",
+      "keyValue": "",
+      "boolValue": false,
+      "intValue": 0,
+      "floatValue": 0.0,
+      "floatValue2": 0.0,
+      "stringValue": "",
+      "decorators": [],
+      "services": []
+    },
+    {
+      "id": 3,
+      "type": 1,
+      "displayName": "BossRoot",
+      "pos": [
+        260.0,
+        0.0
+      ],
+      "pins": [
+        {
+          "id": 4,
+          "owningNodeId": 3,
+          "kind": 0,
+          "displayName": "In"
+        },
+        {
+          "id": 5,
+          "owningNodeId": 3,
+          "kind": 1,
+          "displayName": "Out"
+        }
+      ],
+      "nameValue": "",
+      "keyValue": "",
+      "boolValue": false,
+      "intValue": 0,
+      "floatValue": 0.0,
+      "floatValue2": 0.0,
+      "stringValue": "",
+      "decorators": [],
+      "services": [
+        {
+          "kind": 1,
+          "name": "BrainSense",
+          "keyValue": "",
+          "boolValue": false,
+          "intValue": 0,
+          "floatValue": 0.05,
+          "stringValue": ""
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": 2,
+      "displayName": "CombatEnvelope",
+      "pos": [
+        520.0,
+        -180.0
+      ],
+      "pins": [
+        {
+          "id": 7,
+          "owningNodeId": 6,
+          "kind": 0,
+          "displayName": "In"
+        },
+        {
+          "id": 8,
+          "owningNodeId": 6,
+          "kind": 1,
+          "displayName": "Out"
+        }
+      ],
+      "nameValue": "",
+      "keyValue": "",
+      "boolValue": false,
+      "intValue": 0,
+      "floatValue": 0.0,
+      "floatValue2": 0.0,
+      "stringValue": "",
+      "decorators": [
+        {
+          "kind": 0,
+          "name": "Condition",
+          "keyValue": "IsAlerted",
+          "boolValue": false,
+          "intValue": 1,
+          "floatValue": 0.0,
+          "stringValue": ""
+        }
+      ],
+      "services": []
+    },
+    {
+      "id": 9,
+      "type": 4,
+      "displayName": "InvestigateFallback",
+      "pos": [
+        560.0,
+        120.0
+      ],
+      "pins": [
+        {
+          "id": 10,
+          "owningNodeId": 9,
+          "kind": 0,
+          "displayName": "In"
+        }
+      ],
+      "nameValue": "BrainVerb",
+      "keyValue": "Investigate",
+      "boolValue": false,
+      "intValue": 0,
+      "floatValue": 0.0,
+      "floatValue2": 0.0,
+      "stringValue": "",
+      "decorators": [],
+      "services": []
+    },
+    {
+      "id": 11,
+      "type": 4,
+      "displayName": "IdleFallback",
+      "pos": [
+        600.0,
+        260.0
+      ],
+      "pins": [
+        {
+          "id": 12,
+          "owningNodeId": 11,
+          "kind": 0,
+          "displayName": "In"
+        }
+      ],
+      "nameValue": "Idle",
+      "keyValue": "",
+      "boolValue": false,
+      "intValue": 0,
+      "floatValue": 0.0,
+      "floatValue2": 0.0,
+      "stringValue": "",
+      "decorators": [],
+      "services": []
+    },
+    {
+      "id": 13,
+      "type": 4,
+      "displayName": "AcquireTarget",
+      "pos": [
+        800.0,
+        -320.0
+      ],
+      "pins": [
+        {
+          "id": 14,
+          "owningNodeId": 13,
+          "kind": 0,
+          "displayName": "In"
+        }
+      ],
+      "nameValue": "BrainVerb",
+      "keyValue": "AcquireTarget",
+      "boolValue": false,
+      "intValue": 0,
+      "floatValue": 0.0,
+      "floatValue2": 0.0,
+      "stringValue": "",
+      "decorators": [],
+      "services": []
+    },
+    {
+      "id": 15,
+      "type": 5,
+      "displayName": "IsAlerted?",
+      "pos": [
+        840.0,
+        -190.0
+      ],
+      "pins": [
+        {
+          "id": 16,
+          "owningNodeId": 15,
+          "kind": 0,
+          "displayName": "In"
+        }
+      ],
+      "nameValue": "IsAlerted",
+      "keyValue": "",
+      "boolValue": false,
+      "intValue": 0,
+      "floatValue": 0.0,
+      "floatValue2": 0.0,
+      "stringValue": "",
+      "decorators": [],
+      "services": []
+    },
+    {
+      "id": 17,
+      "type": 1,
+      "displayName": "CombatChoice",
+      "pos": [
+        880.0,
+        -40.0
+      ],
+      "pins": [
+        {
+          "id": 18,
+          "owningNodeId": 17,
+          "kind": 0,
+          "displayName": "In"
+        },
+        {
+          "id": 19,
+          "owningNodeId": 17,
+          "kind": 1,
+          "displayName": "Out"
+        }
+      ],
+      "nameValue": "",
+      "keyValue": "",
+      "boolValue": false,
+      "intValue": 0,
+      "floatValue": 0.0,
+      "floatValue2": 0.0,
+      "stringValue": "",
+      "decorators": [],
+      "services": []
+    },
+    {
+      "id": 20,
+      "type": 4,
+      "displayName": "ReactiveDeflect",
+      "pos": [
+        1120.0,
+        -270.0
+      ],
+      "pins": [
+        {
+          "id": 21,
+          "owningNodeId": 20,
+          "kind": 0,
+          "displayName": "In"
+        }
+      ],
+      "nameValue": "ReactiveDeflect",
+      "keyValue": "",
+      "boolValue": false,
+      "intValue": 0,
+      "floatValue": 0.0,
+      "floatValue2": 0.0,
+      "stringValue": "",
+      "decorators": [
+        {
+          "kind": 0,
+          "name": "Condition",
+          "keyValue": "TargetThreatening",
+          "boolValue": false,
+          "intValue": 1,
+          "floatValue": 0.0,
+          "stringValue": ""
+        },
+        {
+          "kind": 0,
+          "name": "Cooldown",
+          "keyValue": "",
+          "boolValue": false,
+          "intValue": 0,
+          "floatValue": 0.28,
+          "stringValue": ""
+        }
+      ],
+      "services": []
+    },
+    {
+      "id": 22,
+      "type": 2,
+      "displayName": "AttackPlan",
+      "pos": [
+        1160.0,
+        -80.0
+      ],
+      "pins": [
+        {
+          "id": 23,
+          "owningNodeId": 22,
+          "kind": 0,
+          "displayName": "In"
+        },
+        {
+          "id": 24,
+          "owningNodeId": 22,
+          "kind": 1,
+          "displayName": "Out"
+        }
+      ],
+      "nameValue": "",
+      "keyValue": "",
+      "boolValue": false,
+      "intValue": 0,
+      "floatValue": 0.0,
+      "floatValue2": 0.0,
+      "stringValue": "",
+      "decorators": [
+        {
+          "kind": 0,
+          "name": "Condition",
+          "keyValue": "HasCombatPerception",
+          "boolValue": false,
+          "intValue": 1,
+          "floatValue": 0.0,
+          "stringValue": ""
+        }
+      ],
+      "services": []
+    },
+    {
+      "id": 25,
+      "type": 4,
+      "displayName": "TacticalMove",
+      "pos": [
+        1200.0,
+        120.0
+      ],
+      "pins": [
+        {
+          "id": 26,
+          "owningNodeId": 25,
+          "kind": 0,
+          "displayName": "In"
+        }
+      ],
+      "nameValue": "TacticalMove",
+      "keyValue": "",
+      "boolValue": false,
+      "intValue": 0,
+      "floatValue": 0.0,
+      "floatValue2": 0.0,
+      "stringValue": "",
+      "decorators": [],
+      "services": []
+    },
+    {
+      "id": 27,
+      "type": 4,
+      "displayName": "FaceTarget",
+      "pos": [
+        1440.0,
+        -190.0
+      ],
+      "pins": [
+        {
+          "id": 28,
+          "owningNodeId": 27,
+          "kind": 0,
+          "displayName": "In"
+        }
+      ],
+      "nameValue": "BrainVerb",
+      "keyValue": "FaceTarget",
+      "boolValue": false,
+      "intValue": 0,
+      "floatValue": 0.0,
+      "floatValue2": 0.0,
+      "stringValue": "",
+      "decorators": [],
+      "services": []
+    },
+    {
+      "id": 29,
+      "type": 4,
+      "displayName": "SelectAttack",
+      "pos": [
+        1480.0,
+        -80.0
+      ],
+      "pins": [
+        {
+          "id": 30,
+          "owningNodeId": 29,
+          "kind": 0,
+          "displayName": "In"
+        }
+      ],
+      "nameValue": "SelectAttack",
+      "keyValue": "",
+      "boolValue": false,
+      "intValue": 0,
+      "floatValue": 0.0,
+      "floatValue2": 0.0,
+      "stringValue": "",
+      "decorators": [],
+      "services": []
+    },
+    {
+      "id": 31,
+      "type": 4,
+      "displayName": "Attack",
+      "pos": [
+        1520.0,
+        30.0
+      ],
+      "pins": [
+        {
+          "id": 32,
+          "owningNodeId": 31,
+          "kind": 0,
+          "displayName": "In"
+        }
+      ],
+      "nameValue": "Attack",
+      "keyValue": "",
+      "boolValue": false,
+      "intValue": 0,
+      "floatValue": 0.0,
+      "floatValue2": 0.0,
+      "stringValue": "",
+      "decorators": [],
+      "services": []
+    }
+  ],
+  "links": [
+    {
+      "id": 33,
+      "from": 2,
+      "to": 4
+    },
+    {
+      "id": 34,
+      "from": 5,
+      "to": 7
+    },
+    {
+      "id": 35,
+      "from": 5,
+      "to": 10
+    },
+    {
+      "id": 36,
+      "from": 5,
+      "to": 12
+    },
+    {
+      "id": 37,
+      "from": 8,
+      "to": 14
+    },
+    {
+      "id": 38,
+      "from": 8,
+      "to": 16
+    },
+    {
+      "id": 39,
+      "from": 8,
+      "to": 18
+    },
+    {
+      "id": 40,
+      "from": 19,
+      "to": 21
+    },
+    {
+      "id": 41,
+      "from": 19,
+      "to": 23
+    },
+    {
+      "id": 42,
+      "from": 19,
+      "to": 26
+    },
+    {
+      "id": 43,
+      "from": 24,
+      "to": 28
+    },
+    {
+      "id": 44,
+      "from": 24,
+      "to": 30
+    },
+    {
+      "id": 45,
+      "from": 24,
+      "to": 32
+    }
+  ],
+  "blackboardKeys": [
+    {
+      "name": "CanSee",
+      "type": 1
+    },
+    {
+      "name": "HasLOS",
+      "type": 1
+    },
+    {
+      "name": "InProximity",
+      "type": 1
+    },
+    {
+      "name": "TargetInRecovery",
+      "type": 1
+    },
+    {
+      "name": "HoldingToken",
+      "type": 1
+    },
+    {
+      "name": "TargetHealth",
+      "type": 0
+    },
+    {
+      "name": "TargetPosture",
+      "type": 0
+    },
+    {
+      "name": "ActiveAttackers",
+      "type": 0
+    },
+    {
+      "name": "SquadSlot",
+      "type": 0
+    },
+    {
+      "name": "LOD",
+      "type": 0
+    },
+    {
+      "name": "LastSeenValid",
+      "type": 1
+    },
+    {
+      "name": "TargetThreatening",
+      "type": 1
+    },
+    {
+      "name": "LastAttackWasDeflected",
+      "type": 1
+    },
+    {
+      "name": "Phase",
+      "type": 0
+    },
+    {
+      "name": "Distance",
+      "type": 0
+    },
+    {
+      "name": "TargetPerilous",
+      "type": 0
+    }
+  ]
+}

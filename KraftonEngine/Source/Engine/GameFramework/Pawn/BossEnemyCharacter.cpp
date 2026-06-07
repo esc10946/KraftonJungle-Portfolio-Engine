@@ -3,7 +3,9 @@
 #include "Component/AI/EncounterComponent.h"
 #include "Component/AI/EnemyAIBrainComponent.h"
 #include "Component/AI/PhaseComponent.h"
+#include "Component/Combat/CombatStateComponent.h"
 #include "Component/Combat/HealthComponent.h"
+#include "Component/Particle/ParticleSystemComponent.h"
 
 void ABossEnemyCharacter::InitDefaultComponents(const FString& SkeletalMeshFileName)
 {
@@ -74,6 +76,30 @@ int32 ABossEnemyCharacter::GetBossPhase() const
 void ABossEnemyCharacter::HandleDamaged(UHealthComponent* Component, float Damage, float NewHealth, AActor* DamageCauser, AActor* InstigatorActor)
 {
 	Super::HandleDamaged(Component, Damage, NewHealth, DamageCauser, InstigatorActor);
+
+	if (!Component || Component->IsDead())
+	{
+		return;
+	}
+
+	// Sekiro-style phase stock: health thresholds advance the boss grammar without
+	// destroying/re-spawning the actor, so AI state, camera target, socket weapon, and
+	// encounter ownership stay stable across phases.
+	const float HealthRatio = Component->GetHealthRatio();
+	int32 DesiredPhase = 1;
+	if (HealthRatio <= 0.34f)
+	{
+		DesiredPhase = 3;
+	}
+	else if (HealthRatio <= 0.67f)
+	{
+		DesiredPhase = 2;
+	}
+
+	if (PhaseComponent && PhaseComponent->GetCurrentPhase() < DesiredPhase)
+	{
+		PhaseComponent->SetPhase(DesiredPhase);
+	}
 }
 
 void ABossEnemyCharacter::HandleDeath(UHealthComponent* Component, AActor* DamageCauser, AActor* InstigatorActor)
@@ -86,6 +112,20 @@ void ABossEnemyCharacter::HandlePhaseChanged(UPhaseComponent* /*Component*/, int
 {
 	SetAnimGraphInt(FName("Phase"), NewPhase);
 	SetRuntimeState(FName("PhaseChanged"));
+
+	// 페이즈 전환 연출: 자세변경 플러리시 몽타주 + 짧은 무적(연출 중 끊김 방지) + 파티클 버스트.
+	if (PhaseChangeMontage)
+	{
+		PlayCombatMontage(PhaseChangeMontage);
+	}
+	if (UCombatStateComponent* Combat = GetCombatStateComponent())
+	{
+		Combat->OpenInvulnWindow(PhaseChangeInvulnSeconds);
+	}
+	if (UParticleSystemComponent* PhaseVFX = GetComponentByClass<UParticleSystemComponent>())
+	{
+		PhaseVFX->Activate(true);
+	}
 }
 
 void ABossEnemyCharacter::HandleEncounterStarted(UEncounterComponent* /*Component*/)

@@ -3,7 +3,9 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/Montage/AnimMontage.h"
 #include "Component/AI/EnemyAttackComponent.h"
+#include "Component/Combat/CombatStateComponent.h"
 #include "Component/Combat/HealthComponent.h"
+#include "Component/Movement/CharacterMovementComponent.h"
 #include "Component/Primitive/SkeletalMeshComponent.h"
 #include "GameFramework/AActor.h"
 #include "GameFramework/Pawn/Character.h"
@@ -141,10 +143,51 @@ void UEnemyHitComponent::HandleDamaged(
 		return;
 	}
 
+	AActor* Owner = GetOwner();
+	UCombatStateComponent* Combat = Owner ? Owner->GetComponentByClass<UCombatStateComponent>() : nullptr;
+
+	// 슈퍼아머 보스가 자기 공격(선/활성/후딜)을 펼치는 중이면 일반 피격에 경직되지 않고 포즈를
+	// 유지한다. 이러면 공세가 끊기지 않고(쿨다운도 리셋 안 함), 자세가 무너질 때만 stagger 된다.
+	if (bPoiseThroughDuringOwnAttack && Combat && Combat->HasSuperArmor() && Combat->IsAttacking())
+	{
+		return;
+	}
+
 	if (bClearAttackCooldownsOnHit)
 	{
 		RestartAttackCooldowns();
 	}
+
+	// 가드 중 피격이면 가드 리액션(막기 흔들림)을 재생(이동 중이어도 가드는 제자리이므로 항상).
+	if (Combat && Combat->IsGuarding() && GuardHitMontage)
+	{
+		ACharacter* Character = Cast<ACharacter>(Owner);
+		USkeletalMeshComponent* MeshComponent = Character ? Character->GetMesh() : nullptr;
+		if (UAnimInstance* AnimInstance = MeshComponent ? MeshComponent->GetAnimInstance() : nullptr)
+		{
+			if (bStopCurrentMontageBeforeHit)
+			{
+				AnimInstance->StopMontage(0.0f);
+			}
+			AnimInstance->PlayMontage(GuardHitMontage);
+			return;
+		}
+	}
+
+	// 이동(걷기/달리기) 중이면 경직 몽타주를 생략한다 — 풀바디 피격 몽타주가 걷기를 덮어 슬라이딩처럼
+	// 보이던 문제 수정(슈퍼아머 보스는 칩 피해를 걸으며 흘린다). 정지 상태에서만 경직.
+	if (bSkipHitWhileMoving && Owner)
+	{
+		if (UCharacterMovementComponent* Move = Owner->GetComponentByClass<UCharacterMovementComponent>())
+		{
+			const FVector V = Move->GetVelocityValue();
+			if (std::sqrt(V.X * V.X + V.Y * V.Y) > 0.3f)
+			{
+				return;
+			}
+		}
+	}
+
 	PlayHitMontage(DamageCauser, InstigatorActor);
 }
 

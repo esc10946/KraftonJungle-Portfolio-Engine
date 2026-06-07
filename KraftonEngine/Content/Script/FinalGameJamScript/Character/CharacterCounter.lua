@@ -143,6 +143,19 @@ local function play_counter_particles(ctx)
     ctx.state.counterParticleTimeRemaining = ctx.config.COUNTER_PARTICLE_DURATION
 end
 
+local function play_counter_slomo(ctx)
+    local action = Context.GetActionComponent(ctx)
+    if action == nil or action.Slomo == nil then
+        print("[Slomo] : skipped, ActionComponent or Slomo binding missing")
+        return
+    end
+
+    --Slow world briefly on counter success--
+    print("[Slomo] : play duration=" .. string.format("%.3f", ctx.config.COUNTER_SLOMO_DURATION)
+        .. " dilation=" .. string.format("%.3f", ctx.config.COUNTER_SLOMO_TIME_DILATION))
+    action:Slomo(ctx.config.COUNTER_SLOMO_DURATION, ctx.config.COUNTER_SLOMO_TIME_DILATION)
+end
+
 local function get_root_primitive(ctx)
     if ctx.obj == nil or ctx.obj.GetRootPrimitiveComponent == nil then
         return nil
@@ -294,6 +307,7 @@ function Counter.Play(ctx, target)
     --Clear old EnableAttack flag--
     Context.ConsumeEnableAttack(ctx)
     play_counter_particles(ctx)
+    play_counter_slomo(ctx)
     begin_pawn_overlap(ctx)
     start_reposition_behind_target(ctx, target)
     face_target(ctx, target)
