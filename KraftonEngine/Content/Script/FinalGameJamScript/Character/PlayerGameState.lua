@@ -1,6 +1,7 @@
 local Context = require("FinalGameJamScript/Character/CharacterContext")
 local Locomotion = require("FinalGameJamScript/Character/CharacterLocomotion")
 local State = require("FinalGameJamScript/Character/CharacterState")
+local Counter = require("FinalGameJamScript/Character/CharacterCounter")
 
 local PlayerGameState = {}
 
@@ -23,6 +24,7 @@ local function request_player_death(ctx)
 
     ctx.state.playerDead = true
     Context.StopCurrentMontage(ctx)
+    Counter.RestoreCollision(ctx)
     State.ResetCombat(ctx)
     Locomotion.Lock(ctx)
 
@@ -33,6 +35,7 @@ end
 
 local function reset_after_revive(ctx)
     ctx.state.playerDead = false
+    Counter.RestoreCollision(ctx)
     State.ResetCombat(ctx)
     Locomotion.Unlock(ctx)
 end

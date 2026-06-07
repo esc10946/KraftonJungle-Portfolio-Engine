@@ -11,8 +11,10 @@
 #include "Animation/Notify/AnimNotifyState_ParryWindow.h"
 #include "Component/Camera/CameraComponent.h"
 #include "Component/Particle/ParticleSystemComponent.h"
+#include "Component/PrimitiveComponent.h"
 #include "Component/Primitive/SkeletalMeshComponent.h"
 #include "Component/Primitive/StaticMeshComponent.h"
+#include "Core/Types/CollisionTypes.h"
 #include "Engine/GameFramework/World.h"
 #include "Engine/GameFramework/GameMode/PlayerController.h"
 #include "Engine/GameFramework/Camera/PlayerCameraManager.h"
@@ -193,6 +195,55 @@ namespace
 		Result["CameraZ"] = Projection.CameraLocation.Z;
 		return Result;
 	}
+
+	void LuaPrimitiveSetGenerateOverlapEvents(UPrimitiveComponent* Component, bool bGenerateOverlapEvents)
+	{
+		if (IsValid(Component))
+		{
+			Component->SetGenerateOverlapEvents(bGenerateOverlapEvents);
+		}
+	}
+
+	int32 LuaPrimitiveGetCollisionResponseToChannel(UPrimitiveComponent* Component, int32 Channel)
+	{
+		if (!IsValid(Component))
+		{
+			return static_cast<int32>(ECollisionResponse::Ignore);
+		}
+
+		return static_cast<int32>(
+			Component->GetCollisionResponseToChannel(static_cast<ECollisionChannel>(Channel)));
+	}
+
+	void LuaPrimitiveSetCollisionResponseToChannel(UPrimitiveComponent* Component, int32 Channel, int32 Response)
+	{
+		if (IsValid(Component))
+		{
+			Component->SetCollisionResponseToChannel(
+				static_cast<ECollisionChannel>(Channel),
+				static_cast<ECollisionResponse>(Response));
+		}
+	}
+
+	int32 LuaPrimitiveGetPawnCollisionResponse(UPrimitiveComponent* Component)
+	{
+		if (!IsValid(Component))
+		{
+			return static_cast<int32>(ECollisionResponse::Ignore);
+		}
+
+		return static_cast<int32>(Component->GetCollisionResponseToChannel(ECollisionChannel::Pawn));
+	}
+
+	void LuaPrimitiveSetPawnCollisionResponse(UPrimitiveComponent* Component, int32 Response)
+	{
+		if (IsValid(Component))
+		{
+			Component->SetCollisionResponseToChannel(
+				ECollisionChannel::Pawn,
+				static_cast<ECollisionResponse>(Response));
+		}
+	}
 }
 
 void RegisterGameLuaBindings(sol::state& Lua)
@@ -227,6 +278,17 @@ void RegisterGameLuaBindings(sol::state& Lua)
 			}
 		)
 	);
+
+	sol::object PrimitiveComponentObject = Lua["PrimitiveComponent"];
+	if (PrimitiveComponentObject.is<sol::table>())
+	{
+		sol::table PrimitiveComponent = PrimitiveComponentObject.as<sol::table>();
+		PrimitiveComponent.set_function("SetGenerateOverlapEvents", &LuaPrimitiveSetGenerateOverlapEvents);
+		PrimitiveComponent.set_function("GetCollisionResponseToChannel", &LuaPrimitiveGetCollisionResponseToChannel);
+		PrimitiveComponent.set_function("SetCollisionResponseToChannel", &LuaPrimitiveSetCollisionResponseToChannel);
+		PrimitiveComponent.set_function("GetPawnCollisionResponse", &LuaPrimitiveGetPawnCollisionResponse);
+		PrimitiveComponent.set_function("SetPawnCollisionResponse", &LuaPrimitiveSetPawnCollisionResponse);
+	}
 
 	sol::table Animation = Lua["Animation"].valid() ? Lua["Animation"] : Lua.create_named_table("Animation");
 	Animation.set_function(
@@ -266,6 +328,13 @@ void RegisterGameLuaBindings(sol::state& Lua)
 		[](UAnimInstance* AnimInstance) -> bool
 		{
 			return UAnimNotifyState_ParryWindow::ConsumeSuccessfulParry(AnimInstance);
+		}
+	);
+	Animation.set_function(
+		"ConsumeCounterOpportunityAttacker",
+		[](UAnimInstance* AnimInstance) -> AActor*
+		{
+			return UAnimNotifyState_ParryWindow::ConsumeSuccessfulParryAttacker(AnimInstance);
 		}
 	);
 

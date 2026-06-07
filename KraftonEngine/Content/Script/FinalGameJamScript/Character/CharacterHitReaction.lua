@@ -1,6 +1,7 @@
 local Context = require("FinalGameJamScript/Character/CharacterContext")
 local Locomotion = require("FinalGameJamScript/Character/CharacterLocomotion")
 local State = require("FinalGameJamScript/Character/CharacterState")
+local Counter = require("FinalGameJamScript/Character/CharacterCounter")
 
 local HitReaction = {}
 
@@ -96,6 +97,7 @@ function HitReaction.Play(ctx, damageSpec)
     Context.StopCurrentMontage(ctx)
     State.ResetAttack(ctx)
     State.ResetGuard(ctx)
+    Counter.Reset(ctx)
     ctx.state.hitPlaying = true
     ctx.state.currentHitMontage = montage
     ctx.state.canCancelHit = false

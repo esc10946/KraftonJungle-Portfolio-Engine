@@ -58,16 +58,18 @@ function Context.Create(owner)
             attackInputQueued = false,
             defensePlaying = false,
             defenseIdlePlaying = false,
-            successParryPlaying = false,
-            canCancelSuccessParry = false,
+            counterPlaying = false,
+            canCancelCounter = false,
             hitPlaying = false,
             currentHitMontage = nil,
             canCancelHit = false,
             playerDead = false,
             playerDefeated = false,
-            parryWindowOpen = false,
+            counterWindowOpen = false,
             movementLocked = false,
-            parryParticleTimeRemaining = 0.0,
+            counterParticleTimeRemaining = 0.0,
+            counterMove = nil,
+            counterCollision = nil,
         },
         cache = {
             animInstance = nil,
@@ -75,8 +77,8 @@ function Context.Create(owner)
             attackMontages = {},
             hitMontages = {},
             defenseIdleMontage = nil,
-            successParryMontage = nil,
-            parryParticles = {},
+            counterMontage = nil,
+            counterParticles = {},
         },
         equipment = {
             RweaponComponent = nil,
@@ -155,6 +157,10 @@ function Context.IsParryWindowActive(ctx)
     return Animation.IsParryWindowActive(anim)
 end
 
+function Context.IsCounterWindowActive(ctx)
+    return Context.IsParryWindowActive(ctx)
+end
+
 function Context.ConsumeSuccessfulParry(ctx)
     local anim = Context.GetAnimInstance(ctx)
     if anim == nil or Animation == nil or Animation.ConsumeSuccessfulParry == nil then
@@ -162,6 +168,19 @@ function Context.ConsumeSuccessfulParry(ctx)
     end
 
     return Animation.ConsumeSuccessfulParry(anim)
+end
+
+function Context.ConsumeCounterOpportunity(ctx)
+    local anim = Context.GetAnimInstance(ctx)
+    if anim ~= nil and Animation ~= nil and Animation.ConsumeCounterOpportunityAttacker ~= nil then
+        return Animation.ConsumeCounterOpportunityAttacker(anim)
+    end
+
+    if Context.ConsumeSuccessfulParry(ctx) then
+        return true
+    end
+
+    return nil
 end
 
 function Context.LoadMontage(path)
@@ -207,21 +226,91 @@ function Context.GetCameraFlatForward()
     return forward:Normalized()
 end
 
-function Context.FaceCameraForward(ctx)
+function Context.GetCameraFlatRight()
+    local camera = Context.GetActiveCamera()
+    if camera == nil or camera.Right == nil then
+        return nil
+    end
+
+    local right = camera.Right
+    right.Z = 0.0
+
+    if right:Length() <= 0.0001 then
+        return nil
+    end
+
+    return right:Normalized()
+end
+
+local function get_actor_flat_forward(ctx)
+    if ctx.obj == nil or ctx.obj.Forward == nil then
+        return nil
+    end
+
+    return Context.NormalizeFlatDirection(ctx.obj.Forward)
+end
+
+local function get_actor_flat_right(ctx)
+    if ctx.obj == nil or ctx.obj.Right == nil then
+        return nil
+    end
+
+    return Context.NormalizeFlatDirection(ctx.obj.Right)
+end
+
+function Context.GetMoveInputDirection(ctx)
+    if Input == nil then
+        return nil
+    end
+
+    local forward = Context.GetCameraFlatForward() or get_actor_flat_forward(ctx)
+    local right = Context.GetCameraFlatRight() or get_actor_flat_right(ctx)
+    if forward == nil or right == nil then
+        return nil
+    end
+
+    local forwardScale = 0.0
+    local rightScale = 0.0
+
+    if Input.GetKey(ctx.config.MOVE_FORWARD_KEY) then
+        forwardScale = forwardScale + 1.0
+    end
+
+    if Input.GetKey(ctx.config.MOVE_BACK_KEY) then
+        forwardScale = forwardScale - 1.0
+    end
+
+    if Input.GetKey(ctx.config.MOVE_RIGHT_KEY) then
+        rightScale = rightScale + 1.0
+    end
+
+    if Input.GetKey(ctx.config.MOVE_LEFT_KEY) then
+        rightScale = rightScale - 1.0
+    end
+
+    if forwardScale == 0.0 and rightScale == 0.0 then
+        return nil
+    end
+
+    --Use camera-relative move input as attack direction--
+    return Context.NormalizeFlatDirection(forward * forwardScale + right * rightScale)
+end
+
+function Context.FaceDirection(ctx, direction)
     if ctx.obj == nil then
         return
     end
 
-    local forward = Context.GetCameraFlatForward()
-    if forward == nil then
+    local faceDirection = Context.NormalizeFlatDirection(direction)
+    if faceDirection == nil then
         return
     end
 
-    local yaw = atan2_degrees(forward.Y, forward.X)
+    local yaw = atan2_degrees(faceDirection.Y, faceDirection.X)
     --FVector rotation uses X=Roll, Y=Pitch, Z=Yaw--
     ctx.obj.Rotation = Vec3(0.0, 0.0, yaw)
 
-    --RootMotion combo should start from the new camera yaw--
+    --RootMotion combo should start from the selected attack yaw--
     if ctx.obj.GetController ~= nil then
         local controller = ctx.obj:GetController()
         if controller ~= nil and controller.GetControlRotation ~= nil and controller.SetControlRotation ~= nil then
@@ -233,6 +322,20 @@ function Context.FaceCameraForward(ctx)
             end
         end
     end
+end
+
+function Context.FaceCameraForward(ctx)
+    Context.FaceDirection(ctx, Context.GetCameraFlatForward())
+end
+
+function Context.FaceAttackDirection(ctx)
+    local moveDirection = Context.GetMoveInputDirection(ctx)
+    if moveDirection ~= nil then
+        Context.FaceDirection(ctx, moveDirection)
+        return
+    end
+
+    Context.FaceCameraForward(ctx)
 end
 
 function Context.NormalizeFlatDirection(direction)

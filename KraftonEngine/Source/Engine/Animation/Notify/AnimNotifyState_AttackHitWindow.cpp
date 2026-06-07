@@ -177,7 +177,7 @@ namespace
 		}
 
 		FaceDefenderTowardAttacker(Target, Attacker);
-		UAnimNotifyState_ParryWindow::ReportSuccessfulParry(TargetAnimInstance);
+		UAnimNotifyState_ParryWindow::ReportSuccessfulParry(TargetAnimInstance, Attacker);
 		if (bRagdollAttacker)
 		{
 			if (ACharacter* AttackerCharacter = Cast<ACharacter>(Attacker))

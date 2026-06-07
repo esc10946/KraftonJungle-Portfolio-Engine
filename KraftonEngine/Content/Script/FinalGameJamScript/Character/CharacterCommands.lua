@@ -1,4 +1,5 @@
 local Combat = require("FinalGameJamScript/Character/CharacterCombat")
+local Counter = require("FinalGameJamScript/Character/CharacterCounter")
 local Guard = require("FinalGameJamScript/Character/CharacterGuard")
 local HitReaction = require("FinalGameJamScript/Character/CharacterHitReaction")
 local Locomotion = require("FinalGameJamScript/Character/CharacterLocomotion")
@@ -28,10 +29,10 @@ end
 local commandList = {
     { Tick = Combat.UpdateAttackChainWindow },
     { Tick = HitReaction.UpdateCancelWindow },
-    { Tick = Guard.UpdateParryWindow },
-    { Tick = Guard.UpdateParryParticles },
-    { Tick = Guard.UpdateSuccessParry },
-    { Tick = Guard.UpdateSuccessParryCancelWindow },
+    { Tick = Guard.UpdateCounterWindow },
+    { Tick = Counter.UpdateParticles },
+    { Tick = Counter.UpdateOpportunity },
+    { Tick = Counter.UpdateCancelWindow },
     { Tick = Locomotion.UpdateMovementLock },
     {
         IsTriggered = Guard.IsInputTriggered,
@@ -60,7 +61,7 @@ local commandList = {
     {
         Tick = function(ctx, dt)
             Guard.UpdateDefenseSequence(ctx)
-            Guard.UpdateSuccessParrySequence(ctx)
+            Counter.UpdateSequence(ctx, dt)
         end,
     },
     { Tick = HitReaction.UpdateSequence },

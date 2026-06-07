@@ -2,6 +2,7 @@ local Context = require("FinalGameJamScript/Character/CharacterContext")
 local Locomotion = require("FinalGameJamScript/Character/CharacterLocomotion")
 local State = require("FinalGameJamScript/Character/CharacterState")
 local HitReaction = require("FinalGameJamScript/Character/CharacterHitReaction")
+local Counter = require("FinalGameJamScript/Character/CharacterCounter")
 
 local Combat = {}
 
@@ -32,7 +33,7 @@ function Combat.PlayAttack(ctx, index)
     ctx.state.attackPlaying = true
     ctx.state.canChainAttack = false
     ctx.state.attackInputQueued = false
-    Context.FaceCameraForward(ctx)
+    Context.FaceAttackDirection(ctx)
     Locomotion.Lock(ctx)
     --Clear old EnableAttack flag--
     Context.ConsumeEnableAttack(ctx)
@@ -91,15 +92,12 @@ function Combat.ExecuteInput(ctx)
         return
     end
 
-    if ctx.state.successParryPlaying then
-        if not ctx.state.canCancelSuccessParry then
+    if ctx.state.counterPlaying then
+        if not ctx.state.canCancelCounter then
             return
         end
 
-        Context.StopCurrentMontage(ctx)
-        State.ResetGuard(ctx)
-        Locomotion.Unlock(ctx)
-        Context.ConsumeEnableAttack(ctx)
+        Counter.StopForCancel(ctx)
     end
 
     if ctx.state.hitPlaying then
