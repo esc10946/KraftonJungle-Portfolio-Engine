@@ -1,4 +1,4 @@
-﻿#include "AFinaleGameMode.h"
+#include "AFinaleGameMode.h"
 #include "GameState.h"
 #include "Engine/Core/Logging/Log.h"
 #include "Engine/Object/Reflection/UClass.h"
@@ -100,8 +100,33 @@ void AFinaleGameMode::OnGameResumed()
 
 void AFinaleGameMode::OnEnteringCutscene()
 {
-	// Block player input
+	if (CheckGamePhase(EGamePhase::CutScene))
+	{
+		return;
+	}
+
+	// Block player input while the cinematic owns the camera.
+	if (APlayerController* PC = GetPlayerController())
+	{
+		PC->DisableInput();
+	}
+
 	SetGamePhase(EGamePhase::CutScene);
+}
+
+void AFinaleGameMode::OnExitingCutscene()
+{
+	if (!CheckGamePhase(EGamePhase::CutScene))
+	{
+		return;
+	}
+
+	if (APlayerController* PC = GetPlayerController())
+	{
+		PC->EnableInput();
+	}
+
+	SetGamePhase(EGamePhase::Playing);
 }
 
 void AFinaleGameMode::OnGameQuit()

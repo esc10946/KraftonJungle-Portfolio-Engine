@@ -119,6 +119,41 @@ protected:
     EBTNodeResult Tick(const FBTContext& Context) override;
 };
 
+
+// ── 보스 전용 의사결정 Task ────────────────────────────────────────────────
+// 공격 카탈로그 전체를 점수화해 이번 틱에 실행할 공격을 SelectedAttack 으로 확정한다.
+// 거리/각도/페이즈/타깃 후딜/플레이어 공격 커밋/최근 반복/전술 태그를 함께 본다.
+class FBTTask_SelectAttack : public FBTNode_Base
+{
+public:
+    const char* GetDebugName() const override { return "SelectAttack"; }
+
+protected:
+    EBTNodeResult Tick(const FBTContext& Context) override;
+};
+
+// 플레이어의 공격 커밋을 보고 확률·상황 기반으로 탄기/가드를 연다.
+// 단순 조건 노드가 아니라 실제 반응 행동까지 처리하므로 성공 시 상위 Selector 를 선점한다.
+class FBTTask_ReactiveDeflect : public FBTNode_Base
+{
+public:
+    const char* GetDebugName() const override { return "ReactiveDeflect"; }
+
+protected:
+    EBTNodeResult Tick(const FBTContext& Context) override;
+};
+
+// 공격할 수 없을 때 거리/체력/페이즈/직전 공격 결과를 보고 추격·횡이동·후퇴를 고른다.
+// BT 의 하위 leaf 를 여러 개 늘어놓는 대신 전술 이동 선택을 하나의 안정적 Task 로 캡슐화한다.
+class FBTTask_TacticalMove : public FBTNode_Base
+{
+public:
+    const char* GetDebugName() const override { return "TacticalMove"; }
+
+protected:
+    EBTNodeResult Tick(const FBTContext& Context) override;
+};
+
 // ── 제네릭(데이터 구동) 노드 — C++ 클래스 추가 없이 자극/동작 연결 ──
 
 // VerbId(그래프 노드 KeyValue)로 Brain_* 동사를 호출. 한 노드로 여러 동작 표현.

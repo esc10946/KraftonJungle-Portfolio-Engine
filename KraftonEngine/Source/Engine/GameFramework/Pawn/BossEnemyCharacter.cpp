@@ -74,6 +74,30 @@ int32 ABossEnemyCharacter::GetBossPhase() const
 void ABossEnemyCharacter::HandleDamaged(UHealthComponent* Component, float Damage, float NewHealth, AActor* DamageCauser, AActor* InstigatorActor)
 {
 	Super::HandleDamaged(Component, Damage, NewHealth, DamageCauser, InstigatorActor);
+
+	if (!Component || Component->IsDead())
+	{
+		return;
+	}
+
+	// Sekiro-style phase stock: health thresholds advance the boss grammar without
+	// destroying/re-spawning the actor, so AI state, camera target, socket weapon, and
+	// encounter ownership stay stable across phases.
+	const float HealthRatio = Component->GetHealthRatio();
+	int32 DesiredPhase = 1;
+	if (HealthRatio <= 0.34f)
+	{
+		DesiredPhase = 3;
+	}
+	else if (HealthRatio <= 0.67f)
+	{
+		DesiredPhase = 2;
+	}
+
+	if (PhaseComponent && PhaseComponent->GetCurrentPhase() < DesiredPhase)
+	{
+		PhaseComponent->SetPhase(DesiredPhase);
+	}
 }
 
 void ABossEnemyCharacter::HandleDeath(UHealthComponent* Component, AActor* DamageCauser, AActor* InstigatorActor)

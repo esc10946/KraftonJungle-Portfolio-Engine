@@ -27,6 +27,12 @@ const TArray<FBTLeafType>& GetBTLeafCatalog()
             [](UBehaviorTreeComponent& O, const FBTGraphNode&) -> FBTNode_Base* { return O.MakeNode<FBTTask_Chase>(); });
         Add("Attack", false, "Combat", "Attack",
             [](UBehaviorTreeComponent& O, const FBTGraphNode&) -> FBTNode_Base* { return O.MakeNode<FBTTask_Attack>(); });
+        Add("SelectAttack", false, "Combat", "Select Attack",
+            [](UBehaviorTreeComponent& O, const FBTGraphNode&) -> FBTNode_Base* { return O.MakeNode<FBTTask_SelectAttack>(); });
+        Add("ReactiveDeflect", false, "Combat", "Reactive Deflect",
+            [](UBehaviorTreeComponent& O, const FBTGraphNode&) -> FBTNode_Base* { return O.MakeNode<FBTTask_ReactiveDeflect>(); });
+        Add("TacticalMove", false, "Movement", "Tactical Move",
+            [](UBehaviorTreeComponent& O, const FBTGraphNode&) -> FBTNode_Base* { return O.MakeNode<FBTTask_TacticalMove>(); });
         Add("Strafe", false, "Movement", "Strafe",
             [](UBehaviorTreeComponent& O, const FBTGraphNode&) -> FBTNode_Base* { return O.MakeNode<FBTTask_Strafe>(); });
         Add("Reposition", false, "Movement", "Reposition",

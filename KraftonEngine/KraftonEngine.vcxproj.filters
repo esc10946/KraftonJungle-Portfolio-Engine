@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
     <Filter Include="Intermediate">
@@ -201,6 +201,9 @@
     </Filter>
     <Filter Include="Source\Engine\Component">
       <UniqueIdentifier>{22bbd7c0-73bc-1bc4-992f-be08238b1609}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source\Engine\Component\Animation">
+      <UniqueIdentifier>{e21ad4cb-3b4f-4d59-8bc6-773d908b7fa6}</UniqueIdentifier>
     </Filter>
     <Filter Include="Source\Engine\Component\AI">
       <UniqueIdentifier>{5b7529d2-63db-bf9b-da50-46b4c3c45b14}</UniqueIdentifier>
@@ -1309,6 +1312,9 @@
     </ClCompile>
     <ClCompile Include="Source\Engine\Component\AI\PhaseComponent.cpp">
       <Filter>Source\Engine\Component\AI</Filter>
+    </ClCompile>
+    <ClCompile Include="Source\Engine\Component\Animation\CharacterLocomotionComponent.cpp">
+      <Filter>Source\Engine\Component\Animation</Filter>
     </ClCompile>
     <ClCompile Include="Source\Engine\Component\Camera\CameraComponent.cpp">
       <Filter>Source\Engine\Component\Camera</Filter>
@@ -2812,6 +2818,9 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\AI\PhaseComponent.h">
       <Filter>Source\Engine\Component\AI</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Component\Animation\CharacterLocomotionComponent.h">
+      <Filter>Source\Engine\Component\Animation</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\Camera\CameraComponent.h">
       <Filter>Source\Engine\Component\Camera</Filter>

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "Engine/GameFramework/GameMode/GameModeBase.h"
 
 #include "Source/Game/GameMode/AFinaleGameMode.generated.h"
@@ -19,6 +19,7 @@ public:
 	void OnGamePaused();
 	void OnGameResumed();
 	void OnEnteringCutscene();
+	void OnExitingCutscene();
 	void OnGameQuit();			// Quit means returned to title here
 	void OnLeaderBoardView();
 	void OnPlayerDeath();
