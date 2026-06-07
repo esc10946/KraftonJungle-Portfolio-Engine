@@ -20,6 +20,12 @@ enum class EInputAxisSourceType : uint8
 	MouseX,
 	MouseY,
 	MouseWheel,
+	GamepadLeftX,
+	GamepadLeftY,
+	GamepadRightX,
+	GamepadRightY,
+	GamepadLeftTrigger,
+	GamepadRightTrigger,
 };
 
 // UE 의 UInputComponent 패턴 minimal:
@@ -47,6 +53,8 @@ public:
 	void AddAxisMapping(const FString& Name, const FString& KeyName, float Scale = 1.0f);
 	UFUNCTION(Callable, Category="Input|Mapping")
 	void AddMouseAxisMapping(const FString& Name, EInputAxisSourceType Axis, float Scale = 1.0f);
+	UFUNCTION(Callable, Category="Input|Mapping")
+	void AddGamepadAxisMapping(const FString& Name, EInputAxisSourceType Axis, float Scale = 1.0f, bool bScaleByDeltaTime = false);
 	void AddActionMapping(const FString& Name, int VKey);
 	UFUNCTION(Callable, Category="Input|Mapping")
 	void AddActionMapping(const FString& Name, const FString& KeyName);
@@ -55,6 +63,7 @@ public:
 	void AddAxisMappingForOwner(const void* OwnerKey, const FString& Name, int VKey, float Scale = 1.0f);
 	void AddAxisMappingForOwner(const void* OwnerKey, const FString& Name, const FString& KeyName, float Scale = 1.0f);
 	void AddMouseAxisMappingForOwner(const void* OwnerKey, const FString& Name, EInputAxisSourceType Axis, float Scale = 1.0f);
+	void AddGamepadAxisMappingForOwner(const void* OwnerKey, const FString& Name, EInputAxisSourceType Axis, float Scale = 1.0f, bool bScaleByDeltaTime = false);
 	void AddActionMappingForOwner(const void* OwnerKey, const FString& Name, int VKey);
 	void AddActionMappingForOwner(const void* OwnerKey, const FString& Name, const FString& KeyName);
 
@@ -81,13 +90,14 @@ private:
 		EInputAxisSourceType SourceType = EInputAxisSourceType::Key;
 		int VKey = 0;
 		float Scale = 1.0f;
+		bool bScaleByDeltaTime = false;
 		const void* OwnerKey = nullptr;
 	};
 	struct FActionMapping { FString Name; int VKey = 0; const void* OwnerKey = nullptr; };
 	struct FAxisBinding   { FString Name; const void* OwnerKey = nullptr; TFunction<void(float)> Callback; };
 	struct FActionBinding { FString Name; EInputEvent Event = EInputEvent::Pressed; const void* OwnerKey = nullptr; TFunction<void()> Callback; };
 
-	float EvaluateAxisMapping(const FAxisMapping& Mapping, const FInputSystemSnapshot& Snapshot) const;
+	float EvaluateAxisMapping(const FAxisMapping& Mapping, const FInputSystemSnapshot& Snapshot, float DeltaTime) const;
 
 	TArray<FAxisMapping>   AxisMappings;
 	TArray<FActionMapping> ActionMappings;

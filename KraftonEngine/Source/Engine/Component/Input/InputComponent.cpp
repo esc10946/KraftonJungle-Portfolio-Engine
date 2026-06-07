@@ -7,6 +7,23 @@
 
 #include <algorithm>
 
+namespace
+{
+	int GetGamepadAxisCode(EInputAxisSourceType Axis)
+	{
+		switch (Axis)
+		{
+		case EInputAxisSourceType::GamepadLeftX: return GamepadLeftX;
+		case EInputAxisSourceType::GamepadLeftY: return GamepadLeftY;
+		case EInputAxisSourceType::GamepadRightX: return GamepadRightX;
+		case EInputAxisSourceType::GamepadRightY: return GamepadRightY;
+		case EInputAxisSourceType::GamepadLeftTrigger: return GamepadLeftTriggerAxis;
+		case EInputAxisSourceType::GamepadRightTrigger: return GamepadRightTriggerAxis;
+		default: return GamepadAxisInvalid;
+		}
+	}
+}
+
 UInputComponent::UInputComponent()
 {
 	bTickEnable = false;
@@ -47,7 +64,9 @@ void UInputComponent::AddMouseAxisMapping(const FString& Name, EInputAxisSourceT
 
 void UInputComponent::AddMouseAxisMappingForOwner(const void* OwnerKey, const FString& Name, EInputAxisSourceType Axis, float Scale)
 {
-	if (Axis == EInputAxisSourceType::Key)
+	if (Axis != EInputAxisSourceType::MouseX
+		&& Axis != EInputAxisSourceType::MouseY
+		&& Axis != EInputAxisSourceType::MouseWheel)
 	{
 		return;
 	}
@@ -56,6 +75,27 @@ void UInputComponent::AddMouseAxisMappingForOwner(const void* OwnerKey, const FS
 	M.Name = Name;
 	M.SourceType = Axis;
 	M.Scale = Scale;
+	M.OwnerKey = OwnerKey;
+	AxisMappings.push_back(std::move(M));
+}
+
+void UInputComponent::AddGamepadAxisMapping(const FString& Name, EInputAxisSourceType Axis, float Scale, bool bScaleByDeltaTime)
+{
+	AddGamepadAxisMappingForOwner(nullptr, Name, Axis, Scale, bScaleByDeltaTime);
+}
+
+void UInputComponent::AddGamepadAxisMappingForOwner(const void* OwnerKey, const FString& Name, EInputAxisSourceType Axis, float Scale, bool bScaleByDeltaTime)
+{
+	if (GetGamepadAxisCode(Axis) == GamepadAxisInvalid)
+	{
+		return;
+	}
+
+	FAxisMapping M;
+	M.Name = Name;
+	M.SourceType = Axis;
+	M.Scale = Scale;
+	M.bScaleByDeltaTime = bScaleByDeltaTime;
 	M.OwnerKey = OwnerKey;
 	AxisMappings.push_back(std::move(M));
 }
@@ -142,24 +182,44 @@ void UInputComponent::RemoveBindingsForOwner(const void* OwnerKey)
 		ActionBindings.end());
 }
 
-float UInputComponent::EvaluateAxisMapping(const FAxisMapping& Mapping, const FInputSystemSnapshot& Snapshot) const
+float UInputComponent::EvaluateAxisMapping(const FAxisMapping& Mapping, const FInputSystemSnapshot& Snapshot, float DeltaTime) const
 {
+	float Value = 0.0f;
 	switch (Mapping.SourceType)
 	{
 	case EInputAxisSourceType::Key:
-		return Snapshot.IsDown(Mapping.VKey) ? Mapping.Scale : 0.0f;
+		Value = Snapshot.IsDown(Mapping.VKey) ? 1.0f : 0.0f;
+		break;
 	case EInputAxisSourceType::MouseX:
-		return static_cast<float>(Snapshot.MouseDeltaX) * Mapping.Scale;
+		Value = static_cast<float>(Snapshot.MouseDeltaX);
+		break;
 	case EInputAxisSourceType::MouseY:
-		return static_cast<float>(Snapshot.MouseDeltaY) * Mapping.Scale;
+		Value = static_cast<float>(Snapshot.MouseDeltaY);
+		break;
 	case EInputAxisSourceType::MouseWheel:
-		return static_cast<float>(Snapshot.ScrollDelta) * Mapping.Scale;
+		Value = static_cast<float>(Snapshot.ScrollDelta);
+		break;
+	case EInputAxisSourceType::GamepadLeftX:
+	case EInputAxisSourceType::GamepadLeftY:
+	case EInputAxisSourceType::GamepadRightX:
+	case EInputAxisSourceType::GamepadRightY:
+	case EInputAxisSourceType::GamepadLeftTrigger:
+	case EInputAxisSourceType::GamepadRightTrigger:
+		Value = Snapshot.GetAxis(GetGamepadAxisCode(Mapping.SourceType));
+		break;
 	default:
 		return 0.0f;
 	}
+
+	Value *= Mapping.Scale;
+	if (Mapping.bScaleByDeltaTime)
+	{
+		Value *= DeltaTime;
+	}
+	return Value;
 }
 
-void UInputComponent::ProcessInput(const FInputSystemSnapshot& Snapshot, float /*DeltaTime*/)
+void UInputComponent::ProcessInput(const FInputSystemSnapshot& Snapshot, float DeltaTime)
 {
 	// Axis: 매핑 평가 → name 별 합산 → 매칭 binding 호출.
 	// UE 와 동일 — 매 frame 호출 (value=0 도 호출됨, 자식이 0 분기 처리).
@@ -170,7 +230,7 @@ void UInputComponent::ProcessInput(const FInputSystemSnapshot& Snapshot, float /
 		{
 			if (M.Name == B.Name)
 			{
-				Value += EvaluateAxisMapping(M, Snapshot);
+				Value += EvaluateAxisMapping(M, Snapshot, DeltaTime);
 			}
 		}
 		if (B.Callback) B.Callback(Value);

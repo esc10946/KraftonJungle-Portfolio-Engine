@@ -12,6 +12,12 @@ namespace
         int32       Code;
     };
 
+    struct FInputAxisNameEntry
+    {
+        const char* Name;
+        int32       Code;
+    };
+
     FString NormalizeKeyName(FString Value)
     {
         Value.erase(std::remove_if(Value.begin(), Value.end(), [](unsigned char C)
@@ -76,10 +82,65 @@ namespace
             {"LMB", 0x01}, {"RMB", 0x02}, {"MMB", 0x04},
             {"MouseLeft", 0x01}, {"MouseRight", 0x02}, {"MouseMiddle", 0x04},
             {"Return", 0x0D}, {"Esc", 0x1B}, {"PgUp", 0x21}, {"PgDn", 0x22},
-            {"LeftControl", 0xA2}, {"RightControl", 0xA3}
+            {"LeftControl", 0xA2}, {"RightControl", 0xA3},
+            {"GamepadFaceButtonBottom", GamepadFaceButtonBottom},
+            {"GamepadFaceButtonRight", GamepadFaceButtonRight},
+            {"GamepadFaceButtonLeft", GamepadFaceButtonLeft},
+            {"GamepadFaceButtonTop", GamepadFaceButtonTop},
+            {"GamepadLeftShoulder", GamepadLeftShoulder},
+            {"GamepadRightShoulder", GamepadRightShoulder},
+            {"GamepadLeftTrigger", GamepadLeftTrigger},
+            {"GamepadRightTrigger", GamepadRightTrigger},
+            {"GamepadLeftThumbstick", GamepadLeftThumbstick},
+            {"GamepadRightThumbstick", GamepadRightThumbstick},
+            {"GamepadDPadUp", GamepadDPadUp},
+            {"GamepadDPadDown", GamepadDPadDown},
+            {"GamepadDPadLeft", GamepadDPadLeft},
+            {"GamepadDPadRight", GamepadDPadRight},
+            {"GamepadStart", GamepadStart},
+            {"GamepadBack", GamepadBack},
+            {"GamepadA", GamepadFaceButtonBottom},
+            {"GamepadB", GamepadFaceButtonRight},
+            {"GamepadX", GamepadFaceButtonLeft},
+            {"GamepadY", GamepadFaceButtonTop},
+            {"GamepadLB", GamepadLeftShoulder},
+            {"GamepadRB", GamepadRightShoulder},
+            {"GamepadLT", GamepadLeftTrigger},
+            {"GamepadRT", GamepadRightTrigger},
+            {"GamepadL3", GamepadLeftThumbstick},
+            {"GamepadR3", GamepadRightThumbstick}
         };
         return Entries;
     }
+
+    const TArray<FInputAxisNameEntry>& GetInputAxisNameEntries()
+    {
+        static const TArray<FInputAxisNameEntry> Entries = {
+            {"GamepadLeftX", GamepadLeftX},
+            {"GamepadLeftY", GamepadLeftY},
+            {"GamepadRightX", GamepadRightX},
+            {"GamepadRightY", GamepadRightY},
+            {"GamepadLeftTriggerAxis", GamepadLeftTriggerAxis},
+            {"GamepadRightTriggerAxis", GamepadRightTriggerAxis},
+            {"LeftStickX", GamepadLeftX},
+            {"LeftStickY", GamepadLeftY},
+            {"RightStickX", GamepadRightX},
+            {"RightStickY", GamepadRightY},
+            {"LeftTriggerAxis", GamepadLeftTriggerAxis},
+            {"RightTriggerAxis", GamepadRightTriggerAxis},
+        };
+        return Entries;
+    }
+}
+
+bool IsGamepadKeyCode(int32 KeyCode)
+{
+    return KeyCode >= INPUT_GAMEPAD_KEY_BASE && KeyCode < INPUT_GAMEPAD_KEY_BASE + INPUT_GAMEPAD_BUTTON_COUNT;
+}
+
+int32 GetGamepadButtonIndex(int32 KeyCode)
+{
+    return IsGamepadKeyCode(KeyCode) ? KeyCode - INPUT_GAMEPAD_KEY_BASE : -1;
 }
 
 int32 ResolveInputKeyCode(const FString& KeyName)
@@ -132,6 +193,45 @@ FString GetInputKeyName(int32 KeyCode)
     }
 
     return FString("VK") + std::to_string(KeyCode);
+}
+
+int32 ResolveInputAxisCode(const FString& AxisName)
+{
+    const FString Normalized = NormalizeKeyName(AxisName);
+    if (Normalized.empty() || Normalized == "NONE")
+    {
+        return GamepadAxisInvalid;
+    }
+
+    for (const FInputAxisNameEntry& Entry : GetInputAxisNameEntries())
+    {
+        if (NormalizeKeyName(Entry.Name) == Normalized)
+        {
+            return Entry.Code;
+        }
+    }
+
+    char* End = nullptr;
+    const long Parsed = std::strtol(AxisName.c_str(), &End, 0);
+    if (End && *End == '\0' && Parsed >= GamepadLeftX && Parsed <= GamepadRightTriggerAxis)
+    {
+        return static_cast<int32>(Parsed);
+    }
+
+    return GamepadAxisInvalid;
+}
+
+FString GetInputAxisName(int32 AxisCode)
+{
+    for (const FInputAxisNameEntry& Entry : GetInputAxisNameEntries())
+    {
+        if (Entry.Code == AxisCode)
+        {
+            return Entry.Name;
+        }
+    }
+
+    return "None";
 }
 
 const TArray<FString>& GetKnownInputKeyNames()

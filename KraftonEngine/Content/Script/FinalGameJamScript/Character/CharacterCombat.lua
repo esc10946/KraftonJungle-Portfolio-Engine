@@ -19,6 +19,7 @@ end
 
 local function is_attack_pressed(ctx)
     return Input.GetKeyDown(ctx.config.LMB)
+        or Input.GetKeyDown(ctx.config.GAMEPAD_ATTACK)
 end
 
 function Combat.PlayAttack(ctx, index)

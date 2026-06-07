@@ -2118,9 +2118,17 @@ void FLuaScriptManager::RegisterCoreBindings(sol::state& Lua)
             {
                 return GetLuaInputSnapshot().WasPressed(ResolveInputKeyCode(KeyName));
             },
+            [](const FString& KeyName, int ControllerIndex)
+            {
+                return GetLuaInputSnapshot().WasPressed(ResolveInputKeyCode(KeyName), ControllerIndex);
+            },
             [](int VK)
             {
                 return GetLuaInputSnapshot().WasPressed(VK);
+            },
+            [](int VK, int ControllerIndex)
+            {
+                return GetLuaInputSnapshot().WasPressed(VK, ControllerIndex);
             }
         )
     );
@@ -2131,9 +2139,17 @@ void FLuaScriptManager::RegisterCoreBindings(sol::state& Lua)
             {
                 return GetLuaInputSnapshot().IsDown(ResolveInputKeyCode(KeyName));
             },
+            [](const FString& KeyName, int ControllerIndex)
+            {
+                return GetLuaInputSnapshot().IsDown(ResolveInputKeyCode(KeyName), ControllerIndex);
+            },
             [](int VK)
             {
                 return GetLuaInputSnapshot().IsDown(VK);
+            },
+            [](int VK, int ControllerIndex)
+            {
+                return GetLuaInputSnapshot().IsDown(VK, ControllerIndex);
             }
         )
     );
@@ -2144,9 +2160,17 @@ void FLuaScriptManager::RegisterCoreBindings(sol::state& Lua)
             {
                 return GetLuaInputSnapshot().WasReleased(ResolveInputKeyCode(KeyName));
             },
+            [](const FString& KeyName, int ControllerIndex)
+            {
+                return GetLuaInputSnapshot().WasReleased(ResolveInputKeyCode(KeyName), ControllerIndex);
+            },
             [](int VK)
             {
                 return GetLuaInputSnapshot().WasReleased(VK);
+            },
+            [](int VK, int ControllerIndex)
+            {
+                return GetLuaInputSnapshot().WasReleased(VK, ControllerIndex);
             }
         )
     );
@@ -2166,6 +2190,41 @@ void FLuaScriptManager::RegisterCoreBindings(sol::state& Lua)
     );
 
     // Engine — 게임 일시정지 / 종료.
+    Input.set_function(
+        "GetAxis",
+        sol::overload(
+            [](const FString& AxisName)
+            {
+                return GetLuaInputSnapshot().GetAxis(ResolveInputAxisCode(AxisName));
+            },
+            [](const FString& AxisName, int ControllerIndex)
+            {
+                return GetLuaInputSnapshot().GetAxis(ResolveInputAxisCode(AxisName), ControllerIndex);
+            },
+            [](int AxisCode)
+            {
+                return GetLuaInputSnapshot().GetAxis(AxisCode);
+            },
+            [](int AxisCode, int ControllerIndex)
+            {
+                return GetLuaInputSnapshot().GetAxis(AxisCode, ControllerIndex);
+            }
+        )
+    );
+    Input.set_function(
+        "IsGamepadConnected",
+        sol::overload(
+            []()
+            {
+                return GetLuaInputSnapshot().IsGamepadConnected();
+            },
+            [](int ControllerIndex)
+            {
+                return GetLuaInputSnapshot().IsGamepadConnected(ControllerIndex);
+            }
+        )
+    );
+
     sol::table Engine = Lua.create_named_table("Engine");
     Engine.set_function(
         "PauseGame",

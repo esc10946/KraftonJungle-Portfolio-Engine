@@ -1,5 +1,112 @@
 #include "Engine/Input/InputSystem.h"
+#include <Xinput.h>
+#include <algorithm>
 #include <cmath>
+
+namespace
+{
+    constexpr float GAMEPAD_STICK_DEADZONE = 0.20f;
+    constexpr float GAMEPAD_TRIGGER_BUTTON_THRESHOLD = 0.50f;
+
+    bool IsValidControllerIndex(int ControllerIndex)
+    {
+        return ControllerIndex >= 0 && ControllerIndex < INPUT_GAMEPAD_MAX_CONTROLLERS;
+    }
+
+    float NormalizeStickAxis(SHORT Value)
+    {
+        const float Denom = Value < 0 ? 32768.0f : 32767.0f;
+        float Normalized = static_cast<float>(Value) / Denom;
+        Normalized = std::clamp(Normalized, -1.0f, 1.0f);
+
+        const float AbsValue = std::abs(Normalized);
+        if (AbsValue <= GAMEPAD_STICK_DEADZONE)
+        {
+            return 0.0f;
+        }
+
+        const float Scaled = (AbsValue - GAMEPAD_STICK_DEADZONE) / (1.0f - GAMEPAD_STICK_DEADZONE);
+        return Normalized < 0.0f ? -Scaled : Scaled;
+    }
+
+    float NormalizeTrigger(BYTE Value)
+    {
+        return std::clamp(static_cast<float>(Value) / 255.0f, 0.0f, 1.0f);
+    }
+}
+
+bool FInputSystemSnapshot::IsDown(int KeyCode, int ControllerIndex) const
+{
+    if (KeyCode >= 0 && KeyCode < 256)
+    {
+        return KeyDown[KeyCode];
+    }
+
+    const int32 ButtonIndex = GetGamepadButtonIndex(KeyCode);
+    if (!IsValidControllerIndex(ControllerIndex) || ButtonIndex < 0)
+    {
+        return false;
+    }
+
+    return Gamepads[ControllerIndex].ButtonDown[ButtonIndex];
+}
+
+bool FInputSystemSnapshot::WasPressed(int KeyCode, int ControllerIndex) const
+{
+    if (KeyCode >= 0 && KeyCode < 256)
+    {
+        return KeyPressed[KeyCode];
+    }
+
+    const int32 ButtonIndex = GetGamepadButtonIndex(KeyCode);
+    if (!IsValidControllerIndex(ControllerIndex) || ButtonIndex < 0)
+    {
+        return false;
+    }
+
+    return Gamepads[ControllerIndex].ButtonPressed[ButtonIndex];
+}
+
+bool FInputSystemSnapshot::WasReleased(int KeyCode, int ControllerIndex) const
+{
+    if (KeyCode >= 0 && KeyCode < 256)
+    {
+        return KeyReleased[KeyCode];
+    }
+
+    const int32 ButtonIndex = GetGamepadButtonIndex(KeyCode);
+    if (!IsValidControllerIndex(ControllerIndex) || ButtonIndex < 0)
+    {
+        return false;
+    }
+
+    return Gamepads[ControllerIndex].ButtonReleased[ButtonIndex];
+}
+
+bool FInputSystemSnapshot::IsGamepadConnected(int ControllerIndex) const
+{
+    return IsValidControllerIndex(ControllerIndex) && Gamepads[ControllerIndex].bConnected;
+}
+
+float FInputSystemSnapshot::GetAxis(int AxisCode, int ControllerIndex) const
+{
+    if (!IsValidControllerIndex(ControllerIndex))
+    {
+        return 0.0f;
+    }
+
+    const FGamepadState& Pad = Gamepads[ControllerIndex];
+    switch (AxisCode)
+    {
+    case GamepadLeftX: return Pad.LeftX;
+    case GamepadLeftY: return Pad.LeftY;
+    case GamepadRightX: return Pad.RightX;
+    case GamepadRightY: return Pad.RightY;
+    case GamepadLeftTriggerAxis: return Pad.LeftTrigger;
+    case GamepadRightTriggerAxis: return Pad.RightTrigger;
+    default: return 0.0f;
+    }
+}
 
 void InputSystem::Tick()
 {
@@ -18,6 +125,7 @@ void InputSystem::Tick()
         PrevStates[i] = CurrentStates[i];
         CurrentStates[i] = (GetAsyncKeyState(i) & 0x8000) != 0;
     }
+    PollGamepads();
 
     bLeftDragJustStarted = false;
     bRightDragJustStarted = false;
@@ -79,6 +187,79 @@ void InputSystem::Tick()
     UpdateCurrentSnapshot();
 }
 
+bool InputSystem::GetKeyDown(int KeyCode, int ControllerIndex) const
+{
+    if (KeyCode >= 0 && KeyCode < 256)
+    {
+        return CurrentStates[KeyCode] && !PrevStates[KeyCode];
+    }
+
+    const int32 ButtonIndex = GetGamepadButtonIndex(KeyCode);
+    if (!IsValidControllerIndex(ControllerIndex) || ButtonIndex < 0)
+    {
+        return false;
+    }
+
+    return CurrentGamepadButtons[ControllerIndex][ButtonIndex] && !PrevGamepadButtons[ControllerIndex][ButtonIndex];
+}
+
+bool InputSystem::GetKey(int KeyCode, int ControllerIndex) const
+{
+    if (KeyCode >= 0 && KeyCode < 256)
+    {
+        return CurrentStates[KeyCode];
+    }
+
+    const int32 ButtonIndex = GetGamepadButtonIndex(KeyCode);
+    if (!IsValidControllerIndex(ControllerIndex) || ButtonIndex < 0)
+    {
+        return false;
+    }
+
+    return CurrentGamepadButtons[ControllerIndex][ButtonIndex];
+}
+
+bool InputSystem::GetKeyUp(int KeyCode, int ControllerIndex) const
+{
+    if (KeyCode >= 0 && KeyCode < 256)
+    {
+        return !CurrentStates[KeyCode] && PrevStates[KeyCode];
+    }
+
+    const int32 ButtonIndex = GetGamepadButtonIndex(KeyCode);
+    if (!IsValidControllerIndex(ControllerIndex) || ButtonIndex < 0)
+    {
+        return false;
+    }
+
+    return !CurrentGamepadButtons[ControllerIndex][ButtonIndex] && PrevGamepadButtons[ControllerIndex][ButtonIndex];
+}
+
+bool InputSystem::IsGamepadConnected(int ControllerIndex) const
+{
+    return IsValidControllerIndex(ControllerIndex) && CurrentGamepadStates[ControllerIndex].bConnected;
+}
+
+float InputSystem::GetAxis(int AxisCode, int ControllerIndex) const
+{
+    if (!IsValidControllerIndex(ControllerIndex))
+    {
+        return 0.0f;
+    }
+
+    const FInputSystemSnapshot::FGamepadState& Pad = CurrentGamepadStates[ControllerIndex];
+    switch (AxisCode)
+    {
+    case GamepadLeftX: return Pad.LeftX;
+    case GamepadLeftY: return Pad.LeftY;
+    case GamepadRightX: return Pad.RightX;
+    case GamepadRightY: return Pad.RightY;
+    case GamepadLeftTriggerAxis: return Pad.LeftTrigger;
+    case GamepadRightTriggerAxis: return Pad.RightTrigger;
+    default: return 0.0f;
+    }
+}
+
 FInputSystemSnapshot InputSystem::TickAndMakeSnapshot()
 {
     Tick();
@@ -132,6 +313,7 @@ void InputSystem::ResetAllKeyStates()
         CurrentStates[VK] = false;
         PrevStates[VK] = false;
     }
+    ResetGamepadStates();
     UpdateCurrentSnapshot();
 }
 
@@ -210,7 +392,80 @@ void InputSystem::UpdateCurrentSnapshot()
     Snapshot.bGuiUsingKeyboard = GuiState.bUsingKeyboard;
     Snapshot.bGuiUsingTextInput = GuiState.bUsingTextInput;
     Snapshot.bWindowFocused = bWindowFocused;
+
+    for (int PadIndex = 0; PadIndex < INPUT_GAMEPAD_MAX_CONTROLLERS; ++PadIndex)
+    {
+        Snapshot.Gamepads[PadIndex] = CurrentGamepadStates[PadIndex];
+        for (int ButtonIndex = 0; ButtonIndex < INPUT_GAMEPAD_BUTTON_COUNT; ++ButtonIndex)
+        {
+            Snapshot.Gamepads[PadIndex].ButtonDown[ButtonIndex] = CurrentGamepadButtons[PadIndex][ButtonIndex];
+            Snapshot.Gamepads[PadIndex].ButtonPressed[ButtonIndex] =
+                CurrentGamepadButtons[PadIndex][ButtonIndex] && !PrevGamepadButtons[PadIndex][ButtonIndex];
+            Snapshot.Gamepads[PadIndex].ButtonReleased[ButtonIndex] =
+                !CurrentGamepadButtons[PadIndex][ButtonIndex] && PrevGamepadButtons[PadIndex][ButtonIndex];
+        }
+    }
     CurrentSnapshot = Snapshot;
+}
+
+void InputSystem::PollGamepads()
+{
+    for (int PadIndex = 0; PadIndex < INPUT_GAMEPAD_MAX_CONTROLLERS; ++PadIndex)
+    {
+        for (int ButtonIndex = 0; ButtonIndex < INPUT_GAMEPAD_BUTTON_COUNT; ++ButtonIndex)
+        {
+            PrevGamepadButtons[PadIndex][ButtonIndex] = CurrentGamepadButtons[PadIndex][ButtonIndex];
+            CurrentGamepadButtons[PadIndex][ButtonIndex] = false;
+        }
+
+        FInputSystemSnapshot::FGamepadState& Pad = CurrentGamepadStates[PadIndex];
+        Pad = FInputSystemSnapshot::FGamepadState{};
+
+        XINPUT_STATE State{};
+        if (XInputGetState(static_cast<DWORD>(PadIndex), &State) != ERROR_SUCCESS)
+        {
+            continue;
+        }
+
+        const XINPUT_GAMEPAD& Gamepad = State.Gamepad;
+        Pad.bConnected = true;
+        Pad.LeftX = NormalizeStickAxis(Gamepad.sThumbLX);
+        Pad.LeftY = NormalizeStickAxis(Gamepad.sThumbLY);
+        Pad.RightX = NormalizeStickAxis(Gamepad.sThumbRX);
+        Pad.RightY = NormalizeStickAxis(Gamepad.sThumbRY);
+        Pad.LeftTrigger = NormalizeTrigger(Gamepad.bLeftTrigger);
+        Pad.RightTrigger = NormalizeTrigger(Gamepad.bRightTrigger);
+
+        CurrentGamepadButtons[PadIndex][GetGamepadButtonIndex(GamepadFaceButtonBottom)] = (Gamepad.wButtons & XINPUT_GAMEPAD_A) != 0;
+        CurrentGamepadButtons[PadIndex][GetGamepadButtonIndex(GamepadFaceButtonRight)] = (Gamepad.wButtons & XINPUT_GAMEPAD_B) != 0;
+        CurrentGamepadButtons[PadIndex][GetGamepadButtonIndex(GamepadFaceButtonLeft)] = (Gamepad.wButtons & XINPUT_GAMEPAD_X) != 0;
+        CurrentGamepadButtons[PadIndex][GetGamepadButtonIndex(GamepadFaceButtonTop)] = (Gamepad.wButtons & XINPUT_GAMEPAD_Y) != 0;
+        CurrentGamepadButtons[PadIndex][GetGamepadButtonIndex(GamepadLeftShoulder)] = (Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) != 0;
+        CurrentGamepadButtons[PadIndex][GetGamepadButtonIndex(GamepadRightShoulder)] = (Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) != 0;
+        CurrentGamepadButtons[PadIndex][GetGamepadButtonIndex(GamepadLeftTrigger)] = Pad.LeftTrigger >= GAMEPAD_TRIGGER_BUTTON_THRESHOLD;
+        CurrentGamepadButtons[PadIndex][GetGamepadButtonIndex(GamepadRightTrigger)] = Pad.RightTrigger >= GAMEPAD_TRIGGER_BUTTON_THRESHOLD;
+        CurrentGamepadButtons[PadIndex][GetGamepadButtonIndex(GamepadLeftThumbstick)] = (Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB) != 0;
+        CurrentGamepadButtons[PadIndex][GetGamepadButtonIndex(GamepadRightThumbstick)] = (Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) != 0;
+        CurrentGamepadButtons[PadIndex][GetGamepadButtonIndex(GamepadDPadUp)] = (Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP) != 0;
+        CurrentGamepadButtons[PadIndex][GetGamepadButtonIndex(GamepadDPadDown)] = (Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN) != 0;
+        CurrentGamepadButtons[PadIndex][GetGamepadButtonIndex(GamepadDPadLeft)] = (Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_LEFT) != 0;
+        CurrentGamepadButtons[PadIndex][GetGamepadButtonIndex(GamepadDPadRight)] = (Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_RIGHT) != 0;
+        CurrentGamepadButtons[PadIndex][GetGamepadButtonIndex(GamepadStart)] = (Gamepad.wButtons & XINPUT_GAMEPAD_START) != 0;
+        CurrentGamepadButtons[PadIndex][GetGamepadButtonIndex(GamepadBack)] = (Gamepad.wButtons & XINPUT_GAMEPAD_BACK) != 0;
+    }
+}
+
+void InputSystem::ResetGamepadStates()
+{
+    for (int PadIndex = 0; PadIndex < INPUT_GAMEPAD_MAX_CONTROLLERS; ++PadIndex)
+    {
+        CurrentGamepadStates[PadIndex] = FInputSystemSnapshot::FGamepadState{};
+        for (int ButtonIndex = 0; ButtonIndex < INPUT_GAMEPAD_BUTTON_COUNT; ++ButtonIndex)
+        {
+            CurrentGamepadButtons[PadIndex][ButtonIndex] = false;
+            PrevGamepadButtons[PadIndex][ButtonIndex] = false;
+        }
+    }
 }
 
 void InputSystem::ResetDragState()

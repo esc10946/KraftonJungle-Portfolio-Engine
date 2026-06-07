@@ -353,6 +353,14 @@ local function get_actor_flat_right(ctx)
     return Context.NormalizeFlatDirection(ctx.obj.Right)
 end
 
+local function get_input_axis(axisName)
+    if Input == nil or Input.GetAxis == nil or axisName == nil then
+        return 0.0
+    end
+
+    return tonumber(Input.GetAxis(axisName)) or 0.0
+end
+
 function Context.GetMoveInputDirection(ctx)
     if Input == nil then
         return nil
@@ -382,6 +390,9 @@ function Context.GetMoveInputDirection(ctx)
     if Input.GetKey(ctx.config.MOVE_LEFT_KEY) then
         rightScale = rightScale - 1.0
     end
+
+    forwardScale = forwardScale + get_input_axis(ctx.config.GAMEPAD_MOVE_Y_AXIS)
+    rightScale = rightScale + get_input_axis(ctx.config.GAMEPAD_MOVE_X_AXIS)
 
     if forwardScale == 0.0 and rightScale == 0.0 then
         return nil

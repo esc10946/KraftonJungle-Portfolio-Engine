@@ -1,6 +1,7 @@
 #pragma once
 #include <windows.h>
 #include "Core/Singleton.h"
+#include "Input/InputKeyCodes.h"
 
 struct FGuiInputState
 {
@@ -52,9 +53,27 @@ struct FInputSystemSnapshot
     bool bGuiUsingTextInput = false;
     bool bWindowFocused = true;
 
-    bool IsDown(int VK) const { return KeyDown[VK]; }
-    bool WasPressed(int VK) const { return KeyPressed[VK]; }
-    bool WasReleased(int VK) const { return KeyReleased[VK]; }
+    struct FGamepadState
+    {
+        bool bConnected = false;
+        bool ButtonDown[INPUT_GAMEPAD_BUTTON_COUNT] = {};
+        bool ButtonPressed[INPUT_GAMEPAD_BUTTON_COUNT] = {};
+        bool ButtonReleased[INPUT_GAMEPAD_BUTTON_COUNT] = {};
+        float LeftX = 0.0f;
+        float LeftY = 0.0f;
+        float RightX = 0.0f;
+        float RightY = 0.0f;
+        float LeftTrigger = 0.0f;
+        float RightTrigger = 0.0f;
+    };
+
+    FGamepadState Gamepads[INPUT_GAMEPAD_MAX_CONTROLLERS] = {};
+
+    bool IsDown(int KeyCode, int ControllerIndex = 0) const;
+    bool WasPressed(int KeyCode, int ControllerIndex = 0) const;
+    bool WasReleased(int KeyCode, int ControllerIndex = 0) const;
+    bool IsGamepadConnected(int ControllerIndex = 0) const;
+    float GetAxis(int AxisCode, int ControllerIndex = 0) const;
 };
 
 class InputSystem : public TSingleton<InputSystem>
@@ -77,9 +96,11 @@ public:
     bool IsWindowFocused() const { return bWindowFocused; }
 
     // Keyboard
-    bool GetKeyDown(int VK) const { return CurrentStates[VK] && !PrevStates[VK]; }
-    bool GetKey(int VK) const { return CurrentStates[VK]; }
-    bool GetKeyUp(int VK) const { return !CurrentStates[VK] && PrevStates[VK]; }
+    bool GetKeyDown(int KeyCode, int ControllerIndex = 0) const;
+    bool GetKey(int KeyCode, int ControllerIndex = 0) const;
+    bool GetKeyUp(int KeyCode, int ControllerIndex = 0) const;
+    bool IsGamepadConnected(int ControllerIndex = 0) const;
+    float GetAxis(int AxisCode, int ControllerIndex = 0) const;
 
     // Mouse position
     POINT GetMousePos() const { return MousePos; }
@@ -135,6 +156,9 @@ public:
 private:
     bool CurrentStates[256] = { false };
     bool PrevStates[256] = { false };
+    bool CurrentGamepadButtons[INPUT_GAMEPAD_MAX_CONTROLLERS][INPUT_GAMEPAD_BUTTON_COUNT] = {};
+    bool PrevGamepadButtons[INPUT_GAMEPAD_MAX_CONTROLLERS][INPUT_GAMEPAD_BUTTON_COUNT] = {};
+    FInputSystemSnapshot::FGamepadState CurrentGamepadStates[INPUT_GAMEPAD_MAX_CONTROLLERS] = {};
 
     // Mouse members
     POINT MousePos = { 0, 0 };
@@ -180,5 +204,7 @@ private:
         bool& bCandidate, bool& bDragging, bool& bJustStarted,
         const POINT& MouseDownPos, POINT& DragStartPos);
     void UpdateCurrentSnapshot();
+    void PollGamepads();
+    void ResetGamepadStates();
     void ResetDragState();
 };

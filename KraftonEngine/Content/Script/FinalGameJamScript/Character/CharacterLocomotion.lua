@@ -1,6 +1,7 @@
 local Context = require("FinalGameJamScript/Character/CharacterContext")
 
 local Locomotion = {}
+local MOVE_AXIS_THRESHOLD = 0.1
 
 local function call_movement(ctx, functionName, ...)
     local movement = Context.GetCharacterMovement(ctx)
@@ -38,6 +39,14 @@ end
 function Locomotion.IsMoveKeyDown(ctx)
     for _, key in ipairs(ctx.config.MOVE_KEYS) do
         if Input.GetKey(key) then
+            return true
+        end
+    end
+
+    if Input.GetAxis ~= nil then
+        local moveX = tonumber(Input.GetAxis(ctx.config.GAMEPAD_MOVE_X_AXIS)) or 0.0
+        local moveY = tonumber(Input.GetAxis(ctx.config.GAMEPAD_MOVE_Y_AXIS)) or 0.0
+        if math.abs(moveX) > MOVE_AXIS_THRESHOLD or math.abs(moveY) > MOVE_AXIS_THRESHOLD then
             return true
         end
     end

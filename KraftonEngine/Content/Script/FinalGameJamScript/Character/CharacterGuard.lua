@@ -13,14 +13,18 @@ end
 
 local function is_guard_pressed(ctx)
     return Input.GetKeyDown(ctx.config.RMB)
+        or Input.GetKeyDown(ctx.config.GAMEPAD_GUARD)
 end
 
 local function is_guard_down(ctx)
     return Input.GetKey(ctx.config.RMB)
+        or Input.GetKey(ctx.config.GAMEPAD_GUARD)
 end
 
 local function is_guard_released(ctx)
-    return Input.GetKeyUp(ctx.config.RMB)
+    local released = Input.GetKeyUp(ctx.config.RMB)
+        or Input.GetKeyUp(ctx.config.GAMEPAD_GUARD)
+    return released and not is_guard_down(ctx)
 end
 
 function Guard.StopDefense(ctx)
