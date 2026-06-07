@@ -1,6 +1,6 @@
 -- Generated runtime for Content/Blueprint/BossIntroDirectorBP.uasset.
 -- BP-only intro director. It never disables player input; previous input lock came from Game.EnterCutscene.
-__events = { BeginPlay = true, PostBeginPlay = false, Tick = true, PostStartMatch = true, OnPlayerCameraReady = false, EndPlay = false, OnOverlap = false, OnEndOverlap = false, OnHit = false, OnEndHit = false }
+__events = { BeginPlay = true, PostBeginPlay = false, Tick = true, PostStartMatch = true, OnPlayerCameraReady = false, EndPlay = true, OnOverlap = false, OnEndOverlap = false, OnHit = false, OnEndHit = false }
 
 local INTRO_TIME        = 3.0
 local STOP_SHORT        = 13.0
@@ -9,12 +9,14 @@ local KATANA    = "Content/Data/FGJ_Character/Weapon/Katana_StaticMesh.uasset"
 local BOSS_WALK = "Content/Data/Samura2/source/Standing Walk Forward_mixamo_com.uasset"
 local BOSS_IDLE = "Content/Data/Samura2/source/Standing Idle_mixamo_com.uasset"
 local HAND_BONES = { "hand_r", "RightHand", "mixamorig:RightHand", "weapon_r" }
+local HUD_HIDE_FLAG = "BossIntroHUDHidden"
 
 local boss, player, cine
 local t = 0.0
 local started = false
 local setup_done = false
 local handed_off = false
+local hud_restored_after_intro = false
 local walk_from, walk_to
 
 local function dbg(m) if print then print("[BossIntroLegacy] " .. tostring(m)) end end
@@ -28,6 +30,54 @@ local function first_by_class(cn)
 end
 local function rcall(o, fn, ...) if o and Reflection and Reflection.Call then return Reflection.Call(o, fn, ...) end return nil end
 local function lerp(a,b,s) return a + (b-a)*s end
+local function set_hud_visible(visible)
+    if _G ~= nil then
+        _G[HUD_HIDE_FLAG] = visible ~= true
+    end
+
+    local hud = HUD or (_G and _G.HUD)
+    if hud and hud.SetHUDVisible then
+        hud.SetHUDVisible(visible)
+        return true
+    end
+
+    return false
+end
+local function hide_hud_for_intro()
+    if hud_restored_after_intro then return end
+    set_hud_visible(false)
+end
+local function restore_hud_after_intro()
+    if hud_restored_after_intro then return end
+    set_hud_visible(true)
+    hud_restored_after_intro = true
+end
+local function show_boss_ui_after_intro()
+    local hud = HUD or (_G and _G.HUD)
+
+    if not hud then
+        return false
+    end
+
+    if boss and hud.BindBossActor then
+        local ok, result = pcall(function() return hud.BindBossActor(boss, true) end)
+        if ok then
+            return result == true
+        end
+    end
+
+    if hud.SetBossHUDVisible then
+        hud.SetBossHUDVisible(true)
+        return true
+    end
+
+    if hud.SetBossVisibility then
+        hud.SetBossVisibility(true)
+        return true
+    end
+
+    return false
+end
 local function ensure_player_possessed()
     pcall(function()
         player = player or first_by_tag("Player") or first_by_class("ALuaCharacter")
@@ -39,12 +89,14 @@ local function ensure_player_possessed()
 end
 function BeginPlay()
     started = true
+    hide_hud_for_intro()
     ensure_player_possessed()
     -- Ensure stale cutscene locks from earlier builds are cleared if this scene was hot-reloaded.
     if Game and Game.ExitCutscene then Game.ExitCutscene() end
 end
 function PostStartMatch()
     started = true
+    hide_hud_for_intro()
     ensure_player_possessed()
     if Game and Game.ExitCutscene then Game.ExitCutscene() end
 end
@@ -80,6 +132,7 @@ local function do_setup()
 end
 function Tick(dt)
     if not started or handed_off then return end
+    hide_hud_for_intro()
     ensure_player_possessed()
     if not boss then boss = first_by_tag("Boss") or first_by_class("ABossEnemyCharacter") end
     if boss and not setup_done then do_setup() end
@@ -92,11 +145,17 @@ function Tick(dt)
     end
     if t >= INTRO_TIME then
         handed_off = true
+        restore_hud_after_intro()
         if Game and Game.ExitCutscene then Game.ExitCutscene() end
         if cine then rcall(cine,"Stop") end
         if boss then
             if Animation and Animation.PlayOnActor then Animation.PlayOnActor(boss, BOSS_IDLE, true) end
             if Combat and Combat.SetTeam then Combat.SetTeam(boss, 2) end
         end
+        show_boss_ui_after_intro()
     end
+end
+
+function EndPlay()
+    restore_hud_after_intro()
 end
