@@ -333,13 +333,6 @@ bool UAnimNotifyState_AttackHitWindow::ResolveParryHit(
 	{
 		BroadcastAttackParriedEvent(Owner, Target, HitComponent, DamageSpec, HitEventName);
 	}
-	if (IsValid(Owner) && DamageSpec.PoiseDamage > 0.0f)
-	{
-		if (UCombatStateComponent* AttackerCombat = Owner->GetComponentByClass<UCombatStateComponent>())
-		{
-			AttackerCombat->ApplyPoiseDamage(DamageSpec.PoiseDamage);
-		}
-	}
 	if (bDrawDebugHitWindow)
 	{
 		UWorld* World = IsValid(Owner) ? Owner->GetWorld() : nullptr;
