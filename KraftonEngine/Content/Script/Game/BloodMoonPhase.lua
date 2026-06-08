@@ -5,19 +5,25 @@
 -- sets in — the blood moon rises, the spotlight reddens, and the height
 -- fog deepens to a dark blue. Self-contained: it owns its own trigger
 -- and a brief input lock; it does NOT touch the boss encounter or
--- BossIntroDirector yet (that coupling is a later step).
+-- BossIntroDirector yet (that coupling is a later step) -- it only swaps
+-- the *music*, not the fight.
 --
 -- On trigger (fires once), when all minor enemies are dead:
 --   * locks input for the beat via Game.EnterCutscene
 --   * reveals the blood-moon actor (Scene.SetActorVisible)
 --   * lerps the mood spotlight -> red and the height fog -> dark blue
---   * releases input via Game.ExitCutscene once the settle finishes
+--   * fades the battle BGM out across that same lerp window (BGMState)
+--   * once settled: starts the boss BGM at full volume (no fade-in) and
+--     releases input via Game.ExitCutscene
 --
 -- Atmosphere setters come from the Game-side `Scene` Lua table
 -- (Source/Game/Lua/GameLuaBindings.cpp), which resolves the typed
 -- component off each actor and pushes the change to the render scene.
 -- ============================================================
 __events = { BeginPlay = true, PostBeginPlay = false, Tick = true, PostStartMatch = true, EndPlay = false, OnOverlap = false, OnEndOverlap = false, OnHit = false, OnEndHit = false }
+
+-- Shared single-channel BGM owner (require-cached; survives scene loads).
+local BGMState = require("Game/BGMState")
 
 -- ---- Tunables -------------------------------------------------------------
 local ENEMY_TAG      = "Enemy"            -- minor enemies share this tag (matches HUD_Manager)
@@ -26,6 +32,11 @@ local FOG_TAG        = "MoodFog"          -- tag the height-fog actor with this
 local BLOOD_MOON_TAG = "BloodMoon"        -- tag the (hidden) blood-moon actor with this
 
 local LERP_TIME      = 2.5                 -- seconds: spotlight/fog ease to the night look
+
+-- Boss BGM that replaces the battle track once the night settles.
+local BGM_BOSS       = "BGM_Boss"
+local BGM_BOSS_FILE  = "BGM/rubyzephyr-silent-blade (Boss_bgm).mp3"
+local BGM_VOLUME     = 0.5                 -- matches GameFlowController's BGM level
 
 -- Target look. Spot reddens; fog deepens to a dark blue.
 local SPOT_RED       = { 1.0, 0.08, 0.08, 1.0 }
@@ -175,9 +186,20 @@ function Tick(dt)
     local s = math.min(1.0, t / LERP_TIME)
     apply_look(s)
 
+    -- Battle BGM fades out (linear) in lockstep with the look-shift.
+    if BGMState and BGMState.SetVolume and BGMState.GetBase then
+        BGMState.SetVolume(BGMState.GetBase() * (1 - s))
+    end
+
     if s >= 1.0 then
         handedOff = true
+        -- Night has settled: boss BGM kicks in at full volume (no fade-in).
+        -- Ensure() stops the faded-out battle loop and plays the boss track
+        -- at BGM_VOLUME, so it starts hard rather than easing up.
+        if BGMState and BGMState.Ensure then
+            BGMState.Ensure(BGM_BOSS, BGM_BOSS_FILE, BGM_VOLUME)
+        end
         if Game and Game.ExitCutscene then Game.ExitCutscene() end
-        dbg("atmosphere settled")
+        dbg("atmosphere settled -> boss BGM")
     end
 end
