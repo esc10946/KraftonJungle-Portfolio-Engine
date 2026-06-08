@@ -1,0 +1,183 @@
+-- ============================================================
+-- BloodMoonPhase.lua
+-- Attach to a single director actor placed in the GamePlay scene.
+-- Mini-phase atmosphere: when every minor enemy is dead, the night
+-- sets in — the blood moon rises, the spotlight reddens, and the height
+-- fog deepens to a dark blue. Self-contained: it owns its own trigger
+-- and a brief input lock; it does NOT touch the boss encounter or
+-- BossIntroDirector yet (that coupling is a later step).
+--
+-- On trigger (fires once), when all minor enemies are dead:
+--   * locks input for the beat via Game.EnterCutscene
+--   * reveals the blood-moon actor (Scene.SetActorVisible)
+--   * lerps the mood spotlight -> red and the height fog -> dark blue
+--   * releases input via Game.ExitCutscene once the settle finishes
+--
+-- Atmosphere setters come from the Game-side `Scene` Lua table
+-- (Source/Game/Lua/GameLuaBindings.cpp), which resolves the typed
+-- component off each actor and pushes the change to the render scene.
+-- ============================================================
+__events = { BeginPlay = true, PostBeginPlay = false, Tick = true, PostStartMatch = true, EndPlay = false, OnOverlap = false, OnEndOverlap = false, OnHit = false, OnEndHit = false }
+
+-- ---- Tunables -------------------------------------------------------------
+local ENEMY_TAG      = "Enemy"            -- minor enemies share this tag (matches HUD_Manager)
+local SPOTLIGHT_TAG  = "MoodSpotlight"    -- tag the mood spotlight actor with this
+local FOG_TAG        = "MoodFog"          -- tag the height-fog actor with this
+local BLOOD_MOON_TAG = "BloodMoon"        -- tag the (hidden) blood-moon actor with this
+
+local LERP_TIME      = 2.5                 -- seconds: spotlight/fog ease to the night look
+
+-- Target look. Spot reddens; fog deepens to a dark blue.
+local SPOT_RED       = { 1.0, 0.08, 0.08, 1.0 }
+local FOG_NIGHT      = { 0.02, 0.04, 0.12, 1.0 }
+
+-- ---- State ----------------------------------------------------------------
+local spotlight, fog, bloodMoon
+local spotFrom, fogFrom          -- captured start colors (lerp from authored values)
+local sawEnemies = false         -- guard: don't fire before any minor enemy ever lived
+local triggered  = false         -- transition started (fires once)
+local handedOff  = false         -- transition finished; stop ticking
+local t          = 0.0           -- seconds since trigger
+
+-- ---- Helpers --------------------------------------------------------------
+local function dbg(m) if print then print("[BloodMoonPhase] " .. tostring(m)) end end
+
+local function first_by_tag(tag)
+    if World and World.FindActorsByTag then
+        local l = World.FindActorsByTag(tag)
+        if l and #l > 0 then return l[1] end
+    end
+    return nil
+end
+
+local function is_valid(o)
+    if o == nil then return false end
+    if IsValid then return IsValid(o) end
+    return true
+end
+
+local function safe_call(target, fn, ...)
+    if target == nil then return nil end
+    local f = target[fn]
+    if f == nil then return nil end
+    local ok, result = pcall(f, target, ...)
+    if not ok then return nil end
+    return result
+end
+
+local function lerp(a, b, s) return a + (b - a) * s end
+
+-- A minor enemy = tagged ENEMY_TAG, no EncounterComponent (that marks the boss).
+local function is_boss(enemy)
+    return is_valid(safe_call(enemy, "GetEncounterComponent"))
+end
+
+local function is_alive_minor(enemy)
+    if not is_valid(enemy) or is_boss(enemy) then return false end
+    local health = safe_call(enemy, "GetHealthComponent")
+    if not is_valid(health) then return false end
+    return safe_call(health, "IsDead") ~= true
+end
+
+-- Returns the count of live minor enemies in the scene.
+local function live_minor_count()
+    local n = 0
+    if World and World.FindActorsByTag then
+        local enemies = World.FindActorsByTag(ENEMY_TAG)
+        if enemies then
+            for _, e in ipairs(enemies) do
+                if is_alive_minor(e) then n = n + 1 end
+            end
+        end
+    end
+    return n
+end
+
+-- ---- Lifecycle ------------------------------------------------------------
+local function resolve_actors()
+    spotlight = spotlight or first_by_tag(SPOTLIGHT_TAG)
+    fog       = fog       or first_by_tag(FOG_TAG)
+    bloodMoon = bloodMoon or first_by_tag(BLOOD_MOON_TAG)
+end
+
+local function begin_transition()
+    triggered = true
+    t = 0.0
+    dbg("all minor enemies cleared -> blood moon rises")
+
+    -- Capture authored start colors so the lerp eases from them (no snap).
+    if Scene and Scene.GetSpotColor and spotlight then
+        local r, g, b, a = Scene.GetSpotColor(spotlight)
+        spotFrom = { r, g, b, a }
+    end
+    if Scene and Scene.GetFogColor and fog then
+        local r, g, b, a = Scene.GetFogColor(fog)
+        fogFrom = { r, g, b, a }
+    end
+
+    -- Lock input for the reveal beat.
+    if Game and Game.EnterCutscene then Game.EnterCutscene() end
+
+    -- Blood moon rises.
+    if Scene and Scene.SetActorVisible and bloodMoon then
+        Scene.SetActorVisible(bloodMoon, true)
+    end
+end
+
+local function apply_look(s)
+    -- Ease-out: quick swing, gentle settle (matches GameFlowController's curve).
+    local e = 1 - (1 - s) * (1 - s)
+    if Scene and Scene.SetSpotColor and spotlight and spotFrom then
+        Scene.SetSpotColor(spotlight,
+            lerp(spotFrom[1], SPOT_RED[1], e),
+            lerp(spotFrom[2], SPOT_RED[2], e),
+            lerp(spotFrom[3], SPOT_RED[3], e),
+            lerp(spotFrom[4], SPOT_RED[4], e))
+    end
+    if Scene and Scene.SetFogColor and fog and fogFrom then
+        Scene.SetFogColor(fog,
+            lerp(fogFrom[1], FOG_NIGHT[1], e),
+            lerp(fogFrom[2], FOG_NIGHT[2], e),
+            lerp(fogFrom[3], FOG_NIGHT[3], e),
+            lerp(fogFrom[4], FOG_NIGHT[4], e))
+    end
+end
+
+function BeginPlay()
+    resolve_actors()
+    -- Keep the blood moon hidden until the transition (in case it was authored visible).
+    if Scene and Scene.SetActorVisible and bloodMoon then
+        Scene.SetActorVisible(bloodMoon, false)
+    end
+end
+
+function PostStartMatch()
+    resolve_actors()
+end
+
+function Tick(dt)
+    if handedOff then return end
+    resolve_actors()
+
+    if not triggered then
+        local n = live_minor_count()
+        if n > 0 then
+            sawEnemies = true
+        elseif sawEnemies then
+            -- Saw enemies, now zero remain -> the arena is cleared.
+            begin_transition()
+        end
+        return
+    end
+
+    -- Transition running: ease the night look in, then release input.
+    t = t + (dt or 0.0)
+    local s = math.min(1.0, t / LERP_TIME)
+    apply_look(s)
+
+    if s >= 1.0 then
+        handedOff = true
+        if Game and Game.ExitCutscene then Game.ExitCutscene() end
+        dbg("atmosphere settled")
+    end
+end
