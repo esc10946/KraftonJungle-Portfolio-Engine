@@ -12,8 +12,8 @@ void AFinaleGameMode::SetGamePhase(EGamePhase InPhase)
 {
 	if (AFinaleGameState* State = Cast<AFinaleGameState>(GetGameState()))
 	{
-		UE_LOG("[AFinaleGameMode] Game Phase set to: %s", GetGamePhaseString().c_str());
 		State->Phase = InPhase;
+		UE_LOG("[AFinaleGameMode] Game Phase set to: %s", GetGamePhaseString().c_str());
 	}
 }
 

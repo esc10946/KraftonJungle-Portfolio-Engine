@@ -51,6 +51,22 @@ private:
 	FILE* File = nullptr;
 };
 
+class FConsoleOutputDevice : public ILogOutputDevice
+{
+public:
+	FConsoleOutputDevice()
+	{
+		SetConsoleOutputCP(CP_UTF8);
+	}
+
+	void Write(const char* Msg) override
+	{
+		if (!Msg) return;
+		std::fprintf(stdout, "%s\n", Msg);
+		std::fflush(stdout);
+	}
+};
+
 // ============================================================
 // FLogManager
 // ============================================================
@@ -59,9 +75,13 @@ void FLogManager::Initialize()
 {
 	DebugOutputDevice = new FDebugOutputDevice();
 	FileOutputDevice = new FFileOutputDevice();
+#if defined(WITH_STANDALONE) && WITH_STANDALONE
+	ConsoleOutputDevice = new FConsoleOutputDevice();
+#endif
 
 	AddOutputDevice(DebugOutputDevice);
 	AddOutputDevice(FileOutputDevice);
+	AddOutputDevice(ConsoleOutputDevice);
 }
 
 void FLogManager::Shutdown()
@@ -75,6 +95,9 @@ void FLogManager::Shutdown()
 
 	delete DebugOutputDevice;
 	DebugOutputDevice = nullptr;
+
+	delete ConsoleOutputDevice;
+	ConsoleOutputDevice = nullptr;
 }
 
 void FLogManager::AddOutputDevice(ILogOutputDevice* Device)

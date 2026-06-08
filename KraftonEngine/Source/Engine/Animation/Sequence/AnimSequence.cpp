@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <unordered_set>
 namespace
 {
     static float NormalizeTime(float Time, float Length, bool bLooping)
@@ -38,6 +39,13 @@ namespace
         }
 
         return std::clamp(Time, 0.0f, Length);
+    }
+
+    static bool ShouldLogSkeletonMismatchOnce(const FString& AnimPath, const FString& TargetMeshPath, const char* Context)
+    {
+        static std::unordered_set<std::string> LoggedPairs;
+        const std::string Key = FString(Context ? Context : "") + "|" + AnimPath + "|" + TargetMeshPath;
+        return LoggedPairs.insert(Key).second;
     }
 
     static float TimeToFrameFloat(float Time, float Length, int32 NumFrames, bool bLooping)
@@ -731,7 +739,18 @@ void UAnimSequence::GetBonePose(FPoseContext& Output, const FAnimExtractContext&
 
     if (!IsCompatibleWith(Output.SkeletalMesh))
     {
-        UE_LOG("Animation pose rejected: skeleton mismatch. Anim=%s SkeletonPath=%s", GetName().c_str(), TargetSkeleton.SkeletonPath.c_str());
+        const FSkeletonBinding& MeshSkeleton = Output.SkeletalMesh->GetSkeletonBinding();
+        const FString& TargetMeshPath = Output.SkeletalMesh->GetAssetPathFileName();
+        if (ShouldLogSkeletonMismatchOnce(AssetPathFileName, TargetMeshPath, "Pose"))
+        {
+            UE_LOG(
+                "Animation pose rejected: skeleton mismatch. Anim=%s AnimPath=%s AnimSkeleton=%s TargetMesh=%s TargetSkeleton=%s",
+                GetName().c_str(),
+                AssetPathFileName.c_str(),
+                TargetSkeleton.SkeletonPath.c_str(),
+                TargetMeshPath.c_str(),
+                MeshSkeleton.SkeletonPath.c_str());
+        }
         Output.ResetToRefPose();
         return;
     }
@@ -895,7 +914,18 @@ bool UAnimSequence::GetAnimationPose(float TimeSeconds, USkeletalMesh* InSkeleta
 
     if (!IsCompatibleWith(InSkeletalMesh))
     {
-        UE_LOG("Animation pose failed: skeleton mismatch. Anim=%s SkeletonPath=%s", GetName().c_str(), TargetSkeleton.SkeletonPath.c_str());
+        const FSkeletonBinding& MeshSkeleton = InSkeletalMesh->GetSkeletonBinding();
+        const FString& TargetMeshPath = InSkeletalMesh->GetAssetPathFileName();
+        if (ShouldLogSkeletonMismatchOnce(AssetPathFileName, TargetMeshPath, "PoseAtFrame"))
+        {
+            UE_LOG(
+                "Animation pose failed: skeleton mismatch. Anim=%s AnimPath=%s AnimSkeleton=%s TargetMesh=%s TargetSkeleton=%s",
+                GetName().c_str(),
+                AssetPathFileName.c_str(),
+                TargetSkeleton.SkeletonPath.c_str(),
+                TargetMeshPath.c_str(),
+                MeshSkeleton.SkeletonPath.c_str());
+        }
         return false;
     }
 

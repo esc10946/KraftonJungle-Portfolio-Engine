@@ -3,9 +3,23 @@
 #include "Archive.h"
 #include "Platform/Paths.h"
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <string>
 #include <iostream>
+
+namespace FWindowsArchiveDetail
+{
+	inline std::filesystem::path ResolveFilePath(const std::string& FilePath)
+	{
+		std::filesystem::path ResolvedPath(FPaths::ToWide(FilePath));
+		if (!ResolvedPath.is_absolute())
+		{
+			ResolvedPath = std::filesystem::path(FPaths::RootDir()) / ResolvedPath;
+		}
+		return ResolvedPath.lexically_normal();
+	}
+}
 
 class FWindowsBinWriter : public FArchive
 {
@@ -29,7 +43,7 @@ public:
 	FWindowsBinWriter(const std::string& FilePath)
 	{
 		bIsSaving = true; // 나는 '쓰기' 전용이다!
-		FileStream.open(FPaths::ToWide(FilePath), std::ios::binary);
+		FileStream.open(FWindowsArchiveDetail::ResolveFilePath(FilePath), std::ios::binary);
 	}
 
 	~FWindowsBinWriter() override
@@ -147,7 +161,7 @@ public:
 	FWindowsBinReader(const std::string& FilePath)
 	{
 		bIsLoading = true; // 나는 '읽기' 전용이다!
-		FileStream.open(FPaths::ToWide(FilePath), std::ios::binary);
+		FileStream.open(FWindowsArchiveDetail::ResolveFilePath(FilePath), std::ios::binary);
 	}
 
 	~FWindowsBinReader() override

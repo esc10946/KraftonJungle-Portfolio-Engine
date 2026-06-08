@@ -120,7 +120,28 @@ void UAnimGraphInstance::RecompileTreeIfDirty()
 		if (Node.Type != EAnimGraphNodeType::SequencePlayer) continue;
 
 		UAnimSequenceBase* Seq = LoadByPath(Node.SequencePath);
-		if (!Seq) Seq = LoadByPath(DefaultPathStr);
+		if (!Seq)
+		{
+			if (!Node.SequencePath.empty() && Node.SequencePath != "None")
+			{
+				UE_LOG(
+					"UAnimGraphInstance: SequencePlayer source failed; trying default sequence. Node=%s Source=%s Default=%s Graph=%s",
+					Node.DisplayName.ToString().c_str(),
+					Node.SequencePath.c_str(),
+					DefaultPathStr.c_str(),
+					GraphAssetPath.ToString().c_str());
+			}
+			Seq = LoadByPath(DefaultPathStr);
+		}
+		if (!Seq)
+		{
+			UE_LOG(
+				"UAnimGraphInstance: SequencePlayer has no valid sequence. Node=%s Source=%s Default=%s Graph=%s",
+				Node.DisplayName.ToString().c_str(),
+				Node.SequencePath.c_str(),
+				DefaultPathStr.c_str(),
+				GraphAssetPath.ToString().c_str());
+		}
 		Node.SequenceRef = IsValid(Seq) ? Seq : nullptr;
 	}
 

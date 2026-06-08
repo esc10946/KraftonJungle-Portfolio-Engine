@@ -39,10 +39,13 @@ CONFIGURATIONS = [
 #   "release_like"  : True = Release optimizations, False = Debug
 #   "extra_defines" : additional preprocessor definitions
 #   "subsystem"     : override link subsystem (default: per-platform)
+#   "entry_point"   : override CRT entry point
 CONFIG_PROPS = {
     "Game": {
         "release_like": True,
         "extra_defines": ["WITH_EDITOR=0", "WITH_STANDALONE=1", "STATS=0"],
+        "subsystem": "Console",
+        "entry_point": "WinMainCRTStartup",
     },
     "ObjViewDebug": {
         "release_like": True,
@@ -421,6 +424,9 @@ def generate_vcxproj(files: dict[str, list[str]]):
         link = ET.SubElement(idg, "Link")
         subsystem = props.get("subsystem", "Windows" if is_x64 else "Console")
         ET.SubElement(link, "SubSystem").text = subsystem
+        entry_point = props.get("entry_point")
+        if entry_point:
+            ET.SubElement(link, "EntryPointSymbol").text = entry_point
         ET.SubElement(link, "GenerateDebugInformation").text = "true"
         additional_lib_dirs = list(ADDITIONAL_LIB_DIRS)
         if is_x64:
