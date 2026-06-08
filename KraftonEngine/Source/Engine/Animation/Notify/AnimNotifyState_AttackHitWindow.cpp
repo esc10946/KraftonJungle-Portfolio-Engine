@@ -8,6 +8,7 @@
 #include "Component/Input/ActionComponent.h"
 #include "Component/PrimitiveComponent.h"
 #include "Component/Primitive/SkeletalMeshComponent.h"
+#include "Component/Shape/CapsuleComponent.h"
 #include "Core/Types/CollisionTypes.h"
 #include "Core/Types/EngineTypes.h"
 #include "Debug/DrawDebugHelpers.h"
@@ -151,6 +152,29 @@ namespace
 
 		USkeletalMeshComponent* Mesh = Actor->GetComponentByClass<USkeletalMeshComponent>();
 		return IsValid(Mesh) ? Mesh->GetAnimInstance() : nullptr;
+	}
+
+	TArray<UPrimitiveComponent*> GetAttackHitCandidatePrimitives(AActor* Candidate)
+	{
+		TArray<UPrimitiveComponent*> Primitives;
+		if (!IsValid(Candidate))
+		{
+			return Primitives;
+		}
+
+		// Character combat should be resolved against the gameplay body, not every
+		// render/VFX/weapon primitive attached to the actor. Large particle or mesh
+		// bounds can otherwise make a far-away character look intersecting.
+		if (ACharacter* Character = Cast<ACharacter>(Candidate))
+		{
+			if (UCapsuleComponent* Capsule = Character->GetCapsuleComponent())
+			{
+				Primitives.push_back(Capsule);
+				return Primitives;
+			}
+		}
+
+		return Candidate->GetPrimitiveComponents();
 	}
 
 	void FaceDefenderTowardAttacker(AActor* Defender, AActor* Attacker)
@@ -703,7 +727,7 @@ void UAnimNotifyState_AttackHitWindow::NotifyTick(USkeletalMeshComponent* MeshCo
 			UPrimitiveComponent* ClosestComponent = nullptr;
 			const char* MissReason = "no primitive components";
 			float ClosestDistanceSquared = FLT_MAX;
-			for (UPrimitiveComponent* Primitive : Candidate->GetPrimitiveComponents())
+			for (UPrimitiveComponent* Primitive : GetAttackHitCandidatePrimitives(Candidate))
 			{
 				if (!IsValid(Primitive))
 				{
