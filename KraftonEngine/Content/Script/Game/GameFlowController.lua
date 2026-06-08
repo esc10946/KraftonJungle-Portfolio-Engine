@@ -61,18 +61,21 @@ local reviveVisible  = false
 local victoryVisible = false
 local leaderboardVisible = false
 
--- DEBUG ONLY: number keys fire macro flow events so we can exercise the state
--- machine without real combat. Set to false (or delete this block + the Tick
--- polling below) before shipping. Keys are edge-triggered (fire once per press).
+-- DEBUG ONLY: F-keys fire macro flow events so we can exercise the state machine
+-- without real combat. Moved off the number row to F-keys for the jam build so a
+-- presenter/playtester can't trip them mid-fight. Set to false (or delete this
+-- block + the Tick polling below) before shipping. Keys are edge-triggered (fire
+-- once per press). Revive also stays on Q for convenient in-demo access.
 local DEBUG_KEYS = true
 local DEBUG_BINDINGS = {
-    { key = "1", fn = function() Debug.PlayerDeath()  end },   -- die
-    { key = "2", fn = function() Debug.PlayerRevive() end },   -- revive
-    { key = "3", fn = function() Debug.BossSlain()    end },   -- boss defeated
-    { key = "4", fn = function() Debug.Victory()      end },   -- win
-    { key = "5", fn = function() Debug.Cutscene()     end },   -- enter cutscene
-    { key = "6", fn = function() Debug.Leaderboard()  end },   -- leaderboard
-    { key = "0", fn = function() Debug.PrintPhase()   end },   -- log current phase
+    { key = "F1", fn = function() Debug.PlayerDeath()  end },   -- die
+    { key = "F2", fn = function() Debug.PlayerRevive() end },   -- revive
+    { key = "Q",  fn = function() Debug.PlayerRevive() end },   -- revive (convenient)
+    { key = "F3", fn = function() Debug.BossSlain()    end },   -- boss defeated
+    { key = "F4", fn = function() Debug.Victory()      end },   -- win
+    { key = "F5", fn = function() Debug.Cutscene()     end },   -- enter cutscene
+    { key = "F6", fn = function() Debug.Leaderboard()  end },   -- leaderboard
+    { key = "F9", fn = function() Debug.PrintPhase()   end },   -- log current phase
 }
 
 local function LoadUISounds()
