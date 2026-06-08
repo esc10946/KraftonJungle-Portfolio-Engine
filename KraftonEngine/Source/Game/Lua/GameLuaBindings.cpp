@@ -714,6 +714,19 @@ void RegisterGameLuaBindings(sol::state& Lua)
 			}
 		}
 	);
+	// Game.OnBossSlain — the boss-death event from the encounter director
+	// (BossIntroDirector). Resolves the run into the Victory phase; gated on
+	// Playing in the GameMode, so it no-ops if the run already ended.
+	Game.set_function(
+		"OnBossSlain",
+		[]()
+		{
+			if (AFinaleGameMode* GM = ResolveFinaleGameMode())
+			{
+				GM->OnBossSlain(FName("Boss"));
+			}
+		}
+	);
 	// Current camera fade alpha (0..1). Lets UI track the engine post-process
 	// fade exactly (e.g. redden the death icon in lockstep with the fade-out).
 	Game.set_function(

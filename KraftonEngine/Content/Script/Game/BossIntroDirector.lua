@@ -1,9 +1,11 @@
 -- Generated runtime for Content/Blueprint/BossIntroDirectorBP.uasset.
 -- Dormant boss flow:
---   BloodMoonPhase -> StartIntro() -> reveal boss intro -> StartBossEncounter().
+--   BloodMoonPhase -> StartIntro() -> reveal boss intro -> StartBossEncounter()
+--   -> watch boss death -> beat -> Game.OnBossSlain() (-> Victory phase).
 __events = { BeginPlay = true, PostBeginPlay = false, Tick = true, PostStartMatch = true, OnPlayerCameraReady = false, EndPlay = true, OnOverlap = false, OnEndOverlap = false, OnHit = false, OnEndHit = false }
 
 local INTRO_TIME        = 3.0
+local VICTORY_BEAT      = 1.5
 local STOP_SHORT        = 13.0
 local MAX_WALK_DISTANCE = 1.2
 local KATANA    = "Content/Data/FGJ_Character/Weapon/Katana_StaticMesh.uasset"
@@ -29,6 +31,9 @@ local intro_cutscene_entered = false
 local intro_cinematic_fired = false
 local walk_from, walk_to
 local collision_state = {}
+local boss_slain = false
+local victory_fired = false
+local death_elapsed = 0.0
 
 local function dbg(m) if print then print("[BossIntroDirector] " .. tostring(m)) end end
 local function first_by_tag(tag)
@@ -249,6 +254,25 @@ local function activate_boss_encounter()
     if Combat and Combat.SetTeam then Combat.SetTeam(boss, 2) end
     return call(boss, "StartBossEncounter") == true
 end
+local function boss_is_dead()
+    local health = call(boss, "GetHealthComponent")
+    if not is_valid(health) then return false end
+    return call(health, "IsDead") == true
+end
+-- Post-encounter: once the boss falls, hold a beat then resolve to Victory.
+local function watch_for_victory(dt)
+    if victory_fired then return end
+    if not boss_slain then
+        if boss_is_dead() then boss_slain = true; death_elapsed = 0.0 end
+        return
+    end
+    death_elapsed = death_elapsed + (dt or 0.0)
+    if death_elapsed >= VICTORY_BEAT then
+        victory_fired = true
+        if Game and Game.OnBossSlain then Game.OnBossSlain() end
+        dbg("boss slain -> victory")
+    end
+end
 
 function BeginPlay()
     ensure_player_possessed()
@@ -328,7 +352,8 @@ local function do_setup()
     dbg("setup: player=" .. tostring(player ~= nil) .. " boss=" .. tostring(boss ~= nil) .. " katana=" .. tostring(attached))
 end
 function Tick(dt)
-    if not started or handed_off then return end
+    if not started then return end
+    if handed_off then watch_for_victory(dt); return end
     hide_hud_for_intro()
     ensure_player_possessed()
     if not boss then resolve_boss() end
