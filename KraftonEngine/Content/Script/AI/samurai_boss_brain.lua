@@ -142,7 +142,17 @@ local function combo_gate(i, bb)
     local req = call(obj, "Brain_GetAttackRequiredPreviousAttack", i)
     return name_valid(req) and name_str(req) == name_str(call(obj, "Brain_GetLastAttackName"))
 end
-local function select_attack(bb)
+-- 공격 이름의 페이즈 접두사("...P2...", "...P3...")로 "열리는 페이즈" 추정(전용 바인딩 없음 → 이름 파싱).
+local function attack_open_phase(name)
+    local s = name_str(name)
+    if s:find("P3") then return 3 end
+    if s:find("P2") then return 2 end
+    return 1
+end
+local PHASE_OPEN_BONUS = 1.6   -- 막 열린 페이즈의 신규 공격을 강조(요청: 페이즈별 개방 공격 가중치↑).
+
+-- rangedOnly=true 면 갭클로저/원거리(MinRange≥3) 공격만 후보 → gapstrike 가 헛스윙 없이 거리를 좁히며 친다.
+local function select_attack(bb, rangedOnly)
     local n = call(obj, "Brain_GetAttackCount") or 0
     if n <= 0 then return false end
     call(obj, "Brain_BeginDecisionTrace")
@@ -160,16 +170,21 @@ local function select_attack(bb)
             local tag    = call(obj, "Brain_GetAttackTacticTag", i) or "Neutral"
             local isGap  = call(obj, "Brain_IsAttackGapCloser", i) == true
             local peril  = call(obj, "Brain_GetAttackPerilousType", i) or 0
+            local ranged = isGap or mn >= 3.0
 
-            local score = math.max(0.0001, w) * math.max(0.1, prio)
-                * range_curve(bb.dist, mn, mx)
-                * (1.0 - 0.7 * clamp(bb.absAngle / math.max(1.0, maxAng), 0, 1))
-                * math.pow(clamp(rScale, 0, 1), math.max(0, rCount))
-                * tactic_scale(tag, isGap, bb)
-            if peril > 0 then score = score * (bb.phase >= 3 and 1.2 or (bb.phase >= 2 and 1.05 or 0.45)) end
-            score = score * (0.9 + math.random() * 0.2)
-            call(obj, "Brain_AddDecisionCandidate", name, score)
-            if score > bestScore then bestScore = score; best = name end
+            if (not rangedOnly) or ranged then
+                local score = math.max(0.0001, w) * math.max(0.1, prio)
+                    * range_curve(bb.dist, mn, mx)
+                    * (1.0 - 0.7 * clamp(bb.absAngle / math.max(1.0, maxAng), 0, 1))
+                    * math.pow(clamp(rScale, 0, 1), math.max(0, rCount))
+                    * tactic_scale(tag, isGap, bb)
+                if peril > 0 then score = score * (bb.phase >= 3 and 1.2 or (bb.phase >= 2 and 1.05 or 0.45)) end
+                -- 현재 페이즈에서 막 열린 공격을 강조 → 페이즈 전환 시 신규 패턴이 부각됨.
+                if attack_open_phase(name) == bb.phase then score = score * PHASE_OPEN_BONUS end
+                score = score * (0.9 + math.random() * 0.2)
+                call(obj, "Brain_AddDecisionCandidate", name, score)
+                if score > bestScore then bestScore = score; best = name end
+            end
         end
     end
     if best and bestScore > 0.05 and call(obj, "Brain_SetSelectedAttack", best) then
@@ -183,6 +198,14 @@ end
 local function try_attack(bb)
     if call(obj, "Brain_AcquireAttackToken") ~= true then return false end
     if select_attack(bb) and call(obj, "Brain_PlaySelectedAttack") == true then return true end
+    call(obj, "Brain_ReleaseAttackToken")
+    return false
+end
+
+-- 갭스트라이크 전용: 원거리/갭클로저 공격만 골라 거리를 좁히며 친다(공간 있을 때 사용).
+local function try_gap_attack(bb)
+    if call(obj, "Brain_AcquireAttackToken") ~= true then return false end
+    if select_attack(bb, true) and call(obj, "Brain_PlaySelectedAttack") == true then return true end
     call(obj, "Brain_ReleaseAttackToken")
     return false
 end
@@ -268,6 +291,25 @@ local Actions = {
             return false                                         -- 실패 시 다른 행동에 양보
         end,
     },
+    -- ▷ 갭스트라이크: 공간이 생기면(후퇴/도약 후·플레이어가 물러설 때) 원거리/갭클로저 공격으로
+    --   거리를 좁히며 친다 → P2/P3 원거리 애니(FlashStep/AerialDrop/Meteor) 활용 + 근접 단조로움 해소.
+    --   ranged 전용 선택이라 헛스윙 없음. 가용 원거리 공격 없으면(쿨다운) 접근에 양보.
+    {
+        name = "gapstrike", commit = 0.0,
+        score = function(bb)
+            if not bb.perceive or bb.phase < 2 then return 0 end
+            if bb.ratio < 1.1 or bb.ratio > 3.5 then return 0 end   -- 공간이 있을 때만(근접은 attack 이 처리)
+            local fuel = Curve.smooth(0.45 + 0.55 * bb.tempo)
+            return 1.0 * (0.6 + 0.4 * fuel) * ((bb.phase >= 3) and 1.2 or 1.0)
+        end,
+        run = function(bb)
+            if try_gap_attack(bb) then
+                AI.tempo = math.max(0.0, AI.tempo - 3.5)
+                return true
+            end
+            return false
+        end,
+    },
     -- ▷ 접근(갭클로즈): 사거리 밖이면 적극적으로 파고든다.
     {
         name = "approach", commit = 0.25, loco = true,
@@ -291,7 +333,7 @@ local Actions = {
     },
     -- ▷ 후퇴(걷는 간격 조절): 속도 상한이 있어 큰 분리는 leap 이 담당. 여긴 보조로 더 오래 걸어 거리 확보.
     {
-        name = "retreat", commit = 0.60, loco = true,
+        name = "retreat", commit = 1.00, loco = true,
         score = function(bb)
             if not bb.perceive then return 0 end
             local tooClose = 0.30 * Curve.atMost(bb.ratio, 0.50)  -- 거의 겹쳤을 때만 한 발 물러섬
@@ -416,6 +458,12 @@ function Tick(dt)
     if bPendingDestroy then
         deathDelay = deathDelay - dt
         if deathDelay <= 0.0 then destroy_self() end
+        return
+    end
+
+    if S.isBoss and call(obj, "IsBossEncounterActive") ~= true then
+        call(obj, "Brain_ReleaseAttackToken")
+        call(obj, "StopEnemyMovement")
         return
     end
 

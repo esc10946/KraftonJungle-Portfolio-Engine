@@ -30,6 +30,8 @@ local ENEMY_TAG      = "Enemy"            -- minor enemies share this tag (match
 local SPOTLIGHT_TAG  = "MoodSpotlight"    -- tag the mood spotlight actor with this
 local FOG_TAG        = "MoodFog"          -- tag the height-fog actor with this
 local BLOOD_MOON_TAG = "BloodMoon"        -- tag the (hidden) blood-moon actor with this
+local BOSS_INTRO_TAG = "BossIntroDirector" -- tag the boss intro director actor with this
+local BOSS_INTRO_START_FLAG = "BossIntroDirectorStartOk"
 
 local LERP_TIME      = 2.5                 -- seconds: spotlight/fog ease to the night look
 
@@ -74,6 +76,41 @@ local function safe_call(target, fn, ...)
     local ok, result = pcall(f, target, ...)
     if not ok then return nil end
     return result
+end
+
+local function find_boss_intro_director()
+    local director = first_by_tag(BOSS_INTRO_TAG) or first_by_tag("BossIntro")
+    if director then return director end
+
+    if World and World.FindActorByName then
+        return World.FindActorByName("BossIntroDirector")
+            or World.FindActorByName("BossIntroDirectorBP")
+    end
+
+    return nil
+end
+
+local function call_director(component, fn)
+    if component and component.CallFunction then
+        if _G ~= nil then _G[BOSS_INTRO_START_FLAG] = nil end
+        if safe_call(component, "CallFunction", fn) ~= true then return false end
+        return _G == nil or _G[BOSS_INTRO_START_FLAG] ~= false
+    end
+    return false
+end
+
+local function start_boss_intro()
+    local director = find_boss_intro_director()
+    if not director then return false end
+
+    if call_director(safe_call(director, "GetLuaScriptComponent"), "StartIntro") then
+        return true
+    end
+    if call_director(safe_call(director, "GetLuaBlueprintComponent"), "StartIntro") then
+        return true
+    end
+
+    return false
 end
 
 local function lerp(a, b, s) return a + (b - a) * s end
@@ -199,7 +236,11 @@ function Tick(dt)
         if BGMState and BGMState.Ensure then
             BGMState.Ensure(BGM_BOSS, BGM_BOSS_FILE, BGM_VOLUME)
         end
-        if Game and Game.ExitCutscene then Game.ExitCutscene() end
-        dbg("atmosphere settled -> boss BGM")
+        if start_boss_intro() then
+            dbg("atmosphere settled -> boss intro")
+        else
+            if Game and Game.ExitCutscene then Game.ExitCutscene() end
+            dbg("atmosphere settled -> boss BGM, no intro director found")
+        end
     end
 end

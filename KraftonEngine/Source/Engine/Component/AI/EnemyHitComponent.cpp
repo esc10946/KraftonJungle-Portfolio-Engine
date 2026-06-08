@@ -3,6 +3,7 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/Montage/AnimMontage.h"
 #include "Component/AI/EnemyAttackComponent.h"
+#include "Component/AI/PhaseComponent.h"
 #include "Component/Combat/CombatStateComponent.h"
 #include "Component/Combat/HealthComponent.h"
 #include "Component/Movement/CharacterMovementComponent.h"
@@ -155,6 +156,20 @@ void UEnemyHitComponent::HandleDamaged(
 
 	AActor* Owner = GetOwner();
 	UCombatStateComponent* Combat = Owner ? Owner->GetComponentByClass<UCombatStateComponent>() : nullptr;
+
+	// 경직 페이즈 제한: 현재 페이즈가 HitReactMaxPhase 를 넘으면 피격 리액션을 완전히 생략한다
+	// (하이퍼아머). 예: 보스 HitReactMaxPhase=1 → P1 에서만 경직, P2/P3 는 끊김 없음.
+	{
+		int32 CurrentPhase = 1;
+		if (UPhaseComponent* Phase = Owner ? Owner->GetComponentByClass<UPhaseComponent>() : nullptr)
+		{
+			CurrentPhase = Phase->GetCurrentPhase();
+		}
+		if (CurrentPhase > HitReactMaxPhase)
+		{
+			return;
+		}
+	}
 
 	// 슈퍼아머 보스가 자기 공격(선/활성/후딜)을 펼치는 중이면 일반 피격에 경직되지 않고 포즈를
 	// 유지한다. 이러면 공세가 끊기지 않고(쿨다운도 리셋 안 함), 자세가 무너질 때만 stagger 된다.

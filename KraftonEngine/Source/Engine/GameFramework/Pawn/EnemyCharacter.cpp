@@ -1408,7 +1408,10 @@ void AEnemyCharacter::Brain_LeapBack()
 	//  먹혀 수평이 사라지고 수직만 남아 "제자리 점프" 가 났다.)
 	if (UCharacterMovementComponent* Move = GetCharacterMovement())
 	{
-		PendingLeapImpulse.Z = Move->JumpZVelocity;
+		// 수직 도약력 — JumpZVelocity 보다 크게 줘서 초기 상승을 빠르게(낮은 턱/단차를 넘김).
+		// 수평이 클수록 발사각이 얕아져 작은 단차에 바로 막히므로, 전용 Z 로 각을 세운다.
+		// 0 이하이면 캐릭터 기본 점프력으로 폴백.
+		PendingLeapImpulse.Z = (LeapVerticalForce > 0.0f) ? LeapVerticalForce : Move->JumpZVelocity;
 	}
 	PendingLeapTime = (std::max)(0.02f, LeapPrepDelay);
 }
