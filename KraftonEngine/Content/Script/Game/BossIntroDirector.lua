@@ -1,5 +1,6 @@
 -- Generated runtime for Content/Blueprint/BossIntroDirectorBP.uasset.
--- BP-only intro director. It never disables player input; previous input lock came from Game.EnterCutscene.
+-- Dormant boss flow:
+--   BloodMoonPhase -> StartIntro() -> reveal boss intro -> StartBossEncounter().
 __events = { BeginPlay = true, PostBeginPlay = false, Tick = true, PostStartMatch = true, OnPlayerCameraReady = false, EndPlay = true, OnOverlap = false, OnEndOverlap = false, OnHit = false, OnEndHit = false }
 
 local INTRO_TIME        = 3.0
@@ -10,6 +11,11 @@ local BOSS_WALK = "Content/Data/Samura2/source/Standing Walk Forward_mixamo_com.
 local BOSS_IDLE = "Content/Data/Samura2/source/Standing Idle_mixamo_com.uasset"
 local HAND_BONES = { "hand_r", "RightHand", "mixamorig:RightHand", "weapon_r" }
 local HUD_HIDE_FLAG = "BossIntroHUDHidden"
+local START_FLAG = "BossIntroDirectorStartOk"
+local BOSS_TAG = "Boss"
+
+local COLLISION_NONE = 0
+local COLLISION_QUERY_AND_PHYSICS = 3
 
 local boss, player, cine
 local t = 0.0
@@ -17,9 +23,11 @@ local started = false
 local setup_done = false
 local handed_off = false
 local hud_restored_after_intro = false
+local boss_dormant = false
 local walk_from, walk_to
+local collision_state = {}
 
-local function dbg(m) if print then print("[BossIntroLegacy] " .. tostring(m)) end end
+local function dbg(m) if print then print("[BossIntroDirector] " .. tostring(m)) end end
 local function first_by_tag(tag)
     if World and World.FindActorsByTag then local l = World.FindActorsByTag(tag); if l and #l > 0 then return l[1] end end
     return nil
@@ -29,7 +37,22 @@ local function first_by_class(cn)
     return nil
 end
 local function rcall(o, fn, ...) if o and Reflection and Reflection.Call then return Reflection.Call(o, fn, ...) end return nil end
+local function call(o, fn, ...)
+    if not o then return nil end
+    local f = o[fn]
+    if f ~= nil then
+        local ok, result = pcall(f, o, ...)
+        if ok then return result end
+        return nil
+    end
+    return rcall(o, fn, ...)
+end
 local function lerp(a,b,s) return a + (b-a)*s end
+local function is_valid(o)
+    if o == nil then return false end
+    if IsValid then return IsValid(o) end
+    return true
+end
 local function set_hud_visible(visible)
     if _G ~= nil then
         _G[HUD_HIDE_FLAG] = visible ~= true
@@ -78,6 +101,16 @@ local function show_boss_ui_after_intro()
 
     return false
 end
+local function hide_boss_ui()
+    local hud = HUD or (_G and _G.HUD)
+    if hud and hud.ClearBossActor then
+        hud.ClearBossActor()
+    elseif hud and hud.SetBossHUDVisible then
+        hud.SetBossHUDVisible(false)
+    elseif hud and hud.SetBossVisibility then
+        hud.SetBossVisibility(false)
+    end
+end
 local function ensure_player_possessed()
     pcall(function()
         player = player or first_by_tag("Player") or first_by_class("ALuaCharacter")
@@ -87,18 +120,158 @@ local function ensure_player_possessed()
         end
     end)
 end
+local function resolve_boss()
+    boss = boss or first_by_tag(BOSS_TAG) or first_by_class("ABossEnemyCharacter") or first_by_class("BossEnemyCharacter")
+    return boss
+end
+local function for_each_primitive(actor, fn)
+    if not actor or not actor.GetComponents then return end
+    local seen = {}
+    local function visit(component)
+        if not component then return end
+        local prim = component
+        if component.AsPrimitiveComponent then
+            prim = component:AsPrimitiveComponent()
+        end
+        if prim and not seen[prim] then
+            seen[prim] = true
+            fn(prim)
+        end
+    end
+
+    local components = actor:GetComponents()
+    if components then
+        for _, component in ipairs(components) do visit(component) end
+    end
+    visit(call(actor, "GetCapsuleComponent"))
+    visit(call(actor, "GetSkeletalMeshComponent"))
+    visit(call(actor, "GetPrimitiveComponent"))
+end
+local function set_primitive_collision(primitive, mode)
+    if not primitive then return end
+    if primitive.SetCollisionEnabled then
+        primitive:SetCollisionEnabled(mode)
+    elseif PrimitiveComponent and PrimitiveComponent.SetCollisionEnabled then
+        PrimitiveComponent.SetCollisionEnabled(primitive, mode)
+    else
+        rcall(primitive, "SetCollisionEnabled", mode)
+    end
+end
+local function set_primitive_overlap(primitive, enabled)
+    if not primitive then return end
+    if primitive.SetGenerateOverlapEvents then
+        primitive:SetGenerateOverlapEvents(enabled)
+    elseif PrimitiveComponent and PrimitiveComponent.SetGenerateOverlapEvents then
+        PrimitiveComponent.SetGenerateOverlapEvents(primitive, enabled)
+    else
+        rcall(primitive, "SetGenerateOverlapEvents", enabled)
+    end
+end
+local function get_primitive_collision(primitive)
+    if primitive and primitive.GetCollisionEnabled then
+        return primitive:GetCollisionEnabled()
+    elseif PrimitiveComponent and PrimitiveComponent.GetCollisionEnabled then
+        return PrimitiveComponent.GetCollisionEnabled(primitive)
+    end
+    return rcall(primitive, "GetCollisionEnabled") or COLLISION_QUERY_AND_PHYSICS
+end
+local function get_primitive_overlap(primitive)
+    if primitive and primitive.GetGenerateOverlapEvents then
+        return primitive:GetGenerateOverlapEvents()
+    end
+    return rcall(primitive, "GetGenerateOverlapEvents") == true
+end
+local function remember_collision(actor)
+    for_each_primitive(actor, function(primitive)
+        if collision_state[primitive] == nil then
+            collision_state[primitive] = {
+                mode = get_primitive_collision(primitive),
+                overlap = get_primitive_overlap(primitive),
+            }
+        end
+    end)
+end
+local function set_boss_visible(visible)
+    if Scene and Scene.SetActorVisible and boss then
+        Scene.SetActorVisible(boss, visible)
+    elseif boss then
+        rcall(boss, "SetVisible", visible)
+    end
+end
+local function set_boss_collision_enabled(enabled)
+    if not boss then return end
+    remember_collision(boss)
+    for_each_primitive(boss, function(primitive)
+        if enabled then
+            local state = collision_state[primitive]
+            set_primitive_collision(primitive, state and state.mode or COLLISION_QUERY_AND_PHYSICS)
+            set_primitive_overlap(primitive, state and state.overlap == true)
+        else
+            set_primitive_overlap(primitive, false)
+            set_primitive_collision(primitive, COLLISION_NONE)
+        end
+    end)
+end
+local function make_boss_dormant()
+    if started or handed_off then return false end
+    if not resolve_boss() then return false end
+    set_boss_visible(false)
+    set_boss_collision_enabled(false)
+    call(boss, "StopEnemyMovement")
+    hide_boss_ui()
+    boss_dormant = true
+    return true
+end
+local function wake_boss_for_intro()
+    if not resolve_boss() then return false end
+    set_boss_visible(true)
+    set_boss_collision_enabled(false)
+    call(boss, "StopEnemyMovement")
+    boss_dormant = false
+    return true
+end
+local function activate_boss_encounter()
+    if not boss then return false end
+    set_boss_collision_enabled(true)
+    if Combat and Combat.SetTeam then Combat.SetTeam(boss, 2) end
+    return call(boss, "StartBossEncounter") == true
+end
+
 function BeginPlay()
-    started = true
-    hide_hud_for_intro()
     ensure_player_possessed()
-    -- Ensure stale cutscene locks from earlier builds are cleared if this scene was hot-reloaded.
-    if Game and Game.ExitCutscene then Game.ExitCutscene() end
+    make_boss_dormant()
 end
 function PostStartMatch()
+    ensure_player_possessed()
+    make_boss_dormant()
+end
+function StartIntro()
+    if handed_off then
+        if _G ~= nil then _G[START_FLAG] = false end
+        return false
+    end
+    if started then
+        if _G ~= nil then _G[START_FLAG] = true end
+        return true
+    end
+    if not wake_boss_for_intro() then
+        if _G ~= nil then _G[START_FLAG] = false end
+        dbg("StartIntro failed: boss not found")
+        if Game and Game.ExitCutscene then Game.ExitCutscene() end
+        return false
+    end
+
+    if _G ~= nil then _G[START_FLAG] = true end
     started = true
+    setup_done = false
+    hud_restored_after_intro = false
+    t = 0.0
+    walk_from, walk_to = nil, nil
     hide_hud_for_intro()
     ensure_player_possessed()
-    if Game and Game.ExitCutscene then Game.ExitCutscene() end
+    if Game and Game.EnterCutscene then Game.EnterCutscene() end
+    dbg("intro started")
+    return true
 end
 local function do_setup()
     setup_done = true
@@ -134,7 +307,7 @@ function Tick(dt)
     if not started or handed_off then return end
     hide_hud_for_intro()
     ensure_player_possessed()
-    if not boss then boss = first_by_tag("Boss") or first_by_class("ABossEnemyCharacter") end
+    if not boss then resolve_boss() end
     if boss and not setup_done then do_setup() end
     t = t + (dt or 0.0)
     if boss and walk_from and walk_to and t < INTRO_TIME then
@@ -146,16 +319,18 @@ function Tick(dt)
     if t >= INTRO_TIME then
         handed_off = true
         restore_hud_after_intro()
-        if Game and Game.ExitCutscene then Game.ExitCutscene() end
         if cine then rcall(cine,"Stop") end
         if boss then
             if Animation and Animation.PlayOnActor then Animation.PlayOnActor(boss, BOSS_IDLE, true) end
-            if Combat and Combat.SetTeam then Combat.SetTeam(boss, 2) end
+            activate_boss_encounter()
         end
         show_boss_ui_after_intro()
+        if Game and Game.ExitCutscene then Game.ExitCutscene() end
+        dbg("intro complete -> boss encounter active")
     end
 end
 
 function EndPlay()
-    restore_hud_after_intro()
+    if started then restore_hud_after_intro() end
+    if not handed_off and boss_dormant then hide_boss_ui() end
 end

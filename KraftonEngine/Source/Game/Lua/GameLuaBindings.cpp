@@ -283,6 +283,24 @@ namespace
 		}
 	}
 
+	void LuaPrimitiveSetCollisionEnabled(UPrimitiveComponent* Component, int32 Enabled)
+	{
+		if (IsValid(Component))
+		{
+			Component->SetCollisionEnabled(static_cast<ECollisionEnabled>(Enabled));
+		}
+	}
+
+	int32 LuaPrimitiveGetCollisionEnabled(UPrimitiveComponent* Component)
+	{
+		if (!IsValid(Component))
+		{
+			return static_cast<int32>(ECollisionEnabled::NoCollision);
+		}
+
+		return static_cast<int32>(Component->GetCollisionEnabled());
+	}
+
 	int32 LuaPrimitiveGetCollisionResponseToChannel(UPrimitiveComponent* Component, int32 Channel)
 	{
 		if (!IsValid(Component))
@@ -363,6 +381,8 @@ void RegisterGameLuaBindings(sol::state& Lua)
 	{
 		sol::table PrimitiveComponent = PrimitiveComponentObject.as<sol::table>();
 		PrimitiveComponent.set_function("SetGenerateOverlapEvents", &LuaPrimitiveSetGenerateOverlapEvents);
+		PrimitiveComponent.set_function("SetCollisionEnabled", &LuaPrimitiveSetCollisionEnabled);
+		PrimitiveComponent.set_function("GetCollisionEnabled", &LuaPrimitiveGetCollisionEnabled);
 		PrimitiveComponent.set_function("GetCollisionResponseToChannel", &LuaPrimitiveGetCollisionResponseToChannel);
 		PrimitiveComponent.set_function("SetCollisionResponseToChannel", &LuaPrimitiveSetCollisionResponseToChannel);
 		PrimitiveComponent.set_function("GetPawnCollisionResponse", &LuaPrimitiveGetPawnCollisionResponse);

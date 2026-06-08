@@ -419,6 +419,12 @@ function Tick(dt)
         return
     end
 
+    if S.isBoss and call(obj, "IsBossEncounterActive") ~= true then
+        call(obj, "Brain_ReleaseAttackToken")
+        call(obj, "StopEnemyMovement")
+        return
+    end
+
     call(obj, "Brain_Sense")
     -- 반격 윈도우는 공격(busy) 중에도 흘러야 "가드→반격 1회→(여전히 압박 시)가드→반격" 교대가 된다.
     AI.counterUntil = math.max(0.0, AI.counterUntil - dt)

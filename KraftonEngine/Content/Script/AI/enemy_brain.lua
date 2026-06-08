@@ -412,6 +412,12 @@ function Tick(dt)
         return
     end
 
+    if S.isBoss and call(obj, "IsBossEncounterActive") ~= true then
+        call(obj, "Brain_ReleaseAttackToken")
+        call(obj, "StopEnemyMovement")
+        return
+    end
+
     update_ground_speed()
 
     if call(obj, "Brain_ConsumeCombatStep") ~= true then return end
