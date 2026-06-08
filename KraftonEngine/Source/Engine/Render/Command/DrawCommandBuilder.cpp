@@ -18,6 +18,8 @@
 #include "Materials/Material.h"
 #include "Texture/Texture2D.h"
 
+#include <functional>
+
 // UpdateProxyLOD defined in RenderCollector.cpp (shared)
 extern void UpdateProxyLOD(FPrimitiveSceneProxy* Proxy, const FLODUpdateContext& LODCtx);
 
@@ -134,6 +136,48 @@ static FShader* GetUberTransparentShader(EViewMode ViewMode, EUberLitDefines::EV
 		FShaderKey(EShaderPath::UberTransparent, Defines, VSEntry, EUberLitDefines::EntryPoint::PS));
 }
 
+static uint64 GetMaterialGraphShaderRevisionHash(const UMaterial* Mat)
+{
+	if (!Mat)
+	{
+		return 0;
+	}
+
+	const FString& SourceHash = Mat->GetLastCompileRecord().SourceHash;
+	return SourceHash.empty() ? 0 : std::hash<FString>{}(SourceHash);
+}
+
+static FShader* ResolveGraphMaterialShader(const UMaterial* Mat, bool bGPUSkinning)
+{
+	if (!Mat)
+	{
+		return nullptr;
+	}
+
+	if (bGPUSkinning)
+	{
+		const FString& ShaderPath = Mat->GetShaderPathForSerialize();
+		if (!ShaderPath.empty())
+		{
+			FShader* SkeletalShader = FShaderManager::Get().GetOrCreate(
+				FShaderKey(
+					ShaderPath,
+					nullptr,
+					EUberLitDefines::EntryPoint::SkeletalMeshVS,
+					EUberLitDefines::EntryPoint::PS,
+					EShaderVertexFactory::SkeletalMesh,
+					GetMaterialGraphShaderRevisionHash(Mat)));
+			if (SkeletalShader && SkeletalShader->IsValid())
+			{
+				return SkeletalShader;
+			}
+		}
+	}
+
+	if (Mat->HasCustomShader()) return Mat->GetCustomShader();
+	return Mat->GetShader();
+}
+
 // ============================================================
 // SelectEffectiveShader — ViewMode에 따른 UberLit 셰이더 변형 선택
 // ============================================================
@@ -182,8 +226,7 @@ FShader* FDrawCommandBuilder::ResolveSectionShader(UMaterial* Mat, EVertexFactor
     //    generic particle/default shader fallback.
     if (Mat && Mat->GetSourceKind() == EMaterialSourceKind::Graph)
     {
-        if (Mat->HasCustomShader()) return Mat->GetCustomShader();
-        if (FShader* GraphShader = Mat->GetShader()) return GraphShader;
+        if (FShader* GraphShader = ResolveGraphMaterialShader(Mat, bGPUSkinning)) return GraphShader;
     }
 
     // 2. custom override 강제 (CreateTransient: Gizmo/Decal/Text/SubUV, 비표준 셰이더 .mat)

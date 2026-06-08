@@ -1,4 +1,4 @@
-// Generated from C:/Users/jungle/GitHub/Jungle_Week14_Team6/KraftonEngine/Content/Material/Particle/Parry/Flash.uasset
+// Generated from Content/Material/Particle/Parry/Flash.uasset
 // Domain: ParticleSprite
 
 #include "Common/ConstantBuffers.hlsli"

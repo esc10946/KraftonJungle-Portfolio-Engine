@@ -18,7 +18,7 @@
 
 namespace
 {
-    constexpr const char* MaterialGraphGeneratorVersion = "MaterialGraph";
+    constexpr const char* MaterialGraphGeneratorVersion = "MaterialGraph_GPUSkinningVF";
 
 	// ".mat" → ".uasset" 정규화(이미 .uasset 이면 그대로). 캐시 키 + 바이너리 타겟.
 	// 메시 임베드/하드코딩 legacy ".mat" 참조가 자동으로 ".uasset" 을 가리키게 한다.
@@ -243,8 +243,11 @@ UMaterial* FMaterialManager::LoadMaterialBinary(const FString& UassetPath)
         const EMaterialGraphTarget CompileTarget = ResolveMaterialGraphCompileTarget(Material);
         Material->GetGraphDocument().Graph.RepairPinsForDomain(CompileTarget);
         const FString ExpectedShaderPath = BuildGeneratedMaterialShaderPath(Material->GetAssetPathFileName(), false, CompileTarget);
+        const bool bCompilerVersionOutdated =
+            Material->GetLastCompileRecord().CompilerVersion != MaterialGraphGeneratorVersion;
         if (Material->GetShaderPathForSerialize() != ExpectedShaderPath ||
-            Material->GetGraphDocument().LastCompiledShaderPath != ExpectedShaderPath)
+            Material->GetGraphDocument().LastCompiledShaderPath != ExpectedShaderPath ||
+            bCompilerVersionOutdated)
         {
             FString CompileError;
             CompileMaterialGraphRuntime(Material, Material->GetGraphDocument().Graph, false, &CompileError);

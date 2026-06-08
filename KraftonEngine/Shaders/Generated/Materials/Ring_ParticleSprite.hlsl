@@ -1,4 +1,4 @@
-// Generated from C:/Users/jungle/GitHub/Jungle_Week14_Team6/KraftonEngine/Content/Material/Particle/Parry/Ring.uasset
+// Generated from Content/Material/Particle/Parry/Ring.uasset
 // Domain: ParticleSprite
 
 #include "Common/ConstantBuffers.hlsli"

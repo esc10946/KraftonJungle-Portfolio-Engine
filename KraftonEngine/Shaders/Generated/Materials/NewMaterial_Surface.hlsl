@@ -1,10 +1,11 @@
-// Generated from C:/Users/jungle/Documents/GitHub/Week14/KraftonEngine/Content/Game/Texture/GameScene/Play/NewMaterial.uasset
+// Generated from Content/Material/NewMaterial.uasset
 // Domain: Surface
 
 #include "Common/ConstantBuffers.hlsli"
 #include "Common/VertexLayouts.hlsli"
 #include "Common/Functions.hlsli"
 #include "Common/SystemSamplers.hlsli"
+#include "Common/Skinning.hlsli"
 
 struct FMaterialPixelInput
 {
@@ -32,14 +33,16 @@ Texture2D Tex_Diffuse : register(t0);
 
 FMaterialResult EvaluateMaterial(FMaterialPixelInput Input)
 {
-    float4 n_56 = Tex_Diffuse.Sample(LinearWrapSampler, Input.UV0);
+    float2 n_3 = Input.UV0;
+    float4 n_5 = Tex_Diffuse.Sample(LinearWrapSampler, n_3);
+    float n_47 = 0.400000f;
     FMaterialResult Result;
-    Result.BaseColor = (n_56).rgb;
+    Result.BaseColor = (n_5).rgb;
     Result.Normal = float3(0, 0, 1);
     Result.Roughness = 0.5f;
     Result.Metallic = 0.0f;
-    Result.Emissive = (n_56).rgb;
-    Result.Opacity = (n_56).a;
+    Result.Emissive = float3(0, 0, 0);
+    Result.Opacity = n_47;
     return Result;
 }
 
@@ -53,16 +56,38 @@ struct MaterialSurfaceVSOutput
     float3 worldPos : TEXCOORD1;
 };
 
-MaterialSurfaceVSOutput VS(VS_Input_PNCTT input)
+MaterialSurfaceVSOutput BuildMaterialSurfaceVS(float3 position, float3 normal, float4 color, float2 texcoord)
 {
     MaterialSurfaceVSOutput output;
-    float4 worldPos = mul(float4(input.position, 1.0f), Model);
+    float4 worldPos = mul(float4(position, 1.0f), Model);
     output.worldPos = worldPos.xyz;
     output.position = mul(mul(worldPos, View), Projection);
-    output.normal = normalize(mul(input.normal, (float3x3)NormalMatrix));
-    output.color = input.color;
-    output.texcoord = input.texcoord;
+    output.normal = normalize(mul(normal, (float3x3)NormalMatrix));
+    output.color = color;
+    output.texcoord = texcoord;
     return output;
+}
+
+MaterialSurfaceVSOutput VS_StaticMesh(VS_Input_PNCTT input)
+{
+    return BuildMaterialSurfaceVS(input.position, input.normal, input.color, input.texcoord);
+}
+
+MaterialSurfaceVSOutput VS(VS_Input_PNCTT input)
+{
+    return VS_StaticMesh(input);
+}
+
+MaterialSurfaceVSOutput VS_SkeletalMesh(VS_Input_PNCTTBB input)
+{
+    FSkinningResult skinned = ApplyLinearBlendSkinning(
+        input.position,
+        input.normal,
+        input.tangent.xyz,
+        input.boneIndices,
+        input.boneWeights);
+
+    return BuildMaterialSurfaceVS(skinned.position.xyz, skinned.normal, input.color, input.texcoord);
 }
 
 

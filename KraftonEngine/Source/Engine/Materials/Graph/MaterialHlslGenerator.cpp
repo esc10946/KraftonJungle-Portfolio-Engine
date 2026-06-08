@@ -902,6 +902,10 @@ namespace
         SS << "#include \"Common/VertexLayouts.hlsli\"\n";
         SS << "#include \"Common/Functions.hlsli\"\n";
         SS << "#include \"Common/SystemSamplers.hlsli\"\n";
+        if (Domain == EMaterialGraphTarget::Surface)
+        {
+            SS << "#include \"Common/Skinning.hlsli\"\n";
+        }
         // AlphaBlend 도메인에서는 per-pixel fog 적용
         if (Domain == EMaterialGraphTarget::ParticleSprite || Domain == EMaterialGraphTarget::ParticleMesh)
         {
@@ -1195,16 +1199,38 @@ struct MaterialSurfaceVSOutput
     float3 worldPos : TEXCOORD1;
 };
 
-MaterialSurfaceVSOutput VS(VS_Input_PNCTT input)
+MaterialSurfaceVSOutput BuildMaterialSurfaceVS(float3 position, float3 normal, float4 color, float2 texcoord)
 {
     MaterialSurfaceVSOutput output;
-    float4 worldPos = mul(float4(input.position, 1.0f), Model);
+    float4 worldPos = mul(float4(position, 1.0f), Model);
     output.worldPos = worldPos.xyz;
     output.position = mul(mul(worldPos, View), Projection);
-    output.normal = normalize(mul(input.normal, (float3x3)NormalMatrix));
-    output.color = input.color;
-    output.texcoord = input.texcoord;
+    output.normal = normalize(mul(normal, (float3x3)NormalMatrix));
+    output.color = color;
+    output.texcoord = texcoord;
     return output;
+}
+
+MaterialSurfaceVSOutput VS_StaticMesh(VS_Input_PNCTT input)
+{
+    return BuildMaterialSurfaceVS(input.position, input.normal, input.color, input.texcoord);
+}
+
+MaterialSurfaceVSOutput VS(VS_Input_PNCTT input)
+{
+    return VS_StaticMesh(input);
+}
+
+MaterialSurfaceVSOutput VS_SkeletalMesh(VS_Input_PNCTTBB input)
+{
+    FSkinningResult skinned = ApplyLinearBlendSkinning(
+        input.position,
+        input.normal,
+        input.tangent.xyz,
+        input.boneIndices,
+        input.boneWeights);
+
+    return BuildMaterialSurfaceVS(skinned.position.xyz, skinned.normal, input.color, input.texcoord);
 }
 
 )";
