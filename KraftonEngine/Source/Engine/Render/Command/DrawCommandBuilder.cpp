@@ -178,6 +178,30 @@ static FShader* ResolveGraphMaterialShader(const UMaterial* Mat, bool bGPUSkinni
 	return Mat->GetShader();
 }
 
+static bool IsGraphMaterialCompatibleWithVertexFactory(const UMaterial* Mat, EVertexFactoryType VFType)
+{
+	if (!Mat || Mat->GetSourceKind() != EMaterialSourceKind::Graph)
+	{
+		return false;
+	}
+
+	const EMaterialGraphTarget Target = Mat->GetGraphDocument().Target;
+	switch (VFType)
+	{
+	case EVertexFactoryType::ParticleSprite:
+		return Target == EMaterialGraphTarget::ParticleSprite;
+	case EVertexFactoryType::ParticleMesh:
+		return Target == EMaterialGraphTarget::ParticleMesh;
+	case EVertexFactoryType::ParticleBeam:
+	case EVertexFactoryType::ParticleRibbon:
+		return Target == EMaterialGraphTarget::ParticleBeamTrail;
+	default:
+		return Target == EMaterialGraphTarget::Surface ||
+			Target == EMaterialGraphTarget::Decal ||
+			Target == EMaterialGraphTarget::PostProcess;
+	}
+}
+
 // ============================================================
 // SelectEffectiveShader — ViewMode에 따른 UberLit 셰이더 변형 선택
 // ============================================================
@@ -224,7 +248,7 @@ FShader* FDrawCommandBuilder::ResolveSectionShader(UMaterial* Mat, EVertexFactor
     // 1. Graph material first-class path. Runtime-compiled graph materials carry their
     //    generated shader as the material template/custom shader, and must beat the
     //    generic particle/default shader fallback.
-    if (Mat && Mat->GetSourceKind() == EMaterialSourceKind::Graph)
+    if (IsGraphMaterialCompatibleWithVertexFactory(Mat, VFType))
     {
         if (FShader* GraphShader = ResolveGraphMaterialShader(Mat, bGPUSkinning)) return GraphShader;
     }

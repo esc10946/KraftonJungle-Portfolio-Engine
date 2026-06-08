@@ -46,6 +46,11 @@ function OnDamaged(damageSpec, damageReport)
         return
     end
 
+    -- Little camera jolt on every incoming hit (guard/posture/stagger/death).
+    if ctx.config.HIT_CAMERA_SHAKE_ENABLED then
+        Context.PlayCameraShake(ctx.config.HIT_CAMERA_SHAKE_SCALE, ctx.config.HIT_CAMERA_SHAKE_PARAMS)
+    end
+
     if PlayerGameState.HandleDamaged(ctx, damageSpec, damageReport) then
         return
     end

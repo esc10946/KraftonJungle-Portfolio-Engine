@@ -45,6 +45,22 @@ Config.COUNTER_MONTAGE_PATH = "Content/Montages/Twin_Cross_Montage.uasset"
 Config.COUNTER_SECTION = "Cross"
 Config.COUNTER_CAMERA_SHAKE_PATH = "Content/Data/FGJ_Character/CameraWork/CrossShake.uasset"
 Config.COUNTER_CAMERA_SHAKE_SCALE = 1.0
+
+-- Subtle Sekiro-style camera jolt when the Wolf takes a hit. Procedural Perlin
+-- shake via Camera.Shake (no asset). Short + low amplitude = "little" by intent;
+-- raise scale or the amplitudes for a heavier hit.
+Config.HIT_CAMERA_SHAKE_ENABLED = true
+Config.HIT_CAMERA_SHAKE_SCALE = 1.0
+Config.HIT_CAMERA_SHAKE_PARAMS = {
+    duration     = 0.18,
+    blendIn      = 0.01,
+    blendOut     = 0.09,
+    locAmplitude = { x = 1.2, y = 1.2, z = 0.8 },
+    locFrequency = { x = 18.0, y = 20.0, z = 15.0 },
+    rotAmplitude = { pitch = 0.25, yaw = 0.35, roll = 0.45 },
+    rotFrequency = { pitch = 16.0, yaw = 18.0, roll = 14.0 },
+    fovAmplitude = 0.0,
+}
 Config.COUNTER_HIT_CAMERA_ZOOM_ENABLED = true
 Config.COUNTER_HIT_CAMERA_ZOOM_FACTOR = 1.3
 Config.COUNTER_PARTICLE_ENABLED = false

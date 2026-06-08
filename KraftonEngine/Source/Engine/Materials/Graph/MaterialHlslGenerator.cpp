@@ -204,10 +204,16 @@ namespace
             return "(" + Expr + ")" + Swizzles[ToN];
         }
 
-        // 업캐스트 : 0으로 패딩
+        // 업캐스트: RGB/Color 계열을 float4로 올릴 때 alpha는 불투명한 기본값이어야 한다.
+        // 그래프에서 TextureSample.RGB * VertexColor.RGB 뒤 A를 마스킹하는 오래된 파티클
+        // 머티리얼들이 alpha=0으로 컴파일되어 완전히 사라지는 것을 막는다.
         const char* ToHlsl = (ToN == 2) ? "float2" : (ToN == 3) ? "float3" : "float4";
         FString     Padded = FString(ToHlsl) + "(" + Expr;
         for (int32 i = 0; i < ToN - FromN; ++i) Padded += ", 0.0f";
+        if (FromN == 3 && ToN == 4)
+        {
+            Padded = FString(ToHlsl) + "(" + Expr + ", 1.0f";
+        }
         Padded += ")";
         return Padded;
     }
@@ -907,7 +913,9 @@ namespace
             SS << "#include \"Common/Skinning.hlsli\"\n";
         }
         // AlphaBlend 도메인에서는 per-pixel fog 적용
-        if (Domain == EMaterialGraphTarget::ParticleSprite || Domain == EMaterialGraphTarget::ParticleMesh)
+        if (Domain == EMaterialGraphTarget::ParticleSprite ||
+            Domain == EMaterialGraphTarget::ParticleMesh ||
+            Domain == EMaterialGraphTarget::ParticleBeamTrail)
         {
             SS << "#define USE_FOG 1\n";
             SS << "#include \"Common/Fog.hlsli\"\n";
@@ -1181,6 +1189,54 @@ float4 PS(PS_Input_MaterialMeshParticle input) : SV_TARGET
 }
 )";
         return SS.str();
+    }
+
+    FString BuildParticleBeamTrailMain()
+    {
+        return R"(
+struct VS_Input_MaterialBeamTrailParticle
+{
+    float3 position : POSITION;
+    float4 color    : COLOR;
+    float2 texcoord : TEXTCOORD;
+};
+
+struct PS_Input_MaterialBeamTrailParticle
+{
+    float4 position : SV_POSITION;
+    float4 color    : COLOR;
+    float2 texcoord : TEXCOORD0;
+    float3 worldPos : TEXCOORD1;
+};
+
+PS_Input_MaterialBeamTrailParticle VS(VS_Input_MaterialBeamTrailParticle input)
+{
+    PS_Input_MaterialBeamTrailParticle output;
+    output.position = ApplyVP(input.position);
+    output.color    = input.color;
+    output.texcoord = input.texcoord;
+    output.worldPos = input.position;
+    return output;
+}
+
+float4 PS(PS_Input_MaterialBeamTrailParticle input) : SV_TARGET
+{
+    FMaterialPixelInput MaterialInput;
+    MaterialInput.UV0           = input.texcoord;
+    MaterialInput.UV1           = float2(0, 0);
+    MaterialInput.UV2           = float2(0, 0);
+    MaterialInput.ParticleColor = input.color;
+    MaterialInput.VertexColor   = input.color;
+    MaterialInput.Time          = Time;
+    MaterialInput.SubImageIndex = 0.0f;
+    MaterialInput.DynamicParam  = float4(0, 0, 0, 0);
+
+    FMaterialResult Result = EvaluateMaterial(MaterialInput);
+    float4 FinalColor = float4(Result.Color + Result.Emissive, Result.Opacity);
+    clip(FinalColor.a - 0.01f);
+    return ApplyFogTransparent(FinalColor, input.worldPos, CameraWorldPos);
+}
+)";
     }
 
     FString BuildSurfaceMain(ERenderPass RenderPass, EBlendMode BlendMode, EMaterialShadingModel ShadingModel, bool bReceiveLighting, float OpacityMaskClipValue)
@@ -1465,6 +1521,9 @@ bool FMaterialHlslGenerator::Generate(const FMaterialGraph& Graph, const FMateri
         break;
     case EMaterialGraphTarget::ParticleMesh:
         SS << BuildParticleMeshMain(Options.bReceiveLighting);
+        break;
+    case EMaterialGraphTarget::ParticleBeamTrail:
+        SS << BuildParticleBeamTrailMain();
         break;
     case EMaterialGraphTarget::PostProcess:
         SS << BuildPostProcessMain();

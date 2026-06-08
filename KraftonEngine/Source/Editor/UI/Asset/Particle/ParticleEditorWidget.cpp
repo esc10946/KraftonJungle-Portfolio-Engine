@@ -380,8 +380,7 @@ namespace
 		if (Cast<UParticleModuleTypeDataMesh>(LOD->TypeDataModule))
 			return Target == EMaterialGraphTarget::ParticleMesh;
 
-		// Beam/Ribbon graph targets are not implemented yet.
-		return false;
+		return Target == EMaterialGraphTarget::ParticleBeamTrail;
 	}
 
 	// Legacy materials must match the emitter fallback shader. Graph materials
