@@ -61,6 +61,12 @@ public:
 	UFUNCTION(Pure, Category="CharacterMovement|RootMotion")
 	bool HasPendingRootMotion() const { return bHasPendingRootMotion; }
 
+    UFUNCTION(Pure, Category="CharacterMovement|Impulse")
+    bool HasPendingExternalImpulse() const
+	{
+	    return !PendingExternalImpulse.IsNearlyZero();
+	}
+
 	// 직전 TickComponent 에서 root motion 의 yaw 가 capsule rotation 에 실제로 적용됐는지.
 	// ACharacter::Tick 이 control yaw 를 capsule 에 덮어쓰기 전에 query 해서 충돌 회피
 	// (root motion 회전이 활성 중인 frame 은 control yaw 가 덮으면 회전이 토글되어 끊김).

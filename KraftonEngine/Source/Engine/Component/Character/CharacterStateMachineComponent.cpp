@@ -254,7 +254,7 @@ void UCharacterStateMachineComponent::ApplyMovement(const FCharacterStateDef& De
                 Character->AddMovementInput(Dir, DashScale);
             }
         }
-        else if (!Movement->HasPendingRootMotion() && !Movement->IsFalling())
+        else if (!Movement->HasPendingRootMotion() && !Movement->IsFalling() && !Movement->HasPendingExternalImpulse())
         {
             // 지상 Locked(공격 등)에서만 수평 드리프트를 멈춘다.
             // 공중(백점프/넉백 임펄스 비행) 중에 수평 속도를 0으로 만들면 임펄스가 즉시 지워져

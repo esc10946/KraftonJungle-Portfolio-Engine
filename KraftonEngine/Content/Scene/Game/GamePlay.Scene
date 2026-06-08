@@ -2781,7 +2781,7 @@
         "LODFarDistance" : 80.000000,
         "LODNearDistance" : 25.000000,
         "LeapDashScale" : 5.000000,
-        "LeapHorizontalForce" : 40.000000,
+        "LeapHorizontalForce" : 10.000000,
         "LeapMontage" : {
           "AssetPath" : "Content/Montages/Jumping Up_mixamo_com_Montage.uasset",
           "ClassName" : "UAnimMontage"
