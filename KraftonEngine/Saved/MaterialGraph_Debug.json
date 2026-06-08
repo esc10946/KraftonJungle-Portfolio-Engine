@@ -1,115 +1,114 @@
 {
   "format": "KraftonMaterialGraph",
   "version": 2,
-  "target": "ParticleSprite",
-  "snapshotHex": "3153454D0100000001000300000001FA7EAA3E000000000800000005000000000F0000004D6174657269616C204F75747075740000904200009A4204000000370000000500000000028443EE040000ED040000380000000500000000028443B7030000B6030000390000000500000000008443B9030000B80300003A0000000500000000018443F0040000EF0400000000000000000000000000000000803F0000803F0000803F0000803F04000000524742410F000000010E00000054657874757265204F626A65637400006EC40000CA4201000000100000000F00000001066A65BD030000BC03000007000000446966667573651B000000436F6E74656E742F5061727469636C652F537061726B732E706E67000000000000803F0000803F0000803F0000803F040000005247424111000000020E000000546578747572652053616D706C6500402CC40000C24208000000120000001100000000066D70BD030000BC030000130000001100000000010000BF030000BE030000140000001100000001020000C1030000C0030000150000001100000001000000C3030000C2030000160000001100000001000000C5030000C4030000170000001100000001000000C7030000C6030000180000001100000001000000C9030000C8030000190000001100000001030000CB030000CA0300000000000000000000000000000000803F0000803F0000803F0000803F040000005247424122000000170E0000005061727469636C6520436F6C6F7200C01AC400808C4306000000230000002200000001020000C1030000C0030000240000002200000001000000C3030000C2030000250000002200000001000000C5030000C4030000260000002200000001000000C7030000C6030000270000002200000001000000C9030000C8030000280000002200000001030000CB030000CA0300000000000000000000000000000000803F0000803F0000803F0000803F04000000524742412E0000000C080000004D756C7469706C7900009FC300002CC2030000002F0000002E00000000030000C9030000C8030000300000002E00000000030000C7030000C6030000310000002E00000001030000CD030000CC0300000000000000000000000000000000803F0000803F0000803F0000803F04000000524742414A00000003100000005363616C617220506172616D657465720080C0C30080A943010000004B0000004A00000001000000CF030000CE030000060000005363616C617200000000000000000000E0400000803F0000803F0000803F0400000052474241570000000C080000004D756C7469706C790000DCC20000C24203000000580000005700000000030000C9030000C8030000590000005700000000030000C7030000C60300005A0000005700000001030000CD030000CC0300000000000000000000000000000000803F0000803F0000803F0000803F0400000052474241600000000C080000004D756C7469706C790000A7C30000554303000000610000006000000000030000C9030000C8030000620000006000000000030000C7030000C6030000630000006000000001030000CD030000CC0300000000000000000000000000000000803F0000803F0000803F0000803F0400000052474241090000001A00000010000000120000003300000023000000300000005C0000004B000000590000005D0000005A000000380000005F000000140000002F00000064000000180000006100000065000000270000006200000066000000630000003900000067000000140000005800000068000000",
+  "target": "Surface",
+  "snapshotHex": "3153454D0100000000000200000001FA7EAA3E000000000800000001000000010E00000054657874757265204F626A656374000034C40000A0C201000000020000000100000001066A65CD030000CC03000007000000446966667573652E000000436F6E74656E742F5061727469636C652F4265616D5F486172644C61736572436F72655F3531327836342E706E67000000000000803F0000803F0000803F0000803F0400000052474241030000001308000000546578436F6F7264000034C40000F04201000000040000000300000001010000CF030000CE03000000000000000000000000000000000000000000000000000000000000040000005247424105000000020E000000546578747572652053616D706C650000F0C30000000008000000060000000500000000066D70CD030000CC030000070000000500000000010000CF030000CE030000080000000500000001020000D1030000D0030000090000000500000001000000D3030000D20300000A0000000500000001000000D5030000D40300000B0000000500000001000000D7030000D60300000C0000000500000001000000D9030000D80300000D0000000500000001030000DB030000DA0300000000000000000000000000000000803F0000803F0000803F0000803F04000000524742410E000000160C00000056657274657820436F6C6F720000F0C300005C43060000000F0000000E00000001020000D1030000D0030000100000000E00000001000000D3030000D2030000110000000E00000001000000D5030000D4030000120000000E00000001000000D7030000D6030000130000000E00000001000000D9030000D8030000140000000E00000001030000DB030000DA0300000000000000000000000000000000803F0000803F0000803F0000803F0400000052474241150000000C080000004D756C7469706C79000070C30000A04203000000160000001500000000030000D9030000D8030000170000001500000000030000D7030000D6030000180000001500000001030000DD030000DC0300000000000000000000000000000000803F0000803F0000803F0000803F040000005247424119000000190E000000436F6D706F6E656E74204D61736B0000000000000000020000001A0000001900000000030000DF030000DE0300001B0000001900000001020000DD030000DC0300000000000000000000000000000000803F0000803F0000803F0000803F030000005247421C000000190E000000436F6D706F6E656E74204D61736B0000000000003443020000001D0000001C00000000030000DF030000DE0300001E0000001C00000001000000DD030000DC0300000000000000000000000000000000803F0000803F0000803F0000803F01000000411F000000000F0000004D6174657269616C204F7574707574000082430000A04207000000200000001F00000000020000BF030000BE030000210000001F00000000020000C1030000C0030000220000001F00000000000000C3030000C2030000230000001F00000000000000C5030000C4030000240000001F00000000020000C7030000C6030000250000001F00000000000000C9030000C8030000260000001F00000000000000CB030000CA0300000000000000000000000000000000803F0000803F0000803F0000803F0400000052474241080000002700000002000000060000002800000004000000070000002900000008000000160000002A0000000F000000170000002B000000180000001A0000002C000000180000001D0000002D0000001B000000200000002E0000001E000000250000002F000000",
   "nodes": [
     {
-      "id": 5,
-      "type": "Output",
-      "displayName": "Material Output",
-      "pos": [72, 77],
-      "parameter": "",
-      "texture": "",
-      "textureSlot": "Diffuse",
-      "mask": "RGBA",
-      "value": [1, 1, 1, 1],
-      "pins": [{ "id": 55, "kind": "Input", "type": "Float3", "name": "Color" }, { "id": 56, "kind": "Input", "type": "Float3", "name": "Emissive" }, { "id": 57, "kind": "Input", "type": "Float", "name": "Opacity" }, { "id": 58, "kind": "Input", "type": "Float2", "name": "UVOffset" }]
-    },
-    {
-      "id": 15,
+      "id": 1,
       "type": "TextureObject",
       "displayName": "Texture Object",
-      "pos": [-952, 101],
+      "pos": [-720, -80],
       "parameter": "Diffuse",
-      "texture": "Content/Particle/Sparks.png",
+      "texture": "Content/Particle/Beam_HardLaserCore_512x64.png",
       "textureSlot": "Diffuse",
       "mask": "RGBA",
       "value": [1, 1, 1, 1],
-      "pins": [{ "id": 16, "kind": "Output", "type": "Texture2D", "name": "Texture" }]
+      "pins": [{ "id": 2, "kind": "Output", "type": "Texture2D", "name": "Texture" }]
     },
     {
-      "id": 17,
+      "id": 3,
+      "type": "TexCoord",
+      "displayName": "TexCoord",
+      "pos": [-720, 120],
+      "parameter": "",
+      "texture": "",
+      "textureSlot": "Diffuse",
+      "mask": "RGBA",
+      "value": [0, 0, 0, 0],
+      "pins": [{ "id": 4, "kind": "Output", "type": "Float2", "name": "UV" }]
+    },
+    {
+      "id": 5,
       "type": "TextureSample",
       "displayName": "Texture Sample",
-      "pos": [-689, 97],
+      "pos": [-480, 0],
       "parameter": "",
       "texture": "",
       "textureSlot": "Diffuse",
       "mask": "RGBA",
       "value": [1, 1, 1, 1],
-      "pins": [{ "id": 18, "kind": "Input", "type": "Texture2D", "name": "Texture" }, { "id": 19, "kind": "Input", "type": "Float2", "name": "UV" }, { "id": 20, "kind": "Output", "type": "Float3", "name": "RGB" }, { "id": 21, "kind": "Output", "type": "Float", "name": "R" }, { "id": 22, "kind": "Output", "type": "Float", "name": "G" }, { "id": 23, "kind": "Output", "type": "Float", "name": "B" }, { "id": 24, "kind": "Output", "type": "Float", "name": "A" }, { "id": 25, "kind": "Output", "type": "Float4", "name": "RGBA" }]
+      "pins": [{ "id": 6, "kind": "Input", "type": "Texture2D", "name": "Texture" }, { "id": 7, "kind": "Input", "type": "Float2", "name": "UV" }, { "id": 8, "kind": "Output", "type": "Float3", "name": "RGB" }, { "id": 9, "kind": "Output", "type": "Float", "name": "R" }, { "id": 10, "kind": "Output", "type": "Float", "name": "G" }, { "id": 11, "kind": "Output", "type": "Float", "name": "B" }, { "id": 12, "kind": "Output", "type": "Float", "name": "A" }, { "id": 13, "kind": "Output", "type": "Float4", "name": "RGBA" }]
     },
     {
-      "id": 34,
-      "type": "ParticleColor",
-      "displayName": "Particle Color",
-      "pos": [-619, 281],
+      "id": 14,
+      "type": "VertexColor",
+      "displayName": "Vertex Color",
+      "pos": [-480, 220],
       "parameter": "",
       "texture": "",
       "textureSlot": "Diffuse",
       "mask": "RGBA",
       "value": [1, 1, 1, 1],
-      "pins": [{ "id": 35, "kind": "Output", "type": "Float3", "name": "RGB" }, { "id": 36, "kind": "Output", "type": "Float", "name": "R" }, { "id": 37, "kind": "Output", "type": "Float", "name": "G" }, { "id": 38, "kind": "Output", "type": "Float", "name": "B" }, { "id": 39, "kind": "Output", "type": "Float", "name": "A" }, { "id": 40, "kind": "Output", "type": "Float4", "name": "RGBA" }]
+      "pins": [{ "id": 15, "kind": "Output", "type": "Float3", "name": "RGB" }, { "id": 16, "kind": "Output", "type": "Float", "name": "R" }, { "id": 17, "kind": "Output", "type": "Float", "name": "G" }, { "id": 18, "kind": "Output", "type": "Float", "name": "B" }, { "id": 19, "kind": "Output", "type": "Float", "name": "A" }, { "id": 20, "kind": "Output", "type": "Float4", "name": "RGBA" }]
     },
     {
-      "id": 46,
+      "id": 21,
       "type": "Multiply",
       "displayName": "Multiply",
-      "pos": [-318, -43],
+      "pos": [-240, 80],
       "parameter": "",
       "texture": "",
       "textureSlot": "Diffuse",
       "mask": "RGBA",
       "value": [1, 1, 1, 1],
-      "pins": [{ "id": 47, "kind": "Input", "type": "Float4", "name": "A" }, { "id": 48, "kind": "Input", "type": "Float4", "name": "B" }, { "id": 49, "kind": "Output", "type": "Float4", "name": "Result" }]
+      "pins": [{ "id": 22, "kind": "Input", "type": "Float4", "name": "A" }, { "id": 23, "kind": "Input", "type": "Float4", "name": "B" }, { "id": 24, "kind": "Output", "type": "Float4", "name": "Result" }]
     },
     {
-      "id": 74,
-      "type": "ScalarParameter",
-      "displayName": "Scalar Parameter",
-      "pos": [-385, 339],
-      "parameter": "Scalar",
+      "id": 25,
+      "type": "ComponentMask",
+      "displayName": "Component Mask",
+      "pos": [0, 0],
+      "parameter": "",
       "texture": "",
       "textureSlot": "Diffuse",
-      "mask": "RGBA",
-      "value": [7, 1, 1, 1],
-      "pins": [{ "id": 75, "kind": "Output", "type": "Float", "name": "Value" }]
+      "mask": "RGB",
+      "value": [1, 1, 1, 1],
+      "pins": [{ "id": 26, "kind": "Input", "type": "Float4", "name": "Value" }, { "id": 27, "kind": "Output", "type": "Float3", "name": "Result" }]
     },
     {
-      "id": 87,
-      "type": "Multiply",
-      "displayName": "Multiply",
-      "pos": [-110, 97],
+      "id": 28,
+      "type": "ComponentMask",
+      "displayName": "Component Mask",
+      "pos": [0, 180],
+      "parameter": "",
+      "texture": "",
+      "textureSlot": "Diffuse",
+      "mask": "A",
+      "value": [1, 1, 1, 1],
+      "pins": [{ "id": 29, "kind": "Input", "type": "Float4", "name": "Value" }, { "id": 30, "kind": "Output", "type": "Float", "name": "Result" }]
+    },
+    {
+      "id": 31,
+      "type": "Output",
+      "displayName": "Material Output",
+      "pos": [260, 80],
       "parameter": "",
       "texture": "",
       "textureSlot": "Diffuse",
       "mask": "RGBA",
       "value": [1, 1, 1, 1],
-      "pins": [{ "id": 88, "kind": "Input", "type": "Float4", "name": "A" }, { "id": 89, "kind": "Input", "type": "Float4", "name": "B" }, { "id": 90, "kind": "Output", "type": "Float4", "name": "Result" }]
-    },
-    {
-      "id": 96,
-      "type": "Multiply",
-      "displayName": "Multiply",
-      "pos": [-334, 213],
-      "parameter": "",
-      "texture": "",
-      "textureSlot": "Diffuse",
-      "mask": "RGBA",
-      "value": [1, 1, 1, 1],
-      "pins": [{ "id": 97, "kind": "Input", "type": "Float4", "name": "A" }, { "id": 98, "kind": "Input", "type": "Float4", "name": "B" }, { "id": 99, "kind": "Output", "type": "Float4", "name": "Result" }]
+      "pins": [{ "id": 32, "kind": "Input", "type": "Float3", "name": "BaseColor" }, { "id": 33, "kind": "Input", "type": "Float3", "name": "Normal" }, { "id": 34, "kind": "Input", "type": "Float", "name": "Roughness" }, { "id": 35, "kind": "Input", "type": "Float", "name": "Metallic" }, { "id": 36, "kind": "Input", "type": "Float3", "name": "Emissive" }, { "id": 37, "kind": "Input", "type": "Float", "name": "Opacity" }, { "id": 38, "kind": "Input", "type": "Float", "name": "OpacityMask" }]
     }
   ],
   "links": [
-    { "id": 26, "from": 16, "to": 18 },
-    { "id": 51, "from": 35, "to": 48 },
-    { "id": 92, "from": 75, "to": 89 },
-    { "id": 93, "from": 90, "to": 56 },
-    { "id": 95, "from": 20, "to": 47 },
-    { "id": 100, "from": 24, "to": 97 },
-    { "id": 101, "from": 39, "to": 98 },
-    { "id": 102, "from": 99, "to": 57 },
-    { "id": 103, "from": 20, "to": 88 }
+    { "id": 39, "from": 2, "to": 6 },
+    { "id": 40, "from": 4, "to": 7 },
+    { "id": 41, "from": 8, "to": 22 },
+    { "id": 42, "from": 15, "to": 23 },
+    { "id": 43, "from": 24, "to": 26 },
+    { "id": 44, "from": 24, "to": 29 },
+    { "id": 45, "from": 27, "to": 32 },
+    { "id": 46, "from": 30, "to": 37 }
   ]
 }

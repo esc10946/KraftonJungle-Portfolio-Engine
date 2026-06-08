@@ -47,6 +47,10 @@ public:
     float         GetSectionTime() const { return SectionTime; }
     float         GetBlendWeight() const;
     void          SetNotifiesEnabled(bool bEnabled) { bNotifiesEnabled = bEnabled; }
+    // 재생 속도 직접 제어. 음수면 역재생(Tick 이 SectionTime 을 뒤로 진행, 섹션 시작에서 clamp).
+    // 패링 리코일(공격 몽타주를 잠깐 거꾸로 감기) 등 외부 구동용 — Play() 의 양수 클램프를 우회한다.
+    void          SetPlayRate(float InRate) { PlayRate = InRate; }
+    float         GetPlayRate() const { return PlayRate; }
 
     // ── 매 프레임 ──
     void Tick(float DeltaSeconds, UAnimInstance* Owner);

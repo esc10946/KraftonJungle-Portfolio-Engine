@@ -123,8 +123,8 @@ void UCombatFeedbackComponent::HandleCombatImpact(UCombatHitEventComponent* /*Ev
 		case ECombatImpactType::EnemyHit:
 			PlayImpactSound(EnemyHitSoundPath, EnemyHitVolume);
 			break;
+		// WorldHit(정적 메시/벽 타격) 사운드는 의도적으로 비활성화한다(헛스윙이 벽에 닿을 때 소리 제거).
 		case ECombatImpactType::WorldHit:
-			PlayImpactSound(WorldHitSoundPath, WorldHitVolume);
 			break;
 		case ECombatImpactType::Parried:
 			PlayImpactSound(ParrySoundPath, ParryVolume);

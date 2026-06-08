@@ -348,6 +348,15 @@ public:
 	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Dodge Dash Scale", Min=0.0f, Max=5.0f, Speed=0.05f)
 	float DodgeDashScale = 2.2f;
 
+	// ── 패링 리코일 (요청 A) ──
+	// 공격이 패링당하면 진행 중이던(점프/갭클로저 제외) 공격 몽타주를 잠깐 거꾸로 감아(역재생) 친 칼이
+	// 튕겨 나오는 "리코일"을 만든 뒤 곧장 다음 행동(공격)으로 풀어준다. 0 이면 비활성.
+	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Parry Recoil Duration", Min=0.0f, Max=1.0f, Speed=0.01f)
+	float ParryRecoilDuration = 0.10f;
+	// 역재생 시작 속도(배). 실제 속도는 ease-out 커브로 시작이 가장 빠르고 끝에서 0 으로 줄어든다(요청: 선형 아님).
+	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Parry Recoil Max Reverse Rate", Min=0.0f, Max=10.0f, Speed=0.1f)
+	float ParryRecoilMaxReverseRate = 3.0f;
+
 	// 백점프(Brain_LeapBack) 비주얼 몽타주(폴백). 보통은 아래 JumpUp/Down 으로 공중 단계가 구동된다.
 	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Leap Montage", Type=ObjectRef, AllowedClass=UAnimMontage)
 	UAnimMontage* LeapMontage = nullptr;
@@ -450,6 +459,11 @@ protected:
 	// 아니면 raw Lua(BrainScriptFile)로 구동한다. ExplicitScriptOverride 가 있으면 최우선.
 	void ConfigureBrainDriver(const FString& ExplicitScriptOverride);
 	void UpdateAttackExecution(float DeltaTime);
+	// 패링당했을 때 호출(CombatState::OnParried 바인딩). 진행 중인 비-점프 공격을 역재생 리코일로 전환.
+	void HandleParried(UCombatStateComponent* Combat);
+	// 리코일 진행(매 틱): ease-out 커브로 공격 몽타주를 역재생하다가 끝나면 EndParryRecoil 로 공격을 푼다.
+	void UpdateParryRecoil(float DeltaTime);
+	void EndParryRecoil();
 	// Phase 4: 타깃과의 거리로 LOD 를 정해 전투 시계 스텝 주기를 조절(원거리 적은 저빈도 think).
 	void UpdateAILOD();
 	// 다수 적 포지셔닝: 아군과 겹치지 않게 매 프레임 분리 입력 + 타깃 주위 링 슬롯 위치 계산.
@@ -486,6 +500,12 @@ private:
 	bool bCurrentAttackActive = false;
 	float CurrentAttackElapsed = 0.0f;
 	FEnemyAttackData CurrentAttack;
+	// 패링 리코일 상태. 활성 동안 UpdateAttackExecution 이 정상 진행 대신 리코일(역재생)을 구동한다.
+	bool bParryRecoilActive = false;
+	float ParryRecoilElapsed = 0.0f;       // 리코일 경과(게임시간 — 슬로모 시 느리게 흐름).
+	bool bParryRecoilSawSlomo = false;     // 리코일 도중 반격 슬로모를 한 번이라도 만났는지(끝나면 풀기 위함).
+	// CombatState::OnParried 중복 바인딩 방지.
+	bool bBoundParried = false;
 	TArray<TWeakObjectPtr<AActor>> CurrentAttackDamagedActors;
 	// 현재 공격의 타격 시점(초, 비주얼 스윙에 맞춤)과 이미 타격을 적용했는지.
 	float CurrentAttackHitTime = 0.0f;

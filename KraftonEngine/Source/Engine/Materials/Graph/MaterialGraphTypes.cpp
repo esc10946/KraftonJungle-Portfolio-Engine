@@ -27,6 +27,7 @@ namespace
         {
         case EMaterialGraphTarget::ParticleSprite:
         case EMaterialGraphTarget::ParticleMesh:
+        case EMaterialGraphTarget::ParticleBeamTrail:
             return {
                 { "Color", EMaterialGraphPinType::Float3 },
                 { "Emissive", EMaterialGraphPinType::Float3 },
@@ -766,7 +767,9 @@ void FMaterialGraph::InitializeDefault(EMaterialGraphTarget Domain)
 
     // 파티클 도메인은 텍스처가 없어도 보이도록 ParticleColor → Color/Opacity 만 연결.
     // 사용자가 텍스처를 추가하면 TextureSample을 끼워 넣어 곱하면 됨.
-    if (Domain == EMaterialGraphTarget::ParticleSprite || Domain == EMaterialGraphTarget::ParticleMesh)
+    if (Domain == EMaterialGraphTarget::ParticleSprite ||
+        Domain == EMaterialGraphTarget::ParticleMesh ||
+        Domain == EMaterialGraphTarget::ParticleBeamTrail)
     {
         uint32 RGBOutPin = 0, AOutPin = 0;
         if (FMaterialGraphNode* N = AddNodeOfType(EMaterialGraphNodeType::ParticleColor, -240.0f, 80.0f, Domain))
@@ -1133,6 +1136,8 @@ const char* ToString(EMaterialGraphTarget Domain)
         return "ParticleSprite";
     case EMaterialGraphTarget::ParticleMesh:
         return "ParticleMesh";
+    case EMaterialGraphTarget::ParticleBeamTrail:
+        return "ParticleBeamTrail";
     case EMaterialGraphTarget::Decal:
         return "Decal";
     case EMaterialGraphTarget::PostProcess:
@@ -1287,6 +1292,7 @@ EMaterialGraphTarget MaterialGraphTargetFromString(const FString& Str, EMaterial
     if (Str == "Surface") return EMaterialGraphTarget::Surface;
     if (Str == "ParticleSprite") return EMaterialGraphTarget::ParticleSprite;
     if (Str == "ParticleMesh") return EMaterialGraphTarget::ParticleMesh;
+    if (Str == "ParticleBeamTrail") return EMaterialGraphTarget::ParticleBeamTrail;
     if (Str == "Decal") return EMaterialGraphTarget::Decal;
     if (Str == "PostProcess") return EMaterialGraphTarget::PostProcess;
     return Default;

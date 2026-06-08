@@ -223,7 +223,8 @@ void UAnimMontageInstance::Tick(float DeltaSeconds, UAnimInstance* Owner)
         // Root motion — raw delta 만 LastRM 에 채움. AccumulateRootMotion 직접 호출 X.
         // Slot 노드가 GetBlendWeight 로 InputPose.LastRM 과 lerp 합성, RootNode 한 곳에서
         // 단일 AccumulateRootMotion 호출. 트리 깊이 무관 일관성 + 이중 누적 위험 0.
-        if (SrcSeq->GetEnableRootMotion())
+        // 역재생(Step<0, 패링 리코일)에서는 RM 을 누적하지 않는다(prev>next 구간 = 음수/역방향 RM 방지).
+        if (SrcSeq->GetEnableRootMotion() && Step > 0.0f)
         {
             LastRootMotionDelta = SrcSeq->ExtractRootMotion(PrevSeqTime, NextSeqTime, false);
         }
@@ -239,6 +240,10 @@ void UAnimMontageInstance::Tick(float DeltaSeconds, UAnimInstance* Owner)
     }
 
     SectionTime += Step;
+    if (SectionTime < 0.0f)
+    {
+        SectionTime = 0.0f;   // 역재생(음수 PlayRate)이 섹션 시작 이전으로 가지 않게 clamp.
+    }
 
     // BlendingOut 중에는 section advance 로직 건너뜀.
     //   → AdvanceSection 이 다시 EnterBlendingOut 을 호출해서 BlendAlpha 가 1.0 으로 reset 되는 버그 방지.

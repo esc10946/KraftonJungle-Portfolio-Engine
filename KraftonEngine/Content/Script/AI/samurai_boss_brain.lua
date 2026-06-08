@@ -268,7 +268,10 @@ local function attack_open_phase(name)
     if s:find("P2") then return 2 end
     return 1
 end
-local PHASE_OPEN_BONUS = 1.6   -- 막 열린 페이즈의 신규 공격을 강조(요청: 페이즈별 개방 공격 가중치↑).
+-- 막 열린 페이즈의 신규 공격을 살짝만 강조한다. 과거 1.6 은 P2 진입 시 신규 P2 공격이 기존 P1
+-- 공격을 압도해 "2페이즈에서 이전 공격을 거의 안 쓰는" 문제를 만들었다(요청 #2). 1.2 로 낮춰
+-- 신규 패턴은 여전히 우선되되 P1 검격(드로우/와이드/백핸드)도 로테이션에 꾸준히 섞이게 한다.
+local PHASE_OPEN_BONUS = 1.2
 
 -- rangedOnly=true 면 갭클로저/원거리(MinRange≥3) 공격만 후보 → gapstrike 가 헛스윙 없이 거리를 좁히며 친다.
 local function select_attack(bb, rangedOnly)
@@ -358,8 +361,10 @@ local Actions = {
         score = function(bb)
             if not bb.perceive or bb.ratio > 1.4 then return 0 end     -- 근접에서 분리할 때만
             local s = 0.0
-            -- 자원 완전 바닥(긴 연타 끝)에서만 가끔 큰 점프. 그 위 구간(0.12~)은 retreat(걷는 후퇴)가 담당.
-            if bb.tempo < 0.12 then s = s + 0.60 end                   -- 깊은 바닥 → 큰 백점프로 확 분리
+            -- 자원 완전 바닥(긴 연타 끝)에서만 가끔 큰 점프. 큰 백점프는 압박을 크게 끊으므로 근접에선
+            -- 보통 공격(아래 fuel 바닥 상향)이 이기게 0.48→0.30 으로 더 낮춘다 → 콤보 끝마다 무조건
+            -- 점프로 빠지지 않고 대부분 계속 공격, 가끔만 분리(요청: 빠지는 빈도 축소).
+            if bb.tempo < 0.12 then s = s + 0.30 end                   -- 깊은 바닥 → 가끔 큰 백점프로 분리
             if bb.perilous == PERILOUS.Sweep or bb.perilous == PERILOUS.Grab then s = s + 0.30 end
             if bb.selfHP < 0.25 and (bb.acting or bb.threatening) then s = s + 0.15 end
             return s
@@ -397,20 +402,27 @@ local Actions = {
                 return 1.2
             end
             local fit  = (bb.ratio <= 1.15) and 1.0 or Curve.atMost(bb.ratio, 1.6, 0.9)  -- 사거리 안 최고, 밖이면 갭클로저용 잔존
-            local fuel = Curve.smooth(0.45 + 0.55 * bb.tempo)    -- 저템포에도 최소 ~0.42 — "아무것도 안 함" 방지
+            -- 저템포 바닥을 ~0.42→~0.58 로 올린다. 자원이 바닥나도 근접에선 후퇴/점프보다 공격이 이기게
+            -- 해 "콤보 끝마다 빠지는" 대신 계속 압박하게 한다(요청: 빠지는 빈도 축소).
+            local fuel = Curve.smooth(0.55 + 0.45 * bb.tempo)
             local opening = 1.0
             if bb.recovery then opening = 1.75
             elseif bb.posture > 0 and bb.posture < 0.4 then opening = 1.35
             elseif bb.acting then opening = 0.5 end              -- 상대 스윙에 무리 진입 자제(가드 우선)
             if bb.targetHP > 0 and bb.targetHP < 0.3 then opening = opening * 1.2 end
-            local parried = bb.lastDeflect and 0.5 or 1.0
+            -- 막 탄기(반격)당했어도 공세를 크게 줄이지 않는다 → 반격 리코일 직후 곧장 공격(요청 A). 0.5→0.9.
+            local parried = bb.lastDeflect and 0.9 or 1.0
             -- 페이즈 성향: P1 절제된 검술(공세↓) → P2 → P3 광폭화(공세↑). 각 페이즈를 확연히 다르게.
             local phaseAggr = (bb.phase >= 3) and 1.20 or ((bb.phase >= 2) and 0.95 or 0.70)
             return 0.75 * fit * fuel * opening * parried * phaseAggr
         end,
         run = function(bb)
             if try_attack(bb) then
-                AI.tempo = math.max(0.0, AI.tempo-3.5)        -- 공격은 자원 소모(연타할수록 누적)
+                -- 연타 자원 소모: tempo 는 0..1 이라 과거의 -3.5 는 단 한 번의 공격으로 자원을 0으로
+                -- 만들어 "한 대 치고 곧장 빠지는"(요청 #3) 원인이었다. 한 타당 소모를 작게(페이즈가
+                -- 높을수록 더 작게) 잡아, 바닥나기 전 P1≈3타·P2≈4타·P3≈5타를 연속으로 이어가게 한다.
+                local drain = (bb.phase >= 3) and 0.18 or ((bb.phase >= 2) and 0.24 or 0.30)
+                AI.tempo = math.max(0.0, AI.tempo - drain)
                 return true                                      -- 이후 Brain_IsBusy 로 커밋
             end
             return false                                         -- 실패 시 다른 행동에 양보
@@ -429,7 +441,10 @@ local Actions = {
         end,
         run = function(bb)
             if try_gap_attack(bb) then
-                AI.tempo = math.max(0.0, AI.tempo - 3.5)
+                -- 갭스트라이크도 동일하게 작은 소모만(과거 -3.5 는 한 번에 자원을 비웠다). 거리를 좁히며
+                -- 친 직후에도 자원이 남아 곧바로 근접 연타로 이어가게 한다.
+                local drain = (bb.phase >= 3) and 0.20 or 0.26
+                AI.tempo = math.max(0.0, AI.tempo - drain)
                 return true
             end
             return false
@@ -458,17 +473,18 @@ local Actions = {
     },
     -- ▷ 후퇴(걷는 간격 조절): 속도 상한이 있어 큰 분리는 leap 이 담당. 여긴 보조로 더 오래 걸어 거리 확보.
     {
-        name = "retreat", commit = 1.00, loco = true,
+        name = "retreat", commit = 0.40, loco = true,
         score = function(bb)
             if not bb.perceive then return 0 end
-            local tooClose = 0.30 * Curve.atMost(bb.ratio, 0.50)  -- 거의 겹쳤을 때만 한 발 물러섬
-            -- 연타로 tempo 떨어지면(≈0.25, 3타 후) attack 바닥값(~0.22)을 이겨 "걷는 후퇴"가 걸린다.
-            -- tempo 높을 땐 0 → 자원 있을 땐 안 빠지고 압박. 더 깊은 바닥(<0.12, 긴 연타)은 leap(큰 점프)이 가져감.
-            local rest     = 0.45 * Curve.invquad(bb.tempo)
-            local parried  = bb.lastDeflect and 0.30 or 0.0
-            -- 저체력이라고 후퇴하지 않는다(페이즈3 발악 = 압박 유지) → 접근↔후퇴 오실레이션 방지.
-            local s = tooClose + rest + parried
-            if bb.cornered then s = s * 0.4 end                  -- 코너면 후퇴 대신 스트레이프가 이김
+            -- 이미 거리가 벌어졌으면 더 물러서지 않는다. 후퇴는 '한 박자 숨 고르기'지 '플레이어를 끝까지
+            -- 피하기'가 아니다 → 플레이어가 계속 다가와도 끝없이 밀려나지 않는다(요청: 끝없는 후퇴 수정).
+            if bb.ratio >= 1.15 then return 0 end
+            -- 자원이 바닥났을 때만, 그것도 '약간의 공간이 있을 때만' 잠깐 물러선다. 플레이어가 코앞이면
+            -- (ratio 낮음) atLeast 가 0에 수렴 → 후퇴 대신 근접 공격(attack)이 이긴다. 커밋도 짧게(0.40)
+            -- 줘서 한두 발만 물러나고 곧장 재평가한다(긴 백페달 체인 방지).
+            local rest = 0.30 * Curve.invquad(bb.tempo) * Curve.atLeast(bb.ratio, 0.85, 0.30)
+            local s = rest
+            if bb.cornered then s = s * 0.3 end                  -- 코너면 후퇴 대신 스트레이프/공격이 이김
             return s
         end,
         run = function(bb) call(obj, "Brain_Reposition"); return true end,

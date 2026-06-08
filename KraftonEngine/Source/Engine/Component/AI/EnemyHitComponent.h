@@ -102,6 +102,13 @@ public:
 	UPROPERTY(Edit, Save, Category="EnemyAI|Hit", DisplayName="Hit React Max Phase", Min=1.0f, Max=99.0f, Speed=1.0f)
 	int32 HitReactMaxPhase = 99;
 
+	// 피격 경직(플린치) 재생 후 이 시간(초) 동안은 추가 피격이 들어와도 플린치를 생략한다(하이퍼아머
+	// 윈도우). 플레이어가 난타하면 매 타격마다 플린치 몽타주가 재생·갱신되어 보스가 영영 공격을 시작
+	// 못하는 "무한 경직"(요청 #1) 문제를 막는다 — 한 번 경직 뒤엔 잠깐 칩 피해를 흘리며 반격 틈을
+	// 확보한다. 0 = 쿨다운 없음(매 타격 경직, 기존 동작). 보스는 scene 에서 0.85 정도를 권장.
+	UPROPERTY(Edit, Save, Category="EnemyAI|Hit", DisplayName="Hit Reaction Cooldown", Min=0.0f, Max=10.0f, Speed=0.05f)
+	float HitReactionCooldown = 0.0f;
+
 private:
 	void HandleDamaged(UHealthComponent* Component, float Damage, float NewHealth, AActor* DamageCauser, AActor* InstigatorActor);
 	void HandleDeath(UHealthComponent* Component, AActor* DamageCauser, AActor* InstigatorActor);
@@ -113,4 +120,6 @@ private:
 	FDelegateHandle DamagedHandle;
 	FDelegateHandle DeathHandle;
 	bool bBoundHealthEvents = false;
+	// 마지막으로 플린치(피격 경직)를 재생한 게임시각(초). HitReactionCooldown 쿨다운 판정에 사용. 음수=아직 없음.
+	float LastHitReactGameTime = -1000.0f;
 };

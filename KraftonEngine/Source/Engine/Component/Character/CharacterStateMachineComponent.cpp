@@ -4,10 +4,13 @@
 #include "Animation/Graph/AnimGraphInstance.h"
 #include "Component/Movement/CharacterMovementComponent.h"
 #include "Component/Primitive/SkeletalMeshComponent.h"
+#include "Component/Shape/CapsuleComponent.h"
 #include "GameFramework/AActor.h"
 #include "GameFramework/Pawn/Character.h"
+#include "GameFramework/World.h"
 #include "Math/MathUtils.h"
 #include "Math/Rotator.h"
+#include "Navigation/NavigationSystem.h"
 
 #include <algorithm>
 #include <cmath>
@@ -276,7 +279,12 @@ void UCharacterStateMachineComponent::ApplyMovement(const FCharacterStateDef& De
                 {
                     Perp = Perp * -1.0f;
                 }
-                Character->AddMovementInput(Perp, StrafeScale);
+                // 가장자리로 도는 입력이면 navmesh 안쪽으로 틀어준다(요청 #7).
+                const FVector Safe = SteerAwayFromNavEdge(Character, Perp.Normalized());
+                if (!Safe.IsNearlyZero())
+                {
+                    Character->AddMovementInput(Safe, StrafeScale);
+                }
             }
         }
         break;
@@ -286,11 +294,84 @@ void UCharacterStateMachineComponent::ApplyMovement(const FCharacterStateDef& De
             const FVector Dir = FlatDirTo(Character, Target);
             if (!Dir.IsNearlyZero())
             {
-                Character->AddMovementInput(Dir * -1.0f, RetreatScale);
+                // 타깃 반대로 물러서되 맵 밖/낭떠러지로 후퇴하지 않게 navmesh 경계를 회피한다(요청 #7).
+                const FVector Safe = SteerAwayFromNavEdge(Character, Dir * -1.0f);
+                if (!Safe.IsNearlyZero())
+                {
+                    Character->AddMovementInput(Safe, RetreatScale);
+                }
             }
         }
         break;
     }
+}
+
+FVector UCharacterStateMachineComponent::SteerAwayFromNavEdge(ACharacter* Character, const FVector& DesiredDir) const
+{
+    if (!Character || DesiredDir.IsNearlyZero())
+    {
+        return DesiredDir;
+    }
+    UWorld* World = Character->GetWorld();
+    UNavigationSystem* Nav = World ? World->GetNavigationSystem() : nullptr;
+    if (!Nav || !Nav->HasBuiltNavigationData())
+    {
+        return DesiredDir;   // navmesh 가 없으면 회피하지 않는다(원래 동작 유지).
+    }
+
+    FNavAgentProperties Agent;
+    if (UCapsuleComponent* Capsule = Character->GetCapsuleComponent())
+    {
+        Agent.Radius = (std::max)(0.1f, Capsule->GetScaledCapsuleRadius());
+        Agent.Height = (std::max)(Agent.Radius * 2.0f, Capsule->GetScaledCapsuleHalfHeight() * 2.0f);
+    }
+
+    const FVector Origin = Character->GetActorLocation();
+    // 한 틱 이동량보다 넉넉히 앞을 본다(거대 보스일수록 캡슐 반경↑ → 더 멀리 본다). 너무 길면 작은
+    // 투기장에서도 과민 반응하니 캡슐 크기에 비례시킨다.
+    const float LookAhead = (std::max)(1.5f, Agent.Radius * 2.0f + 1.0f);
+    const float SnapTol   = 1.20f;   // 가장자리 너머 허용오차(FindStableLeapDirection 과 동일한 양자화 흡수).
+
+    auto OnNav = [&](const FVector& Dir) -> bool
+    {
+        const FVector Sample(Origin.X + Dir.X * LookAhead, Origin.Y + Dir.Y * LookAhead, Origin.Z);
+        FVector Projected;
+        if (!Nav->ProjectPointToNavigation(Sample, Projected, Agent))
+        {
+            return false;
+        }
+        const float DX = Projected.X - Sample.X;
+        const float DY = Projected.Y - Sample.Y;
+        return (DX * DX + DY * DY) <= SnapTol * SnapTol;   // 가장 가까운 walkable 셀이 코앞 = 바닥 있음.
+    };
+
+    if (OnNav(DesiredDir))
+    {
+        return DesiredDir;   // 앞이 navmesh 위 → 의도대로 이동.
+    }
+
+    // 가장자리로 향함 → 의도에 가장 가까우면서 navmesh 가 남아있는 방향을 부채꼴로 탐색(작은 각도 우선).
+    const float AnglesDeg[] = { 25.0f, -25.0f, 45.0f, -45.0f, 70.0f, -70.0f, 90.0f, -90.0f };
+    for (float AngleDeg : AnglesDeg)
+    {
+        const float Rad = AngleDeg * FMath::DegToRad;
+        const float CosA = cosf(Rad);
+        const float SinA = sinf(Rad);
+        FVector Rotated(DesiredDir.X * CosA - DesiredDir.Y * SinA,
+                        DesiredDir.X * SinA + DesiredDir.Y * CosA, 0.0f);
+        if (Rotated.IsNearlyZero())
+        {
+            continue;
+        }
+        Rotated = Rotated.Normalized();
+        if (OnNav(Rotated))
+        {
+            return Rotated;
+        }
+    }
+
+    // 어느 방향도 안전하지 않음(코너에 깊이 몰림) → 바깥으로 미는 입력을 포기(제자리 유지, 강제 추락 방지).
+    return FVector::ZeroVector;
 }
 
 void UCharacterStateMachineComponent::ApplyFacing(const FCharacterStateDef& Def, float DeltaTime)

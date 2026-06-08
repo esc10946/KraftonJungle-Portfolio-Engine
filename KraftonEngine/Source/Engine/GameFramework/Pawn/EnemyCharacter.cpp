@@ -2,7 +2,10 @@
 
 #include "Animation/AnimInstance.h"
 #include "Animation/Montage/AnimMontage.h"
+#include "Animation/Montage/AnimMontageInstance.h"
 #include "Animation/Notify/AnimNotifyState_ParryWindow.h"
+#include "Runtime/Engine.h"   // GEngine->GetTimer() — 패링 리코일을 반격 슬로모에 맞추기 위함
+#include "Profiling/Time/Timer.h"   // FTimer::GetTimeDilation()
 #include "Component/Primitive/SkeletalMeshComponent.h"
 #include "Component/AI/EnemyAIBrainComponent.h"
 #include "Component/AI/EnemyAttackComponent.h"
@@ -39,6 +42,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <string>
 
 #include "Core/Logging/Log.h"
 
@@ -131,6 +135,15 @@ void AEnemyCharacter::BeginPlay()
 	if (bAutoPossessAI && !GetController())
 	{
 		SpawnDefaultAIController();
+	}
+	// 패링당하면 진행 중인 공격 몽타주를 역재생(리코일)하기 위해 OnParried 를 구독한다(요청 A).
+	if (!bBoundParried)
+	{
+		if (UCombatStateComponent* Combat = GetCombatStateComponent())
+		{
+			Combat->OnParried.AddWeakUObject(this, &AEnemyCharacter::HandleParried);
+			bBoundParried = true;
+		}
 	}
 }
 
@@ -813,6 +826,13 @@ bool AEnemyCharacter::AcquireAttackTokenForDuration(float DesiredDuration)
 
 void AEnemyCharacter::UpdateAttackExecution(float DeltaTime)
 {
+	// 패링 리코일 중이면 정상 공격 진행 대신 역재생을 구동한다(요청 A).
+	if (bParryRecoilActive)
+	{
+		UpdateParryRecoil(DeltaTime);
+		return;
+	}
+
 	if (!bCurrentAttackActive)
 	{
 		return;
@@ -862,6 +882,122 @@ void AEnemyCharacter::UpdateAttackExecution(float DeltaTime)
 		{
 			SetRuntimeState(FName("Recover"), true);
 		}
+	}
+}
+
+void AEnemyCharacter::HandleParried(UCombatStateComponent* /*Combat*/)
+{
+	// 패링당한 순간: 진행 중인 '점프/발차기가 아닌' 공격만 역재생 리코일로 전환한다(요청 — 점프·킥 제외).
+	if (bParryRecoilActive || !bCurrentAttackActive || ParryRecoilDuration <= 0.0f)
+	{
+		return;
+	}
+	if (CurrentAttack.bIsGapCloser)
+	{
+		return;   // 점프/돌진(갭클로저) 공격 제외.
+	}
+	// 발차기(kick)도 제외(요청). 데이터상 킥 공격은 Samurai_P1_ClosePunish(= "...Kick..." 몽타주).
+	{
+		const std::string NameStr = CurrentAttack.AttackName.ToString().c_str();
+		bool bIsKick = NameStr.find("ClosePunish") != std::string::npos
+		            || NameStr.find("Kick") != std::string::npos
+		            || NameStr.find("kick") != std::string::npos;
+		if (!bIsKick && CurrentAttack.Montage)
+		{
+			const std::string PathStr = CurrentAttack.Montage->GetAssetPathFileName().c_str();
+			bIsKick = PathStr.find("Kick") != std::string::npos || PathStr.find("kick") != std::string::npos;
+		}
+		if (bIsKick)
+		{
+			return;
+		}
+	}
+	bParryRecoilActive   = true;
+	ParryRecoilElapsed   = 0.0f;
+	bParryRecoilSawSlomo = false;
+	// 역재생 동안 노티파이(타격 윈도우 등) 재발사 방지.
+	if (UAnimInstance* Anim = GetAnimInstance())
+	{
+		if (UAnimMontageInstance* MI = Anim->GetMontageInstance())
+		{
+			MI->SetNotifiesEnabled(false);
+		}
+	}
+}
+
+void AEnemyCharacter::UpdateParryRecoil(float DeltaTime)
+{
+	// DeltaTime 은 이미 슬로모 시간배율이 반영된 게임시간 — 슬로모 중엔 역재생도 느리게 흐른다.
+	ParryRecoilElapsed += DeltaTime;
+
+	// 전역 슬로모(플레이어 반격 연출) 활성 여부. 역재생을 슬로모 창에 맞춘다(요청: 슬로모 때 역재생).
+	bool bSlomoActive = false;
+	if (GEngine && GEngine->GetTimer())
+	{
+		bSlomoActive = GEngine->GetTimer()->GetTimeDilation() < 0.95f;
+	}
+	if (bSlomoActive)
+	{
+		bParryRecoilSawSlomo = true;
+	}
+
+	// ease-out(감속) 역재생: 시작이 가장 빠르고 끝에서 0. u 는 [0,1] 클램프 → 다 감기면 정지(프리즈)해
+	// 슬로모가 끝날 때까지 되감긴 포즈를 유지한다.
+	const float Dur   = (ParryRecoilDuration > 0.0f) ? ParryRecoilDuration : 0.10f;
+	const float u     = FMath::Clamp(ParryRecoilElapsed / Dur, 0.0f, 1.0f);
+	const float Decel = (1.0f - u) * (1.0f - u);
+	if (UAnimInstance* Anim = GetAnimInstance())
+	{
+		if (UAnimMontageInstance* MI = Anim->GetMontageInstance())
+		{
+			MI->SetPlayRate(-ParryRecoilMaxReverseRate * Decel);   // 음수 = 역재생, 감속 커브
+		}
+	}
+	FaceTarget(DeltaTime);
+
+	// 종료: ① 슬로모를 거쳤다면 슬로모가 끝나는 순간 푼다(역재생이 슬로모 창을 채우고 직후 공격으로).
+	//       ② 슬로모가 전혀 없었다면(반격이 카운터로 안 이어짐) 고정 ease-out 종료(u>=1)에 푼다.
+	//       ③ 안전 상한: 슬로모가 비정상적으로 길어도 일정 시간 뒤 강제 종료.
+	const float SafetyCap = (std::max)(Dur * 4.0f, 0.5f);
+	const bool bDone =
+		(bParryRecoilSawSlomo && !bSlomoActive) ||
+		(!bParryRecoilSawSlomo && u >= 1.0f) ||
+		(ParryRecoilElapsed >= SafetyCap);
+	if (bDone)
+	{
+		EndParryRecoil();
+	}
+}
+
+void AEnemyCharacter::EndParryRecoil()
+{
+	bParryRecoilActive   = false;
+	ParryRecoilElapsed   = 0.0f;
+	bParryRecoilSawSlomo = false;
+	if (UAnimInstance* Anim = GetAnimInstance())
+	{
+		if (UAnimMontageInstance* MI = Anim->GetMontageInstance())
+		{
+			MI->SetPlayRate(0.0f);   // 되감긴 포즈에서 정지(다시 앞으로 스윙되지 않게).
+		}
+		// 되감긴 공격 몽타주를 부드럽게 블렌드아웃 — 다음 공격이 크로스페이드로 이어진다.
+		Anim->StopMontage(0.12f);
+	}
+	// 공격을 끝내 보스를 자유롭게 — 두뇌가 곧장 다음 공격을 고른다(요청: "그 이후에 공격할 수 있게").
+	Brain_ReleaseAttackToken();
+	bCurrentAttackActive = false;
+	bCurrentAttackMontageless = false;
+	CurrentAttackElapsed = 0.0f;
+	CurrentAttack = FEnemyAttackData();
+	CurrentAttackDamagedActors.clear();
+	bCurrentAttackWorldHitApplied = false;
+	if (UCombatMoveComponent* Move = CombatMove.Get())
+	{
+		Move->EndMove();
+	}
+	if (!IsDead())
+	{
+		SetRuntimeState(FName("Recover"), true);
 	}
 }
 

@@ -10,6 +10,7 @@ class AActor;
 
 DECLARE_MULTICAST_DELEGATE_TwoParams(FCombatStaggerSignature, class UCombatStateComponent*, float);
 DECLARE_MULTICAST_DELEGATE_OneParam(FCombatStateSignature, class UCombatStateComponent*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FCombatParriedSignature, class UCombatStateComponent*);
 DECLARE_MULTICAST_DELEGATE_TwoParams(FCombatPerilousSignature, class UCombatStateComponent*, EPerilousType);
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FCombatDeflectSignature, class UCombatStateComponent*, EDeflectGrade, AActor*);
 DECLARE_MULTICAST_DELEGATE_FourParams(FPostureChangedSignature, class UCombatStateComponent*, float, float, float);
@@ -56,6 +57,16 @@ public:
 	void StartStagger(float Duration);
 	UFUNCTION(Callable, Category="Combat|Poise")
 	void StopStagger();
+
+	// ── 패링(반격) 유예 (요청 #6) ──
+	// 이 액터가 막 패링당했을 때(공격이 상대에게 받아넘겨짐) ParryGraceDuration 동안 "유예" 윈도우를
+	// 연다. 이 윈도우 동안에는 체간 피해(ApplyPoiseDamage)와 피격 경직(EnemyHitComponent)이 무시되어,
+	// 뒤따르는 상대의 반격(riposte)이 보스를 불능 상태로 빠뜨리지 않는다(체력 피해는 정상 적용).
+	// ParryGraceDuration=0(기본) 이면 동작하지 않는다 — 일반 적은 영향 없음, 보스만 scene 에서 활성.
+	UFUNCTION(Callable, Category="Combat|Poise")
+	void MarkParried();
+	UFUNCTION(Pure, Category="Combat|Poise")
+	bool IsInParryGrace() const;
 	UFUNCTION(Pure, Category="Combat|Poise")
 	float GetPoiseRatio() const;
 	UFUNCTION(Pure, Category="Combat|Poise")
@@ -149,6 +160,11 @@ public:
 	UPROPERTY(Edit, Save, Category="Combat|Poise", DisplayName="Default Stagger Duration", Min=0.0f, Max=10.0f, Speed=0.05f)
 	float DefaultStaggerDuration = 0.45f;
 
+	// 패링당한 직후 "반격에 불능화되지 않는" 유예 시간(초). 플레이어가 패링→반격하는 흐름에서 반격이
+	// 닿는 타이밍(≈0.2~1.0초 뒤)을 덮도록 ~1.2 정도를 권장. 0 = 비활성(기본). 보스 전용으로 scene 에서 설정.
+	UPROPERTY(Edit, Save, Category="Combat|Poise", DisplayName="Parry Grace Duration", Min=0.0f, Max=5.0f, Speed=0.05f)
+	float ParryGraceDuration = 0.0f;
+
 	// 체력이 낮을수록 체간 회복이 느려진다(보고서: 체력-체간 회복 연계). 회복 배율 = lerp.
 	UPROPERTY(Edit, Save, Category="Combat|Poise", DisplayName="Posture Recovery Scales With Health")
 	bool bPostureRecoveryScalesWithHealth = true;
@@ -176,6 +192,9 @@ public:
 
 	FCombatStaggerSignature OnStaggerStarted;
 	FCombatStateSignature OnStaggerEnded;
+	// 이 액터의 공격이 상대에게 패링(deflect)당한 순간 발행 — EnemyCharacter 가 받아 공격 몽타주를
+	// 잠깐 역재생(리코일)한다(요청 A). MarkParried 에서 항상 broadcast(유예 윈도우와 무관).
+	FCombatParriedSignature OnParried;
 	FCombatPerilousSignature OnPerilousCue;
 	FCombatDeflectSignature OnDeflectResolved;
 	FPostureChangedSignature OnPostureChanged;
@@ -208,4 +227,7 @@ private:
 
 	// 타이머 무적 윈도우(게임시간).
 	float InvulnUntilSeconds = 0.0f;
+
+	// 패링 유예 윈도우 만료 시각(게임시간). MarkParried 가 연다.
+	float ParryGraceUntilSeconds = 0.0f;
 };
