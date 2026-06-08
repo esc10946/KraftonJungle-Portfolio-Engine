@@ -19,7 +19,7 @@ body#credits-screen {
 #credits-panel {
     position: absolute;
     left: 50%;
-    top: 42%;              /* nudged above center to raise logo + thanks */
+    top: 34%;              /* nudged above center to raise logo + thanks */
     width: 1000px;
     height: 680px;
     margin-left: -500px;   /* -half width  -> horizontal center */
@@ -70,7 +70,14 @@ body#credits-screen {
     font-size: 48px;
     color: #aaaaaa;
     margin-top: 24px;
-    margin-bottom: 48px;
+    margin-bottom: 8px;
+}
+
+/* Subtitle under "thanks"; carries the gap down to the first credit row. */
+#credits-body .subtitle {
+    font-size: 30px;
+    color: #888888;
+    margin-bottom: 40px;
 }
 
 /* Text-based Back button — no art needed. In normal flow below the credits;

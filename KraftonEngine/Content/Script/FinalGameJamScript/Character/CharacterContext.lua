@@ -85,6 +85,11 @@ function Context.Create(owner)
             executionPreviousVignette = nil,
             executionCameraSlomoRemaining = 0.0,
             executionCameraSlomoPlayed = false,
+            attackHitCameraZoomActive = false,
+            attackHitCameraZoomElapsed = 0.0,
+            attackHitCamera = nil,
+            attackHitCameraBaseFov = nil,
+            attackHitCameraZoomFov = nil,
         },
         cache = {
             animInstance = nil,

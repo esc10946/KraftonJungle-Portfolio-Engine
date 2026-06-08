@@ -10,6 +10,7 @@ local PlayerGameState = require("FinalGameJamScript/Character/PlayerGameState")
 local Execution = require("FinalGameJamScript/Character/CharacterExecution")
 local Commands = require("FinalGameJamScript/Character/CharacterCommands")
 local Posture = require("FinalGameJamScript/Character/CharacterPosture")
+local AttackCamera = require("FinalGameJamScript/Character/CharacterAttackCamera")
 
 local ctx = nil
 
@@ -54,4 +55,13 @@ function OnDamaged(damageSpec, damageReport)
     end
 
     HitReaction.Play(ctx, damageSpec)
+end
+
+function OnAttackHit(target, attacker, hitComponent, damageSpec, hitEventName)
+    if ctx == nil then
+        return
+    end
+
+    AttackCamera.OnCounterHit(ctx, target, attacker, hitComponent, damageSpec, hitEventName)
+    AttackCamera.OnNormalAttackHit(ctx, target, attacker, hitComponent, damageSpec, hitEventName)
 end

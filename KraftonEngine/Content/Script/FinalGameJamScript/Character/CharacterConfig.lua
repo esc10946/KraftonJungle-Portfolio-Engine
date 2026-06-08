@@ -35,11 +35,18 @@ Config.ATTACK_MONTAGE_PATHS = {
     "Content/Montages/Twin_Attack3_Montage.uasset",
     "Content/Montages/Twin_Attack4_Montage.uasset",
 }
+Config.ATTACK_HIT_CAMERA_ZOOM_ENABLED = true
+Config.ATTACK_HIT_CAMERA_ZOOM_FACTOR = 1.1
+Config.ATTACK_HIT_CAMERA_ZOOM_IN_TIME = 0.03
+Config.ATTACK_HIT_CAMERA_ZOOM_HOLD_TIME = 0.04
+Config.ATTACK_HIT_CAMERA_ZOOM_OUT_TIME = 0.12
 Config.DEFENSE_IDLE_MONTAGE_PATH = "Content/Montages/Twin_Defense_Montage.uasset"
 Config.COUNTER_MONTAGE_PATH = "Content/Montages/Twin_Cross_Montage.uasset"
 Config.COUNTER_SECTION = "Cross"
 Config.COUNTER_CAMERA_SHAKE_PATH = "Content/Data/FGJ_Character/CameraWork/CrossShake.uasset"
 Config.COUNTER_CAMERA_SHAKE_SCALE = 1.0
+Config.COUNTER_HIT_CAMERA_ZOOM_ENABLED = true
+Config.COUNTER_HIT_CAMERA_ZOOM_FACTOR = 1.3
 Config.COUNTER_PARTICLE_ENABLED = false
 Config.COUNTER_PARTICLE_PATH = "Content/Particle System/Parry.uasset"
 Config.COUNTER_PARTICLE_DURATION = 1.5
