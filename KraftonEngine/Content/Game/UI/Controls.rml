@@ -69,6 +69,11 @@
             <span class="ctrl-key">Esc</span>
             <span class="ctrl-pad">Start</span>
         </div>
+        <div class="ctrl-row">
+            <span class="ctrl-action">Revive</span>
+            <span class="ctrl-key">Q</span>
+            <span class="ctrl-pad">&mdash;</span>
+        </div>
 
         <div id="back_btn" class="text-btn">RETURN TO TITLE</div>
     </div>

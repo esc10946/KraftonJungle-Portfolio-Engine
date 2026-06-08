@@ -53,6 +53,8 @@ public:
     // 패링 리코일(공격 몽타주를 잠깐 거꾸로 감기) 등 외부 구동용 — Play() 의 양수 클램프를 우회한다.
     void          SetPlayRate(float InRate) { PlayRate = InRate; }
     float         GetPlayRate() const { return PlayRate; }
+    void          SetHoldFinalFrame(bool bInHold) { bHoldFinalFrame = bInHold; }
+    bool          ShouldHoldFinalFrame() const { return bHoldFinalFrame; }
 
     // ── 매 프레임 ──
     void Tick(float DeltaSeconds, UAnimInstance* Owner);
@@ -90,6 +92,7 @@ private:
     float  BlendOutTime    = 0.25f;
     float  PlayRate        = 1.0f;
     bool   bNotifiesEnabled = true;
+    bool   bHoldFinalFrame = false;
 
     // 매 Tick 의 raw RM delta (W 곱 안 함). Slot 노드가 GetBlendWeight 로 lerp 책임.
     FTransform LastRootMotionDelta;

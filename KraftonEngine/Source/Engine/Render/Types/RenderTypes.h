@@ -50,7 +50,6 @@ enum class ERenderPass : uint32
 	ViewModeMesh,	// 순수 mesh debug viewmode 및 debug overlay
 	Fog,			// HeightFog 풀스크린 — Transparent 前(불투명/하늘만 fog, Transparent는 fog 위에 그려져 안 덮임)
 	DoFSetup,		// Depth -> CoC setup — Transparent CoC 보정 전 불투명 CoC 생성
-	Transparent,	// 통합 Transparent 패스 (Font, SubUV, Billboard, Particle) — Blend는 per-DrawCommand가 결정
 	DoFBackgroundBlur, // SceneColor + positive CoC background layer
 	DoFForegroundBlur, // SceneColor + negative CoC foreground layer
 	DoFBokehScatter, // Bright large-CoC highlight bokeh layer
@@ -62,6 +61,7 @@ enum class ERenderPass : uint32
 	FXAA,			// FXAA 안티앨리어싱 (SceneColor 복사 후 실행)
 	EditorIcon,		// 에디터 아이콘 빌보드 오버레이 (포스트프로세스 이후, NoDepth/AlphaBlend — 항상 위)
 	GameOverlay,
+	Transparent,	// 통합 Transparent 패스 (Font, SubUV, Billboard, Particle) — Blend는 per-DrawCommand가 결정
 	GizmoOuter,		// 기즈모 외곽 (깊이 테스트 O)
 	GizmoInner,		// 기즈모 내부 (깊이 무시)
 	OverlayFont,	// 스크린 공간 텍스트 (깊이 무시)
@@ -82,7 +82,6 @@ inline const char* GetRenderPassName(ERenderPass Pass)
 		"RenderPass::ViewModeMesh",
 		"RenderPass::Fog",
 		"RenderPass::DoFSetup",
-		"RenderPass::Transparent",
 		"RenderPass::DoFBackgroundBlur",
 		"RenderPass::DoFForegroundBlur",
 		"RenderPass::DoFBokehScatter",
@@ -94,6 +93,7 @@ inline const char* GetRenderPassName(ERenderPass Pass)
 		"RenderPass::FXAA",
 		"RenderPass::EditorIcon",
 		"RenderPass::GameOverlay",
+		"RenderPass::Transparent",
 		"RenderPass::GizmoOuter",
 		"RenderPass::GizmoInner",
 		"RenderPass::OverlayFont",
@@ -117,7 +117,6 @@ namespace RenderStateStrings
 		{ "ViewModeMesh",  (int)ERenderPass::ViewModeMesh },
 		{ "Fog",           (int)ERenderPass::Fog },
 		{ "DoFSetup",      (int)ERenderPass::DoFSetup },
-		{ "Transparent",   (int)ERenderPass::Transparent },
 		{ "DoFBackgroundBlur", (int)ERenderPass::DoFBackgroundBlur },
 		{ "DoFForegroundBlur", (int)ERenderPass::DoFForegroundBlur },
 		{ "DoFBokehScatter", (int)ERenderPass::DoFBokehScatter },
@@ -129,6 +128,7 @@ namespace RenderStateStrings
 		{ "FXAA",          (int)ERenderPass::FXAA },
 		{ "EditorIcon",    (int)ERenderPass::EditorIcon },
 		{ "GameOverlay",   (int)ERenderPass::GameOverlay },
+		{ "Transparent",   (int)ERenderPass::Transparent },
 		{ "GizmoOuter",    (int)ERenderPass::GizmoOuter },
 		{ "GizmoInner",    (int)ERenderPass::GizmoInner },
 		{ "OverlayFont",   (int)ERenderPass::OverlayFont },

@@ -18,6 +18,40 @@ local function should_end_game_from_damage_report(damageReport)
     return damageReport.NewHealth ~= nil and damageReport.NewHealth <= 0.0
 end
 
+local function get_death_montage(ctx)
+    if ctx.cache.deathMontage ~= nil then
+        return ctx.cache.deathMontage
+    end
+
+    local path = ctx.config.DEATH_MONTAGE_PATH
+    if path == nil or path == "" then
+        return nil
+    end
+
+    ctx.cache.deathMontage = Context.LoadMontage(path)
+    return ctx.cache.deathMontage
+end
+
+local function play_death_montage(ctx)
+    local anim = Context.GetAnimInstance(ctx)
+    local montage = get_death_montage(ctx)
+    if anim == nil or anim.PlayMontage == nil or montage == nil then
+        return
+    end
+
+    anim:PlayMontage(montage)
+    ctx.state.deathMontagePlaying = true
+end
+
+local function stop_death_montage(ctx)
+    if not ctx.state.deathMontagePlaying then
+        return
+    end
+
+    Context.StopCurrentMontage(ctx)
+    ctx.state.deathMontagePlaying = false
+end
+
 local function request_player_death(ctx)
     if ctx.state.playerDead or ctx.state.playerDefeated then
         return
@@ -28,6 +62,7 @@ local function request_player_death(ctx)
     Counter.RestoreCollision(ctx)
     State.ResetCombat(ctx)
     Equipment.DeactivateTrailNow(ctx)
+    play_death_montage(ctx)
     Locomotion.Lock(ctx)
 
     if Game ~= nil and Game.PlayerDeath ~= nil then
@@ -79,6 +114,7 @@ end
 
 local function reset_after_revive(ctx)
     ctx.state.playerDead = false
+    stop_death_montage(ctx)
     reset_player_vitals(ctx)
     Counter.RestoreCollision(ctx)
     State.ResetCombat(ctx)

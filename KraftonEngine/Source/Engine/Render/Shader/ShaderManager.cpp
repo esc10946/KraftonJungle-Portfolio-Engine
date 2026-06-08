@@ -140,7 +140,7 @@ FShader* FShaderManager::GetOrCreate(const FShaderKey& Key, EShaderErrorMode Err
 
 	FShaderCacheEntry CacheEntry;
 	CacheEntry.Shader = std::make_unique<FShader>();
-	std::wstring WidePath = FPaths::ToWide(Key.Path);
+	std::wstring WidePath = FPaths::Combine(FPaths::RootDir(), FPaths::ToWide(Key.Path));
 
 	// DefinesHash가 0이면 매크로 없음.
 	if (Key.DefinesHash == 0)
@@ -180,7 +180,7 @@ FShader* FShaderManager::PreCompile(const FShaderKey& Key, const D3D_SHADER_MACR
 
 	FShaderCacheEntry CacheEntry;
 	CacheEntry.Shader = std::make_unique<FShader>();
-	std::wstring WidePath = FPaths::ToWide(Key.Path);
+	std::wstring WidePath = FPaths::Combine(FPaths::RootDir(), FPaths::ToWide(Key.Path));
 	CacheEntry.Shader->Create(CachedDevice, WidePath.c_str(), Key.VSEntryPoint.c_str(), Key.PSEntryPoint.c_str(), Defines, &CacheEntry.Includes, ErrorMode);
 	CacheEntry.StoredDefines = CopyDefines(Defines);
 
