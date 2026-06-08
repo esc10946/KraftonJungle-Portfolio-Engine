@@ -53,6 +53,11 @@ public:
 	// 페이즈 전환 연출 동안의 무적 시간(초). 연출 중 피격으로 끊기는 것을 막는다.
 	UPROPERTY(Edit, Save, Category="Boss|Phase", DisplayName="Phase Change Invuln Seconds", Min=0.0f, Max=10.0f, Speed=0.05f)
 	float PhaseChangeInvulnSeconds = 1.4f;
+
+	// 처형(데스블로우)으로 스톡 1개를 소비하고도 살아남았을 때(마지막 스톡 아님), 보스가 잠깐 행동을
+	// 못 하는 "딜 타임"(초). 그 동안 플레이어가 추가로 때릴 수 있다(요청 #2). 0=비활성.
+	UPROPERTY(Edit, Save, Category="Boss|Execution", DisplayName="Execution Deal Time Seconds", Min=0.0f, Max=10.0f, Speed=0.05f)
+	float ExecutionDealTimeSeconds = 2.0f;
 protected:
 	int32 GetCurrentAIPhase() const override { return GetBossPhase(); }
 	bool IsBossCharacter() const override { return true; }

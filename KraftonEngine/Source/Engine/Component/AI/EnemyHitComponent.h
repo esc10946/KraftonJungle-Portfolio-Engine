@@ -8,6 +8,7 @@ class AActor;
 class UAnimMontage;
 class UHealthComponent;
 class UEnemyAttackComponent;
+class UCombatStateComponent;
 
 #include "Source/Engine/Component/AI/EnemyHitComponent.generated.h"
 
@@ -112,13 +113,17 @@ public:
 private:
 	void HandleDamaged(UHealthComponent* Component, float Damage, float NewHealth, AActor* DamageCauser, AActor* InstigatorActor);
 	void HandleDeath(UHealthComponent* Component, AActor* DamageCauser, AActor* InstigatorActor);
+	// 맷집(체간)이 붕괴해 stagger(무력화)가 시작될 때 호출 — 피격 모션을 1회 재생한다(요청 #3).
+	void HandleStaggerStarted(UCombatStateComponent* Combat, float Duration);
 	void RestartAttackCooldowns();
 	UAnimMontage* SelectMontage(const FEnemyDirectionalMontages& Montages, EEnemyHitDirection Direction) const;
 	bool PlayDirectionalMontage(const FEnemyDirectionalMontages& Montages, EEnemyHitDirection Direction, bool bStopCurrentMontage, float PlayRate);
 
 	TWeakObjectPtr<UHealthComponent> BoundHealthComponent = nullptr;
+	TWeakObjectPtr<UCombatStateComponent> BoundCombatComponent = nullptr;
 	FDelegateHandle DamagedHandle;
 	FDelegateHandle DeathHandle;
+	FDelegateHandle StaggerStartedHandle;
 	bool bBoundHealthEvents = false;
 	// 마지막으로 플린치(피격 경직)를 재생한 게임시각(초). HitReactionCooldown 쿨다운 판정에 사용. 음수=아직 없음.
 	float LastHitReactGameTime = -1000.0f;
