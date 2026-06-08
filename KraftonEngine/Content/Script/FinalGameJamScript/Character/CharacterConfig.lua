@@ -39,6 +39,7 @@ Config.COUNTER_MONTAGE_PATH = "Content/Montages/Twin_Cross_Montage.uasset"
 Config.COUNTER_SECTION = "Cross"
 Config.COUNTER_CAMERA_SHAKE_PATH = "Content/Data/FGJ_Character/CameraWork/CrossShake.uasset"
 Config.COUNTER_CAMERA_SHAKE_SCALE = 1.0
+Config.COUNTER_PARTICLE_ENABLED = false
 Config.COUNTER_PARTICLE_PATH = "Content/Particle System/Parry.uasset"
 Config.COUNTER_PARTICLE_DURATION = 1.5
 Config.RCOUNTER_PARTICLE_SOCKET = "RH_Particle"

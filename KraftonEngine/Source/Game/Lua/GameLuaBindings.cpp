@@ -261,6 +261,9 @@ namespace
 			return nullptr;
 		}
 
+		WeaponMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		WeaponMesh->SetCanEverAffectNavigation(false);
+
 		if (!WeaponMesh->SetStaticMeshByPath(MeshPath))
 		{
 			UE_LOG("[Equipment] Attach failed: could not load static mesh. Mesh='%s'", MeshPath.c_str());
@@ -532,6 +535,9 @@ void RegisterGameLuaBindings(sol::state& Lua)
 				UE_LOG("[Particle] AttachSystemToSocket failed: could not create particle component");
 				return nullptr;
 			}
+
+			ParticleComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			ParticleComponent->SetCanEverAffectNavigation(false);
 
 			UParticleSystem* Template = FParticleSystemManager::Get().Load(TemplatePath);
 			if (!IsValid(Template))

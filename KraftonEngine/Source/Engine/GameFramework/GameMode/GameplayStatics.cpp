@@ -53,6 +53,8 @@ UParticleSystemComponent* FGameplayStatics::SpawnEmitterAtLocation(UWorld* World
 		return nullptr;
 	}
 
+	PSC->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	PSC->SetCanEverAffectNavigation(false);
 	PSC->SetTemplate(Template);
 	PSC->RebuildInstances(true);
 

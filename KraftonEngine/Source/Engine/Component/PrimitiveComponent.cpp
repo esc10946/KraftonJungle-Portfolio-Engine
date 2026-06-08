@@ -68,7 +68,12 @@ namespace
 		}
 		if (UNavigationSystem* NavSys = World->GetNavigationSystem())
 		{
-			NavSys->RequestNavigationRebuild(Reason ? FString(Reason) : FString("Navigation relevant primitive changed"), false);
+			FString DetailedReason = Reason ? FString(Reason) : FString("Navigation relevant primitive changed");
+			DetailedReason += FString("; Owner=")
+				+ (OwnerActor ? OwnerActor->GetName() : FString("None"))
+				+ FString("; Component=") + Primitive->GetName()
+				+ FString("; Class=") + (Primitive->GetClass() ? Primitive->GetClass()->GetName() : FString("None"));
+			NavSys->RequestNavigationRebuild(DetailedReason, false);
 		}
 	}
 

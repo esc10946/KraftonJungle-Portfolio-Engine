@@ -134,6 +134,15 @@ private:
 		bool bObstacle = false;
 	};
 
+	struct FNavigationPrimitiveSpatialIndex
+	{
+		std::unordered_map<FGridNavCellKey, TArray<int32>, FGridNavCellKeyHash> FloorCandidatesByCell;
+		std::unordered_map<FGridNavCellKey, TArray<int32>, FGridNavCellKeyHash> ObstacleCandidatesByCell;
+		TArray<int32> EmptyCandidates;
+		int32 FloorReferenceCount = 0;
+		int32 ObstacleReferenceCount = 0;
+	};
+
 	struct FBuildCellResult
 	{
 		bool bWalkable = false;
@@ -145,12 +154,14 @@ private:
 	UNavigationSystem* GetNavigationSystem() const;
 	bool CollectBuildBounds(TArray<FBuildBounds>& OutBounds) const;
 	void CollectNavigationPrimitives(TArray<FNavigationPrimitiveBounds>& OutPrimitives) const;
+	void BuildNavigationPrimitiveSpatialIndex(const TArray<FNavigationPrimitiveBounds>& Primitives, const TArray<FBuildBounds>& BuildBounds, FNavigationPrimitiveSpatialIndex& OutIndex) const;
 	FGridNavCellKey WorldToCell(const FVector& Point) const;
 	FVector CellToWorldGuess(const FGridNavCellKey& Key, float Z) const;
 	bool IsInsideAnyBuildBounds(const FVector& Point, const TArray<FBuildBounds>& Bounds) const;
-	FBuildCellResult BuildCell(const FGridNavCellKey& Key, float GuessZ, const TArray<FBuildBounds>& Bounds, const TArray<FNavigationPrimitiveBounds>& Primitives, FGridNavCell& OutCell) const;
-	bool ProjectPointToWalkableSurfaceByPrimitiveBounds(const FVector& Guess, const TArray<FBuildBounds>& Bounds, const TArray<FNavigationPrimitiveBounds>& Primitives, FVector& OutProjectedLocation) const;
+	FBuildCellResult BuildCell(const FGridNavCellKey& Key, float GuessZ, const TArray<FBuildBounds>& Bounds, const TArray<FNavigationPrimitiveBounds>& Primitives, const FNavigationPrimitiveSpatialIndex& SpatialIndex, FGridNavCell& OutCell) const;
+	bool ProjectPointToWalkableSurfaceByPrimitiveBounds(const FVector& Guess, const TArray<FBuildBounds>& Bounds, const TArray<FNavigationPrimitiveBounds>& Primitives, const TArray<int32>& CandidateIndices, FVector& OutProjectedLocation) const;
 	bool HasAgentFootprint(const FVector& ProjectedLocation, const FNavAgentProperties& AgentProps, const TArray<FNavigationPrimitiveBounds>& Primitives, float* OutClearanceRadius = nullptr) const;
+	bool HasAgentFootprintByPrimitiveBounds(const FVector& ProjectedLocation, const FNavAgentProperties& AgentProps, const TArray<FNavigationPrimitiveBounds>& Primitives, const TArray<int32>& CandidateIndices, float* OutClearanceRadius = nullptr) const;
 	bool HasAgentFootprintByPrimitiveBounds(const FVector& ProjectedLocation, const FNavAgentProperties& AgentProps, const TArray<FNavigationPrimitiveBounds>& Primitives, float* OutClearanceRadius = nullptr) const;
 	const FGridNavCell* FindCell(const FGridNavCellKey& Key) const;
 	// 그리드 그래프와 각 셀의 ClearanceRadius 는 빌드 시 SupportedAgent 풋프린트로 검증됐다. 질의가

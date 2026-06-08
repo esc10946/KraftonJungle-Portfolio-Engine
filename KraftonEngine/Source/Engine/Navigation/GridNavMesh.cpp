@@ -342,6 +342,108 @@ void AGridNavMesh::CollectNavigationPrimitives(TArray<FNavigationPrimitiveBounds
 	}
 }
 
+void AGridNavMesh::BuildNavigationPrimitiveSpatialIndex(
+	const TArray<FNavigationPrimitiveBounds>& Primitives,
+	const TArray<FBuildBounds>& BuildBounds,
+	FNavigationPrimitiveSpatialIndex& OutIndex) const
+{
+	SCOPE_STAT_CAT("GridNavMesh.BuildPrimitiveSpatialIndex", "NavMesh");
+	OutIndex.FloorCandidatesByCell.clear();
+	OutIndex.ObstacleCandidatesByCell.clear();
+	OutIndex.EmptyCandidates.clear();
+	OutIndex.FloorReferenceCount = 0;
+	OutIndex.ObstacleReferenceCount = 0;
+
+	const float Grid = std::max(0.25f, CellSize);
+	const float HalfCell = std::max(0.05f, CellSize * 0.5f);
+	const float RequiredRadius = std::max(0.01f, GetEffectiveAgentRadius(SupportedAgent) + std::max(0.0f, ObstaclePadding));
+
+	auto AddPrimitiveToCells = [Grid, &BuildBounds](
+		std::unordered_map<FGridNavCellKey, TArray<int32>, FGridNavCellKeyHash>& Map,
+		const FBoundingBox& Bounds,
+		float ExpandXY,
+		int32 PrimitiveIndex) -> int32
+	{
+		int32 ReferenceCount = 0;
+		for (const FBuildBounds& Build : BuildBounds)
+		{
+			if (!Build.Bounds.IsValid())
+			{
+				continue;
+			}
+			if (Bounds.Max.X + ExpandXY < Build.Bounds.Min.X || Bounds.Min.X - ExpandXY > Build.Bounds.Max.X ||
+				Bounds.Max.Y + ExpandXY < Build.Bounds.Min.Y || Bounds.Min.Y - ExpandXY > Build.Bounds.Max.Y)
+			{
+				continue;
+			}
+
+			const int32 PrimitiveMinX = static_cast<int32>(floorf((Bounds.Min.X - ExpandXY) / Grid)) - 1;
+			const int32 PrimitiveMaxX = static_cast<int32>(floorf((Bounds.Max.X + ExpandXY) / Grid)) + 1;
+			const int32 PrimitiveMinY = static_cast<int32>(floorf((Bounds.Min.Y - ExpandXY) / Grid)) - 1;
+			const int32 PrimitiveMaxY = static_cast<int32>(floorf((Bounds.Max.Y + ExpandXY) / Grid)) + 1;
+			const int32 BuildMinX = static_cast<int32>(floorf(Build.Bounds.Min.X / Grid)) - 1;
+			const int32 BuildMaxX = static_cast<int32>(ceilf(Build.Bounds.Max.X / Grid)) + 1;
+			const int32 BuildMinY = static_cast<int32>(floorf(Build.Bounds.Min.Y / Grid)) - 1;
+			const int32 BuildMaxY = static_cast<int32>(ceilf(Build.Bounds.Max.Y / Grid)) + 1;
+			const int32 MinX = std::max(PrimitiveMinX, BuildMinX);
+			const int32 MaxX = std::min(PrimitiveMaxX, BuildMaxX);
+			const int32 MinY = std::max(PrimitiveMinY, BuildMinY);
+			const int32 MaxY = std::min(PrimitiveMaxY, BuildMaxY);
+
+			for (int32 X = MinX; X <= MaxX; ++X)
+			{
+				for (int32 Y = MinY; Y <= MaxY; ++Y)
+				{
+					Map[FGridNavCellKey{X, Y}].push_back(PrimitiveIndex);
+					++ReferenceCount;
+				}
+			}
+		}
+		return ReferenceCount;
+	};
+
+	for (int32 Index = 0; Index < static_cast<int32>(Primitives.size()); ++Index)
+	{
+		const FNavigationPrimitiveBounds& Primitive = Primitives[Index];
+		if (!Primitive.Bounds.IsValid())
+		{
+			continue;
+		}
+		if (Primitive.bFloorCandidate)
+		{
+			OutIndex.FloorReferenceCount += AddPrimitiveToCells(
+				OutIndex.FloorCandidatesByCell,
+				Primitive.Bounds,
+				HalfCell,
+				Index);
+		}
+		if (Primitive.bObstacle)
+		{
+			OutIndex.ObstacleReferenceCount += AddPrimitiveToCells(
+				OutIndex.ObstacleCandidatesByCell,
+				Primitive.Bounds,
+				RequiredRadius,
+				Index);
+		}
+	}
+
+	auto CompactCellCandidates = [](
+		std::unordered_map<FGridNavCellKey, TArray<int32>, FGridNavCellKeyHash>& Map) -> int32
+	{
+		int32 ReferenceCount = 0;
+		for (auto& Entry : Map)
+		{
+			TArray<int32>& Candidates = Entry.second;
+			std::sort(Candidates.begin(), Candidates.end());
+			Candidates.erase(std::unique(Candidates.begin(), Candidates.end()), Candidates.end());
+			ReferenceCount += static_cast<int32>(Candidates.size());
+		}
+		return ReferenceCount;
+	};
+	OutIndex.FloorReferenceCount = CompactCellCandidates(OutIndex.FloorCandidatesByCell);
+	OutIndex.ObstacleReferenceCount = CompactCellCandidates(OutIndex.ObstacleCandidatesByCell);
+}
+
 FGridNavCellKey AGridNavMesh::WorldToCell(const FVector& Point) const
 {
 	const float Grid = std::max(0.25f, CellSize);
@@ -377,6 +479,7 @@ bool AGridNavMesh::ProjectPointToWalkableSurfaceByPrimitiveBounds(
 	const FVector& Guess,
 	const TArray<FBuildBounds>& Bounds,
 	const TArray<FNavigationPrimitiveBounds>& Primitives,
+	const TArray<int32>& CandidateIndices,
 	FVector& OutProjectedLocation) const
 {
 	if (!IsInsideAnyBuildBounds(Guess, Bounds))
@@ -390,8 +493,13 @@ bool AGridNavMesh::ProjectPointToWalkableSurfaceByPrimitiveBounds(
 	bool bFound = false;
 	float BestZ = -FLT_MAX;
 
-	for (const FNavigationPrimitiveBounds& PrimitiveBounds : Primitives)
+	for (int32 PrimitiveIndex : CandidateIndices)
 	{
+		if (PrimitiveIndex < 0 || PrimitiveIndex >= static_cast<int32>(Primitives.size()))
+		{
+			continue;
+		}
+		const FNavigationPrimitiveBounds& PrimitiveBounds = Primitives[PrimitiveIndex];
 		if (!PrimitiveBounds.bFloorCandidate)
 		{
 			continue;
@@ -435,6 +543,66 @@ float AGridNavMesh::GetEffectiveAgentRadius(const FNavAgentProperties& AgentProp
 float AGridNavMesh::GetEffectiveAgentHeight(const FNavAgentProperties& AgentProps) const
 {
 	return std::min(AgentProps.Height, SupportedAgent.Height);
+}
+
+bool AGridNavMesh::HasAgentFootprintByPrimitiveBounds(
+	const FVector& ProjectedLocation,
+	const FNavAgentProperties& AgentProps,
+	const TArray<FNavigationPrimitiveBounds>& Primitives,
+	const TArray<int32>& CandidateIndices,
+	float* OutClearanceRadius) const
+{
+	const float RequiredRadius = std::max(0.01f, GetEffectiveAgentRadius(AgentProps) + std::max(0.0f, ObstaclePadding));
+	const float AgentBottom = ProjectedLocation.Z + 0.05f;
+	const float AgentHeight = std::max(RequiredRadius * 2.0f, GetEffectiveAgentHeight(AgentProps));
+	const float AgentTop = ProjectedLocation.Z + AgentHeight;
+	float ClearanceRadius = FLT_MAX;
+
+	for (int32 PrimitiveIndex : CandidateIndices)
+	{
+		if (PrimitiveIndex < 0 || PrimitiveIndex >= static_cast<int32>(Primitives.size()))
+		{
+			continue;
+		}
+		const FNavigationPrimitiveBounds& PrimitiveBounds = Primitives[PrimitiveIndex];
+		if (!PrimitiveBounds.bObstacle)
+		{
+			continue;
+		}
+		const FBoundingBox& B = PrimitiveBounds.Bounds;
+		if (!B.IsValid())
+		{
+			continue;
+		}
+		// Obstacles entirely below the current floor do not block this floor.  This allows
+		// valid upper platforms, while still treating vertical walls that overlap the
+		// agent's capsule height as blocking geometry.
+		if (B.Max.Z <= ProjectedLocation.Z + 0.02f)
+		{
+			continue;
+		}
+		if (B.Min.Z >= AgentTop || B.Max.Z <= AgentBottom)
+		{
+			continue;
+		}
+
+		const float DistanceToObstacle = HorizontalDistanceToBox2D(ProjectedLocation, B);
+		ClearanceRadius = std::min(ClearanceRadius, DistanceToObstacle);
+		if (DistanceToObstacle < RequiredRadius)
+		{
+			if (OutClearanceRadius)
+			{
+				*OutClearanceRadius = DistanceToObstacle;
+			}
+			return false;
+		}
+	}
+
+	if (OutClearanceRadius)
+	{
+		*OutClearanceRadius = ClearanceRadius == FLT_MAX ? 1000000.0f : ClearanceRadius;
+	}
+	return true;
 }
 
 bool AGridNavMesh::HasAgentFootprintByPrimitiveBounds(
@@ -505,6 +673,7 @@ AGridNavMesh::FBuildCellResult AGridNavMesh::BuildCell(
 	float GuessZ,
 	const TArray<FBuildBounds>& Bounds,
 	const TArray<FNavigationPrimitiveBounds>& Primitives,
+	const FNavigationPrimitiveSpatialIndex& SpatialIndex,
 	FGridNavCell& OutCell) const
 {
 	FBuildCellResult Result;
@@ -514,7 +683,11 @@ AGridNavMesh::FBuildCellResult AGridNavMesh::BuildCell(
 		return Result;
 	}
 	FVector Projected;
-	bool bProjected = ProjectPointToWalkableSurfaceByPrimitiveBounds(Guess, Bounds, Primitives, Projected);
+	const auto FloorIt = SpatialIndex.FloorCandidatesByCell.find(Key);
+	const TArray<int32>& FloorCandidates = FloorIt != SpatialIndex.FloorCandidatesByCell.end()
+		? FloorIt->second
+		: SpatialIndex.EmptyCandidates;
+	bool bProjected = ProjectPointToWalkableSurfaceByPrimitiveBounds(Guess, Bounds, Primitives, FloorCandidates, Projected);
 	if (!bProjected && bUsePhysicsProjectionFallback)
 	{
 		if (UNavigationSystem* NavSys = GetNavigationSystem())
@@ -528,7 +701,11 @@ AGridNavMesh::FBuildCellResult AGridNavMesh::BuildCell(
 	}
 	Result.DebugLocation = Projected;
 	float ClearanceRadius = 0.0f;
-	if (!HasAgentFootprint(Projected, SupportedAgent, Primitives, &ClearanceRadius))
+	const auto ObstacleIt = SpatialIndex.ObstacleCandidatesByCell.find(Key);
+	const TArray<int32>& ObstacleCandidates = ObstacleIt != SpatialIndex.ObstacleCandidatesByCell.end()
+		? ObstacleIt->second
+		: SpatialIndex.EmptyCandidates;
+	if (!HasAgentFootprintByPrimitiveBounds(Projected, SupportedAgent, Primitives, ObstacleCandidates, &ClearanceRadius))
 	{
 		Result.DebugLocation = Projected;
 		Result.ClearanceRadius = ClearanceRadius;
@@ -567,6 +744,9 @@ bool AGridNavMesh::RebuildNavigationData()
 	CollectNavigationPrimitives(NavigationPrimitives);
 	CachedNavigationPrimitives = NavigationPrimitives;
 
+	FNavigationPrimitiveSpatialIndex PrimitiveSpatialIndex;
+	BuildNavigationPrimitiveSpatialIndex(NavigationPrimitives, Bounds, PrimitiveSpatialIndex);
+
 	const float Grid = std::max(0.25f, CellSize);
 	for (const FBuildBounds& B : Bounds)
 	{
@@ -587,7 +767,7 @@ bool AGridNavMesh::RebuildNavigationData()
 					continue;
 				}
 				FGridNavCell Cell;
-				const FBuildCellResult Result = BuildCell(Key, GuessZ, Bounds, NavigationPrimitives, Cell);
+				const FBuildCellResult Result = BuildCell(Key, GuessZ, Bounds, NavigationPrimitives, PrimitiveSpatialIndex, Cell);
 				if (Result.bWalkable)
 				{
 					WalkableCells[Key] = Cell;
@@ -609,6 +789,10 @@ bool AGridNavMesh::RebuildNavigationData()
 		+ "; Bounds=" + std::to_string(LastBuildBoundsCount)
 		+ "; Candidates=" + std::to_string(LastBuildCandidateCount)
 		+ "; NavPrimitives=" + std::to_string(static_cast<int32>(NavigationPrimitives.size()))
+		+ "; IndexedFloorCells=" + std::to_string(static_cast<int32>(PrimitiveSpatialIndex.FloorCandidatesByCell.size()))
+		+ "; IndexedObstacleCells=" + std::to_string(static_cast<int32>(PrimitiveSpatialIndex.ObstacleCandidatesByCell.size()))
+		+ "; IndexedFloorRefs=" + std::to_string(PrimitiveSpatialIndex.FloorReferenceCount)
+		+ "; IndexedObstacleRefs=" + std::to_string(PrimitiveSpatialIndex.ObstacleReferenceCount)
 		+ "; Walkable=" + std::to_string(GetNavigationNodeCount())
 		+ "; Blocked=" + std::to_string(BlockedCellCount)
 		+ "; TimeMs=" + std::to_string(LastBuildDurationMs);

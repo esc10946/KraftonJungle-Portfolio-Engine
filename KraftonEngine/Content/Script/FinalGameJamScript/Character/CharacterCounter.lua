@@ -112,7 +112,15 @@ local function set_particle_spawn_scale(particle, scale)
     end
 end
 
+local function are_counter_particles_enabled(ctx)
+    return ctx ~= nil and ctx.config ~= nil and ctx.config.COUNTER_PARTICLE_ENABLED == true
+end
+
 local function create_counter_impact_particle(ctx, location)
+    if not are_counter_particles_enabled(ctx) then
+        return nil
+    end
+
     if ctx == nil or ctx.cache == nil or ctx.config == nil or Particle == nil then
         return nil
     end
@@ -150,6 +158,10 @@ local function create_counter_impact_particle(ctx, location)
 end
 
 local function activate_counter_impact_particle(ctx, hitLocation)
+    if not are_counter_particles_enabled(ctx) then
+        return false
+    end
+
     if hitLocation == nil or Particle == nil then
         return false
     end
@@ -191,6 +203,11 @@ end
 
 local function play_counter_particles(ctx, hitLocation)
     counter_debug_log(ctx, "[CharacterCounter] play counter particles")
+    if not are_counter_particles_enabled(ctx) then
+        play_counter_parry_sound(ctx)
+        return
+    end
+
     if activate_counter_impact_particle(ctx, hitLocation) then
         play_counter_parry_sound(ctx)
     end

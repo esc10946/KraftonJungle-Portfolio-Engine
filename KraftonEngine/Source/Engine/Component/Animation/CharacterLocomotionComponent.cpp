@@ -19,10 +19,6 @@ namespace
 		return std::max(MinValue, std::min(MaxValue, Value));
 	}
 
-	bool CanSingleNodeDriverOwnAnimation(const USkeletalMeshComponent* Mesh)
-	{
-		return Mesh && Mesh->GetAnimationMode() != EAnimationMode::AnimationCustom;
-	}
 }
 
 void UCharacterLocomotionComponent::BeginPlay()
@@ -102,7 +98,7 @@ void UCharacterLocomotionComponent::PlayIfChanged(const FString& AnimPath, bool 
 	}
 
 	USkeletalMeshComponent* Mesh = ResolveMesh();
-	if (!CanSingleNodeDriverOwnAnimation(Mesh))
+	if (!Mesh)
 	{
 		return;
 	}
