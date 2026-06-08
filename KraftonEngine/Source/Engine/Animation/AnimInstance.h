@@ -160,6 +160,13 @@ public:
 	UFUNCTION(Pure, Category="Animation|Montage")
 	UAnimMontageInstance* GetMontageInstance() const;
 
+	// ── 상체 레이어 (피격 리액션 등) ──
+	// 이 슬롯의 몽타주는 UpperBodyMaskRoot 본 트리(상체)에만 합성되고, 하체/베이스(로코모션·
+	// DefaultSlot)는 그대로 유지된다 → 피격 리액션이 이동/전투를 끊지 않음(legacy EvaluatePose 경로).
+	static const FName UpperBodyMontageSlot;
+	// 상체 마스크 루트 본 설정 (None = 비활성). 변경 시 마스크 캐시 무효화.
+	void SetUpperBodyMaskRoot(FName BoneName);
+
 	// ── AnimGraph (Phase 1.4+) ──
 	// 자식이 NativeInitializeAnimation 에서 MakeNode 로 노드 트리 build 후 SetRootNode 호출.
 	// InRoot 가 FAnimNode_Root 가 아니면 자동으로 wrap (IsRoot() 가상함수로 판별) — RootMotion
@@ -212,6 +219,12 @@ protected:
 	FMontageSlotEntry*       FindMontageSlotEntry(FName SlotName);
 	const FMontageSlotEntry* FindMontageSlotEntry(FName SlotName) const;
 	void                     PruneInactiveMontages(FMontageSlotEntry& Entry);
+
+	// 상체 레이어 합성 — "UpperBody" 슬롯 몽타주를 UpperBodyMaskRoot 트리 본에만 덮어쓴다.
+	void                     EvaluateUpperBodyMontageLayer(FPoseContext& Output);
+	FName                    UpperBodyMaskRoot = FName::None;
+	TArray<bool>             UpperBodyMask;
+	USkeletalMesh*           UpperBodyMaskCachedMesh = nullptr;
 
 	// AnimGraph 트리의 root — null 이면 legacy 경로. 모든 노드는 OwnedNodes 가 단일 소유.
 	FAnimNode_Base*                              RootNode = nullptr;

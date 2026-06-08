@@ -2272,7 +2272,7 @@
                 "MaxVerticalDelta" : 6.617647,
                 "MinCommitTime" : 0.000000,
                 "MinPhase" : 2,
-                "MinRange" : 8.823529,
+                "MinRange" : 5.000000,
                 "Montage" : {
                   "AssetPath" : "Content/Montages/Standing Melee Run Jump Attack_mixamo_com_Montage.uasset",
                   "ClassName" : "UAnimMontage"
@@ -2340,7 +2340,7 @@
                 "MaxVerticalDelta" : 6.617647,
                 "MinCommitTime" : 0.750000,
                 "MinPhase" : 2,
-                "MinRange" : 11.764705,
+                "MinRange" : 6.500000,
                 "Montage" : {
                   "AssetPath" : "Content/Montages/Samura2 Melee Attack 360 Low_mixamo_com_Montage.uasset",
                   "ClassName" : "UAnimMontage"
@@ -2442,7 +2442,7 @@
                 "MaxVerticalDelta" : 6.617647,
                 "MinCommitTime" : 1.000000,
                 "MinPhase" : 3,
-                "MinRange" : 14.705882,
+                "MinRange" : 8.000000,
                 "Montage" : {
                   "AssetPath" : "Content/Montages/Standing Melee Attack 360 High_mixamo_com_Montage.uasset",
                   "ClassName" : "UAnimMontage"
@@ -2583,7 +2583,8 @@
               "AssetPath" : "Content/Montages/Standing Block React Large_mixamo_com_Montage.uasset",
               "ClassName" : "UAnimMontage"
             },
-            "HitMontagePlayRate" : 1.000000,
+            "HitMontagePlayRate" : 3.000000,
+            "HitReactMaxPhase" : 1,
             "HitMontages" : {
               "Back" : {
                 "AssetPath" : "Content/Montages/Standing React Large From Back_mixamo_com_Montage.uasset",
@@ -2612,7 +2613,9 @@
             "bSkipHitWhileMoving" : true,
             "bStopCurrentMontageBeforeDeath" : true,
             "bStopCurrentMontageBeforeHit" : false,
-            "bTickEnable" : true
+            "bTickEnable" : true,
+            "bUseUpperBodyHitLayer" : true,
+            "UpperBodyMaskRootBone" : "spine_01"
           }
         }, {
           "ClassName" : "UCharacterLocomotionComponent",
@@ -2781,7 +2784,7 @@
         "LODFarDistance" : 80.000000,
         "LODNearDistance" : 25.000000,
         "LeapDashScale" : 5.000000,
-        "LeapHorizontalForce" : 10.000000,
+        "LeapHorizontalForce" : 70.000000,
         "LeapMontage" : {
           "AssetPath" : "Content/Montages/Jumping Up_mixamo_com_Montage.uasset",
           "ClassName" : "UAnimMontage"

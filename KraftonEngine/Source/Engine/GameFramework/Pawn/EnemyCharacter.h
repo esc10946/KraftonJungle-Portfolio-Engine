@@ -364,7 +364,7 @@ public:
 
 	// 백점프 수평 임펄스 세기(타깃 반대 방향, m/s). 공중에선 수평 마찰이 없어 그대로 거리로 환산됨.
 	// 거대 보스(5×)는 큰 도약이 필요 → 기본/상한 상향(패널에서 더 크게 튜닝 가능).
-	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Leap Horizontal Force", Min=0.0f, Max=60.0f, Speed=0.5f)
+	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Leap Horizontal Force", Min=0.0f, Max=100.0f, Speed=0.5f)
 	float LeapHorizontalForce = 40.0f;
 
 	// 백점프 준비동작(프렙) 시간(초). JumpUp 몽타주의 도약 직전까지 기다렸다가 실제로 발사한다
