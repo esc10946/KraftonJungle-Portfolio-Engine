@@ -103,6 +103,29 @@ namespace
 			&& !(bShowEditorOnlyComponents && Component->IsEditorOnlyComponent());
 	}
 
+	bool HasVisibleSceneComponentInSubtree(const USceneComponent* Component, bool bShowEditorOnlyComponents)
+	{
+		if (!Component)
+		{
+			return false;
+		}
+
+		if (!ShouldHideInComponentTree(Component, bShowEditorOnlyComponents))
+		{
+			return true;
+		}
+
+		for (USceneComponent* Child : Component->GetChildren())
+		{
+			if (HasVisibleSceneComponentInSubtree(Child, bShowEditorOnlyComponents))
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	bool IsBlankRenameName(const FString& Name)
 	{
 		for (const char Ch : Name)
@@ -1683,7 +1706,14 @@ void FEditorPropertyWidget::RenderComponentTree(AActor* Actor)
 void FEditorPropertyWidget::RenderSceneComponentNode(USceneComponent* Comp)
 {
 	if (!Comp) return;
-	if (ShouldHideInComponentTree(Comp, bShowEditorOnlyComponents)) return;
+	if (ShouldHideInComponentTree(Comp, bShowEditorOnlyComponents))
+	{
+		for (USceneComponent* Child : Comp->GetChildren())
+		{
+			RenderSceneComponentNode(Child);
+		}
+		return;
+	}
 
 	FString Name = Comp->GetFName().ToString();
 	if (Name.empty()) Name = Comp->GetClass()->GetName();
@@ -1692,7 +1722,7 @@ void FEditorPropertyWidget::RenderSceneComponentNode(USceneComponent* Comp)
 	bool bHasVisibleChildren = false;
 	for (USceneComponent* Child : Children)
 	{
-		if (Child && !ShouldHideInComponentTree(Child, bShowEditorOnlyComponents))
+		if (HasVisibleSceneComponentInSubtree(Child, bShowEditorOnlyComponents))
 		{
 			bHasVisibleChildren = true;
 			break;

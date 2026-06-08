@@ -1,4 +1,4 @@
-// Generated from C:/Users/jungle/GitHub/Jungle_Week14_Team6/KraftonEngine/Content/Material/Particle/NewMaterial.uasset
+// Generated from C:/Users/jungle/Documents/GitHub/Week14/KraftonEngine/Content/Game/Texture/GameScene/Play/NewMaterial.uasset
 // Domain: Surface
 
 #include "Common/ConstantBuffers.hlsli"
@@ -32,18 +32,14 @@ Texture2D Tex_Diffuse : register(t0);
 
 FMaterialResult EvaluateMaterial(FMaterialPixelInput Input)
 {
-    float4 n_17 = Tex_Diffuse.Sample(LinearWrapSampler, Input.UV0);
-    float4 n_60 = Input.VertexColor;
-    float3 n_51 = ((n_17).rgb * (n_60).rgb);
-    float3 n_27 = (float4(n_51, 0.0f)).rgb;
-    float n_68 = (float4(n_51, 0.0f)).a;
+    float4 n_56 = Tex_Diffuse.Sample(LinearWrapSampler, Input.UV0);
     FMaterialResult Result;
-    Result.BaseColor = n_27;
+    Result.BaseColor = (n_56).rgb;
     Result.Normal = float3(0, 0, 1);
     Result.Roughness = 0.5f;
     Result.Metallic = 0.0f;
-    Result.Emissive = float3(0, 0, 0);
-    Result.Opacity = n_68;
+    Result.Emissive = (n_56).rgb;
+    Result.Opacity = (n_56).a;
     return Result;
 }
 
