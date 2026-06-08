@@ -10,6 +10,7 @@ local BOSS_POSTURE_LEFT_MASK_ID = "boss-posture-left-mask"
 local BOSS_POSTURE_RIGHT_MASK_ID = "boss-posture-right-mask"
 local BOSS_PANEL_ID = "boss-panel"
 local BOSS_POSTURE_PANEL_ID = "boss-posture-panel"
+local ITEM_PANEL_ID = "item-panel"
 local BOSS_POSTURE_LEFT_FILL_ID = "boss-posture-left-fill"
 local BOSS_POSTURE_RIGHT_FILL_ID = "boss-posture-right-fill"
 local BOSS_POSTURE_LEFT_WARNING_FILL_ID = "boss-posture-left-warning-fill"
@@ -36,7 +37,7 @@ local HUD_CONTAINER_IDS = {
     BOSS_PANEL_ID,
     BOSS_POSTURE_PANEL_ID,
     PLAYER_POSTURE_PANEL_ID,
-    "item-panel",
+    ITEM_PANEL_ID,
     "player-hud",
 }
 
@@ -92,6 +93,7 @@ local playerHpDelayRemaining = 0.0
 local lastBossHpRatio = nil
 local lastBossPostureRatio = nil
 local lastBossHudVisible = nil
+local lastItemHudVisible = false
 local lastPlayerPostureRatio = nil
 local playerPostureVisualState = "hidden"
 local bossPostureVisualState = "hidden"
@@ -156,7 +158,7 @@ local function apply_hud_visibility()
 
     widget:SetProperty(HUD_ROOT_ID, "display", "block")
     set_element_visible("enemy-bars", true)
-    set_element_visible("item-panel", true)
+    set_element_visible(ITEM_PANEL_ID, lastItemHudVisible == true)
     set_element_visible("player-hud", true)
     set_element_visible(PLAYER_POSTURE_PANEL_ID, true)
     set_element_visible(BOSS_PANEL_ID, lastBossHudVisible == true)
@@ -1117,6 +1119,17 @@ function SetBossVisibility(visible)
     SetBossHUDVisible(visible)
 end
 
+function SetItemHUDVisible(visible)
+    visible = visible == true
+
+    lastItemHudVisible = visible
+    set_element_visible(ITEM_PANEL_ID, visible and hudVisible)
+end
+
+function SetItemVisibility(visible)
+    SetItemHUDVisible(visible)
+end
+
 function SetHUDVisible(visible)
     local requestedVisible = visible == true
 
@@ -1394,6 +1407,7 @@ refresh_hud_document_state = function()
     local playerPostureRatio = lastPlayerPostureRatio
     local tokenVisible = lastTokenVisible
     local bossVisible = lastBossHudVisible
+    local itemVisible = lastItemHudVisible
 
     lastHpRatio = nil
     playerHpDelayRatio = nil
@@ -1404,6 +1418,7 @@ refresh_hud_document_state = function()
     bossPostureVisualState = nil
     lastTokenVisible = nil
     lastBossHudVisible = nil
+    lastItemHudVisible = false
     enemyBarStates = {}
 
     if hpRatio ~= nil then
@@ -1428,6 +1443,7 @@ refresh_hud_document_state = function()
     if bossVisible ~= nil then
         SetBossHUDVisible(bossVisible)
     end
+    SetItemHUDVisible(itemVisible == true)
 end
 
 local function expose_hud_api()
@@ -1443,6 +1459,8 @@ local function expose_hud_api()
     _G.HUD.IsHUDVisible = IsHUDVisible
     _G.HUD.SetBossHUDVisible = SetBossHUDVisible
     _G.HUD.SetBossVisibility = SetBossVisibility
+    _G.HUD.SetItemHUDVisible = SetItemHUDVisible
+    _G.HUD.SetItemVisibility = SetItemVisibility
     _G.HUD.SetPlayerTokenVisible = SetPlayerTokenVisible
     _G.HUD.SetPlayerHUD = SetPlayerHUD
     _G.HUD.SetBossHUD = SetBossHUD

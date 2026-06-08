@@ -18,7 +18,7 @@
 
 namespace
 {
-    constexpr const char* MaterialGraphGeneratorVersion = "MaterialGraph_GPUSkinningVF";
+    constexpr const char* MaterialGraphGeneratorVersion = "MaterialGraph_ParticleBeamTrailAlpha";
 
 	// ".mat" → ".uasset" 정규화(이미 .uasset 이면 그대로). 캐시 키 + 바이너리 타겟.
 	// 메시 임베드/하드코딩 legacy ".mat" 참조가 자동으로 ".uasset" 을 가리키게 한다.
