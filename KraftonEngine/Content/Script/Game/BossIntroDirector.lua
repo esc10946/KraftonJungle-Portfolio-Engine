@@ -17,7 +17,7 @@ local START_FLAG = "BossIntroDirectorStartOk"
 local BOSS_TAG = "Boss"
 local BLOOD_MOON_TAG = "BloodMoon"
 local PREPSTAGE_TAG = "Boss_Prepstage"
-local PREPSTAGE_Z_OFFSET = 3.0
+local PREPSTAGE_Z_OFFSET = 0.0
 
 local boss, player, cine, bloodMoon, prepstage
 local t = 0.0
