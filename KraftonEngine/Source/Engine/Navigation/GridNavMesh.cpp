@@ -218,10 +218,14 @@ void AGridNavMesh::ClearNavigationData()
 	}
 	WalkableCells.clear();
 	BlockedCells.clear();
+	IsolatedCells.clear();
 	CachedNavigationPrimitives.clear();
 	BlockedCellCount = 0;
 	LastBuildBoundsCount = 0;
 	LastBuildCandidateCount = 0;
+	LastComponentCount = 0;
+	LastLargestComponentSize = 0;
+	LastIsolatedCellCount = 0;
 	LastBuildDurationMs = 0.0f;
 	LastBuildMessage.clear();
 	CachedBounds = FBoundingBox();
@@ -720,6 +724,105 @@ AGridNavMesh::FBuildCellResult AGridNavMesh::BuildCell(
 	return Result;
 }
 
+void AGridNavMesh::ComputeConnectivity()
+{
+	SCOPE_STAT_CAT("GridNavMesh.ComputeConnectivity", "NavMesh");
+	IsolatedCells.clear();
+	LastComponentCount = 0;
+	LastLargestComponentSize = 0;
+	LastIsolatedCellCount = 0;
+	if (WalkableCells.empty())
+	{
+		return;
+	}
+
+	// 모든 walkable 셀은 빌드 시 SupportedAgent 풋프린트를 이미 통과했다 → SupportedAgent 기준 "사용 가능"은
+	// WalkableCells 멤버십과 동치다. 그래서 flood-fill 은 비싼 풋프린트 재검사 없이 맵 조회 + 경사 전이만
+	// 본다(질의 에이전트는 빌드 에이전트로 클램프되므로 이 연결성은 실제 경로 연결성을 대표한다).
+	const FGridNavCellKey Directions[8] = {
+		{ 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 },
+		{ 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 }
+	};
+
+	std::unordered_map<FGridNavCellKey, int32, FGridNavCellKeyHash> Component;
+	Component.reserve(WalkableCells.size());
+	int32 NextComponent = 0;
+	int32 LargestComponent = -1;
+	size_t LargestSize = 0;
+
+	std::queue<FGridNavCellKey> Frontier;
+	for (const auto& Seed : WalkableCells)
+	{
+		if (Component.find(Seed.first) != Component.end())
+		{
+			continue;
+		}
+		const int32 ComponentId = NextComponent++;
+		size_t ComponentSize = 0;
+		Component[Seed.first] = ComponentId;
+		Frontier.push(Seed.first);
+
+		while (!Frontier.empty())
+		{
+			const FGridNavCellKey Key = Frontier.front();
+			Frontier.pop();
+			++ComponentSize;
+			const FGridNavCell* Cell = FindCell(Key);
+			if (!Cell)
+			{
+				continue;
+			}
+			for (const FGridNavCellKey& Dir : Directions)
+			{
+				const FGridNavCellKey Next{ Key.X + Dir.X, Key.Y + Dir.Y };
+				if (Component.find(Next) != Component.end())
+				{
+					continue;
+				}
+				const FGridNavCell* NextCell = FindCell(Next);
+				if (!NextCell)
+				{
+					continue;
+				}
+				// 대각 코너 컷 방지: 두 직교 이웃이 모두 walkable 이어야 대각 이동 허용(A* 와 동일).
+				if (Dir.X != 0 && Dir.Y != 0)
+				{
+					if (!FindCell(FGridNavCellKey{ Key.X + Dir.X, Key.Y }) ||
+						!FindCell(FGridNavCellKey{ Key.X, Key.Y + Dir.Y }))
+					{
+						continue;
+					}
+				}
+				if (!IsHeightTransitionAllowed(Cell->Location, NextCell->Location, SupportedAgent))
+				{
+					continue;
+				}
+				Component[Next] = ComponentId;
+				Frontier.push(Next);
+			}
+		}
+
+		if (ComponentSize > LargestSize)
+		{
+			LargestSize = ComponentSize;
+			LargestComponent = ComponentId;
+		}
+	}
+
+	for (const auto& Pair : WalkableCells)
+	{
+		auto It = Component.find(Pair.first);
+		if (It == Component.end() || It->second != LargestComponent)
+		{
+			IsolatedCells.insert(Pair.first);
+		}
+	}
+
+	LastComponentCount = NextComponent;
+	LastLargestComponentSize = static_cast<int32>(LargestSize);
+	LastIsolatedCellCount = static_cast<int32>(IsolatedCells.size());
+}
+
 bool AGridNavMesh::RebuildNavigationData()
 {
 	SCOPE_STAT_CAT("GridNavMesh.RebuildNavigationData", "NavMesh");
@@ -782,6 +885,7 @@ bool AGridNavMesh::RebuildNavigationData()
 	}
 
 	bNavigationDataBuilt = !WalkableCells.empty();
+	ComputeConnectivity();
 	const auto BuildEnd = std::chrono::steady_clock::now();
 	LastBuildDurationMs = static_cast<float>(std::chrono::duration<double, std::milli>(BuildEnd - BuildStart).count());
 	LastBuildMessage = FString("GridNavMesh build ")
@@ -795,6 +899,11 @@ bool AGridNavMesh::RebuildNavigationData()
 		+ "; IndexedObstacleRefs=" + std::to_string(PrimitiveSpatialIndex.ObstacleReferenceCount)
 		+ "; Walkable=" + std::to_string(GetNavigationNodeCount())
 		+ "; Blocked=" + std::to_string(BlockedCellCount)
+		// 연결성 진단: Components 가 1 보다 크거나 Isolated 가 0 보다 크면, 그 Isolated 셀 위에 선 에이전트는
+		// 메인 navmesh(LargestComp)로 가는 경로를 못 찾는다 = "특정 위치에서 길 못 찾음"의 정체.
+		+ "; Components=" + std::to_string(LastComponentCount)
+		+ "; LargestComp=" + std::to_string(LastLargestComponentSize)
+		+ "; Isolated=" + std::to_string(LastIsolatedCellCount)
 		+ "; TimeMs=" + std::to_string(LastBuildDurationMs);
 	if (bNavigationDataBuilt && bDrawDebugOnBuild)
 	{
@@ -856,11 +965,21 @@ bool AGridNavMesh::FindNearestCell(const FVector& Point, FGridNavCellKey& OutKey
 		return false;
 	}
 	const FGridNavCellKey Base = WorldToCell(Point);
+	const float Grid = std::max(0.25f, CellSize);
 	float BestDistSq = FLT_MAX;
 	bool bFound = false;
 
 	for (int32 Ring = 0; Ring <= std::max(1, NearestCellSearchRings); ++Ring)
 	{
+		// 첫 ring 에서 멈추지 않고 진짜 최근접(3D)을 찾는다(FindNearestCellForAgent 와 동일한 이유).
+		if (bFound)
+		{
+			const float RingMinDist = static_cast<float>(Ring - 1) * Grid;
+			if (RingMinDist > 0.0f && RingMinDist * RingMinDist >= BestDistSq)
+			{
+				break;
+			}
+		}
 		for (int32 DX = -Ring; DX <= Ring; ++DX)
 		{
 			for (int32 DY = -Ring; DY <= Ring; ++DY)
@@ -875,7 +994,8 @@ bool AGridNavMesh::FindNearestCell(const FVector& Point, FGridNavCellKey& OutKey
 				{
 					continue;
 				}
-				const float DistSq = FVector::DistSquared(Point, Cell->Location);
+				// 수평 거리로 고른다(캡슐 중심 Z 편향 방지 — FindNearestCellForAgent 와 동일한 이유).
+				const float DistSq = HorizontalDistanceSquared(Point, Cell->Location);
 				if (DistSq < BestDistSq)
 				{
 					BestDistSq = DistSq;
@@ -885,12 +1005,8 @@ bool AGridNavMesh::FindNearestCell(const FVector& Point, FGridNavCellKey& OutKey
 				}
 			}
 		}
-		if (bFound)
-		{
-			return true;
-		}
 	}
-	return false;
+	return bFound;
 }
 
 bool AGridNavMesh::FindNearestCellForAgent(const FVector& Point, const FNavAgentProperties& AgentProps, FGridNavCellKey& OutKey, FVector& OutLocation) const
@@ -900,11 +1016,24 @@ bool AGridNavMesh::FindNearestCellForAgent(const FVector& Point, const FNavAgent
 		return false;
 	}
 	const FGridNavCellKey Base = WorldToCell(Point);
+	const float Grid = std::max(0.25f, CellSize);
 	float BestDistSq = FLT_MAX;
 	bool bFound = false;
 
 	for (int32 Ring = 0; Ring <= std::max(1, NearestCellSearchRings); ++Ring)
 	{
+		// 거리는 3D 로 재는데 탐색은 XY ring 순서다 → 첫 ring 에서 멈추면, XY 는 가깝지만 Z 가 크게
+		// 다른 림/플랫폼 셀을 골라버린다(구덩이·단차 근처). 진짜 최근접을 보장하려면, 이 ring 이상에선
+		// best 보다 가까운 셀이 존재할 수 없을 때까지 확장한다. ring R 셀의 수평거리 하한 = (R-1)·Grid
+		// 이고 3D 거리 ≥ 수평거리 이므로, (R-1)·Grid 가 현재 best 거리 이상이면 더 볼 필요 없다.
+		if (bFound)
+		{
+			const float RingMinDist = static_cast<float>(Ring - 1) * Grid;
+			if (RingMinDist > 0.0f && RingMinDist * RingMinDist >= BestDistSq)
+			{
+				break;
+			}
+		}
 		for (int32 DX = -Ring; DX <= Ring; ++DX)
 		{
 			for (int32 DY = -Ring; DY <= Ring; ++DY)
@@ -919,7 +1048,9 @@ bool AGridNavMesh::FindNearestCellForAgent(const FVector& Point, const FNavAgent
 				{
 					continue;
 				}
-				const float DistSq = FVector::DistSquared(Point, Cell->Location);
+				// 수평 거리로 고른다. 쿼리 점은 보통 캡슐 "중심"(지면보다 한참 위)이라 3D 거리를 쓰면
+				// 옆의 더 높은 셀이 더 가깝다고 잘못 판정된다. 컬럼당 셀은 하나뿐이라 수평 거리가 유일·정답.
+				const float DistSq = HorizontalDistanceSquared(Point, Cell->Location);
 				if (DistSq < BestDistSq)
 				{
 					BestDistSq = DistSq;
@@ -929,12 +1060,8 @@ bool AGridNavMesh::FindNearestCellForAgent(const FVector& Point, const FNavAgent
 				}
 			}
 		}
-		if (bFound)
-		{
-			return true;
-		}
 	}
-	return false;
+	return bFound;
 }
 
 bool AGridNavMesh::ProjectPointToNavigation(const FVector& Point, FVector& OutProjectedPoint, const FNavAgentProperties& AgentProps) const
@@ -1448,7 +1575,15 @@ void AGridNavMesh::DebugDrawNavigationData(float Duration) const
 		{
 			continue;
 		}
-		const FVector Center = Pair.second.Location + FVector(0.0f, 0.0f, 4.0f);
+		// 메인 navmesh 와 끊긴 "섬" 셀은 밝은 마젠타로 강조한다. 여기 선 에이전트는 경로를 못 찾는다.
+		const bool bIsolated = IsolatedCells.find(Pair.first) != IsolatedCells.end();
+		const FVector Center = Pair.second.Location + FVector(0.0f, 0.0f, bIsolated ? 6.0f : 4.0f);
+		if (bIsolated)
+		{
+			DrawCellSquare(Center, FColor(255, 0, 220));
+			DrawContourMark(Center + FVector(0.0f, 0.0f, 0.02f));
+			continue;
+		}
 		DrawCellSquare(Center, GetHeightDebugColor(Pair.second.Location.Z, MinHeight, MaxHeight));
 		if (ShouldDrawHeightContour(Pair.second.Location.Z, MinHeight))
 		{

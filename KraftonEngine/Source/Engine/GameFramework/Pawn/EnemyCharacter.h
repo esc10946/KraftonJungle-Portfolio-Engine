@@ -330,6 +330,10 @@ public:
 	bool bUseAwarenessGating = false;
 	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Default Attack Range", Min=0.0f, Max=1000.0f, Speed=0.1f)
 	float DefaultAttackRange = 1.7f;
+	// 추격 경로 재탐색 최소 간격(초). Brain_Chase 는 이미 이동 중이면 이 간격이 지나기 전엔 경로를 다시
+	// 짜지 않고 기존 경로를 계속 따른다 — 매 틱 재탐색(과도한 길찾기)을 막는다. 0 이면 매 틱 갱신.
+	UPROPERTY(Edit, Save, Category="Enemy|AI", DisplayName="Chase Repath Interval", Min=0.0f, Max=2.0f, Speed=0.01f)
+	float ChaseRepathInterval = 0.35f;
 
 	// 가드(block) 자세에서 재생할 몽타주(비주얼). Brain_OpenGuard 가 재생한다. null 이면 포즈 없이
 	// 가드 윈도우만 열린다(기능은 동작).
@@ -496,6 +500,10 @@ private:
 	FVector PendingLeapImpulse = FVector::ZeroVector;
 	// 두뇌 강제 busy 락 만료 시각(게임시간). 페이즈 전환 연출 등에서 다음 행동을 막는다.
 	float BrainBusyUntilSeconds = 0.0f;
+	// Brain_Chase 경로 실패 사유 로그 중복 방지 — 같은 사유가 반복되면 한 번만 찍는다.
+	FString LastChaseFailReason;
+	// 다음 추격 경로 재탐색이 허용되는 게임시각(초). 이 시각 전엔 기존 경로를 따른다(ChaseRepathInterval).
+	float NextChaseRepathTime = 0.0f;
 
 	// 직전 공격 결과(공격 문법 분기용). 공격 시작 시 리셋, 피해 적용 시 갱신.
 	ECombatDamageResult LastAttackResult = ECombatDamageResult::None;

@@ -596,6 +596,20 @@ void UWorld::BeginPlay()
 		PersistentLevel->BeginPlay();
 	}
 
+	// PrimitiveComponent::BeginPlay 의 PhysicsScene::RegisterComponent 는 바디 생성을 명령 큐에
+	// "적재"만 한다 — 실제 PxScene->addActor 와 scene query(SQ) 커밋은 물리 프레임(SubmitPhysicsFrame)
+	// 에서 일어난다. 그런데 navmesh 빌드는 bUsePhysicsProjectionFallback 경로에서 바닥을 PhysX
+	// 레이캐스트로 투영하므로, 빌드 전에 물리 프레임이 최소 한 번 돌아야 정적 콜리전이 PxScene 에
+	// 올라가 레이캐스트가 적중한다. 이를 보장하지 않으면 Game 빌드처럼 로드 직후 첫 프레임 전에
+	// BeginPlay 가 동기로 끝나는 경우 navmesh 가 바닥 없이 빌드돼 AI 길찾기가 전부 실패한다
+	// (PIE 는 에디터 물리가 이미 warm 이라 우연히 통과). 동기 워밍업 프레임 1회로 race 를 제거한다.
+	if (PhysicsScene)
+	{
+		const uint64 NavWarmupFrame = ++PhysicsFrameIndex;
+		PhysicsScene->SubmitPhysicsFrame(NavWarmupFrame, FProjectSettings::Get().Physics.FixedTimeStep);
+		PhysicsScene->WaitPhysicsFrame(NavWarmupFrame);
+	}
+
 	// NavigationData는 모든 액터와 컴포넌트가 BeginPlay를 거쳐 물리 바디를 만든 뒤
 	// 빌드한다. LuaBlueprint PostBeginPlay / AI Tick 전에 캐시가 준비되도록 한다.
 	if (NavigationSystem)

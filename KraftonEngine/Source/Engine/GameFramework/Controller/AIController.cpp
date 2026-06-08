@@ -252,12 +252,15 @@ EPathFollowingRequestResult AAIController::RequestMoveToCurrentGoal(bool bUsePat
 		}
 		if (!NavSys->FindPathSync(Start, Goal, NavAgentProperties, Path))
 		{
+			bLastPathWasPartial = false;
 			return SetLastMoveRequestResult(EPathFollowingRequestResult::Failed, NavSys->GetLastQueryMessage());
 		}
 		if (Path.bIsPartial && !bAllowPartialPath)
 		{
+			bLastPathWasPartial = true;
 			return SetLastMoveRequestResult(EPathFollowingRequestResult::Failed, "Move request failed: partial path rejected");
 		}
+		bLastPathWasPartial = Path.bIsPartial;
 	}
 	else
 	{
@@ -265,6 +268,7 @@ EPathFollowingRequestResult AAIController::RequestMoveToCurrentGoal(bool bUsePat
 		Path.PathPoints.emplace_back(Start);
 		Path.PathPoints.emplace_back(Goal);
 		Path.bIsValid = true;
+		bLastPathWasPartial = false;
 	}
 
 	if (!PathFollowingComponent->RequestMove(Path, MoveAcceptanceRadius))

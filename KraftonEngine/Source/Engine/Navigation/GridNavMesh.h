@@ -182,13 +182,21 @@ private:
 	bool BuildDirectCachedPath(const FVector& Start, const FVector& End, const FNavAgentProperties& AgentProps, FNavigationPath& OutPath) const;
 	bool IsDiagonalMoveAllowed(const FGridNavCellKey& From, const FGridNavCellKey& Dir, const FNavAgentProperties& AgentProps) const;
 	void SmoothPath(const FNavAgentProperties& AgentProps, FNavigationPath& InOutPath) const;
+	// 빌드 후 walkable 셀을 A* 와 동일한 통행 규칙(인접성/대각 코너/경사 전이)으로 flood-fill 해
+	// 연결 컴포넌트를 라벨링한다. 가장 큰 컴포넌트에 속하지 않는 셀 = "섬(island)" → IsolatedCells.
+	// 경로가 특정 위치에서만 실패하는 건 거의 항상 그 위치가 섬에 갇혀 있기 때문이다.
+	void ComputeConnectivity();
 
 	std::unordered_map<FGridNavCellKey, FGridNavCell, FGridNavCellKeyHash> WalkableCells;
 	std::unordered_map<FGridNavCellKey, FVector, FGridNavCellKeyHash> BlockedCells;
+	std::unordered_set<FGridNavCellKey, FGridNavCellKeyHash> IsolatedCells;
 	TArray<FNavigationPrimitiveBounds> CachedNavigationPrimitives;
 	int32 BlockedCellCount = 0;
 	int32 LastBuildBoundsCount = 0;
 	int32 LastBuildCandidateCount = 0;
+	int32 LastComponentCount = 0;
+	int32 LastLargestComponentSize = 0;
+	int32 LastIsolatedCellCount = 0;
 	float LastBuildDurationMs = 0.0f;
 	FString LastBuildMessage;
 	FBoundingBox CachedBounds;

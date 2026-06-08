@@ -1339,11 +1339,26 @@ void AEnemyCharacter::Brain_Chase()
 		return;
 	}
 	SetRuntimeState(FName("Chase"));
+
+	// 고정 간격 게이트: 이미 이동 중이면 ChaseRepathInterval 이 지나기 전엔 경로를 다시 짜지 않고 기존
+	// 경로를 계속 따른다(PathFollowingComponent 가 매 프레임 추종). 매 브레인 틱 재탐색(과도한 길찾기)
+	// 방지. 이동 중이 아니면(경로 없음/끝남) 간격과 무관하게 즉시 재탐색해 끊김 없이 출발한다.
+	if (UWorld* World = GetWorld())
+	{
+		const float Now = World->GetGameTimeSeconds();
+		if (Brain->IsMoveActive() && Now < NextChaseRepathTime)
+		{
+			return;
+		}
+		NextChaseRepathTime = Now + (std::max)(0.0f, ChaseRepathInterval);
+	}
+
 	const float Acceptance = (std::max)(0.3f, DefaultAttackRange * 0.4f);
 	FVector GoalLocation = ComputeSlotLocation(Brain->GetTarget());
 
 	// 시야가 끊긴 상태에서는 actor 현재 위치가 아니라 마지막으로 본 위치로 이동한다.
 	// 이렇게 해야 벽 너머 actor pointer를 직접 추적하면서 비정상적인 공격/회전/슬롯팅을 하지 않는다.
+	bool bUsingLastSeen = false;
 	if (UAIBlackboardComponent* BB = Blackboard.Get())
 	{
 		const bool bCanSee = BB->GetBool(FName("CanSee"));
@@ -1352,13 +1367,59 @@ void AEnemyCharacter::Brain_Chase()
 		if (!bCanSee && !bInProximity && bLastSeenValid)
 		{
 			GoalLocation = BB->GetLastSeenLocation();
+			bUsingLastSeen = true;
 		}
 	}
 
-	if (!RequestMoveToLocation(GoalLocation, Acceptance, true) && !Brain->IsMoveActive())
+	AAIController* Controller = GetEnemyAIController();
+	bool bMoved = RequestMoveToLocation(GoalLocation, Acceptance, true);
+	// partial = 목표 셀까지 완전히 못 닿음. 그대로 두면 보스가 도달 불가 슬롯의 가장 가까운 끝점에 latch
+	// 되어 "같은 자리만 맴돈다"(강제로 옮겨도 되돌아옴). 슬롯이 fail 또는 partial 이면 타깃 본체로 폴백한다.
+	bool bPartial = Controller && Controller->WasLastPathPartial();
+
+	if ((!bMoved || bPartial) && !bUsingLastSeen)
 	{
+		// 슬롯(링 좌표)이 벽/가장자리/섬에 걸려 도달 불가일 수 있다. 시야가 있을 때만 타깃 실제 위치로
+		// 직접 추적한다(플레이어가 선 곳은 도달 가능 — 슬롯은 선호 위치일 뿐, 추적 자체보다 우선하지 않는다).
+		if (AActor* Target = Brain->GetTarget())
+		{
+			const FVector TargetLoc = Target->GetActorLocation();
+			if (FVector::DistSquared(TargetLoc, GoalLocation) > 0.01f)
+			{
+				if (RequestMoveToLocation(TargetLoc, Acceptance, true))
+				{
+					bMoved = true;
+					bPartial = Controller && Controller->WasLastPathPartial();
+				}
+			}
+		}
+	}
+
+	if (!bMoved && !Brain->IsMoveActive())
+	{
+		// 슬롯·타깃 위치 모두 경로 실패 → 정확한 사유를 (사유가 바뀔 때) 찍는다: 시작점 off-nav /
+		// 목표 off-nav / 연결 경로 없음 등.
+		const FString Reason = Brain->GetLastMoveFailureReason();
+		if (Reason != LastChaseFailReason)
+		{
+			LastChaseFailReason = Reason;
+			UE_LOG("[EnemyAI] Brain_Chase move failed. Enemy=%s Reason=%s", GetName().c_str(), Reason.c_str());
+		}
 		StopEnemyMovement();
-		//UE_LOG("[EnemyAI] Brain_Chase move failed. Enemy=%s Reason=%s", GetName().c_str(), Brain->GetLastMoveFailureReason().c_str());
+	}
+	else if (bPartial)
+	{
+		// 타깃 본체로도 부분 경로 → 보스(또는 타깃)가 섬/도달 불가 영역에 있을 가능성. 한 번만 알린다.
+		const FString Tag = "partial-to-target";
+		if (Tag != LastChaseFailReason)
+		{
+			LastChaseFailReason = Tag;
+			UE_LOG("[EnemyAI] Brain_Chase partial path to target (목표/시작이 섬·도달불가일 수 있음). Enemy=%s", GetName().c_str());
+		}
+	}
+	else
+	{
+		LastChaseFailReason.clear();
 	}
 }
 
@@ -1627,18 +1688,22 @@ bool AEnemyCharacter::FindStableLeapDirection(const FVector& Origin, const FVect
 	}
 	Base = Base.Normalized();
 
-	// 회랑 샘플 간격/스냅 허용오차는 nav 셀(≈0.75m) 기준. 샘플이 walkable 셀에서 SnapTol 이상 떨어지면
-	// 그 지점은 안정 지형이 아니므로 거기서 회랑을 끊는다.
+	// 회랑 샘플 간격. 스냅 허용오차는 nav 셀(≈0.75m) 양자화를 흡수하도록 약간 넉넉히 둔다(과거 0.90 은
+	// 그리드 정렬이 어긋난 코앞 셀에서도 회랑을 끊었다).
 	const float ProbeStep = 0.75f;
-	const float SnapTol = 0.90f;
-	// 부채꼴: 정후방을 먼저, 좌우로 벌려가며. 최대 도달거리(연속 walkable)가 가장 긴 방향을 고른다.
+	const float SnapTol = 1.20f;
+	// 핵심: 도약은 "걷는 경로"가 아니다 — 작은 틈은 공중으로 건너뛸 수 있다. 이만큼(연속) 바닥이 비어야
+	// 비로소 낭떠러지/맵 끝으로 보고 회랑을 끊는다. 과거엔 한 칸만 비어도 즉시 끊어 정후방에 작은 구멍/
+	// 슬로프 단차만 있어도 코앞에서 멈춰 → MinAcceptDist 미달 → 항상 제자리 팝만 반복했다.
+	const float GapTolerance = ProbeStep * 3.0f;
+	// 부채꼴: 정후방을 먼저, 좌우로 벌려가며. navmesh 위 착지 가능 거리가 가장 긴 방향을 고른다.
 	const float AnglesDeg[] = { 0.0f, 20.0f, -20.0f, 40.0f, -40.0f };
-	// 도약을 "할 만한" 최소 후퇴 거리. HorizForce 는 실제 가용 회랑(SafeDist)에 맞춰 클램프되므로
-	// 게이트에서 큰 거리를 요구할 이유가 없다(짧은 회랑이면 그만큼만 뛴다). 과거엔 탄도 최대거리
-	// (NominalRange = LeapHorizontalForce 기준 수십~수백 m)의 35%를 요구해, 현실 아레나에선 정후방
-	// 46m 같은 회랑이 사실상 없어 항상 false → 제자리 팝만 반복했다. 보스 캡슐 지름 정도(최소
-	// ProbeStep×2)만 빠질 수 있으면 도약을 수용하고, 회랑 길이에 맞춰 착지 지점을 정한다.
+	// 도약할 가치가 있는 최소 후퇴 거리(보스 캡슐 지름 정도). HorizForce 는 실제 도달거리에 맞춰 클램프된다.
 	const float MinAcceptDist = (std::min)(MaxDistance, (std::max)(ProbeStep * 2.0f, Agent.Radius * 2.0f));
+	// 셀 간 높이차는 수직 단차가 아니라 경사로다(navmesh 연결 규칙과 동일). 틈을 건너뛸수록 수평 간격이
+	// 커지니 그만큼 더 큰 높이차를 허용한다.
+	const float SlopeDeg = (std::max)(0.0f, (std::min)(89.0f, Agent.MaxSlopeDegrees));
+	const float SlopeTan = tanf(SlopeDeg * FMath::DegToRad);
 
 	bool bAny = false;
 	FVector BestDir = Base;
@@ -1657,28 +1722,57 @@ bool AEnemyCharacter::FindStableLeapDirection(const FVector& Origin, const FVect
 		}
 		Dir = Dir.Normalized();
 
-		float Reach = 0.0f;
-		float PrevZ = Origin.Z;
+		float Reach = 0.0f;        // navmesh 위에 착지 가능한 가장 먼 거리
+		float LastGoodD = 0.0f;
+		float LastGoodZ = Origin.Z;
+		float GapRun = 0.0f;       // 현재까지 연속으로 바닥이 빈 거리
+		bool bHaveGround = false;
 		for (float D = ProbeStep; D <= MaxDistance + 0.001f; D += ProbeStep)
 		{
 			const FVector Sample(Origin.X + Dir.X * D, Origin.Y + Dir.Y * D, Origin.Z);
 			FVector Projected;
-			if (!Nav->ProjectPointToNavigation(Sample, Projected, Agent))
+			bool bGood = Nav->ProjectPointToNavigation(Sample, Projected, Agent);
+			if (bGood)
 			{
-				break; // 이 지점 아래엔 walkable 지형이 없음 → 회랑 끝
+				const float DX = Projected.X - Sample.X;
+				const float DY = Projected.Y - Sample.Y;
+				if (DX * DX + DY * DY > SnapTol * SnapTol)
+				{
+					bGood = false; // 가장 가까운 walkable 셀이 멀다 = 여기엔 바닥 없음(구멍/맵 밖)
+				}
 			}
-			const float DX = Projected.X - Sample.X;
-			const float DY = Projected.Y - Sample.Y;
-			if (DX * DX + DY * DY > SnapTol * SnapTol)
+			if (bGood && bHaveGround)
 			{
-				break; // 가장 가까운 walkable 셀이 멀다 = 이 지점은 비walkable(구멍/맵 밖) → 회랑 끝
+				const float Span = (std::max)(ProbeStep, D - LastGoodD);
+				const float AllowedZ = (std::max)(LeapLandingMaxStepHeight, Span * SlopeTan) + 0.02f;
+				if (fabsf(Projected.Z - LastGoodZ) > AllowedZ)
+				{
+					bGood = false; // 경사로도 아닌 급격한 턱/낭떠러지
+				}
 			}
-			if (fabsf(Projected.Z - PrevZ) > LeapLandingMaxStepHeight)
+
+			if (bGood)
 			{
-				break; // 셀 간 높이차 과다(턱/낭떠러지) → 회랑 끝
+				Reach = D;
+				LastGoodD = D;
+				LastGoodZ = Projected.Z;
+				bHaveGround = true;
+				GapRun = 0.0f;
 			}
-			PrevZ = Projected.Z;
-			Reach = D;
+			else
+			{
+				GapRun += ProbeStep;
+				// 아직 바닥을 한 번도 못 만났는데 코앞부터 비어 있으면 이 방향은 가망 없음.
+				if (!bHaveGround && D > GapTolerance + ProbeStep)
+				{
+					break;
+				}
+				// 도약으로도 건너뛸 수 없는 큰 틈 → 회랑 끝(여기까지의 Reach 로 착지).
+				if (bHaveGround && GapRun > GapTolerance)
+				{
+					break;
+				}
+			}
 		}
 
 		if (Reach >= MinAcceptDist)
