@@ -44,6 +44,10 @@ public:
 	FString GetLastMoveFailureReason() const { return LastMoveFailureReason; }
 	UFUNCTION(Pure, Category="AIController|Movement")
 	int32 GetCurrentPathPointCount() const;
+	// 현재(가장 최근 계산된) 경로가 목표에 완전히 닿지 못한 부분 경로인가. 재사용 시에도 직전 계산값을
+	// 유지한다 — 추격 AI가 "슬롯이 도달 불가(partial)면 타깃 본체로 폴백" 같은 판단에 쓴다.
+	UFUNCTION(Pure, Category="AIController|Movement")
+	bool WasLastPathPartial() const { return bLastPathWasPartial; }
 
 	UFUNCTION(Callable, Category="AIController|Navigation")
 	void SetRepathInterval(float InInterval) { RepathInterval = InInterval < 0.0f ? 0.0f : InInterval; }
@@ -88,4 +92,5 @@ private:
 	bool bCurrentMoveUsesPathfinding = true;
 	EPathFollowingRequestResult LastMoveRequestResult = EPathFollowingRequestResult::Failed;
 	FString LastMoveFailureReason;
+	bool bLastPathWasPartial = false;
 };

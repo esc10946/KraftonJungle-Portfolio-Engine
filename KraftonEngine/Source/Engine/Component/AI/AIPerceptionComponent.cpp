@@ -216,8 +216,14 @@ void UAIPerceptionComponent::UpdateSenses()
     const bool bInRange = FlatDist <= SightRange;
     const bool bInFov   = AbsAngle <= (FieldOfViewDegrees * 0.5f);
     bHasLineOfSight     = (!bRequireLineOfSight) || ComputeLineOfSight(TargetActor);
-    const bool bVisible = bInRange && bInFov && bHasLineOfSight;
     const bool bInProximity = FlatDist <= ProximityRange;
+    // FOV 콘은 "최초 발견"용이다. 이미 교전(Alert) 중인 타깃은 측면/뒤로 돌아 콘을 벗어나도 FOV 로 잃지
+    // 않는다 — 사거리 안이고 벽에 가리지 않으면(LOS) 계속 추적한다. FOV 로만 잃게 두면, 리치 긴 큰 보스가
+    // ProximityRange 밖에서 교전할 때 플레이어가 살짝 돌기만 해도 CanSee 가 꺼져 Searching 으로 빠진다.
+    // ProximityRange 안(근접)이면 고저차 LOS 미세 차단도 무시한다(교전 중 타깃은 잃지 않는다).
+    UAwarenessComponent* AwarenessForSight = Owner->GetComponentByClass<UAwarenessComponent>();
+    const bool bEngaged = AwarenessForSight && AwarenessForSight->IsInCombat();
+    const bool bVisible = bInRange && (bInProximity || ((bEngaged || bInFov) && bHasLineOfSight));
     bCanSeeTarget       = bVisible;
     BB->SetBool(Key_CanSee, bVisible);
     BB->SetBool(Key_HasLOS, bHasLineOfSight);

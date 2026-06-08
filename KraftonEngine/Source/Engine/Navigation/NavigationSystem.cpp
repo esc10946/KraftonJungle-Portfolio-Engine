@@ -2,6 +2,7 @@
 
 #include "Navigation/GridNavMesh.h"
 #include "Navigation/NavigationData.h"
+#include "Core/Logging/Log.h"
 #include "Core/Types/EngineTypes.h"
 #include "GameFramework/Actor/NavMeshBoundsVolume.h"
 #include "GameFramework/World.h"
@@ -365,6 +366,9 @@ bool UNavigationSystem::RebuildNavigation()
 		CachedMainNavData.Reset(Grid);
 		LastQueryMessage = Grid->GetLastBuildMessage();
 		TimeSinceLastRebuild = 0.0f;
+		// Game 빌드에는 에디터 nav 오버레이가 없어 빌드 결과를 볼 수 없다. 빌드마다 결과를 로그로 남겨
+		// "BeginPlay 시점 navmesh 가 비었는지"(Walkable=0 → 보스 길찾기 실패의 정체)를 콘솔/로그에서 확인.
+		UE_LOG("[Nav] RebuildNavigation Built=%s %s", bBuilt ? "true" : "false", LastQueryMessage.c_str());
 		return bBuilt;
 	}
 
@@ -372,6 +376,7 @@ bool UNavigationSystem::RebuildNavigation()
 	const bool bBuilt = Data && Data->RebuildNavigationData();
 	LastQueryMessage = bBuilt ? "RebuildNavigation succeeded" : "RebuildNavigation failed: no NavigationData";
 	TimeSinceLastRebuild = 0.0f;
+	UE_LOG("[Nav] RebuildNavigation Built=%s %s", bBuilt ? "true" : "false", LastQueryMessage.c_str());
 	return bBuilt;
 }
 

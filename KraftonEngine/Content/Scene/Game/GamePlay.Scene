@@ -4247,9 +4247,9 @@
           "ObjectId" : 125,
           "Properties" : {
             "EyeHeight" : 1.600000,
-            "FieldOfViewDegrees" : 120.000000,
-            "ProximityRange" : 5.000000,
-            "SightRange" : 45.000000,
+            "FieldOfViewDegrees" : 178.000000,
+            "ProximityRange" : 15.000000,
+            "SightRange" : 70.000000,
             "StimulusMemoryTicks" : 90,
             "bAutoActivate" : true,
             "bEditorOnly" : false,
