@@ -54,11 +54,11 @@ Texture2D Tex_Diffuse : register(t0);
 
 FMaterialResult EvaluateMaterial(FMaterialPixelInput Input)
 {
-    float2 n_63 = ((float2(fmod(floor(Input.SubImageIndex * 12), 4), floor(Input.SubImageIndex * 12 / 4)) + Input.UV0) * float2(1.0f/4, 1.0f/3));
+    float2 n_63 = ((float2(fmod(floor(Input.SubImageIndex), 4), floor(Input.SubImageIndex / 4)) + Input.UV0) * float2(1.0f/4, 1.0f/3));
     float4 n_17 = Tex_Diffuse.Sample(LinearWrapSampler, n_63);
     float4 n_27 = Input.ParticleColor;
     float3 n_34 = ((n_17).rgb * (n_27).rgb);
-    float3 n_40 = (float4(n_34, 0.0f)).rgb;
+    float3 n_40 = (float4(n_34, 1.0f)).rgb;
     float n_45 = ((n_17).a * (n_27).a);
     FMaterialResult Result;
     Result.Color = n_40;
