@@ -5385,6 +5385,11 @@
         "AIControllerClass" : "AAIController",
         "AttackTokenSafetyBuffer" : 0.150000,
         "AttackVerticalTolerance" : 1.250000,
+        "BossDeathMontage" : {
+          "AssetPath" : "Content/Montages/Anim_SkeletonDeath1_Samura2Matched_Unreal_Take_Montage.uasset",
+          "ClassName" : "UAnimMontage"
+        },
+        "BossDeathMontagePlayRate" : 1.000000,
         "BrainBehaviorTreeFile" : "",
         "BrainBlueprintFile" : "",
         "BrainScriptFile" : "AI/samurai_boss_brain.lua",
@@ -10487,7 +10492,7 @@
       "NonSceneComponents" : [],
       "ObjectId" : 349,
       "Properties" : {
-        "PendingActorLocation" : [1.768567, 4.336665, 81.578400],
+        "PendingActorLocation" : [2.275520, 4.013936, 79.804779],
         "PendingActorRotation" : [-0.000000, 0.000000, 0.000000],
         "PendingActorScale" : [1.000000, 1.000000, 1.000000],
         "PendingActorVisible" : true,
@@ -10506,7 +10511,7 @@
           "CurrentLODIndex" : 0,
           "Mass" : 1.000000,
           "ObjectType" : 0,
-          "RelativeTransform.Location" : [1.768567, 4.336665, 81.578400],
+          "RelativeTransform.Location" : [2.275520, 4.013936, 79.804779],
           "RelativeTransform.Scale" : [1.000000, 1.000000, 1.000000],
           "ResponseContainer" : {
             "Responses[0]" : 2,
@@ -10525,7 +10530,7 @@
           "bEnableCCD" : false,
           "bGenerateOverlapEvents" : false,
           "bHiddenInComponentTree" : false,
-          "bIsActive" : false,
+          "bIsActive" : true,
           "bIsVisible" : true,
           "bKinematic" : false,
           "bResetOnActivate" : false,
@@ -10542,9 +10547,9 @@
   "PerspectiveCamera" : {
     "FOV" : 1.047198,
     "FarClip" : 1000.000000,
-    "Location" : [8.869042, -2.847241, 81.801720],
+    "Location" : [6.958009, -4.925117, 80.284004],
     "NearClip" : 0.100000,
-    "Rotation" : [0.000000, 14.449640, 1568.988281]
+    "Rotation" : [0.000000, 13.399614, 1564.943359]
   },
   "Version" : 2,
   "WorldSettings" : {

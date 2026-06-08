@@ -33,6 +33,7 @@ void UAnimMontageInstance::Play(UAnimMontage* InMontage, FName StartSection, flo
     CurrentSectionIndex = SectionIdx;
     SectionTime         = 0.0f;
     PendingNextSection  = FName::None;
+    bHoldFinalFrame     = false;
 
     EnterBlendingIn(InBlendInTime > 0.0f ? InBlendInTime : InMontage->GetBlendInTime());
 }
@@ -139,6 +140,7 @@ void UAnimMontageInstance::FinishStop()
     SectionTime         = 0.0f;
     BlendAlpha          = 0.0f;
     PendingNextSection  = FName::None;
+    bHoldFinalFrame     = false;
 }
 
 bool UAnimMontageInstance::AdvanceSection(UAnimInstance* Owner)
@@ -156,6 +158,14 @@ bool UAnimMontageInstance::AdvanceSection(UAnimInstance* Owner)
     if (NextName == FName::None)
     {
         // chain 종료 → BlendOut.
+        if (bHoldFinalFrame)
+        {
+            SectionTime = std::max(Cur.LinkTime - Cur.StartTime, 0.0f);
+            BlendAlpha = 1.0f;
+            State = EState::Playing;
+            LastRootMotionDelta = FTransform();
+            return false;
+        }
         EnterBlendingOut(CurrentMontage->GetBlendOutTime());
         return false;
     }

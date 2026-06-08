@@ -41,6 +41,7 @@ Config.ATTACK_HIT_CAMERA_ZOOM_IN_TIME = 0.03
 Config.ATTACK_HIT_CAMERA_ZOOM_HOLD_TIME = 0.04
 Config.ATTACK_HIT_CAMERA_ZOOM_OUT_TIME = 0.12
 Config.DEFENSE_IDLE_MONTAGE_PATH = "Content/Montages/Twin_Defense_Montage.uasset"
+Config.DEATH_MONTAGE_PATH = "Content/Montages/Twin_Death_Montage.uasset"
 Config.COUNTER_MONTAGE_PATH = "Content/Montages/Twin_Cross_Montage.uasset"
 Config.COUNTER_SECTION = "Cross"
 Config.COUNTER_CAMERA_SHAKE_PATH = "Content/Data/FGJ_Character/CameraWork/CrossShake.uasset"

@@ -1,5 +1,7 @@
 #include "GameFramework/Pawn/BossEnemyCharacter.h"
 
+#include "Animation/AnimInstance.h"
+#include "Animation/Montage/AnimMontageInstance.h"
 #include "Component/AI/EncounterComponent.h"
 #include "Component/AI/EnemyAIBrainComponent.h"
 #include "Component/AI/PhaseComponent.h"
@@ -162,6 +164,22 @@ void ABossEnemyCharacter::HandleDeath(UHealthComponent* Component, AActor* Damag
 	bExecutionPriorityWindowActive = false;
 	PendingExecutionPhase = 0;
 	Super::HandleDeath(Component, DamageCauser, InstigatorActor);
+	if (BossDeathMontage)
+	{
+		if (PlayCombatMontageRated(BossDeathMontage, BossDeathMontagePlayRate, 0.08f))
+		{
+			if (UAnimInstance* AnimInstance = GetAnimInstance())
+			{
+				if (UAnimMontageInstance* MontageInstance = AnimInstance->GetMontageInstance())
+				{
+					if (MontageInstance->GetCurrentMontage() == BossDeathMontage)
+					{
+						MontageInstance->SetHoldFinalFrame(true);
+					}
+				}
+			}
+		}
+	}
 	CompleteBossEncounter();
 }
 
