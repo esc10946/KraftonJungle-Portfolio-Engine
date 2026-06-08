@@ -1340,6 +1340,9 @@
     <ClCompile Include="Source\Engine\Component\Character\CharacterStateMachineComponent.cpp">
       <Filter>Source\Engine\Component\Character</Filter>
     </ClCompile>
+    <ClCompile Include="Source\Engine\Component\Combat\CombatFeedbackComponent.cpp">
+      <Filter>Source\Engine\Component\Combat</Filter>
+    </ClCompile>
     <ClCompile Include="Source\Engine\Component\Combat\CombatHitEventComponent.cpp">
       <Filter>Source\Engine\Component\Combat</Filter>
     </ClCompile>
@@ -2863,6 +2866,9 @@
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\Character\CharacterStateMachineComponent.h">
       <Filter>Source\Engine\Component\Character</Filter>
+    </ClInclude>
+    <ClInclude Include="Source\Engine\Component\Combat\CombatFeedbackComponent.h">
+      <Filter>Source\Engine\Component\Combat</Filter>
     </ClInclude>
     <ClInclude Include="Source\Engine\Component\Combat\CombatHitEventComponent.h">
       <Filter>Source\Engine\Component\Combat</Filter>

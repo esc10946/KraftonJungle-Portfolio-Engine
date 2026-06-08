@@ -554,6 +554,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClCompile Include="Source\Engine\Component\Camera\CineCameraComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Camera\SpringArmComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Character\CharacterStateMachineComponent.cpp" />
+    <ClCompile Include="Source\Engine\Component\Combat\CombatFeedbackComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Combat\CombatHitEventComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Combat\CombatMoveComponent.cpp" />
     <ClCompile Include="Source\Engine\Component\Combat\CombatStateComponent.cpp" />
@@ -1064,6 +1065,7 @@ xcopy /Y "$(ProjectDir)ThirdParty\fbx\lib\x64\release\libfbxsdk.dll" "$(OutDir)"
     <ClInclude Include="Source\Engine\Component\Camera\CineCameraComponent.h" />
     <ClInclude Include="Source\Engine\Component\Camera\SpringArmComponent.h" />
     <ClInclude Include="Source\Engine\Component\Character\CharacterStateMachineComponent.h" />
+    <ClInclude Include="Source\Engine\Component\Combat\CombatFeedbackComponent.h" />
     <ClInclude Include="Source\Engine\Component\Combat\CombatHitEventComponent.h" />
     <ClInclude Include="Source\Engine\Component\Combat\CombatMoveComponent.h" />
     <ClInclude Include="Source\Engine\Component\Combat\CombatStateComponent.h" />
