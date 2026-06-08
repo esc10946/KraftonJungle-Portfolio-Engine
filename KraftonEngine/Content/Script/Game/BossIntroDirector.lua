@@ -13,17 +13,20 @@ local HAND_BONES = { "hand_r", "RightHand", "mixamorig:RightHand", "weapon_r" }
 local HUD_HIDE_FLAG = "BossIntroHUDHidden"
 local START_FLAG = "BossIntroDirectorStartOk"
 local BOSS_TAG = "Boss"
+local BLOOD_MOON_TAG = "BloodMoon"
 
 local COLLISION_NONE = 0
 local COLLISION_QUERY_AND_PHYSICS = 3
 
-local boss, player, cine
+local boss, player, cine, bloodMoon
 local t = 0.0
 local started = false
 local setup_done = false
 local handed_off = false
 local hud_restored_after_intro = false
 local boss_dormant = false
+local intro_cutscene_entered = false
+local intro_cinematic_fired = false
 local walk_from, walk_to
 local collision_state = {}
 
@@ -124,6 +127,15 @@ local function resolve_boss()
     boss = boss or first_by_tag(BOSS_TAG) or first_by_class("ABossEnemyCharacter") or first_by_class("BossEnemyCharacter")
     return boss
 end
+local function resolve_blood_moon()
+    bloodMoon = bloodMoon or first_by_tag(BLOOD_MOON_TAG)
+    return bloodMoon
+end
+local function set_blood_moon_visible(visible)
+    if Scene and Scene.SetActorVisible and resolve_blood_moon() then
+        Scene.SetActorVisible(bloodMoon, visible)
+    end
+end
 local function for_each_primitive(actor, fn)
     if not actor or not actor.GetComponents then return end
     local seen = {}
@@ -214,6 +226,7 @@ local function set_boss_collision_enabled(enabled)
 end
 local function make_boss_dormant()
     if started or handed_off then return false end
+    set_blood_moon_visible(false)
     if not resolve_boss() then return false end
     set_boss_visible(false)
     set_boss_collision_enabled(false)
@@ -257,7 +270,6 @@ function StartIntro()
     if not wake_boss_for_intro() then
         if _G ~= nil then _G[START_FLAG] = false end
         dbg("StartIntro failed: boss not found")
-        if Game and Game.ExitCutscene then Game.ExitCutscene() end
         return false
     end
 
@@ -265,13 +277,25 @@ function StartIntro()
     started = true
     setup_done = false
     hud_restored_after_intro = false
+    intro_cutscene_entered = false
+    intro_cinematic_fired = false
     t = 0.0
     walk_from, walk_to = nil, nil
     hide_hud_for_intro()
     ensure_player_possessed()
-    if Game and Game.EnterCutscene then Game.EnterCutscene() end
     dbg("intro started")
     return true
+end
+local function fire_intro_cinematic()
+    if intro_cinematic_fired then return end
+    intro_cinematic_fired = true
+
+    set_blood_moon_visible(true)
+    if Game and Game.EnterCutscene then
+        Game.EnterCutscene()
+        intro_cutscene_entered = true
+    end
+    if cine then rcall(cine,"Play") end
 end
 local function do_setup()
     setup_done = true
@@ -300,7 +324,7 @@ local function do_setup()
         end
     end)
     cine = first_by_tag("CinematicIntro") or first_by_class("ACameraCinematicActor")
-    if cine then rcall(cine,"Play") end
+    fire_intro_cinematic()
     dbg("setup: player=" .. tostring(player ~= nil) .. " boss=" .. tostring(boss ~= nil) .. " katana=" .. tostring(attached))
 end
 function Tick(dt)
@@ -326,11 +350,13 @@ function Tick(dt)
         end
         show_boss_ui_after_intro()
         if Game and Game.ExitCutscene then Game.ExitCutscene() end
+        intro_cutscene_entered = false
         dbg("intro complete -> boss encounter active")
     end
 end
 
 function EndPlay()
     if started then restore_hud_after_intro() end
+    if intro_cutscene_entered and Game and Game.ExitCutscene then Game.ExitCutscene() end
     if not handed_off and boss_dormant then hide_boss_ui() end
 end

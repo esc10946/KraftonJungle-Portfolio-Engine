@@ -9,12 +9,10 @@
 -- the *music*, not the fight.
 --
 -- On trigger (fires once), when all minor enemies are dead:
---   * locks input for the beat via Game.EnterCutscene
---   * reveals the blood-moon actor (Scene.SetActorVisible)
 --   * lerps the mood spotlight -> red and the height fog -> dark blue
 --   * fades the battle BGM out across that same lerp window (BGMState)
 --   * once settled: starts the boss BGM at full volume (no fade-in) and
---     releases input via Game.ExitCutscene
+--     calls BossIntroDirector.StartIntro
 --
 -- Atmosphere setters come from the Game-side `Scene` Lua table
 -- (Source/Game/Lua/GameLuaBindings.cpp), which resolves the typed
@@ -163,13 +161,6 @@ local function begin_transition()
         fogFrom = { r, g, b, a }
     end
 
-    -- Lock input for the reveal beat.
-    if Game and Game.EnterCutscene then Game.EnterCutscene() end
-
-    -- Blood moon rises.
-    if Scene and Scene.SetActorVisible and bloodMoon then
-        Scene.SetActorVisible(bloodMoon, true)
-    end
 end
 
 local function apply_look(s)
@@ -218,7 +209,7 @@ function Tick(dt)
         return
     end
 
-    -- Transition running: ease the night look in, then release input.
+    -- Transition running: ease the night look in, then hand off to the boss intro.
     t = t + (dt or 0.0)
     local s = math.min(1.0, t / LERP_TIME)
     apply_look(s)
@@ -239,7 +230,6 @@ function Tick(dt)
         if start_boss_intro() then
             dbg("atmosphere settled -> boss intro")
         else
-            if Game and Game.ExitCutscene then Game.ExitCutscene() end
             dbg("atmosphere settled -> boss BGM, no intro director found")
         end
     end
