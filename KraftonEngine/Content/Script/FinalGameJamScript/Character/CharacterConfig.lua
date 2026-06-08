@@ -110,4 +110,10 @@ Config.HIT_MONTAGE_PATHS = {
     R = "Content/Montages/Twin_Hit_R_Montage.uasset",
 }
 
+Config.POSTURE_BREAK_MONTAGE_PATH = "Content/Montages/Twin_TakeDown2_Montage.uasset"
+Config.POSTURE_BREAK_SOUND_KEY = "Groggy"
+Config.POSTURE_BREAK_SOUND_PATH = "Groggy.wav"
+Config.POSTURE_BREAK_SOUND_VOLUME = 1.0
+Config.POSTURE_BREAK_DAMAGE = 35.0
+
 return Config

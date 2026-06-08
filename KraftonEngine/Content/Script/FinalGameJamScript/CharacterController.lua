@@ -9,6 +9,7 @@ local LockOn = require("FinalGameJamScript/Character/CharacterLockOn")
 local PlayerGameState = require("FinalGameJamScript/Character/PlayerGameState")
 local Execution = require("FinalGameJamScript/Character/CharacterExecution")
 local Commands = require("FinalGameJamScript/Character/CharacterCommands")
+local Posture = require("FinalGameJamScript/Character/CharacterPosture")
 
 local ctx = nil
 
@@ -24,6 +25,7 @@ function BeginPlay()
     HitReaction.BeginPlay(ctx)
     LockOn.BeginPlay(ctx)
     Execution.BeginPlay(ctx)
+    Posture.BeginPlay(ctx)
 end
 
 function Tick(dt)
@@ -44,6 +46,10 @@ function OnDamaged(damageSpec, damageReport)
     end
 
     if PlayerGameState.HandleDamaged(ctx, damageSpec, damageReport) then
+        return
+    end
+
+    if Posture.HandleDamaged(ctx) then
         return
     end
 
