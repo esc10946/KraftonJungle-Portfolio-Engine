@@ -367,6 +367,11 @@ public:
 	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Leap Horizontal Force", Min=0.0f, Max=100.0f, Speed=0.5f)
 	float LeapHorizontalForce = 40.0f;
 
+	// 백점프 수직 도약력(m/s). JumpZVelocity 보다 크게 줘서 발사각을 세워 낮은 턱/단차를 넘는다.
+	// 0 이하이면 캐릭터 JumpZVelocity 로 폴백. 너무 크면 체공이 길어지니(거리=Z 비례) 적당히.
+	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Leap Vertical Force", Min=0.0f, Max=40.0f, Speed=0.5f)
+	float LeapVerticalForce = 16.0f;
+
 	// 백점프 준비동작(프렙) 시간(초). JumpUp 몽타주의 도약 직전까지 기다렸다가 실제로 발사한다
 	// (준비 중에 떠버리는 문제 방지). 애님의 takeoff 프레임에 맞춰 조절.
 	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Leap Prep Delay", Min=0.0f, Max=1.0f, Speed=0.01f)

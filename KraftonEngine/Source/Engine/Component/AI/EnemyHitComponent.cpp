@@ -120,28 +120,12 @@ EEnemyHitDirection UEnemyHitComponent::ResolveHitDirection(AActor* DamageCauser,
 
 bool UEnemyHitComponent::PlayHitMontage(AActor* DamageCauser, AActor* InstigatorActor)
 {
-	const EEnemyHitDirection Direction = ResolveHitDirection(DamageCauser, InstigatorActor);
-
-	// 상체 레이어 모드: "UpperBody" 슬롯으로 재생 → 상체 본에만 블렌드되어 하체 로코모션/공격이
-	// 안 끊긴다. 풀바디 StopMontage 도 하지 않는다.
-	if (bUseUpperBodyHitLayer)
-	{
-		UAnimMontage* Montage = SelectMontage(HitMontages, Direction);
-		ACharacter* Character = Cast<ACharacter>(GetOwner());
-		USkeletalMeshComponent* MeshComponent = Character ? Character->GetMesh() : nullptr;
-		UAnimInstance* AnimInstance = MeshComponent ? MeshComponent->GetAnimInstance() : nullptr;
-		if (Montage && AnimInstance)
-		{
-			AnimInstance->SetUpperBodyMaskRoot(UpperBodyMaskRootBone);
-			AnimInstance->PlayMontage(Montage, FName::None,
-				SanitizeMontagePlayRate(HitMontagePlayRate), -1.0f,
-				UAnimInstance::UpperBodyMontageSlot);
-			return true;
-		}
-		return false;
-	}
-
-	return PlayDirectionalMontage(HitMontages, Direction, bStopCurrentMontageBeforeHit, HitMontagePlayRate);
+	return PlayDirectionalMontage(
+		HitMontages,
+		ResolveHitDirection(DamageCauser, InstigatorActor),
+		bStopCurrentMontageBeforeHit,
+		HitMontagePlayRate
+	);
 }
 
 bool UEnemyHitComponent::PlayDeathMontage(AActor* DamageCauser, AActor* InstigatorActor)

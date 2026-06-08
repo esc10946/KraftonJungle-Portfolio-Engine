@@ -6,8 +6,6 @@
 #include "Animation/Sequence/AnimSequenceBase.h"
 #include "Animation/AnimationRuntime.h"
 #include "Animation/Nodes/AnimNode_Root.h"
-#include "Animation/Nodes/AnimNode_LayeredBlendPerBone.h"   // BuildBoneMaskFromRoot
-#include "Animation/PoseContext.h"
 #include "Component/Primitive/SkeletalMeshComponent.h"
 #include "Mesh/Skeletal/SkeletalMesh.h"
 #include "GameFramework/Pawn/Pawn.h"
@@ -18,7 +16,6 @@
 
 // Static 멤버 정의 — slot 이름 미지정 시 fallback. 가독성 위해 cpp 상단에 둠.
 const FName UAnimInstance::DefaultMontageSlot = FName("DefaultSlot");
-const FName UAnimInstance::UpperBodyMontageSlot = FName("UpperBody");
 
 void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 {
@@ -116,62 +113,7 @@ void UAnimInstance::EvaluatePose(FPoseContext& Output)
 
 	EvaluateMontageSlot(DefaultMontageSlot, Output);
 
-	// 상체 레이어 — "UpperBody" 슬롯(피격 리액션 등)을 상체 본에만 덮어 base/하체는 유지.
-	EvaluateUpperBodyMontageLayer(Output);
-
 	PostEvaluatePose(Output);
-}
-
-void UAnimInstance::SetUpperBodyMaskRoot(FName BoneName)
-{
-	if (UpperBodyMaskRoot == BoneName) return;
-	UpperBodyMaskRoot = BoneName;
-	UpperBodyMask.clear();          // 캐시 무효화 — 다음 Evaluate 에서 재빌드.
-	UpperBodyMaskCachedMesh = nullptr;
-}
-
-void UAnimInstance::EvaluateUpperBodyMontageLayer(FPoseContext& Output)
-{
-	// 비활성(루트 본 미설정)이면 즉시 반환 — 다른 캐릭터/기존 동작에 영향 없음.
-	const FString RootName = UpperBodyMaskRoot.ToString();
-	if (RootName.empty() || RootName == "None") return;
-
-	// "UpperBody" 슬롯에 활성 몽타주가 있을 때만 합성(없으면 오버헤드 0).
-	FMontageSlotEntry* Entry = FindMontageSlotEntry(UpperBodyMontageSlot);
-	if (!Entry) return;
-	bool bActive = IsValid(Entry->ActiveInstance) && Entry->ActiveInstance->IsActive();
-	for (UAnimMontageInstance* Out : Entry->OutgoingInstances)
-	{
-		bActive = bActive || (IsValid(Out) && Out->IsActive());
-	}
-	if (!bActive) return;
-
-	USkeletalMesh* Mesh = Output.SkeletalMesh ? Output.SkeletalMesh : GetSkeletalMesh();
-	if (!Mesh) return;
-
-	// 본 마스크 캐시(메시 단위). 루트 본 못 찾으면 all-false → 합성 결과 무영향(안전).
-	if (UpperBodyMaskCachedMesh != Mesh || UpperBodyMask.empty())
-	{
-		UpperBodyMask = BuildBoneMaskFromRoot(Mesh, RootName);
-		UpperBodyMaskCachedMesh = Mesh;
-	}
-
-	// 현재(베이스+DefaultSlot) 포즈 복사본 위에 UpperBody 몽타주를 풀바디 합성.
-	FPoseContext UpperCtx;
-	UpperCtx.SkeletalMesh = Output.SkeletalMesh;
-	UpperCtx.Pose = Output.Pose;
-	UpperCtx.MorphWeights = Output.MorphWeights;
-	EvaluateMontageSlot(UpperBodyMontageSlot, UpperCtx);
-
-	// 상체 마스크 본만 Output 으로 되복사 → 하체/베이스는 그대로(로코모션 유지).
-	const size_t BoneCount = Output.Pose.size();
-	for (size_t i = 0; i < BoneCount; ++i)
-	{
-		if (i < UpperBodyMask.size() && UpperBodyMask[i] && i < UpperCtx.Pose.size())
-		{
-			Output.Pose[i] = UpperCtx.Pose[i];
-		}
-	}
 }
 
 void UAnimInstance::SetRootNode(FAnimNode_Base* InRoot)
