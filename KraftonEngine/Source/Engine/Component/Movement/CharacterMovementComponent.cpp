@@ -209,29 +209,7 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, ELevelTick Tick
 				if (AI->GetRootMotionMode() != ERootMotionMode::IgnoreRootMotion)
 				{
 					const FTransform ConsumedRootMotion = AI->ConsumeRootMotion();
-					if (!ConsumedRootMotion.Location.IsNearlyZero())
-					{
-						const FRotator RMRot = ConsumedRootMotion.Rotation.ToRotator();
-						UE_LOG(
-							"[AnimDiag][CMC::RootMotion] consumed owner=%s mesh=%s anim=%s mode=%d local=(%.3f,%.3f,%.3f) yaw=%.3f",
-							GetOwner() ? GetOwner()->GetName().c_str() : "None",
-							Mesh->GetName().c_str(),
-							AI->GetName().c_str(),
-							static_cast<int>(AI->GetRootMotionMode()),
-							ConsumedRootMotion.Location.X,
-							ConsumedRootMotion.Location.Y,
-							ConsumedRootMotion.Location.Z,
-							RMRot.Yaw);
-					}
 					AddRootMotionDelta(ConsumedRootMotion);
-				}
-				else
-				{
-					static uint32 IgnoredRootMotionFrame = 0;
-					if ((++IgnoredRootMotionFrame % 60u) == 0u)
-					{
-						UE_LOG("[AnimDiag][CMC::RootMotion] ignored by mode owner=%s anim=%s", GetOwner() ? GetOwner()->GetName().c_str() : "None", AI->GetName().c_str());
-					}
 				}
 			}
 		}
@@ -268,19 +246,6 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, ELevelTick Tick
 		const FVector World = Forward * RootMotionDelta.Location.X + Right * RootMotionDelta.Location.Y;
 		RootMotionWorldXY.X = World.X;
 		RootMotionWorldXY.Y = World.Y;
-		if (!RootMotionDelta.Location.IsNearlyZero())
-		{
-			UE_LOG(
-				"[AnimDiag][CMC::RootMotion] transform owner=%s forward=(%.3f,%.3f,%.3f) right=(%.3f,%.3f,%.3f) local=(%.3f,%.3f,%.3f) worldXY=(%.3f,%.3f)",
-				GetOwner() ? GetOwner()->GetName().c_str() : "None",
-				Forward.X, Forward.Y, Forward.Z,
-				Right.X, Right.Y, Right.Z,
-				RootMotionDelta.Location.X,
-				RootMotionDelta.Location.Y,
-				RootMotionDelta.Location.Z,
-				RootMotionWorldXY.X,
-				RootMotionWorldXY.Y);
-		}
 	}
 
 	if (MovementMode == EMovementMode::Walking)
@@ -301,11 +266,6 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, ELevelTick Tick
 			R.Yaw += DeltaRot.Yaw;
 			Updated->SetRelativeRotation(R);
 			bAppliedRootMotionYawThisFrame = true;
-			UE_LOG(
-				"[AnimDiag][CMC::RootMotion] applied yaw owner=%s deltaYaw=%.3f newYaw=%.3f",
-				GetOwner() ? GetOwner()->GetName().c_str() : "None",
-				DeltaRot.Yaw,
-				R.Yaw);
 		}
 	}
 

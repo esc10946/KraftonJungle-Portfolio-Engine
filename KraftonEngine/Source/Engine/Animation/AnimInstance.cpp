@@ -22,7 +22,6 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 {
 	if (!IsValid(GetOwningComponent()))
 	{
-		UE_LOG("[AnimDiag][AnimInstance::Update] skip: no owning component instance=%s class=%s", GetName().c_str(), GetClass()->GetName());
 		NotifyQueue.clear();
 		ActiveNotifyStates.clear();
 		PendingRootMotion = FTransform();
@@ -48,21 +47,6 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 	// UE 본가 동일: AnimGraph 평가는 별개 단계. 자식이 graph build 하더라도 graph 평가에
 	// 입력으로 들어갈 변수 (예: Speed, Direction) 를 매 frame 갱신할 곳이 NativeUpdate.
 	// Legacy 자식 (RootNode 없음) 의 NativeUpdate 가 직접 FSM->Tick 호출 — 그쪽도 그대로 동작.
-	static uint32 AnimInstanceUpdateFrame = 0;
-	const bool bLogUpdateSample = ((++AnimInstanceUpdateFrame % 60u) == 0u);
-	if (bLogUpdateSample)
-	{
-		UE_LOG(
-			"[AnimDiag][AnimInstance::Update] begin instance=%s class=%s ownerComp=%s rootNode=%d rootMotionMode=%d dt=%.4f activeNotifyStates=%zu montages=%zu",
-			GetName().c_str(),
-			GetClass()->GetName(),
-			GetOwningComponent()->GetName().c_str(),
-			RootNode ? 1 : 0,
-			static_cast<int>(RootMotionMode),
-			DeltaSeconds,
-			ActiveNotifyStates.size(),
-			MontageSlots.size());
-	}
 	NativeUpdateAnimation(DeltaSeconds);
 
 	// AnimGraph 트리 평가 — set 되어 있으면 root 부터 자식 Update 재귀 호출. 시간 진행 /
@@ -77,10 +61,6 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 		Ctx.FinalBlendWeight = 1.0f;
 		RootNode->Update(Ctx);
 	}
-	else if (bLogUpdateSample)
-	{
-		UE_LOG("[AnimDiag][AnimInstance::Update] no RootNode; legacy montage-only update instance=%s class=%s", GetName().c_str(), GetClass()->GetName());
-	}
 
 	// Montage Tick (legacy fallback) — RootNode 없을 때만 일괄 tick.
 	// RootNode 경로에선 FAnimNode_Slot::Update 가 자기 slot 의 montage tick 책임 (Step 3.1).
@@ -94,18 +74,6 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 	}
 
 	DispatchQueuedAnimEvents();
-	if (bLogUpdateSample)
-	{
-		UE_LOG(
-			"[AnimDiag][AnimInstance::Update] end instance=%s rootNode=%d pendingRM=(%.3f,%.3f,%.3f) notifies=%zu activeStates=%zu",
-			GetName().c_str(),
-			RootNode ? 1 : 0,
-			PendingRootMotion.Location.X,
-			PendingRootMotion.Location.Y,
-			PendingRootMotion.Location.Z,
-			NotifyQueue.size(),
-			ActiveNotifyStates.size());
-	}
 
 	// frame 끝 — unseen 활성 NotifyState 들 NotifyEnd 후 erase. 시퀀스 전환 / weight 0 drop /
 	// 자연 종료 모두 같은 경로로 끝남.
@@ -127,7 +95,6 @@ void UAnimInstance::EvaluatePose(FPoseContext& Output)
 {
 	if (!IsValid(GetOwningComponent()))
 	{
-		UE_LOG("[AnimDiag][AnimInstance::EvaluatePose] ref pose: no owning component instance=%s class=%s", GetName().c_str(), GetClass()->GetName());
 		Output.ResetToRefPose();
 		return;
 	}
@@ -143,7 +110,6 @@ void UAnimInstance::EvaluatePose(FPoseContext& Output)
 
 	// Legacy 경로 — RootNode 없으면 EvaluateAnimation 가상 호출 후 DefaultSlot 의 montage
 	// 만 special-case 합성. 새 코드는 RootNode 경로 사용해 이 path 안 탐.
-	UE_LOG("[AnimDiag][AnimInstance::EvaluatePose] no RootNode; using legacy EvaluateAnimation path instance=%s class=%s ownerComp=%s", GetName().c_str(), GetClass()->GetName(), GetOwningComponent()->GetName().c_str());
 	EvaluateAnimation(Output);
 
 	EvaluateMontageSlot(DefaultMontageSlot, Output);
@@ -574,29 +540,7 @@ void UAnimInstance::AccumulateRootMotion(const FTransform& Delta)
 	// (Step 5 에서 base 누적 호출 지점에 mode 체크가 들어간다 — 여기선 둘 다 통과).
 	if (RootMotionMode == ERootMotionMode::IgnoreRootMotion)
 	{
-		UE_LOG(
-			"[AnimDiag][AnimInstance::RootMotion] ignored instance=%s delta=(%.3f,%.3f,%.3f)",
-			GetName().c_str(),
-			Delta.Location.X,
-			Delta.Location.Y,
-			Delta.Location.Z);
 		return;
-	}
-
-	if (!Delta.Location.IsNearlyZero())
-	{
-		const FRotator DeltaRot = Delta.Rotation.ToRotator();
-		UE_LOG(
-			"[AnimDiag][AnimInstance::RootMotion] accumulate instance=%s mode=%d deltaLocal=(%.3f,%.3f,%.3f) deltaYaw=%.3f pendingBefore=(%.3f,%.3f,%.3f)",
-			GetName().c_str(),
-			static_cast<int>(RootMotionMode),
-			Delta.Location.X,
-			Delta.Location.Y,
-			Delta.Location.Z,
-			DeltaRot.Yaw,
-			PendingRootMotion.Location.X,
-			PendingRootMotion.Location.Y,
-			PendingRootMotion.Location.Z);
 	}
 
 	// 두 delta 합성 — row-vec 매트릭스로 정확히 누적 후 다시 분해.
@@ -605,32 +549,12 @@ void UAnimInstance::AccumulateRootMotion(const FTransform& Delta)
 	PendingRootMotion.Location = FVector(M.M[3][0], M.M[3][1], M.M[3][2]);
 	// 회전만 quaternion 합성 (정밀도 유지)
 	PendingRootMotion.Rotation = (Delta.Rotation * PendingRootMotion.Rotation).GetNormalized();
-	if (!Delta.Location.IsNearlyZero())
-	{
-		UE_LOG(
-			"[AnimDiag][AnimInstance::RootMotion] pendingAfter instance=%s pending=(%.3f,%.3f,%.3f)",
-			GetName().c_str(),
-			PendingRootMotion.Location.X,
-			PendingRootMotion.Location.Y,
-			PendingRootMotion.Location.Z);
-	}
 	// Scale 은 root motion 에서 보통 1 이라 무시.
 }
 
 FTransform UAnimInstance::ConsumeRootMotion()
 {
 	const FTransform Out = PendingRootMotion;
-	if (!Out.Location.IsNearlyZero())
-	{
-		const FRotator DeltaRot = Out.Rotation.ToRotator();
-		UE_LOG(
-			"[AnimDiag][AnimInstance::RootMotion] consume instance=%s outLocal=(%.3f,%.3f,%.3f) outYaw=%.3f",
-			GetName().c_str(),
-			Out.Location.X,
-			Out.Location.Y,
-			Out.Location.Z,
-			DeltaRot.Yaw);
-	}
 	PendingRootMotion = FTransform();   // Identity 로 reset
 	return Out;
 }

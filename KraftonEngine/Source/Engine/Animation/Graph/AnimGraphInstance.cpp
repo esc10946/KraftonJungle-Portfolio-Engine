@@ -25,7 +25,6 @@ namespace
 	{
 		if (Path.empty() || Path == "None")
 		{
-			UE_LOG("[AnimDiag][AnimGraph::LoadSequence] skip empty path=%s", Path.c_str());
 			return nullptr;
 		}
 		UAnimSequenceBase* Loaded = FAnimationManager::Get().LoadAnimation(Path);
@@ -37,14 +36,6 @@ namespace
 		{
 			UE_LOG("UAnimGraphInstance: 시퀀스 로드 실패. Path=%s", Path.c_str());
 		}
-		if (!Loaded)
-		{
-			UE_LOG("[AnimDiag][AnimGraph::LoadSequence] failed path=%s", Path.c_str());
-		}
-		else
-		{
-			UE_LOG("[AnimDiag][AnimGraph::LoadSequence] loaded path=%s object=%s", Path.c_str(), Loaded->GetName().c_str());
-		}
 		return Loaded;
 	}
 }
@@ -53,31 +44,14 @@ void UAnimGraphInstance::NativeInitializeAnimation()
 {
 	Super::NativeInitializeAnimation();
 
-	UE_LOG(
-		"[AnimDiag][AnimGraph::Initialize] begin instance=%s ownerComp=%s graphPath=%s defaultSeq=%s rootMotion=%d graphAsset=%s rootNode=%d",
-		GetName().c_str(),
-		GetOwningComponent() ? GetOwningComponent()->GetName().c_str() : "None",
-		GraphAssetPath.ToString().c_str(),
-		DefaultSequencePath.ToString().c_str(),
-		static_cast<int>(GetRootMotionMode()),
-		IsValid(GraphAsset) ? GraphAsset->GetSourcePath().c_str() : "None",
-		GetRootNode() ? 1 : 0);
-
 	USkeletalMesh* Mesh = GetSkeletalMesh();
 	if (!Mesh)
 	{
-		UE_LOG("[AnimDiag][AnimGraph::Initialize] abort: no skeletal mesh instance=%s", GetName().c_str());
 		return;
 	}
 	FSkeletalMesh* MeshAsset = Mesh->GetSkeletalMeshAsset();
 	if (!MeshAsset || MeshAsset->Bones.empty())
 	{
-		UE_LOG(
-			"[AnimDiag][AnimGraph::Initialize] abort: invalid mesh asset instance=%s mesh=%s asset=%p bones=%zu",
-			GetName().c_str(),
-			Mesh->GetAssetPathFileName().c_str(),
-			MeshAsset,
-			MeshAsset ? MeshAsset->Bones.size() : 0);
 		return;
 	}
 
@@ -86,7 +60,6 @@ void UAnimGraphInstance::NativeInitializeAnimation()
 	// an empty SequencePlayer graph here turns missing data into noisy per-instance compile warnings.
 	if (GraphAsset && !IsValid(GraphAsset))
 	{
-		UE_LOG("[AnimDiag][AnimGraph::Initialize] invalid GraphAsset after resolve instance=%s", GetName().c_str());
 		GraphAsset = nullptr;
 		CompiledAssetVersion = 0;
 	}
@@ -95,12 +68,7 @@ void UAnimGraphInstance::NativeInitializeAnimation()
 	{
 		if (!GraphPathStr.empty() && GraphPathStr != "None")
 		{
-			UE_LOG("[AnimDiag][AnimGraph::Initialize] loading graph instance=%s path=%s", GetName().c_str(), GraphPathStr.c_str());
 			GraphAsset = FAnimGraphManager::Get().Load(GraphPathStr);
-			if (!GraphAsset)
-			{
-				UE_LOG("[AnimDiag][AnimGraph::Initialize] graph load failed instance=%s path=%s", GetName().c_str(), GraphPathStr.c_str());
-			}
 			if (!GraphAsset)
 			{
 				UE_LOG("UAnimGraphInstance: AnimGraph 로드 실패 → transient fallback. Path=%s", GraphPathStr.c_str());
@@ -112,7 +80,6 @@ void UAnimGraphInstance::NativeInitializeAnimation()
 		const FString DefaultPathStr = DefaultSequencePath.ToString();
 		if (!DefaultPathStr.empty() && DefaultPathStr != "None")
 		{
-			UE_LOG("[AnimDiag][AnimGraph::Initialize] creating transient default graph instance=%s defaultSeq=%s", GetName().c_str(), DefaultPathStr.c_str());
 			GraphAsset = UObjectManager::Get().CreateObject<UAnimGraphAsset>(this);
 			if (GraphAsset)
 			{
@@ -121,11 +88,6 @@ void UAnimGraphInstance::NativeInitializeAnimation()
 		}
 		else
 		{
-			UE_LOG(
-				"[AnimDiag][AnimGraph::Initialize] no graph and no default sequence; ref pose instance=%s graphPath=%s defaultSeq=%s",
-				GetName().c_str(),
-				GraphAssetPath.ToString().c_str(),
-				DefaultSequencePath.ToString().c_str());
 			RootNode = nullptr;
 			OwnedNodes.clear();
 			RuntimeVariables.clear();
@@ -150,13 +112,6 @@ void UAnimGraphInstance::NativeInitializeAnimation()
 	// 다른 인스턴스가 이미 변경해 Version > 0 인 캐시 자산일 수도 있음 — 안전하게 강제.)
 	CompiledAssetVersion = GraphAsset->GetVersion() - 1;
 	RecompileTreeIfDirty();
-	UE_LOG(
-		"[AnimDiag][AnimGraph::Initialize] end instance=%s graph=%s version=%u rootNode=%d runtimeVars=%zu",
-		GetName().c_str(),
-		IsValid(GraphAsset) ? GraphAsset->GetSourcePath().c_str() : "None",
-		CompiledAssetVersion,
-		GetRootNode() ? 1 : 0,
-		RuntimeVariables.size());
 }
 
 void UAnimGraphInstance::NativeUpdateAnimation(float DeltaSeconds)
@@ -167,25 +122,12 @@ void UAnimGraphInstance::NativeUpdateAnimation(float DeltaSeconds)
 	// 호출 전에 트리 재생성. 새 트리는 즉시 그 frame 부터 평가.
 	ResolveGraphAsset();
 	RecompileTreeIfDirty();
-	static uint32 AnimGraphUpdateFrame = 0;
-	if ((++AnimGraphUpdateFrame % 60u) == 0u)
-	{
-		UE_LOG(
-			"[AnimDiag][AnimGraph::Update] sample instance=%s graph=%s version=%u rootNode=%d runtimeVars=%zu dt=%.4f",
-			GetName().c_str(),
-			IsValid(GraphAsset) ? GraphAsset->GetSourcePath().c_str() : "None",
-			CompiledAssetVersion,
-			GetRootNode() ? 1 : 0,
-			RuntimeVariables.size(),
-			DeltaSeconds);
-	}
 }
 
 bool UAnimGraphInstance::ResolveGraphAsset()
 {
 	if (GraphAsset && !IsValid(GraphAsset))
 	{
-		UE_LOG("[AnimDiag][AnimGraph::Resolve] cached graph invalid instance=%s", GetName().c_str());
 		GraphAsset = nullptr;
 		CompiledAssetVersion = 0;
 	}
@@ -195,12 +137,10 @@ bool UAnimGraphInstance::ResolveGraphAsset()
 		const FString GraphPathStr = GraphAssetPath.ToString();
 		if (!GraphPathStr.empty() && GraphPathStr != "None")
 		{
-			UE_LOG("[AnimDiag][AnimGraph::Resolve] loading graph instance=%s path=%s", GetName().c_str(), GraphPathStr.c_str());
 			GraphAsset = FAnimGraphManager::Get().Load(GraphPathStr);
 			if (!GraphAsset)
 			{
 				UE_LOG("UAnimGraphInstance: AnimGraph load failed. Path=%s", GraphPathStr.c_str());
-				UE_LOG("[AnimDiag][AnimGraph::Resolve] graph load failed instance=%s path=%s", GetName().c_str(), GraphPathStr.c_str());
 			}
 		}
 	}
@@ -210,7 +150,6 @@ bool UAnimGraphInstance::ResolveGraphAsset()
 		const FString DefaultPathStr = DefaultSequencePath.ToString();
 		if (!DefaultPathStr.empty() && DefaultPathStr != "None")
 		{
-			UE_LOG("[AnimDiag][AnimGraph::Resolve] creating transient default graph instance=%s defaultSeq=%s", GetName().c_str(), DefaultPathStr.c_str());
 			GraphAsset = UObjectManager::Get().CreateObject<UAnimGraphAsset>(this);
 			if (GraphAsset)
 			{
@@ -221,11 +160,6 @@ bool UAnimGraphInstance::ResolveGraphAsset()
 
 	if (!IsValid(GraphAsset))
 	{
-		UE_LOG(
-			"[AnimDiag][AnimGraph::Resolve] failed instance=%s graphPath=%s defaultSeq=%s",
-			GetName().c_str(),
-			GraphAssetPath.ToString().c_str(),
-			DefaultSequencePath.ToString().c_str());
 		GraphAsset = nullptr;
 		RootNode = nullptr;
 		OwnedNodes.clear();
@@ -241,19 +175,9 @@ void UAnimGraphInstance::RecompileTreeIfDirty()
 {
 	if (!ResolveGraphAsset())
 	{
-		UE_LOG("[AnimDiag][AnimGraph::Recompile] skip: resolve failed instance=%s", GetName().c_str());
 		return;
 	}
 	if (GraphAsset->GetVersion() == CompiledAssetVersion) return;
-
-	UE_LOG(
-		"[AnimDiag][AnimGraph::Recompile] begin instance=%s graph=%s oldVersion=%u newVersion=%u nodes=%zu defaultSeq=%s",
-		GetName().c_str(),
-		GraphAsset->GetSourcePath().c_str(),
-		CompiledAssetVersion,
-		GraphAsset->GetVersion(),
-		GraphAsset->GetNodes().size(),
-		DefaultSequencePath.ToString().c_str());
 
 	// Recompile 때 새로 추가된 변수는 기본값으로 채우고, 이미 게임 코드가 set 한 값은 유지한다.
 	SyncRuntimeVariablesFromAsset(/*bResetExistingToDefaults*/false);
@@ -264,45 +188,12 @@ void UAnimGraphInstance::RecompileTreeIfDirty()
 	{
 		if (Node.Type != EAnimGraphNodeType::SequencePlayer) continue;
 
-		UE_LOG(
-			"[AnimDiag][AnimGraph::Recompile] sequence-player node=%s source=%s default=%s",
-			Node.DisplayName.ToString().c_str(),
-			Node.SequencePath.c_str(),
-			DefaultPathStr.c_str());
 		UAnimSequenceBase* Seq = LoadByPath(Node.SequencePath);
 		if (!Seq)
 		{
-			if (!Node.SequencePath.empty() && Node.SequencePath != "None")
-			{
-				UE_LOG(
-					"UAnimGraphInstance: SequencePlayer source failed; trying default sequence. Node=%s Source=%s Default=%s Graph=%s",
-					Node.DisplayName.ToString().c_str(),
-					Node.SequencePath.c_str(),
-					DefaultPathStr.c_str(),
-					GraphAssetPath.ToString().c_str());
-			}
 			Seq = LoadByPath(DefaultPathStr);
 		}
-		if (!Seq)
-		{
-			const bool bHadExplicitSequence = !Node.SequencePath.empty() && Node.SequencePath != "None";
-			const bool bHadDefaultSequence = !DefaultPathStr.empty() && DefaultPathStr != "None";
-			if (bHadExplicitSequence || bHadDefaultSequence)
-			{
-				UE_LOG(
-					"UAnimGraphInstance: SequencePlayer has no valid sequence. Node=%s Source=%s Default=%s Graph=%s",
-					Node.DisplayName.ToString().c_str(),
-					Node.SequencePath.c_str(),
-					DefaultPathStr.c_str(),
-					GraphAssetPath.ToString().c_str());
-			}
-		}
 		Node.SequenceRef = IsValid(Seq) ? Seq : nullptr;
-		UE_LOG(
-			"[AnimDiag][AnimGraph::Recompile] sequence-player result node=%s sequence=%s valid=%d",
-			Node.DisplayName.ToString().c_str(),
-			Seq ? Seq->GetName().c_str() : "None",
-			IsValid(Seq) ? 1 : 0);
 	}
 
 	// 기존 트리 폐기 — RootNode 먼저 nullptr 로 끊은 뒤 OwnedNodes clear.
@@ -313,23 +204,12 @@ void UAnimGraphInstance::RecompileTreeIfDirty()
 	FAnimNode_Base* Root = FAnimGraphCompiler::Compile(*GraphAsset, *this);
 	if (!Root)
 	{
-		UE_LOG("[AnimDiag][AnimGraph::Recompile] compile failed instance=%s graph=%s", GetName().c_str(), GraphAsset->GetSourcePath().c_str());
-	}
-	if (!Root)
-	{
 		UE_LOG("UAnimGraphInstance: 컴파일 실패 — 트리 미설정, ref pose 유지.");
 		CompiledAssetVersion = GraphAsset->GetVersion();
 		return;
 	}
 	SetRootNode(Root);
 	CompiledAssetVersion = GraphAsset->GetVersion();
-	UE_LOG(
-		"[AnimDiag][AnimGraph::Recompile] success instance=%s graph=%s rootNode=%d ownedNodes=%zu runtimeVars=%zu",
-		GetName().c_str(),
-		GraphAsset->GetSourcePath().c_str(),
-		GetRootNode() ? 1 : 0,
-		OwnedNodes.size(),
-		RuntimeVariables.size());
 }
 
 void UAnimGraphInstance::Serialize(FArchive& Ar)
@@ -379,12 +259,6 @@ void UAnimGraphInstance::PostEditProperty(const char* PropertyName)
 		RootNode = nullptr;
 		OwnedNodes.clear();
 		RuntimeVariables.clear();
-		UE_LOG(
-			"[AnimDiag][AnimGraph::PostEdit] reset graph cache instance=%s property=%s graphPath=%s defaultSeq=%s",
-			GetName().c_str(),
-			PropertyName,
-			GraphAssetPath.ToString().c_str(),
-			DefaultSequencePath.ToString().c_str());
 	}
 }
 
@@ -459,13 +333,11 @@ bool UAnimGraphInstance::SetGraphVariableFloat(FName VariableName, float Value)
 {
 	if (!ResolveGraphAsset())
 	{
-		UE_LOG("[AnimDiag][AnimGraph::SetVarFloat] failed resolve instance=%s var=%s value=%.3f", GetName().c_str(), VariableName.ToString().c_str(), Value);
 		return false;
 	}
 	SyncRuntimeVariablesFromAsset(/*bResetExistingToDefaults*/false);
 	FAnimGraphRuntimeVariable& V = FindOrAddRuntimeVariable(VariableName, EAnimGraphPinType::Float);
 	V.Value = Value;
-	UE_LOG("[AnimDiag][AnimGraph::SetVarFloat] instance=%s var=%s value=%.3f graph=%s", GetName().c_str(), VariableName.ToString().c_str(), Value, IsValid(GraphAsset) ? GraphAsset->GetSourcePath().c_str() : "None");
 	return true;
 }
 
@@ -473,13 +345,11 @@ bool UAnimGraphInstance::SetGraphVariableBool(FName VariableName, bool bValue)
 {
 	if (!ResolveGraphAsset())
 	{
-		UE_LOG("[AnimDiag][AnimGraph::SetVarBool] failed resolve instance=%s var=%s value=%d", GetName().c_str(), VariableName.ToString().c_str(), bValue ? 1 : 0);
 		return false;
 	}
 	SyncRuntimeVariablesFromAsset(/*bResetExistingToDefaults*/false);
 	FAnimGraphRuntimeVariable& V = FindOrAddRuntimeVariable(VariableName, EAnimGraphPinType::Bool);
 	V.Value = bValue ? 1.0f : 0.0f;
-	UE_LOG("[AnimDiag][AnimGraph::SetVarBool] instance=%s var=%s value=%d graph=%s", GetName().c_str(), VariableName.ToString().c_str(), bValue ? 1 : 0, IsValid(GraphAsset) ? GraphAsset->GetSourcePath().c_str() : "None");
 	return true;
 }
 
@@ -487,13 +357,11 @@ bool UAnimGraphInstance::SetGraphVariableInt(FName VariableName, int32 Value)
 {
 	if (!ResolveGraphAsset())
 	{
-		UE_LOG("[AnimDiag][AnimGraph::SetVarInt] failed resolve instance=%s var=%s value=%d", GetName().c_str(), VariableName.ToString().c_str(), Value);
 		return false;
 	}
 	SyncRuntimeVariablesFromAsset(/*bResetExistingToDefaults*/false);
 	FAnimGraphRuntimeVariable& V = FindOrAddRuntimeVariable(VariableName, EAnimGraphPinType::Int);
 	V.Value = static_cast<float>(Value);
-	UE_LOG("[AnimDiag][AnimGraph::SetVarInt] instance=%s var=%s value=%d graph=%s", GetName().c_str(), VariableName.ToString().c_str(), Value, IsValid(GraphAsset) ? GraphAsset->GetSourcePath().c_str() : "None");
 	return true;
 }
 

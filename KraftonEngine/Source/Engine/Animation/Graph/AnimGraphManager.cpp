@@ -14,34 +14,25 @@
 UAnimGraphAsset* FAnimGraphManager::Load(const FString& Path)
 {
 	const FString NormalizedPath = FPaths::MakeProjectRelative(Path);
-	UE_LOG(
-		"[AnimDiag][AnimGraphManager::Load] request path=%s normalized=%s root=%ls",
-		Path.c_str(),
-		NormalizedPath.c_str(),
-		FPaths::RootDir().c_str());
 
 	auto It = LoadedGraphs.find(NormalizedPath);
 	if (It != LoadedGraphs.end())
 	{
 		if (IsValid(It->second))
 		{
-			UE_LOG("[AnimDiag][AnimGraphManager::Load] cache hit normalized=%s asset=%s", NormalizedPath.c_str(), It->second->GetName().c_str());
 			return It->second;
 		}
-		UE_LOG("[AnimDiag][AnimGraphManager::Load] cache stale normalized=%s", NormalizedPath.c_str());
 		LoadedGraphs.erase(It);
 	}
 
 	if (!FAssetPackage::IsAssetPackagePath(NormalizedPath))
 	{
-		UE_LOG("[AnimDiag][AnimGraphManager::Load] invalid package path normalized=%s", NormalizedPath.c_str());
 		return nullptr;
 	}
 
 	FWindowsBinReader Ar(NormalizedPath);
 	if (!Ar.IsValid())
 	{
-		UE_LOG("[AnimDiag][AnimGraphManager::Load] open failed normalized=%s root=%ls", NormalizedPath.c_str(), FPaths::RootDir().c_str());
 		return nullptr;
 	}
 
@@ -49,7 +40,6 @@ UAnimGraphAsset* FAnimGraphManager::Load(const FString& Path)
 	FAssetImportMetadata Metadata;
 	if (!FAssetPackage::ReadPackagePrelude(Ar, EAssetPackageType::AnimGraph, Header, Metadata))
 	{
-		UE_LOG("[AnimDiag][AnimGraphManager::Load] prelude failed normalized=%s", NormalizedPath.c_str());
 		return nullptr;
 	}
 
@@ -58,20 +48,12 @@ UAnimGraphAsset* FAnimGraphManager::Load(const FString& Path)
 
 	if (!Ar.IsValid())
 	{
-		UE_LOG("[AnimDiag][AnimGraphManager::Load] serialize failed normalized=%s asset=%s", NormalizedPath.c_str(), NewAsset ? NewAsset->GetName().c_str() : "None");
 		UObjectManager::Get().DestroyObject(NewAsset);
 		return nullptr;
 	}
 
 	NewAsset->SetSourcePath(NormalizedPath);
 	LoadedGraphs.emplace(NormalizedPath, NewAsset);
-	UE_LOG(
-		"[AnimDiag][AnimGraphManager::Load] loaded normalized=%s asset=%s nodes=%zu vars=%zu version=%u",
-		NormalizedPath.c_str(),
-		NewAsset->GetName().c_str(),
-		NewAsset->GetNodes().size(),
-		NewAsset->GetVariables().size(),
-		NewAsset->GetVersion());
 	return NewAsset;
 }
 
