@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Component/PrimitiveComponent.h"
 #include "Object/Ptr/SoftObjectPtr.h"
@@ -137,9 +137,6 @@ protected:
 
 	UPROPERTY(Edit, Save, Category="Particle", DisplayName="Template", AssetType="UParticleSystem")
 	FSoftObjectPtr TemplatePath;
-
-	UPROPERTY(Edit, Save, Category="Particle", DisplayName="Auto Activate")
-	bool bAutoActivate = true;
 
 	UPROPERTY(Edit, Save, Category="Particle", DisplayName="Reset On Activate")
 	bool bResetOnActivate = false;

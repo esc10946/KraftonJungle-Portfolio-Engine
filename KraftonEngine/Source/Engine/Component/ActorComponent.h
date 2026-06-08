@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Object/Object.h"
 #include "Object/Ptr/WeakObjectPtr.h"
@@ -88,14 +88,16 @@ protected:
 	bool bHasBegunPlay = false;
 	UPROPERTY(Edit, Save, Category="Component", DisplayName="bTickEnable")
 	bool bTickEnable = true;
+	// Single source of truth — do NOT re-declare in derived classes (a shadowing
+	// UPROPERTY of the same name collapses to one scene key and breaks serialization).
+	UPROPERTY(Edit, Save, Category = "Component", DisplayName = "bAutoActivate")
+	bool bAutoActivate = true;
 
 private:
 	UPROPERTY(Edit, Save, Category="Component", DisplayName="bEditorOnly")
 	bool bEditorOnly = false;
 	UPROPERTY(Edit, Save, Category="Component", DisplayName="bIsActive")
 	bool bIsActive = true;
-	UPROPERTY(Edit, Save, Category="Component", DisplayName="bAutoActivate")
-	bool bAutoActivate = true;
 	UPROPERTY(Save, Category="Component", DisplayName="Hidden In Component Tree")
 	bool bHiddenInComponentTree = false;
 };
