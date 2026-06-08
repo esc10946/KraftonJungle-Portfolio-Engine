@@ -4,10 +4,11 @@
 -- On BeginPlay it builds the title menu (Title.rml) + the Options
 -- overlay (Options.rml), and wires the four buttons:
 --
---   start_btn   -> transition to the gameplay scene
---   options_btn -> show Options overlay
---   credits_btn -> transition to the credits scene
---   exit_btn    -> quit the application
+--   start_btn    -> transition to the gameplay scene
+--   options_btn  -> show Options overlay
+--   controls_btn -> show Controls overlay (control tutorial)
+--   credits_btn  -> transition to the credits scene
+--   exit_btn     -> quit the application
 -- ============================================================
 
 local BGMState = require("Game/BGMState")
@@ -108,6 +109,12 @@ function BeginPlay()
     end)
 
     widget:bind_click("options_btn", ShowOptions)
+
+    widget:bind_click("controls_btn", function()
+        if SceneTransition.IsActive() then return end
+        PlayMenuSound(SFX_CURSOR_SELECT)
+        -- TODO: show the Controls overlay (control tutorial) once it's built.
+    end)
 
     widget:bind_click("credits_btn", function()
         if SceneTransition.IsActive() then return end
