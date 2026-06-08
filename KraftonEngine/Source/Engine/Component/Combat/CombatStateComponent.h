@@ -51,6 +51,8 @@ public:
 
 	UFUNCTION(Callable, Category="Combat|Poise")
 	bool ApplyPoiseDamage(float PoiseDamage);
+	bool ApplyParryReflectPoise(float PoiseDamage);
+	FCombatDamageReport ApplyParryReflectDamage(float Damage, AActor* DamageCauser, AActor* InstigatorActor, const FVector& HitLocation, float DamageScale = 1.0f);
 	UFUNCTION(Callable, Category="Combat|Poise")
 	void ResetPoise();
 	UFUNCTION(Callable, Category="Combat|Poise")
@@ -175,6 +177,9 @@ public:
 	UPROPERTY(Edit, Save, Category="Combat|Deflect", DisplayName="Deflect Reflect Poise", Min=0.0f, Max=100000.0f, Speed=0.5f)
 	float DeflectReflectPoise = 25.0f;
 
+	UPROPERTY(Edit, Save, Category="Combat|Deflect", DisplayName="Deflect Reflect Damage", Min=0.0f, Max=100000.0f, Speed=0.5f)
+	float DeflectReflectDamage = 10.0f;
+
 	UPROPERTY(Edit, Save, Category="Combat|Guard", DisplayName="Guard Window Seconds", Min=0.0f, Max=5.0f, Speed=0.05f)
 	float GuardWindowSeconds = 0.7f;
 
@@ -204,6 +209,7 @@ public:
 
 private:
 	float GetHealthRatioSafe() const;
+	bool ApplyPoiseDamageInternal(float PoiseDamage, bool bIgnoreParryGrace);
 	bool SetPoiseValue(float NewPoise);
 
 	bool bStaggered = false;

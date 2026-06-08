@@ -45,6 +45,8 @@ public:
     UAnimMontage* GetCurrentMontage() const;
     FName         GetCurrentSectionName() const;
     float         GetSectionTime() const { return SectionTime; }
+    float         GetCurrentSectionLength() const;
+    void          SetSectionTime(float InSectionTime);
     float         GetBlendWeight() const;
     void          SetNotifiesEnabled(bool bEnabled) { bNotifiesEnabled = bEnabled; }
     // 재생 속도 직접 제어. 음수면 역재생(Tick 이 SectionTime 을 뒤로 진행, 섹션 시작에서 clamp).

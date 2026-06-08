@@ -77,10 +77,62 @@ float UCombatStateComponent::GetHealthRatioSafe() const
 
 bool UCombatStateComponent::ApplyPoiseDamage(float PoiseDamage)
 {
+	return ApplyPoiseDamageInternal(PoiseDamage, false);
+}
+
+bool UCombatStateComponent::ApplyParryReflectPoise(float PoiseDamage)
+{
+	return ApplyPoiseDamageInternal(PoiseDamage, true);
+}
+
+FCombatDamageReport UCombatStateComponent::ApplyParryReflectDamage(
+	float Damage,
+	AActor* DamageCauser,
+	AActor* InstigatorActor,
+	const FVector& HitLocation,
+	float DamageScale)
+{
+	FCombatDamageReport Report;
+	const float ScaledDamage = Damage * DamageScale;
+	Report.RequestedDamage = ScaledDamage;
+
+	AActor* OwnerActor = GetOwner();
+	if (!OwnerActor || ScaledDamage <= 0.0f)
+	{
+		Report.Result = ECombatDamageResult::Rejected;
+		return Report;
+	}
+
+	UHealthComponent* Health = OwnerActor->GetComponentByClass<UHealthComponent>();
+	if (!Health)
+	{
+		Report.Result = ECombatDamageResult::Rejected;
+		return Report;
+	}
+
+	FCombatDamageSpec DamageSpec;
+	DamageSpec.Damage = ScaledDamage;
+	DamageSpec.PoiseDamage = 0.0f;
+	DamageSpec.DamageCauser = DamageCauser;
+	DamageSpec.InstigatorActor = InstigatorActor;
+	DamageSpec.HitLocation = HitLocation;
+
+	if (DamageCauser)
+	{
+		FVector Direction = OwnerActor->GetActorLocation() - DamageCauser->GetActorLocation();
+		Direction.Z = 0.0f;
+		DamageSpec.HitDirection = Direction.IsNearlyZero() ? OwnerActor->GetActorForward() : Direction.Normalized();
+	}
+
+	return Health->ApplyDamageSpec(DamageSpec);
+}
+
+bool UCombatStateComponent::ApplyPoiseDamageInternal(float PoiseDamage, bool bIgnoreParryGrace)
+{
 	SCOPE_STAT_CAT("CombatState.ApplyPoiseDamage", "Combat");
 	// 패링 유예 윈도우 동안(요청 #6)에는 체간 피해를 받지 않는다 → 반격이 자세를 무너뜨려 보스를
 	// 불능 상태(stagger)로 빠뜨리지 못한다. SuperArmor 와 동일하게 취급.
-	if (PoiseDamage <= 0.0f || bSuperArmor || IsInParryGrace() || MaxPoise <= 0.0f)
+	if (PoiseDamage <= 0.0f || bSuperArmor || (!bIgnoreParryGrace && IsInParryGrace()) || MaxPoise <= 0.0f)
 	{
 		return false;
 	}
@@ -262,16 +314,25 @@ EDeflectGrade UCombatStateComponent::ConsumeDeflect(AActor* Attacker)
 	// 공격자에게 체간 반사 — 탄기가 공격자의 체간을 깎아 인살 창을 연다.
 	// 위험공격 종류별 결과표(보고서 1군 #4)로 반사량을 보정한다: 찌르기 간파 성공은 큰 자세 손실,
 	// 잡기는 탄기로 해결되지 않으므로 반사 0(점프/이탈로 대응해야 함).
-	if (Attacker && ReflectScale > 0.0f && DeflectReflectPoise > 0.0f)
+	// MarkParried 는 체간 반사량과 독립적으로 호출한다. 반사량이 0 이거나 데이터상 DeflectReflectPoise 가
+	// 비어 있어도, Perfect/Good 탄기 자체가 성공했다면 공격자 리코일/반격 유예는 반드시 열려야 한다.
+	if (Attacker && (Grade == EDeflectGrade::Perfect || Grade == EDeflectGrade::Good))
 	{
 		if (UCombatStateComponent* AttackerCombat = Attacker->GetComponentByClass<UCombatStateComponent>())
 		{
 			const FPerilousResolution Resolution = GetPerilousResolution(AttackerCombat->GetActivePerilousType());
-			AttackerCombat->ApplyPoiseDamage(DeflectReflectPoise * ReflectScale * Resolution.AnswerReflectPoiseScale);
-			// 패링 성공(Perfect/Good) → 공격자(보스)에게 "반격 유예" 윈도우를 연다(요청 #6). 뒤따르는
-			// 플레이어 반격(riposte)의 피해가 보스를 경직/자세붕괴로 불능화하지 못하게 한다. 보스만
-			// ParryGraceDuration>0 이라 일반 적은 영향 없음. (위 반사 체간은 패링의 보상으로 그대로 적용.)
+			const float ReflectDamageScale = ReflectScale * Resolution.AnswerReflectPoiseScale;
+			if (ReflectDamageScale > 0.0f && DeflectReflectPoise > 0.0f)
+			{
+				AttackerCombat->ApplyParryReflectPoise(DeflectReflectPoise * ReflectDamageScale);
+			}
+
+			// 패링 성공(Perfect/Good) → 공격자(보스)에게 "반격 유예" 윈도우와 리코일 신호를 연다.
 			AttackerCombat->MarkParried();
+			if (ReflectDamageScale > 0.0f && DeflectReflectDamage > 0.0f)
+			{
+				AttackerCombat->ApplyParryReflectDamage(DeflectReflectDamage, GetOwner(), GetOwner(), FVector::ZeroVector, ReflectDamageScale);
+			}
 		}
 	}
 
