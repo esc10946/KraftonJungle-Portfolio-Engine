@@ -12,6 +12,7 @@
 
 local BGMState = require("Game/BGMState")
 local SceneTransition = require("Game/SceneTransition")
+local CharacterConfig = require("FinalGameJamScript/Character/CharacterConfig")
 
 local PAUSE_ZORDER    = 20      -- above the gameplay HUD
 local DEATH_ZORDER    = 20      -- pause and death are mutually exclusive phases
@@ -37,6 +38,7 @@ local SFX_RESPAWN = "UI_Respawn"
 local BGM_BATTLE      = "BGM_Battle"
 local BGM_BATTLE_FILE = "BGM/38534292-japanese-battle (battle_bgm).mp3"
 local BGM_VOLUME      = 0.5     -- BGM sits under SFX; scaled by master volume on top
+local GAMEPAD_REVIVE  = CharacterConfig.GAMEPAD_REVIVE or "GamepadA"
 
 local pause   = nil             -- pause overlay, created hidden, shown while paused
 local death   = nil             -- death overlay, created hidden, shown while Dead
@@ -457,6 +459,10 @@ function Tick(dt)
 
     -- Drive phase-dependent UI off the GameMode's actual phase.
     local phase = Game.GetPhase()
+    if phase == "Dead" and Input.GetKeyDown(GAMEPAD_REVIVE) then
+        Debug.PlayerRevive()
+    end
+
     if phase == "Dead" and prevPhase ~= "Dead" then
         ShowDeath()
     elseif prevPhase == "Dead" and phase == "Playing" then

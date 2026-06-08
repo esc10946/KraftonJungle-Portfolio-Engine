@@ -33,6 +33,12 @@ namespace
     {
         return std::clamp(static_cast<float>(Value) / 255.0f, 0.0f, 1.0f);
     }
+
+    WORD NormalizeRumbleMotor(float Value)
+    {
+        const float Clamped = std::clamp(Value, 0.0f, 1.0f);
+        return static_cast<WORD>(Clamped * 65535.0f);
+    }
 }
 
 bool FInputSystemSnapshot::IsDown(int KeyCode, int ControllerIndex) const
@@ -114,6 +120,7 @@ void InputSystem::Tick()
     bWindowFocused = !OwnerHWnd || GetForegroundWindow() == OwnerHWnd;
     if (!bWindowFocused)
     {
+        StopAllGamepadRumble();
         ResetAllKeyStates();
         ResetTransientState();
         UpdateCurrentSnapshot();
@@ -126,6 +133,7 @@ void InputSystem::Tick()
         CurrentStates[i] = (GetAsyncKeyState(i) & 0x8000) != 0;
     }
     PollGamepads();
+    UpdateGamepadRumble();
 
     bLeftDragJustStarted = false;
     bRightDragJustStarted = false;
@@ -257,6 +265,44 @@ float InputSystem::GetAxis(int AxisCode, int ControllerIndex) const
     case GamepadLeftTriggerAxis: return Pad.LeftTrigger;
     case GamepadRightTriggerAxis: return Pad.RightTrigger;
     default: return 0.0f;
+    }
+}
+
+void InputSystem::PlayGamepadRumble(float LeftMotor, float RightMotor, float DurationSeconds, int ControllerIndex)
+{
+    if (!IsValidControllerIndex(ControllerIndex) || DurationSeconds <= 0.0f)
+    {
+        return;
+    }
+
+    FGamepadRumbleState& Rumble = GamepadRumbleStates[ControllerIndex];
+    Rumble.LeftMotor = NormalizeRumbleMotor(LeftMotor);
+    Rumble.RightMotor = NormalizeRumbleMotor(RightMotor);
+    Rumble.EndTimeMs = GetTickCount64() + static_cast<ULONGLONG>(DurationSeconds * 1000.0f);
+    Rumble.bActive = (Rumble.LeftMotor > 0 || Rumble.RightMotor > 0);
+
+    if (Rumble.bActive)
+    {
+        ApplyGamepadRumble(ControllerIndex, Rumble.LeftMotor, Rumble.RightMotor);
+    }
+}
+
+void InputSystem::StopGamepadRumble(int ControllerIndex)
+{
+    if (!IsValidControllerIndex(ControllerIndex))
+    {
+        return;
+    }
+
+    GamepadRumbleStates[ControllerIndex] = FGamepadRumbleState{};
+    ApplyGamepadRumble(ControllerIndex, 0, 0);
+}
+
+void InputSystem::StopAllGamepadRumble()
+{
+    for (int PadIndex = 0; PadIndex < INPUT_GAMEPAD_MAX_CONTROLLERS; ++PadIndex)
+    {
+        StopGamepadRumble(PadIndex);
     }
 }
 
@@ -455,8 +501,43 @@ void InputSystem::PollGamepads()
     }
 }
 
+void InputSystem::UpdateGamepadRumble()
+{
+    const ULONGLONG NowMs = GetTickCount64();
+    for (int PadIndex = 0; PadIndex < INPUT_GAMEPAD_MAX_CONTROLLERS; ++PadIndex)
+    {
+        FGamepadRumbleState& Rumble = GamepadRumbleStates[PadIndex];
+        if (!Rumble.bActive)
+        {
+            continue;
+        }
+
+        if (!CurrentGamepadStates[PadIndex].bConnected || NowMs >= Rumble.EndTimeMs)
+        {
+            StopGamepadRumble(PadIndex);
+            continue;
+        }
+
+        ApplyGamepadRumble(PadIndex, Rumble.LeftMotor, Rumble.RightMotor);
+    }
+}
+
+void InputSystem::ApplyGamepadRumble(int ControllerIndex, WORD LeftMotor, WORD RightMotor)
+{
+    if (!IsValidControllerIndex(ControllerIndex))
+    {
+        return;
+    }
+
+    XINPUT_VIBRATION Vibration{};
+    Vibration.wLeftMotorSpeed = LeftMotor;
+    Vibration.wRightMotorSpeed = RightMotor;
+    XInputSetState(static_cast<DWORD>(ControllerIndex), &Vibration);
+}
+
 void InputSystem::ResetGamepadStates()
 {
+    StopAllGamepadRumble();
     for (int PadIndex = 0; PadIndex < INPUT_GAMEPAD_MAX_CONTROLLERS; ++PadIndex)
     {
         CurrentGamepadStates[PadIndex] = FInputSystemSnapshot::FGamepadState{};

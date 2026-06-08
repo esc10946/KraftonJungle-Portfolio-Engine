@@ -101,6 +101,9 @@ public:
     bool GetKeyUp(int KeyCode, int ControllerIndex = 0) const;
     bool IsGamepadConnected(int ControllerIndex = 0) const;
     float GetAxis(int AxisCode, int ControllerIndex = 0) const;
+    void PlayGamepadRumble(float LeftMotor, float RightMotor, float DurationSeconds, int ControllerIndex = 0);
+    void StopGamepadRumble(int ControllerIndex = 0);
+    void StopAllGamepadRumble();
 
     // Mouse position
     POINT GetMousePos() const { return MousePos; }
@@ -159,6 +162,14 @@ private:
     bool CurrentGamepadButtons[INPUT_GAMEPAD_MAX_CONTROLLERS][INPUT_GAMEPAD_BUTTON_COUNT] = {};
     bool PrevGamepadButtons[INPUT_GAMEPAD_MAX_CONTROLLERS][INPUT_GAMEPAD_BUTTON_COUNT] = {};
     FInputSystemSnapshot::FGamepadState CurrentGamepadStates[INPUT_GAMEPAD_MAX_CONTROLLERS] = {};
+    struct FGamepadRumbleState
+    {
+        WORD LeftMotor = 0;
+        WORD RightMotor = 0;
+        ULONGLONG EndTimeMs = 0;
+        bool bActive = false;
+    };
+    FGamepadRumbleState GamepadRumbleStates[INPUT_GAMEPAD_MAX_CONTROLLERS] = {};
 
     // Mouse members
     POINT MousePos = { 0, 0 };
@@ -205,6 +216,8 @@ private:
         const POINT& MouseDownPos, POINT& DragStartPos);
     void UpdateCurrentSnapshot();
     void PollGamepads();
+    void UpdateGamepadRumble();
+    void ApplyGamepadRumble(int ControllerIndex, WORD LeftMotor, WORD RightMotor);
     void ResetGamepadStates();
     void ResetDragState();
 };

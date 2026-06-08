@@ -6,6 +6,7 @@ local HUD_FORCE_HIDE_FLAG = "BossIntroHUDHidden"
 local PLAYER_HP_MASK_ID = "player-hp-mask"
 local PLAYER_HP_DELAY_MASK_ID = "player-hp-delay-mask"
 local BOSS_HP_MASK_ID = "boss-hp-mask"
+local BOSS_HP_DELAY_MASK_ID = "boss-hp-delay-mask"
 local BOSS_POSTURE_LEFT_MASK_ID = "boss-posture-left-mask"
 local BOSS_POSTURE_RIGHT_MASK_ID = "boss-posture-right-mask"
 local BOSS_PANEL_ID = "boss-panel"
@@ -91,6 +92,8 @@ local lastHpRatio = nil
 local playerHpDelayRatio = nil
 local playerHpDelayRemaining = 0.0
 local lastBossHpRatio = nil
+local bossHpDelayRatio = nil
+local bossHpDelayRemaining = 0.0
 local lastBossPostureRatio = nil
 local lastBossHudVisible = nil
 local lastItemHudVisible = false
@@ -319,6 +322,14 @@ local function update_hp_damage_trails(dt)
         playerHpDelayRatio,
         playerHpDelayRemaining,
         lastHpRatio,
+        dt
+    )
+
+    bossHpDelayRatio, bossHpDelayRemaining = update_delayed_hp_ratio(
+        BOSS_HP_DELAY_MASK_ID,
+        bossHpDelayRatio,
+        bossHpDelayRemaining,
+        lastBossHpRatio,
         dt
     )
 
@@ -1059,6 +1070,20 @@ function SetBossHpRatio(ratio)
 
     if lastBossHpRatio ~= nil and math.abs(lastBossHpRatio - ratio) <= 0.0001 then
         return
+    end
+
+    if lastBossHpRatio == nil then
+        bossHpDelayRatio = ratio
+        bossHpDelayRemaining = 0.0
+        set_width_ratio(BOSS_HP_DELAY_MASK_ID, ratio)
+    elseif ratio < lastBossHpRatio then
+        bossHpDelayRatio = math.max(bossHpDelayRatio or lastBossHpRatio, lastBossHpRatio)
+        bossHpDelayRemaining = HP_DAMAGE_TRAIL_HOLD_SECONDS
+        set_width_ratio(BOSS_HP_DELAY_MASK_ID, bossHpDelayRatio)
+    else
+        bossHpDelayRatio = ratio
+        bossHpDelayRemaining = 0.0
+        set_width_ratio(BOSS_HP_DELAY_MASK_ID, ratio)
     end
 
     set_width_ratio(BOSS_HP_MASK_ID, ratio)

@@ -269,6 +269,21 @@ local function end_boss_execution_priority(boss)
     Context.Call(boss, "EndExecutionPriorityWindow")
 end
 
+local function play_execution_rumble(ctx)
+    if Input == nil or Input.PlayGamepadRumble == nil then
+        return
+    end
+
+    if ctx.config.EXECUTION_GAMEPAD_RUMBLE_ENABLED == false then
+        return
+    end
+
+    local left = ctx.config.EXECUTION_GAMEPAD_RUMBLE_LEFT or 0.65
+    local right = ctx.config.EXECUTION_GAMEPAD_RUMBLE_RIGHT or 1.0
+    local duration = ctx.config.EXECUTION_GAMEPAD_RUMBLE_DURATION or 0.22
+    Input.PlayGamepadRumble(left, right, duration)
+end
+
 function Execution.Play(ctx, boss)
     load_montages(ctx)
 
@@ -290,6 +305,7 @@ function Execution.Play(ctx, boss)
     ctx.state.executionTargetMontage = ctx.cache.executionBossMontage
 
     ExecutionCamera.Begin(ctx, boss)
+    play_execution_rumble(ctx)
     anim:PlayMontage(playerMontage, nil, ctx.config.EXECUTION_PLAY_RATE or 1.0)
     begin_boss_execution_priority(boss)
     local bossPlayed = play_boss_montage(ctx, boss)

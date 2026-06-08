@@ -221,6 +221,9 @@
 
     <div id="boss-panel">
         <div id="boss-hp-bg">
+            <div id="boss-hp-delay-mask">
+                <div id="boss-hp-delay-fill"></div>
+            </div>
             <div id="boss-hp-mask">
                 <div id="boss-hp-fill"></div>
             </div>

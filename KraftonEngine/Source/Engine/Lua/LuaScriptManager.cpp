@@ -2224,6 +2224,32 @@ void FLuaScriptManager::RegisterCoreBindings(sol::state& Lua)
             }
         )
     );
+    Input.set_function(
+        "PlayGamepadRumble",
+        sol::overload(
+            [](float LeftMotor, float RightMotor, float DurationSeconds)
+            {
+                InputSystem::Get().PlayGamepadRumble(LeftMotor, RightMotor, DurationSeconds);
+            },
+            [](float LeftMotor, float RightMotor, float DurationSeconds, int ControllerIndex)
+            {
+                InputSystem::Get().PlayGamepadRumble(LeftMotor, RightMotor, DurationSeconds, ControllerIndex);
+            }
+        )
+    );
+    Input.set_function(
+        "StopGamepadRumble",
+        sol::overload(
+            []()
+            {
+                InputSystem::Get().StopGamepadRumble();
+            },
+            [](int ControllerIndex)
+            {
+                InputSystem::Get().StopGamepadRumble(ControllerIndex);
+            }
+        )
+    );
 
     sol::table Engine = Lua.create_named_table("Engine");
     Engine.set_function(
