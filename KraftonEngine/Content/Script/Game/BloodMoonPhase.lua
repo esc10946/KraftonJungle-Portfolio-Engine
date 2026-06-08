@@ -28,6 +28,7 @@ local ENEMY_TAG      = "Enemy"            -- minor enemies share this tag (match
 local SPOTLIGHT_TAG  = "MoodSpotlight"    -- tag the mood spotlight actor with this
 local FOG_TAG        = "MoodFog"          -- tag the height-fog actor with this
 local BLOOD_MOON_TAG = "BloodMoon"        -- tag the (hidden) blood-moon actor with this
+local BLOOD_MOON_PARTICLE_TAG = "BloodMoonParticle" -- tag the blood-moon particle actor with this
 local BOSS_INTRO_TAG = "BossIntroDirector" -- tag the boss intro director actor with this
 local BOSS_INTRO_START_FLAG = "BossIntroDirectorStartOk"
 
@@ -43,7 +44,7 @@ local SPOT_RED       = { 1.0, 0.08, 0.08, 1.0 }
 local FOG_NIGHT      = { 0.02, 0.04, 0.12, 1.0 }
 
 -- ---- State ----------------------------------------------------------------
-local spotlight, fog, bloodMoon
+local spotlight, fog, bloodMoon, bloodMoonParticle
 local spotFrom, fogFrom          -- captured start colors (lerp from authored values)
 local sawEnemies = false         -- guard: don't fire before any minor enemy ever lived
 local triggered  = false         -- transition started (fires once)
@@ -113,6 +114,18 @@ end
 
 local function lerp(a, b, s) return a + (b - a) * s end
 
+local function set_particle_active(actor, active, reset)
+    local psc = safe_call(actor, "GetParticleSystemComponent")
+    if not is_valid(psc) then return false end
+
+    if active then
+        safe_call(psc, "Activate", reset == true)
+    else
+        safe_call(psc, "Deactivate")
+    end
+    return true
+end
+
 -- A minor enemy = tagged ENEMY_TAG, no EncounterComponent (that marks the boss).
 local function is_boss(enemy)
     return is_valid(safe_call(enemy, "GetEncounterComponent"))
@@ -141,15 +154,22 @@ end
 
 -- ---- Lifecycle ------------------------------------------------------------
 local function resolve_actors()
-    spotlight = spotlight or first_by_tag(SPOTLIGHT_TAG)
-    fog       = fog       or first_by_tag(FOG_TAG)
-    bloodMoon = bloodMoon or first_by_tag(BLOOD_MOON_TAG)
+    spotlight         = spotlight         or first_by_tag(SPOTLIGHT_TAG)
+    fog               = fog               or first_by_tag(FOG_TAG)
+    bloodMoon         = bloodMoon         or first_by_tag(BLOOD_MOON_TAG)
+    if bloodMoonParticle == nil then
+        bloodMoonParticle = first_by_tag(BLOOD_MOON_PARTICLE_TAG)
+        if bloodMoonParticle ~= nil and not triggered then
+            set_particle_active(bloodMoonParticle, false)
+        end
+    end
 end
 
 local function begin_transition()
     triggered = true
     t = 0.0
     dbg("all minor enemies cleared -> blood moon rises")
+    set_particle_active(bloodMoonParticle, true, true)
 
     -- Capture authored start colors so the lerp eases from them (no snap).
     if Scene and Scene.GetSpotColor and spotlight then
@@ -188,6 +208,7 @@ function BeginPlay()
     if Scene and Scene.SetActorVisible and bloodMoon then
         Scene.SetActorVisible(bloodMoon, false)
     end
+    set_particle_active(bloodMoonParticle, false)
 end
 
 function PostStartMatch()

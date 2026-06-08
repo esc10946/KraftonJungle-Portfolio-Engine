@@ -79,7 +79,7 @@
 
     color: #ffffff;
     font-family: Serpentine;
-    font-size: 36px;
+    font-size: 28px;
 
     line-height: 22px;
     text-align: center;
