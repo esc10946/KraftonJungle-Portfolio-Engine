@@ -67,6 +67,7 @@ void FGameRenderPipeline::Execute(float DeltaTime, FRenderer& Renderer)
 	Frame.SetRenderOptions(Opts);
 
 	FScene* Scene = &World->GetScene();
+	++Renderer.GetResources().GetShadowResourcesForScene(Scene).Resources.FrameGeneration;
 
 	PrepareViewport(VP, Ctx);
 	BuildFrame(VP, POV, Scene, World);
