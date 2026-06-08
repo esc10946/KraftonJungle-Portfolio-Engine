@@ -261,6 +261,14 @@ local function play_boss_montage(ctx, boss)
     return false
 end
 
+local function begin_boss_execution_priority(boss)
+    Context.Call(boss, "BeginExecutionPriorityWindow")
+end
+
+local function end_boss_execution_priority(boss)
+    Context.Call(boss, "EndExecutionPriorityWindow")
+end
+
 function Execution.Play(ctx, boss)
     load_montages(ctx)
 
@@ -283,7 +291,11 @@ function Execution.Play(ctx, boss)
 
     ExecutionCamera.Begin(ctx, boss)
     anim:PlayMontage(playerMontage, nil, ctx.config.EXECUTION_PLAY_RATE or 1.0)
+    begin_boss_execution_priority(boss)
     local bossPlayed = play_boss_montage(ctx, boss)
+    if not bossPlayed then
+        end_boss_execution_priority(boss)
+    end
     execution_log(ctx, "started bossMontage=" .. tostring(bossPlayed))
     return true
 end
@@ -335,6 +347,7 @@ function Execution.UpdateSequence(ctx, dt)
     end
 
     ExecutionCamera.End(ctx)
+    end_boss_execution_priority(ctx.state.executionTarget)
     ctx.state.executionPlaying = false
     ctx.state.executionTarget = nil
     ctx.state.executionTargetMontage = nil

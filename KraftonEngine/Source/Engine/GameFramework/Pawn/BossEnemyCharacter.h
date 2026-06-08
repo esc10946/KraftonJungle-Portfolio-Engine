@@ -39,6 +39,13 @@ public:
 	UFUNCTION(Pure, Category="Boss|Phase")
 	int32 GetBossPhase() const;
 
+	UFUNCTION(Callable, Category="Boss|Execution")
+	void BeginExecutionPriorityWindow();
+	UFUNCTION(Callable, Category="Boss|Execution")
+	void EndExecutionPriorityWindow();
+	UFUNCTION(Pure, Category="Boss|Execution")
+	bool IsExecutionPriorityWindowActive() const { return bExecutionPriorityWindowActive; }
+
 	// 페이즈 전환 연출: 자세변경 플러리시 몽타주(예: Equip Over Shoulder). null 이면 상태 전환만.
 	UPROPERTY(Edit, Save, Category="Boss|Phase", DisplayName="Phase Change Montage", Type=ObjectRef, AllowedClass=UAnimMontage)
 	UAnimMontage* PhaseChangeMontage = nullptr;
@@ -55,7 +62,11 @@ protected:
 	void HandleEncounterStarted(UEncounterComponent* Component);
 	void HandleEncounterCompleted(UEncounterComponent* Component);
 	void RebindBossComponents();
+	bool RequestBossPhase(int32 NewPhase);
+	void ApplyDeferredBossPhaseChange();
 
 	TWeakObjectPtr<UPhaseComponent> PhaseComponent = nullptr;
 	TWeakObjectPtr<UEncounterComponent> EncounterComponent = nullptr;
+	bool bExecutionPriorityWindowActive = false;
+	int32 PendingExecutionPhase = 0;
 };

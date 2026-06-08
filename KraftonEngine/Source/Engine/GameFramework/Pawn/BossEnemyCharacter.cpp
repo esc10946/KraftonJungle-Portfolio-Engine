@@ -65,12 +65,67 @@ bool ABossEnemyCharacter::IsBossEncounterActive() const
 
 bool ABossEnemyCharacter::SetBossPhase(int32 NewPhase)
 {
-	return PhaseComponent && PhaseComponent->SetPhase(NewPhase);
+	return RequestBossPhase(NewPhase);
 }
 
 int32 ABossEnemyCharacter::GetBossPhase() const
 {
 	return PhaseComponent ? PhaseComponent->GetCurrentPhase() : 1;
+}
+
+void ABossEnemyCharacter::BeginExecutionPriorityWindow()
+{
+	if (!bExecutionPriorityWindowActive)
+	{
+		PendingExecutionPhase = 0;
+	}
+	bExecutionPriorityWindowActive = true;
+}
+
+void ABossEnemyCharacter::EndExecutionPriorityWindow()
+{
+	if (!bExecutionPriorityWindowActive)
+	{
+		return;
+	}
+
+	bExecutionPriorityWindowActive = false;
+	ApplyDeferredBossPhaseChange();
+}
+
+bool ABossEnemyCharacter::RequestBossPhase(int32 NewPhase)
+{
+	if (!PhaseComponent || NewPhase <= PhaseComponent->GetCurrentPhase())
+	{
+		return false;
+	}
+
+	if (bExecutionPriorityWindowActive)
+	{
+		if (PendingExecutionPhase < NewPhase)
+		{
+			PendingExecutionPhase = NewPhase;
+		}
+		return true;
+	}
+
+	return PhaseComponent->SetPhase(NewPhase);
+}
+
+void ABossEnemyCharacter::ApplyDeferredBossPhaseChange()
+{
+	const int32 DeferredPhase = PendingExecutionPhase;
+	PendingExecutionPhase = 0;
+
+	if (!PhaseComponent || IsDead() || bExecutionPriorityWindowActive)
+	{
+		return;
+	}
+
+	if (DeferredPhase > PhaseComponent->GetCurrentPhase())
+	{
+		PhaseComponent->SetPhase(DeferredPhase);
+	}
 }
 
 void ABossEnemyCharacter::HandleDamaged(UHealthComponent* Component, float Damage, float NewHealth, AActor* DamageCauser, AActor* InstigatorActor)
@@ -98,12 +153,14 @@ void ABossEnemyCharacter::HandleDamaged(UHealthComponent* Component, float Damag
 
 	if (PhaseComponent && PhaseComponent->GetCurrentPhase() < DesiredPhase)
 	{
-		PhaseComponent->SetPhase(DesiredPhase);
+		RequestBossPhase(DesiredPhase);
 	}
 }
 
 void ABossEnemyCharacter::HandleDeath(UHealthComponent* Component, AActor* DamageCauser, AActor* InstigatorActor)
 {
+	bExecutionPriorityWindowActive = false;
+	PendingExecutionPhase = 0;
 	Super::HandleDeath(Component, DamageCauser, InstigatorActor);
 	CompleteBossEncounter();
 }
