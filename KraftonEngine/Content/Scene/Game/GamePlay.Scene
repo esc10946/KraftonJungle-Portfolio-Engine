@@ -1506,52 +1506,17 @@
               "bTickEnable" : true
             },
             "bHiddenInComponentTree" : true
-          }],
-        "ClassName" : "UHeightFogComponent",
-        "ObjectId" : 6,
-        "Properties" : {
-          "AttachSocketName" : "Name_None",
-          "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
-          "FogCutoffDistance" : 0.000000,
-          "FogDensity" : 0.031000,
-          "FogHeightFalloff" : 0.151000,
-          "FogInscatteringColor" : [0.494650, 0.565891, 0.637131, 1.000000],
-          "FogMaxOpacity" : 1.000000,
-          "RelativeTransform.Location" : [-32.130287, 46.579540, 49.932514],
-          "RelativeTransform.Scale" : [1.000000, 1.000000, 1.000000],
-          "StartDistance" : 0.000000,
-          "bAutoActivate" : true,
-          "bEditorOnly" : false,
-          "bHiddenInComponentTree" : false,
-          "bIsActive" : true,
-          "bTickEnable" : true
-        }
-      }
-    }, {
-      "ClassName" : "ASpotLightActor",
-      "Name" : "ASpotLightActor_2",
-      "NonSceneComponents" : [],
-      "ObjectId" : 45,
-      "Properties" : {
-        "PendingActorLocation" : [-0.785032, 9.241590, 80.498970],
-        "PendingActorRotation" : [27.452890, 83.697540, -8.608624],
-        "PendingActorScale" : [1.000000, 1.000000, 1.000000],
-        "PendingActorVisible" : true,
-        "PendingTagsString" : "MoodSpotLight",
-        "bNeedsTick" : true
-      },
-      "RootComponent" : {
-        "Children" : [{
+          }, {
             "Children" : [],
             "ClassName" : "UBillboardComponent",
-            "ObjectId" : 47,
+            "ObjectId" : 45,
             "Properties" : {
               "AttachSocketName" : "Name_None",
               "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
               "CenterOfMassOffset" : [0.000000, 0.000000, 0.000000],
               "CollisionEnabled" : 0,
               "Mass" : 1.000000,
-              "MaterialSlot" : "Content/Material/Editor/SpotLight.uasset",
+              "MaterialSlot" : "Content/Material/Editor/HeightFog.uasset",
               "ObjectType" : 0,
               "RelativeTransform.Location" : [0.000000, 0.000000, 0.000000],
               "RelativeTransform.Scale" : [1.000000, 1.000000, 1.000000],
@@ -1578,7 +1543,42 @@
               "bTickEnable" : true
             },
             "bHiddenInComponentTree" : true
-          }, {
+          }],
+        "ClassName" : "UHeightFogComponent",
+        "ObjectId" : 6,
+        "Properties" : {
+          "AttachSocketName" : "Name_None",
+          "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
+          "FogCutoffDistance" : 0.000000,
+          "FogDensity" : 0.031000,
+          "FogHeightFalloff" : 0.151000,
+          "FogInscatteringColor" : [0.494650, 0.565891, 0.637131, 1.000000],
+          "FogMaxOpacity" : 1.000000,
+          "RelativeTransform.Location" : [-32.130287, 46.579540, 49.932514],
+          "RelativeTransform.Scale" : [1.000000, 1.000000, 1.000000],
+          "StartDistance" : 0.000000,
+          "bAutoActivate" : true,
+          "bEditorOnly" : false,
+          "bHiddenInComponentTree" : false,
+          "bIsActive" : true,
+          "bTickEnable" : true
+        }
+      }
+    }, {
+      "ClassName" : "ASpotLightActor",
+      "Name" : "ASpotLightActor_2",
+      "NonSceneComponents" : [],
+      "ObjectId" : 46,
+      "Properties" : {
+        "PendingActorLocation" : [-0.785032, 9.241590, 80.498970],
+        "PendingActorRotation" : [27.452890, 83.697540, -8.608624],
+        "PendingActorScale" : [1.000000, 1.000000, 1.000000],
+        "PendingActorVisible" : true,
+        "PendingTagsString" : "MoodSpotLight",
+        "bNeedsTick" : true
+      },
+      "RootComponent" : {
+        "Children" : [{
             "Children" : [],
             "ClassName" : "UBillboardComponent",
             "ObjectId" : 48,
@@ -2836,9 +2836,83 @@
               "bTickEnable" : true
             },
             "bHiddenInComponentTree" : true
+          }, {
+            "Children" : [],
+            "ClassName" : "UBillboardComponent",
+            "ObjectId" : 82,
+            "Properties" : {
+              "AttachSocketName" : "Name_None",
+              "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
+              "CenterOfMassOffset" : [0.000000, 0.000000, 0.000000],
+              "CollisionEnabled" : 0,
+              "Mass" : 1.000000,
+              "MaterialSlot" : "Content/Material/Editor/SpotLight.uasset",
+              "ObjectType" : 0,
+              "RelativeTransform.Location" : [0.000000, 0.000000, 0.000000],
+              "RelativeTransform.Scale" : [1.000000, 1.000000, 1.000000],
+              "ResponseContainer" : {
+                "Responses[0]" : 2,
+                "Responses[1]" : 2,
+                "Responses[2]" : 2,
+                "Responses[3]" : 2,
+                "Responses[4]" : 2
+              },
+              "bAutoActivate" : true,
+              "bCanEverAffectNavigation" : true,
+              "bCastShadow" : true,
+              "bCastShadowAsTwoSided" : false,
+              "bEditorOnly" : true,
+              "bEnableCCD" : false,
+              "bGenerateOverlapEvents" : false,
+              "bHiddenInComponentTree" : true,
+              "bIsActive" : true,
+              "bIsBillboard" : true,
+              "bIsVisible" : true,
+              "bKinematic" : false,
+              "bSimulatePhysics" : false,
+              "bTickEnable" : true
+            },
+            "bHiddenInComponentTree" : true
+          }, {
+            "Children" : [],
+            "ClassName" : "UBillboardComponent",
+            "ObjectId" : 83,
+            "Properties" : {
+              "AttachSocketName" : "Name_None",
+              "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
+              "CenterOfMassOffset" : [0.000000, 0.000000, 0.000000],
+              "CollisionEnabled" : 0,
+              "Mass" : 1.000000,
+              "MaterialSlot" : "Content/Material/Editor/SpotLight.uasset",
+              "ObjectType" : 0,
+              "RelativeTransform.Location" : [0.000000, 0.000000, 0.000000],
+              "RelativeTransform.Scale" : [1.000000, 1.000000, 1.000000],
+              "ResponseContainer" : {
+                "Responses[0]" : 2,
+                "Responses[1]" : 2,
+                "Responses[2]" : 2,
+                "Responses[3]" : 2,
+                "Responses[4]" : 2
+              },
+              "bAutoActivate" : true,
+              "bCanEverAffectNavigation" : true,
+              "bCastShadow" : true,
+              "bCastShadowAsTwoSided" : false,
+              "bEditorOnly" : true,
+              "bEnableCCD" : false,
+              "bGenerateOverlapEvents" : false,
+              "bHiddenInComponentTree" : true,
+              "bIsActive" : true,
+              "bIsBillboard" : true,
+              "bIsVisible" : true,
+              "bKinematic" : false,
+              "bSimulatePhysics" : false,
+              "bTickEnable" : true
+            },
+            "bHiddenInComponentTree" : true
           }],
         "ClassName" : "USpotLightComponent",
-        "ObjectId" : 46,
+        "ObjectId" : 47,
         "Properties" : {
           "AttachSocketName" : "Name_None",
           "AttenuationRadius" : 90.470001,
@@ -2869,7 +2943,7 @@
       "Name" : "AEmptyActor_0",
       "NonSceneComponents" : [{
           "ClassName" : "ULuaScriptComponent",
-          "ObjectId" : 84,
+          "ObjectId" : 86,
           "Properties" : {
             "ScriptFile" : "Game/GameFlowController.lua",
             "bAutoActivate" : true,
@@ -2880,7 +2954,7 @@
           }
         }, {
           "ClassName" : "ULuaScriptComponent",
-          "ObjectId" : 85,
+          "ObjectId" : 87,
           "Properties" : {
             "ScriptFile" : "Game/BloodMoonPhase.lua",
             "bAutoActivate" : true,
@@ -2890,7 +2964,7 @@
             "bTickEnable" : true
           }
         }],
-      "ObjectId" : 82,
+      "ObjectId" : 84,
       "Properties" : {
         "PendingActorLocation" : [-19.360771, 45.313923, 55.757500],
         "PendingActorRotation" : [-0.000000, 0.000000, 0.000000],
@@ -2902,7 +2976,7 @@
       "RootComponent" : {
         "Children" : [],
         "ClassName" : "UBillboardComponent",
-        "ObjectId" : 83,
+        "ObjectId" : 85,
         "Properties" : {
           "AttachSocketName" : "Name_None",
           "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
@@ -2942,7 +3016,7 @@
       "Name" : "ALuaCharacter_1",
       "NonSceneComponents" : [{
           "ClassName" : "UCharacterMovementComponent",
-          "ObjectId" : 91,
+          "ObjectId" : 93,
           "Properties" : {
             "BrakingFriction" : 8.000000,
             "DepenetrationSkin" : 0.020000,
@@ -2970,7 +3044,7 @@
           }
         }, {
           "ClassName" : "UCharacterStateMachineComponent",
-          "ObjectId" : 92,
+          "ObjectId" : 94,
           "Properties" : {
             "FaceYawRate" : 540.000000,
             "InitialState" : "Idle",
@@ -2986,7 +3060,7 @@
           }
         }, {
           "ClassName" : "ULuaScriptComponent",
-          "ObjectId" : 93,
+          "ObjectId" : 95,
           "Properties" : {
             "ScriptFile" : "FinalGameJamScript/CharacterController.lua",
             "bAutoActivate" : true,
@@ -2997,7 +3071,7 @@
           }
         }, {
           "ClassName" : "UHealthComponent",
-          "ObjectId" : 94,
+          "ObjectId" : 96,
           "Properties" : {
             "CurrentHealth" : 150.000000,
             "MaxHealth" : 150.000000,
@@ -3011,7 +3085,7 @@
           }
         }, {
           "ClassName" : "UCombatStateComponent",
-          "ObjectId" : 95,
+          "ObjectId" : 97,
           "Properties" : {
             "CurrentPoise" : 80.000000,
             "DefaultStaggerDuration" : 0.450000,
@@ -3036,7 +3110,7 @@
           }
         }, {
           "ClassName" : "ULockOnComponent",
-          "ObjectId" : 96,
+          "ObjectId" : 98,
           "Properties" : {
             "AcquireAngleDegrees" : 55.000000,
             "ArmInterpSpeed" : 8.000000,
@@ -3062,7 +3136,7 @@
             "bTickEnable" : true
           }
         }],
-      "ObjectId" : 86,
+      "ObjectId" : 88,
       "Properties" : {
         "PendingActorLocation" : [-22.538132, 31.731049, 66.614586],
         "PendingActorRotation" : [-0.000000, 0.000000, 0.000000],
@@ -3079,7 +3153,7 @@
         "Children" : [{
             "Children" : [],
             "ClassName" : "USkeletalMeshComponent",
-            "ObjectId" : 88,
+            "ObjectId" : 90,
             "Properties" : {
               "AnimGraphAssetPath" : "Content/Animation/FGJ_CharacterAnimGraph.uasset",
               "AnimGraphDefaultSequencePath" : "None",
@@ -3156,7 +3230,7 @@
             "Children" : [{
                 "Children" : [],
                 "ClassName" : "UCameraComponent",
-                "ObjectId" : 90,
+                "ObjectId" : 92,
                 "Properties" : {
                   "AttachSocketName" : "Name_None",
                   "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
@@ -3179,7 +3253,7 @@
                 }
               }],
             "ClassName" : "USpringArmComponent",
-            "ObjectId" : 89,
+            "ObjectId" : 91,
             "Properties" : {
               "AttachSocketName" : "Name_None",
               "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
@@ -3208,7 +3282,7 @@
             }
           }],
         "ClassName" : "UCapsuleComponent",
-        "ObjectId" : 87,
+        "ObjectId" : 89,
         "Properties" : {
           "AttachSocketName" : "Name_None",
           "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
@@ -3248,7 +3322,7 @@
       "ClassName" : "ACameraCinematicActor",
       "Name" : "ACameraCinematicActor_19",
       "NonSceneComponents" : [],
-      "ObjectId" : 97,
+      "ObjectId" : 99,
       "Properties" : {
         "BlendInTime" : 0.000000,
         "BlendOutTime" : 0.000000,
@@ -3270,7 +3344,7 @@
         "Children" : [{
             "Children" : [],
             "ClassName" : "UBillboardComponent",
-            "ObjectId" : 99,
+            "ObjectId" : 101,
             "Properties" : {
               "AttachSocketName" : "Name_None",
               "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
@@ -3307,7 +3381,7 @@
           }, {
             "Children" : [],
             "ClassName" : "UCineCameraComponent",
-            "ObjectId" : 100,
+            "ObjectId" : 102,
             "Properties" : {
               "AttachSocketName" : "Name_None",
               "CachedEditRotator" : [-7.335267, 118.085808, 0.000000],
@@ -3331,7 +3405,7 @@
           }, {
             "Children" : [],
             "ClassName" : "UCinematicWaypointComponent",
-            "ObjectId" : 101,
+            "ObjectId" : 103,
             "Properties" : {
               "AccelOut" : 0.000000,
               "AttachSocketName" : "Name_None",
@@ -3375,7 +3449,7 @@
           }, {
             "Children" : [],
             "ClassName" : "UCinematicWaypointComponent",
-            "ObjectId" : 102,
+            "ObjectId" : 104,
             "Properties" : {
               "AccelOut" : 0.000000,
               "AttachSocketName" : "Name_None",
@@ -3419,7 +3493,7 @@
           }, {
             "Children" : [],
             "ClassName" : "UCinematicWaypointComponent",
-            "ObjectId" : 103,
+            "ObjectId" : 105,
             "Properties" : {
               "AccelOut" : 0.000000,
               "AttachSocketName" : "Name_None",
@@ -3463,7 +3537,7 @@
           }, {
             "Children" : [],
             "ClassName" : "UCinematicWaypointComponent",
-            "ObjectId" : 104,
+            "ObjectId" : 106,
             "Properties" : {
               "AccelOut" : 0.000000,
               "AttachSocketName" : "Name_None",
@@ -3507,7 +3581,7 @@
           }, {
             "Children" : [],
             "ClassName" : "UCinematicWaypointComponent",
-            "ObjectId" : 105,
+            "ObjectId" : 107,
             "Properties" : {
               "AccelOut" : 0.000000,
               "AttachSocketName" : "Name_None",
@@ -3551,7 +3625,7 @@
           }, {
             "Children" : [],
             "ClassName" : "UCinematicWaypointComponent",
-            "ObjectId" : 106,
+            "ObjectId" : 108,
             "Properties" : {
               "AccelOut" : 0.000000,
               "AttachSocketName" : "Name_None",
@@ -3594,7 +3668,7 @@
             }
           }],
         "ClassName" : "USceneComponent",
-        "ObjectId" : 98,
+        "ObjectId" : 100,
         "Properties" : {
           "AttachSocketName" : "Name_None",
           "CachedEditRotator" : [-0.000000, -179.999893, 0.000000],
@@ -3611,7 +3685,7 @@
       "ClassName" : "ANavMeshBoundsVolume",
       "Name" : "BossArena_NavBounds_Main",
       "NonSceneComponents" : [],
-      "ObjectId" : 107,
+      "ObjectId" : 109,
       "Properties" : {
         "PendingActorLocation" : [6.877282, 51.457455, 55.697945],
         "PendingActorRotation" : [-0.000000, 0.000000, 0.000000],
@@ -3623,7 +3697,7 @@
       "RootComponent" : {
         "Children" : [],
         "ClassName" : "UBoxComponent",
-        "ObjectId" : 108,
+        "ObjectId" : 110,
         "Properties" : {
           "AttachSocketName" : "Name_None",
           "BoxExtent" : [34.000000, 24.000000, 10.000000],
@@ -3663,7 +3737,7 @@
       "Name" : "ABossEnemyCharacter_Samurai",
       "NonSceneComponents" : [{
           "ClassName" : "UCharacterMovementComponent",
-          "ObjectId" : 112,
+          "ObjectId" : 114,
           "Properties" : {
             "BrakingFriction" : 10.000000,
             "DepenetrationSkin" : 0.020000,
@@ -3691,10 +3765,10 @@
           }
         }, {
           "ClassName" : "UHealthComponent",
-          "ObjectId" : 113,
+          "ObjectId" : 115,
           "Properties" : {
             "CurrentHealth" : 450.000000,
-            "MaxHealth" : 450.000000,
+            "MaxHealth" : 1000.000000,
             "bAutoActivate" : true,
             "bEditorOnly" : false,
             "bHiddenInComponentTree" : false,
@@ -3705,7 +3779,7 @@
           }
         }, {
           "ClassName" : "UCombatStateComponent",
-          "ObjectId" : 114,
+          "ObjectId" : 116,
           "Properties" : {
             "CurrentPoise" : 160.000000,
             "DefaultStaggerDuration" : 5.000000,
@@ -3730,7 +3804,7 @@
           }
         }, {
           "ClassName" : "UActionComponent",
-          "ObjectId" : 115,
+          "ObjectId" : 117,
           "Properties" : {
             "bAutoActivate" : true,
             "bEditorOnly" : false,
@@ -3740,7 +3814,7 @@
           }
         }, {
           "ClassName" : "UEnemyAIBrainComponent",
-          "ObjectId" : 116,
+          "ObjectId" : 118,
           "Properties" : {
             "bAutoActivate" : true,
             "bEditorOnly" : false,
@@ -3750,7 +3824,7 @@
           }
         }, {
           "ClassName" : "UEnemyAttackComponent",
-          "ObjectId" : 117,
+          "ObjectId" : 119,
           "Properties" : {
             "Attacks" : [{
                 "ActiveFrames" : 5,
@@ -4103,7 +4177,7 @@
           }
         }, {
           "ClassName" : "UPhaseComponent",
-          "ObjectId" : 118,
+          "ObjectId" : 120,
           "Properties" : {
             "CurrentPhase" : 1,
             "InitialPhase" : 1,
@@ -4125,7 +4199,7 @@
           }
         }, {
           "ClassName" : "UEncounterComponent",
-          "ObjectId" : 119,
+          "ObjectId" : 121,
           "Properties" : {
             "State" : 0,
             "bAutoActivate" : false,
@@ -4137,7 +4211,7 @@
           }
         }, {
           "ClassName" : "UCharacterStateMachineComponent",
-          "ObjectId" : 120,
+          "ObjectId" : 122,
           "Properties" : {
             "FaceYawRate" : 540.000000,
             "InitialState" : "Idle",
@@ -4153,7 +4227,7 @@
           }
         }, {
           "ClassName" : "ULuaScriptComponent",
-          "ObjectId" : 121,
+          "ObjectId" : 123,
           "Properties" : {
             "ScriptFile" : "AI/samurai_boss_brain.lua",
             "bAutoActivate" : true,
@@ -4164,7 +4238,7 @@
           }
         }, {
           "ClassName" : "UEnemyHitComponent",
-          "ObjectId" : 122,
+          "ObjectId" : 124,
           "Properties" : {
             "DeathMontagePlayRate" : 1.000000,
             "DeathMontages" : {
@@ -4211,7 +4285,7 @@
           }
         }, {
           "ClassName" : "UCharacterLocomotionComponent",
-          "ObjectId" : 123,
+          "ObjectId" : 125,
           "Properties" : {
             "AttackAnimPath" : "Content/Data/Samura2/source/Standing Melee Combo Attack Ver. 1_mixamo_com.uasset",
             "FootfallsPerCycle" : 2,
@@ -4233,7 +4307,7 @@
           }
         }, {
           "ClassName" : "UAIBlackboardComponent",
-          "ObjectId" : 124,
+          "ObjectId" : 126,
           "Properties" : {
             "RecentMoveMemory" : 4,
             "bAutoActivate" : true,
@@ -4244,7 +4318,7 @@
           }
         }, {
           "ClassName" : "UAIPerceptionComponent",
-          "ObjectId" : 125,
+          "ObjectId" : 127,
           "Properties" : {
             "EyeHeight" : 1.600000,
             "FieldOfViewDegrees" : 120.000000,
@@ -4260,7 +4334,7 @@
           }
         }, {
           "ClassName" : "UAIDecisionTraceComponent",
-          "ObjectId" : 126,
+          "ObjectId" : 128,
           "Properties" : {
             "MaxRecords" : 256,
             "bAutoActivate" : true,
@@ -4271,7 +4345,7 @@
           }
         }, {
           "ClassName" : "UCombatMoveComponent",
-          "ObjectId" : 127,
+          "ObjectId" : 129,
           "Properties" : {
             "bAutoActivate" : true,
             "bEditorOnly" : false,
@@ -4281,7 +4355,7 @@
           }
         }, {
           "ClassName" : "UExecutionComponent",
-          "ObjectId" : 128,
+          "ObjectId" : 130,
           "Properties" : {
             "ExecutionWindowSeconds" : 3.000000,
             "HealthFractionRestoredOnStockSpent" : 0.000000,
@@ -4295,7 +4369,7 @@
           }
         }, {
           "ClassName" : "UAwarenessComponent",
-          "ObjectId" : 129,
+          "ObjectId" : 131,
           "Properties" : {
             "AlertPropagationRadius" : 12.000000,
             "AlertPropagationStrength" : 0.500000,
@@ -4317,7 +4391,7 @@
           }
         }, {
           "ClassName" : "ULuaBlueprintComponent",
-          "ObjectId" : 130,
+          "ObjectId" : 132,
           "Properties" : {
             "BlueprintPath" : "",
             "bAutoActivate" : true,
@@ -4328,7 +4402,7 @@
           }
         }, {
           "ClassName" : "UBehaviorTreeComponent",
-          "ObjectId" : 131,
+          "ObjectId" : 133,
           "Properties" : {
             "BehaviorTreePath" : "",
             "bAutoActivate" : true,
@@ -4339,7 +4413,7 @@
             "bUseDemoTreeWhenNoAsset" : false
           }
         }],
-      "ObjectId" : 109,
+      "ObjectId" : 111,
       "Properties" : {
         "AIControllerClass" : "AAIController",
         "AttackTokenSafetyBuffer" : 0.150000,
@@ -4399,9 +4473,9 @@
           "ClassName" : "UAnimMontage"
         },
         "LocoWalkSpeedThreshold" : 0.200000,
-        "PendingActorLocation" : [22.773884, 50.128036, 59.235012],
+        "PendingActorLocation" : [6.768257, 50.128036, 59.235012],
         "PendingActorRotation" : [-0.000000, -179.999893, 0.000000],
-        "PendingActorScale" : [5.000000, 5.000000, 5.000000],
+        "PendingActorScale" : [2.000000, 2.000000, 2.000000],
         "PendingActorVisible" : true,
         "PendingTagsString" : "Enemy",
         "PhaseChangeInvulnSeconds" : 1.400000,
@@ -4431,7 +4505,7 @@
         "Children" : [{
             "Children" : [],
             "ClassName" : "USkeletalMeshComponent",
-            "ObjectId" : 111,
+            "ObjectId" : 113,
             "Properties" : {
               "AnimGraphAssetPath" : "None",
               "AnimGraphDefaultSequencePath" : "None",
@@ -4501,7 +4575,7 @@
             }
           }],
         "ClassName" : "UCapsuleComponent",
-        "ObjectId" : 110,
+        "ObjectId" : 112,
         "Properties" : {
           "AttachSocketName" : "Name_None",
           "CachedEditRotator" : [-0.000000, -179.999893, 0.000000],
@@ -4511,8 +4585,8 @@
           "CollisionEnabled" : 3,
           "Mass" : 1.000000,
           "ObjectType" : 2,
-          "RelativeTransform.Location" : [22.773884, 50.128036, 59.235012],
-          "RelativeTransform.Scale" : [5.000000, 5.000000, 5.000000],
+          "RelativeTransform.Location" : [6.768257, 50.128036, 59.235012],
+          "RelativeTransform.Scale" : [2.000000, 2.000000, 2.000000],
           "ResponseContainer" : {
             "Responses[0]" : 2,
             "Responses[1]" : 2,
@@ -4542,7 +4616,7 @@
       "Name" : "AEmptyActor_BossDirector",
       "NonSceneComponents" : [{
           "ClassName" : "ULuaScriptComponent",
-          "ObjectId" : 134,
+          "ObjectId" : 136,
           "Properties" : {
             "ScriptFile" : "Game/BossIntroDirector.lua",
             "bAutoActivate" : true,
@@ -4552,7 +4626,7 @@
             "bTickEnable" : true
           }
         }],
-      "ObjectId" : 132,
+      "ObjectId" : 134,
       "Properties" : {
         "PendingActorLocation" : [-8.000000, 31.731049, 66.614586],
         "PendingActorRotation" : [-0.000000, 0.000000, 0.000000],
@@ -4564,7 +4638,7 @@
       "RootComponent" : {
         "Children" : [],
         "ClassName" : "UBillboardComponent",
-        "ObjectId" : 133,
+        "ObjectId" : 135,
         "Properties" : {
           "AttachSocketName" : "Name_None",
           "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
@@ -4603,17 +4677,17 @@
       "ClassName" : "ACameraCinematicActor",
       "Name" : "ACameraCinematicActor_Intro",
       "NonSceneComponents" : [],
-      "ObjectId" : 135,
+      "ObjectId" : 137,
       "Properties" : {
         "BlendInTime" : 0.000000,
         "BlendOutTime" : 0.500000,
         "CoordinateTarget" : {
-          "ObjectId" : 109
+          "ObjectId" : 111
         },
         "DefaultFOV" : 1.047198,
         "Duration" : 6.000000,
         "PathColor" : [0.200000, 0.800000, 1.000000, 1.000000],
-        "PendingActorLocation" : [22.773884, 50.128036, 59.235012],
+        "PendingActorLocation" : [6.768257, 50.128036, 59.235012],
         "PendingActorRotation" : [-0.000000, -179.999893, 0.000000],
         "PendingActorScale" : [1.000000, 1.000000, 1.000000],
         "PendingActorVisible" : true,
@@ -4627,7 +4701,7 @@
         "Children" : [{
             "Children" : [],
             "ClassName" : "UCineCameraComponent",
-            "ObjectId" : 137,
+            "ObjectId" : 139,
             "Properties" : {
               "AttachSocketName" : "Name_None",
               "CachedEditRotator" : [2.862405, 0.000000, 0.000000],
@@ -4651,7 +4725,7 @@
           }, {
             "Children" : [],
             "ClassName" : "UCinematicWaypointComponent",
-            "ObjectId" : 138,
+            "ObjectId" : 140,
             "Properties" : {
               "AccelOut" : 0.000000,
               "AttachSocketName" : "Name_None",
@@ -4662,7 +4736,7 @@
               "DwellSeconds" : 0.000000,
               "FOVOverride" : 0.000000,
               "LookAtActor" : {
-                "ObjectId" : 109
+                "ObjectId" : 111
               },
               "Mass" : 1.000000,
               "MaterialSlots" : [],
@@ -4697,7 +4771,7 @@
           }, {
             "Children" : [],
             "ClassName" : "UCinematicWaypointComponent",
-            "ObjectId" : 139,
+            "ObjectId" : 141,
             "Properties" : {
               "AccelOut" : 0.000000,
               "AttachSocketName" : "Name_None",
@@ -4708,7 +4782,7 @@
               "DwellSeconds" : 0.000000,
               "FOVOverride" : 0.000000,
               "LookAtActor" : {
-                "ObjectId" : 109
+                "ObjectId" : 111
               },
               "Mass" : 1.000000,
               "MaterialSlots" : [],
@@ -4743,7 +4817,7 @@
           }, {
             "Children" : [],
             "ClassName" : "UCinematicWaypointComponent",
-            "ObjectId" : 140,
+            "ObjectId" : 142,
             "Properties" : {
               "AccelOut" : 0.000000,
               "AttachSocketName" : "Name_None",
@@ -4754,7 +4828,7 @@
               "DwellSeconds" : 0.000000,
               "FOVOverride" : 0.000000,
               "LookAtActor" : {
-                "ObjectId" : 109
+                "ObjectId" : 111
               },
               "Mass" : 1.000000,
               "MaterialSlots" : [],
@@ -4789,7 +4863,7 @@
           }, {
             "Children" : [],
             "ClassName" : "UCinematicWaypointComponent",
-            "ObjectId" : 141,
+            "ObjectId" : 143,
             "Properties" : {
               "AccelOut" : 0.000000,
               "AttachSocketName" : "Name_None",
@@ -4800,7 +4874,7 @@
               "DwellSeconds" : 0.000000,
               "FOVOverride" : 0.000000,
               "LookAtActor" : {
-                "ObjectId" : 109
+                "ObjectId" : 111
               },
               "Mass" : 1.000000,
               "MaterialSlots" : [],
@@ -4835,7 +4909,7 @@
           }, {
             "Children" : [],
             "ClassName" : "UCinematicWaypointComponent",
-            "ObjectId" : 142,
+            "ObjectId" : 144,
             "Properties" : {
               "AccelOut" : 0.000000,
               "AttachSocketName" : "Name_None",
@@ -4846,7 +4920,7 @@
               "DwellSeconds" : 0.000000,
               "FOVOverride" : 0.000000,
               "LookAtActor" : {
-                "ObjectId" : 109
+                "ObjectId" : 111
               },
               "Mass" : 1.000000,
               "MaterialSlots" : [],
@@ -4880,11 +4954,11 @@
             }
           }],
         "ClassName" : "USceneComponent",
-        "ObjectId" : 136,
+        "ObjectId" : 138,
         "Properties" : {
           "AttachSocketName" : "Name_None",
           "CachedEditRotator" : [-0.000000, -179.999893, 0.000000],
-          "RelativeTransform.Location" : [22.773884, 50.128036, 59.235012],
+          "RelativeTransform.Location" : [6.768257, 50.128036, 59.235012],
           "RelativeTransform.Scale" : [1.000000, 1.000000, 1.000000],
           "bAutoActivate" : true,
           "bEditorOnly" : false,
@@ -4898,7 +4972,7 @@
       "Name" : "HUD",
       "NonSceneComponents" : [{
           "ClassName" : "ULuaScriptComponent",
-          "ObjectId" : 145,
+          "ObjectId" : 147,
           "Properties" : {
             "ScriptFile" : "HUD_Manager.lua",
             "bAutoActivate" : true,
@@ -4908,7 +4982,7 @@
             "bTickEnable" : true
           }
         }],
-      "ObjectId" : 143,
+      "ObjectId" : 145,
       "Properties" : {
         "PendingActorLocation" : [0.944871, 47.663765, 65.305214],
         "PendingActorRotation" : [-0.000000, 0.000000, 0.000000],
@@ -4920,7 +4994,7 @@
       "RootComponent" : {
         "Children" : [],
         "ClassName" : "UBillboardComponent",
-        "ObjectId" : 144,
+        "ObjectId" : 146,
         "Properties" : {
           "AttachSocketName" : "Name_None",
           "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
@@ -4959,7 +5033,7 @@
       "ClassName" : "AEmptyActor",
       "Name" : "BloodMoon",
       "NonSceneComponents" : [],
-      "ObjectId" : 146,
+      "ObjectId" : 148,
       "Properties" : {
         "PendingActorLocation" : [-49.835247, -4.329891, 65.802200],
         "PendingActorRotation" : [-0.000000, 0.000000, 0.000000],
@@ -4972,7 +5046,7 @@
         "Children" : [{
             "Children" : [],
             "ClassName" : "UBillboardComponent",
-            "ObjectId" : 148,
+            "ObjectId" : 150,
             "Properties" : {
               "AttachSocketName" : "Name_None",
               "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
@@ -5007,7 +5081,7 @@
             }
           }],
         "ClassName" : "UBillboardComponent",
-        "ObjectId" : 147,
+        "ObjectId" : 149,
         "Properties" : {
           "AttachSocketName" : "Name_None",
           "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
@@ -5046,7 +5120,7 @@
       "ClassName" : "ACameraCinematicActor",
       "Name" : "ACameraCinematicActor_2",
       "NonSceneComponents" : [],
-      "ObjectId" : 149,
+      "ObjectId" : 151,
       "Properties" : {
         "BlendInTime" : 0.000000,
         "BlendOutTime" : 0.000000,
@@ -5068,7 +5142,7 @@
         "Children" : [{
             "Children" : [],
             "ClassName" : "UBillboardComponent",
-            "ObjectId" : 151,
+            "ObjectId" : 153,
             "Properties" : {
               "AttachSocketName" : "Name_None",
               "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
@@ -5105,7 +5179,7 @@
           }, {
             "Children" : [],
             "ClassName" : "UCineCameraComponent",
-            "ObjectId" : 152,
+            "ObjectId" : 154,
             "Properties" : {
               "AttachSocketName" : "Name_None",
               "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
@@ -5128,7 +5202,7 @@
             }
           }],
         "ClassName" : "USceneComponent",
-        "ObjectId" : 150,
+        "ObjectId" : 152,
         "Properties" : {
           "AttachSocketName" : "Name_None",
           "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
@@ -5145,7 +5219,7 @@
       "ClassName" : "ABoxActor",
       "Name" : "Boss_Prepstage",
       "NonSceneComponents" : [],
-      "ObjectId" : 153,
+      "ObjectId" : 155,
       "Properties" : {
         "PendingActorLocation" : [-29.002035, 41.041775, 8.495358],
         "PendingActorRotation" : [-0.000000, 0.000000, 0.000000],
@@ -5157,7 +5231,7 @@
       "RootComponent" : {
         "Children" : [],
         "ClassName" : "UBoxComponent",
-        "ObjectId" : 154,
+        "ObjectId" : 156,
         "Properties" : {
           "AttachSocketName" : "Name_None",
           "BoxExtent" : [1.000000, 1.000000, 1.000000],
@@ -5197,7 +5271,7 @@
       "Name" : "AEnemyCharacter_0_Copy_Copy_Copy_Copy_Copy_Copy_Copy_2_Copy_Copy_Copy_Copy_Copy",
       "NonSceneComponents" : [{
           "ClassName" : "UCharacterMovementComponent",
-          "ObjectId" : 158,
+          "ObjectId" : 160,
           "Properties" : {
             "BrakingFriction" : 8.000000,
             "DepenetrationSkin" : 0.020000,
@@ -5225,7 +5299,7 @@
           }
         }, {
           "ClassName" : "UCharacterStateMachineComponent",
-          "ObjectId" : 159,
+          "ObjectId" : 161,
           "Properties" : {
             "FaceYawRate" : 540.000000,
             "InitialState" : "Idle",
@@ -5241,7 +5315,7 @@
           }
         }, {
           "ClassName" : "UHealthComponent",
-          "ObjectId" : 160,
+          "ObjectId" : 162,
           "Properties" : {
             "CurrentHealth" : 100.000000,
             "MaxHealth" : 100.000000,
@@ -5255,7 +5329,7 @@
           }
         }, {
           "ClassName" : "UCombatStateComponent",
-          "ObjectId" : 161,
+          "ObjectId" : 163,
           "Properties" : {
             "CurrentPoise" : 100.000000,
             "DefaultStaggerDuration" : 0.450000,
@@ -5280,7 +5354,7 @@
           }
         }, {
           "ClassName" : "UActionComponent",
-          "ObjectId" : 162,
+          "ObjectId" : 164,
           "Properties" : {
             "bAutoActivate" : true,
             "bEditorOnly" : false,
@@ -5290,7 +5364,7 @@
           }
         }, {
           "ClassName" : "UEnemyAIBrainComponent",
-          "ObjectId" : 163,
+          "ObjectId" : 165,
           "Properties" : {
             "bAutoActivate" : true,
             "bEditorOnly" : false,
@@ -5300,7 +5374,7 @@
           }
         }, {
           "ClassName" : "UEnemyAttackComponent",
-          "ObjectId" : 164,
+          "ObjectId" : 166,
           "Properties" : {
             "Attacks" : [{
                 "ActiveFrames" : 4,
@@ -5347,7 +5421,7 @@
           }
         }, {
           "ClassName" : "UEnemyHitComponent",
-          "ObjectId" : 165,
+          "ObjectId" : 167,
           "Properties" : {
             "DeathMontagePlayRate" : 1.000000,
             "DeathMontages" : {
@@ -5403,7 +5477,7 @@
           }
         }, {
           "ClassName" : "UAIBlackboardComponent",
-          "ObjectId" : 166,
+          "ObjectId" : 168,
           "Properties" : {
             "RecentMoveMemory" : 4,
             "bAutoActivate" : true,
@@ -5414,7 +5488,7 @@
           }
         }, {
           "ClassName" : "UAIPerceptionComponent",
-          "ObjectId" : 167,
+          "ObjectId" : 169,
           "Properties" : {
             "EyeHeight" : 1.600000,
             "FieldOfViewDegrees" : 120.000000,
@@ -5430,7 +5504,7 @@
           }
         }, {
           "ClassName" : "UAIDecisionTraceComponent",
-          "ObjectId" : 168,
+          "ObjectId" : 170,
           "Properties" : {
             "MaxRecords" : 256,
             "bAutoActivate" : true,
@@ -5441,7 +5515,7 @@
           }
         }, {
           "ClassName" : "UCombatMoveComponent",
-          "ObjectId" : 169,
+          "ObjectId" : 171,
           "Properties" : {
             "bAutoActivate" : true,
             "bEditorOnly" : false,
@@ -5451,7 +5525,7 @@
           }
         }, {
           "ClassName" : "UExecutionComponent",
-          "ObjectId" : 170,
+          "ObjectId" : 172,
           "Properties" : {
             "ExecutionWindowSeconds" : 3.000000,
             "HealthFractionRestoredOnStockSpent" : 0.000000,
@@ -5465,7 +5539,7 @@
           }
         }, {
           "ClassName" : "UAwarenessComponent",
-          "ObjectId" : 171,
+          "ObjectId" : 173,
           "Properties" : {
             "AlertPropagationRadius" : 12.000000,
             "AlertPropagationStrength" : 0.500000,
@@ -5487,7 +5561,7 @@
           }
         }, {
           "ClassName" : "UBehaviorTreeComponent",
-          "ObjectId" : 172,
+          "ObjectId" : 174,
           "Properties" : {
             "BehaviorTreePath" : "",
             "bAutoActivate" : true,
@@ -5499,7 +5573,7 @@
           }
         }, {
           "ClassName" : "ULuaScriptComponent",
-          "ObjectId" : 173,
+          "ObjectId" : 175,
           "Properties" : {
             "ScriptFile" : "AI/enemy_brain.lua",
             "bAutoActivate" : true,
@@ -5510,7 +5584,7 @@
           }
         }, {
           "ClassName" : "ULuaBlueprintComponent",
-          "ObjectId" : 174,
+          "ObjectId" : 176,
           "Properties" : {
             "BlueprintPath" : "",
             "bAutoActivate" : true,
@@ -5520,7 +5594,7 @@
             "bTickEnable" : true
           }
         }],
-      "ObjectId" : 155,
+      "ObjectId" : 157,
       "Properties" : {
         "AIControllerClass" : "AAIController",
         "AttackTokenSafetyBuffer" : 0.150000,
@@ -5580,7 +5654,7 @@
         "Children" : [{
             "Children" : [],
             "ClassName" : "USkeletalMeshComponent",
-            "ObjectId" : 157,
+            "ObjectId" : 159,
             "Properties" : {
               "AnimGraphAssetPath" : "Content/Animation/NewAnimGraph_1.uasset",
               "AnimGraphDefaultSequencePath" : "None",
@@ -5655,7 +5729,7 @@
             }
           }],
         "ClassName" : "UCapsuleComponent",
-        "ObjectId" : 156,
+        "ObjectId" : 158,
         "Properties" : {
           "AttachSocketName" : "Name_None",
           "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
@@ -5696,7 +5770,7 @@
       "Name" : "AEnemyCharacter_0_Copy_Copy_Copy_Copy_Copy_Copy_Copy_2_Copy_Copy_Copy_Copy_Copy_Copy",
       "NonSceneComponents" : [{
           "ClassName" : "UCharacterMovementComponent",
-          "ObjectId" : 178,
+          "ObjectId" : 180,
           "Properties" : {
             "BrakingFriction" : 8.000000,
             "DepenetrationSkin" : 0.020000,
@@ -5724,7 +5798,7 @@
           }
         }, {
           "ClassName" : "UCharacterStateMachineComponent",
-          "ObjectId" : 179,
+          "ObjectId" : 181,
           "Properties" : {
             "FaceYawRate" : 540.000000,
             "InitialState" : "Idle",
@@ -5740,7 +5814,7 @@
           }
         }, {
           "ClassName" : "UHealthComponent",
-          "ObjectId" : 180,
+          "ObjectId" : 182,
           "Properties" : {
             "CurrentHealth" : 100.000000,
             "MaxHealth" : 100.000000,
@@ -5754,7 +5828,7 @@
           }
         }, {
           "ClassName" : "UCombatStateComponent",
-          "ObjectId" : 181,
+          "ObjectId" : 183,
           "Properties" : {
             "CurrentPoise" : 100.000000,
             "DefaultStaggerDuration" : 0.450000,
@@ -5779,7 +5853,7 @@
           }
         }, {
           "ClassName" : "UActionComponent",
-          "ObjectId" : 182,
+          "ObjectId" : 184,
           "Properties" : {
             "bAutoActivate" : true,
             "bEditorOnly" : false,
@@ -5789,7 +5863,7 @@
           }
         }, {
           "ClassName" : "UEnemyAIBrainComponent",
-          "ObjectId" : 183,
+          "ObjectId" : 185,
           "Properties" : {
             "bAutoActivate" : true,
             "bEditorOnly" : false,
@@ -5799,7 +5873,7 @@
           }
         }, {
           "ClassName" : "UEnemyAttackComponent",
-          "ObjectId" : 184,
+          "ObjectId" : 186,
           "Properties" : {
             "Attacks" : [{
                 "ActiveFrames" : 4,
@@ -5846,7 +5920,7 @@
           }
         }, {
           "ClassName" : "UEnemyHitComponent",
-          "ObjectId" : 185,
+          "ObjectId" : 187,
           "Properties" : {
             "DeathMontagePlayRate" : 1.000000,
             "DeathMontages" : {
@@ -5902,7 +5976,7 @@
           }
         }, {
           "ClassName" : "UAIBlackboardComponent",
-          "ObjectId" : 186,
+          "ObjectId" : 188,
           "Properties" : {
             "RecentMoveMemory" : 4,
             "bAutoActivate" : true,
@@ -5913,7 +5987,7 @@
           }
         }, {
           "ClassName" : "UAIPerceptionComponent",
-          "ObjectId" : 187,
+          "ObjectId" : 189,
           "Properties" : {
             "EyeHeight" : 1.600000,
             "FieldOfViewDegrees" : 120.000000,
@@ -5929,7 +6003,7 @@
           }
         }, {
           "ClassName" : "UAIDecisionTraceComponent",
-          "ObjectId" : 188,
+          "ObjectId" : 190,
           "Properties" : {
             "MaxRecords" : 256,
             "bAutoActivate" : true,
@@ -5940,7 +6014,7 @@
           }
         }, {
           "ClassName" : "UCombatMoveComponent",
-          "ObjectId" : 189,
+          "ObjectId" : 191,
           "Properties" : {
             "bAutoActivate" : true,
             "bEditorOnly" : false,
@@ -5950,7 +6024,7 @@
           }
         }, {
           "ClassName" : "UExecutionComponent",
-          "ObjectId" : 190,
+          "ObjectId" : 192,
           "Properties" : {
             "ExecutionWindowSeconds" : 3.000000,
             "HealthFractionRestoredOnStockSpent" : 0.000000,
@@ -5964,7 +6038,7 @@
           }
         }, {
           "ClassName" : "UAwarenessComponent",
-          "ObjectId" : 191,
+          "ObjectId" : 193,
           "Properties" : {
             "AlertPropagationRadius" : 12.000000,
             "AlertPropagationStrength" : 0.500000,
@@ -5986,7 +6060,7 @@
           }
         }, {
           "ClassName" : "UBehaviorTreeComponent",
-          "ObjectId" : 192,
+          "ObjectId" : 194,
           "Properties" : {
             "BehaviorTreePath" : "",
             "bAutoActivate" : true,
@@ -5998,7 +6072,7 @@
           }
         }, {
           "ClassName" : "ULuaScriptComponent",
-          "ObjectId" : 193,
+          "ObjectId" : 195,
           "Properties" : {
             "ScriptFile" : "AI/enemy_brain.lua",
             "bAutoActivate" : true,
@@ -6009,7 +6083,7 @@
           }
         }, {
           "ClassName" : "ULuaBlueprintComponent",
-          "ObjectId" : 194,
+          "ObjectId" : 196,
           "Properties" : {
             "BlueprintPath" : "",
             "bAutoActivate" : true,
@@ -6019,7 +6093,7 @@
             "bTickEnable" : true
           }
         }],
-      "ObjectId" : 175,
+      "ObjectId" : 177,
       "Properties" : {
         "AIControllerClass" : "AAIController",
         "AttackTokenSafetyBuffer" : 0.150000,
@@ -6079,7 +6153,7 @@
         "Children" : [{
             "Children" : [],
             "ClassName" : "USkeletalMeshComponent",
-            "ObjectId" : 177,
+            "ObjectId" : 179,
             "Properties" : {
               "AnimGraphAssetPath" : "Content/Animation/NewAnimGraph_1.uasset",
               "AnimGraphDefaultSequencePath" : "None",
@@ -6154,7 +6228,7 @@
             }
           }],
         "ClassName" : "UCapsuleComponent",
-        "ObjectId" : 176,
+        "ObjectId" : 178,
         "Properties" : {
           "AttachSocketName" : "Name_None",
           "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
@@ -6195,7 +6269,7 @@
       "Name" : "AEnemyCharacter_0_Copy_Copy_Copy_Copy_Copy_Copy_Copy_2_Copy_Copy_Copy_Copy_Copy_Copy_Copy",
       "NonSceneComponents" : [{
           "ClassName" : "UCharacterMovementComponent",
-          "ObjectId" : 198,
+          "ObjectId" : 200,
           "Properties" : {
             "BrakingFriction" : 8.000000,
             "DepenetrationSkin" : 0.020000,
@@ -6223,7 +6297,7 @@
           }
         }, {
           "ClassName" : "UCharacterStateMachineComponent",
-          "ObjectId" : 199,
+          "ObjectId" : 201,
           "Properties" : {
             "FaceYawRate" : 540.000000,
             "InitialState" : "Idle",
@@ -6239,7 +6313,7 @@
           }
         }, {
           "ClassName" : "UHealthComponent",
-          "ObjectId" : 200,
+          "ObjectId" : 202,
           "Properties" : {
             "CurrentHealth" : 100.000000,
             "MaxHealth" : 100.000000,
@@ -6253,7 +6327,7 @@
           }
         }, {
           "ClassName" : "UCombatStateComponent",
-          "ObjectId" : 201,
+          "ObjectId" : 203,
           "Properties" : {
             "CurrentPoise" : 100.000000,
             "DefaultStaggerDuration" : 0.450000,
@@ -6278,7 +6352,7 @@
           }
         }, {
           "ClassName" : "UActionComponent",
-          "ObjectId" : 202,
+          "ObjectId" : 204,
           "Properties" : {
             "bAutoActivate" : true,
             "bEditorOnly" : false,
@@ -6288,7 +6362,7 @@
           }
         }, {
           "ClassName" : "UEnemyAIBrainComponent",
-          "ObjectId" : 203,
+          "ObjectId" : 205,
           "Properties" : {
             "bAutoActivate" : true,
             "bEditorOnly" : false,
@@ -6298,7 +6372,7 @@
           }
         }, {
           "ClassName" : "UEnemyAttackComponent",
-          "ObjectId" : 204,
+          "ObjectId" : 206,
           "Properties" : {
             "Attacks" : [{
                 "ActiveFrames" : 4,
@@ -6345,7 +6419,7 @@
           }
         }, {
           "ClassName" : "UEnemyHitComponent",
-          "ObjectId" : 205,
+          "ObjectId" : 207,
           "Properties" : {
             "DeathMontagePlayRate" : 1.000000,
             "DeathMontages" : {
@@ -6401,7 +6475,7 @@
           }
         }, {
           "ClassName" : "UAIBlackboardComponent",
-          "ObjectId" : 206,
+          "ObjectId" : 208,
           "Properties" : {
             "RecentMoveMemory" : 4,
             "bAutoActivate" : true,
@@ -6412,7 +6486,7 @@
           }
         }, {
           "ClassName" : "UAIPerceptionComponent",
-          "ObjectId" : 207,
+          "ObjectId" : 209,
           "Properties" : {
             "EyeHeight" : 1.600000,
             "FieldOfViewDegrees" : 120.000000,
@@ -6428,7 +6502,7 @@
           }
         }, {
           "ClassName" : "UAIDecisionTraceComponent",
-          "ObjectId" : 208,
+          "ObjectId" : 210,
           "Properties" : {
             "MaxRecords" : 256,
             "bAutoActivate" : true,
@@ -6439,7 +6513,7 @@
           }
         }, {
           "ClassName" : "UCombatMoveComponent",
-          "ObjectId" : 209,
+          "ObjectId" : 211,
           "Properties" : {
             "bAutoActivate" : true,
             "bEditorOnly" : false,
@@ -6449,7 +6523,7 @@
           }
         }, {
           "ClassName" : "UExecutionComponent",
-          "ObjectId" : 210,
+          "ObjectId" : 212,
           "Properties" : {
             "ExecutionWindowSeconds" : 3.000000,
             "HealthFractionRestoredOnStockSpent" : 0.000000,
@@ -6463,7 +6537,7 @@
           }
         }, {
           "ClassName" : "UAwarenessComponent",
-          "ObjectId" : 211,
+          "ObjectId" : 213,
           "Properties" : {
             "AlertPropagationRadius" : 12.000000,
             "AlertPropagationStrength" : 0.500000,
@@ -6485,7 +6559,7 @@
           }
         }, {
           "ClassName" : "UBehaviorTreeComponent",
-          "ObjectId" : 212,
+          "ObjectId" : 214,
           "Properties" : {
             "BehaviorTreePath" : "",
             "bAutoActivate" : true,
@@ -6497,7 +6571,7 @@
           }
         }, {
           "ClassName" : "ULuaScriptComponent",
-          "ObjectId" : 213,
+          "ObjectId" : 215,
           "Properties" : {
             "ScriptFile" : "AI/enemy_brain.lua",
             "bAutoActivate" : true,
@@ -6508,7 +6582,7 @@
           }
         }, {
           "ClassName" : "ULuaBlueprintComponent",
-          "ObjectId" : 214,
+          "ObjectId" : 216,
           "Properties" : {
             "BlueprintPath" : "",
             "bAutoActivate" : true,
@@ -6518,7 +6592,7 @@
             "bTickEnable" : true
           }
         }],
-      "ObjectId" : 195,
+      "ObjectId" : 197,
       "Properties" : {
         "AIControllerClass" : "AAIController",
         "AttackTokenSafetyBuffer" : 0.150000,
@@ -6578,7 +6652,7 @@
         "Children" : [{
             "Children" : [],
             "ClassName" : "USkeletalMeshComponent",
-            "ObjectId" : 197,
+            "ObjectId" : 199,
             "Properties" : {
               "AnimGraphAssetPath" : "Content/Animation/NewAnimGraph_1.uasset",
               "AnimGraphDefaultSequencePath" : "None",
@@ -6653,7 +6727,7 @@
             }
           }],
         "ClassName" : "UCapsuleComponent",
-        "ObjectId" : 196,
+        "ObjectId" : 198,
         "Properties" : {
           "AttachSocketName" : "Name_None",
           "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
@@ -6694,7 +6768,7 @@
       "Name" : "AEnemyCharacter_0_Copy_Copy_Copy_Copy_Copy_Copy_Copy_2_Copy_Copy_Copy_Copy_Copy_Copy_Copy_Copy",
       "NonSceneComponents" : [{
           "ClassName" : "UCharacterMovementComponent",
-          "ObjectId" : 218,
+          "ObjectId" : 220,
           "Properties" : {
             "BrakingFriction" : 8.000000,
             "DepenetrationSkin" : 0.020000,
@@ -6722,7 +6796,7 @@
           }
         }, {
           "ClassName" : "UCharacterStateMachineComponent",
-          "ObjectId" : 219,
+          "ObjectId" : 221,
           "Properties" : {
             "FaceYawRate" : 540.000000,
             "InitialState" : "Idle",
@@ -6738,7 +6812,7 @@
           }
         }, {
           "ClassName" : "UHealthComponent",
-          "ObjectId" : 220,
+          "ObjectId" : 222,
           "Properties" : {
             "CurrentHealth" : 100.000000,
             "MaxHealth" : 100.000000,
@@ -6752,7 +6826,7 @@
           }
         }, {
           "ClassName" : "UCombatStateComponent",
-          "ObjectId" : 221,
+          "ObjectId" : 223,
           "Properties" : {
             "CurrentPoise" : 100.000000,
             "DefaultStaggerDuration" : 0.450000,
@@ -6777,7 +6851,7 @@
           }
         }, {
           "ClassName" : "UActionComponent",
-          "ObjectId" : 222,
+          "ObjectId" : 224,
           "Properties" : {
             "bAutoActivate" : true,
             "bEditorOnly" : false,
@@ -6787,7 +6861,7 @@
           }
         }, {
           "ClassName" : "UEnemyAIBrainComponent",
-          "ObjectId" : 223,
+          "ObjectId" : 225,
           "Properties" : {
             "bAutoActivate" : true,
             "bEditorOnly" : false,
@@ -6797,7 +6871,7 @@
           }
         }, {
           "ClassName" : "UEnemyAttackComponent",
-          "ObjectId" : 224,
+          "ObjectId" : 226,
           "Properties" : {
             "Attacks" : [{
                 "ActiveFrames" : 4,
@@ -6844,7 +6918,7 @@
           }
         }, {
           "ClassName" : "UEnemyHitComponent",
-          "ObjectId" : 225,
+          "ObjectId" : 227,
           "Properties" : {
             "DeathMontagePlayRate" : 1.000000,
             "DeathMontages" : {
@@ -6900,7 +6974,7 @@
           }
         }, {
           "ClassName" : "UAIBlackboardComponent",
-          "ObjectId" : 226,
+          "ObjectId" : 228,
           "Properties" : {
             "RecentMoveMemory" : 4,
             "bAutoActivate" : true,
@@ -6911,7 +6985,7 @@
           }
         }, {
           "ClassName" : "UAIPerceptionComponent",
-          "ObjectId" : 227,
+          "ObjectId" : 229,
           "Properties" : {
             "EyeHeight" : 1.600000,
             "FieldOfViewDegrees" : 120.000000,
@@ -6927,7 +7001,7 @@
           }
         }, {
           "ClassName" : "UAIDecisionTraceComponent",
-          "ObjectId" : 228,
+          "ObjectId" : 230,
           "Properties" : {
             "MaxRecords" : 256,
             "bAutoActivate" : true,
@@ -6938,7 +7012,7 @@
           }
         }, {
           "ClassName" : "UCombatMoveComponent",
-          "ObjectId" : 229,
+          "ObjectId" : 231,
           "Properties" : {
             "bAutoActivate" : true,
             "bEditorOnly" : false,
@@ -6948,7 +7022,7 @@
           }
         }, {
           "ClassName" : "UExecutionComponent",
-          "ObjectId" : 230,
+          "ObjectId" : 232,
           "Properties" : {
             "ExecutionWindowSeconds" : 3.000000,
             "HealthFractionRestoredOnStockSpent" : 0.000000,
@@ -6962,7 +7036,7 @@
           }
         }, {
           "ClassName" : "UAwarenessComponent",
-          "ObjectId" : 231,
+          "ObjectId" : 233,
           "Properties" : {
             "AlertPropagationRadius" : 12.000000,
             "AlertPropagationStrength" : 0.500000,
@@ -6984,7 +7058,7 @@
           }
         }, {
           "ClassName" : "UBehaviorTreeComponent",
-          "ObjectId" : 232,
+          "ObjectId" : 234,
           "Properties" : {
             "BehaviorTreePath" : "",
             "bAutoActivate" : true,
@@ -6996,7 +7070,7 @@
           }
         }, {
           "ClassName" : "ULuaScriptComponent",
-          "ObjectId" : 233,
+          "ObjectId" : 235,
           "Properties" : {
             "ScriptFile" : "AI/enemy_brain.lua",
             "bAutoActivate" : true,
@@ -7007,7 +7081,7 @@
           }
         }, {
           "ClassName" : "ULuaBlueprintComponent",
-          "ObjectId" : 234,
+          "ObjectId" : 236,
           "Properties" : {
             "BlueprintPath" : "",
             "bAutoActivate" : true,
@@ -7017,7 +7091,7 @@
             "bTickEnable" : true
           }
         }],
-      "ObjectId" : 215,
+      "ObjectId" : 217,
       "Properties" : {
         "AIControllerClass" : "AAIController",
         "AttackTokenSafetyBuffer" : 0.150000,
@@ -7077,7 +7151,7 @@
         "Children" : [{
             "Children" : [],
             "ClassName" : "USkeletalMeshComponent",
-            "ObjectId" : 217,
+            "ObjectId" : 219,
             "Properties" : {
               "AnimGraphAssetPath" : "Content/Animation/NewAnimGraph_1.uasset",
               "AnimGraphDefaultSequencePath" : "None",
@@ -7152,7 +7226,7 @@
             }
           }],
         "ClassName" : "UCapsuleComponent",
-        "ObjectId" : 216,
+        "ObjectId" : 218,
         "Properties" : {
           "AttachSocketName" : "Name_None",
           "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
@@ -7193,7 +7267,7 @@
       "Name" : "AEnemyCharacter_0_Copy_Copy_Copy_Copy_Copy_Copy_Copy_2_Copy_Copy_Copy_Copy_Copy_Copy_Copy_Copy_Copy",
       "NonSceneComponents" : [{
           "ClassName" : "UCharacterMovementComponent",
-          "ObjectId" : 238,
+          "ObjectId" : 240,
           "Properties" : {
             "BrakingFriction" : 8.000000,
             "DepenetrationSkin" : 0.020000,
@@ -7221,7 +7295,7 @@
           }
         }, {
           "ClassName" : "UCharacterStateMachineComponent",
-          "ObjectId" : 239,
+          "ObjectId" : 241,
           "Properties" : {
             "FaceYawRate" : 540.000000,
             "InitialState" : "Idle",
@@ -7237,7 +7311,7 @@
           }
         }, {
           "ClassName" : "UHealthComponent",
-          "ObjectId" : 240,
+          "ObjectId" : 242,
           "Properties" : {
             "CurrentHealth" : 100.000000,
             "MaxHealth" : 100.000000,
@@ -7251,7 +7325,7 @@
           }
         }, {
           "ClassName" : "UCombatStateComponent",
-          "ObjectId" : 241,
+          "ObjectId" : 243,
           "Properties" : {
             "CurrentPoise" : 100.000000,
             "DefaultStaggerDuration" : 0.450000,
@@ -7276,7 +7350,7 @@
           }
         }, {
           "ClassName" : "UActionComponent",
-          "ObjectId" : 242,
+          "ObjectId" : 244,
           "Properties" : {
             "bAutoActivate" : true,
             "bEditorOnly" : false,
@@ -7286,7 +7360,7 @@
           }
         }, {
           "ClassName" : "UEnemyAIBrainComponent",
-          "ObjectId" : 243,
+          "ObjectId" : 245,
           "Properties" : {
             "bAutoActivate" : true,
             "bEditorOnly" : false,
@@ -7296,7 +7370,7 @@
           }
         }, {
           "ClassName" : "UEnemyAttackComponent",
-          "ObjectId" : 244,
+          "ObjectId" : 246,
           "Properties" : {
             "Attacks" : [{
                 "ActiveFrames" : 4,
@@ -7343,7 +7417,7 @@
           }
         }, {
           "ClassName" : "UEnemyHitComponent",
-          "ObjectId" : 245,
+          "ObjectId" : 247,
           "Properties" : {
             "DeathMontagePlayRate" : 1.000000,
             "DeathMontages" : {
@@ -7399,7 +7473,7 @@
           }
         }, {
           "ClassName" : "UAIBlackboardComponent",
-          "ObjectId" : 246,
+          "ObjectId" : 248,
           "Properties" : {
             "RecentMoveMemory" : 4,
             "bAutoActivate" : true,
@@ -7410,7 +7484,7 @@
           }
         }, {
           "ClassName" : "UAIPerceptionComponent",
-          "ObjectId" : 247,
+          "ObjectId" : 249,
           "Properties" : {
             "EyeHeight" : 1.600000,
             "FieldOfViewDegrees" : 120.000000,
@@ -7426,7 +7500,7 @@
           }
         }, {
           "ClassName" : "UAIDecisionTraceComponent",
-          "ObjectId" : 248,
+          "ObjectId" : 250,
           "Properties" : {
             "MaxRecords" : 256,
             "bAutoActivate" : true,
@@ -7437,7 +7511,7 @@
           }
         }, {
           "ClassName" : "UCombatMoveComponent",
-          "ObjectId" : 249,
+          "ObjectId" : 251,
           "Properties" : {
             "bAutoActivate" : true,
             "bEditorOnly" : false,
@@ -7447,7 +7521,7 @@
           }
         }, {
           "ClassName" : "UExecutionComponent",
-          "ObjectId" : 250,
+          "ObjectId" : 252,
           "Properties" : {
             "ExecutionWindowSeconds" : 3.000000,
             "HealthFractionRestoredOnStockSpent" : 0.000000,
@@ -7461,7 +7535,7 @@
           }
         }, {
           "ClassName" : "UAwarenessComponent",
-          "ObjectId" : 251,
+          "ObjectId" : 253,
           "Properties" : {
             "AlertPropagationRadius" : 12.000000,
             "AlertPropagationStrength" : 0.500000,
@@ -7483,7 +7557,7 @@
           }
         }, {
           "ClassName" : "UBehaviorTreeComponent",
-          "ObjectId" : 252,
+          "ObjectId" : 254,
           "Properties" : {
             "BehaviorTreePath" : "",
             "bAutoActivate" : true,
@@ -7495,7 +7569,7 @@
           }
         }, {
           "ClassName" : "ULuaScriptComponent",
-          "ObjectId" : 253,
+          "ObjectId" : 255,
           "Properties" : {
             "ScriptFile" : "AI/enemy_brain.lua",
             "bAutoActivate" : true,
@@ -7506,7 +7580,7 @@
           }
         }, {
           "ClassName" : "ULuaBlueprintComponent",
-          "ObjectId" : 254,
+          "ObjectId" : 256,
           "Properties" : {
             "BlueprintPath" : "",
             "bAutoActivate" : true,
@@ -7516,7 +7590,7 @@
             "bTickEnable" : true
           }
         }],
-      "ObjectId" : 235,
+      "ObjectId" : 237,
       "Properties" : {
         "AIControllerClass" : "AAIController",
         "AttackTokenSafetyBuffer" : 0.150000,
@@ -7576,7 +7650,7 @@
         "Children" : [{
             "Children" : [],
             "ClassName" : "USkeletalMeshComponent",
-            "ObjectId" : 237,
+            "ObjectId" : 239,
             "Properties" : {
               "AnimGraphAssetPath" : "Content/Animation/NewAnimGraph_1.uasset",
               "AnimGraphDefaultSequencePath" : "None",
@@ -7651,7 +7725,7 @@
             }
           }],
         "ClassName" : "UCapsuleComponent",
-        "ObjectId" : 236,
+        "ObjectId" : 238,
         "Properties" : {
           "AttachSocketName" : "Name_None",
           "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
@@ -7692,7 +7766,7 @@
       "Name" : "AEnemyCharacter_0_Copy_Copy_Copy_Copy_Copy_Copy_Copy_2_Copy_Copy_Copy_Copy_Copy_Copy_Copy_Copy_Copy_Copy",
       "NonSceneComponents" : [{
           "ClassName" : "UCharacterMovementComponent",
-          "ObjectId" : 258,
+          "ObjectId" : 260,
           "Properties" : {
             "BrakingFriction" : 8.000000,
             "DepenetrationSkin" : 0.020000,
@@ -7720,7 +7794,7 @@
           }
         }, {
           "ClassName" : "UCharacterStateMachineComponent",
-          "ObjectId" : 259,
+          "ObjectId" : 261,
           "Properties" : {
             "FaceYawRate" : 540.000000,
             "InitialState" : "Idle",
@@ -7736,7 +7810,7 @@
           }
         }, {
           "ClassName" : "UHealthComponent",
-          "ObjectId" : 260,
+          "ObjectId" : 262,
           "Properties" : {
             "CurrentHealth" : 100.000000,
             "MaxHealth" : 100.000000,
@@ -7750,7 +7824,7 @@
           }
         }, {
           "ClassName" : "UCombatStateComponent",
-          "ObjectId" : 261,
+          "ObjectId" : 263,
           "Properties" : {
             "CurrentPoise" : 100.000000,
             "DefaultStaggerDuration" : 0.450000,
@@ -7775,7 +7849,7 @@
           }
         }, {
           "ClassName" : "UActionComponent",
-          "ObjectId" : 262,
+          "ObjectId" : 264,
           "Properties" : {
             "bAutoActivate" : true,
             "bEditorOnly" : false,
@@ -7785,7 +7859,7 @@
           }
         }, {
           "ClassName" : "UEnemyAIBrainComponent",
-          "ObjectId" : 263,
+          "ObjectId" : 265,
           "Properties" : {
             "bAutoActivate" : true,
             "bEditorOnly" : false,
@@ -7795,7 +7869,7 @@
           }
         }, {
           "ClassName" : "UEnemyAttackComponent",
-          "ObjectId" : 264,
+          "ObjectId" : 266,
           "Properties" : {
             "Attacks" : [{
                 "ActiveFrames" : 4,
@@ -7842,7 +7916,7 @@
           }
         }, {
           "ClassName" : "UEnemyHitComponent",
-          "ObjectId" : 265,
+          "ObjectId" : 267,
           "Properties" : {
             "DeathMontagePlayRate" : 1.000000,
             "DeathMontages" : {
@@ -7898,7 +7972,7 @@
           }
         }, {
           "ClassName" : "UAIBlackboardComponent",
-          "ObjectId" : 266,
+          "ObjectId" : 268,
           "Properties" : {
             "RecentMoveMemory" : 4,
             "bAutoActivate" : true,
@@ -7909,7 +7983,7 @@
           }
         }, {
           "ClassName" : "UAIPerceptionComponent",
-          "ObjectId" : 267,
+          "ObjectId" : 269,
           "Properties" : {
             "EyeHeight" : 1.600000,
             "FieldOfViewDegrees" : 120.000000,
@@ -7925,7 +7999,7 @@
           }
         }, {
           "ClassName" : "UAIDecisionTraceComponent",
-          "ObjectId" : 268,
+          "ObjectId" : 270,
           "Properties" : {
             "MaxRecords" : 256,
             "bAutoActivate" : true,
@@ -7936,7 +8010,7 @@
           }
         }, {
           "ClassName" : "UCombatMoveComponent",
-          "ObjectId" : 269,
+          "ObjectId" : 271,
           "Properties" : {
             "bAutoActivate" : true,
             "bEditorOnly" : false,
@@ -7946,7 +8020,7 @@
           }
         }, {
           "ClassName" : "UExecutionComponent",
-          "ObjectId" : 270,
+          "ObjectId" : 272,
           "Properties" : {
             "ExecutionWindowSeconds" : 3.000000,
             "HealthFractionRestoredOnStockSpent" : 0.000000,
@@ -7960,7 +8034,7 @@
           }
         }, {
           "ClassName" : "UAwarenessComponent",
-          "ObjectId" : 271,
+          "ObjectId" : 273,
           "Properties" : {
             "AlertPropagationRadius" : 12.000000,
             "AlertPropagationStrength" : 0.500000,
@@ -7982,7 +8056,7 @@
           }
         }, {
           "ClassName" : "UBehaviorTreeComponent",
-          "ObjectId" : 272,
+          "ObjectId" : 274,
           "Properties" : {
             "BehaviorTreePath" : "",
             "bAutoActivate" : true,
@@ -7994,7 +8068,7 @@
           }
         }, {
           "ClassName" : "ULuaScriptComponent",
-          "ObjectId" : 273,
+          "ObjectId" : 275,
           "Properties" : {
             "ScriptFile" : "AI/enemy_brain.lua",
             "bAutoActivate" : true,
@@ -8005,7 +8079,7 @@
           }
         }, {
           "ClassName" : "ULuaBlueprintComponent",
-          "ObjectId" : 274,
+          "ObjectId" : 276,
           "Properties" : {
             "BlueprintPath" : "",
             "bAutoActivate" : true,
@@ -8015,7 +8089,7 @@
             "bTickEnable" : true
           }
         }],
-      "ObjectId" : 255,
+      "ObjectId" : 257,
       "Properties" : {
         "AIControllerClass" : "AAIController",
         "AttackTokenSafetyBuffer" : 0.150000,
@@ -8075,7 +8149,7 @@
         "Children" : [{
             "Children" : [],
             "ClassName" : "USkeletalMeshComponent",
-            "ObjectId" : 257,
+            "ObjectId" : 259,
             "Properties" : {
               "AnimGraphAssetPath" : "Content/Animation/NewAnimGraph_1.uasset",
               "AnimGraphDefaultSequencePath" : "None",
@@ -8150,7 +8224,7 @@
             }
           }],
         "ClassName" : "UCapsuleComponent",
-        "ObjectId" : 256,
+        "ObjectId" : 258,
         "Properties" : {
           "AttachSocketName" : "Name_None",
           "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
@@ -8191,7 +8265,7 @@
       "Name" : "AEnemyCharacter_0_Copy_Copy_Copy_Copy_Copy_Copy_Copy_2_Copy_Copy_Copy_Copy_Copy_Copy_Copy_Copy_Copy_Copy_Copy",
       "NonSceneComponents" : [{
           "ClassName" : "UCharacterMovementComponent",
-          "ObjectId" : 278,
+          "ObjectId" : 280,
           "Properties" : {
             "BrakingFriction" : 8.000000,
             "DepenetrationSkin" : 0.020000,
@@ -8219,7 +8293,7 @@
           }
         }, {
           "ClassName" : "UCharacterStateMachineComponent",
-          "ObjectId" : 279,
+          "ObjectId" : 281,
           "Properties" : {
             "FaceYawRate" : 540.000000,
             "InitialState" : "Idle",
@@ -8235,7 +8309,7 @@
           }
         }, {
           "ClassName" : "UHealthComponent",
-          "ObjectId" : 280,
+          "ObjectId" : 282,
           "Properties" : {
             "CurrentHealth" : 100.000000,
             "MaxHealth" : 100.000000,
@@ -8249,7 +8323,7 @@
           }
         }, {
           "ClassName" : "UCombatStateComponent",
-          "ObjectId" : 281,
+          "ObjectId" : 283,
           "Properties" : {
             "CurrentPoise" : 100.000000,
             "DefaultStaggerDuration" : 0.450000,
@@ -8274,7 +8348,7 @@
           }
         }, {
           "ClassName" : "UActionComponent",
-          "ObjectId" : 282,
+          "ObjectId" : 284,
           "Properties" : {
             "bAutoActivate" : true,
             "bEditorOnly" : false,
@@ -8284,7 +8358,7 @@
           }
         }, {
           "ClassName" : "UEnemyAIBrainComponent",
-          "ObjectId" : 283,
+          "ObjectId" : 285,
           "Properties" : {
             "bAutoActivate" : true,
             "bEditorOnly" : false,
@@ -8294,7 +8368,7 @@
           }
         }, {
           "ClassName" : "UEnemyAttackComponent",
-          "ObjectId" : 284,
+          "ObjectId" : 286,
           "Properties" : {
             "Attacks" : [{
                 "ActiveFrames" : 4,
@@ -8341,7 +8415,7 @@
           }
         }, {
           "ClassName" : "UEnemyHitComponent",
-          "ObjectId" : 285,
+          "ObjectId" : 287,
           "Properties" : {
             "DeathMontagePlayRate" : 1.000000,
             "DeathMontages" : {
@@ -8397,7 +8471,7 @@
           }
         }, {
           "ClassName" : "UAIBlackboardComponent",
-          "ObjectId" : 286,
+          "ObjectId" : 288,
           "Properties" : {
             "RecentMoveMemory" : 4,
             "bAutoActivate" : true,
@@ -8408,7 +8482,7 @@
           }
         }, {
           "ClassName" : "UAIPerceptionComponent",
-          "ObjectId" : 287,
+          "ObjectId" : 289,
           "Properties" : {
             "EyeHeight" : 1.600000,
             "FieldOfViewDegrees" : 120.000000,
@@ -8424,7 +8498,7 @@
           }
         }, {
           "ClassName" : "UAIDecisionTraceComponent",
-          "ObjectId" : 288,
+          "ObjectId" : 290,
           "Properties" : {
             "MaxRecords" : 256,
             "bAutoActivate" : true,
@@ -8435,7 +8509,7 @@
           }
         }, {
           "ClassName" : "UCombatMoveComponent",
-          "ObjectId" : 289,
+          "ObjectId" : 291,
           "Properties" : {
             "bAutoActivate" : true,
             "bEditorOnly" : false,
@@ -8445,7 +8519,7 @@
           }
         }, {
           "ClassName" : "UExecutionComponent",
-          "ObjectId" : 290,
+          "ObjectId" : 292,
           "Properties" : {
             "ExecutionWindowSeconds" : 3.000000,
             "HealthFractionRestoredOnStockSpent" : 0.000000,
@@ -8459,7 +8533,7 @@
           }
         }, {
           "ClassName" : "UAwarenessComponent",
-          "ObjectId" : 291,
+          "ObjectId" : 293,
           "Properties" : {
             "AlertPropagationRadius" : 12.000000,
             "AlertPropagationStrength" : 0.500000,
@@ -8481,7 +8555,7 @@
           }
         }, {
           "ClassName" : "UBehaviorTreeComponent",
-          "ObjectId" : 292,
+          "ObjectId" : 294,
           "Properties" : {
             "BehaviorTreePath" : "",
             "bAutoActivate" : true,
@@ -8493,7 +8567,7 @@
           }
         }, {
           "ClassName" : "ULuaScriptComponent",
-          "ObjectId" : 293,
+          "ObjectId" : 295,
           "Properties" : {
             "ScriptFile" : "AI/enemy_brain.lua",
             "bAutoActivate" : true,
@@ -8504,7 +8578,7 @@
           }
         }, {
           "ClassName" : "ULuaBlueprintComponent",
-          "ObjectId" : 294,
+          "ObjectId" : 296,
           "Properties" : {
             "BlueprintPath" : "",
             "bAutoActivate" : true,
@@ -8514,7 +8588,7 @@
             "bTickEnable" : true
           }
         }],
-      "ObjectId" : 275,
+      "ObjectId" : 277,
       "Properties" : {
         "AIControllerClass" : "AAIController",
         "AttackTokenSafetyBuffer" : 0.150000,
@@ -8574,7 +8648,7 @@
         "Children" : [{
             "Children" : [],
             "ClassName" : "USkeletalMeshComponent",
-            "ObjectId" : 277,
+            "ObjectId" : 279,
             "Properties" : {
               "AnimGraphAssetPath" : "Content/Animation/NewAnimGraph_1.uasset",
               "AnimGraphDefaultSequencePath" : "None",
@@ -8649,7 +8723,7 @@
             }
           }],
         "ClassName" : "UCapsuleComponent",
-        "ObjectId" : 276,
+        "ObjectId" : 278,
         "Properties" : {
           "AttachSocketName" : "Name_None",
           "CachedEditRotator" : [-0.000000, 0.000000, 0.000000],
@@ -8694,9 +8768,9 @@
   "PerspectiveCamera" : {
     "FOV" : 1.047198,
     "FarClip" : 1000.000000,
-    "Location" : [-17.592531, 66.868820, 64.409660],
+    "Location" : [-5.604254, 75.294395, 65.953667],
     "NearClip" : 0.100000,
-    "Rotation" : [0.000000, 17.149773, 1407.440308]
+    "Rotation" : [0.000000, 20.149765, 1392.137817]
   },
   "Version" : 2,
   "WorldSettings" : {

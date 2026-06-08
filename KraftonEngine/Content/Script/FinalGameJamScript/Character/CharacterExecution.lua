@@ -261,15 +261,6 @@ local function play_boss_montage(ctx, boss)
     return false
 end
 
-local function perform_deathblow(ctx, boss)
-    local execution = get_execution_component(boss)
-    if execution == nil then
-        return false
-    end
-
-    return Context.Call(execution, "PerformDeathblow", ctx.obj) == true
-end
-
 function Execution.Play(ctx, boss)
     load_montages(ctx)
 
@@ -292,9 +283,8 @@ function Execution.Play(ctx, boss)
 
     ExecutionCamera.Begin(ctx, boss)
     anim:PlayMontage(playerMontage, nil, ctx.config.EXECUTION_PLAY_RATE or 1.0)
-    local performed = perform_deathblow(ctx, boss)
     local bossPlayed = play_boss_montage(ctx, boss)
-    execution_log(ctx, "started performed=" .. tostring(performed) .. " bossMontage=" .. tostring(bossPlayed))
+    execution_log(ctx, "started bossMontage=" .. tostring(bossPlayed))
     return true
 end
 
