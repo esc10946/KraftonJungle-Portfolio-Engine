@@ -53,6 +53,12 @@ public:
 	// 페이즈 전환 연출 동안의 무적 시간(초). 연출 중 피격으로 끊기는 것을 막는다.
 	UPROPERTY(Edit, Save, Category="Boss|Phase", DisplayName="Phase Change Invuln Seconds", Min=0.0f, Max=10.0f, Speed=0.05f)
 	float PhaseChangeInvulnSeconds = 1.4f;
+
+	UPROPERTY(Edit, Save, Category="Boss|Death", DisplayName="Boss Death Montage", Type=ObjectRef, AllowedClass=UAnimMontage)
+	UAnimMontage* BossDeathMontage = nullptr;
+
+	UPROPERTY(Edit, Save, Category="Boss|Death", DisplayName="Boss Death Montage Play Rate", Min=0.01f, Max=10.0f, Speed=0.05f)
+	float BossDeathMontagePlayRate = 1.0f;
 protected:
 	int32 GetCurrentAIPhase() const override { return GetBossPhase(); }
 	bool IsBossCharacter() const override { return true; }
