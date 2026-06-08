@@ -3,6 +3,7 @@
 #include "Component/ActorComponent.h"
 #include "Core/Delegate.h"
 #include "Core/Types/CoreTypes.h"
+#include "Math/Vector.h"
 #include "Object/FName.h"
 #include "Object/Ptr/WeakObjectPtr.h"
 
@@ -138,6 +139,10 @@ private:
     void ApplyMovement(const FCharacterStateDef& Def, float DeltaTime);
     void ApplyAnimation(const FCharacterStateDef& Def);
     void ApplyFacing(const FCharacterStateDef& Def, float DeltaTime);
+    // 직접 입력 이동(Strafe/Retreat)이 맵 가장자리(navmesh 경계) 밖으로 나가지 않도록, 의도한 방향
+    // 앞을 navmesh 로 미리 찍어 경계를 넘으면 navmesh 가 남아있는 가장 가까운 방향으로 틀어준다(요청 #7).
+    // navmesh 가 없으면 입력을 그대로 돌려준다. 어느 방향도 안전치 않으면 ZeroVector(바깥 입력 포기).
+    FVector SteerAwayFromNavEdge(class ACharacter* Character, const FVector& DesiredDir) const;
 
     FName CurrentState  = FName("Idle");
     FName PreviousState = FName::None;

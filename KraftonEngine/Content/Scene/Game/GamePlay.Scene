@@ -3716,6 +3716,7 @@
             "GuardPoiseMultiplier" : 0.600000,
             "GuardWindowSeconds" : 0.700000,
             "MaxPoise" : 160.000000,
+            "ParryGraceDuration" : 1.200000,
             "PoiseRecoveryPerSecond" : 10.000000,
             "Team" : 2,
             "bAutoActivate" : true,
@@ -4197,6 +4198,7 @@
               }
             },
             "HitReactMaxPhase" : 1,
+            "HitReactionCooldown" : 0.850000,
             "bAutoActivate" : true,
             "bClearAttackCooldownsOnHit" : false,
             "bEditorOnly" : false,

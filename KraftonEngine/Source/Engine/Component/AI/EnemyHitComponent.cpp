@@ -10,6 +10,7 @@
 #include "Component/Primitive/SkeletalMeshComponent.h"
 #include "GameFramework/AActor.h"
 #include "GameFramework/Pawn/Character.h"
+#include "GameFramework/World.h"
 
 #include <cmath>
 
@@ -171,9 +172,28 @@ void UEnemyHitComponent::HandleDamaged(
 		}
 	}
 
-	// 슈퍼아머 보스가 자기 공격(선/활성/후딜)을 펼치는 중이면 일반 피격에 경직되지 않고 포즈를
-	// 유지한다. 이러면 공세가 끊기지 않고(쿨다운도 리셋 안 함), 자세가 무너질 때만 stagger 된다.
-	if (bPoiseThroughDuringOwnAttack && Combat && Combat->HasSuperArmor() && Combat->IsAttacking())
+	// 패링(반격) 유예 윈도우(요청 #6): 보스가 막 패링당한 직후 — 즉 플레이어의 반격이 들어오는
+	// 구간 — 에는 그 피해로 경직되지 않는다. 반격은 체력 피해만 주고 보스의 공세는 끊기지 않는다.
+	// 일반 적은 ParryGraceDuration=0 이라 영향이 없다(보스만 scene 에서 활성).
+	if (Combat && Combat->IsInParryGrace())
+	{
+		return;
+	}
+
+	// 자기 공격(선/활성/후딜)을 펼치는 중이면 일반 피격에 경직되지 않고 포즈를 유지한다(요청 #5).
+	// 과거엔 전역 SuperArmor 플래그가 켜져 있어야만 동작했지만(보스는 꺼져 있어 사실상 무효였다),
+	// "공격 모션 중 피격으로 불능화되지 않는다"가 목적이므로 SuperArmor 조건을 제거한다. 자세 붕괴
+	// (체간 0)로 인한 stagger 는 별개로 여전히 동작한다.
+	if (bPoiseThroughDuringOwnAttack && Combat && Combat->IsAttacking())
+	{
+		return;
+	}
+
+	// 하이퍼아머 쿨다운(요청 #1/#4): 직전 플린치 이후 HitReactionCooldown 이 지나기 전엔 추가 피격에
+	// 경직하지 않는다 → 난타로 매 타격마다 플린치가 갱신돼 보스가 영영 공격을 못 시작하는 무한경직을
+	// 막고, 경직 사이에 반격 틈을 확보한다. 0 이면 매 타격 경직(기존 동작 — 일반 적).
+	const float NowSeconds = (Owner && Owner->GetWorld()) ? Owner->GetWorld()->GetGameTimeSeconds() : 0.0f;
+	if (HitReactionCooldown > 0.0f && (NowSeconds - LastHitReactGameTime) < HitReactionCooldown)
 	{
 		return;
 	}
@@ -195,6 +215,7 @@ void UEnemyHitComponent::HandleDamaged(
 				AnimInstance->StopMontage(0.0f);
 			}
 			AnimInstance->PlayMontage(GuardHitMontage, FName::None, SanitizeMontagePlayRate(HitMontagePlayRate));
+			LastHitReactGameTime = NowSeconds;   // 가드 리액션도 하이퍼아머 쿨다운을 시작시킨다
 			return;
 		}
 	}
@@ -213,7 +234,10 @@ void UEnemyHitComponent::HandleDamaged(
 		}
 	}
 
-	PlayHitMontage(DamageCauser, InstigatorActor);
+	if (PlayHitMontage(DamageCauser, InstigatorActor))
+	{
+		LastHitReactGameTime = NowSeconds;   // 플린치 재생 → 하이퍼아머 쿨다운 시작
+	}
 }
 
 void UEnemyHitComponent::HandleDeath(UHealthComponent* /*Component*/, AActor* DamageCauser, AActor* InstigatorActor)

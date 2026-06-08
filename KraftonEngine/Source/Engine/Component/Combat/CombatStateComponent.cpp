@@ -78,7 +78,9 @@ float UCombatStateComponent::GetHealthRatioSafe() const
 bool UCombatStateComponent::ApplyPoiseDamage(float PoiseDamage)
 {
 	SCOPE_STAT_CAT("CombatState.ApplyPoiseDamage", "Combat");
-	if (PoiseDamage <= 0.0f || bSuperArmor || MaxPoise <= 0.0f)
+	// 패링 유예 윈도우 동안(요청 #6)에는 체간 피해를 받지 않는다 → 반격이 자세를 무너뜨려 보스를
+	// 불능 상태(stagger)로 빠뜨리지 못한다. SuperArmor 와 동일하게 취급.
+	if (PoiseDamage <= 0.0f || bSuperArmor || IsInParryGrace() || MaxPoise <= 0.0f)
 	{
 		return false;
 	}
@@ -121,6 +123,23 @@ void UCombatStateComponent::StopStagger()
 	StaggerRemainingTime = 0.0f;
 	ResetPoise();
 	OnStaggerEnded.Broadcast(this);
+}
+
+void UCombatStateComponent::MarkParried()
+{
+	// 리코일(공격 몽타주 역재생) 등 리스너에게 항상 알린다(요청 A) — 유예 윈도우 활성 여부와 무관.
+	OnParried.Broadcast(this);
+	if (ParryGraceDuration <= 0.0f)
+	{
+		return;
+	}
+	const float Now = GetOwnerGameTimeSeconds(this);
+	ParryGraceUntilSeconds = (std::max)(ParryGraceUntilSeconds, Now + ParryGraceDuration);
+}
+
+bool UCombatStateComponent::IsInParryGrace() const
+{
+	return GetOwnerGameTimeSeconds(this) < ParryGraceUntilSeconds;
 }
 
 float UCombatStateComponent::GetPoiseRatio() const
@@ -249,6 +268,10 @@ EDeflectGrade UCombatStateComponent::ConsumeDeflect(AActor* Attacker)
 		{
 			const FPerilousResolution Resolution = GetPerilousResolution(AttackerCombat->GetActivePerilousType());
 			AttackerCombat->ApplyPoiseDamage(DeflectReflectPoise * ReflectScale * Resolution.AnswerReflectPoiseScale);
+			// 패링 성공(Perfect/Good) → 공격자(보스)에게 "반격 유예" 윈도우를 연다(요청 #6). 뒤따르는
+			// 플레이어 반격(riposte)의 피해가 보스를 경직/자세붕괴로 불능화하지 못하게 한다. 보스만
+			// ParryGraceDuration>0 이라 일반 적은 영향 없음. (위 반사 체간은 패링의 보상으로 그대로 적용.)
+			AttackerCombat->MarkParried();
 		}
 	}
 
