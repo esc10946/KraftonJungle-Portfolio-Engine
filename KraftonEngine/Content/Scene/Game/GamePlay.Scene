@@ -3510,7 +3510,7 @@
           "Properties" : {
             "State" : 0,
             "bAutoActivate" : false,
-            "bAutoStartOnBeginPlay" : true,
+            "bAutoStartOnBeginPlay" : false,
             "bEditorOnly" : false,
             "bHiddenInComponentTree" : false,
             "bIsActive" : true,

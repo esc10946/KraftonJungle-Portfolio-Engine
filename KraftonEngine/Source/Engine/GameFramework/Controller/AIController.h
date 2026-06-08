@@ -61,8 +61,11 @@ public:
 	float GoalRepathDistance = 2.0f;
 	UPROPERTY(Edit, Save, Category="AIController|Navigation", DisplayName="Reuse Current Path For Same Goal")
 	bool bReuseCurrentPathForSameGoal = true;
+	// 부분 경로 허용: 목표 셀까지 완전히 닿지 못해도(예: 플레이어가 벽에 붙어 목표 셀이 막힘) 갈 수
+	// 있는 데까지 이동한다. false 면 부분 경로를 통째로 버려 추격이 그 자리에서 멈춘다 — 전투 AI는
+	// "최대한 접근"이 옳으므로 기본 허용. 길이 있어도 멈춰버리던 증상의 한 원인.
 	UPROPERTY(Edit, Save, Category="AIController|Navigation", DisplayName="Allow Partial Path")
-	bool bAllowPartialPath = false;
+	bool bAllowPartialPath = true;
 
 protected:
 	void OnPossess(APawn* Pawn) override;

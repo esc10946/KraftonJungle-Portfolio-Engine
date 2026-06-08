@@ -31,6 +31,7 @@
 #include "Core/Types/CollisionTypes.h"
 #include "GameFramework/Controller/AIController.h"
 #include "GameFramework/World.h"
+#include "Navigation/NavigationSystem.h"
 #include "Object/Reflection/UClass.h"
 #include "Math/MathUtils.h"
 #include "Math/Quat.h"
@@ -1512,8 +1513,10 @@ void AEnemyCharacter::Brain_LeapBack()
 		PlayCombatMontageRated(DodgeMontage, 1.0f, 0.08f);
 	}
 
-	// 발사 방향 = 타깃 반대(수평). 준비동작이 끝난 뒤(LeapPrepDelay) 실제로 점프+수평 임펄스를
-	// 가한다(준비 중에 떠버리지 않게). 공중엔 수평 마찰이 없어 임펄스가 그대로 거리로 환산된다.
+	// 발사 방향/거리 = "미리 검증한 안정 지형". 타깃 반대를 기준 방향으로 삼되, 등 뒤 부채꼴을
+	// 네비메시로 스캔해 (낭떠러지/맵 밖/장애물 위가 아닌) 연속 walkable 회랑이 있는 방향으로만
+	// 도약하고, 그 회랑 안쪽까지만 닿도록 수평 임펄스를 맞춘다. 안정 지형이 없으면(코너에 몰림)
+	// 수평 도약을 포기하고 제자리 팝만 한다 → 맵 밖 이탈·착지 후 길찾기 실패를 원천 차단.
 	FVector Away = GetActorForward() * -1.0f;
 	if (UEnemyAIBrainComponent* Brain = AIBrainComponent.Get())
 	{
@@ -1528,19 +1531,177 @@ void AEnemyCharacter::Brain_LeapBack()
 		}
 	}
 	Away.Z = 0.0f;
-	PendingLeapImpulse = Away * LeapHorizontalForce;
-	// 수직 성분을 임펄스에 포함해 "원자적 발사" 로 만든다. AddExternalImpulse 가 Velocity.Z>0 을 보고
-	// 즉시 Falling 으로 전환하므로(공중=수평 마찰 없음) 수평 임펄스가 그대로 거리로 환산된다.
-	// (예전엔 발사 시 deferred Jump() 가 수직을 다음 틱에야 적용 → 임펄스가 Walking 상태의 마찰/클램프에
-	//  먹혀 수평이 사라지고 수직만 남아 "제자리 점프" 가 났다.)
+	if (!Away.IsNearlyZero())
+	{
+		Away = Away.Normalized();
+	}
+
+	float Gravity = 9.8f;
+	float JumpFallback = 0.0f;
 	if (UCharacterMovementComponent* Move = GetCharacterMovement())
 	{
-		// 수직 도약력 — JumpZVelocity 보다 크게 줘서 초기 상승을 빠르게(낮은 턱/단차를 넘김).
-		// 수평이 클수록 발사각이 얕아져 작은 단차에 바로 막히므로, 전용 Z 로 각을 세운다.
-		// 0 이하이면 캐릭터 기본 점프력으로 폴백.
-		PendingLeapImpulse.Z = (LeapVerticalForce > 0.0f) ? LeapVerticalForce : Move->JumpZVelocity;
+		Gravity = (std::max)(0.1f, Move->Gravity);
+		JumpFallback = Move->JumpZVelocity;
 	}
+	// 수직 도약력 — JumpZVelocity 보다 크게 줘서 발사각을 세운다. 0 이하이면 캐릭터 기본 점프력 폴백.
+	const float Vz = (LeapVerticalForce > 0.0f) ? LeapVerticalForce : JumpFallback;
+	// 평지 기준 탄도 도달거리: 공중엔 수평 마찰이 없어 R = Vh × 체공시간, 체공시간 = 2·Vz/g.
+	const float FlightTime = (Gravity > 0.0f && Vz > 0.0f) ? (2.0f * Vz / Gravity) : 0.0f;
+	const float NominalRange = LeapHorizontalForce * FlightTime;
+
+	FVector LeapDir = Away;
+	float HorizForce = LeapHorizontalForce;
+	if (bValidateLeapLanding && FlightTime > 0.0f && NominalRange > 0.0f)
+	{
+		FVector StableDir;
+		float StableDist = 0.0f;
+		if (FindStableLeapDirection(GetActorLocation(), Away, NominalRange, StableDir, StableDist))
+		{
+			// 회랑 끝 가장자리 착지를 피하려 안쪽으로 약간 당긴 거리에 맞춰 수평력을 낮춘다(상한은 설정값).
+			const float SafeDist = (std::max)(0.0f, StableDist - LeapLandingSafetyMargin);
+			LeapDir = StableDir;
+			HorizForce = (std::min)(LeapHorizontalForce, (SafeDist * Gravity) / (2.0f * Vz));
+		}
+		else
+		{
+			// 안정된 뒤쪽 지형 없음 → 수평 도약 포기(제자리 수직 팝). 맵 밖/낭떠러지 이탈 방지.
+			HorizForce = 0.0f;
+		}
+	}
+	LeapDir.Z = 0.0f;
+	if (!LeapDir.IsNearlyZero())
+	{
+		LeapDir = LeapDir.Normalized();
+	}
+
+	// 수직 성분을 임펄스에 포함해 "원자적 발사"로 만든다. AddExternalImpulse 가 Velocity.Z>0 을 보고
+	// 즉시 Falling 으로 전환하므로(공중=수평 마찰 없음) 수평 임펄스가 그대로 거리로 환산된다.
+	PendingLeapImpulse = LeapDir * HorizForce;
+	PendingLeapImpulse.Z = Vz;
 	PendingLeapTime = (std::max)(0.02f, LeapPrepDelay);
+}
+
+bool AEnemyCharacter::FindStableLeapDirection(const FVector& Origin, const FVector& DesiredAway, float MaxDistance, FVector& OutDir, float& OutDistance) const
+{
+	UWorld* World = GetWorld();
+	if (!World || MaxDistance <= 0.0f)
+	{
+		return false;
+	}
+	UNavigationSystem* Nav = World->GetNavigationSystem();
+	if (!Nav || !Nav->HasBuiltNavigationData())
+	{
+		return false;
+	}
+
+	// 질의 에이전트(풋프린트). 그리드 쪽에서 빌드 에이전트로 클램프되므로 보스 캡슐 크기여도 무방하다.
+	FNavAgentProperties Agent;
+	if (AAIController* Controller = GetEnemyAIController())
+	{
+		Agent = Controller->GetNavAgentProperties();
+	}
+	if (Agent.Radius <= 0.0f)
+	{
+		if (UCapsuleComponent* Capsule = GetCapsuleComponent())
+		{
+			Agent.Radius = (std::max)(0.05f, Capsule->GetScaledCapsuleRadius());
+			Agent.Height = (std::max)(Agent.Radius * 2.0f, Capsule->GetScaledCapsuleHalfHeight() * 2.0f);
+		}
+		else
+		{
+			Agent.Radius = 1.0f;
+			Agent.Height = 2.0f;
+		}
+	}
+
+	FVector Base = DesiredAway;
+	Base.Z = 0.0f;
+	if (Base.IsNearlyZero())
+	{
+		Base = GetActorForward() * -1.0f;
+		Base.Z = 0.0f;
+	}
+	if (Base.IsNearlyZero())
+	{
+		return false;
+	}
+	Base = Base.Normalized();
+
+	// 회랑 샘플 간격/스냅 허용오차는 nav 셀(≈0.75m) 기준. 샘플이 walkable 셀에서 SnapTol 이상 떨어지면
+	// 그 지점은 안정 지형이 아니므로 거기서 회랑을 끊는다.
+	const float ProbeStep = 0.75f;
+	const float SnapTol = 0.90f;
+	// 부채꼴: 정후방을 먼저, 좌우로 벌려가며. 최대 도달거리(연속 walkable)가 가장 긴 방향을 고른다.
+	const float AnglesDeg[] = { 0.0f, 20.0f, -20.0f, 40.0f, -40.0f };
+	// 도약을 "할 만한" 최소 후퇴 거리. HorizForce 는 실제 가용 회랑(SafeDist)에 맞춰 클램프되므로
+	// 게이트에서 큰 거리를 요구할 이유가 없다(짧은 회랑이면 그만큼만 뛴다). 과거엔 탄도 최대거리
+	// (NominalRange = LeapHorizontalForce 기준 수십~수백 m)의 35%를 요구해, 현실 아레나에선 정후방
+	// 46m 같은 회랑이 사실상 없어 항상 false → 제자리 팝만 반복했다. 보스 캡슐 지름 정도(최소
+	// ProbeStep×2)만 빠질 수 있으면 도약을 수용하고, 회랑 길이에 맞춰 착지 지점을 정한다.
+	const float MinAcceptDist = (std::min)(MaxDistance, (std::max)(ProbeStep * 2.0f, Agent.Radius * 2.0f));
+
+	bool bAny = false;
+	FVector BestDir = Base;
+	float BestDist = 0.0f;
+	float BestAbsAngle = 9999.0f;
+
+	for (float AngleDeg : AnglesDeg)
+	{
+		const float Rad = AngleDeg * FMath::DegToRad;
+		const float CosA = cosf(Rad);
+		const float SinA = sinf(Rad);
+		FVector Dir(Base.X * CosA - Base.Y * SinA, Base.X * SinA + Base.Y * CosA, 0.0f);
+		if (Dir.IsNearlyZero())
+		{
+			continue;
+		}
+		Dir = Dir.Normalized();
+
+		float Reach = 0.0f;
+		float PrevZ = Origin.Z;
+		for (float D = ProbeStep; D <= MaxDistance + 0.001f; D += ProbeStep)
+		{
+			const FVector Sample(Origin.X + Dir.X * D, Origin.Y + Dir.Y * D, Origin.Z);
+			FVector Projected;
+			if (!Nav->ProjectPointToNavigation(Sample, Projected, Agent))
+			{
+				break; // 이 지점 아래엔 walkable 지형이 없음 → 회랑 끝
+			}
+			const float DX = Projected.X - Sample.X;
+			const float DY = Projected.Y - Sample.Y;
+			if (DX * DX + DY * DY > SnapTol * SnapTol)
+			{
+				break; // 가장 가까운 walkable 셀이 멀다 = 이 지점은 비walkable(구멍/맵 밖) → 회랑 끝
+			}
+			if (fabsf(Projected.Z - PrevZ) > LeapLandingMaxStepHeight)
+			{
+				break; // 셀 간 높이차 과다(턱/낭떠러지) → 회랑 끝
+			}
+			PrevZ = Projected.Z;
+			Reach = D;
+		}
+
+		if (Reach >= MinAcceptDist)
+		{
+			const float AbsAngle = fabsf(AngleDeg);
+			// 더 멀리 빠질 수 있는 방향 우선, 도달거리가 비슷하면 더 곧게 뒤로 가는 방향 우선.
+			if (Reach > BestDist + 0.5f || (fabsf(Reach - BestDist) <= 0.5f && AbsAngle < BestAbsAngle))
+			{
+				BestDist = Reach;
+				BestDir = Dir;
+				BestAbsAngle = AbsAngle;
+				bAny = true;
+			}
+		}
+	}
+
+	if (!bAny)
+	{
+		return false;
+	}
+	OutDir = BestDir;
+	OutDistance = BestDist;
+	return true;
 }
 
 void AEnemyCharacter::Brain_DriveLocomotion()
