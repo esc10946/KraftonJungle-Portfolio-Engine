@@ -1,4 +1,4 @@
-// Generated from C:/Users/jungle/GitHub/Jungle_Week14_Team6/KraftonEngine/Content/Material/Custom/TeamName_2.uasset
+// Generated from Content/Material/Custom/TeamName_2.uasset
 // Domain: Surface
 
 #include "Common/ConstantBuffers.hlsli"

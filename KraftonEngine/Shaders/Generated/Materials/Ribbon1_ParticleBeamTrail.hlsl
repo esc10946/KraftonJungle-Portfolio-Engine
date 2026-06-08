@@ -1,4 +1,4 @@
-// Generated from C:/Users/jungle/GitHub/Jungle_Week14_Team6/KraftonEngine/Content/Material/Particle/Ribbon1.uasset
+// Generated from Content/Material/Particle/Ribbon1.uasset
 // Domain: ParticleBeamTrail
 
 #include "Common/ConstantBuffers.hlsli"

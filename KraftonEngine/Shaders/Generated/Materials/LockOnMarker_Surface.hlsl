@@ -1,4 +1,4 @@
-// Generated from C:/Users/jungle/Documents/GitHub/Week14/KraftonEngine/Content/Game/Material/LockOnMarker.uasset
+// Generated from Content/Game/Material/LockOnMarker.uasset
 // Domain: Surface
 
 #include "Common/ConstantBuffers.hlsli"

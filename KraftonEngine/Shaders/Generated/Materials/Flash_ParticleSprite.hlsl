@@ -57,7 +57,7 @@ FMaterialResult EvaluateMaterial(FMaterialPixelInput Input)
     float4 n_21 = Tex_Diffuse.Sample(LinearWrapSampler, Input.UV0);
     float4 n_43 = Input.ParticleColor;
     float3 n_31 = ((n_21).rgb * (n_43).rgb);
-    float3 n_53 = (float4(n_31, 0.0f)).rgb;
+    float3 n_53 = (float4(n_31, 1.0f)).rgb;
     FMaterialResult Result;
     Result.Color = n_53;
     Result.Emissive = float3(0, 0, 0);

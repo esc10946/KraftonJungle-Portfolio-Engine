@@ -72,8 +72,8 @@ local bDestroyed, bPendingDestroy, deathDelay, bRagdoll = false, false, 0.0, fal
 local KATANA_PATH = "Content/Data/Weapon/JapanSword/New_Katana_StaticMesh.uasset"
 local KATANA_SOCKET = "Katana"
 local BOSS_SWORD_TRAIL_PARTICLE_PATH = "Content/Particle System/SwordTrail.uasset"
-local BOSS_SWORD_TRAIL_SOURCE_OFFSET = { 0.0, 0.0, 0.0 }
-local BOSS_SWORD_TRAIL_TARGET_OFFSET = { 0.0, 120.0, 0.0 }
+local BOSS_SWORD_TRAIL_SOURCE_SOCKET = "TrailStart"
+local BOSS_SWORD_TRAIL_TARGET_SOCKET = "TrailEnd"
 local BOSS_SWORD_TRAIL_GRACE_TIME = 0.35
 local katanaComponent = nil
 local trailSourceParticle = nil
@@ -82,10 +82,6 @@ local trailActive = false
 local trailEmissionActive = false
 local trailDeactivateRemaining = 0.0
 local trailBindingWarned = false
-
-local function vec_from_offset(offset)
-    return Vec3(offset[1] or 0.0, offset[2] or 0.0, offset[3] or 0.0)
-end
 
 local function set_particle_spawn_scale(particle, scale)
     if particle == nil then return end
@@ -154,8 +150,8 @@ local function update_trail(dt, attackBusy)
 end
 
 local function attach_boss_trail()
-    if katanaComponent == nil or trailSourceParticle ~= nil then return end
-    if Particle == nil or Particle.AttachSystemToComponent == nil or Particle.SetRibbonEdgeSourceComponents == nil then
+    if trailSourceParticle ~= nil then return end
+    if Particle == nil or Particle.AttachSystemToSocket == nil or Particle.SetRibbonEdgeSourceComponents == nil then
         if not trailBindingWarned then
             print("[SamuraiBoss] paired sword trail particle binding missing")
             trailBindingWarned = true
@@ -163,19 +159,20 @@ local function attach_boss_trail()
         return
     end
 
-    trailSourceParticle = Particle.AttachSystemToComponent(
-        katanaComponent,
+    trailSourceParticle = Particle.AttachSystemToSocket(
+        obj,
         BOSS_SWORD_TRAIL_PARTICLE_PATH,
-        vec_from_offset(BOSS_SWORD_TRAIL_SOURCE_OFFSET)
+        BOSS_SWORD_TRAIL_SOURCE_SOCKET
     )
-    trailTargetParticle = Particle.AttachSystemToComponent(
-        katanaComponent,
+    trailTargetParticle = Particle.AttachSystemToSocket(
+        obj,
         BOSS_SWORD_TRAIL_PARTICLE_PATH,
-        vec_from_offset(BOSS_SWORD_TRAIL_TARGET_OFFSET)
+        BOSS_SWORD_TRAIL_TARGET_SOCKET
     )
 
     if trailSourceParticle == nil or trailTargetParticle == nil then
-        print("[SamuraiBoss] paired sword trail attach failed")
+        print("[SamuraiBoss] paired sword trail attach failed: source="
+            .. BOSS_SWORD_TRAIL_SOURCE_SOCKET .. " target=" .. BOSS_SWORD_TRAIL_TARGET_SOCKET)
         return
     end
 
@@ -187,7 +184,8 @@ local function attach_boss_trail()
     if trailTargetParticle.ResetParticles ~= nil then trailTargetParticle:ResetParticles() end
 
     if Particle.SetRibbonEdgeSourceComponents(trailSourceParticle, trailSourceParticle, trailTargetParticle) then
-        print("[SamuraiBoss] paired sword trail configured")
+        print("[SamuraiBoss] paired sword trail configured: source="
+            .. BOSS_SWORD_TRAIL_SOURCE_SOCKET .. " target=" .. BOSS_SWORD_TRAIL_TARGET_SOCKET)
     end
 end
 
