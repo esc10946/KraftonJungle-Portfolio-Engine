@@ -49,7 +49,7 @@
         <div class="ctrl-row">
             <span class="ctrl-action">Execution</span>
             <span class="ctrl-key">E</span>
-            <span class="ctrl-pad"><span class="ctrl-tbd">TBD</span></span>
+            <span class="ctrl-pad">RT</span>
         </div>
         <div class="ctrl-row">
             <span class="ctrl-action">Lock-On</span>
@@ -67,7 +67,7 @@
         <div class="ctrl-row">
             <span class="ctrl-action">Pause</span>
             <span class="ctrl-key">Esc</span>
-            <span class="ctrl-pad"><span class="ctrl-tbd">TBD</span></span>
+            <span class="ctrl-pad">Start</span>
         </div>
 
         <div id="back_btn" class="text-btn">RETURN TO TITLE</div>

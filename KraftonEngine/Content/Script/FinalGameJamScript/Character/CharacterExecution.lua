@@ -325,10 +325,11 @@ function Execution.ExecuteInput(ctx)
 end
 
 function Execution.IsInputTriggered(ctx)
-    return Input ~= nil
-        and Input.GetKeyDown ~= nil
-        and ctx.config.EXECUTION_KEY ~= nil
-        and Input.GetKeyDown(ctx.config.EXECUTION_KEY)
+    if Input == nil or Input.GetKeyDown == nil then
+        return false
+    end
+    return (ctx.config.EXECUTION_KEY ~= nil and Input.GetKeyDown(ctx.config.EXECUTION_KEY))
+        or (ctx.config.GAMEPAD_EXECUTION ~= nil and Input.GetKeyDown(ctx.config.GAMEPAD_EXECUTION))
 end
 
 function Execution.UpdateSequence(ctx, dt)

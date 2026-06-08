@@ -6,6 +6,7 @@
 #include "Lua/LuaScriptManager.h"
 #include "Profiling/Time/Timer.h"
 #include <windows.h>  // VK_ESCAPE
+#include "Input/InputKeyCodes.h"  // GamepadStart
 #include "Viewport/Viewport.h"
 #include "Viewport/GameViewportClient.h"
 #include "Serialization/SceneSaveManager.h"
@@ -84,7 +85,9 @@ void UGameEngine::Tick(float DeltaTime)
 
 	// ESC 는 World pause 와 무관하게 동작해야 함 (메뉴 토글 자체가 pause 토글이라
 	// gameplay input 라우팅에 두면 UIOnly/paused 상태에서 닫는 키 입력을 못 잡는다).
-	if (RawInputSnapshot.WasPressed(VK_ESCAPE))
+	// Gamepad Start 도 같은 이유로 여기서 un-gated 로 읽는다 (paused 상태에서 World Tick /
+	// Lua Tick 이 멈추므로 Lua 폴링으로는 다시 못 닫는다). 같은 콜백을 재사용해 동일 토글.
+	if (RawInputSnapshot.WasPressed(VK_ESCAPE) || RawInputSnapshot.WasPressed(GamepadStart))
 	{
 		FLuaScriptManager::FireOnEscapePressed();
 	}
