@@ -4,10 +4,11 @@
 -- On BeginPlay it builds the title menu (Title.rml) + the Options
 -- overlay (Options.rml), and wires the four buttons:
 --
---   start_btn   -> transition to the gameplay scene
---   options_btn -> show Options overlay
---   credits_btn -> transition to the credits scene
---   exit_btn    -> quit the application
+--   start_btn    -> transition to the gameplay scene
+--   options_btn  -> show Options overlay
+--   controls_btn -> show Controls overlay (control tutorial)
+--   credits_btn  -> transition to the credits scene
+--   exit_btn     -> quit the application
 -- ============================================================
 
 local BGMState = require("Game/BGMState")
@@ -16,6 +17,7 @@ local SceneTransition = require("Game/SceneTransition")
 local START_SCENE    = "Game/GamePlay.Scene"
 local CREDITS_SCENE  = "Game/GameCredits.Scene"
 local OPTIONS_ZORDER = 11       -- above the title menu (default ZOrder 0)
+local CONTROLS_ZORDER = 11      -- same layer as Options (mutually exclusive overlays)
 local VOLUME_STEP    = 0.1      -- master-volume increment per -/+ click
 local UI_SOUND_VOLUME = 1.0
 local SFX_CURSOR_SELECT = "Title_CursorSelect"
@@ -24,8 +26,9 @@ local BGM_MAIN       = "BGM_Main"
 local BGM_MAIN_FILE  = "BGM/bounce-bay-records-traditional-japanese (main bgm).mp3"
 local BGM_VOLUME     = 0.5      -- BGM sits under SFX; scaled by master volume on top
 
-local widget  = nil             -- title menu
-local options = nil             -- options overlay (created hidden, toggled on click)
+local widget   = nil            -- title menu
+local options  = nil            -- options overlay (created hidden, toggled on click)
+local controls = nil            -- controls overlay (created hidden, toggled on click)
 
 local function LoadMenuSounds()
     if Audio == nil or Audio.Load == nil then return end
@@ -70,6 +73,20 @@ local function HideOptions()
     options:RemoveFromParent()
 end
 
+local function ShowControls()
+    if controls == nil then return end
+    if SceneTransition.IsActive() then return end
+    PlayMenuSound(SFX_CURSOR_SELECT)
+    controls:SetWantsMouse(true)
+    controls:AddToViewportZ(CONTROLS_ZORDER)
+end
+
+local function HideControls()
+    if controls == nil then return end
+    PlayMenuSound(SFX_CANCEL)
+    controls:RemoveFromParent()
+end
+
 function BeginPlay()
     LoadMenuSounds()
     SceneTransition.BeginScene()
@@ -99,6 +116,14 @@ function BeginPlay()
         print("[TitleMenu] failed to create Options.rml widget")
     end
 
+    -- Build the Controls overlay once, but don't show it yet.
+    controls = UI.CreateWidget("Content/Game/UI/Controls.rml")
+    if controls ~= nil then
+        controls:bind_click("back_btn", HideControls)
+    else
+        print("[TitleMenu] failed to create Controls.rml widget")
+    end
+
     widget:bind_click("start_btn", function()
         if SceneTransition.IsActive() then return end
         PlayMenuSound(SFX_CURSOR_SELECT)
@@ -108,6 +133,8 @@ function BeginPlay()
     end)
 
     widget:bind_click("options_btn", ShowOptions)
+
+    widget:bind_click("controls_btn", ShowControls)
 
     widget:bind_click("credits_btn", function()
         if SceneTransition.IsActive() then return end
@@ -126,6 +153,10 @@ function EndPlay()
     if options ~= nil then
         options:RemoveFromParent()
         options = nil
+    end
+    if controls ~= nil then
+        controls:RemoveFromParent()
+        controls = nil
     end
     if widget ~= nil then
         widget:RemoveFromParent()

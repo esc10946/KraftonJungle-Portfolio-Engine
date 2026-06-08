@@ -45,6 +45,10 @@ body#title-screen {
 #options_btn        { decorator: image("../Texture/GameScene/Title/Title_Options.png"); }
 #options_btn:hover  { decorator: image("../Texture/GameScene/Title/Title_Options_Hovered.png"); }
 
+/* ---- CONTROLS ---- */
+#controls_btn       { decorator: image("../Texture/GameScene/Title/Title_Controls.png"); }
+#controls_btn:hover { decorator: image("../Texture/GameScene/Title/Title_Controls_Hovered.png"); }
+
 /* ---- CREDITS ---- */
 #credits_btn        { decorator: image("../Texture/GameScene/Title/Title_Credits.png"); }
 #credits_btn:hover  { decorator: image("../Texture/GameScene/Title/Title_Credits_Hovered.png"); }
