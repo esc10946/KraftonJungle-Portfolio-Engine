@@ -12,8 +12,8 @@ void AFinaleGameMode::SetGamePhase(EGamePhase InPhase)
 {
 	if (AFinaleGameState* State = Cast<AFinaleGameState>(GetGameState()))
 	{
-		UE_LOG("[AFinaleGameMode] Game Phase set to: %s", GetGamePhaseString().c_str());
 		State->Phase = InPhase;
+		UE_LOG("[AFinaleGameMode] Game Phase set to: %s", GetGamePhaseString().c_str());
 	}
 }
 
@@ -198,11 +198,13 @@ void AFinaleGameMode::OnPlayerDefeated()
 	}
 }
 
-// Boss slain itself is not a state
+// Boss slain itself is not a state — it's the event that resolves the run into
+// Victory. Routes through OnVictory so the Playing -> Victory transition has a
+// single owner (and a single gate).
 void AFinaleGameMode::OnBossSlain(FName BossId)
 {
 	if (!CheckGamePhase(EGamePhase::Playing)) return;
-
+	OnVictory();
 }
 
 void AFinaleGameMode::OnVictory()

@@ -2,6 +2,7 @@ local Context = require("FinalGameJamScript/Character/CharacterContext")
 local Locomotion = require("FinalGameJamScript/Character/CharacterLocomotion")
 local State = require("FinalGameJamScript/Character/CharacterState")
 local Counter = require("FinalGameJamScript/Character/CharacterCounter")
+local ExecutionCamera = require("FinalGameJamScript/Character/CharacterExecutionCamera")
 
 local Execution = {}
 
@@ -215,14 +216,16 @@ local function align_for_execution(ctx, boss)
         return
     end
 
-    if boss.Location == nil or boss.Forward == nil then
+    if boss.Location == nil then
         return
     end
 
-    local distance = ctx.config.EXECUTION_ALIGN_DISTANCE or 1.2
-    local bossForward = Context.NormalizeFlatDirection(boss.Forward)
-    if bossForward ~= nil then
-        ctx.obj.Location = boss.Location - bossForward * distance
+    local backOffset = ctx.config.EXECUTION_ALIGN_BACK_OFFSET or 0.0
+    if backOffset > 0.0 and ctx.obj.Location ~= nil then
+        local awayFromBoss = Context.NormalizeFlatDirection(ctx.obj.Location - boss.Location)
+        if awayFromBoss ~= nil then
+            ctx.obj.Location = ctx.obj.Location + awayFromBoss * backOffset
+        end
     end
 
     face_actor_to(ctx, ctx.obj, boss)
@@ -287,6 +290,7 @@ function Execution.Play(ctx, boss)
     ctx.state.executionTarget = boss
     ctx.state.executionTargetMontage = ctx.cache.executionBossMontage
 
+    ExecutionCamera.Begin(ctx, boss)
     anim:PlayMontage(playerMontage, nil, ctx.config.EXECUTION_PLAY_RATE or 1.0)
     local performed = perform_deathblow(ctx, boss)
     local bossPlayed = play_boss_montage(ctx, boss)
@@ -294,7 +298,7 @@ function Execution.Play(ctx, boss)
     return true
 end
 
-function Execution.TryAutoStart(ctx)
+function Execution.CanExecuteInput(ctx)
     if ctx.state.executionPlaying then
         return false
     end
@@ -303,24 +307,43 @@ function Execution.TryAutoStart(ctx)
         return false
     end
 
+    return true
+end
+
+function Execution.ExecuteInput(ctx)
+    if not Execution.CanExecuteInput(ctx) then
+        return false
+    end
+
     local boss = find_ready_boss(ctx)
     if boss == nil then
+        execution_log(ctx, "input ignored: no ready boss")
         return false
     end
 
     return Execution.Play(ctx, boss)
 end
 
-function Execution.UpdateSequence(ctx)
+function Execution.IsInputTriggered(ctx)
+    return Input ~= nil
+        and Input.GetKeyDown ~= nil
+        and ctx.config.EXECUTION_KEY ~= nil
+        and Input.GetKeyDown(ctx.config.EXECUTION_KEY)
+end
+
+function Execution.UpdateSequence(ctx, dt)
     if not ctx.state.executionPlaying then
         return
     end
+
+    ExecutionCamera.Update(ctx, ctx.state.executionTarget, dt)
 
     local anim = Context.GetAnimInstance(ctx)
     if anim ~= nil and ctx.cache.executionPlayerMontage ~= nil and anim:IsMontagePlaying(ctx.cache.executionPlayerMontage) then
         return
     end
 
+    ExecutionCamera.End(ctx)
     ctx.state.executionPlaying = false
     ctx.state.executionTarget = nil
     ctx.state.executionTargetMontage = nil
@@ -332,8 +355,7 @@ function Execution.BeginPlay(ctx)
 end
 
 function Execution.Tick(ctx, dt)
-    Execution.TryAutoStart(ctx)
-    Execution.UpdateSequence(ctx)
+    Execution.UpdateSequence(ctx, dt)
 end
 
 return Execution

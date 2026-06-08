@@ -4,11 +4,11 @@
 #include <Windows.h>
 
 // 엔진 전역 경로를 관리합니다.
-// 모든 경로는 실행 파일 기준 상대 경로이며, 한글 경로를 위해 wstring 기반입니다.
+// 경로는 배포 Content 위치 또는 개발 프로젝트 루트 기준이며, 한글 경로를 위해 wstring 기반입니다.
 class FPaths
 {
 public:
-	// 프로젝트 루트 (실행 파일이 있는 디렉터리)
+	// 프로젝트/배포 루트
 	static std::wstring RootDir();
 
 	// 주요 디렉터리

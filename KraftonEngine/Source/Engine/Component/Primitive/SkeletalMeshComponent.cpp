@@ -2709,6 +2709,11 @@ bool USkeletalMeshComponent::CanUsePhysicsAsset(UPhysicsAsset* InPhysicsAsset, F
 
 void USkeletalMeshComponent::InitializeAnimation()
 {
+    if (bDeferAnimationInitialization)
+    {
+        return;
+    }
+
     if (!GetSkeletalMesh())
     {
         ClearAnimInstance();
@@ -3123,6 +3128,20 @@ void USkeletalMeshComponent::PostEditProperty(const char* PropertyName)
     if (IsValid(AnimInstance)) AnimInstance->PostEditProperty(PropertyName);
 }
 
+void USkeletalMeshComponent::PostEditChangeProperty(const FPropertyChangedEvent& Event)
+{
+    if (Event.ChangeType != EPropertyChangeType::Load)
+    {
+        Super::PostEditChangeProperty(Event);
+        return;
+    }
+
+    const bool bPreviousDeferAnimationInitialization = bDeferAnimationInitialization;
+    bDeferAnimationInitialization = true;
+    Super::PostEditChangeProperty(Event);
+    bDeferAnimationInitialization = bPreviousDeferAnimationInitialization;
+}
+
 void USkeletalMeshComponent::Serialize(FArchive& Ar)
 {
     Super::Serialize(Ar);
@@ -3144,6 +3163,18 @@ void USkeletalMeshComponent::Serialize(FArchive& Ar)
     Ar << AnimationData.bLooping;
     Ar << AnimationData.bPlaying;
 
+}
+
+void USkeletalMeshComponent::OnPostLoad(FArchive& Ar)
+{
+    Super::OnPostLoad(Ar);
+
+    if (Ar.IsLoading())
+    {
+        // Scene load applies SkeletalMeshPath before the instanced AnimInstance payload can
+        // restore GraphAssetPath. Reinitialize once after all saved animation properties exist.
+        InitializeAnimation();
+    }
 }
 
 bool USkeletalMeshComponent::EvaluateAnimInstance(float DeltaTime)

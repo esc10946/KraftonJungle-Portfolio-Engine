@@ -1,28 +1,85 @@
 ﻿#include "Engine/Platform/Paths.h"
 
 #include <filesystem>
+#include <system_error>
+
+namespace
+{
+	bool HasProjectContentRoot(const std::filesystem::path& Candidate)
+	{
+		std::error_code Error;
+		const std::filesystem::path ContentDir = Candidate / L"Content";
+		return std::filesystem::exists(ContentDir, Error) && std::filesystem::is_directory(ContentDir, Error);
+	}
+
+	std::filesystem::path FindProjectRootAbove(std::filesystem::path Start)
+	{
+		Start = Start.lexically_normal();
+		for (;;)
+		{
+			if (HasProjectContentRoot(Start))
+			{
+				return Start;
+			}
+
+			const std::filesystem::path Parent = Start.parent_path();
+			if (Parent.empty() || Parent == Start)
+			{
+				break;
+			}
+			Start = Parent;
+		}
+
+		return {};
+	}
+}
 
 std::wstring FPaths::RootDir()
 {
 	static std::wstring Cached;
 	if (Cached.empty())
 	{
-		// exe 옆에 Shaders/ 가 있으면 배포 환경, 없으면 개발 환경 (CWD 사용)
 		WCHAR Buffer[MAX_PATH];
 		GetModuleFileNameW(nullptr, Buffer, MAX_PATH);
 		
-		std::filesystem::path RootPath;
 		std::filesystem::path ExeDir = std::filesystem::path(Buffer).parent_path();
+		std::filesystem::path RootPath;
 
-		if (std::filesystem::exists(ExeDir / L"Shaders"))
+		// 배포 빌드는 exe 옆에 Content가 있고, 개발 실행은 보통 CWD가 프로젝트 루트다.
+		// 둘 다 아니면 Bin/Game 같은 실행 폴더에서 부모를 타고 올라가 프로젝트 루트를 찾는다.
+		if (HasProjectContentRoot(ExeDir))
 		{
-			// 배포: exe와 리소스가 같은 디렉터리
 			RootPath = ExeDir;
 		}
 		else
 		{
-			// 개발: CWD(= $(ProjectDir))에 리소스가 있음
-			RootPath = std::filesystem::current_path();
+			std::error_code Error;
+			const std::filesystem::path CurrentDir = std::filesystem::current_path(Error);
+			if (!Error && HasProjectContentRoot(CurrentDir))
+			{
+				RootPath = CurrentDir;
+			}
+			else if (std::filesystem::path Found = FindProjectRootAbove(ExeDir); !Found.empty())
+			{
+				RootPath = Found;
+			}
+			else if (!Error)
+			{
+				if (std::filesystem::path Found = FindProjectRootAbove(CurrentDir); !Found.empty())
+				{
+					RootPath = Found;
+				}
+			}
+		}
+
+		if (RootPath.empty())
+		{
+			std::error_code Error;
+			RootPath = std::filesystem::current_path(Error);
+			if (Error)
+			{
+				RootPath = ExeDir;
+			}
 		}
 		Cached = (RootPath / L"").generic_wstring();
 	}

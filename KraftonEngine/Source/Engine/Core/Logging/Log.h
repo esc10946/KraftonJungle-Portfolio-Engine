@@ -45,6 +45,7 @@ private:
 	// 내장 디바이스 (Initialize에서 생성, Shutdown에서 해제)
 	ILogOutputDevice* DebugOutputDevice = nullptr;
 	ILogOutputDevice* FileOutputDevice = nullptr;
+	ILogOutputDevice* ConsoleOutputDevice = nullptr;
 };
 
 // ============================================================

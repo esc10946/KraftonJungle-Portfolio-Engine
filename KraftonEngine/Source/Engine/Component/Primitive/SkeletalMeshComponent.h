@@ -325,8 +325,10 @@ public:
 
     // Editor / 직렬화 통합.
     void GetEditableProperties(TArray<FPropertyValue>& OutProps) override;
+    void PostEditChangeProperty(const FPropertyChangedEvent& Event) override;
     void PostEditProperty(const char* PropertyName) override;
     void Serialize(FArchive& Ar) override;
+    void OnPostLoad(FArchive& Ar) override;
     void BeginDestroy() override;
 
 protected:
@@ -385,6 +387,7 @@ protected:
     TSubclassOf<UAnimInstance> AnimInstanceClass;
     UPROPERTY(Save, Instanced, Category="Animation", DisplayName="Anim Instance", Type=ObjectRef, AllowedClass=UAnimInstance)
     UAnimInstance*             AnimInstance  = nullptr;
+    bool bDeferAnimationInitialization = false;
 
     // Components own per-instance overrides and runtime-instance lifecycle only; low-level
     // rigid body/constraint handles stay inside FPhysicsAssetInstance.
