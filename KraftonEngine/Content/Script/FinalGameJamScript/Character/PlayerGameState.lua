@@ -144,12 +144,12 @@ function PlayerGameState.Tick(ctx, dt)
 end
 
 function PlayerGameState.HandleDamaged(ctx, damageSpec, damageReport)
-    if damageReport ~= nil and damageReport.AppliedDamage ~= nil and damageReport.AppliedDamage <= 0.0 then
+    if should_end_game_from_damage_report(damageReport) then
+        request_player_death(ctx)
         return true
     end
 
-    if should_end_game_from_damage_report(damageReport) then
-        request_player_death(ctx)
+    if damageReport ~= nil and damageReport.AppliedDamage ~= nil and damageReport.AppliedDamage <= 0.0 then
         return true
     end
 

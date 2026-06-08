@@ -4755,8 +4755,9 @@
             "GuardPoiseMultiplier" : 0.600000,
             "GuardWindowSeconds" : 0.700000,
             "MaxPoise" : 160.000000,
-            "ParryGraceDuration" : 1.200000,
+            "ParryGraceDuration" : 0.000000,
             "PoiseRecoveryPerSecond" : 5.000000,
+            "PoiseRegenDelay" : 0.000000,
             "Team" : 2,
             "bAutoActivate" : true,
             "bDamageEnabled" : true,
@@ -4765,6 +4766,7 @@
             "bInvincible" : false,
             "bIsActive" : true,
             "bPostureRecoveryScalesWithHealth" : true,
+            "bStaggerOnPostureBreak" : false,
             "bSuperArmor" : false,
             "bTickEnable" : true
           }
@@ -5236,7 +5238,7 @@
                 "ClassName" : "UAnimMontage"
               }
             },
-            "HitReactMaxPhase" : 1,
+            "HitReactMaxPhase" : 0,
             "HitReactionCooldown" : 0.850000,
             "bAutoActivate" : true,
             "bClearAttackCooldownsOnHit" : false,

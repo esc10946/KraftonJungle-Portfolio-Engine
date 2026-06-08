@@ -1286,7 +1286,9 @@ bool AEnemyCharacter::Brain_IsBusy() const
 	}
 	if (UCombatStateComponent* Combat = GetCombatStateComponent())
 	{
-		if (Combat->IsStaggered())
+		// 무력화(stagger) 또는 처형 연출 중이면 두뇌 정지(처형 중엔 자세 붕괴로 staggered 가 아닐 수 있으므로
+		// IsBeingExecuted 도 본다 → 처형 몽타주를 보스 행동이 덮지 않게).
+		if (Combat->IsStaggered() || Combat->IsBeingExecuted())
 		{
 			return true;
 		}

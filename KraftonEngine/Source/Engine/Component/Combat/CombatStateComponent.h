@@ -57,8 +57,17 @@ public:
 	void ResetPoise();
 	UFUNCTION(Callable, Category="Combat|Poise")
 	void StartStagger(float Duration);
+	// 체간(자세=처형 게이지)을 건드리지 않는 무력화. 처형 직후 딜타임처럼 '체간과 무관한' 스턴에 쓴다.
+	UFUNCTION(Callable, Category="Combat|Poise")
+	void StartStaggerNoPoiseReset(float Duration);
 	UFUNCTION(Callable, Category="Combat|Poise")
 	void StopStagger();
+
+	// 처형(데스블로우) 연출 중인지. 처형 동안에는 피격 리액션(플린치)을 막아 처형 몽타주가 끊기지 않게 한다.
+	UFUNCTION(Callable, Category="Combat|Execution")
+	void SetBeingExecuted(bool bInBeingExecuted) { bBeingExecuted = bInBeingExecuted; }
+	UFUNCTION(Pure, Category="Combat|Execution")
+	bool IsBeingExecuted() const { return bBeingExecuted; }
 
 	// ── 패링(반격) 유예 (요청 #6) ──
 	// 이 액터가 막 패링당했을 때(공격이 상대에게 받아넘겨짐) ParryGraceDuration 동안 "유예" 윈도우를
@@ -162,14 +171,25 @@ public:
 	UPROPERTY(Edit, Save, Category="Combat|Poise", DisplayName="Default Stagger Duration", Min=0.0f, Max=10.0f, Speed=0.05f)
 	float DefaultStaggerDuration = 0.45f;
 
+	// 자세(체간)가 붕괴할 때 무력화(stagger)할지. 끄면 붕괴해도 무력화 없이 처형 가능(DeathblowReady)만 열린다.
+	// 보스는 false — 무력화는 "처형 이후 딜타임"에만 일어나게 한다.
+	UPROPERTY(Edit, Save, Category="Combat|Poise", DisplayName="Stagger On Posture Break")
+	bool bStaggerOnPostureBreak = true;
+
 	// 패링당한 직후 "반격에 불능화되지 않는" 유예 시간(초). 플레이어가 패링→반격하는 흐름에서 반격이
 	// 닿는 타이밍(≈0.2~1.0초 뒤)을 덮도록 ~1.2 정도를 권장. 0 = 비활성(기본). 보스 전용으로 scene 에서 설정.
 	UPROPERTY(Edit, Save, Category="Combat|Poise", DisplayName="Parry Grace Duration", Min=0.0f, Max=5.0f, Speed=0.05f)
 	float ParryGraceDuration = 0.0f;
 
+	// 체간(맷집) 회복 지연. 마지막으로 체간 피해를 받은 뒤 이 시간(초)이 지나야 회복이 시작된다. 0=즉시(기존).
+	// 보스에선 ~2초로 두어 "연속으로 두들기면 못 채우고 무너지지만, 2~3초 안 때리면 빠르게 회복"되게 한다(요청 #3).
+	UPROPERTY(Edit, Save, Category="Combat|Poise", DisplayName="Poise Regen Delay", Min=0.0f, Max=10.0f, Speed=0.05f)
+	float PoiseRegenDelay = 0.0f;
+
 	// 체력이 낮을수록 체간 회복이 느려진다(보고서: 체력-체간 회복 연계). 회복 배율 = lerp.
 	UPROPERTY(Edit, Save, Category="Combat|Poise", DisplayName="Posture Recovery Scales With Health")
 	bool bPostureRecoveryScalesWithHealth = true;
+
 
 	UPROPERTY(Edit, Save, Category="Combat|Deflect", DisplayName="Deflect Window Seconds", Min=0.0f, Max=2.0f, Speed=0.01f)
 	float DeflectWindowSeconds = 0.18f;
@@ -236,4 +256,13 @@ private:
 
 	// 패링 유예 윈도우 만료 시각(게임시간). MarkParried 가 연다.
 	float ParryGraceUntilSeconds = 0.0f;
+
+	// 마지막으로 체간 피해를 받은 게임시각(초). PoiseRegenDelay(맷집 회복 지연) 판정에 사용. 음수=아직 없음.
+	float LastPoiseDamageTimeSeconds = -1000.0f;
+
+	// 현재 stagger 가 끝날 때 보이는 자세(poise)를 리셋할지. 처형 자세 붕괴 stagger=true,
+	// 처형 직후 딜타임 stagger=false(체간 진행도를 건드리지 않는다).
+	bool bStaggerResetsPoiseOnEnd = true;
+	// 처형(데스블로우) 연출 중 — 피격 리액션을 막아 처형 몽타주가 끊기지 않게 한다.
+	bool bBeingExecuted = false;
 };

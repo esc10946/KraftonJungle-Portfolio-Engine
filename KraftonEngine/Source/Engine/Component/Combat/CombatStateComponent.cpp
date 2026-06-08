@@ -51,7 +51,11 @@ void UCombatStateComponent::TickComponent(float DeltaTime, ELevelTick TickType, 
 		return;
 	}
 
-	if (PoiseRecoveryPerSecond > 0.0f && CurrentPoise < MaxPoise)
+	// 맷집(체간) 회복: 마지막 피해 이후 PoiseRegenDelay 가 지나야 시작한다 → 연속으로 두들기면 못 채우고
+	// 무너지지만(요청 #3), 2~3초만 안 맞으면 빠른 회복으로 가득 찬다(보스는 PoiseRecoveryPerSecond 를 크게).
+	const bool bRegenReady = (PoiseRegenDelay <= 0.0f)
+		|| (GetOwnerGameTimeSeconds(this) - LastPoiseDamageTimeSeconds) >= PoiseRegenDelay;
+	if (PoiseRecoveryPerSecond > 0.0f && CurrentPoise < MaxPoise && bRegenReady)
 	{
 		float Rate = PoiseRecoveryPerSecond;
 		if (bPostureRecoveryScalesWithHealth)
@@ -137,12 +141,20 @@ bool UCombatStateComponent::ApplyPoiseDamageInternal(float PoiseDamage, bool bIg
 		return false;
 	}
 
+	// 마지막 체간 피해 시각 기록 → 회복 지연(PoiseRegenDelay) 판정. 연속 압박이면 못 채우고 무너진다(요청 #3).
+	LastPoiseDamageTimeSeconds = GetOwnerGameTimeSeconds(this);
+
 	SetPoiseValue(CurrentPoise - PoiseDamage);
 	if (CurrentPoise <= 0.0f)
 	{
-		// 자세 붕괴 신호 — ExecutionComponent 가 데스블로우 창을 연다. stagger 는 시각적 취약 표시로 유지.
+		// 자세 붕괴 신호 — ExecutionComponent 가 데스블로우(처형) 창을 연다.
 		OnPostureBroken.Broadcast(this);
-		StartStagger(DefaultStaggerDuration);
+		// 무력화(stagger)는 옵션. 보스는 bStaggerOnPostureBreak=false → 붕괴해도 무력화 없이 처형 가능만
+		// 열리고, 무력화는 처형 이후 딜타임에만 일어난다(요청). 일반 적은 기본 true 로 기존처럼 붕괴 시 무력화.
+		if (bStaggerOnPostureBreak)
+		{
+			StartStagger(DefaultStaggerDuration);
+		}
 		return true;
 	}
 	return false;
@@ -160,9 +172,25 @@ void UCombatStateComponent::StartStagger(float Duration)
 		ResetPoise();
 		return;
 	}
+	// 처형 자세 붕괴에서 호출되는 공개 stagger — 끝날 때 보이는 자세(체간)를 리셋한다(기존 동작).
+	bStaggerResetsPoiseOnEnd = true;
 	bStaggered = true;
 	StaggerRemainingTime = Duration;
 	OnStaggerStarted.Broadcast(this, Duration);
+}
+
+void UCombatStateComponent::StartStaggerNoPoiseReset(float Duration)
+{
+	if (Duration <= 0.0f)
+	{
+		return;
+	}
+	// 체간(자세)을 건드리지 않는 무력화 — 끝나도 ResetPoise 하지 않는다(처형 직후 딜타임 등).
+	// 시작 시 플린치(OnStaggerStarted)를 발행하지 않는다 → 아직 재생 중일 수 있는 처형 몽타주를 덮지 않는다.
+	// 무력화 동안 실제로 맞으면 그때 타격마다 피격 모션이 나온다(EnemyHitComponent 의 per-hit 경로).
+	bStaggerResetsPoiseOnEnd = false;
+	bStaggered = true;
+	StaggerRemainingTime = Duration;
 }
 
 void UCombatStateComponent::StopStagger()
@@ -173,7 +201,11 @@ void UCombatStateComponent::StopStagger()
 	}
 	bStaggered = false;
 	StaggerRemainingTime = 0.0f;
-	ResetPoise();
+	// 숨김 맷집 게이지 붕괴로 시작된 stagger 는 보이는 자세(처형 진행도)를 건드리지 않는다.
+	if (bStaggerResetsPoiseOnEnd)
+	{
+		ResetPoise();
+	}
 	OnStaggerEnded.Broadcast(this);
 }
 

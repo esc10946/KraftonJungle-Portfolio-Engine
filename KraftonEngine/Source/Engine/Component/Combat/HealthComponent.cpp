@@ -47,6 +47,7 @@ FCombatDamageReport UHealthComponent::ApplyDamage(float Damage, AActor* DamageCa
 {
 	FCombatDamageSpec Spec;
 	Spec.Damage = Damage;
+	Spec.PoiseDamage = 0.0f;
 	Spec.DamageCauser = DamageCauser;
 	Spec.InstigatorActor = InstigatorActor;
 	return ApplyDamageSpec(Spec);

@@ -59,6 +59,11 @@ public:
 
 	UPROPERTY(Edit, Save, Category="Boss|Death", DisplayName="Boss Death Montage Play Rate", Min=0.01f, Max=10.0f, Speed=0.05f)
 	float BossDeathMontagePlayRate = 1.0f;
+
+	// 처형(데스블로우)으로 스톡 1개를 소비하고도 살아남았을 때(마지막 스톡 아님), 보스가 잠깐 행동을
+	// 못 하는 "딜 타임"(초). 그 동안 플레이어가 추가로 때릴 수 있다(요청 #2). 0=비활성.
+	UPROPERTY(Edit, Save, Category="Boss|Execution", DisplayName="Execution Deal Time Seconds", Min=0.0f, Max=10.0f, Speed=0.05f)
+	float ExecutionDealTimeSeconds = 2.0f;
 protected:
 	int32 GetCurrentAIPhase() const override { return GetBossPhase(); }
 	bool IsBossCharacter() const override { return true; }

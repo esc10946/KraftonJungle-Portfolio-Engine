@@ -355,7 +355,7 @@ local Actions = {
     --   걷는 후퇴는 속도 상한이 있어 소극적이라, 거대 보스의 "치고 빠지고"는 이 큰 점프가 담당한다.
     --   (LeapHorizontalForce 가 거리를 결정 — scene/패널에서 상향.) 플레이어 공격만으로는 안 빠짐(도망 방지).
     {
-        name = "leap", commit = 1.2,
+        name = "leap", commit = 1.7,
         score = function(bb)
             if not bb.perceive or bb.ratio > 1.4 then return 0 end     -- 근접에서 분리할 때만
             local s = 0.0
@@ -627,8 +627,9 @@ function Tick(dt)
     -- 템포 자원 회복 + 행동 커밋 타이머 감소(프레임당 1회). 회복 속도를 페이즈로 달리해 리듬을
     -- 차별화: P1 느림(긴 호흡, 절제) → P3 빠름(짧은 호흡, 연속 압박).
     local _ph = call(obj, "Brain_GetPhase") or 1
-    -- 회복을 빠르게 → "빠지고" 간격이 짧아져 곧바로 다시 파고든다(긴 후퇴/도망 방지).
-    local _regen = (_ph >= 3) and 0.50 or ((_ph >= 2) and 0.35 or 0.3)
+    -- 회복을 다소 느리게 → 연속 공격 후 다시 파고들기까지 "쉬는 시간"이 길어진다(요청: 휴식 ↑).
+    -- 단, 너무 느리면 소극적이 되니 적당히(P1 0.30→0.20, P2 0.35→0.26, P3 0.50→0.40).
+    local _regen = (_ph >= 3) and 0.40 or ((_ph >= 2) and 0.26 or 0.20)
     AI.tempo  = clamp(AI.tempo + _regen * dt, 0.0, 1.0)
     AI.commit = math.max(0.0, AI.commit - dt)
 

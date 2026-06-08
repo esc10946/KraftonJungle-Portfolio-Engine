@@ -51,6 +51,14 @@ void UEnemyHitComponent::BindHealthEvents()
 	BoundHealthComponent = HealthComponent;
 	DamagedHandle = HealthComponent->OnDamaged.AddWeakUObject(this, &UEnemyHitComponent::HandleDamaged);
 	DeathHandle = HealthComponent->OnDeath.AddWeakUObject(this, &UEnemyHitComponent::HandleDeath);
+
+	// 맷집(체간) 붕괴 → stagger(무력화) 시작 시 피격 모션을 재생한다(요청 #3). 평소 타격당 플린치는
+	// scene 에서 끌 수 있고(HitReactMaxPhase=0), 피격 모션은 게이지가 다 닳아 무너질 때만 나오게 한다.
+	if (UCombatStateComponent* CombatComponent = OwnerActor->GetComponentByClass<UCombatStateComponent>())
+	{
+		BoundCombatComponent = CombatComponent;
+		StaggerStartedHandle = CombatComponent->OnStaggerStarted.AddWeakUObject(this, &UEnemyHitComponent::HandleStaggerStarted);
+	}
 	bBoundHealthEvents = true;
 }
 
@@ -73,10 +81,47 @@ void UEnemyHitComponent::UnbindHealthEvents()
 		}
 	}
 
+	if (UCombatStateComponent* CombatComponent = BoundCombatComponent.Get())
+	{
+		if (StaggerStartedHandle.IsValid())
+		{
+			CombatComponent->OnStaggerStarted.Remove(StaggerStartedHandle);
+		}
+	}
+
 	DamagedHandle.Reset();
 	DeathHandle.Reset();
+	StaggerStartedHandle.Reset();
 	BoundHealthComponent.Reset();
+	BoundCombatComponent.Reset();
 	bBoundHealthEvents = false;
+}
+
+void UEnemyHitComponent::HandleStaggerStarted(UCombatStateComponent* Combat, float /*Duration*/)
+{
+	// 처형 연출 중 시작되는 stagger 는 피격 모션을 재생하지 않는다(처형 몽타주 보호).
+	if (Combat && Combat->IsBeingExecuted())
+	{
+		return;
+	}
+	// 자세 붕괴(무력화) → 피격 모션 1회 재생. 방향 정보가 없으므로 전면(Front) 리액션을 쓴다.
+	// 직전에 막 플린치를 재생했으면(HitReactionCooldown 내) 중복을 피한다(일반 적의 타격당 플린치 + 붕괴 중복 방지).
+	if (HitReactionCooldown > 0.0f)
+	{
+		AActor* OwnerActor = GetOwner();
+		UWorld* World = OwnerActor ? OwnerActor->GetWorld() : nullptr;
+		const float Now = World ? World->GetGameTimeSeconds() : 0.0f;
+		if ((Now - LastHitReactGameTime) < HitReactionCooldown)
+		{
+			return;
+		}
+	}
+	if (PlayHitMontage(nullptr, nullptr))
+	{
+		AActor* OwnerActor = GetOwner();
+		UWorld* World = OwnerActor ? OwnerActor->GetWorld() : nullptr;
+		LastHitReactGameTime = World ? World->GetGameTimeSeconds() : 0.0f;
+	}
 }
 
 EEnemyHitDirection UEnemyHitComponent::ResolveHitDirection(AActor* DamageCauser, AActor* InstigatorActor) const
@@ -158,8 +203,20 @@ void UEnemyHitComponent::HandleDamaged(
 	AActor* Owner = GetOwner();
 	UCombatStateComponent* Combat = Owner ? Owner->GetComponentByClass<UCombatStateComponent>() : nullptr;
 
-	// 경직 페이즈 제한: 현재 페이즈가 HitReactMaxPhase 를 넘으면 피격 리액션을 완전히 생략한다
-	// (하이퍼아머). 예: 보스 HitReactMaxPhase=1 → P1 에서만 경직, P2/P3 는 끊김 없음.
+	// 처형(데스블로우) 연출 중에는 피격 리액션을 재생하지 않는다 → 같은 슬롯의 처형 몽타주(ExecutedA)가
+	// 플린치에 덮여 끊기던 문제 수정(체력 피해는 HealthComponent 에서 그대로 적용된다).
+	if (Combat && Combat->IsBeingExecuted())
+	{
+		return;
+	}
+
+	// 무력화(stagger) 중에는 보스가 무방비 상태다 → HitReactMaxPhase·쿨다운을 무시하고 타격마다 피격
+	// 모션을 보여준다(딜 타임/처형 후 "맞고 있다"는 피드백). 평소엔 stagger 일 때만 모션이 나온다.
+	const bool bStaggeredNow = Combat && Combat->IsStaggered();
+
+	// 경직 페이즈 제한: 현재 페이즈가 HitReactMaxPhase 를 넘으면 평소엔 피격 리액션을 생략(하이퍼아머).
+	// 단 무력화 중에는 우회해 타격마다 반응한다.
+	if (!bStaggeredNow)
 	{
 		int32 CurrentPhase = 1;
 		if (UPhaseComponent* Phase = Owner ? Owner->GetComponentByClass<UPhaseComponent>() : nullptr)
@@ -193,7 +250,7 @@ void UEnemyHitComponent::HandleDamaged(
 	// 경직하지 않는다 → 난타로 매 타격마다 플린치가 갱신돼 보스가 영영 공격을 못 시작하는 무한경직을
 	// 막고, 경직 사이에 반격 틈을 확보한다. 0 이면 매 타격 경직(기존 동작 — 일반 적).
 	const float NowSeconds = (Owner && Owner->GetWorld()) ? Owner->GetWorld()->GetGameTimeSeconds() : 0.0f;
-	if (HitReactionCooldown > 0.0f && (NowSeconds - LastHitReactGameTime) < HitReactionCooldown)
+	if (!bStaggeredNow && HitReactionCooldown > 0.0f && (NowSeconds - LastHitReactGameTime) < HitReactionCooldown)
 	{
 		return;
 	}
