@@ -1,4 +1,4 @@
-// Generated from Content/Game/Material/LockOnMarker.uasset
+// Generated from C:/Users/jungle/Documents/GitHub/Week14/KraftonEngine/Content/Game/Material/LockOnMarker.uasset
 // Domain: Surface
 
 #include "Common/ConstantBuffers.hlsli"
@@ -34,14 +34,13 @@ Texture2D Tex_Diffuse : register(t0);
 FMaterialResult EvaluateMaterial(FMaterialPixelInput Input)
 {
     float4 n_17 = Tex_Diffuse.Sample(LinearWrapSampler, Input.UV0);
-    float n_3 = 1.000000f;
     FMaterialResult Result;
     Result.BaseColor = (n_17).rgb;
     Result.Normal = float3(0, 0, 1);
     Result.Roughness = 0.5f;
     Result.Metallic = 0.0f;
     Result.Emissive = float3(0, 0, 0);
-    Result.Opacity = n_3;
+    Result.Opacity = (n_17).a;
     return Result;
 }
 
