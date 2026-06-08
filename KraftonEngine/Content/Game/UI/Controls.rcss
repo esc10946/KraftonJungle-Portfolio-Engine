@@ -49,29 +49,37 @@ body#controls-screen {
     color: #ffffff;
 }
 
+/* Binding-value cells render in YOZAKURA (the engine's fallback face, addressable
+   by its embedded family name) so the literal keys read distinctly from the
+   Serpentine labels/headers. YOZAKURA sits smaller in the em box, so size up a
+   touch (22 -> 26) to balance against the 24px Serpentine action labels. */
 .ctrl-key {
     display: inline-block;
     width: 300px;
-    font-size: 22px;
+    font-family: YOZAKURA;
+    font-size: 34px;
     color: #e8e8e8;
 }
 
 .ctrl-pad {
     display: inline-block;
     width: 280px;
-    font-size: 22px;
+    font-family: YOZAKURA;
+    font-size: 34px;
     color: #e8e8e8;
 }
 
-/* Column header row: accent the two column titles. */
+/* Column header row: accent the two column titles. Keep them in Serpentine
+   (override the YOZAKURA on .ctrl-key/.ctrl-pad) so headers match the labels. */
 .ctrl-head {
     height: 30px;
     margin-top: 8px;
 }
 
 .col-head {
+    font-family: Serpentine;
     color: #ffcc00;
-    font-size: 20px;
+    font-size: 28px;
 }
 
 /* Category subheading (MOVEMENT / COMBAT / SYSTEM). */
