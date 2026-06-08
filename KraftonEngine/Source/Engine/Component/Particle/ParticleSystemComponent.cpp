@@ -1,5 +1,6 @@
 #include "ParticleSystemComponent.h"
 
+#include "Component/SceneComponent.h"
 #include "Particle/ParticleSystem.h"
 #include "Particle/ParticleEmitter.h"
 #include "Particle/ParticleEmitterInstance.h"
@@ -18,6 +19,35 @@ UParticleSystemComponent::UParticleSystemComponent()  {}
 UParticleSystemComponent::~UParticleSystemComponent()
 {
 	DestroyEmitterInstances();
+}
+
+void UParticleSystemComponent::SetRibbonEdgeSourceComponents(
+	USceneComponent* InSourceComponent,
+	USceneComponent* InTargetComponent)
+{
+	RibbonSourceComponent = InSourceComponent;
+	RibbonTargetComponent = InTargetComponent;
+}
+
+void UParticleSystemComponent::ClearRibbonEdgeSourceComponents()
+{
+	RibbonSourceComponent.Reset();
+	RibbonTargetComponent.Reset();
+}
+
+bool UParticleSystemComponent::HasRibbonEdgeSourceComponents() const
+{
+	return IsValid(RibbonSourceComponent.Get()) && IsValid(RibbonTargetComponent.Get());
+}
+
+USceneComponent* UParticleSystemComponent::GetRibbonSourceComponent() const
+{
+	return RibbonSourceComponent.Get();
+}
+
+USceneComponent* UParticleSystemComponent::GetRibbonTargetComponent() const
+{
+	return RibbonTargetComponent.Get();
 }
 
 void UParticleSystemComponent::SetTemplate(UParticleSystem* InTemplate)

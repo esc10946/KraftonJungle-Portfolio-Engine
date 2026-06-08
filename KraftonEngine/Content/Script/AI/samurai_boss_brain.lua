@@ -71,10 +71,129 @@ local DEATH_DESTROY_DELAY = 2.5
 local bDestroyed, bPendingDestroy, deathDelay, bRagdoll = false, false, 0.0, false
 local KATANA_PATH = "Content/Data/Weapon/JapanSword/New_Katana_StaticMesh.uasset"
 local KATANA_SOCKET = "Katana"
+local BOSS_SWORD_TRAIL_PARTICLE_PATH = "Content/Particle System/SwordTrail.uasset"
+local BOSS_SWORD_TRAIL_SOURCE_OFFSET = { 0.0, 0.0, 0.0 }
+local BOSS_SWORD_TRAIL_TARGET_OFFSET = { 0.0, 120.0, 0.0 }
+local BOSS_SWORD_TRAIL_GRACE_TIME = 0.35
 local katanaComponent = nil
+local trailSourceParticle = nil
+local trailTargetParticle = nil
+local trailActive = false
+local trailEmissionActive = false
+local trailDeactivateRemaining = 0.0
+local trailBindingWarned = false
+
+local function vec_from_offset(offset)
+    return Vec3(offset[1] or 0.0, offset[2] or 0.0, offset[3] or 0.0)
+end
+
+local function set_particle_spawn_scale(particle, scale)
+    if particle == nil then return end
+    if Particle ~= nil and Particle.SetRuntimeSpawnRateScale ~= nil then
+        Particle.SetRuntimeSpawnRateScale(particle, scale)
+    elseif particle.SetRuntimeSpawnRateScale ~= nil then
+        particle:SetRuntimeSpawnRateScale(scale)
+    end
+end
+
+local function set_trail_particle_active(particle, active)
+    if particle == nil then return end
+    if active then
+        if particle.Activate ~= nil then particle:Activate(false) end
+    elseif particle.Deactivate ~= nil then
+        particle:Deactivate()
+    end
+end
+
+local function set_trail_emission(active)
+    if trailEmissionActive == active then return end
+    trailEmissionActive = active
+    set_particle_spawn_scale(trailSourceParticle, active and 1.0 or 0.0)
+    set_particle_spawn_scale(trailTargetParticle, 0.0)
+end
+
+local function deactivate_trail_now()
+    set_trail_emission(false)
+    trailActive = false
+    trailDeactivateRemaining = 0.0
+    set_trail_particle_active(trailSourceParticle, false)
+    set_trail_particle_active(trailTargetParticle, false)
+end
+
+local function request_trail_deactivate()
+    if not trailActive then return end
+    set_trail_emission(false)
+    trailDeactivateRemaining = math.max(trailDeactivateRemaining or 0.0, BOSS_SWORD_TRAIL_GRACE_TIME)
+end
+
+local function activate_trail()
+    if trailSourceParticle == nil or trailTargetParticle == nil then return end
+    trailActive = true
+    trailDeactivateRemaining = 0.0
+    set_trail_particle_active(trailSourceParticle, true)
+    set_trail_particle_active(trailTargetParticle, true)
+    set_trail_emission(true)
+end
+
+local function update_trail(dt, attackBusy)
+    if not trailActive then return end
+    if attackBusy then
+        trailDeactivateRemaining = 0.0
+        return
+    end
+
+    if trailEmissionActive then
+        request_trail_deactivate()
+    end
+
+    if trailDeactivateRemaining <= 0.0 then return end
+    trailDeactivateRemaining = trailDeactivateRemaining - (dt or 0.0)
+    if trailDeactivateRemaining <= 0.0 then
+        deactivate_trail_now()
+    end
+end
+
+local function attach_boss_trail()
+    if katanaComponent == nil or trailSourceParticle ~= nil then return end
+    if Particle == nil or Particle.AttachSystemToComponent == nil or Particle.SetRibbonEdgeSourceComponents == nil then
+        if not trailBindingWarned then
+            print("[SamuraiBoss] paired sword trail particle binding missing")
+            trailBindingWarned = true
+        end
+        return
+    end
+
+    trailSourceParticle = Particle.AttachSystemToComponent(
+        katanaComponent,
+        BOSS_SWORD_TRAIL_PARTICLE_PATH,
+        vec_from_offset(BOSS_SWORD_TRAIL_SOURCE_OFFSET)
+    )
+    trailTargetParticle = Particle.AttachSystemToComponent(
+        katanaComponent,
+        BOSS_SWORD_TRAIL_PARTICLE_PATH,
+        vec_from_offset(BOSS_SWORD_TRAIL_TARGET_OFFSET)
+    )
+
+    if trailSourceParticle == nil or trailTargetParticle == nil then
+        print("[SamuraiBoss] paired sword trail attach failed")
+        return
+    end
+
+    set_particle_spawn_scale(trailSourceParticle, 0.0)
+    set_particle_spawn_scale(trailTargetParticle, 0.0)
+    if trailSourceParticle.Activate ~= nil then trailSourceParticle:Activate(true) end
+    if trailTargetParticle.Activate ~= nil then trailTargetParticle:Activate(true) end
+    if trailSourceParticle.ResetParticles ~= nil then trailSourceParticle:ResetParticles() end
+    if trailTargetParticle.ResetParticles ~= nil then trailTargetParticle:ResetParticles() end
+
+    if Particle.SetRibbonEdgeSourceComponents(trailSourceParticle, trailSourceParticle, trailTargetParticle) then
+        print("[SamuraiBoss] paired sword trail configured")
+    end
+end
 
 local function request_death()
     if bDestroyed then return end
+    deactivate_trail_now()
     bPendingDestroy = true; deathDelay = DEATH_DESTROY_DELAY
     call(obj, "Brain_ReleaseAttackToken"); call(obj, "StopEnemyMovement")
     if not bRagdoll then bRagdoll = true; call(obj, "EnterRagdoll") end
@@ -197,7 +316,10 @@ end
 
 local function try_attack(bb)
     if call(obj, "Brain_AcquireAttackToken") ~= true then return false end
-    if select_attack(bb) and call(obj, "Brain_PlaySelectedAttack") == true then return true end
+    if select_attack(bb) and call(obj, "Brain_PlaySelectedAttack") == true then
+        activate_trail()
+        return true
+    end
     call(obj, "Brain_ReleaseAttackToken")
     return false
 end
@@ -205,7 +327,10 @@ end
 -- 갭스트라이크 전용: 원거리/갭클로저 공격만 골라 거리를 좁히며 친다(공간 있을 때 사용).
 local function try_gap_attack(bb)
     if call(obj, "Brain_AcquireAttackToken") ~= true then return false end
-    if select_attack(bb, true) and call(obj, "Brain_PlaySelectedAttack") == true then return true end
+    if select_attack(bb, true) and call(obj, "Brain_PlaySelectedAttack") == true then
+        activate_trail()
+        return true
+    end
     call(obj, "Brain_ReleaseAttackToken")
     return false
 end
@@ -437,12 +562,14 @@ function BeginPlay()
             KATANA_SOCKET,
             Vec3(1.0, 1.0, 1.0)
         )
+        attach_boss_trail()
     else
         print("[SamuraiBoss] Equipment.AttachStaticMeshToSocket binding missing")
     end
 end
 
 function EndPlay()
+    deactivate_trail_now()
     call(obj, "Brain_ReleaseAttackToken")
 end
 
@@ -462,6 +589,7 @@ function Tick(dt)
     end
 
     if S.isBoss and call(obj, "IsBossEncounterActive") ~= true then
+        deactivate_trail_now()
         call(obj, "Brain_ReleaseAttackToken")
         call(obj, "StopEnemyMovement")
         return
@@ -474,6 +602,9 @@ function Tick(dt)
     if call(obj, "Brain_GuardBlockedRecently") == true then
         AI.counterUntil = 0.55
     end
+    local attackBusy = call(obj, "Brain_IsBusy") == true
+    update_trail(dt, attackBusy)
+    if attackBusy then return end
     if call(obj, "Brain_IsBusy") == true then return end          -- 공격/경직 중 — 두뇌 정지
     if call(obj, "Brain_ConsumeCombatStep") ~= true then return end
 

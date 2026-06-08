@@ -17,6 +17,7 @@
 #include "Particle/TypeData/ParticleModuleTypeDataBeam.h"
 #include "Particle/TypeData/ParticleModuleTypeDataRibbon.h"
 #include "Component/Particle/ParticleSystemComponent.h"
+#include "Component/SceneComponent.h"
 #include "Core/Logging/Log.h"
 #include "Debug/DrawDebugHelpers.h"
 #include "GameFramework/World.h"
@@ -440,6 +441,7 @@ namespace
 	}
 
 	void FillRibbonReplayShapingFromRenderLOD(
+		const FParticleEmitterInstance& EmitterInstance,
 		UParticleLODLevel& RenderReplayLOD,
 		FDynamicRibbonEmitterReplayData& OutData)
 	{
@@ -462,6 +464,9 @@ namespace
 			OutData.MaxTessellation = Shaping.MaxTessellation;
 			OutData.TangentTension = Shaping.TangentTension;
 			OutData.TilesPerTrail = Shaping.TilesPerTrail;
+			OutData.bUsePairedEdgePositions =
+				(EmitterInstance.GetComponent() != nullptr &&
+					EmitterInstance.GetComponent()->HasRibbonEdgeSourceComponents());
 		}
 	}
 }
@@ -3007,6 +3012,61 @@ void FParticleBeamEmitterInstance::ResetEndpointLocks()
 }
 
 // -- Ribbon ----
+int32 FParticleRibbonEmitterInstance::SpawnInternal(
+	int32 Count,
+	float StartTime,
+	float Increment,
+	float StepDeltaTime,
+	const FParticleEventSpawnOverride* SpawnOverride)
+{
+	const uint32 FirstNewParticleIndex = ActiveParticles;
+	const int32 SpawnedCount = FParticleEmitterInstance::SpawnInternal(
+		Count,
+		StartTime,
+		Increment,
+		StepDeltaTime,
+		SpawnOverride);
+
+	if (SpawnedCount <= 0 || !Component || !Component->HasRibbonEdgeSourceComponents())
+	{
+		return SpawnedCount;
+	}
+
+	USceneComponent* SourceComponent = Component->GetRibbonSourceComponent();
+	USceneComponent* TargetComponent = Component->GetRibbonTargetComponent();
+	if (!IsValid(SourceComponent) || !IsValid(TargetComponent))
+	{
+		return SpawnedCount;
+	}
+
+	const FVector SourceSim = ConvertPositionToSimulation(
+		SourceComponent->GetWorldLocation(),
+		EParticleValueSpace::World);
+	const FVector TargetSim = ConvertPositionToSimulation(
+		TargetComponent->GetWorldLocation(),
+		EParticleValueSpace::World);
+
+	const uint32 LastNewParticleIndex = std::min<uint32>(
+		ActiveParticles,
+		FirstNewParticleIndex + static_cast<uint32>(SpawnedCount));
+	for (uint32 ParticleIndex = FirstNewParticleIndex; ParticleIndex < LastNewParticleIndex; ++ParticleIndex)
+	{
+		FBaseParticle* Particle = GetParticleAt(ParticleIndex);
+		if (!Particle)
+		{
+			continue;
+		}
+
+		Particle->Location = SourceSim;
+		Particle->OldLocation = SourceSim;
+		Particle->RibbonTargetLocation = TargetSim;
+		Particle->Velocity = FVector::ZeroVector;
+		Particle->BaseVelocity = FVector::ZeroVector;
+	}
+
+	return SpawnedCount;
+}
+
 FDynamicEmitterDataBase* FParticleRibbonEmitterInstance::GetDynamicData()
 {
 	// Ribbon replay follows the shared/base replay path, then adds the single-trail
@@ -3017,7 +3077,7 @@ FDynamicEmitterDataBase* FParticleRibbonEmitterInstance::GetDynamicData()
 
 	if (UParticleLODLevel* RenderReplayLOD = GetRenderReplayLODLevel())
 	{
-		FillRibbonReplayShapingFromRenderLOD(*RenderReplayLOD, Data->Source);
+		FillRibbonReplayShapingFromRenderLOD(*this, *RenderReplayLOD, Data->Source);
 	}
 
 	return Data;

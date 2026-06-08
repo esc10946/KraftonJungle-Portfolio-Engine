@@ -11,6 +11,7 @@
 #include "Animation/Notify/AnimNotifyState_CounterInputWindow.h"
 #include "Animation/Notify/AnimNotifyState_ParryWindow.h"
 #include "Component/Camera/CameraComponent.h"
+#include "Component/SceneComponent.h"
 #include "Component/Animation/CharacterLocomotionComponent.h"
 #include "Component/Combat/CombatStateComponent.h"
 #include "Component/Light/LightComponentBase.h"
@@ -563,6 +564,56 @@ void RegisterGameLuaBindings(sol::state& Lua)
 		}
 	);
 	Particle.set_function(
+		"AttachSystemToComponent",
+		[](USceneComponent* ParentComponent, const FString& TemplatePath, const FVector& RelativeLocation) -> UParticleSystemComponent*
+		{
+			SCOPE_STAT_CAT("Lua.Particle.AttachSystemToComponent", "Particles");
+			if (!IsValid(ParentComponent) || TemplatePath.empty() || TemplatePath == "None")
+			{
+				UE_LOG("[Particle] AttachSystemToComponent failed: invalid parent or template path");
+				return nullptr;
+			}
+
+			AActor* Owner = ParentComponent->GetOwner();
+			if (!IsValid(Owner))
+			{
+				UE_LOG("[Particle] AttachSystemToComponent failed: parent has no valid owner");
+				return nullptr;
+			}
+
+			UParticleSystemComponent* ParticleComponent = Owner->AddComponent<UParticleSystemComponent>();
+			if (!IsValid(ParticleComponent))
+			{
+				UE_LOG("[Particle] AttachSystemToComponent failed: could not create particle component");
+				return nullptr;
+			}
+
+			ParticleComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			ParticleComponent->SetCanEverAffectNavigation(false);
+
+			UParticleSystem* Template = FParticleSystemManager::Get().Load(TemplatePath);
+			if (!IsValid(Template))
+			{
+				UE_LOG("[Particle] AttachSystemToComponent failed: could not load particle system. Path='%s'", TemplatePath.c_str());
+				Owner->RemoveComponent(ParticleComponent);
+				return nullptr;
+			}
+
+			ParticleComponent->SetAutoActivate(false);
+			ParticleComponent->SetTemplate(Template);
+			ParticleComponent->AttachToComponent(ParentComponent);
+			ParticleComponent->SetRelativeLocation(RelativeLocation);
+			ParticleComponent->SetRelativeRotation(FVector(0.0f, 0.0f, 0.0f));
+			ParticleComponent->SetRelativeScale(FVector(1.0f, 1.0f, 1.0f));
+			ParticleComponent->Deactivate();
+			UE_LOG("[Particle] AttachSystemToComponent success: Owner=%s Template=%s Component=%s",
+				Owner->GetName().c_str(),
+				TemplatePath.c_str(),
+				ParticleComponent->GetName().c_str());
+			return ParticleComponent;
+		}
+	);
+	Particle.set_function(
 		"SpawnSystemAtLocation",
 		[](AActor* WorldContext, const FString& TemplatePath, const FVector& Location) -> UParticleSystemComponent*
 		{
@@ -602,6 +653,21 @@ void RegisterGameLuaBindings(sol::state& Lua)
 				const float Scale = std::max(0.0f, UniformScale);
 				Component->SetRelativeScale(FVector(Scale, Scale, Scale));
 			}
+		}
+	);
+	Particle.set_function(
+		"SetRibbonEdgeSourceComponents",
+		[](UParticleSystemComponent* RibbonComponent, USceneComponent* SourceComponent, USceneComponent* TargetComponent)
+		{
+			SCOPE_STAT_CAT("Lua.Particle.SetRibbonEdgeSourceComponents", "Particles");
+			if (!IsValid(RibbonComponent) || !IsValid(SourceComponent) || !IsValid(TargetComponent))
+			{
+				UE_LOG("[Particle] SetRibbonEdgeSourceComponents failed: invalid component");
+				return false;
+			}
+
+			RibbonComponent->SetRibbonEdgeSourceComponents(SourceComponent, TargetComponent);
+			return true;
 		}
 	);
 

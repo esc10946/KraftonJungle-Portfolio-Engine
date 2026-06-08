@@ -516,4 +516,11 @@ class FParticleRibbonEmitterInstance : public FParticleEmitterInstance
 public:
 	FDynamicEmitterDataBase* GetDynamicData() override;
 	EDynamicEmitterType GetType() const override { return EDynamicEmitterType::Ribbon; }
+protected:
+	int32 SpawnInternal(
+		int32 Count,
+		float StartTime,
+		float Increment,
+		float StepDeltaTime,
+		const FParticleEventSpawnOverride* SpawnOverride = nullptr) override;
 };

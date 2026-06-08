@@ -13,6 +13,7 @@ class UParticleSystem;
 class FParticleEmitterInstance;
 class AParticleEventManager;
 class UParticleSystemComponent;
+class USceneComponent;
 
 DECLARE_MULTICAST_DELEGATE_OneParam(FParticleSystemFinishedSignature, UParticleSystemComponent* /*PSC*/);
 
@@ -50,6 +51,14 @@ public:
 	void SetRuntimeSpawnRateScale(float InScale) { RuntimeSpawnRateScale = InScale < 0.0f ? 0.0f : InScale; }
 	UFUNCTION(Pure, Category="Particle|Playback")
 	float GetRuntimeSpawnRateScale() const { return RuntimeSpawnRateScale; }
+	UFUNCTION(Callable, Category="Particle|Ribbon")
+	void SetRibbonEdgeSourceComponents(USceneComponent* InSourceComponent, USceneComponent* InTargetComponent);
+	UFUNCTION(Callable, Category="Particle|Ribbon")
+	void ClearRibbonEdgeSourceComponents();
+	UFUNCTION(Pure, Category="Particle|Ribbon")
+	bool HasRibbonEdgeSourceComponents() const;
+	USceneComponent* GetRibbonSourceComponent() const;
+	USceneComponent* GetRibbonTargetComponent() const;
 
 	// --- 컴포넌트 라이프사이클 ---
 	void BeginPlay() override;
@@ -145,6 +154,8 @@ protected:
 	bool bActive = false;
 	float AccumulatedTime = 0.0f;
 	float RuntimeSpawnRateScale = 1.0f;
+	TWeakObjectPtr<USceneComponent> RibbonSourceComponent;
+	TWeakObjectPtr<USceneComponent> RibbonTargetComponent;
 
 	// emitter 인스턴스 — PSC 가 owning.
 	TArray<FParticleEmitterInstance*> EmitterInstances;

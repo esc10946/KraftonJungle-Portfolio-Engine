@@ -54,6 +54,8 @@ namespace
 	{
 		FVector Position;
 		FVector Tangent;
+		FVector EdgePosition;
+		FVector EdgeTangent;
 		FVector4 Color;
 		FVector Size;
 	};
@@ -61,6 +63,7 @@ namespace
 	struct FRibbonSamplePoint
 	{
 		FVector Position;
+		FVector EdgePosition;
 		FVector4 Color;
 		FVector Size;
 		float TrailAlpha = 0.0f;
@@ -71,6 +74,7 @@ namespace
 		int32 MaxTessellation = 8;
 		float TangentTension = 0.5f;
 		float TilesPerTrail = 1.0f;
+		bool bUsePairedEdgePositions = false;
 	};
 
 	FVector ScaleParticleSize(const FVector& Size, const FVector& Scale)
@@ -92,6 +96,23 @@ namespace
 	{
 		const auto& Particle = *reinterpret_cast<const FBaseParticle*>(RawBase + ParticleIndex * Stride);
 		FVector WorldPosition = Particle.Location;
+		if (bLocal)
+		{
+			WorldPosition = LocalToWorld.TransformPositionWithW(WorldPosition);
+		}
+
+		return WorldPosition;
+	}
+
+	FVector GetRibbonParticleWorldTargetPosition(
+		const uint8* RawBase,
+		uint32 Stride,
+		bool bLocal,
+		const FMatrix& LocalToWorld,
+		uint32 ParticleIndex)
+	{
+		const auto& Particle = *reinterpret_cast<const FBaseParticle*>(RawBase + ParticleIndex * Stride);
+		FVector WorldPosition = Particle.RibbonTargetLocation;
 		if (bLocal)
 		{
 			WorldPosition = LocalToWorld.TransformPositionWithW(WorldPosition);
@@ -146,6 +167,9 @@ namespace
 			ControlPoint.Position =
 				GetRibbonParticleWorldPosition(RawBase, Stride, bLocal, LocalToWorld, ParticleIndex);
 			ControlPoint.Tangent = FVector::ZeroVector;
+			ControlPoint.EdgePosition =
+				GetRibbonParticleWorldTargetPosition(RawBase, Stride, bLocal, LocalToWorld, ParticleIndex);
+			ControlPoint.EdgeTangent = FVector::ZeroVector;
 			ControlPoint.Color = Particle.Color;
 			ControlPoint.Size = ScaleParticleSize(Particle.Size, SizeScale);
 			OutControlPoints.push_back(ControlPoint);
@@ -160,7 +184,12 @@ namespace
 				(i > 0) ? ControlPoints[i - 1].Position : ControlPoints[i].Position;
 			const FVector Next =
 				(i + 1 < ControlPoints.size()) ? ControlPoints[i + 1].Position : ControlPoints[i].Position;
+			const FVector PrevEdge =
+				(i > 0) ? ControlPoints[i - 1].EdgePosition : ControlPoints[i].EdgePosition;
+			const FVector NextEdge =
+				(i + 1 < ControlPoints.size()) ? ControlPoints[i + 1].EdgePosition : ControlPoints[i].EdgePosition;
 			ControlPoints[i].Tangent = (Next - Prev) * (0.5f * TangentTension);
+			ControlPoints[i].EdgeTangent = (NextEdge - PrevEdge) * (0.5f * TangentTension);
 		}
 	}
 
@@ -208,6 +237,8 @@ namespace
 				FRibbonSamplePoint Sample;
 				Sample.Position =
 					HermiteInterpolateRibbon(A.Position, A.Tangent, B.Position, B.Tangent, LocalT);
+				Sample.EdgePosition =
+					HermiteInterpolateRibbon(A.EdgePosition, A.EdgeTangent, B.EdgePosition, B.EdgeTangent, LocalT);
 				Sample.Color = A.Color + (B.Color - A.Color) * LocalT;
 				Sample.Size = A.Size + (B.Size - A.Size) * LocalT;
 				Sample.TrailAlpha = GlobalT / static_cast<float>(ControlSegmentCount);
@@ -218,6 +249,7 @@ namespace
 		const FRibbonControlPoint& Last = ControlPoints.back();
 		FRibbonSamplePoint LastSample;
 		LastSample.Position = Last.Position;
+		LastSample.EdgePosition = Last.EdgePosition;
 		LastSample.Color = Last.Color;
 		LastSample.Size = Last.Size;
 		LastSample.TrailAlpha = 1.0f;
@@ -266,6 +298,30 @@ namespace
 			RightVertex.Position = Position + Side;
 			RightVertex.Color = Sample.Color;
 			RightVertex.UV = { U, 1.0f };
+		}
+	}
+
+	void BuildPairedEdgeRibbonVertices(
+		const std::vector<FRibbonSamplePoint>& Samples,
+		float TilesPerTrail,
+		std::vector<FParticleBeamTrailVertex>& OutVertices)
+	{
+		const uint32 NumPoints = static_cast<uint32>(Samples.size());
+		OutVertices.clear();
+		OutVertices.resize(NumPoints * 2);
+
+		for (uint32 i = 0; i < NumPoints; ++i)
+		{
+			const FRibbonSamplePoint& Sample = Samples[i];
+			const float U = Sample.TrailAlpha * TilesPerTrail;
+			FParticleBeamTrailVertex& SourceVertex = OutVertices[i * 2 + 0];
+			FParticleBeamTrailVertex& TargetVertex = OutVertices[i * 2 + 1];
+			SourceVertex.Position = Sample.Position;
+			SourceVertex.Color = Sample.Color;
+			SourceVertex.UV = { U, 0.0f };
+			TargetVertex.Position = Sample.EdgePosition;
+			TargetVertex.Color = Sample.Color;
+			TargetVertex.UV = { U, 1.0f };
 		}
 	}
 
@@ -335,6 +391,7 @@ namespace
 		Shaping.MaxTessellation = std::clamp(RibbonReplay.MaxTessellation, 1, 64);
 		Shaping.TangentTension = std::clamp(RibbonReplay.TangentTension, 0.0f, 1.0f);
 		Shaping.TilesPerTrail = std::max(0.0f, RibbonReplay.TilesPerTrail);
+		Shaping.bUsePairedEdgePositions = RibbonReplay.bUsePairedEdgePositions;
 		return Shaping;
 	}
 }
@@ -887,6 +944,7 @@ bool FParticleRibbonVertexFactory::BuildDraw(ID3D11Device* Device, ID3D11DeviceC
 	const int32 MaxTessellation = Shaping.MaxTessellation;
 	const float TangentTension = Shaping.TangentTension;
 	const float TilesPerTrail = Shaping.TilesPerTrail;
+	const bool bUsePairedEdgePositions = Shaping.bUsePairedEdgePositions;
 
 	// Current Ribbon consumption contract:
 	// - one replay snapshot == one emitter-level ribbon trail for this frame
@@ -944,7 +1002,14 @@ bool FParticleRibbonVertexFactory::BuildDraw(ID3D11Device* Device, ID3D11DeviceC
 
 	// Stage 4: sampled curve -> renderable ribbon strip vertices/indices
 	std::vector<FParticleBeamTrailVertex> Vertices(VertCount);
-	BuildRibbonVertices(Samples, TilesPerTrail, CameraPosition, Vertices);
+	if (bUsePairedEdgePositions)
+	{
+		BuildPairedEdgeRibbonVertices(Samples, TilesPerTrail, Vertices);
+	}
+	else
+	{
+		BuildRibbonVertices(Samples, TilesPerTrail, CameraPosition, Vertices);
+	}
 
 	std::vector<uint32> Indices(IndexCount);
 	BuildRibbonIndices(NumSegments, Indices);

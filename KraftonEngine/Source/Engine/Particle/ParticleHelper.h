@@ -61,6 +61,7 @@ struct FBaseParticle
 {
     FVector  Location           = { 0, 0, 0 };
     FVector  OldLocation        = { 0, 0, 0 };
+    FVector  RibbonTargetLocation = { 0, 0, 0 };
     FVector  Velocity           = { 0, 0, 0 };
     FVector  BaseVelocity       = { 0, 0, 0 };
     FVector4 Color              = { 1, 1, 1, 1 };
@@ -510,6 +511,7 @@ struct FDynamicRibbonEmitterReplayData : FDynamicEmitterReplayDataBase
 	int32 MaxTessellation = 8;
 	float TangentTension = 0.5f;    // ribbon tangent 보간 강도 (0 = 느슨함, 1 = 강함)
 	float TilesPerTrail = 1.0f;     // trail 전체 UV 반복 수
+	bool bUsePairedEdgePositions = false;
 };
 
 struct FDynamicRibbonEmitterData : FDynamicEmitterDataBase
