@@ -2,6 +2,7 @@ local Context = require("FinalGameJamScript/Character/CharacterContext")
 local Locomotion = require("FinalGameJamScript/Character/CharacterLocomotion")
 local State = require("FinalGameJamScript/Character/CharacterState")
 local Counter = require("FinalGameJamScript/Character/CharacterCounter")
+local Equipment = require("FinalGameJamScript/Character/CharacterEquipment")
 
 local PlayerGameState = {}
 
@@ -26,6 +27,7 @@ local function request_player_death(ctx)
     Context.StopCurrentMontage(ctx)
     Counter.RestoreCollision(ctx)
     State.ResetCombat(ctx)
+    Equipment.DeactivateTrailNow(ctx)
     Locomotion.Lock(ctx)
 
     if Game ~= nil and Game.PlayerDeath ~= nil then

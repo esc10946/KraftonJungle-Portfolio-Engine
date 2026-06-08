@@ -5,6 +5,7 @@ local HitReaction = require("FinalGameJamScript/Character/CharacterHitReaction")
 local LockOn = require("FinalGameJamScript/Character/CharacterLockOn")
 local Locomotion = require("FinalGameJamScript/Character/CharacterLocomotion")
 local Execution = require("FinalGameJamScript/Character/CharacterExecution")
+local Equipment = require("FinalGameJamScript/Character/CharacterEquipment")
 
 local Commands = {}
 
@@ -36,6 +37,7 @@ local commandList = {
     { Tick = Counter.UpdateInputWindow },
     { Tick = Counter.UpdateOpportunity },
     { Tick = Counter.UpdateCancelWindow },
+    { Tick = Equipment.Tick },
     { Tick = Locomotion.UpdateMovementLock },
     { Tick = LockOn.UpdateSwitchInput },
     { Tick = Execution.Tick },

@@ -51,31 +51,41 @@ local function attach_trail_particle(ctx, socketName)
     return particle
 end
 
-local function set_trail_particle_active(particle, active)
+local function set_trail_particle_component_active(particle, active)
     if particle == nil then
         return
     end
 
     if active then
-        --Clear old trail and spawn from this attack--
-        if particle.ResetParticles ~= nil then
-            particle:ResetParticles()
-        end
-        set_particle_spawn_scale(particle, 1.0)
         if particle.Activate ~= nil then
-            particle:Activate(true)
+            particle:Activate(false)
         end
         return
     end
 
-    --Stop spawning and clear remaining trail--
-    set_particle_spawn_scale(particle, 0.0)
-    if particle.ResetParticles ~= nil then
-        particle:ResetParticles()
-    end
     if particle.Deactivate ~= nil then
         particle:Deactivate()
     end
+end
+
+local function set_trail_particle_emission(particle, active)
+    if particle == nil then
+        return
+    end
+
+    if active and particle.Activate ~= nil then
+        particle:Activate(false)
+    end
+
+    set_particle_spawn_scale(particle, active and 1.0 or 0.0)
+end
+
+local function get_trail_grace_time(ctx)
+    if ctx == nil or ctx.config == nil then
+        return 0.25
+    end
+
+    return ctx.config.SWORD_TRAIL_GRACE_TIME or 0.25
 end
 
 function EquipmentModule.BeginPlay(ctx)
@@ -105,15 +115,79 @@ function EquipmentModule.BeginPlay(ctx)
 end
 
 function EquipmentModule.ActivateTrail(ctx)
+    if ctx == nil or ctx.equipment == nil then
+        return
+    end
+
     ctx.equipment.trailActive = true
-    set_trail_particle_active(ctx.equipment.LtrailParticle, true)
-    set_trail_particle_active(ctx.equipment.RtrailParticle, true)
+    ctx.equipment.trailDeactivateRemaining = 0.0
+
+    set_trail_particle_component_active(ctx.equipment.LtrailParticle, true)
+    set_trail_particle_component_active(ctx.equipment.RtrailParticle, true)
+    EquipmentModule.SetTrailEmission(ctx, true)
+end
+
+function EquipmentModule.SetTrailEmission(ctx, active)
+    if ctx == nil or ctx.equipment == nil then
+        return
+    end
+
+    if ctx.equipment.trailEmissionActive == active then
+        return
+    end
+
+    ctx.equipment.trailEmissionActive = active
+    set_trail_particle_emission(ctx.equipment.LtrailParticle, active)
+    set_trail_particle_emission(ctx.equipment.RtrailParticle, active)
+end
+
+function EquipmentModule.RequestTrailDeactivate(ctx)
+    if ctx == nil or ctx.equipment == nil then
+        return
+    end
+
+    EquipmentModule.SetTrailEmission(ctx, false)
+    ctx.equipment.trailDeactivateRemaining = math.max(
+        ctx.equipment.trailDeactivateRemaining or 0.0,
+        get_trail_grace_time(ctx)
+    )
+end
+
+function EquipmentModule.DeactivateTrailNow(ctx)
+    if ctx == nil or ctx.equipment == nil then
+        return
+    end
+
+    EquipmentModule.SetTrailEmission(ctx, false)
+    ctx.equipment.trailActive = false
+    ctx.equipment.trailDeactivateRemaining = 0.0
+    set_trail_particle_component_active(ctx.equipment.LtrailParticle, false)
+    set_trail_particle_component_active(ctx.equipment.RtrailParticle, false)
 end
 
 function EquipmentModule.DeactivateTrail(ctx)
-    ctx.equipment.trailActive = false
-    set_trail_particle_active(ctx.equipment.LtrailParticle, false)
-    set_trail_particle_active(ctx.equipment.RtrailParticle, false)
+    EquipmentModule.RequestTrailDeactivate(ctx)
+end
+
+function EquipmentModule.Tick(ctx, dt)
+    if ctx == nil or ctx.equipment == nil then
+        return
+    end
+
+    if not ctx.equipment.trailActive then
+        return
+    end
+
+    local remaining = ctx.equipment.trailDeactivateRemaining or 0.0
+    if remaining <= 0.0 then
+        return
+    end
+
+    remaining = remaining - (dt or 0.0)
+    ctx.equipment.trailDeactivateRemaining = remaining
+    if remaining <= 0.0 then
+        EquipmentModule.DeactivateTrailNow(ctx)
+    end
 end
 
 return EquipmentModule
