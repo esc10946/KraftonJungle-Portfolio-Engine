@@ -94,6 +94,7 @@ function Context.Create(owner)
             combatStateComponent = nil,
             attackMontages = {},
             hitMontages = {},
+            postureBreakMontage = nil,
             defenseIdleMontage = nil,
             counterMontage = nil,
             counterImpactParticle = nil,
