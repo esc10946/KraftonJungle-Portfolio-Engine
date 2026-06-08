@@ -1,4 +1,4 @@
-// Generated from C:/Users/jungle/Documents/GitHub/Week14/KraftonEngine/Content/Material/Particle/cherry.uasset
+// Generated from Content/Material/Particle/cherry.uasset
 // Domain: ParticleSprite
 
 #include "Common/ConstantBuffers.hlsli"
@@ -54,7 +54,7 @@ Texture2D Tex_Diffuse : register(t0);
 
 FMaterialResult EvaluateMaterial(FMaterialPixelInput Input)
 {
-    float2 n_63 = ((float2(fmod(floor(Input.SubImageIndex), 4), floor(Input.SubImageIndex / 4)) + Input.UV0) * float2(1.0f/4, 1.0f/3));
+    float2 n_63 = ((float2(fmod(floor(Input.SubImageIndex * 12), 4), floor(Input.SubImageIndex * 12 / 4)) + Input.UV0) * float2(1.0f/4, 1.0f/3));
     float4 n_17 = Tex_Diffuse.Sample(LinearWrapSampler, n_63);
     float4 n_27 = Input.ParticleColor;
     float3 n_34 = ((n_17).rgb * (n_27).rgb);
