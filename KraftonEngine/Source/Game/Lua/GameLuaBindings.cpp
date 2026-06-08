@@ -13,9 +13,12 @@
 #include "Component/Camera/CameraComponent.h"
 #include "Component/Animation/CharacterLocomotionComponent.h"
 #include "Component/Combat/CombatStateComponent.h"
+#include "Component/Light/LightComponentBase.h"
+#include "Component/Light/SpotLightComponent.h"
 #include "Component/Movement/CharacterMovementComponent.h"
 #include "Component/Particle/ParticleSystemComponent.h"
 #include "Component/PrimitiveComponent.h"
+#include "Component/Primitive/HeightFogComponent.h"
 #include "Component/Primitive/SkeletalMeshComponent.h"
 #include "Component/Primitive/StaticMeshComponent.h"
 #include "Core/Types/CollisionTypes.h"
@@ -40,6 +43,7 @@
 #include "Profiling/Stats/Stats.h"
 
 #include <algorithm>
+#include <tuple>
 #include <cmath>
 #include <vector>
 
@@ -1015,6 +1019,102 @@ void RegisterGameLuaBindings(sol::state& Lua)
 		[]()
 		{
 			FProjectSettings::Get().SaveToFile(FProjectSettings::GetDefaultPath());
+		}
+	);
+
+	// ---- Scene (mini-phase atmosphere control) ----
+	// Helpers a choreography script lerps against each Tick. Each resolves the
+	// typed component off the actor — GetComponentByClass<T>() hands back a
+	// correctly-typed pointer (unlike Reflection.Call / GetComponentByName, which
+	// marshal to a base UObject/USceneComponent handle that can't reach the
+	// derived setters) — and routes to the C++ setter, which pushes the change to
+	// the render scene immediately. Actors come from World.FindActorsByTag/Class.
+	sol::table Scene = Lua.create_named_table("Scene");
+
+	Scene.set_function(
+		"SetSpotColor",
+		[](AActor* Actor, float R, float G, float B, sol::optional<float> A)
+		{
+			if (!IsValid(Actor)) return;
+			if (USpotLightComponent* Light = Actor->GetComponentByClass<USpotLightComponent>())
+			{
+				Light->SetLightColor(FVector4(R, G, B, A.value_or(1.0f)));
+			}
+		}
+	);
+	Scene.set_function(
+		"SetSpotIntensity",
+		[](AActor* Actor, float Intensity)
+		{
+			if (!IsValid(Actor)) return;
+			if (USpotLightComponent* Light = Actor->GetComponentByClass<USpotLightComponent>())
+			{
+				Light->SetIntensity(Intensity);
+			}
+		}
+	);
+	// Returns the current spot color as r,g,b,a so a script can lerp from the
+	// authored start without hardcoding it. Defaults to white if no light found.
+	Scene.set_function(
+		"GetSpotColor",
+		[](AActor* Actor) -> std::tuple<float, float, float, float>
+		{
+			if (IsValid(Actor))
+			{
+				if (USpotLightComponent* Light = Actor->GetComponentByClass<USpotLightComponent>())
+				{
+					const FVector4 C = Light->GetLightColor();
+					return { C.X, C.Y, C.Z, C.W };
+				}
+			}
+			return { 1.0f, 1.0f, 1.0f, 1.0f };
+		}
+	);
+	Scene.set_function(
+		"SetFogColor",
+		[](AActor* Actor, float R, float G, float B, sol::optional<float> A)
+		{
+			if (!IsValid(Actor)) return;
+			if (UHeightFogComponent* Fog = Actor->GetComponentByClass<UHeightFogComponent>())
+			{
+				Fog->SetFogInscatteringColor(FVector4(R, G, B, A.value_or(1.0f)));
+			}
+		}
+	);
+	// Defaults to the HeightFogComponent's authored start color if none found.
+	Scene.set_function(
+		"GetFogColor",
+		[](AActor* Actor) -> std::tuple<float, float, float, float>
+		{
+			if (IsValid(Actor))
+			{
+				if (UHeightFogComponent* Fog = Actor->GetComponentByClass<UHeightFogComponent>())
+				{
+					const FVector4 C = Fog->GetFogInscatteringColor();
+					return { C.X, C.Y, C.Z, C.W };
+				}
+			}
+			return { 0.45f, 0.55f, 0.65f, 1.0f };
+		}
+	);
+	Scene.set_function(
+		"SetFogDensity",
+		[](AActor* Actor, float Density)
+		{
+			if (!IsValid(Actor)) return;
+			if (UHeightFogComponent* Fog = Actor->GetComponentByClass<UHeightFogComponent>())
+			{
+				Fog->SetFogDensity(Density);
+			}
+		}
+	);
+	// Blood-moon reveal: AActor::SetVisible marks every primitive's render
+	// visibility dirty, so a hidden actor placed in the scene pops in on true.
+	Scene.set_function(
+		"SetActorVisible",
+		[](AActor* Actor, bool bVisible)
+		{
+			if (IsValid(Actor)) Actor->SetVisible(bVisible);
 		}
 	);
 }
