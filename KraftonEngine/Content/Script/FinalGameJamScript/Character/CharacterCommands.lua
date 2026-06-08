@@ -7,6 +7,7 @@ local Locomotion = require("FinalGameJamScript/Character/CharacterLocomotion")
 local Execution = require("FinalGameJamScript/Character/CharacterExecution")
 local Equipment = require("FinalGameJamScript/Character/CharacterEquipment")
 local Posture = require("FinalGameJamScript/Character/CharacterPosture")
+local AttackCamera = require("FinalGameJamScript/Character/CharacterAttackCamera")
 
 local Commands = {}
 
@@ -40,6 +41,7 @@ local commandList = {
     { Tick = Counter.UpdateCancelWindow },
     { Tick = Equipment.Tick },
     { Tick = Posture.Tick },
+    { Tick = AttackCamera.Update },
     { Tick = Locomotion.UpdateMovementLock },
     { Tick = LockOn.UpdateSwitchInput },
     { Tick = Execution.Tick },
