@@ -40,6 +40,11 @@ namespace
 
 	// graph 의 한 노드 → FAnimNode_* 인스턴스. 재귀 — 입력 핀의 source 를 따라 자식 build.
 	// nullptr 반환은 컴파일 실패 (호출 chain 어디선가 미지원 / dangling).
+	bool ShouldLogMissingSequencePlayerAsset(const FAnimGraphNode& Node)
+	{
+		return !Node.SequencePath.empty() && Node.SequencePath != "None";
+	}
+
 	FAnimNode_Base* CompileNode(const UAnimGraphAsset& Graph, UAnimInstance& Owner, const FAnimGraphNode& Node);
 
 	// 노드 안에서 핀 이름으로 input 핀 찾기 (Slot/LayeredBlend 처럼 input 이 여러 개인 노드용).
@@ -276,7 +281,7 @@ namespace
 				SP->Sequence = Node.SequenceRef;
 				SP->PlayRate = Node.PlayRate;
 				SP->bLooping = Node.bLooping;
-				if (!Node.SequenceRef)
+				if (ShouldLogMissingSequencePlayerAsset(Node) && !Node.SequenceRef)
 				{
 					UE_LOG("AnimGraphCompiler: SequencePlayer 노드 id=%u 에 Sequence 미설정.", Node.NodeId);
 				}

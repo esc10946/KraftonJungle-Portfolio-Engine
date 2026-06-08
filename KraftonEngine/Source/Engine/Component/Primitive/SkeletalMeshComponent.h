@@ -375,6 +375,8 @@ private:
     void RestorePostRecoveryAnimationState();
     void FinishRagdollRecovery();
     void LoadAnimationFromPath();
+    void SyncAnimGraphSettingsFromInstance(bool bOverwriteExisting = false);
+    void ApplyAnimGraphSettingsToInstance(UAnimInstance* TargetInstance);
     bool CanUsePhysicsAsset(UPhysicsAsset* InPhysicsAsset, FSkeletonCompatibilityReport* OutReport = nullptr) const;
 
 protected:
@@ -388,6 +390,11 @@ protected:
     UPROPERTY(Save, Instanced, Category="Animation", DisplayName="Anim Instance", Type=ObjectRef, AllowedClass=UAnimInstance)
     UAnimInstance*             AnimInstance  = nullptr;
     bool bDeferAnimationInitialization = false;
+
+    UPROPERTY(Save, Category="AnimGraph", DisplayName="Default Sequence", AssetType="UAnimSequence")
+    FSoftObjectPtr             AnimGraphDefaultSequencePath = "None";
+    UPROPERTY(Save, Category="AnimGraph", DisplayName="Graph Asset", AssetType="UAnimGraphAsset")
+    FSoftObjectPtr             AnimGraphAssetPath = "None";
 
     // Components own per-instance overrides and runtime-instance lifecycle only; low-level
     // rigid body/constraint handles stay inside FPhysicsAssetInstance.

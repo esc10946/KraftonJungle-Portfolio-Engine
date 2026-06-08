@@ -200,14 +200,21 @@ namespace
 UAnimSequence* FAnimationManager::LoadAnimation(const FString& PackagePath)
 {
     const FString NormalizedPath = FPaths::MakeProjectRelative(PackagePath);
+    UE_LOG(
+        "[AnimDiag][AnimationManager::LoadAnimation] request path=%s normalized=%s root=%ls",
+        PackagePath.c_str(),
+        NormalizedPath.c_str(),
+        FPaths::RootDir().c_str());
 
     auto It = AnimationCaches.find(NormalizedPath);
     if (It != AnimationCaches.end())
     {
         if (IsValid(It->second))
         {
+            UE_LOG("[AnimDiag][AnimationManager::LoadAnimation] cache hit normalized=%s anim=%s", NormalizedPath.c_str(), It->second->GetName().c_str());
             return It->second;
         }
+        UE_LOG("[AnimDiag][AnimationManager::LoadAnimation] cache stale normalized=%s", NormalizedPath.c_str());
         AnimationCaches.erase(It);
     }
 
@@ -223,6 +230,7 @@ UAnimSequence* FAnimationManager::LoadAnimation(const FString& PackagePath)
     if (!FAssetPackage::ReadPackagePrelude(Reader, EAssetPackageType::AnimSequence, Header, Metadata))
     {
         UE_LOG("Animation load failed: invalid package header. Path=%s", NormalizedPath.c_str());
+        UE_LOG("[AnimDiag][AnimationManager::LoadAnimation] prelude failed normalized=%s", NormalizedPath.c_str());
         return nullptr;
     }
 
@@ -233,9 +241,20 @@ UAnimSequence* FAnimationManager::LoadAnimation(const FString& PackagePath)
     if (!Reader.IsValid())
     {
         UE_LOG("Animation load failed: corrupted package. Path=%s", NormalizedPath.c_str());
+        UE_LOG("[AnimDiag][AnimationManager::LoadAnimation] serialize failed normalized=%s anim=%s", NormalizedPath.c_str(), Sequence ? Sequence->GetName().c_str() : "None");
         UObjectManager::Get().DestroyObject(Sequence);
         return nullptr;
     }
+
+    UE_LOG(
+        "[AnimDiag][AnimationManager::LoadAnimation] loaded normalized=%s anim=%s length=%.3f frames=%d rootMotion=%d rootBone=%s skeleton=%s",
+        NormalizedPath.c_str(),
+        Sequence->GetName().c_str(),
+        Sequence->GetPlayLength(),
+        Sequence->GetNumberOfFrames(),
+        Sequence->GetEnableRootMotion() ? 1 : 0,
+        Sequence->GetRootMotionBoneName().c_str(),
+        Sequence->GetSkeletonBinding().SkeletonPath.c_str());
 
 
 

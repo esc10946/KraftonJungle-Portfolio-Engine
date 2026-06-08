@@ -884,9 +884,6 @@ namespace
 
 		UClass* AllowedClass = GetAllowedClassMetadata(Prop);
 		UClass* CurrentClass = ClassProperty->GetClassValue(Prop.ContainerPtr);
-		const bool bAnimInstanceClassProperty = IsSamePropertyName(Prop, "AnimInstanceClass");
-		USkeletalMeshComponent* Mesh = bAnimInstanceClassProperty ? GetSkeletalMeshComponentForAnimationProperty(Prop) : nullptr;
-		const bool bGraphAssetLocked = Mesh && HasAssignedAnimGraphAsset(Mesh);
 
 		FString Preview = CurrentClass ? CurrentClass->GetName() : FString("None");
 		bool bChanged = false;
@@ -894,18 +891,14 @@ namespace
 		if (ImGui::BeginCombo("##Value", Preview.c_str()))
 		{
 			const bool bSelectedNone = CurrentClass == nullptr;
-			const bool bBlockNone = bAnimInstanceClassProperty && bGraphAssetLocked;
-			if (!bBlockNone)
+			if (ImGui::Selectable("None", bSelectedNone))
 			{
-				if (ImGui::Selectable("None", bSelectedNone))
-				{
-					ClassProperty->SetClassValue(Prop.ContainerPtr, nullptr);
-					bChanged = true;
-				}
-				if (bSelectedNone)
-				{
-					ImGui::SetItemDefaultFocus();
-				}
+				ClassProperty->SetClassValue(Prop.ContainerPtr, nullptr);
+				bChanged = true;
+			}
+			if (bSelectedNone)
+			{
+				ImGui::SetItemDefaultFocus();
 			}
 
 			TArray<UClass*>& Classes = UClass::GetAllClasses();
@@ -916,12 +909,6 @@ namespace
 					continue;
 				}
 				if (AllowedClass && !Candidate->IsA(AllowedClass))
-				{
-					continue;
-				}
-
-				const bool bCandidateGraphClass = IsAnimGraphInstanceClass(Candidate);
-				if (bAnimInstanceClassProperty && bGraphAssetLocked && !bCandidateGraphClass)
 				{
 					continue;
 				}

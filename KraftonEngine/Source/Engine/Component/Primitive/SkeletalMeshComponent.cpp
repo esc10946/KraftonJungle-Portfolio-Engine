@@ -3,6 +3,8 @@
 
 #include "Animation/AnimationManager.h"
 #include "Animation/AnimInstance.h"
+#include "Animation/Graph/AnimGraphAsset.h"
+#include "Animation/Graph/AnimGraphInstance.h"
 #include "Animation/Sequence/AnimSequence.h"
 #include "Animation/Sequence/AnimSequenceBase.h"
 #include "Animation/Instance/AnimSingleNodeInstance.h"
@@ -38,6 +40,104 @@
 #include "Serialization/Archive.h"
 
 #include <algorithm>
+
+namespace
+{
+    const char* AnimDiagModeName(EAnimationMode Mode)
+    {
+        switch (Mode)
+        {
+        case EAnimationMode::None: return "None";
+        case EAnimationMode::AnimationSingleNode: return "AnimationSingleNode";
+        case EAnimationMode::AnimationCustom: return "AnimationCustom";
+        default: return "Unknown";
+        }
+    }
+
+    const char* AnimDiagRootMotionModeName(ERootMotionMode Mode)
+    {
+        switch (Mode)
+        {
+        case ERootMotionMode::IgnoreRootMotion: return "IgnoreRootMotion";
+        case ERootMotionMode::RootMotionFromEverything: return "RootMotionFromEverything";
+        case ERootMotionMode::RootMotionFromMontagesOnly: return "RootMotionFromMontagesOnly";
+        default: return "Unknown";
+        }
+    }
+
+    FString AnimDiagName(UObject* Object)
+    {
+        return Object ? Object->GetName() : FString("None");
+    }
+
+    FString AnimDiagOwnerName(const USkeletalMeshComponent* Component)
+    {
+        AActor* Owner = Component ? Component->GetOwner() : nullptr;
+        return Owner ? Owner->GetName() : FString("None");
+    }
+
+    FString AnimDiagMeshPath(const USkeletalMeshComponent* Component)
+    {
+        USkeletalMesh* Mesh = Component ? Component->GetSkeletalMesh() : nullptr;
+        return Mesh ? Mesh->GetAssetPathFileName() : FString("None");
+    }
+
+    FString AnimDiagGraphPath(UAnimInstance* Instance)
+    {
+        if (UAnimGraphInstance* GraphInstance = Cast<UAnimGraphInstance>(Instance))
+        {
+            return GraphInstance->GetGraphAsset() ? GraphInstance->GetGraphAsset()->GetSourcePath() : FString("UnloadedGraph");
+        }
+        return FString("NotAnimGraphInstance");
+    }
+
+    struct FAnimGraphInstanceSettingsSnapshot
+    {
+        bool bHasAnimGraphSettings = false;
+        FSoftObjectPtr DefaultSequencePath = "None";
+        FSoftObjectPtr GraphAssetPath = "None";
+        ERootMotionMode RootMotionMode = ERootMotionMode::RootMotionFromEverything;
+    };
+
+    FAnimGraphInstanceSettingsSnapshot CaptureAnimGraphSettings(UAnimInstance* Instance)
+    {
+        FAnimGraphInstanceSettingsSnapshot Snapshot;
+        UAnimGraphInstance* GraphInstance = Cast<UAnimGraphInstance>(Instance);
+        if (!GraphInstance)
+        {
+            return Snapshot;
+        }
+
+        Snapshot.bHasAnimGraphSettings = true;
+        Snapshot.DefaultSequencePath = GraphInstance->DefaultSequencePath;
+        Snapshot.GraphAssetPath = GraphInstance->GraphAssetPath;
+        Snapshot.RootMotionMode = GraphInstance->GetRootMotionMode();
+        if (Snapshot.GraphAssetPath.IsNull() && GraphInstance->GetGraphAsset())
+        {
+            Snapshot.GraphAssetPath = FSoftObjectPtr(GraphInstance->GetGraphAsset()->GetSourcePath());
+        }
+        return Snapshot;
+    }
+
+    void RestoreAnimGraphSettings(UAnimInstance* Instance, const FAnimGraphInstanceSettingsSnapshot& Snapshot)
+    {
+        UAnimGraphInstance* GraphInstance = Cast<UAnimGraphInstance>(Instance);
+        if (!GraphInstance || !Snapshot.bHasAnimGraphSettings)
+        {
+            return;
+        }
+
+        GraphInstance->DefaultSequencePath = Snapshot.DefaultSequencePath;
+        GraphInstance->GraphAssetPath = Snapshot.GraphAssetPath;
+        GraphInstance->SetRootMotionMode(Snapshot.RootMotionMode);
+        UE_LOG(
+            "[AnimDiag][SMC::InitializeAnimation] restored anim graph settings instance=%s graphPath=%s defaultSeq=%s rootMotion=%s",
+            GraphInstance->GetName().c_str(),
+            GraphInstance->GraphAssetPath.ToString().c_str(),
+            GraphInstance->DefaultSequencePath.ToString().c_str(),
+            AnimDiagRootMotionModeName(GraphInstance->GetRootMotionMode()));
+    }
+}
 #include <cctype>
 #include <cmath>
 #include <cstring>
@@ -2711,16 +2811,39 @@ void USkeletalMeshComponent::InitializeAnimation()
 {
     if (bDeferAnimationInitialization)
     {
+        UE_LOG(
+            "[AnimDiag][SMC::InitializeAnimation] deferred component=%s owner=%s mode=%s mesh=%s animClass=%s animInst=%s",
+            GetName().c_str(),
+            AnimDiagOwnerName(this).c_str(),
+            AnimDiagModeName(AnimationMode),
+            AnimDiagMeshPath(this).c_str(),
+            AnimInstanceClass.Get() ? AnimInstanceClass.Get()->GetName() : "None",
+            AnimDiagName(AnimInstance).c_str());
         return;
     }
 
+    SyncAnimGraphSettingsFromInstance();
+
+    UE_LOG(
+        "[AnimDiag][SMC::InitializeAnimation] begin component=%s owner=%s mode=%s mesh=%s animClass=%s animInst=%s instClass=%s graph=%s",
+        GetName().c_str(),
+        AnimDiagOwnerName(this).c_str(),
+        AnimDiagModeName(AnimationMode),
+        AnimDiagMeshPath(this).c_str(),
+        AnimInstanceClass.Get() ? AnimInstanceClass.Get()->GetName() : "None",
+        AnimDiagName(AnimInstance).c_str(),
+        IsValid(AnimInstance) ? AnimInstance->GetClass()->GetName() : "None",
+        AnimDiagGraphPath(AnimInstance).c_str());
+
     if (!GetSkeletalMesh())
     {
+        UE_LOG("[AnimDiag][SMC::InitializeAnimation] clear: no skeletal mesh component=%s owner=%s", GetName().c_str(), AnimDiagOwnerName(this).c_str());
         ClearAnimInstance();
         return;
     }
     if (AnimationMode == EAnimationMode::None)
     {
+        UE_LOG("[AnimDiag][SMC::InitializeAnimation] clear: animation mode None component=%s owner=%s", GetName().c_str(), AnimDiagOwnerName(this).c_str());
         ClearAnimInstance();
         return;
     }
@@ -2754,13 +2877,34 @@ void USkeletalMeshComponent::InitializeAnimation()
         Single->SetLooping(AnimationData.bLooping);
         Single->SetPlaying(AnimationData.bPlaying && AnimationData.AnimToPlay != nullptr);
         Single->NativeInitializeAnimation();
+        UE_LOG(
+            "[AnimDiag][SMC::InitializeAnimation] single-node ready component=%s owner=%s anim=%s path=%s playing=%d",
+            GetName().c_str(),
+            AnimDiagOwnerName(this).c_str(),
+            AnimDiagName(AnimationData.AnimToPlay).c_str(),
+            AnimationData.AnimToPlayPath.ToString().c_str(),
+            AnimationData.bPlaying ? 1 : 0);
         break;
     }
     case EAnimationMode::AnimationCustom:
     {
         UClass* DesiredClass = AnimInstanceClass.Get();
+        if (!DesiredClass && IsValid(AnimInstance))
+        {
+            DesiredClass = AnimInstance->GetClass();
+            AnimInstanceClass.AssignUnchecked(DesiredClass);
+            UE_LOG(
+                "SkeletalMeshComponent: recovered AnimInstanceClass from serialized AnimInstance. Component=%s Class=%s",
+                GetName().c_str(),
+                DesiredClass ? DesiredClass->GetName() : "None");
+        }
         if (!DesiredClass)
         {
+            UE_LOG(
+                "[AnimDiag][SMC::InitializeAnimation] clear: custom mode has no class and no usable serialized instance component=%s owner=%s mesh=%s",
+                GetName().c_str(),
+                AnimDiagOwnerName(this).c_str(),
+                AnimDiagMeshPath(this).c_str());
             ClearAnimInstance();
             return;
         }
@@ -2769,10 +2913,28 @@ void USkeletalMeshComponent::InitializeAnimation()
         {
             AnimInstance->SetOuter(this);
             AnimInstance->SetOwningComponent(this);
+            ApplyAnimGraphSettingsToInstance(AnimInstance);
             AnimInstance->NativeInitializeAnimation();
+            UE_LOG(
+                "[AnimDiag][SMC::InitializeAnimation] reused serialized instance component=%s owner=%s class=%s rootMotion=%s graph=%s rootNode=%d",
+                GetName().c_str(),
+                AnimDiagOwnerName(this).c_str(),
+                DesiredClass->GetName(),
+                AnimDiagRootMotionModeName(AnimInstance->GetRootMotionMode()),
+                AnimDiagGraphPath(AnimInstance).c_str(),
+                AnimInstance->GetRootNode() ? 1 : 0);
             break;
         }
 
+        UE_LOG(
+            "[AnimDiag][SMC::InitializeAnimation] recreate custom instance component=%s owner=%s desired=%s previous=%s previousClass=%s previousGraph=%s",
+            GetName().c_str(),
+            AnimDiagOwnerName(this).c_str(),
+            DesiredClass->GetName(),
+            AnimDiagName(AnimInstance).c_str(),
+            IsValid(AnimInstance) ? AnimInstance->GetClass()->GetName() : "None",
+            AnimDiagGraphPath(AnimInstance).c_str());
+        const FAnimGraphInstanceSettingsSnapshot PreviousGraphSettings = CaptureAnimGraphSettings(AnimInstance);
         ClearAnimInstance();
 
         UObject* Obj = FObjectFactory::Get().Create(DesiredClass->GetName(), this);
@@ -2780,12 +2942,28 @@ void USkeletalMeshComponent::InitializeAnimation()
 		if (!AnimInstance)
         {
             // 클래스가 등록 안됐거나 캐스트 실패 — 무관한 객체가 생성됐을 수 있으니 정리.
+            UE_LOG(
+                "[AnimDiag][SMC::InitializeAnimation] failed: factory could not create anim instance component=%s owner=%s desired=%s object=%s",
+                GetName().c_str(),
+                AnimDiagOwnerName(this).c_str(),
+                DesiredClass->GetName(),
+                Obj ? Obj->GetName().c_str() : "None");
             if (Obj) UObjectManager::Get().DestroyObject(Obj);
             return;
         }
         AnimInstance->SetOwningComponent(this);
+        RestoreAnimGraphSettings(AnimInstance, PreviousGraphSettings);
+        ApplyAnimGraphSettingsToInstance(AnimInstance);
 
         AnimInstance->NativeInitializeAnimation();
+        UE_LOG(
+            "[AnimDiag][SMC::InitializeAnimation] new custom instance ready component=%s owner=%s class=%s rootMotion=%s graph=%s rootNode=%d",
+            GetName().c_str(),
+            AnimDiagOwnerName(this).c_str(),
+            DesiredClass->GetName(),
+            AnimDiagRootMotionModeName(AnimInstance->GetRootMotionMode()),
+            AnimDiagGraphPath(AnimInstance).c_str(),
+            AnimInstance->GetRootNode() ? 1 : 0);
         break;
     }
     default:
@@ -2796,6 +2974,18 @@ void USkeletalMeshComponent::InitializeAnimation()
 void USkeletalMeshComponent::ClearAnimInstance()
 {
     UAnimInstance* InstanceToDestroy = IsValid(AnimInstance) ? AnimInstance : nullptr;
+    if (InstanceToDestroy)
+    {
+        UE_LOG(
+            "[AnimDiag][SMC::ClearAnimInstance] component=%s owner=%s instance=%s class=%s rootMotion=%s graph=%s rootNode=%d",
+            GetName().c_str(),
+            AnimDiagOwnerName(this).c_str(),
+            InstanceToDestroy->GetName().c_str(),
+            InstanceToDestroy->GetClass()->GetName(),
+            AnimDiagRootMotionModeName(InstanceToDestroy->GetRootMotionMode()),
+            AnimDiagGraphPath(InstanceToDestroy).c_str(),
+            InstanceToDestroy->GetRootNode() ? 1 : 0);
+    }
     AnimInstance = nullptr;
     if (InstanceToDestroy)
     {
@@ -3038,11 +3228,20 @@ void USkeletalMeshComponent::TickClothSimulation(float DeltaTime)
 // ──────────────────────────────────────────────
 void USkeletalMeshComponent::GetEditableProperties(TArray<FPropertyValue>& OutProps)
 {
+    SyncAnimGraphSettingsFromInstance();
     Super::GetEditableProperties(OutProps);
 
     // AnimInstance 자체 properties (Speed 등) 도 패널에 같이 노출 — 컴포넌트가 forward.
     // 자식이 자기 카테고리(예: "Animation|Character") 로 그룹화.
-    if (IsValid(AnimInstance)) AnimInstance->GetEditableProperties(OutProps);
+    if (IsValid(AnimInstance))
+    {
+        TArray<FPropertyValue> AnimProps;
+        AnimInstance->GetEditableProperties(AnimProps);
+        for (const FPropertyValue& Prop : AnimProps)
+        {
+            OutProps.push_back(Prop);
+        }
+    }
 }
 
 void USkeletalMeshComponent::PostEditProperty(const char* PropertyName)
@@ -3125,7 +3324,89 @@ void USkeletalMeshComponent::PostEditProperty(const char* PropertyName)
 
     // AnimInstance 자체 properties 는 자식이 자체 PostEdit 처리. 컴포넌트는 dispatch 만.
     // 컴포넌트가 인식한 이름과 겹치지 않는 한 무해 (자식이 모르는 이름은 no-op).
-    if (IsValid(AnimInstance)) AnimInstance->PostEditProperty(PropertyName);
+    if (IsValid(AnimInstance))
+    {
+        AnimInstance->PostEditProperty(PropertyName);
+
+        if (std::strcmp(PropertyName, "DefaultSequencePath") == 0 ||
+            std::strcmp(PropertyName, "Default Sequence") == 0 ||
+            std::strcmp(PropertyName, "GraphAssetPath") == 0 ||
+            std::strcmp(PropertyName, "Graph Asset") == 0)
+        {
+            SyncAnimGraphSettingsFromInstance(true);
+        }
+    }
+}
+
+void USkeletalMeshComponent::SyncAnimGraphSettingsFromInstance(bool bOverwriteExisting)
+{
+    UAnimGraphInstance* GraphInstance = IsValid(AnimInstance) ? Cast<UAnimGraphInstance>(AnimInstance) : nullptr;
+    if (!GraphInstance)
+    {
+        return;
+    }
+
+    if (bOverwriteExisting)
+    {
+        AnimGraphDefaultSequencePath = GraphInstance->DefaultSequencePath;
+    }
+    else if (AnimGraphDefaultSequencePath.IsNull() && !GraphInstance->DefaultSequencePath.IsNull())
+    {
+        AnimGraphDefaultSequencePath = GraphInstance->DefaultSequencePath;
+    }
+
+    if (bOverwriteExisting)
+    {
+        if (!GraphInstance->GraphAssetPath.IsNull())
+        {
+            AnimGraphAssetPath = GraphInstance->GraphAssetPath;
+        }
+        else if (GraphInstance->GetGraphAsset())
+        {
+            AnimGraphAssetPath = FSoftObjectPtr(GraphInstance->GetGraphAsset()->GetSourcePath());
+        }
+        else
+        {
+            AnimGraphAssetPath = "None";
+        }
+    }
+    else if (AnimGraphAssetPath.IsNull())
+    {
+        if (!GraphInstance->GraphAssetPath.IsNull())
+        {
+            AnimGraphAssetPath = GraphInstance->GraphAssetPath;
+        }
+        else if (GraphInstance->GetGraphAsset())
+        {
+            AnimGraphAssetPath = FSoftObjectPtr(GraphInstance->GetGraphAsset()->GetSourcePath());
+        }
+    }
+}
+
+void USkeletalMeshComponent::ApplyAnimGraphSettingsToInstance(UAnimInstance* TargetInstance)
+{
+    UAnimGraphInstance* GraphInstance = IsValid(TargetInstance) ? Cast<UAnimGraphInstance>(TargetInstance) : nullptr;
+    if (!GraphInstance)
+    {
+        return;
+    }
+
+    if (!AnimGraphDefaultSequencePath.IsNull())
+    {
+        GraphInstance->DefaultSequencePath = AnimGraphDefaultSequencePath;
+    }
+    if (!AnimGraphAssetPath.IsNull())
+    {
+        GraphInstance->GraphAssetPath = AnimGraphAssetPath;
+    }
+    GraphInstance->PostEditProperty("GraphAssetPath");
+    UE_LOG(
+        "[AnimDiag][SMC::AnimGraphSettings] apply component=%s owner=%s instance=%s graphPath=%s defaultSeq=%s",
+        GetName().c_str(),
+        AnimDiagOwnerName(this).c_str(),
+        GraphInstance->GetName().c_str(),
+        GraphInstance->GraphAssetPath.ToString().c_str(),
+        GraphInstance->DefaultSequencePath.ToString().c_str());
 }
 
 void USkeletalMeshComponent::PostEditChangeProperty(const FPropertyChangedEvent& Event)
@@ -3180,30 +3461,79 @@ void USkeletalMeshComponent::OnPostLoad(FArchive& Ar)
 bool USkeletalMeshComponent::EvaluateAnimInstance(float DeltaTime)
 {
     SCOPE_STAT_CAT("SkeletalMesh.EvaluateAnimInstance", "SkeletalMesh");
-    if (!IsValid(this) || IsPendingKill()) return false;
+    if (!IsValid(this) || IsPendingKill())
+    {
+        UE_LOG("[AnimDiag][SMC::Evaluate] skip: invalid component");
+        return false;
+    }
     if (!IsValid(AnimInstance))
     {
+        UE_LOG(
+            "[AnimDiag][SMC::Evaluate] skip: no valid AnimInstance component=%s owner=%s mode=%s mesh=%s",
+            GetName().c_str(),
+            AnimDiagOwnerName(this).c_str(),
+            AnimDiagModeName(AnimationMode),
+            AnimDiagMeshPath(this).c_str());
         AnimInstance = nullptr;
         return false;
     }
 
     USkeletalMesh* Mesh = GetSkeletalMesh();
-    if (!Mesh) return false;
+    if (!Mesh)
+    {
+        UE_LOG("[AnimDiag][SMC::Evaluate] skip: no mesh component=%s owner=%s anim=%s", GetName().c_str(), AnimDiagOwnerName(this).c_str(), AnimDiagName(AnimInstance).c_str());
+        return false;
+    }
     FSkeletalMesh* Asset = Mesh->GetSkeletalMeshAsset();
-    if (!Asset || Asset->Bones.empty()) return false;
+    if (!Asset || Asset->Bones.empty())
+    {
+        UE_LOG(
+            "[AnimDiag][SMC::Evaluate] skip: mesh asset invalid component=%s owner=%s mesh=%s asset=%p bones=%zu",
+            GetName().c_str(),
+            AnimDiagOwnerName(this).c_str(),
+            AnimDiagMeshPath(this).c_str(),
+            Asset,
+            Asset ? Asset->Bones.size() : 0);
+        return false;
+    }
 
     if (UAnimSingleNodeInstance* SingleNode = (IsValid(AnimInstance) ? Cast<UAnimSingleNodeInstance>(AnimInstance) : nullptr))
     {
         if (!CanUseAnimation(SingleNode->GetAnimationAsset()))
         {
+            UE_LOG(
+                "[AnimDiag][SMC::Evaluate] single-node animation incompatible component=%s owner=%s anim=%s mesh=%s",
+                GetName().c_str(),
+                AnimDiagOwnerName(this).c_str(),
+                AnimDiagName(SingleNode->GetAnimationAsset()).c_str(),
+                AnimDiagMeshPath(this).c_str());
             SingleNode->SetAnimationAsset(nullptr);
             return false;
         }
     }
 
+    static uint32 EvalFrameCounter = 0;
+    const bool bLogEvalSample = ((++EvalFrameCounter % 60u) == 0u);
+    if (bLogEvalSample)
+    {
+        UE_LOG(
+            "[AnimDiag][SMC::Evaluate] tick component=%s owner=%s mode=%s mesh=%s anim=%s class=%s rootMotion=%s graph=%s rootNode=%d dt=%.4f",
+            GetName().c_str(),
+            AnimDiagOwnerName(this).c_str(),
+            AnimDiagModeName(AnimationMode),
+            AnimDiagMeshPath(this).c_str(),
+            AnimDiagName(AnimInstance).c_str(),
+            AnimInstance->GetClass()->GetName(),
+            AnimDiagRootMotionModeName(AnimInstance->GetRootMotionMode()),
+            AnimDiagGraphPath(AnimInstance).c_str(),
+            AnimInstance->GetRootNode() ? 1 : 0,
+            DeltaTime);
+    }
+
     AnimInstance->UpdateAnimation(DeltaTime);
     if (!IsValid(AnimInstance))
     {
+        UE_LOG("[AnimDiag][SMC::Evaluate] AnimInstance became invalid after UpdateAnimation component=%s owner=%s", GetName().c_str(), AnimDiagOwnerName(this).c_str());
         AnimInstance = nullptr;
         return false;
     }
@@ -3223,10 +3553,21 @@ bool USkeletalMeshComponent::EvaluateAnimInstance(float DeltaTime)
     Out.ResetToRefPose();
     if (!IsValid(AnimInstance))
     {
+        UE_LOG("[AnimDiag][SMC::Evaluate] AnimInstance became invalid before EvaluatePose component=%s owner=%s", GetName().c_str(), AnimDiagOwnerName(this).c_str());
         AnimInstance = nullptr;
         return false;
     }
     AnimInstance->EvaluatePose(Out);
+    if (bLogEvalSample)
+    {
+        UE_LOG(
+            "[AnimDiag][SMC::Evaluate] pose applied component=%s owner=%s poseBones=%zu morphs=%zu rootNode=%d",
+            GetName().c_str(),
+            AnimDiagOwnerName(this).c_str(),
+            Out.Pose.size(),
+            Out.MorphWeights.size(),
+            AnimInstance->GetRootNode() ? 1 : 0);
+    }
 
     SetAnimationPose(Out.Pose, Out.MorphWeights);
     return true;

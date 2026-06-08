@@ -42,6 +42,7 @@ public:
 	UAnimGraphAsset* GetGraphAsset() const;
 	UFUNCTION(Callable, Category="Animation|AnimGraph")
 	void             SetGraphAsset(UAnimGraphAsset* InAsset);
+	void             PostEditProperty(const char* PropertyName) override;
 
 	// AnimGraph-owned Variables.
 	// Asset 의 My Blueprint > Variables 기본값에서 초기화되고, 게임 코드 / Lua / preview UI 가
@@ -77,10 +78,12 @@ public:
 private:
 	// GraphAsset.Version != CompiledAssetVersion 이면 트리 폐기 + 재컴파일 + 버전 캡쳐.
 	// NativeInitialize / NativeUpdate 양쪽에서 호출 — 동일 코드 경로로 첫 컴파일 / live preview 처리.
+	bool ResolveGraphAsset();
 	void RecompileTreeIfDirty();
 	void SyncRuntimeVariablesFromAsset(bool bResetExistingToDefaults);
 	FAnimGraphRuntimeVariable*       FindRuntimeVariable(FName VariableName);
 	const FAnimGraphRuntimeVariable* FindRuntimeVariable(FName VariableName) const;
+	FAnimGraphRuntimeVariable&       FindOrAddRuntimeVariable(FName VariableName, EAnimGraphPinType Type);
 
 	// 자산 슬롯. GraphAssetPath 로 로드된 디스크 자산 또는 자동 생성된 transient 자산.
 	UAnimGraphAsset* GraphAsset = nullptr;

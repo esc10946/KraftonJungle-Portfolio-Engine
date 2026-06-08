@@ -119,7 +119,14 @@ function Context.Call(target, functionName, ...)
 end
 
 function Context.GetAnimInstance(ctx)
-    if ctx.cache.animInstance ~= nil or ctx.obj == nil or ctx.obj.GetSkeletalMeshComponent == nil then
+    if ctx.cache.animInstance ~= nil then
+        if ctx.cache.animInstance.IsValid == nil or ctx.cache.animInstance:IsValid() then
+            return ctx.cache.animInstance
+        end
+        ctx.cache.animInstance = nil
+    end
+
+    if ctx.obj == nil or ctx.obj.GetSkeletalMeshComponent == nil then
         return ctx.cache.animInstance
     end
 
