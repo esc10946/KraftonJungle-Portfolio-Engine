@@ -16,11 +16,10 @@ local HUD_HIDE_FLAG = "BossIntroHUDHidden"
 local START_FLAG = "BossIntroDirectorStartOk"
 local BOSS_TAG = "Boss"
 local BLOOD_MOON_TAG = "BloodMoon"
+local PREPSTAGE_TAG = "Boss_Prepstage"
+local PREPSTAGE_Z_OFFSET = 0.0
 
-local COLLISION_NONE = 0
-local COLLISION_QUERY_AND_PHYSICS = 3
-
-local boss, player, cine, bloodMoon
+local boss, player, cine, bloodMoon, prepstage
 local t = 0.0
 local started = false
 local setup_done = false
@@ -30,7 +29,7 @@ local boss_dormant = false
 local intro_cutscene_entered = false
 local intro_cinematic_fired = false
 local walk_from, walk_to
-local collision_state = {}
+local original_boss_location, original_boss_rotation, original_boss_scale
 local boss_slain = false
 local victory_fired = false
 local death_elapsed = 0.0
@@ -136,77 +135,14 @@ local function resolve_blood_moon()
     bloodMoon = bloodMoon or first_by_tag(BLOOD_MOON_TAG)
     return bloodMoon
 end
+local function resolve_prepstage()
+    prepstage = prepstage or first_by_tag(PREPSTAGE_TAG)
+    return prepstage
+end
 local function set_blood_moon_visible(visible)
     if Scene and Scene.SetActorVisible and resolve_blood_moon() then
         Scene.SetActorVisible(bloodMoon, visible)
     end
-end
-local function for_each_primitive(actor, fn)
-    if not actor or not actor.GetComponents then return end
-    local seen = {}
-    local function visit(component)
-        if not component then return end
-        local prim = component
-        if component.AsPrimitiveComponent then
-            prim = component:AsPrimitiveComponent()
-        end
-        if prim and not seen[prim] then
-            seen[prim] = true
-            fn(prim)
-        end
-    end
-
-    local components = actor:GetComponents()
-    if components then
-        for _, component in ipairs(components) do visit(component) end
-    end
-    visit(call(actor, "GetCapsuleComponent"))
-    visit(call(actor, "GetSkeletalMeshComponent"))
-    visit(call(actor, "GetPrimitiveComponent"))
-end
-local function set_primitive_collision(primitive, mode)
-    if not primitive then return end
-    if primitive.SetCollisionEnabled then
-        primitive:SetCollisionEnabled(mode)
-    elseif PrimitiveComponent and PrimitiveComponent.SetCollisionEnabled then
-        PrimitiveComponent.SetCollisionEnabled(primitive, mode)
-    else
-        rcall(primitive, "SetCollisionEnabled", mode)
-    end
-end
-local function set_primitive_overlap(primitive, enabled)
-    if not primitive then return end
-    if primitive.SetGenerateOverlapEvents then
-        primitive:SetGenerateOverlapEvents(enabled)
-    elseif PrimitiveComponent and PrimitiveComponent.SetGenerateOverlapEvents then
-        PrimitiveComponent.SetGenerateOverlapEvents(primitive, enabled)
-    else
-        rcall(primitive, "SetGenerateOverlapEvents", enabled)
-    end
-end
-local function get_primitive_collision(primitive)
-    if primitive and primitive.GetCollisionEnabled then
-        return primitive:GetCollisionEnabled()
-    elseif PrimitiveComponent and PrimitiveComponent.GetCollisionEnabled then
-        return PrimitiveComponent.GetCollisionEnabled(primitive)
-    end
-    return rcall(primitive, "GetCollisionEnabled") or COLLISION_QUERY_AND_PHYSICS
-end
-local function get_primitive_overlap(primitive)
-    if primitive and primitive.GetGenerateOverlapEvents then
-        return primitive:GetGenerateOverlapEvents()
-    end
-    return rcall(primitive, "GetGenerateOverlapEvents") == true
-end
-local function remember_collision(actor)
-    for_each_primitive(actor, function(primitive)
-        if collision_state[primitive] == nil then
-            collision_state[primitive] = {
-                mode = get_primitive_collision(primitive),
-                overlap = get_primitive_overlap(primitive),
-            }
-        end
-    end)
 end
 local function set_boss_visible(visible)
     if Scene and Scene.SetActorVisible and boss then
@@ -215,26 +151,42 @@ local function set_boss_visible(visible)
         rcall(boss, "SetVisible", visible)
     end
 end
-local function set_boss_collision_enabled(enabled)
-    if not boss then return end
-    remember_collision(boss)
-    for_each_primitive(boss, function(primitive)
-        if enabled then
-            local state = collision_state[primitive]
-            set_primitive_collision(primitive, state and state.mode or COLLISION_QUERY_AND_PHYSICS)
-            set_primitive_overlap(primitive, state and state.overlap == true)
-        else
-            set_primitive_overlap(primitive, false)
-            set_primitive_collision(primitive, COLLISION_NONE)
-        end
-    end)
+local function clone_vec(v)
+    if not v then return nil end
+    return Vec3(v.X or 0.0, v.Y or 0.0, v.Z or 0.0)
+end
+local function save_original_boss_transform()
+    if not boss or original_boss_location then return end
+    original_boss_location = clone_vec(boss.Location)
+    original_boss_rotation = clone_vec(boss.Rotation)
+    original_boss_scale = clone_vec(boss.Scale)
+end
+local function move_boss_to_prepstage()
+    if not boss then return false end
+    save_original_boss_transform()
+    if not resolve_prepstage() then
+        dbg("prepstage tag not found: " .. PREPSTAGE_TAG)
+        return false
+    end
+    local p = prepstage.Location
+    if not p then return false end
+    boss.Location = Vec3(p.X, p.Y, p.Z + PREPSTAGE_Z_OFFSET)
+    return true
+end
+local function restore_boss_from_prepstage()
+    if not boss or not original_boss_location then return false end
+    boss.Location = clone_vec(original_boss_location)
+    if original_boss_rotation then boss.Rotation = clone_vec(original_boss_rotation) end
+    if original_boss_scale then boss.Scale = clone_vec(original_boss_scale) end
+    call(boss, "StopEnemyMovement")
+    return true
 end
 local function make_boss_dormant()
     if started or handed_off then return false end
     set_blood_moon_visible(false)
     if not resolve_boss() then return false end
     set_boss_visible(false)
-    set_boss_collision_enabled(false)
+    move_boss_to_prepstage()
     call(boss, "StopEnemyMovement")
     hide_boss_ui()
     boss_dormant = true
@@ -243,14 +195,12 @@ end
 local function wake_boss_for_intro()
     if not resolve_boss() then return false end
     set_boss_visible(true)
-    set_boss_collision_enabled(false)
     call(boss, "StopEnemyMovement")
     boss_dormant = false
     return true
 end
 local function activate_boss_encounter()
     if not boss then return false end
-    set_boss_collision_enabled(true)
     if Combat and Combat.SetTeam then Combat.SetTeam(boss, 2) end
     return call(boss, "StartBossEncounter") == true
 end
@@ -314,6 +264,7 @@ local function fire_intro_cinematic()
     if intro_cinematic_fired then return end
     intro_cinematic_fired = true
 
+    restore_boss_from_prepstage()
     set_blood_moon_visible(true)
     if Game and Game.EnterCutscene then
         Game.EnterCutscene()
@@ -324,7 +275,9 @@ end
 local function do_setup()
     setup_done = true
     player = player or first_by_tag("Player") or first_by_class("ALuaCharacter")
+    cine = first_by_tag("CinematicIntro") or first_by_class("ACameraCinematicActor")
     if Combat and Combat.SetTeam and boss then Combat.SetTeam(boss, 2) end
+    fire_intro_cinematic()
     local attached = false
     if Equipment and Equipment.AttachStaticMeshToBone and boss then
         for _, bone in ipairs(HAND_BONES) do
@@ -347,8 +300,6 @@ local function do_setup()
             end
         end
     end)
-    cine = first_by_tag("CinematicIntro") or first_by_class("ACameraCinematicActor")
-    fire_intro_cinematic()
     dbg("setup: player=" .. tostring(player ~= nil) .. " boss=" .. tostring(boss ~= nil) .. " katana=" .. tostring(attached))
 end
 function Tick(dt)

@@ -108,6 +108,8 @@ function Context.Create(owner)
             RtrailParticle = nil,
             LtrailParticle = nil,
             trailActive = false,
+            trailEmissionActive = false,
+            trailDeactivateRemaining = 0.0,
             weaponBindingWarned = false,
             trailBindingWarned = false,
         },

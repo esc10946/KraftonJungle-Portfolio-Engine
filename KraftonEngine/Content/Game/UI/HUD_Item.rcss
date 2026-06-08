@@ -8,7 +8,7 @@
     position: absolute;
     right: 92px;
     bottom: 36px;
-    display: block;
+    display: none;
     width: 360px;
     height: 160px;
     color: rgb(255, 255, 255);

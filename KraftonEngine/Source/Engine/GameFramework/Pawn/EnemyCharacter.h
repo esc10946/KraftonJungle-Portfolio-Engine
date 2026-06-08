@@ -377,6 +377,17 @@ public:
 	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Leap Prep Delay", Min=0.0f, Max=1.0f, Speed=0.01f)
 	float LeapPrepDelay = 0.25f;
 
+	// 백점프 착지 안정화: 도약 전에 등 뒤 부채꼴을 네비메시로 스캔해, 연속된 walkable 회랑이 있는
+	// 방향/거리로만 도약한다(낭떠러지·맵 밖·장애물 위 착지 방지). 안정 지형이 없으면 제자리 팝만 한다.
+	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Validate Leap Landing")
+	bool bValidateLeapLanding = true;
+	// 안정 회랑 끝에서 안쪽으로 당길 여유(m). 가장자리에 아슬아슬하게 착지하지 않도록 도달거리를 줄인다.
+	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Leap Landing Safety Margin", Min=0.0f, Max=10.0f, Speed=0.05f)
+	float LeapLandingSafetyMargin = 0.75f;
+	// 도약 회랑에서 허용하는 셀 간 최대 높이차(m). 이보다 큰 턱/낭떠러지가 나오면 회랑을 거기서 끊는다.
+	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Leap Landing Max Step Height", Min=0.1f, Max=20.0f, Speed=0.05f)
+	float LeapLandingMaxStepHeight = 1.0f;
+
 	// ── 몽타주 기반 로코모션 (그래프 모드에서 walk/run + 공격 몽타주 공존) ──
 	// 각 몽타주는 NextSection=자기자신으로 무한 루프하도록 저작해야 한다.
 	UPROPERTY(Edit, Save, Category="Enemy|Locomotion", DisplayName="Loco Idle Montage", Type=ObjectRef, AllowedClass=UAnimMontage)
@@ -440,6 +451,10 @@ protected:
 	// 다수 적 포지셔닝: 아군과 겹치지 않게 매 프레임 분리 입력 + 타깃 주위 링 슬롯 위치 계산.
 	void ApplySeparationSteering();
 	FVector ComputeSlotLocation(AActor* Target) const;
+	// 백점프 안정 착지 탐색: 등 뒤(DesiredAway) 기준 부채꼴 방향을 네비메시로 스캔해, 원점에서
+	// 연속으로 walkable 한(낭떠러지/장애물 없는) 회랑이 가장 길게 이어지는 방향과 그 도달거리를
+	// 돌려준다. 후보가 없으면(코너에 몰림) false. MaxDistance 는 탄도 도달거리(상한)다.
+	bool FindStableLeapDirection(const FVector& Origin, const FVector& DesiredAway, float MaxDistance, FVector& OutDir, float& OutDistance) const;
 	bool StartAttackExecution(const FEnemyAttackData& Attack);
 	float GetCurrentHealthRatio() const;
 	bool IsTargetHostileDamageReceiver(AActor* Target) const;

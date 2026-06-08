@@ -426,15 +426,26 @@ bool AGridNavMesh::ProjectPointToWalkableSurfaceByPrimitiveBounds(
 	return IsInsideAnyBuildBounds(OutProjectedLocation, Bounds);
 }
 
+float AGridNavMesh::GetEffectiveAgentRadius(const FNavAgentProperties& AgentProps) const
+{
+	// 질의 반경은 빌드 에이전트를 넘지 못한다(헤더 주석 참조). 빌드 시엔 AgentProps==SupportedAgent 라 무효과.
+	return std::min(AgentProps.Radius, SupportedAgent.Radius);
+}
+
+float AGridNavMesh::GetEffectiveAgentHeight(const FNavAgentProperties& AgentProps) const
+{
+	return std::min(AgentProps.Height, SupportedAgent.Height);
+}
+
 bool AGridNavMesh::HasAgentFootprintByPrimitiveBounds(
 	const FVector& ProjectedLocation,
 	const FNavAgentProperties& AgentProps,
 	const TArray<FNavigationPrimitiveBounds>& Primitives,
 	float* OutClearanceRadius) const
 {
-	const float RequiredRadius = std::max(0.01f, AgentProps.Radius + std::max(0.0f, ObstaclePadding));
+	const float RequiredRadius = std::max(0.01f, GetEffectiveAgentRadius(AgentProps) + std::max(0.0f, ObstaclePadding));
 	const float AgentBottom = ProjectedLocation.Z + 0.05f;
-	const float AgentHeight = std::max(RequiredRadius * 2.0f, AgentProps.Height);
+	const float AgentHeight = std::max(RequiredRadius * 2.0f, GetEffectiveAgentHeight(AgentProps));
 	const float AgentTop = ProjectedLocation.Z + AgentHeight;
 	float ClearanceRadius = FLT_MAX;
 
@@ -622,7 +633,7 @@ bool AGridNavMesh::IsCellUsableForAgent(const FGridNavCellKey& Key, const FNavAg
 		return false;
 	}
 
-	const float RequiredRadius = std::max(0.01f, AgentProps.Radius + std::max(0.0f, ObstaclePadding));
+	const float RequiredRadius = std::max(0.01f, GetEffectiveAgentRadius(AgentProps) + std::max(0.0f, ObstaclePadding));
 	if (OutCell->ClearanceRadius > 0.0f && OutCell->ClearanceRadius + 0.001f < RequiredRadius)
 	{
 		return false;
@@ -749,15 +760,26 @@ bool AGridNavMesh::ProjectPointToNavigation(const FVector& Point, FVector& OutPr
 	return FindNearestCellForAgent(Point, AgentProps, Key, OutProjectedPoint);
 }
 
-bool AGridNavMesh::IsHeightTransitionAllowed(float FromZ, float ToZ, const FNavAgentProperties& AgentProps) const
+bool AGridNavMesh::IsHeightTransitionAllowed(const FVector& From, const FVector& To, const FNavAgentProperties& AgentProps) const
 {
-	const float DeltaZ = ToZ - FromZ;
+	const float DeltaZ = To.Z - From.Z;
 	const float Tolerance = 0.02f;
+
+	// 인접 그리드 셀은 항상 최소 한 CellSize 만큼 수평으로 떨어져 있으므로, 두 표면점 사이의 높이차는
+	// 수직 "단차"가 아니라 사실상 "경사로(ramp)"다. MaxSlopeDegrees 로 걸을 수 있다고 판정된 연속 비탈은
+	// 그 셀 간 상승량이 이산 단차 한계(MaxClimbHeight)를 넘더라도 통과시켜야 한다. 그렇지 않으면 걸을 수
+	// 있는 비탈이 등고선 띠 단위로 끊긴 섬이 되어 FindPath 가 그 위를 가로지르지 못한다(예: 40~50° 비탈).
+	const float HorizontalDist = sqrtf(HorizontalDistanceSquared(From, To));
+	const float SlopeDeg = std::max(0.0f, std::min(89.0f, AgentProps.MaxSlopeDegrees));
+	const float SlopeAllowance = HorizontalDist * tanf(SlopeDeg * FMath::DegToRad);
+
 	if (DeltaZ > 0.0f)
 	{
-		return DeltaZ <= AgentProps.GetEffectiveMaxClimbHeight() + Tolerance;
+		const float MaxUp = std::max(AgentProps.GetEffectiveMaxClimbHeight(), SlopeAllowance) + Tolerance;
+		return DeltaZ <= MaxUp;
 	}
-	return -DeltaZ <= AgentProps.GetEffectiveMaxDropHeight() + Tolerance;
+	const float MaxDown = std::max(AgentProps.GetEffectiveMaxDropHeight(), SlopeAllowance) + Tolerance;
+	return -DeltaZ <= MaxDown;
 }
 
 bool AGridNavMesh::HasCachedSegment(const FVector& Start, const FVector& End, const FNavAgentProperties& AgentProps) const
@@ -766,7 +788,7 @@ bool AGridNavMesh::HasCachedSegment(const FVector& Start, const FVector& End, co
 	{
 		return false;
 	}
-	const float RequiredRadius = std::max(0.01f, AgentProps.Radius + std::max(0.0f, ObstaclePadding));
+	const float RequiredRadius = std::max(0.01f, GetEffectiveAgentRadius(AgentProps) + std::max(0.0f, ObstaclePadding));
 	const float Dist = sqrtf(HorizontalDistanceSquared(Start, End));
 	const float Grid = std::max(0.25f, CellSize);
 	const float SampleStep = std::max(0.1f, std::min(Grid * 0.5f, RequiredRadius));
@@ -807,7 +829,7 @@ bool AGridNavMesh::HasCachedSegment(const FVector& Start, const FVector& End, co
 				return false;
 			}
 		}
-		if (!IsHeightTransitionAllowed(Previous.Z, CellLocation.Z, AgentProps))
+		if (!IsHeightTransitionAllowed(Previous, CellLocation, AgentProps))
 		{
 			return false;
 		}
@@ -974,7 +996,7 @@ bool AGridNavMesh::FindPath(const FVector& Start, const FVector& End, const FNav
 			// and diagonal corner cutting is checked by IsDiagonalMoveAllowed().  Avoid the
 			// expensive sampled segment validation in the hot A* neighbor loop; reserve it
 			// for direct-path and smoothing checks where a segment can span many cells.
-			if (!IsHeightTransitionAllowed(CurrentCell->Location.Z, NextCell->Location.Z, AgentProps))
+			if (!IsHeightTransitionAllowed(CurrentCell->Location, NextCell->Location, AgentProps))
 			{
 				continue;
 			}

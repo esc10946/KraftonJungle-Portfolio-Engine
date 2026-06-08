@@ -4,7 +4,7 @@ local Context = require("FinalGameJamScript/Character/CharacterContext")
 local State = {}
 
 function State.ResetAttack(ctx)
-    Equipment.DeactivateTrail(ctx)
+    Equipment.RequestTrailDeactivate(ctx)
     ctx.state.attackPlaying = false
     ctx.state.currentAttackIndex = 0
     ctx.state.canChainAttack = false
@@ -25,7 +25,7 @@ function State.ResetCounter(ctx)
         end
     end
 
-    Equipment.DeactivateTrail(ctx)
+    Equipment.RequestTrailDeactivate(ctx)
     ctx.state.counterPlaying = false
     ctx.state.canCancelCounter = false
     ctx.state.counterMove = nil

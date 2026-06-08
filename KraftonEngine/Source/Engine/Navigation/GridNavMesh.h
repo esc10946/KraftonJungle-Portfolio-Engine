@@ -153,11 +153,18 @@ private:
 	bool HasAgentFootprint(const FVector& ProjectedLocation, const FNavAgentProperties& AgentProps, const TArray<FNavigationPrimitiveBounds>& Primitives, float* OutClearanceRadius = nullptr) const;
 	bool HasAgentFootprintByPrimitiveBounds(const FVector& ProjectedLocation, const FNavAgentProperties& AgentProps, const TArray<FNavigationPrimitiveBounds>& Primitives, float* OutClearanceRadius = nullptr) const;
 	const FGridNavCell* FindCell(const FGridNavCellKey& Key) const;
+	// 그리드 그래프와 각 셀의 ClearanceRadius 는 빌드 시 SupportedAgent 풋프린트로 검증됐다. 질의가
+	// 빌드 에이전트보다 큰 풋프린트로 들어오면, 그리드가 보장한 적 없는 여유를 다시 요구해 walkable
+	// 셀을 거부하고 → 경로가 있어도 FindPath 가 실패한다(예: 반경 1.8 보스 vs 1.2 로 빌드한 navmesh).
+	// 그래서 질의 풋프린트(반경/높이)를 빌드 에이전트로 상한 클램프한다. 그리드가 빌드한 것 이상은
+	// 약속하지 않는다 — 빌드보다 물리적으로 큰 몸체는 런타임 분리(Separation) 스티어링이 처리한다.
+	float GetEffectiveAgentRadius(const FNavAgentProperties& AgentProps) const;
+	float GetEffectiveAgentHeight(const FNavAgentProperties& AgentProps) const;
 	bool IsCellUsableForAgent(const FGridNavCellKey& Key, const FNavAgentProperties& AgentProps, const FGridNavCell*& OutCell) const;
 	bool FindCellAtPointStrict(const FVector& Point, const FNavAgentProperties& AgentProps, FGridNavCellKey& OutKey, FVector& OutLocation) const;
 	bool FindNearestCell(const FVector& Point, FGridNavCellKey& OutKey, FVector& OutLocation) const;
 	bool FindNearestCellForAgent(const FVector& Point, const FNavAgentProperties& AgentProps, FGridNavCellKey& OutKey, FVector& OutLocation) const;
-	bool IsHeightTransitionAllowed(float FromZ, float ToZ, const FNavAgentProperties& AgentProps) const;
+	bool IsHeightTransitionAllowed(const FVector& From, const FVector& To, const FNavAgentProperties& AgentProps) const;
 	bool HasCachedSegment(const FVector& Start, const FVector& End, const FNavAgentProperties& AgentProps) const;
 	FColor GetHeightDebugColor(float HeightZ, float MinZ, float MaxZ) const;
 	bool ShouldDrawHeightContour(float HeightZ, float MinZ) const;

@@ -573,11 +573,16 @@ bool UNavigationSystem::CanTraverseSegmentRuntime(const FVector& Start, const FV
 	}
 	const float DeltaZ = End.Z - Start.Z;
 	const float HeightTolerance = 0.02f;
-	if (DeltaZ > AgentProps.GetEffectiveMaxClimbHeight() + HeightTolerance)
+	// 두 점이 수평으로 떨어져 있으면 높이차는 수직 단차가 아니라 경사로다. MaxSlopeDegrees 로 걸을 수 있는
+	// 연속 비탈은 셀 간 상승량이 이산 단차 한계를 넘더라도 통과시킨다(GridNavMesh 와 동일한 규칙).
+	const float HorizontalDist = sqrtf(HorizontalDistanceSquared(Start, End));
+	const float SlopeDeg = std::max(0.0f, std::min(89.0f, AgentProps.MaxSlopeDegrees));
+	const float SlopeAllowance = HorizontalDist * tanf(SlopeDeg * FMath::DegToRad);
+	if (DeltaZ > std::max(AgentProps.GetEffectiveMaxClimbHeight(), SlopeAllowance) + HeightTolerance)
 	{
 		return false;
 	}
-	if (-DeltaZ > AgentProps.GetEffectiveMaxDropHeight() + HeightTolerance)
+	if (-DeltaZ > std::max(AgentProps.GetEffectiveMaxDropHeight(), SlopeAllowance) + HeightTolerance)
 	{
 		return false;
 	}
