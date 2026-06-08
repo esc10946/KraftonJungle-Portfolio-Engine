@@ -44,6 +44,11 @@ local commandList = {
         Execute = LockOn.ExecuteInput,
     },
     {
+        IsTriggered = Execution.IsInputTriggered,
+        CanExecute = Execution.CanExecuteInput,
+        Execute = Execution.ExecuteInput,
+    },
+    {
         IsTriggered = Guard.IsInputTriggered,
         CanExecute = function(ctx)
             return not ctx.state.executionPlaying
