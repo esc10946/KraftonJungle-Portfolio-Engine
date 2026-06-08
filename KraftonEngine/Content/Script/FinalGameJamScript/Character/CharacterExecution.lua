@@ -215,14 +215,8 @@ local function align_for_execution(ctx, boss)
         return
     end
 
-    if boss.Location == nil or boss.Forward == nil then
+    if boss.Location == nil then
         return
-    end
-
-    local distance = ctx.config.EXECUTION_ALIGN_DISTANCE or 1.2
-    local bossForward = Context.NormalizeFlatDirection(boss.Forward)
-    if bossForward ~= nil then
-        ctx.obj.Location = boss.Location - bossForward * distance
     end
 
     face_actor_to(ctx, ctx.obj, boss)
@@ -294,7 +288,7 @@ function Execution.Play(ctx, boss)
     return true
 end
 
-function Execution.TryAutoStart(ctx)
+function Execution.CanExecuteInput(ctx)
     if ctx.state.executionPlaying then
         return false
     end
@@ -303,12 +297,28 @@ function Execution.TryAutoStart(ctx)
         return false
     end
 
+    return true
+end
+
+function Execution.ExecuteInput(ctx)
+    if not Execution.CanExecuteInput(ctx) then
+        return false
+    end
+
     local boss = find_ready_boss(ctx)
     if boss == nil then
+        execution_log(ctx, "input ignored: no ready boss")
         return false
     end
 
     return Execution.Play(ctx, boss)
+end
+
+function Execution.IsInputTriggered(ctx)
+    return Input ~= nil
+        and Input.GetKeyDown ~= nil
+        and ctx.config.EXECUTION_KEY ~= nil
+        and Input.GetKeyDown(ctx.config.EXECUTION_KEY)
 end
 
 function Execution.UpdateSequence(ctx)
@@ -332,7 +342,6 @@ function Execution.BeginPlay(ctx)
 end
 
 function Execution.Tick(ctx, dt)
-    Execution.TryAutoStart(ctx)
     Execution.UpdateSequence(ctx)
 end
 

@@ -3,6 +3,7 @@ local Config = {}
 Config.LMB = "LeftMouseButton"
 Config.RMB = "RightMouseButton"
 Config.LOCK_ON = "MiddleMouseButton"
+Config.EXECUTION_KEY = "E"
 Config.GAMEPAD_ATTACK = "GamepadRightShoulder"
 Config.GAMEPAD_GUARD = "GamepadLeftShoulder"
 Config.GAMEPAD_LOCK_ON = "GamepadRightThumbstick"
@@ -60,7 +61,7 @@ Config.COUNTER_INPUT_BUFFER_SECONDS = 0.2
 Config.COUNTER_INPUT_DEFLECT_WINDOW_SECONDS = 0.25
 
 Config.EXECUTION_PLAYER_MONTAGE_PATH = "Content/Montages/Twin_Execute_Montage.uasset"
-Config.EXECUTION_BOSS_MONTAGE_PATH = "Content/Montages/Standing React Large Gut_mixamo_com_Montage.uasset"
+Config.EXECUTION_BOSS_MONTAGE_PATH = "Content/Montages/ExecutedA_Montage.uasset"
 Config.EXECUTION_BOSS_CLASSES = {
     "BossEnemyCharacter",
     "ABossEnemyCharacter",
@@ -68,7 +69,6 @@ Config.EXECUTION_BOSS_CLASSES = {
 Config.EXECUTION_BOSS_TAG = "Boss"
 Config.EXECUTION_MAX_DISTANCE = 5.0
 Config.EXECUTION_ALIGN_ENABLED = true
-Config.EXECUTION_ALIGN_DISTANCE = 1.2
 Config.EXECUTION_PLAY_RATE = 1.0
 Config.EXECUTION_DEBUG_LOGS = true
 
