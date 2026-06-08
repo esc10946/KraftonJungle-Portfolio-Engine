@@ -6,6 +6,8 @@
 #include "Engine/Object/Reflection/UClass.h"
 #include "Engine/GameFramework/World.h"
 #include "Engine/GameFramework/GameMode/PlayerController.h"
+#include "GameFramework/Pawn/BaseCombatCharacter.h"
+#include "Component/Combat/HealthComponent.h"
 #include "Engine/Runtime/Engine.h"
 
 void AFinaleGameMode::SetGamePhase(EGamePhase InPhase)
@@ -223,8 +225,20 @@ void AFinaleGameMode::OnPossessedPawnEnteredTrigger(ATriggerVolumeBase* Trigger,
 
 	if (Tag == FName("TrueDeath"))
 	{
-		UE_LOG("[OnPossessedPawnEnteredTrigger] Kill Box Invoked");
-		OnPlayerDefeated();
+		// Player-controlled pawn -> game-over flow; AI enemy -> just kill the actor.
+		if (Pawn->GetPlayerController() != nullptr)
+		{
+			UE_LOG("[KillVolume] Player fell -> defeat");
+			OnPlayerDefeated();
+		}
+		else if (ABaseCombatCharacter* Combatant = Cast<ABaseCombatCharacter>(Pawn))
+		{
+			if (UHealthComponent* HP = Combatant->GetHealthComponent())
+			{
+				UE_LOG("[KillVolume] Enemy %s fell -> kill", Pawn->GetName().c_str());
+				HP->Kill();
+			}
+		}
 		return;
 	}
 }
