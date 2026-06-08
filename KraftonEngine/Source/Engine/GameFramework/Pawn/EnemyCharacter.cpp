@@ -14,10 +14,12 @@
 #include "AI/SquadCoordinator.h"
 #include "AI/CombatTargetRegistry.h"
 #include "Component/Character/CharacterStateMachineComponent.h"
+#include "Component/Combat/CombatHitEventComponent.h"
 #include "Component/Combat/CombatStateComponent.h"
 #include "Component/Combat/CombatMoveComponent.h"
 #include "Component/Combat/ExecutionComponent.h"
 #include "Component/Combat/HealthComponent.h"
+#include "Component/PrimitiveComponent.h"
 #include "Component/Movement/CharacterMovementComponent.h"
 #include "Component/Shape/CapsuleComponent.h"
 #include "Component/Script/LuaScriptComponent.h"
@@ -31,6 +33,7 @@
 #include "GameFramework/World.h"
 #include "Object/Reflection/UClass.h"
 #include "Math/MathUtils.h"
+#include "Math/Quat.h"
 #include "Math/Rotator.h"
 
 #include <algorithm>
@@ -92,6 +95,31 @@ namespace
 			}
 		}
 		return 0.5f;
+	}
+
+	float GetActorCapsuleHalfHeight(AActor* Actor)
+	{
+		if (ACharacter* Character = Cast<ACharacter>(Actor))
+		{
+			if (UCapsuleComponent* Capsule = Character->GetCapsuleComponent())
+			{
+				return Capsule->GetScaledCapsuleHalfHeight();
+			}
+		}
+		return 1.0f;
+	}
+
+	UPrimitiveComponent* ResolveImpactComponent(AActor* Actor)
+	{
+		if (!IsValid(Actor))
+		{
+			return nullptr;
+		}
+		if (USkeletalMeshComponent* Mesh = Actor->GetComponentByClass<USkeletalMeshComponent>())
+		{
+			return Mesh;
+		}
+		return Actor->GetComponentByClass<UPrimitiveComponent>();
 	}
 }
 
@@ -502,6 +530,7 @@ bool AEnemyCharacter::StartAttackExecution(const FEnemyAttackData& Attack)
 	// 타격 시점(비주얼 스윙에 맞춤) — 이 시점부터 짧은 윈도우 동안 데미지가 들어간다.
 	CurrentAttackHitTime = ComputeAttackHitTime(CurrentAttack);
 	bCurrentAttackHitApplied = false;
+	bCurrentAttackWorldHitApplied = false;
 	CurrentAttackDamagedActors.clear();
 	// 공격 문법 분기용 결과 캐시 리셋(보고서 1군 #3).
 	LastAttackResult = ECombatDamageResult::None;
@@ -546,6 +575,7 @@ bool AEnemyCharacter::StartAttackExecution(const FEnemyAttackData& Attack)
 		bCurrentAttackMontageless = false;
 		CurrentAttack = FEnemyAttackData();
 		CurrentAttackDamagedActors.clear();
+		bCurrentAttackWorldHitApplied = false;
 		if (!IsDead())
 		{
 			SetRuntimeState(FName("Guard"), true);
@@ -608,6 +638,18 @@ bool AEnemyCharacter::ApplyCurrentAttackDamageToActor(AActor* Target, const FVec
 		return false;
 	}
 
+	FCombatDamageSpec Spec;
+	Spec.Damage = CurrentAttack.Damage;
+	Spec.PoiseDamage = CurrentAttack.PoiseDamage;
+	Spec.DamageCauser = this;
+	Spec.InstigatorActor = this;
+	Spec.HitLocation = HitLocation;
+	FVector HitDirection = Target->GetActorLocation() - GetActorLocation();
+	HitDirection.Z = 0.0f;
+	Spec.HitDirection = HitDirection.IsNearlyZero() ? GetActorForward() : HitDirection.Normalized();
+
+	UPrimitiveComponent* TargetImpactComponent = ResolveImpactComponent(Target);
+
 	// 플레이어 패링 — 이 공격은 montageless(프레임데이터) 경로라 AttackHitWindow 노티파이를
 	// 타지 않는다. 따라서 여기서 타깃의 패링 윈도우를 직접 확인해 노티파이 경로와 동일하게
 	// 처리한다: 피해 무효 + 패링 보고 + 공격자(보스) 자세 압박 + Deflected 결과 캐시(브레인이
@@ -618,7 +660,21 @@ bool AEnemyCharacter::ApplyCurrentAttackDamageToActor(AActor* Target, const FVec
 		UAnimInstance* TargetAnim = TargetMesh->GetAnimInstance();
 		if (TargetAnim && UAnimNotifyState_ParryWindow::IsParryWindowActive(TargetAnim))
 		{
-			UAnimNotifyState_ParryWindow::ReportSuccessfulParry(TargetAnim);
+			UAnimNotifyState_ParryWindow::ReportSuccessfulParry(TargetAnim, this, HitLocation);
+			if (UCombatHitEventComponent* HitEventComponent = UCombatHitEventComponent::FindOrCreate(this))
+			{
+				HitEventComponent->BroadcastAttackParried(Target, TargetImpactComponent, Spec, CurrentAttack.AttackName);
+			}
+			FCombatImpactEvent ImpactEvent;
+			ImpactEvent.Type = ECombatImpactType::Parried;
+			ImpactEvent.Attacker = this;
+			ImpactEvent.Target = Target;
+			ImpactEvent.HitComponent = TargetImpactComponent;
+			ImpactEvent.HitLocation = HitLocation;
+			ImpactEvent.HitNormal = Spec.HitDirection * -1.0f;
+			ImpactEvent.DamageSpec = Spec;
+			ImpactEvent.HitEventName = CurrentAttack.AttackName;
+			UCombatHitEventComponent::BroadcastImpactForActor(this, ImpactEvent);
 			MarkCurrentAttackDamagedActor(Target); // 이 공격으로 같은 타깃을 다시 처리하지 않음
 			LastAttackResult = ECombatDamageResult::Deflected;
 			bLastAttackConnected = false;
@@ -638,26 +694,90 @@ bool AEnemyCharacter::ApplyCurrentAttackDamageToActor(AActor* Target, const FVec
 		return false;
 	}
 
-	FCombatDamageSpec Spec;
-	Spec.Damage = CurrentAttack.Damage;
-	Spec.PoiseDamage = CurrentAttack.PoiseDamage;
-	Spec.DamageCauser = this;
-	Spec.InstigatorActor = this;
-	Spec.HitLocation = HitLocation;
-	FVector HitDirection = Target->GetActorLocation() - GetActorLocation();
-	HitDirection.Z = 0.0f;
-	Spec.HitDirection = HitDirection.IsNearlyZero() ? GetActorForward() : HitDirection.Normalized();
+	if (UCombatHitEventComponent* HitEventComponent = UCombatHitEventComponent::FindOrCreate(this))
+	{
+		HitEventComponent->BroadcastAttackHit(Target, TargetImpactComponent, Spec, CurrentAttack.AttackName);
+	}
 
 	const FCombatDamageReport Report = TargetHealth->ApplyDamageSpec(Spec);
 	// 공격 문법 분기용 결과 캐시: 탄기당함/적중을 Lua 가 읽어 후속을 바꾼다.
 	LastAttackResult = Report.Result;
+	if (Report.Result == ECombatDamageResult::Damaged ||
+		Report.Result == ECombatDamageResult::Killed ||
+		Report.Result == ECombatDamageResult::Deflected)
+	{
+		FCombatImpactEvent ImpactEvent;
+		ImpactEvent.Type = (Report.Result == ECombatDamageResult::Deflected)
+			? ECombatImpactType::Parried
+			: ECombatImpactType::EnemyHit;
+		ImpactEvent.Attacker = this;
+		ImpactEvent.Target = Target;
+		ImpactEvent.HitComponent = TargetImpactComponent;
+		ImpactEvent.HitLocation = HitLocation;
+		ImpactEvent.HitNormal = Spec.HitDirection * -1.0f;
+		ImpactEvent.DamageSpec = Spec;
+		ImpactEvent.DamageReport = Report;
+		ImpactEvent.HitEventName = CurrentAttack.AttackName;
+		UCombatHitEventComponent::BroadcastImpactForActor(this, ImpactEvent);
+	}
 	if (Report.Result == ECombatDamageResult::Damaged || Report.Result == ECombatDamageResult::Killed)
 	{
 		bLastAttackConnected = true;
 		MarkCurrentAttackDamagedActor(Target);
 		return true;
 	}
+	if (Report.Result == ECombatDamageResult::Deflected)
+	{
+		bLastAttackConnected = false;
+		MarkCurrentAttackDamagedActor(Target);
+	}
 	return false;
+}
+
+bool AEnemyCharacter::ResolveCurrentAttackWorldHit(float Reach)
+{
+	if (bCurrentAttackWorldHitApplied || Reach <= 0.0f)
+	{
+		return false;
+	}
+
+	UWorld* World = GetWorld();
+	if (!World)
+	{
+		return false;
+	}
+
+	const float HalfHeight = GetActorCapsuleHalfHeight(this);
+	const float CapsuleRadius = GetActorCapsuleRadius(this);
+	const float SweepRadius = (std::max)(0.2f, CapsuleRadius * 0.35f);
+	const FVector Start = GetActorLocation() + FVector::UpVector * (HalfHeight * 0.45f);
+	const FVector End = Start + GetActorForward() * Reach;
+
+	FHitResult Hit;
+	if (!World->PhysicsSweepByObjectTypes(
+		Start,
+		End,
+		FQuat::Identity,
+		FCollisionShape::MakeSphere(SweepRadius),
+		Hit,
+		ObjectTypeBit(ECollisionChannel::WorldStatic),
+		this))
+	{
+		return false;
+	}
+
+	bCurrentAttackWorldHitApplied = true;
+
+	FCombatImpactEvent ImpactEvent;
+	ImpactEvent.Type = ECombatImpactType::WorldHit;
+	ImpactEvent.Attacker = this;
+	ImpactEvent.Target = Hit.HitActor;
+	ImpactEvent.HitComponent = Hit.HitComponent;
+	ImpactEvent.HitLocation = Hit.WorldHitLocation;
+	ImpactEvent.HitNormal = Hit.WorldNormal;
+	ImpactEvent.HitEventName = CurrentAttack.AttackName;
+	UCombatHitEventComponent::BroadcastImpactForActor(this, ImpactEvent);
+	return true;
 }
 
 float AEnemyCharacter::GetCurrentHealthRatio() const
@@ -707,18 +827,23 @@ void AEnemyCharacter::UpdateAttackExecution(float DeltaTime)
 		&& CurrentAttackElapsed >= CurrentAttackHitTime
 		&& CurrentAttackElapsed <= CurrentAttackHitTime + 0.12f)
 	{
+		float Reach = (CurrentAttack.MaxRange > 0.0f ? CurrentAttack.MaxRange : DefaultAttackRange) + 0.3f;
 		UEnemyAIBrainComponent* Brain = AIBrainComponent.Get();
 		if (Brain && Brain->HasValidTarget())
 		{
 			if (AActor* Tgt = Brain->GetTarget())
 			{
-				const float Reach = (CurrentAttack.MaxRange > 0.0f ? CurrentAttack.MaxRange : DefaultAttackRange) + GetActorCapsuleRadius(Tgt) + 0.3f;
+				Reach += GetActorCapsuleRadius(Tgt);
 				if (Brain->GetFlatDistanceToTarget() <= Reach)
 				{
 					ApplyCurrentAttackDamageToActor(Tgt, Tgt->GetActorLocation());
 					bCurrentAttackHitApplied = true;
 				}
 			}
+		}
+		if (!bCurrentAttackHitApplied && ResolveCurrentAttackWorldHit(Reach))
+		{
+			bCurrentAttackHitApplied = true;
 		}
 	}
 
@@ -731,6 +856,7 @@ void AEnemyCharacter::UpdateAttackExecution(float DeltaTime)
 		CurrentAttackElapsed = 0.0f;
 		CurrentAttack = FEnemyAttackData();
 		CurrentAttackDamagedActors.clear();
+		bCurrentAttackWorldHitApplied = false;
 		if (!IsDead())
 		{
 			SetRuntimeState(FName("Recover"), true);
@@ -749,6 +875,7 @@ void AEnemyCharacter::HandleDeath(UHealthComponent* Component, AActor* DamageCau
 	CurrentAttack = FEnemyAttackData();
 	CurrentAttackMontage = nullptr;   // 사망 시 공격 몽타주 포인터 정리(오래된 포인터 오인 방지)
 	CurrentAttackDamagedActors.clear();
+	bCurrentAttackWorldHitApplied = false;
 	if (UCombatMoveComponent* Move = CombatMove.Get())
 	{
 		Move->EndMove();

@@ -6,6 +6,7 @@
 
 class AActor;
 class UAnimMontage;
+class UPrimitiveComponent;
 
 #include "Source/Engine/Component/Combat/CombatTypes.generated.h"
 
@@ -151,6 +152,56 @@ struct FCombatDamageReport
 
 	UPROPERTY(Transient, Category="Damage")
 	bool bKilled = false;
+};
+
+UENUM()
+enum class ECombatImpactType : uint8
+{
+	EnemyHit = 0,
+	WorldHit = 1,
+	Parried = 2,
+	Blocked = 3,
+};
+
+inline const char* GCombatImpactTypeNames[] = {
+	"EnemyHit",
+	"WorldHit",
+	"Parried",
+	"Blocked",
+};
+inline constexpr uint32 GCombatImpactTypeCount = sizeof(GCombatImpactTypeNames) / sizeof(GCombatImpactTypeNames[0]);
+
+USTRUCT()
+struct FCombatImpactEvent
+{
+	GENERATED_BODY()
+
+	UPROPERTY(Transient, Category="Combat|Impact", DisplayName="Type", Enum=ECombatImpactType)
+	ECombatImpactType Type = ECombatImpactType::EnemyHit;
+
+	UPROPERTY(Transient, Category="Combat|Impact")
+	AActor* Attacker = nullptr;
+
+	UPROPERTY(Transient, Category="Combat|Impact")
+	AActor* Target = nullptr;
+
+	UPROPERTY(Transient, Category="Combat|Impact")
+	UPrimitiveComponent* HitComponent = nullptr;
+
+	UPROPERTY(Transient, Category="Combat|Impact")
+	FVector HitLocation = FVector::ZeroVector;
+
+	UPROPERTY(Transient, Category="Combat|Impact")
+	FVector HitNormal = FVector::ZeroVector;
+
+	UPROPERTY(Transient, Category="Combat|Impact")
+	FCombatDamageSpec DamageSpec;
+
+	UPROPERTY(Transient, Category="Combat|Impact")
+	FCombatDamageReport DamageReport;
+
+	UPROPERTY(Transient, Category="Combat|Impact")
+	FName HitEventName = FName::None;
 };
 
 USTRUCT()

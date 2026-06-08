@@ -1,8 +1,36 @@
 #include "Component/Combat/CombatHitEventComponent.h"
 
+#include "Component/Combat/CombatFeedbackComponent.h"
 #include "Component/Combat/HealthComponent.h"
 #include "GameFramework/AActor.h"
 #include "Profiling/Stats/Stats.h"
+
+UCombatHitEventComponent* UCombatHitEventComponent::FindOrCreate(AActor* OwnerActor)
+{
+	if (!IsValid(OwnerActor))
+	{
+		return nullptr;
+	}
+
+	if (UCombatHitEventComponent* Existing = OwnerActor->GetComponentByClass<UCombatHitEventComponent>())
+	{
+		return Existing;
+	}
+
+	return OwnerActor->AddComponent<UCombatHitEventComponent>();
+}
+
+void UCombatHitEventComponent::BroadcastImpactForActor(AActor* OwnerActor, const FCombatImpactEvent& ImpactEvent)
+{
+	UCombatHitEventComponent* HitEventComponent = FindOrCreate(OwnerActor);
+	if (!HitEventComponent)
+	{
+		return;
+	}
+
+	UCombatFeedbackComponent::EnsureForActor(OwnerActor);
+	HitEventComponent->BroadcastCombatImpact(ImpactEvent);
+}
 
 void UCombatHitEventComponent::BroadcastAttackHit(AActor* Target, UPrimitiveComponent* HitComponent, const FCombatDamageSpec& DamageSpec, FName HitEventName)
 {
@@ -14,6 +42,12 @@ void UCombatHitEventComponent::BroadcastAttackParried(AActor* Defender, UPrimiti
 {
 	SCOPE_STAT_CAT("CombatHitEvent.BroadcastAttackParried", "Combat");
 	OnAttackParried.Broadcast(this, GetOwner(), Defender, HitComponent, DamageSpec, HitEventName);
+}
+
+void UCombatHitEventComponent::BroadcastCombatImpact(const FCombatImpactEvent& ImpactEvent)
+{
+	SCOPE_STAT_CAT("CombatHitEvent.BroadcastCombatImpact", "Combat");
+	OnCombatImpact.Broadcast(this, ImpactEvent);
 }
 
 FCombatDamageReport UCombatHitEventComponent::ApplyDamageToTarget(AActor* Target, float Damage, float PoiseDamage, AActor* DamageCauser, AActor* InstigatorActor)

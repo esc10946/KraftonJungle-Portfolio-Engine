@@ -15,6 +15,7 @@
 #include "GameFramework/AActor.h"
 #include "GameFramework/Pawn/Character.h"
 #include "GameFramework/World.h"
+#include "Math/Quat.h"
 #include "Mesh/Skeletal/SkeletalMesh.h"
 #include "Mesh/Skeletal/SkeletalMeshAsset.h"
 #include "Object/Object.h"
@@ -267,7 +268,7 @@ namespace
 			return;
 		}
 
-		if (UCombatHitEventComponent* HitEventComponent = Owner->GetComponentByClass<UCombatHitEventComponent>())
+		if (UCombatHitEventComponent* HitEventComponent = UCombatHitEventComponent::FindOrCreate(Owner))
 		{
 			HitEventComponent->BroadcastAttackHit(Target, HitComponent, DamageSpec, HitEventName);
 		}
@@ -281,7 +282,7 @@ namespace
 			return;
 		}
 
-		if (UCombatHitEventComponent* HitEventComponent = Owner->GetComponentByClass<UCombatHitEventComponent>())
+		if (UCombatHitEventComponent* HitEventComponent = UCombatHitEventComponent::FindOrCreate(Owner))
 		{
 			HitEventComponent->BroadcastAttackParried(Defender, HitComponent, DamageSpec, HitEventName);
 		}
@@ -313,7 +314,9 @@ namespace
 		TMap<TWeakObjectPtr<USkeletalMeshComponent>, TSet<TWeakObjectPtr<AActor>>>& HitActorsByMesh,
 		TMap<TWeakObjectPtr<USkeletalMeshComponent>, TSet<TWeakObjectPtr<AActor>>>& MissLoggedActorsByMesh,
 		TMap<TWeakObjectPtr<USkeletalMeshComponent>, TArray<FAttackHitWindowPendingHit>>& PendingHitsByMesh,
-		TSet<TWeakObjectPtr<USkeletalMeshComponent>>& NoTargetLoggedMeshes)
+		TMap<TWeakObjectPtr<USkeletalMeshComponent>, FVector>& LastHitCenterByMesh,
+		TSet<TWeakObjectPtr<USkeletalMeshComponent>>& NoTargetLoggedMeshes,
+		TSet<TWeakObjectPtr<USkeletalMeshComponent>>& WorldHitMeshes)
 	{
 		for (auto It = HitActorsByMesh.begin(); It != HitActorsByMesh.end(); )
 		{
@@ -358,9 +361,19 @@ namespace
 			}
 			++It;
 		}
+		for (auto It = LastHitCenterByMesh.begin(); It != LastHitCenterByMesh.end(); )
+		{
+			if (!IsValid(It->first)) It = LastHitCenterByMesh.erase(It);
+			else ++It;
+		}
 		for (auto It = NoTargetLoggedMeshes.begin(); It != NoTargetLoggedMeshes.end(); )
 		{
 			if (!IsValid(*It)) It = NoTargetLoggedMeshes.erase(It);
+			else ++It;
+		}
+		for (auto It = WorldHitMeshes.begin(); It != WorldHitMeshes.end(); )
+		{
+			if (!IsValid(*It)) It = WorldHitMeshes.erase(It);
 			else ++It;
 		}
 	}
@@ -384,6 +397,16 @@ bool UAnimNotifyState_AttackHitWindow::ResolveParryHit(
 	{
 		BroadcastAttackParriedEvent(Owner, Target, HitComponent, DamageSpec, HitEventName);
 	}
+	FCombatImpactEvent ImpactEvent;
+	ImpactEvent.Type = ECombatImpactType::Parried;
+	ImpactEvent.Attacker = Owner;
+	ImpactEvent.Target = Target;
+	ImpactEvent.HitComponent = HitComponent;
+	ImpactEvent.HitLocation = DamageSpec.HitLocation;
+	ImpactEvent.HitNormal = DamageSpec.HitDirection * -1.0f;
+	ImpactEvent.DamageSpec = DamageSpec;
+	ImpactEvent.HitEventName = HitEventName;
+	UCombatHitEventComponent::BroadcastImpactForActor(Owner, ImpactEvent);
 	if (bDrawDebugHitWindow)
 	{
 		UWorld* World = IsValid(Owner) ? Owner->GetWorld() : nullptr;
@@ -417,6 +440,24 @@ void UAnimNotifyState_AttackHitWindow::ResolveDamageHit(
 	}
 
 	const FCombatDamageReport DamageReport = ApplyDamageToTarget(Target, DamageSpec);
+	if (DamageReport.Result == ECombatDamageResult::Damaged ||
+		DamageReport.Result == ECombatDamageResult::Killed ||
+		DamageReport.Result == ECombatDamageResult::Deflected)
+	{
+		FCombatImpactEvent ImpactEvent;
+		ImpactEvent.Type = (DamageReport.Result == ECombatDamageResult::Deflected)
+			? ECombatImpactType::Parried
+			: ECombatImpactType::EnemyHit;
+		ImpactEvent.Attacker = Owner;
+		ImpactEvent.Target = Target;
+		ImpactEvent.HitComponent = HitComponent;
+		ImpactEvent.HitLocation = DamageSpec.HitLocation;
+		ImpactEvent.HitNormal = DamageSpec.HitDirection * -1.0f;
+		ImpactEvent.DamageSpec = DamageSpec;
+		ImpactEvent.DamageReport = DamageReport;
+		ImpactEvent.HitEventName = HitEventName;
+		UCombatHitEventComponent::BroadcastImpactForActor(Owner, ImpactEvent);
+	}
 	ApplyHitStop(Owner, HitStopDuration, bAutoAddActionComponent);
 	ApplyHitStop(Target, HitStopDuration, bAutoAddActionComponent);
 	if (bApplyKnockback)
@@ -439,6 +480,69 @@ void UAnimNotifyState_AttackHitWindow::ResolveDamageHit(
 			IsValid(HitComponent) ? HitComponent->GetName().c_str() : "None",
 			DamageReport.AppliedDamage,
 			ResultName,
+			Center.X,
+			Center.Y,
+			Center.Z,
+			Radius);
+	}
+}
+
+void UAnimNotifyState_AttackHitWindow::ResolveWorldHit(
+	USkeletalMeshComponent* MeshComp,
+	AActor* Owner,
+	UWorld* World,
+	const FVector& PreviousCenter,
+	const FVector& Center)
+{
+	SCOPE_STAT_CAT("AttackHitWindow.ResolveWorldHit", "Combat");
+	if (!bHitWorldStatic || !IsValid(MeshComp) || !IsValid(Owner) || !World || Radius <= 0.0f)
+	{
+		return;
+	}
+
+	if (WorldHitMeshes.find(MeshComp) != WorldHitMeshes.end())
+	{
+		return;
+	}
+
+	FHitResult Hit;
+	const FCollisionShape Shape = FCollisionShape::MakeSphere(Radius);
+	if (!World->PhysicsSweepByObjectTypes(
+		PreviousCenter,
+		Center,
+		FQuat::Identity,
+		Shape,
+		Hit,
+		ObjectTypeBit(ECollisionChannel::WorldStatic),
+		Owner))
+	{
+		return;
+	}
+
+	WorldHitMeshes.insert(MeshComp);
+
+	FCombatImpactEvent ImpactEvent;
+	ImpactEvent.Type = ECombatImpactType::WorldHit;
+	ImpactEvent.Attacker = Owner;
+	ImpactEvent.Target = Hit.HitActor;
+	ImpactEvent.HitComponent = Hit.HitComponent;
+	ImpactEvent.HitLocation = Hit.WorldHitLocation;
+	ImpactEvent.HitNormal = Hit.WorldNormal;
+	ImpactEvent.HitEventName = HitEventName;
+	UCombatHitEventComponent::BroadcastImpactForActor(Owner, ImpactEvent);
+
+	if (bDrawDebugHitWindow)
+	{
+		DrawDebugSphere(World, Center, Radius, DebugDrawSegments, FColor(130, 130, 255), DebugDrawDuration);
+	}
+	if (bLogHits)
+	{
+		UE_LOG("[AttackHitWindow] %s hit world via %s (location=%.1f, %.1f, %.1f center=%.1f, %.1f, %.1f radius=%.1f)",
+			Owner->GetName().c_str(),
+			IsValid(Hit.HitComponent) ? Hit.HitComponent->GetName().c_str() : "None",
+			Hit.WorldHitLocation.X,
+			Hit.WorldHitLocation.Y,
+			Hit.WorldHitLocation.Z,
 			Center.X,
 			Center.Y,
 			Center.Z,
@@ -521,7 +625,7 @@ void UAnimNotifyState_AttackHitWindow::QueueDelayedHit(
 void UAnimNotifyState_AttackHitWindow::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* /*Anim*/, float /*TotalDuration*/)
 {
 	SCOPE_STAT_CAT("AttackHitWindow.NotifyBegin", "Combat");
-	PurgeInvalidAttackHitEntries(HitActorsByMesh, MissLoggedActorsByMesh, PendingHitsByMesh, NoTargetLoggedMeshes);
+	PurgeInvalidAttackHitEntries(HitActorsByMesh, MissLoggedActorsByMesh, PendingHitsByMesh, LastHitCenterByMesh, NoTargetLoggedMeshes, WorldHitMeshes);
 	if (!IsValid(MeshComp))
 	{
 		return;
@@ -530,13 +634,15 @@ void UAnimNotifyState_AttackHitWindow::NotifyBegin(USkeletalMeshComponent* MeshC
 	HitActorsByMesh[MeshComp].clear();
 	MissLoggedActorsByMesh[MeshComp].clear();
 	PendingHitsByMesh[MeshComp].clear();
+	LastHitCenterByMesh.erase(MeshComp);
 	NoTargetLoggedMeshes.erase(MeshComp);
+	WorldHitMeshes.erase(MeshComp);
 }
 
 void UAnimNotifyState_AttackHitWindow::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* /*Anim*/, float FrameDeltaTime)
 {
 	SCOPE_STAT_CAT("AttackHitWindow.NotifyTick", "Combat");
-	PurgeInvalidAttackHitEntries(HitActorsByMesh, MissLoggedActorsByMesh, PendingHitsByMesh, NoTargetLoggedMeshes);
+	PurgeInvalidAttackHitEntries(HitActorsByMesh, MissLoggedActorsByMesh, PendingHitsByMesh, LastHitCenterByMesh, NoTargetLoggedMeshes, WorldHitMeshes);
 	if (!IsValid(MeshComp) || Radius <= 0.0f)
 	{
 		return;
@@ -554,6 +660,10 @@ void UAnimNotifyState_AttackHitWindow::NotifyTick(USkeletalMeshComponent* MeshCo
 	TSet<TWeakObjectPtr<AActor>>& HitActors = HitActorsByMesh[MeshComp];
 	TSet<TWeakObjectPtr<AActor>>& MissLoggedActors = MissLoggedActorsByMesh[MeshComp];
 	const FVector Center = GetHitCenter(MeshComp, Owner, BoneName, LocalOffset);
+	const auto LastCenterIt = LastHitCenterByMesh.find(MeshComp);
+	const FVector PreviousCenter = LastCenterIt != LastHitCenterByMesh.end() ? LastCenterIt->second : Center;
+	ResolveWorldHit(MeshComp, Owner, World, PreviousCenter, Center);
+	LastHitCenterByMesh[MeshComp] = Center;
 	if (bDrawDebugHitWindow)
 	{
 		DrawDebugSphere(World, Center, Radius, DebugDrawSegments, FColor(255, 220, 0), DebugDrawDuration);
@@ -714,10 +824,12 @@ void UAnimNotifyState_AttackHitWindow::NotifyTick(USkeletalMeshComponent* MeshCo
 void UAnimNotifyState_AttackHitWindow::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* /*Anim*/)
 {
 	SCOPE_STAT_CAT("AttackHitWindow.NotifyEnd", "Combat");
-	PurgeInvalidAttackHitEntries(HitActorsByMesh, MissLoggedActorsByMesh, PendingHitsByMesh, NoTargetLoggedMeshes);
+	PurgeInvalidAttackHitEntries(HitActorsByMesh, MissLoggedActorsByMesh, PendingHitsByMesh, LastHitCenterByMesh, NoTargetLoggedMeshes, WorldHitMeshes);
 	ResolvePendingHits(MeshComp, 0.0f, true);
 	HitActorsByMesh.erase(MeshComp);
 	MissLoggedActorsByMesh.erase(MeshComp);
 	PendingHitsByMesh.erase(MeshComp);
+	LastHitCenterByMesh.erase(MeshComp);
 	NoTargetLoggedMeshes.erase(MeshComp);
+	WorldHitMeshes.erase(MeshComp);
 }

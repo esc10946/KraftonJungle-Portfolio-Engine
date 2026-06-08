@@ -13,6 +13,7 @@
 class AActor;
 class UPrimitiveComponent;
 class USkeletalMeshComponent;
+class UWorld;
 
 // 히트 시 대상에게 줄 충격 방향. UActionComponent::Knockback 의 Direction 인자로 사용.
 UENUM()
@@ -137,9 +138,12 @@ private:
 	void ResolveDamageHit(AActor* Owner, AActor* Target, UPrimitiveComponent* HitComponent, const FCombatDamageSpec& DamageSpec, const FVector& Center);
 	void ResolvePendingHits(USkeletalMeshComponent* MeshComp, float DeltaTime, bool bForceResolve);
 	void QueueDelayedHit(USkeletalMeshComponent* MeshComp, AActor* Target, UPrimitiveComponent* HitComponent, const FCombatDamageSpec& DamageSpec, const FVector& Center);
+	void ResolveWorldHit(USkeletalMeshComponent* MeshComp, AActor* Owner, UWorld* World, const FVector& PreviousCenter, const FVector& Center);
 
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, TSet<TWeakObjectPtr<AActor>>> HitActorsByMesh;
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, TSet<TWeakObjectPtr<AActor>>> MissLoggedActorsByMesh;
 	TMap<TWeakObjectPtr<USkeletalMeshComponent>, TArray<FAttackHitWindowPendingHit>> PendingHitsByMesh;
+	TMap<TWeakObjectPtr<USkeletalMeshComponent>, FVector> LastHitCenterByMesh;
 	TSet<TWeakObjectPtr<USkeletalMeshComponent>> NoTargetLoggedMeshes;
+	TSet<TWeakObjectPtr<USkeletalMeshComponent>> WorldHitMeshes;
 };

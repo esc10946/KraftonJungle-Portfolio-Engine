@@ -444,6 +444,7 @@ protected:
 	float GetCurrentHealthRatio() const;
 	bool IsTargetHostileDamageReceiver(AActor* Target) const;
 	void StopPathFollowingOnly();
+	bool ResolveCurrentAttackWorldHit(float Reach);
 	bool SetRuntimeState(const FName& StateName, bool bForce = false);
 	bool AcquireAttackTokenForDuration(float DesiredDuration);
 	const FEnemyAttackData* GetAttackDataByIndex(int32 Index) const;
@@ -470,6 +471,7 @@ private:
 	// 현재 공격의 타격 시점(초, 비주얼 스윙에 맞춤)과 이미 타격을 적용했는지.
 	float CurrentAttackHitTime = 0.0f;
 	bool bCurrentAttackHitApplied = false;
+	bool bCurrentAttackWorldHitApplied = false;
 	// 마지막으로 재생한 공격 몽타주(꼬리 식별용 — 이동 시 걷기로 덮어쓸지/리액션에 양보할지 구분).
 	UAnimMontage* CurrentAttackMontage = nullptr;
 	// 직전 틱에 공중(낙하)이었는가 — 착지 순간 감지해 JumpDown(랜딩)을 1회 재생하기 위함.
