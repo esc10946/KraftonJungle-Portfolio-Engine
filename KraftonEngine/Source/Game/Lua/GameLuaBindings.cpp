@@ -1172,6 +1172,34 @@ void RegisterGameLuaBindings(sol::state& Lua)
 			if (IsValid(Actor)) Actor->SetVisible(bVisible);
 		}
 	);
+	// Blood-moon particle: resolve the typed PSC off the actor here. Going through
+	// GetComponentByClass avoids the base-handle gotcha — FindActorsByTag hands Lua
+	// a base AActor, so actor:GetParticleSystemComponent()/psc:Activate() can nil out.
+	Scene.set_function(
+		"SetParticleActive",
+		[](AActor* Actor, bool bActive, sol::optional<bool> bReset) -> bool
+		{
+			if (!IsValid(Actor)) return false;
+			UParticleSystemComponent* PSC = Actor->GetComponentByClass<UParticleSystemComponent>();
+			if (!PSC)
+			{
+				UE_LOG("[Scene.SetParticleActive] no UParticleSystemComponent on actor '%s'", Actor->GetName().c_str());
+				return false;
+			}
+			if (bActive) PSC->Activate(bReset.value_or(false));
+			else         PSC->Deactivate();
+			return true;
+		}
+	);
+	Scene.set_function(
+		"IsParticleActive",
+		[](AActor* Actor) -> bool
+		{
+			if (!IsValid(Actor)) return false;
+			UParticleSystemComponent* PSC = Actor->GetComponentByClass<UParticleSystemComponent>();
+			return PSC && PSC->IsActive();
+		}
+	);
 }
 
 // 자기-등록 — Editor / Game 측이 RegisterGameLuaBindings 함수명을 모르고도

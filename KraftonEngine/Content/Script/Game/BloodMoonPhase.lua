@@ -115,9 +115,18 @@ end
 local function lerp(a, b, s) return a + (b - a) * s end
 
 local function set_particle_active(actor, active, reset)
+    if actor == nil then return false end
+
+    -- Preferred: resolve the typed PSC on the C++ side (avoids the base-handle
+    -- gotcha — FindActorsByTag hands us a base AActor, so reaching the derived
+    -- GetParticleSystemComponent / Activate from Lua can silently nil out).
+    if Scene and Scene.SetParticleActive then
+        return Scene.SetParticleActive(actor, active == true, reset == true) == true
+    end
+
+    -- Fallback: legacy direct path.
     local psc = safe_call(actor, "GetParticleSystemComponent")
     if not is_valid(psc) then return false end
-
     if active then
         safe_call(psc, "Activate", reset == true)
     else
