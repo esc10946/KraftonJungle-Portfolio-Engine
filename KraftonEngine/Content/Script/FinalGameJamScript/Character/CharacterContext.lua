@@ -329,6 +329,17 @@ function Context.PlayCameraShakeAsset(path, scale)
     return true
 end
 
+-- Procedural Perlin shake (no asset). params is the optional override table the
+-- Camera.Shake binding accepts (duration/blendIn/locAmplitude/rotAmplitude/...).
+function Context.PlayCameraShake(scale, params)
+    if Camera == nil or Camera.Shake == nil then
+        return false
+    end
+
+    Camera.Shake(scale or 1.0, params)
+    return true
+end
+
 function Context.GetCameraFlatForward()
     local camera = Context.GetActiveCamera()
     if camera == nil or camera.Forward == nil then
