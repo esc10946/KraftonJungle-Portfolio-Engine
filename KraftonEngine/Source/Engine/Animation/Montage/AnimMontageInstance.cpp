@@ -78,6 +78,23 @@ FName UAnimMontageInstance::GetCurrentSectionName() const
     return Sections[CurrentSectionIndex].SectionName;
 }
 
+float UAnimMontageInstance::GetCurrentSectionLength() const
+{
+    if (!IsValid(CurrentMontage)) return 0.0f;
+    const auto& Sections = CurrentMontage->GetSections();
+    if (CurrentSectionIndex < 0 || CurrentSectionIndex >= static_cast<int32>(Sections.size())) return 0.0f;
+
+    const FCompositeSection& Cur = Sections[CurrentSectionIndex];
+    return std::max(Cur.LinkTime - Cur.StartTime, 0.0f);
+}
+
+void UAnimMontageInstance::SetSectionTime(float InSectionTime)
+{
+    const float SectionLen = GetCurrentSectionLength();
+    SectionTime = std::clamp(InSectionTime, 0.0f, SectionLen);
+    LastRootMotionDelta = FTransform();
+}
+
 float UAnimMontageInstance::GetBlendWeight() const
 {
     switch (State)

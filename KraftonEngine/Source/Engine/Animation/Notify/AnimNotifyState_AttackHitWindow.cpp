@@ -191,6 +191,27 @@ namespace
 		return false;
 	}
 
+	bool ShouldRagdollParriedAttacker(AActor* Attacker, bool bRequested)
+	{
+		if (!bRequested || !IsValid(Attacker))
+		{
+			return false;
+		}
+
+		// 보스/강적은 패링 성공 시 EnemyCharacter 의 역재생 리코일이 우선이다.
+		// 기존 ParryWindow 라우트에서 곧바로 래그돌에 들어가면 몽타주가 끊겨
+		// 슬로모 중 역재생이 보이지 않는다. ParryGraceDuration 은 해당 보스 라우트의 명시적 옵트인 값이다.
+		if (UCombatStateComponent* AttackerCombat = Attacker->GetComponentByClass<UCombatStateComponent>())
+		{
+			if (AttackerCombat->ParryGraceDuration > 0.0f)
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	bool TryResolveParry(
 		AActor* Attacker,
 		AActor* Target,
@@ -203,6 +224,13 @@ namespace
 		if (UAnimNotifyState_ParryWindow::IsParryWindowActive(TargetAnimInstance))
 		{
 			bResolved = UAnimNotifyState_ParryWindow::ReportSuccessfulParry(TargetAnimInstance, Attacker, HitLocation);
+			if (bResolved && IsValid(Attacker))
+			{
+				if (UCombatStateComponent* AttackerCombat = Attacker->GetComponentByClass<UCombatStateComponent>())
+				{
+					AttackerCombat->MarkParried();
+				}
+			}
 		}
 		else if (IsValid(Target))
 		{
@@ -226,7 +254,7 @@ namespace
 		}
 
 		FaceDefenderTowardAttacker(Target, Attacker);
-		if (bRagdollAttacker)
+		if (ShouldRagdollParriedAttacker(Attacker, bRagdollAttacker))
 		{
 			if (ACharacter* AttackerCharacter = Cast<ACharacter>(Attacker))
 			{

@@ -262,15 +262,19 @@ EDeflectGrade UCombatStateComponent::ConsumeDeflect(AActor* Attacker)
 	// 공격자에게 체간 반사 — 탄기가 공격자의 체간을 깎아 인살 창을 연다.
 	// 위험공격 종류별 결과표(보고서 1군 #4)로 반사량을 보정한다: 찌르기 간파 성공은 큰 자세 손실,
 	// 잡기는 탄기로 해결되지 않으므로 반사 0(점프/이탈로 대응해야 함).
-	if (Attacker && ReflectScale > 0.0f && DeflectReflectPoise > 0.0f)
+	// MarkParried 는 체간 반사량과 독립적으로 호출한다. 반사량이 0 이거나 데이터상 DeflectReflectPoise 가
+	// 비어 있어도, Perfect/Good 탄기 자체가 성공했다면 공격자 리코일/반격 유예는 반드시 열려야 한다.
+	if (Attacker && (Grade == EDeflectGrade::Perfect || Grade == EDeflectGrade::Good))
 	{
 		if (UCombatStateComponent* AttackerCombat = Attacker->GetComponentByClass<UCombatStateComponent>())
 		{
-			const FPerilousResolution Resolution = GetPerilousResolution(AttackerCombat->GetActivePerilousType());
-			AttackerCombat->ApplyPoiseDamage(DeflectReflectPoise * ReflectScale * Resolution.AnswerReflectPoiseScale);
-			// 패링 성공(Perfect/Good) → 공격자(보스)에게 "반격 유예" 윈도우를 연다(요청 #6). 뒤따르는
-			// 플레이어 반격(riposte)의 피해가 보스를 경직/자세붕괴로 불능화하지 못하게 한다. 보스만
-			// ParryGraceDuration>0 이라 일반 적은 영향 없음. (위 반사 체간은 패링의 보상으로 그대로 적용.)
+			if (ReflectScale > 0.0f && DeflectReflectPoise > 0.0f)
+			{
+				const FPerilousResolution Resolution = GetPerilousResolution(AttackerCombat->GetActivePerilousType());
+				AttackerCombat->ApplyPoiseDamage(DeflectReflectPoise * ReflectScale * Resolution.AnswerReflectPoiseScale);
+			}
+
+			// 패링 성공(Perfect/Good) → 공격자(보스)에게 "반격 유예" 윈도우와 리코일 신호를 연다.
 			AttackerCombat->MarkParried();
 		}
 	}

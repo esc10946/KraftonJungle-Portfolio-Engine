@@ -236,12 +236,14 @@ local Actions = {
         score = function(bb)
             if not bb.perceive or bb.ratio > 1.4 then return 0 end     -- 근접에서 분리할 때만
             local s = 0.0
-            -- 자원 완전 바닥(긴 연타 끝)에서만 가끔 큰 점프. 큰 백점프는 압박을 크게 끊으므로 근접에선
-            -- 보통 공격(아래 fuel 바닥 상향)이 이기게 0.48→0.30 으로 더 낮춘다 → 콤보 끝마다 무조건
-            -- 점프로 빠지지 않고 대부분 계속 공격, 가끔만 분리(요청: 빠지는 빈도 축소).
-            if bb.tempo < 0.12 then s = s + 0.30 end                   -- 깊은 바닥 → 가끔 큰 백점프로 분리
+            -- 자원 완전 바닥(연타 끝)에서 백점프로 한 박자 분리해 "쉴 틈"을 만든다(요청). 살짝만 올려
+            -- (0.30→0.38) 콤보 끝에서 공격(저템포 ~0.30)보다 약간 더 자주 이기게 — 매번은 아니고 자주.
+            if bb.tempo < 0.12 then s = s + 0.38 end                   -- 깊은 바닥 → 백점프로 분리(쉴 틈)
             if bb.perilous == PERILOUS.Sweep or bb.perilous == PERILOUS.Grab then s = s + 0.30 end
             if bb.selfHP < 0.25 and (bb.acting or bb.threatening) then s = s + 0.15 end
+            -- 바짝 붙어(자원·거리 무관) 공격 중이어도 아주 낮은 확률(~0.1%)로 기습 백점프해 거리를 벌린다
+            -- (요청). 1.0 을 더해 그 틱엔 leap 이 공격을 이기게 → 예측 불가한 이탈. 확률만 올리면 더 자주.
+            if math.random() < 0.001 then s = s + 1.0 end
             return s
         end,
         run = function(bb) call(obj, "Brain_LeapBack"); return true end,
@@ -348,16 +350,16 @@ local Actions = {
     },
     -- ▷ 후퇴(걷는 간격 조절): 속도 상한이 있어 큰 분리는 leap 이 담당. 여긴 보조로 더 오래 걸어 거리 확보.
     {
-        name = "retreat", commit = 0.40, loco = true,
+        name = "retreat", commit = 0.65, loco = true,
         score = function(bb)
             if not bb.perceive then return 0 end
-            -- 이미 거리가 벌어졌으면 더 물러서지 않는다. 후퇴는 '한 박자 숨 고르기'지 '플레이어를 끝까지
-            -- 피하기'가 아니다 → 플레이어가 계속 다가와도 끝없이 밀려나지 않는다(요청: 끝없는 후퇴 수정).
-            if bb.ratio >= 1.15 then return 0 end
-            -- 자원이 바닥났을 때만, 그것도 '약간의 공간이 있을 때만' 잠깐 물러선다. 플레이어가 코앞이면
-            -- (ratio 낮음) atLeast 가 0에 수렴 → 후퇴 대신 근접 공격(attack)이 이긴다. 커밋도 짧게(0.40)
-            -- 줘서 한두 발만 물러나고 곧장 재평가한다(긴 백페달 체인 방지).
-            local rest = 0.30 * Curve.invquad(bb.tempo) * Curve.atLeast(bb.ratio, 0.85, 0.30)
+            -- 이미 충분히 벌어졌으면 더는 안 물러선다(끝없는 후퇴 방지). 단, 컷오프를 1.15→1.30 으로
+            -- 약간 키워 한 번 물러날 때 조금 더 멀리 간다(요청: 너무 짧게 가지 않게).
+            if bb.ratio >= 1.30 then return 0 end
+            -- 자원이 바닥났을 때만, 그것도 '약간의 공간이 있을 때만' 물러선다. 플레이어가 코앞이면
+            -- (ratio 낮음) atLeast 가 0에 수렴 → 후퇴 대신 근접 공격(attack)이 이긴다. 커밋도 0.40→0.65
+            -- 로 늘려 한 번 물러날 때 더 오래(=더 멀리) 걷는다(요청: 너무 짧게 가지 않게).
+            local rest = 0.36 * Curve.invquad(bb.tempo) * Curve.atLeast(bb.ratio, 0.85, 0.30)
             local s = rest
             if bb.cornered then s = s * 0.3 end                  -- 코너면 후퇴 대신 스트레이프/공격이 이김
             return s

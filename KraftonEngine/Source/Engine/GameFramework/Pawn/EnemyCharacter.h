@@ -348,14 +348,22 @@ public:
 	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Dodge Dash Scale", Min=0.0f, Max=5.0f, Speed=0.05f)
 	float DodgeDashScale = 2.2f;
 
-	// ── 패링 리코일 (요청 A) ──
-	// 공격이 패링당하면 진행 중이던(점프/갭클로저 제외) 공격 몽타주를 잠깐 거꾸로 감아(역재생) 친 칼이
-	// 튕겨 나오는 "리코일"을 만든 뒤 곧장 다음 행동(공격)으로 풀어준다. 0 이면 비활성.
+	// ── 패링 리코일 ──
+	// 공격이 패링당하면 진행 중이던(점프/갭클로저/킥 제외) 공격 몽타주의 "현재 시점"에서
+	// 아주 짧은 구간만 뒤로 감아 친 칼이 튕겨 나오는 리코일을 만든다. 0 이면 비활성.
+	// 실제 누적은 raw time 기준이라 전역 슬로모에 눌리지 않는다.
 	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Parry Recoil Duration", Min=0.0f, Max=1.0f, Speed=0.01f)
-	float ParryRecoilDuration = 0.10f;
-	// 역재생 시작 속도(배). 실제 속도는 ease-out 커브로 시작이 가장 빠르고 끝에서 0 으로 줄어든다(요청: 선형 아님).
-	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Parry Recoil Max Reverse Rate", Min=0.0f, Max=10.0f, Speed=0.1f)
-	float ParryRecoilMaxReverseRate = 3.0f;
+	float ParryRecoilDuration = 0.30f;
+
+	// 패링 순간에서 얼마나 과거로 되감을지(초). 0.10초는 대략 60fps 기준 6프레임, 30fps 기준 3프레임이다.
+	// 이 값만큼만 뒤로 가며, 몽타주 섹션 0초까지 무조건 돌아가지 않도록 보호한다.
+	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Parry Recoil Rewind Seconds", Min=0.0f, Max=0.5f, Speed=0.005f)
+	float ParryRecoilRewindSeconds = 0.10f;
+
+	// 안전용 속도 상한. 최종 되감기 거리는 ParryRecoilRewindSeconds 가 우선이며,
+	// 이 값은 Duration 대비 과도한 되감기만 막는 보조 제한으로 사용한다.
+	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Parry Recoil Max Reverse Rate", Min=0.0f, Max=60.0f, Speed=0.5f)
+	float ParryRecoilMaxReverseRate = 20.0f;
 
 	// 백점프(Brain_LeapBack) 비주얼 몽타주(폴백). 보통은 아래 JumpUp/Down 으로 공중 단계가 구동된다.
 	UPROPERTY(Edit, Save, Category="Enemy|Combat", DisplayName="Leap Montage", Type=ObjectRef, AllowedClass=UAnimMontage)
@@ -502,8 +510,14 @@ private:
 	FEnemyAttackData CurrentAttack;
 	// 패링 리코일 상태. 활성 동안 UpdateAttackExecution 이 정상 진행 대신 리코일(역재생)을 구동한다.
 	bool bParryRecoilActive = false;
-	float ParryRecoilElapsed = 0.0f;       // 리코일 경과(게임시간 — 슬로모 시 느리게 흐름).
-	bool bParryRecoilSawSlomo = false;     // 리코일 도중 반격 슬로모를 한 번이라도 만났는지(끝나면 풀기 위함).
+	float ParryRecoilElapsed = 0.0f;       // 역재생 경과(게임시간, 디버그/상한용).
+	float ParryRecoilWait = 0.0f;          // 패링 직후 슬로모(카운터) 시작을 기다린 시간(실시간). 너무 길면 프리즈 해제.
+	float ParryRecoilRawElapsed = 0.0f;    // 실제 되감기 보간 경과(실시간). 전역 슬로모에 눌리지 않게 raw delta 로 누적.
+	float ParryRecoilStartSectionTime = 0.0f;
+	float ParryRecoilTargetSectionTime = 0.0f;
+	float ParryRecoilSectionLength = 0.0f;
+	UAnimMontage* ParryRecoilMontage = nullptr;
+	bool bParryRecoilSawSlomo = false;     // 리코일 도중 반격 슬로모를 한 번이라도 만났는지.
 	// CombatState::OnParried 중복 바인딩 방지.
 	bool bBoundParried = false;
 	TArray<TWeakObjectPtr<AActor>> CurrentAttackDamagedActors;
