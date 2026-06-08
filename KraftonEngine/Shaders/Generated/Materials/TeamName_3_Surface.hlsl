@@ -1,4 +1,4 @@
-// Generated from C:/Users/jungle/GitHub/Jungle_Week14_Team6/KraftonEngine/Content/Material/Auto/mat2.002.uasset
+// Generated from C:/Users/jungle/GitHub/Jungle_Week14_Team6/KraftonEngine/Content/Material/Custom/TeamName_3.uasset
 // Domain: Surface
 
 #include "Common/ConstantBuffers.hlsli"
@@ -30,12 +30,14 @@ struct FMaterialResult
     float Opacity;
 };
 
+Texture2D Tex_Diffuse : register(t0);
+
 FMaterialResult EvaluateMaterial(FMaterialPixelInput Input)
 {
-    float3 n_1 = float3(1.000000f, 1.000000f, 1.000000f);
+    float4 n_17 = Tex_Diffuse.Sample(LinearWrapSampler, Input.UV0);
     float n_3 = 1.000000f;
     FMaterialResult Result;
-    Result.BaseColor = n_1;
+    Result.BaseColor = (n_17).rgb;
     Result.Normal = float3(0, 0, 1);
     Result.Roughness = 0.5f;
     Result.Metallic = 0.0f;
