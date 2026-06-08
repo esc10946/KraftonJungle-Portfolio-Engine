@@ -445,6 +445,14 @@ namespace
 		UParticleLODLevel& RenderReplayLOD,
 		FDynamicRibbonEmitterReplayData& OutData)
 	{
+		OutData.bUsePairedEdgePositions =
+			(EmitterInstance.GetComponent() != nullptr &&
+				EmitterInstance.GetComponent()->HasRibbonEdgeSourceComponents());
+		if (OutData.bUsePairedEdgePositions)
+		{
+			OutData.bUseLocalSpace = false;
+		}
+
 		if (auto* RibbonTypeData = Cast<UParticleModuleTypeDataRibbon>(RenderReplayLOD.TypeDataModule))
 		{
 			// Ribbon replay metadata is currently an emitter-level render contract.
@@ -464,9 +472,6 @@ namespace
 			OutData.MaxTessellation = Shaping.MaxTessellation;
 			OutData.TangentTension = Shaping.TangentTension;
 			OutData.TilesPerTrail = Shaping.TilesPerTrail;
-			OutData.bUsePairedEdgePositions =
-				(EmitterInstance.GetComponent() != nullptr &&
-					EmitterInstance.GetComponent()->HasRibbonEdgeSourceComponents());
 		}
 	}
 }
@@ -3039,12 +3044,8 @@ int32 FParticleRibbonEmitterInstance::SpawnInternal(
 		return SpawnedCount;
 	}
 
-	const FVector SourceSim = ConvertPositionToSimulation(
-		SourceComponent->GetWorldLocation(),
-		EParticleValueSpace::World);
-	const FVector TargetSim = ConvertPositionToSimulation(
-		TargetComponent->GetWorldLocation(),
-		EParticleValueSpace::World);
+	const FVector SourceWorld = SourceComponent->GetWorldLocation();
+	const FVector TargetWorld = TargetComponent->GetWorldLocation();
 
 	const uint32 LastNewParticleIndex = std::min<uint32>(
 		ActiveParticles,
@@ -3057,9 +3058,9 @@ int32 FParticleRibbonEmitterInstance::SpawnInternal(
 			continue;
 		}
 
-		Particle->Location = SourceSim;
-		Particle->OldLocation = SourceSim;
-		Particle->RibbonTargetLocation = TargetSim;
+		Particle->Location = SourceWorld;
+		Particle->OldLocation = SourceWorld;
+		Particle->RibbonTargetLocation = TargetWorld;
 		Particle->Velocity = FVector::ZeroVector;
 		Particle->BaseVelocity = FVector::ZeroVector;
 	}

@@ -108,6 +108,5 @@ float4 PS(PS_Input_MaterialBeamTrailParticle input) : SV_TARGET
 
     FMaterialResult Result = EvaluateMaterial(MaterialInput);
     float4 FinalColor = float4(Result.Color + Result.Emissive, Result.Opacity);
-    clip(FinalColor.a - 0.01f);
     return ApplyFogTransparent(FinalColor, input.worldPos, CameraWorldPos);
 }
