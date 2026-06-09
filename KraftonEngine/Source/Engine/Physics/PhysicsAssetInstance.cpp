@@ -1,4 +1,4 @@
-﻿#include "Physics/PhysicsAssetInstance.h"
+#include "Physics/PhysicsAssetInstance.h"
 
 #include "Component/Primitive/SkeletalMeshComponent.h"
 #include "Core/Logging/Log.h"
@@ -10,26 +10,56 @@
 #include "Physics/PhysicsAsset.h"
 #include "Physics/PhysicsRuntime.h"
 
+#include <algorithm>
+#include <cmath>
+
 namespace
 {
     // PhysicsAsset body/constraint local frames are authored relative to bones.
     // Runtime creation and pose sync both use the same composition rule so the two
     // directions stay mathematically symmetric.
+    FVector MultiplyComponentWise(const FVector& A, const FVector& B)
+    {
+        return FVector(A.X * B.X, A.Y * B.Y, A.Z * B.Z);
+    }
+
+    // PhysicsAsset body/shape frames are rigid offsets. They deliberately ignore
+    // skeletal/component scale because PhysX actors and authored body frames are
+    // stored as position + rotation only.
     FTransform ComposePhysicsTransforms(const FTransform& ParentWorld, const FTransform& Local)
     {
         FTransform Result = Local;
         Result.Location = ParentWorld.Location + ParentWorld.Rotation.RotateVector(Local.Location);
-        Result.Rotation = ParentWorld.Rotation * Local.Rotation;
+        Result.Rotation = (ParentWorld.Rotation * Local.Rotation).GetNormalized();
         Result.Scale = FVector::OneVector;
         return Result;
     }
 
-    FTransform ComputeParentWorldTransformFromChild(const FTransform& ChildWorld, const FTransform& ChildLocalToParent)
+    // Skeletal pose propagation must preserve parent scale. Enemy-style FBX imports can
+    // carry a 0.01 scale on the skeleton root while child bone translations remain in
+    // centimeter-like authored units. If this path ignores parent scale, pelvis/root
+    // reconstruction expands by ~100x and a single simulated body can pull the visual
+    // root to a nonsense world location.
+    FTransform ComposeBonePoseTransforms(const FTransform& ParentWorld, const FTransform& Local)
     {
         FTransform Result;
-        Result.Rotation = ChildWorld.Rotation * ChildLocalToParent.Rotation.Inverse();
-        Result.Location = ChildWorld.Location - Result.Rotation.RotateVector(ChildLocalToParent.Location);
-        Result.Scale = FVector::OneVector;
+        Result.Location = ParentWorld.Location +
+            ParentWorld.Rotation.RotateVector(MultiplyComponentWise(Local.Location, ParentWorld.Scale));
+        Result.Rotation = (ParentWorld.Rotation * Local.Rotation).GetNormalized();
+        Result.Scale = MultiplyComponentWise(ParentWorld.Scale, Local.Scale);
+        return Result;
+    }
+
+    FTransform ComputeParentBoneWorldTransformFromChild(
+        const FTransform& ChildWorld,
+        const FTransform& ChildLocalToParent,
+        const FVector& ParentWorldScale)
+    {
+        FTransform Result;
+        Result.Scale = ParentWorldScale;
+        Result.Rotation = (ChildWorld.Rotation * ChildLocalToParent.Rotation.Inverse()).GetNormalized();
+        Result.Location = ChildWorld.Location -
+            Result.Rotation.RotateVector(MultiplyComponentWise(ChildLocalToParent.Location, Result.Scale));
         return Result;
     }
 
@@ -42,7 +72,7 @@ namespace
         }
 
         Result.Location = Component->GetWorldLocation();
-        Result.Rotation = Component->GetWorldMatrix().ToQuat();
+        Result.Rotation = Component->GetWorldMatrix().ToQuatWithoutScale();
         Result.Scale = FVector::OneVector;
         return Result;
     }
@@ -215,6 +245,42 @@ namespace
         }
     }
 
+    float GetShapeMaxExtent(const FPhysicsShapeDesc& ShapeDesc)
+    {
+        switch (ShapeDesc.Type)
+        {
+        case EPhysicsShapeType::Box:
+            return (std::max)(ShapeDesc.BoxHalfExtent.X, (std::max)(ShapeDesc.BoxHalfExtent.Y, ShapeDesc.BoxHalfExtent.Z));
+        case EPhysicsShapeType::Sphere:
+            return ShapeDesc.SphereRadius;
+        case EPhysicsShapeType::Capsule:
+            return (std::max)(ShapeDesc.CapsuleRadius, ShapeDesc.CapsuleHalfHeight);
+        default:
+            return 0.0f;
+        }
+    }
+
+    void ValidateRagdollBodyCreationDesc(const FPhysicsAssetBodySetup& BodySetup, const FBodyCreationDesc& Desc)
+    {
+        if (!std::isfinite(Desc.Mass) || Desc.Mass <= 0.0f)
+        {
+            UE_LOG("Warning: Ragdoll body has invalid mass. Bone=%s Mass=%.6f", BodySetup.BoneName.ToString().c_str(), Desc.Mass);
+        }
+
+        for (const FPhysicsShapeDesc& ShapeDesc : Desc.Shapes)
+        {
+            const float MaxExtent = GetShapeMaxExtent(ShapeDesc);
+            if (!std::isfinite(MaxExtent) || MaxExtent <= 0.0f)
+            {
+                UE_LOG("Warning: Ragdoll body has invalid shape extent. Bone=%s Extent=%.6f", BodySetup.BoneName.ToString().c_str(), MaxExtent);
+            }
+            else if (MaxExtent > 10.0f)
+            {
+                UE_LOG("Warning: Ragdoll body shape is suspiciously large for meter-scale physics. Bone=%s Extent=%.3f", BodySetup.BoneName.ToString().c_str(), MaxExtent);
+            }
+        }
+    }
+
     bool BuildBodyCreationDesc(
         USkeletalMeshComponent* OwnerComponent,
         const FPhysicsAssetBodySetup& BodySetup,
@@ -265,6 +331,8 @@ namespace
         OutDesc.bLockAngularX = BodySetup.bLockAngularX;
         OutDesc.bLockAngularY = BodySetup.bLockAngularY;
         OutDesc.bLockAngularZ = BodySetup.bLockAngularZ;
+
+        ValidateRagdollBodyCreationDesc(BodySetup, OutDesc);
         return true;
     }
 
@@ -800,7 +868,7 @@ bool FPhysicsAssetInstance::PullPhysicsPose(
     for (int32 BoneIndex = 0; BoneIndex < static_cast<int32>(MeshAsset->Bones.size()); ++BoneIndex)
     {
         OutBoneWorldTransforms[BoneIndex] =
-            ComposePhysicsTransforms(ComponentWorldTransform, CurrentBoneComponentSpaceTransforms[BoneIndex]);
+            ComposeBonePoseTransforms(ComponentWorldTransform, CurrentBoneComponentSpaceTransforms[BoneIndex]);
     }
 
     TArray<uint8> AppliedBodyBoneMask;
@@ -864,14 +932,15 @@ bool FPhysicsAssetInstance::PullPhysicsPose(
                ParentBoneIndex < static_cast<int32>(OutBoneWorldTransforms.size()) &&
                AppliedBodyBoneMask[ParentBoneIndex] == 0)
         {
-            FTransform ParentWorld = ComputeParentWorldTransformFromChild(
+            const FVector PreservedParentScale = OutBoneWorldTransforms[ParentBoneIndex].Scale;
+            FTransform ParentWorld = ComputeParentBoneWorldTransformFromChild(
                 OutBoneWorldTransforms[ChildBoneIndex],
-                CurrentBoneLocalTransforms[ChildBoneIndex]);
+                CurrentBoneLocalTransforms[ChildBoneIndex],
+                PreservedParentScale);
 
             // Reconstruct uncovered ancestors from the simulated ragdoll-root body so the
             // skeleton root follows ragdoll movement without applying a coarse world-space
             // translation delta that can make the whole mesh float above the floor.
-            ParentWorld.Scale = OutBoneWorldTransforms[ParentBoneIndex].Scale;
             OutBoneWorldTransforms[ParentBoneIndex] = ParentWorld;
 
             ChildBoneIndex = ParentBoneIndex;
@@ -896,7 +965,7 @@ bool FPhysicsAssetInstance::PullPhysicsPose(
             continue;
         }
 
-        OutBoneWorldTransforms[BoneIndex] = ComposePhysicsTransforms(
+        OutBoneWorldTransforms[BoneIndex] = ComposeBonePoseTransforms(
             OutBoneWorldTransforms[ParentIndex],
             CurrentBoneLocalTransforms[BoneIndex]);
     }

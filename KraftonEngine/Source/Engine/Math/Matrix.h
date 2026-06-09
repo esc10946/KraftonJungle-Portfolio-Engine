@@ -116,9 +116,11 @@ struct FMatrix
 	FVector GetEuler() const;
 	FVector GetLocation() const;
 	FVector GetScale() const;
+	FMatrix GetRotationMatrixWithoutScale(float Tolerance = 1.0e-6f) const;
 
 	// FQuat/FRotator 변환 (구현은 Quat.cpp/Rotator.cpp)
 	struct FQuat ToQuat() const;
+	struct FQuat ToQuatWithoutScale(float Tolerance = 1.0e-6f) const;
 	struct FRotator ToRotator() const;
 	void SetAxes(const FVector& Right, const FVector& Up, const FVector& Forward);
 

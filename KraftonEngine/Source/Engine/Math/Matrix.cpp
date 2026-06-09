@@ -1,4 +1,4 @@
-﻿#include "Matrix.h"
+#include "Matrix.h"
 #include "Quat.h"
 #include "Rotator.h"
 #include "MathUtils.h"
@@ -512,6 +512,60 @@ FVector FMatrix::GetScale() const
 	return FVector(ScaleX, ScaleY, ScaleZ);
 }
 
+FMatrix FMatrix::GetRotationMatrixWithoutScale(float Tolerance) const
+{
+	FMatrix RotationMatrix = *this;
+	RotationMatrix.M[0][3] = 0.0f;
+	RotationMatrix.M[1][3] = 0.0f;
+	RotationMatrix.M[2][3] = 0.0f;
+	RotationMatrix.M[3][0] = 0.0f;
+	RotationMatrix.M[3][1] = 0.0f;
+	RotationMatrix.M[3][2] = 0.0f;
+	RotationMatrix.M[3][3] = 1.0f;
+
+	const FVector Scale = RotationMatrix.GetScale();
+	if (std::fabs(Scale.X) > Tolerance)
+	{
+		RotationMatrix.M[0][0] /= Scale.X;
+		RotationMatrix.M[0][1] /= Scale.X;
+		RotationMatrix.M[0][2] /= Scale.X;
+	}
+	else
+	{
+		RotationMatrix.M[0][0] = 1.0f;
+		RotationMatrix.M[0][1] = 0.0f;
+		RotationMatrix.M[0][2] = 0.0f;
+	}
+
+	if (std::fabs(Scale.Y) > Tolerance)
+	{
+		RotationMatrix.M[1][0] /= Scale.Y;
+		RotationMatrix.M[1][1] /= Scale.Y;
+		RotationMatrix.M[1][2] /= Scale.Y;
+	}
+	else
+	{
+		RotationMatrix.M[1][0] = 0.0f;
+		RotationMatrix.M[1][1] = 1.0f;
+		RotationMatrix.M[1][2] = 0.0f;
+	}
+
+	if (std::fabs(Scale.Z) > Tolerance)
+	{
+		RotationMatrix.M[2][0] /= Scale.Z;
+		RotationMatrix.M[2][1] /= Scale.Z;
+		RotationMatrix.M[2][2] /= Scale.Z;
+	}
+	else
+	{
+		RotationMatrix.M[2][0] = 0.0f;
+		RotationMatrix.M[2][1] = 0.0f;
+		RotationMatrix.M[2][2] = 1.0f;
+	}
+
+	return RotationMatrix;
+}
+
 void FMatrix::SetAxes(const FVector& Right, const FVector& Up, const FVector& Forward)
 {
 	M[0][0] = Right.X;   M[0][1] = Right.Y;   M[0][2] = Right.Z;   M[0][3] = 0.0f;
@@ -591,6 +645,11 @@ FMatrix FMatrix::OrthoLH(float Width, float Height, float NearZ, float FarZ)
 FQuat FMatrix::ToQuat() const
 {
 	return FQuat::FromMatrix(*this);
+}
+
+FQuat FMatrix::ToQuatWithoutScale(float Tolerance) const
+{
+	return FQuat::FromMatrix(GetRotationMatrixWithoutScale(Tolerance)).GetNormalized();
 }
 
 FRotator FMatrix::ToRotator() const

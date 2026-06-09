@@ -1,10 +1,10 @@
-﻿#include "Transform.h"
+#include "Transform.h"
 
 FTransform::FTransform(const FMatrix& Mat)
 {
 	Location = Mat.GetLocation();
-	Rotation = Mat.ToQuat();
 	Scale = Mat.GetScale();
+	Rotation = Mat.ToQuatWithoutScale();
 }
 
 FMatrix FTransform::ToMatrix() const

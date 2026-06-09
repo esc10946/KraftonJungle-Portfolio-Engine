@@ -32,7 +32,7 @@ namespace
         }
 
         Result.Location = Component->GetWorldLocation();
-        Result.Rotation = Component->GetWorldMatrix().ToQuat().GetNormalized();
+        Result.Rotation = Component->GetWorldMatrix().ToQuatWithoutScale().GetNormalized();
         Result.Scale = FVector::OneVector;
         return Result;
     }

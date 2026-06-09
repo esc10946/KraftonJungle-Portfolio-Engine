@@ -493,7 +493,7 @@ bool UCharacterMovementComponent::ProbePenetration(FHitResult& OutHit) const
 
 	const FVector Start = Updated->GetWorldLocation();
 	const FVector End   = Start + FVector(0.0f, 0.0f, CharacterPenetrationProbeDistance);
-	const FQuat   Rot   = Updated->GetWorldMatrix().ToQuat();
+	const FQuat   Rot   = Updated->GetWorldMatrix().ToQuatWithoutScale();
 	const FCollisionShape Shape = FCollisionShape::MakeCapsule(Radius, HalfHeight);
 
 	if (!World->PhysicsSweep(Start, End, Rot, Shape, OutHit, TraceChannel, Owner))
@@ -590,7 +590,7 @@ bool UCharacterMovementComponent::SafeMoveUpdatedComponent(const FVector& Delta,
 
 	FVector Start = Updated->GetWorldLocation();
 	FVector End   = Start + Delta;
-	const FQuat   Rot   = Updated->GetWorldMatrix().ToQuat();
+	const FQuat   Rot   = Updated->GetWorldMatrix().ToQuatWithoutScale();
 	const FCollisionShape Shape = FCollisionShape::MakeCapsule(Radius, HalfHeight);
 
 	FHitResult Hit;

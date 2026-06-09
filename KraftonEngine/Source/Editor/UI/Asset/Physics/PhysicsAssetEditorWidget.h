@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Editor/UI/Asset/AssetEditorWidget.h"
 #include "Physics/PhysicsAssetValidation.h"
@@ -205,17 +205,18 @@ private:
     FName EditorRagdollGrabBoneName = FName::None;
     FVector EditorRagdollGrabLocalOffset = FVector::ZeroVector;
     float EditorRagdollGrabDistance = 0.0f;
-    bool bRegenerateUsePCAAnalysis = false;
-    bool bRegenerateUseBoneAxis = true;
+    bool bRegenerateUsePCAAnalysis = true;
+    bool bRegenerateUseBoneAxis = false;
     bool bRegenerateCreateConstraints = true;
     bool bRegenerateDisableConstrainedBodyCollision = true;
     bool bRegenerateReplaceExisting = true;
     bool bRegenerateSkipHelperBones = true;
-    bool bRegenerateAllowBoneAxisFallback = false;
+    bool bRegenerateAllowBoneAxisFallback = true;
+    bool bRegenerateUseCurrentPreviewPose = false;
     bool bRegenerateMergeSmallBones = true;
     int32 RegeneratePrimitiveTypeIndex = 0;
-    float RegenerateMinInfluenceWeight = 0.15f;
-    int32 RegenerateMinWeightedVertices = 64;
+    float RegenerateMinInfluenceWeight = 0.05f;
+    int32 RegenerateMinWeightedVertices = 16;
     float RegenerateMinBoneSize = 0.025f;
     float RegenerateMinWeldSize = 1.0e-4f;
     EPhysicsAssetConstraintFrameTarget SelectedConstraintGizmoFrame = EPhysicsAssetConstraintFrameTarget::Child;

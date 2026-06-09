@@ -162,7 +162,7 @@ void UProjectileMovementComponent::TickComponent(float DeltaTime, ELevelTick Tic
                 }
 
                 FHitResult Hit;
-                const FQuat SweepRotation = UpdatedSceneComponent->GetWorldMatrix().ToQuat();
+                const FQuat SweepRotation = UpdatedSceneComponent->GetWorldMatrix().ToQuatWithoutScale();
                 if (World->PhysicsSweep(CurrentLocation, TargetLocation, SweepRotation, SweepShape, Hit, TraceChannel, OwnerActor))
                 {
                     const FVector MoveDir = MoveDelta.Normalized();

@@ -1,4 +1,4 @@
-﻿#include "PhysicsAssetPreviewComponent.h"
+#include "PhysicsAssetPreviewComponent.h"
 
 #include "Component/Primitive/SkeletalMeshComponent.h"
 #include "Math/MathUtils.h"
@@ -219,7 +219,7 @@ namespace
 
 		uint64 Hash = 7809847782465536322ull;
 		Hash = HashVectorPreview(Hash, Component->GetWorldLocation());
-		Hash = HashQuatPreview(Hash, Component->GetWorldMatrix().ToQuat().GetNormalized());
+		Hash = HashQuatPreview(Hash, Component->GetWorldMatrix().ToQuatWithoutScale().GetNormalized());
 		return Hash;
 	}
 

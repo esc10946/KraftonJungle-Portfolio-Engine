@@ -100,8 +100,8 @@ namespace
 
     float GetRotationDeltaDegrees(const FMatrix& A, const FMatrix& B)
     {
-        const FQuat QA = A.ToQuat().GetNormalized();
-        const FQuat QB = B.ToQuat().GetNormalized();
+        const FQuat QA = A.ToQuatWithoutScale().GetNormalized();
+        const FQuat QB = B.ToQuatWithoutScale().GetNormalized();
         const float Dot = std::clamp(
             std::fabs(QA.X * QB.X + QA.Y * QB.Y + QA.Z * QB.Z + QA.W * QB.W),
             0.0f,

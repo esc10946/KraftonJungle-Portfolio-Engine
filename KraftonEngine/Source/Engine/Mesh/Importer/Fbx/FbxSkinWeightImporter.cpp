@@ -303,6 +303,51 @@ namespace
 		return ReferenceSkinMatrix.IsIdentity() ? FMatrix::Identity : ReferenceSkinMatrix.GetInverse();
 	}
 
+	static bool ClusterHasWeightedControlPoints(FbxCluster* Cluster)
+	{
+		if (!Cluster)
+		{
+			return false;
+		}
+
+		double* ControlPointWeights = Cluster->GetControlPointWeights();
+		const int32 NumIndices = Cluster->GetControlPointIndicesCount();
+		if (!ControlPointWeights || NumIndices <= 0)
+		{
+			return false;
+		}
+
+		for (int32 Index = 0; Index < NumIndices; ++Index)
+		{
+			if (ControlPointWeights[Index] > 0.0)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	static float GetMatrixMaxAbsDelta(const FMatrix& A, const FMatrix& B)
+	{
+		float MaxDelta = 0.0f;
+		for (int32 Row = 0; Row < 4; ++Row)
+		{
+			for (int32 Col = 0; Col < 4; ++Col)
+			{
+				MaxDelta = (std::max)(MaxDelta, std::fabs(A.M[Row][Col] - B.M[Row][Col]));
+			}
+		}
+		return MaxDelta;
+	}
+
+	static FMatrix ResolveWeightedMeshBindGlobal(FbxCluster* Cluster)
+	{
+		FbxAMatrix MeshBindMatrix;
+		Cluster->GetTransformMatrix(MeshBindMatrix);
+		return FFbxTransformUtils::ToEngineMatrix(MeshBindMatrix);
+	}
+
 	static void NormalizeWeights(float* Weights, int32 Count)
 	{
 		float TotalWeight = 0.0f;
@@ -389,12 +434,27 @@ bool FFbxSkinWeightImporter::ImportSkin(FbxScene* Scene, FFbxImportContext& Cont
 			const int32 BoneIndex = BoneIt->second;
 			SetBoneInverseBindPose(Context.Bones[BoneIndex], FFbxTransformUtils::ToEngineInverseMatrix(LinkBindMatrix));
 
-			if (!bHasClusterMeshBindGlobal)
+			const bool bClusterHasWeights = ClusterHasWeightedControlPoints(Cluster);
+			if (bClusterHasWeights)
 			{
-				FbxAMatrix MeshBindMatrix;
-				Cluster->GetTransformMatrix(MeshBindMatrix);
-				MeshBindGlobal = FFbxTransformUtils::ToEngineMatrix(MeshBindMatrix);
-				bHasClusterMeshBindGlobal = true;
+				const FMatrix CandidateMeshBindGlobal = ResolveWeightedMeshBindGlobal(Cluster);
+				if (!bHasClusterMeshBindGlobal)
+				{
+					MeshBindGlobal = CandidateMeshBindGlobal;
+					bHasClusterMeshBindGlobal = true;
+				}
+				else
+				{
+					const float BindDelta = GetMatrixMaxAbsDelta(MeshBindGlobal, CandidateMeshBindGlobal);
+					if (BindDelta > 1.0e-3f)
+					{
+						UE_LOG(
+							"Warning: Weighted skin clusters have inconsistent mesh bind transforms. Mesh=%s Bone=%s Delta=%.6f",
+							Node->GetName(),
+							LinkNode->GetName(),
+							BindDelta);
+					}
+				}
 			}
 
 			int32* ControlPointIndices = Cluster->GetControlPointIndices();

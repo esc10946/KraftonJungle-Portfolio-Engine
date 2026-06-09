@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Core/Types/CoreTypes.h"
 #include "Math/Matrix.h"
@@ -30,9 +30,9 @@ struct FPhysicsAssetAutoBodyGeneratorOptions
     bool bDisableCollisionBetweenConstrainedBodies = true;
     bool bReplaceExisting = true;
     bool bSkipHelperBones = true;
-    bool bAllowBoneAxisFallback = false;
+    bool bAllowBoneAxisFallback = true;
     bool bMergeSmallBones = true;
-    float MinInfluenceWeight = 0.15f;
+    float MinInfluenceWeight = 0.05f;
     int32 MinWeightedVertices = 16;
     float MinBoneSize = 0.25f;
     float MinWeldSize = 1.0e-4f;

@@ -1,7 +1,8 @@
-﻿#include "Physics/PhysicsAssetAutoBodyGenerator.h"
+#include "Physics/PhysicsAssetAutoBodyGenerator.h"
 
 #include "Animation/Skeleton/Skeleton.h"
 #include "Animation/Skeleton/SkeletonTypes.h"
+#include "Core/Logging/Log.h"
 #include "Math/Matrix.h"
 #include "Math/MathUtils.h"
 #include "Math/Transform.h"
@@ -135,11 +136,16 @@ namespace
         return Matrix.GetLocation();
     }
 
+    const FMatrix& GetGenerationBoneGlobalPose(
+        const FSkeletalMesh* MeshAsset,
+        const TArray<FMatrix>* OverrideBoneGlobalMatrices,
+        int32 MeshBoneIndex);
+
     FTransform MakeTransformNoScale(const FMatrix& Matrix)
     {
         FTransform Transform;
         Transform.Location = Matrix.GetLocation();
-        Transform.Rotation = Matrix.ToQuat().GetNormalized();
+        Transform.Rotation = Matrix.ToQuatWithoutScale().GetNormalized();
         Transform.Scale = FVector::OneVector;
         return Transform;
     }
@@ -206,7 +212,7 @@ namespace
     {
         FMatrix Matrix = FMatrix::Identity;
         Matrix.SetAxes(AxisX, AxisY, AxisZ);
-        return Matrix.ToQuat().GetNormalized();
+        return Matrix.ToQuatWithoutScale().GetNormalized();
     }
 
     int32 FindMeshBoneIndexByName(const FSkeletalMesh* MeshAsset, const FString& BoneName)
@@ -226,21 +232,289 @@ namespace
         return -1;
     }
 
-    int32 FindFirstChildMeshBoneIndex(const FSkeletalMesh* MeshAsset, int32 MeshBoneIndex)
+    bool IsDirectChildMeshBone(const FSkeletalMesh* MeshAsset, int32 ChildBoneIndex, int32 ParentBoneIndex)
+    {
+        return MeshAsset &&
+            ChildBoneIndex >= 0 &&
+            ParentBoneIndex >= 0 &&
+            ChildBoneIndex < static_cast<int32>(MeshAsset->Bones.size()) &&
+            ParentBoneIndex < static_cast<int32>(MeshAsset->Bones.size()) &&
+            MeshAsset->Bones[ChildBoneIndex].ParentIndex == ParentBoneIndex;
+    }
+
+    bool IsDescendantMeshBone(const FSkeletalMesh* MeshAsset, int32 BoneIndex, int32 AncestorBoneIndex)
+    {
+        if (!MeshAsset || BoneIndex < 0 || AncestorBoneIndex < 0 ||
+            BoneIndex >= static_cast<int32>(MeshAsset->Bones.size()) ||
+            AncestorBoneIndex >= static_cast<int32>(MeshAsset->Bones.size()))
+        {
+            return false;
+        }
+
+        int32 Cursor = BoneIndex;
+        while (Cursor >= 0 && Cursor < static_cast<int32>(MeshAsset->Bones.size()))
+        {
+            if (Cursor == AncestorBoneIndex)
+            {
+                return true;
+            }
+            Cursor = MeshAsset->Bones[Cursor].ParentIndex;
+        }
+        return false;
+    }
+
+    int32 CountWeightedVerticesForMeshBone(const FSkeletalMesh* MeshAsset, int32 MeshBoneIndex, float MinWeight = 1.0e-4f)
     {
         if (!MeshAsset || MeshBoneIndex < 0 || MeshBoneIndex >= static_cast<int32>(MeshAsset->Bones.size()))
         {
-            return -1;
+            return 0;
+        }
+
+        int32 Count = 0;
+        for (const FVertexPNCTBW& Vertex : MeshAsset->Vertices)
+        {
+            for (int32 InfluenceIndex = 0; InfluenceIndex < 4; ++InfluenceIndex)
+            {
+                if (Vertex.BoneIndices[InfluenceIndex] == MeshBoneIndex && Vertex.BoneWeights[InfluenceIndex] > MinWeight)
+                {
+                    ++Count;
+                    break;
+                }
+            }
+        }
+        return Count;
+    }
+
+    int32 CountWeightedVerticesInMeshSubtree(const FSkeletalMesh* MeshAsset, int32 MeshBoneIndex, float MinWeight = 1.0e-4f)
+    {
+        if (!MeshAsset || MeshBoneIndex < 0 || MeshBoneIndex >= static_cast<int32>(MeshAsset->Bones.size()))
+        {
+            return 0;
+        }
+
+        int32 Count = 0;
+        for (int32 CandidateBoneIndex = 0; CandidateBoneIndex < static_cast<int32>(MeshAsset->Bones.size()); ++CandidateBoneIndex)
+        {
+            if (IsDescendantMeshBone(MeshAsset, CandidateBoneIndex, MeshBoneIndex))
+            {
+                Count += CountWeightedVerticesForMeshBone(MeshAsset, CandidateBoneIndex, MinWeight);
+            }
+        }
+        return Count;
+    }
+
+    bool IsSpineLikeBoneName(const FString& LowerName)
+    {
+        return ContainsToken(LowerName, "spine") || ContainsToken(LowerName, "chest") || ContainsToken(LowerName, "torso");
+    }
+
+    bool IsPelvisLikeBoneName(const FString& LowerName)
+    {
+        return ContainsToken(LowerName, "pelvis") || ContainsToken(LowerName, "hip");
+    }
+
+    bool IsHandLikeBoneName(const FString& LowerName)
+    {
+        return ContainsToken(LowerName, "hand") || ContainsToken(LowerName, "palm");
+    }
+
+    bool IsAxialChildPreferred(const FString& ParentLowerName, const FString& ChildLowerName)
+    {
+        if (IsSpineLikeBoneName(ParentLowerName))
+        {
+            return ContainsToken(ChildLowerName, "spine") || ContainsToken(ChildLowerName, "neck") || ContainsToken(ChildLowerName, "head");
+        }
+        if (IsPelvisLikeBoneName(ParentLowerName))
+        {
+            return ContainsToken(ChildLowerName, "spine") || ContainsToken(ChildLowerName, "abdomen") || ContainsToken(ChildLowerName, "chest");
+        }
+        if (ContainsToken(ParentLowerName, "neck"))
+        {
+            return ContainsToken(ChildLowerName, "head");
+        }
+        if (ContainsToken(ParentLowerName, "upperarm") || ContainsToken(ParentLowerName, "upper_arm"))
+        {
+            return ContainsToken(ChildLowerName, "lowerarm") || ContainsToken(ChildLowerName, "lower_arm") || ContainsToken(ChildLowerName, "forearm");
+        }
+        if (ContainsToken(ParentLowerName, "lowerarm") || ContainsToken(ParentLowerName, "forearm"))
+        {
+            return ContainsToken(ChildLowerName, "hand");
+        }
+        if (ContainsToken(ParentLowerName, "thigh") || ContainsToken(ParentLowerName, "upleg") || ContainsToken(ParentLowerName, "upperleg"))
+        {
+            return ContainsToken(ChildLowerName, "calf") || ContainsToken(ChildLowerName, "shin") || ContainsToken(ChildLowerName, "lowerleg");
+        }
+        if (ContainsToken(ParentLowerName, "calf") || ContainsToken(ParentLowerName, "shin") || ContainsToken(ParentLowerName, "lowerleg"))
+        {
+            return ContainsToken(ChildLowerName, "foot");
+        }
+        return false;
+    }
+
+    bool IsAxialChildBadMatch(const FString& ParentLowerName, const FString& ChildLowerName)
+    {
+        if (IsSpineLikeBoneName(ParentLowerName))
+        {
+            return ContainsToken(ChildLowerName, "clavicle") || ContainsToken(ChildLowerName, "shoulder") || ContainsToken(ChildLowerName, "arm");
+        }
+        if (IsPelvisLikeBoneName(ParentLowerName))
+        {
+            return ContainsToken(ChildLowerName, "thigh") || ContainsToken(ChildLowerName, "leg");
+        }
+        return false;
+    }
+
+    TArray<int32> CollectDirectChildMeshBoneIndices(const FSkeletalMesh* MeshAsset, int32 MeshBoneIndex)
+    {
+        TArray<int32> Children;
+        if (!MeshAsset || MeshBoneIndex < 0 || MeshBoneIndex >= static_cast<int32>(MeshAsset->Bones.size()))
+        {
+            return Children;
         }
 
         for (int32 BoneIndex = MeshBoneIndex + 1; BoneIndex < static_cast<int32>(MeshAsset->Bones.size()); ++BoneIndex)
         {
-            if (MeshAsset->Bones[BoneIndex].ParentIndex == MeshBoneIndex)
+            if (IsDirectChildMeshBone(MeshAsset, BoneIndex, MeshBoneIndex))
             {
-                return BoneIndex;
+                Children.push_back(BoneIndex);
             }
         }
-        return -1;
+        return Children;
+    }
+
+    int32 FindBestAxisChildMeshBoneIndex(
+        const FSkeletalMesh* MeshAsset,
+        const TArray<FMatrix>* OverrideBoneGlobalMatrices,
+        int32 MeshBoneIndex)
+    {
+        const TArray<int32> Children = CollectDirectChildMeshBoneIndices(MeshAsset, MeshBoneIndex);
+        if (Children.empty())
+        {
+            return -1;
+        }
+
+        const FString ParentLowerName = ToLowerBoneName(MeshAsset->Bones[MeshBoneIndex].Name);
+        const FVector ParentLocation = GetMatrixTranslation(GetGenerationBoneGlobalPose(MeshAsset, OverrideBoneGlobalMatrices, MeshBoneIndex));
+        const bool bHasAnyNonHelperChild = std::any_of(
+            Children.begin(),
+            Children.end(),
+            [&](int32 ChildIndex)
+            {
+                return !IsLikelyHelperBoneName(MeshAsset->Bones[ChildIndex].Name);
+            });
+
+        int32 BestChildIndex = -1;
+        float BestScore = -FLT_MAX;
+        for (int32 ChildIndex : Children)
+        {
+            const FString ChildLowerName = ToLowerBoneName(MeshAsset->Bones[ChildIndex].Name);
+            const bool bHelperChild = IsLikelyHelperBoneName(ChildLowerName);
+            if (bHasAnyNonHelperChild && bHelperChild)
+            {
+                continue;
+            }
+
+            const FVector ChildLocation = GetMatrixTranslation(GetGenerationBoneGlobalPose(MeshAsset, OverrideBoneGlobalMatrices, ChildIndex));
+            const float SegmentLength = FVector::Distance(ParentLocation, ChildLocation);
+            if (SegmentLength <= 1.0e-6f)
+            {
+                continue;
+            }
+
+            const int32 DirectWeightCount = CountWeightedVerticesForMeshBone(MeshAsset, ChildIndex);
+            const int32 SubtreeWeightCount = CountWeightedVerticesInMeshSubtree(MeshAsset, ChildIndex);
+            float Score = SegmentLength;
+            if (SubtreeWeightCount > 0)
+            {
+                Score += 1000.0f + static_cast<float>((std::min)(SubtreeWeightCount, 1000));
+            }
+            if (DirectWeightCount > 0)
+            {
+                Score += 500.0f;
+            }
+            if (!bHelperChild)
+            {
+                Score += 100.0f;
+            }
+            if (IsAxialChildPreferred(ParentLowerName, ChildLowerName))
+            {
+                Score += 100000.0f;
+            }
+            if (IsAxialChildBadMatch(ParentLowerName, ChildLowerName))
+            {
+                Score -= 100000.0f;
+            }
+
+            if (Score > BestScore)
+            {
+                BestScore = Score;
+                BestChildIndex = ChildIndex;
+            }
+        }
+
+        return BestChildIndex;
+    }
+
+    bool TryBuildAveragedChildAxisSegment(
+        const FSkeletalMesh* MeshAsset,
+        const TArray<FMatrix>* OverrideBoneGlobalMatrices,
+        int32 MeshBoneIndex,
+        const FVector& Start,
+        FVector& OutEnd)
+    {
+        if (!MeshAsset || MeshBoneIndex < 0 || MeshBoneIndex >= static_cast<int32>(MeshAsset->Bones.size()))
+        {
+            return false;
+        }
+
+        const FString ParentLowerName = ToLowerBoneName(MeshAsset->Bones[MeshBoneIndex].Name);
+        if (!IsHandLikeBoneName(ParentLowerName))
+        {
+            return false;
+        }
+
+        const TArray<int32> Children = CollectDirectChildMeshBoneIndices(MeshAsset, MeshBoneIndex);
+        if (Children.size() < 2)
+        {
+            return false;
+        }
+
+        FVector DirectionSum = FVector::ZeroVector;
+        float LengthSum = 0.0f;
+        float WeightSum = 0.0f;
+        for (int32 ChildIndex : Children)
+        {
+            const FString ChildLowerName = ToLowerBoneName(MeshAsset->Bones[ChildIndex].Name);
+            if (IsLikelyHelperBoneName(ChildLowerName))
+            {
+                continue;
+            }
+
+            const FVector ChildLocation = GetMatrixTranslation(GetGenerationBoneGlobalPose(MeshAsset, OverrideBoneGlobalMatrices, ChildIndex));
+            FVector Direction = ChildLocation - Start;
+            const float Length = Direction.Length();
+            if (Length <= 1.0e-6f)
+            {
+                continue;
+            }
+            Direction /= Length;
+
+            const int32 SubtreeWeightCount = CountWeightedVerticesInMeshSubtree(MeshAsset, ChildIndex);
+            const float Weight = static_cast<float>((std::max)(SubtreeWeightCount, 1));
+            DirectionSum += Direction * Weight;
+            LengthSum += Length * Weight;
+            WeightSum += Weight;
+        }
+
+        if (WeightSum <= 0.0f || DirectionSum.IsNearlyZero(1.0e-6f))
+        {
+            return false;
+        }
+
+        DirectionSum.Normalize();
+        const float AverageLength = (std::max)(LengthSum / WeightSum, AutoBodyMinExtent * 2.0f);
+        OutEnd = Start + DirectionSum * AverageLength;
+        return true;
     }
 
     const FMatrix& GetGenerationBoneGlobalPose(
@@ -271,7 +545,12 @@ namespace
         }
 
         OutStart = GetMatrixTranslation(GetGenerationBoneGlobalPose(MeshAsset, OverrideBoneGlobalMatrices, MeshBoneIndex));
-        const int32 ChildIndex = FindFirstChildMeshBoneIndex(MeshAsset, MeshBoneIndex);
+        if (TryBuildAveragedChildAxisSegment(MeshAsset, OverrideBoneGlobalMatrices, MeshBoneIndex, OutStart, OutEnd))
+        {
+            return true;
+        }
+
+        const int32 ChildIndex = FindBestAxisChildMeshBoneIndex(MeshAsset, OverrideBoneGlobalMatrices, MeshBoneIndex);
         if (ChildIndex >= 0)
         {
             OutEnd = GetMatrixTranslation(GetGenerationBoneGlobalPose(MeshAsset, OverrideBoneGlobalMatrices, ChildIndex));
@@ -909,6 +1188,160 @@ namespace
         }
     }
 
+    float Clamp01(float Value)
+    {
+        return (std::min)((std::max)(Value, 0.0f), 1.0f);
+    }
+
+    float DistancePointToSegment(const FVector& Point, const FVector& SegmentStart, const FVector& SegmentEnd)
+    {
+        const FVector Segment = SegmentEnd - SegmentStart;
+        const float SegmentLengthSq = Segment.Dot(Segment);
+        if (SegmentLengthSq <= 1.0e-8f)
+        {
+            return FVector::Distance(Point, SegmentStart);
+        }
+
+        const float T = Clamp01((Point - SegmentStart).Dot(Segment) / SegmentLengthSq);
+        const FVector ClosestPoint = SegmentStart + Segment * T;
+        return FVector::Distance(Point, ClosestPoint);
+    }
+
+    FVector ComputeWeightedMean(const TArray<FVector>& Points, const TArray<float>& PointWeights)
+    {
+        FVector Mean = FVector::ZeroVector;
+        float TotalWeight = 0.0f;
+        for (int32 PointIndex = 0; PointIndex < static_cast<int32>(Points.size()); ++PointIndex)
+        {
+            const float Weight = GetPointPCAWeight(PointWeights, PointIndex);
+            if (Weight <= 0.0f)
+            {
+                continue;
+            }
+            Mean += Points[PointIndex] * Weight;
+            TotalWeight += Weight;
+        }
+
+        return TotalWeight > 1.0e-8f ? Mean / TotalWeight : FVector::ZeroVector;
+    }
+
+    float EstimateCapsuleRadiusAroundSegment(
+        const TArray<FVector>& Points,
+        const TArray<float>& PointWeights,
+        const FVector& SegmentStart,
+        const FVector& SegmentEnd,
+        float SegmentLength)
+    {
+        float WeightedDistance = 0.0f;
+        float MaxDistance = 0.0f;
+        float WeightSum = 0.0f;
+        for (int32 PointIndex = 0; PointIndex < static_cast<int32>(Points.size()); ++PointIndex)
+        {
+            const float Weight = GetPointPCAWeight(PointWeights, PointIndex);
+            if (Weight <= 0.0f)
+            {
+                continue;
+            }
+
+            const float Distance = DistancePointToSegment(Points[PointIndex], SegmentStart, SegmentEnd);
+            WeightedDistance += Distance * Weight;
+            MaxDistance = (std::max)(MaxDistance, Distance);
+            WeightSum += Weight;
+        }
+
+        const float BoneLengthRadius = (std::max)(SegmentLength * AutoBodyFallbackRadiusRatio, AutoBodyMinExtent);
+        if (WeightSum <= 1.0e-6f)
+        {
+            return BoneLengthRadius;
+        }
+
+        const float MeanDistance = WeightedDistance / WeightSum;
+        const float PointRadius = (std::max)(MeanDistance * 1.35f, AutoBodyMinExtent);
+        return (std::min)((std::max)(PointRadius, BoneLengthRadius * 0.50f), BoneLengthRadius * 1.75f);
+    }
+
+    void BuildSkeletonSegmentAutoBodyFit(
+        const TArray<FVector>& Points,
+        const TArray<float>& PointWeights,
+        const FVector& SegmentStart,
+        const FVector& SegmentEnd,
+        FAutoBodyFitResult& OutFit)
+    {
+        FVector AxisX;
+        FVector AxisY;
+        FVector AxisZ;
+        BuildBasisFromZAxis(SegmentEnd - SegmentStart, AxisX, AxisY, AxisZ);
+
+        const float SegmentLength = (std::max)(FVector::Distance(SegmentStart, SegmentEnd), AutoBodyMinExtent * 2.0f);
+        const float Radius = EstimateCapsuleRadiusAroundSegment(Points, PointWeights, SegmentStart, SegmentEnd, SegmentLength);
+        OutFit.BodyComponentTransform.Location = (SegmentStart + SegmentEnd) * 0.5f;
+        OutFit.BodyComponentTransform.Rotation = MakeQuatFromLocalAxes(AxisX, AxisY, AxisZ);
+        OutFit.BodyComponentTransform.Scale = FVector::OneVector;
+        OutFit.BoxHalfExtent = FVector(Radius, Radius, SegmentLength * 0.5f);
+        OutFit.CapsuleRadius = Radius;
+        OutFit.CapsuleHalfHeight = (std::max)(SegmentLength * 0.5f, Radius + AutoBodyMinExtent);
+    }
+
+    bool ShouldForceSkeletonSegmentFit(
+        const TArray<FVector>& Points,
+        const TArray<float>& PointWeights,
+        const FVector& SegmentStart,
+        const FVector& SegmentEnd)
+    {
+        const float SegmentLength = FVector::Distance(SegmentStart, SegmentEnd);
+        if (SegmentLength <= AutoBodyMinExtent * 2.0f)
+        {
+            return false;
+        }
+
+        if (Points.empty())
+        {
+            return true;
+        }
+
+        const FVector Mean = ComputeWeightedMean(Points, PointWeights);
+        const float MeanDistance = DistancePointToSegment(Mean, SegmentStart, SegmentEnd);
+        const float AllowedDistance = (std::max)(SegmentLength * 0.85f, AutoBodyMinExtent * 4.0f);
+        if (MeanDistance > AllowedDistance)
+        {
+            return true;
+        }
+
+        int32 FarPointCount = 0;
+        float WeightSum = 0.0f;
+        float FarWeightSum = 0.0f;
+        for (int32 PointIndex = 0; PointIndex < static_cast<int32>(Points.size()); ++PointIndex)
+        {
+            const float Weight = GetPointPCAWeight(PointWeights, PointIndex);
+            WeightSum += Weight;
+            const float Distance = DistancePointToSegment(Points[PointIndex], SegmentStart, SegmentEnd);
+            if (Distance > AllowedDistance)
+            {
+                ++FarPointCount;
+                FarWeightSum += Weight;
+            }
+        }
+
+        return FarPointCount > static_cast<int32>(Points.size()) / 2 ||
+            (WeightSum > 1.0e-6f && FarWeightSum > WeightSum * 0.55f);
+    }
+
+    bool IsFitCenterSuspiciousAgainstSegment(
+        const FAutoBodyFitResult& Fit,
+        const FVector& SegmentStart,
+        const FVector& SegmentEnd)
+    {
+        const float SegmentLength = FVector::Distance(SegmentStart, SegmentEnd);
+        if (SegmentLength <= AutoBodyMinExtent * 2.0f)
+        {
+            return false;
+        }
+
+        const float Distance = DistancePointToSegment(Fit.BodyComponentTransform.Location, SegmentStart, SegmentEnd);
+        const float AllowedDistance = (std::max)(SegmentLength * 0.75f, Fit.CapsuleRadius * 2.5f);
+        return Distance > AllowedDistance;
+    }
+
     bool BuildPCAAutoBodyFit(
         const TArray<FVector>& Points,
         const TArray<float>& PointWeights,
@@ -1038,24 +1471,24 @@ namespace
             return false;
         }
 
+        if (ShouldForceSkeletonSegmentFit(Points, PointWeights, SegmentStart, SegmentEnd))
+        {
+            BuildSkeletonSegmentAutoBodyFit(Points, PointWeights, SegmentStart, SegmentEnd, OutFit);
+            return true;
+        }
+
         FVector AxisX;
         FVector AxisY;
         FVector AxisZ;
         BuildBasisFromZAxis(SegmentEnd - SegmentStart, AxisX, AxisY, AxisZ);
 
-        if (FitCapsuleToPointsOnBasis(Points, PointWeights, SegmentStart, AxisX, AxisY, AxisZ, OutFit))
+        if (FitCapsuleToPointsOnBasis(Points, PointWeights, SegmentStart, AxisX, AxisY, AxisZ, OutFit) &&
+            !IsFitCenterSuspiciousAgainstSegment(OutFit, SegmentStart, SegmentEnd))
         {
             return true;
         }
 
-        const float SegmentLength = (std::max)(FVector::Distance(SegmentStart, SegmentEnd), AutoBodyMinExtent * 2.0f);
-        const float Radius = (std::max)(SegmentLength * AutoBodyFallbackRadiusRatio, AutoBodyMinExtent);
-        OutFit.BodyComponentTransform.Location = (SegmentStart + SegmentEnd) * 0.5f;
-        OutFit.BodyComponentTransform.Rotation = MakeQuatFromLocalAxes(AxisX, AxisY, AxisZ);
-        OutFit.BodyComponentTransform.Scale = FVector::OneVector;
-        OutFit.BoxHalfExtent = FVector(Radius, Radius, (std::max)(SegmentLength * 0.5f, AutoBodyMinExtent));
-        OutFit.CapsuleRadius = Radius;
-        OutFit.CapsuleHalfHeight = (std::max)(SegmentLength * 0.5f, Radius + AutoBodyMinExtent);
+        BuildSkeletonSegmentAutoBodyFit(Points, PointWeights, SegmentStart, SegmentEnd, OutFit);
         return true;
     }
 
@@ -1073,9 +1506,17 @@ namespace
         FVector SegmentEnd;
         GetBoneAxisSegment(MeshAsset, OverrideBoneGlobalMatrices, MeshBoneIndex, SegmentStart, SegmentEnd);
         const FVector BoneAxis = SegmentEnd - SegmentStart;
+
+        if (ShouldForceSkeletonSegmentFit(Points, PointWeights, SegmentStart, SegmentEnd))
+        {
+            BuildSkeletonSegmentAutoBodyFit(Points, PointWeights, SegmentStart, SegmentEnd, OutFit);
+            return true;
+        }
+
         if (Method == EPhysicsAssetAutoBodyMethod::PCAAnalysis)
         {
-            if (BuildPCAAutoBodyFit(Points, PointWeights, BoneAxis, OutFit))
+            if (BuildPCAAutoBodyFit(Points, PointWeights, BoneAxis, OutFit) &&
+                !IsFitCenterSuspiciousAgainstSegment(OutFit, SegmentStart, SegmentEnd))
             {
                 return true;
             }

@@ -382,7 +382,7 @@ UVehicleWheelPoseComponent::FSceneWheelVisualPoseCache* UVehicleWheelPoseCompone
     NewCache.CenterOffsetLocal = VisualComponent->GetWorldMatrix().GetInverse().TransformPositionWithW(CurrentCenterWorld);
     NewCache.RestCenterLocal = TransformWorldPositionToChassisLocalNoScale(VehicleSnapshot, CurrentCenterWorld);
 
-    const FQuat CurrentWorldRotation = VisualComponent->GetWorldMatrix().ToQuat().GetNormalized();
+    const FQuat CurrentWorldRotation = VisualComponent->GetWorldMatrix().ToQuatWithoutScale().GetNormalized();
     NewCache.RestRotationLocal = (CurrentWorldRotation * VehicleSnapshot.ChassisWorldTransform.Rotation.Inverse()).GetNormalized();
 
     SceneWheelPoseCaches.push_back(NewCache);

@@ -1,4 +1,4 @@
-﻿#include "PhysicsAssetEditorWidget.h"
+#include "PhysicsAssetEditorWidget.h"
 
 #include "Asset/AssetRegistry.h"
 #include "Animation/Skeleton/Skeleton.h"
@@ -1901,6 +1901,12 @@ void FPhysicsAssetEditorWidget::RenderRegenerateBodiesControls(UPhysicsAsset* Ph
             ImGui::SetTooltip("When a bone has too few weighted vertices or PCA fails, generate a rough body from the bone axis instead of skipping it.");
         }
 
+        ImGui::Checkbox("Use Current Preview Pose", &bRegenerateUseCurrentPreviewPose);
+        if (ImGui::IsItemHovered())
+        {
+            ImGui::SetTooltip("Use the animated preview pose for generation. Leave this disabled to author the PhysicsAsset from the reference pose.");
+        }
+
         ImGui::SetNextItemWidth(120.0f);
         if (ImGui::InputFloat("Min Weight", &RegenerateMinInfluenceWeight, 0.0f, 0.0f, "%.2f"))
         {
@@ -3300,7 +3306,7 @@ void FPhysicsAssetEditorWidget::AddConstraintToSelectedParentBody(UPhysicsAsset*
 bool FPhysicsAssetEditorWidget::RegenerateBodies(UPhysicsAsset* PhysicsAsset, USkeletalMesh* PreviewMesh)
 {
     FPhysicsAssetAutoBodyGeneratorOptions Options;
-    Options.Method = (bRegenerateUsePCAAnalysis && !bRegenerateUseBoneAxis)
+    Options.Method = bRegenerateUsePCAAnalysis
         ? EPhysicsAssetAutoBodyMethod::PCAAnalysis
         : EPhysicsAssetAutoBodyMethod::BoneAxis;
     switch (RegeneratePrimitiveTypeIndex)
@@ -3329,7 +3335,9 @@ bool FPhysicsAssetEditorWidget::RegenerateBodies(UPhysicsAsset* PhysicsAsset, US
 
     TArray<FMatrix> CurrentBoneGlobalMatrices;
     const TArray<FMatrix>* OverrideBoneGlobalMatrices = nullptr;
-    if (PreviewSkeletalMeshComponent && PreviewSkeletalMeshComponent->GetSkeletalMesh() == PreviewMesh)
+    if (bRegenerateUseCurrentPreviewPose &&
+        PreviewSkeletalMeshComponent &&
+        PreviewSkeletalMeshComponent->GetSkeletalMesh() == PreviewMesh)
     {
         PreviewSkeletalMeshComponent->GetCurrentBoneGlobalMatrices(CurrentBoneGlobalMatrices);
         if (!CurrentBoneGlobalMatrices.empty())
