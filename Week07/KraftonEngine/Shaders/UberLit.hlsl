@@ -1,0 +1,172 @@
+#include "Common/Functions.hlsl"
+#include "Common/VertexLayouts.hlsl"
+#include "Common/ConstantBuffers.hlsl"
+
+#if !defined(LIGHTING_MODEL_GOURAUD) && !defined(LIGHTING_MODEL_LAMBERT) && !defined(LIGHTING_MODEL_PHONG) && !defined(LIGHTING_MODEL_UNLIT)
+#define LIGHTING_MODEL_UNLIT 1
+#endif
+
+Texture2D g_txColor : register(t0);
+Texture2D g_txNormal : register(t1);
+SamplerState g_Sample : register(s0);
+
+PS_Lighting VS(VS_Input_PNCT input)
+{
+    PS_Lighting output = (PS_Lighting) 0;
+    
+    output.position = ApplyMVP(input.position);
+    output.worldPosition = mul(float4(input.position, 1.0f), Model).xyz;
+    output.texCoord = input.texcoord;
+    
+    output.worldNormal = normalize(mul(input.normal, (float3x3) NormalMatrix));
+    float3 worldTanXYZ = normalize(mul(input.tangent.xyz, (float3x3) Model));
+    output.worldTangent = float4(worldTanXYZ, input.tangent.w);
+    output.color = input.color;
+
+// 구루 쉐이딩 (VS 단계이므로 타일 컬링 없이 _NoTile 함수 사용)
+#if LIGHTING_MODEL_GOURAUD
+    float3 AmbientColor = Ambient.LightColor.rgb * ka.rgb;
+    float shininess = SpecularRoughness;
+    
+    LightingResult totalLighting = (LightingResult)0;
+    LightingResult tempLighting = (LightingResult)0;
+    
+    tempLighting = ComputeDirectionalLight_BlinnPhong(CameraPosition.xyz, output.worldPosition, output.worldNormal, shininess);
+    totalLighting.Diffuse += tempLighting.Diffuse;
+    totalLighting.Specular += tempLighting.Specular;
+    
+    tempLighting = ComputeLocalLight_BlinnPhong_NoTile(CameraPosition.xyz, output.worldPosition, output.worldNormal, shininess);
+    totalLighting.Diffuse += tempLighting.Diffuse;
+    totalLighting.Specular += tempLighting.Specular;
+    
+    output.vertexLighting = AmbientColor + totalLighting.Diffuse + (totalLighting.Specular * SpecularIntensity * ks.rgb);
+#endif
+    
+    return output;
+}
+
+float4 PS(PS_Lighting input) : SV_TARGET
+{
+    float4 finalColor = float4(1.0f, 0.0f, 1.0f, 1.0f);
+    float2 texCoord = input.texCoord;
+    if (bClampUVToUnit != 0)
+    {
+        if (texCoord.x < 0.0f || texCoord.x > 1.0f || texCoord.y < 0.0f || texCoord.y > 1.0f)
+        {
+            discard;
+        }
+        texCoord = saturate(texCoord);
+    }
+
+    float4 texColor = g_txColor.Sample(g_Sample, texCoord) * SectionColor;
+    // Opaque pass에서는 반투명을 블렌딩할 수 없으므로,
+    // GeometryDecal cutout 경로는 알파 임계값 기반으로 잘라낸다.
+    if (bAlphaCutout != 0 && texColor.a <= 1e-4f)
+    {
+        discard;
+    }
+    float3 worldNormal = normalize(input.worldNormal);
+    
+    if (bHasNormalMap != 0)
+        worldNormal = GetWorldNormal(input, g_txNormal, g_Sample);
+    
+#if VIEWMODE_NORMAL
+    return float4(worldNormal * 0.5f + 0.5f, 1.0f);
+#endif
+    
+    LightingResult totalLighting = (LightingResult) 0;
+    LightingResult tempLighting = (LightingResult) 0;
+    
+// 고로 쉐이딩
+#if LIGHTING_MODEL_GOURAUD
+    finalColor = texColor * input.color * float4(input.vertexLighting, 1.0f);
+    
+// 램버트 쉐이딩 (PS 단계이므로 input.position.xy 를 넘겨 타일 컬링 적용)
+#elif LIGHTING_MODEL_TOON
+    tempLighting = ComputeDirectionalLight_Toon(worldNormal);
+    totalLighting.Diffuse += tempLighting.Diffuse;
+    
+    tempLighting = ComputeLocalLight_Toon(input.worldPosition, worldNormal, input.position.xy);
+    totalLighting.Diffuse += tempLighting.Diffuse;
+    
+    
+    float3 albedo = texColor.rgb * input.color.rgb;
+    float3 ambient = Ambient.LightColor.rgb * ka.rgb * albedo;
+    float3 diffuse  = totalLighting.Diffuse * albedo;
+    float3 final = ambient + diffuse;
+    finalColor = float4(final, input.color.a * texColor.a);
+    
+// 블린 폰 쉐이딩 (PS 단계이므로 input.position.xy 를 넘겨 타일 컬링 적용)
+#elif LIGHTING_MODEL_LAMBERT
+    tempLighting = ComputeDirectionalLight_Lambert(worldNormal);
+    totalLighting.Diffuse += tempLighting.Diffuse;
+    
+    tempLighting = ComputeLocalLight_Lambert(input.worldPosition, worldNormal, input.position.xy);
+    totalLighting.Diffuse += tempLighting.Diffuse;
+    
+    float3 albedo = texColor.rgb * input.color.rgb;
+    float3 ambient = Ambient.LightColor.rgb * ka.rgb * albedo;
+    float3 diffuse  = totalLighting.Diffuse * albedo;
+    float3 final = ambient + diffuse;
+    finalColor = float4(final, input.color.a * texColor.a);
+    
+// 블린 폰 쉐이딩 (PS 단계이므로 input.position.xy 를 넘겨 타일 컬링 적용)
+#elif LIGHTING_MODEL_PHONG
+    float shininess = SpecularRoughness;
+    
+    tempLighting = ComputeDirectionalLight_BlinnPhong(CameraPosition.xyz, input.worldPosition, worldNormal, shininess);
+    totalLighting.Diffuse += tempLighting.Diffuse;
+    totalLighting.Specular += tempLighting.Specular;
+    
+    tempLighting = ComputeLocalLight_BlinnPhong(CameraPosition.xyz, input.worldPosition, worldNormal, shininess, input.position.xy);
+    totalLighting.Diffuse += tempLighting.Diffuse;
+    totalLighting.Specular += tempLighting.Specular;
+    
+    float3 albedo = texColor.rgb * input.color.rgb;
+    float3 ambient = Ambient.LightColor.rgb * ka.rgb * albedo;
+    float3 diffuse = totalLighting.Diffuse * albedo;
+    float3 specular = totalLighting.Specular * SpecularIntensity * ks.rgb;
+    
+    float3 final = ambient + diffuse + specular;
+    finalColor = float4(final, input.color.a * texColor.a);
+    
+ // 언릿 (조명 없음)
+#elif LIGHTING_MODEL_UNLIT
+    finalColor = texColor * input.color;
+#endif
+    
+    if (bDebugLightCulling != 0)
+    {
+        uint2 pixelPos = uint2(input.position.xy);
+        uint numTilesX = (uint) (ScreenWidth + 15) / 16;
+        uint tileIndex = (pixelPos.y / 16) * numTilesX + (pixelPos.x / 16);
+
+        // [수정] 통합 Grid에서 타일/클러스터 카운트 읽어오기
+        uint index1D = tileIndex;
+        if (bUseClusteredLightCulling != 0)
+        {
+            float viewZ = mul(float4(input.worldPosition, 1.0f), View).z;
+            uint zSlice = (uint) clamp(log2(viewZ) * ClusterScale + ClusterBias, 0, 23);
+            index1D = tileIndex * 24 + zSlice;
+        }
+        
+        // y값에 조명 개수(Count)가 들어있음
+        uint totalLights = LocalLightGrid[index1D].y;
+
+        float maxLights = 16.0f;
+        float ratio = saturate((float) totalLights / maxLights);
+
+        float3 heatColor = float3(ratio, 1.0f - abs(ratio - 0.5f) * 2.0f, 1.0f - ratio);
+        if (pixelPos.x % 16 == 0 || pixelPos.y % 16 == 0)
+        {
+            heatColor = float3(0.5f, 0.5f, 0.5f);
+        }
+
+        if (totalLights == 0)
+            heatColor = finalColor.rgb;
+            
+        return float4(heatColor, 1.0f);
+    }
+    
+    return finalColor;
+}
