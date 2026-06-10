@@ -1,0 +1,55 @@
+/* ============================================================
+   Pause overlay — shown over the frozen gameplay scene.
+   Mirrors the Options overlay: a full-screen dim that also captures
+   clicks so the paused game underneath can't be hit.
+   Font "Serpentine" is registered in C++ (UIManager.cpp).
+   ============================================================ */
+
+/* Dimmer than Options (210 vs 180) so the UI_HALT image's black
+   border blends into the dim and only the yellow ink reads. */
+body#pause-screen {
+    width: 100%;
+    height: 100%;
+    font-family: Serpentine;
+    background-color: rgba(0, 0, 0, 210);
+}
+
+#pause-panel {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 600px;
+    height: 540px;
+    margin-left: -300px;   /* -half width  -> horizontal center */
+    margin-top: -270px;    /* -half height -> vertical center   */
+    text-align: center;
+}
+
+/* 停止 heading — source PNG is square. */
+#pause-title {
+    display: block;
+    width: 360px;
+    height: 360px;
+    margin-left: auto;
+    margin-right: auto;
+    decorator: image("../Texture/Flow/UI_HALT.png");
+}
+
+/* Text buttons — same look as the Options Back button. */
+.text-btn {
+    display: block;
+    width: 360px;
+    margin-top: 24px;
+    margin-left: auto;
+    margin-right: auto;    /* auto margins -> horizontal center */
+    height: 48px;
+    padding-top: 8px;
+    text-align: center;
+    font-size: 28px;
+    color: #e8e8e8;
+    cursor: pointer;
+}
+
+.text-btn:hover {
+    color: #ffcc00;
+}

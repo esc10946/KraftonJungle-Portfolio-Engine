@@ -1,0 +1,13 @@
+<rml>
+<head>
+    <title>Revive</title>
+    <link type="text/rcss" href="Revive.rcss"/>
+</head>
+<body id="revive-screen">
+    <!-- Transient flourish on revive: pops in at full alpha, then fades out
+         while dilating. Driven by GameFlowController (opacity + transform). -->
+    <div id="revive-panel">
+        <div id="revive-icon"></div>
+    </div>
+</body>
+</rml>

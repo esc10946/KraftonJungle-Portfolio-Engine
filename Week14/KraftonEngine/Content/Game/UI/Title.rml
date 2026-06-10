@@ -1,0 +1,18 @@
+<rml>
+<head>
+    <title>Title</title>
+    <link type="text/rcss" href="Title.rcss"/>
+</head>
+<body id="title-screen">
+    <div id="menu">
+        <!-- Text labels are baked into the button PNGs, so these are empty hit areas.
+             Order top -> bottom: Start, Options, Controls, Credits, Exit. -->
+        <div class="title-btn" id="start_btn"></div>
+        <div class="title-btn" id="options_btn"></div>
+        <div class="title-btn" id="controls_btn"></div>
+        <div class="title-btn" id="credits_btn"></div>
+        <div class="title-btn" id="exit_btn"></div>
+    </div>
+
+</body>
+</rml>

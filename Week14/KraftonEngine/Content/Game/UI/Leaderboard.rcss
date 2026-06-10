@@ -1,0 +1,166 @@
+/* ============================================================
+   Leaderboard overlay — layered above the victory / death overlay.
+   #lb-dim is a full-screen black sheet; #lb-panel holds the title, the ranked
+   list and (submit mode only) the initials picker. Same button look + Serpentine
+   font as the other Flow overlays. GameFlowController fills the row cells and
+   toggles #lb-entry between submit (block) and view (none).
+   ============================================================ */
+
+body#lb-screen {
+    width: 100%;
+    height: 100%;
+    font-family: Serpentine;
+}
+
+#lb-dim {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #000000;
+    opacity: 0.92;   /* heavy dim so the list text reads cleanly over the scene */
+}
+
+#lb-panel {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 720px;
+    height: 760px;
+    margin-left: -360px;   /* -half width  -> horizontal center */
+    margin-top: -380px;    /* -half height -> vertical center   */
+    text-align: center;
+}
+
+#lb-title {
+    font-size: 44px;
+    color: #ffcc00;
+    margin-bottom: 24px;
+}
+
+/* ---- Ranked list ---- */
+#lb-list {
+    width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.lb-head, .lb-row {
+    display: block;
+    width: 100%;
+    height: 36px;
+    font-size: 24px;
+    color: #e8e8e8;
+}
+
+/* Data rows hold YOZAKURA-only content in the time/revive columns. YOZAKURA's
+   glyphs sit smaller in the em box than Serpentine, so bump those columns ~1.5x
+   (24 -> 36) and give the row room. Header (.lb-head) is excluded so its labels
+   stay sized with the Serpentine column titles. Bottom-align so the larger
+   numbers share a baseline with the Serpentine name column. */
+.lb-row { height: 56px; }
+.lb-row .lb-rank, .lb-row .lb-name, .lb-row .lb-time, .lb-row .lb-rev {
+    vertical-align: bottom;
+}
+.lb-row .lb-rank { font-size: 34px; }              /* rank digit */
+.lb-row .lb-time, .lb-row .lb-rev { font-size: 46px; }  /* time / revive numbers */
+
+.lb-head {
+    color: #888888;
+    font-size: 20px;
+    border-bottom: 2px #444444;
+    margin-bottom: 6px;
+}
+
+/* Fixed-width columns so cells line up despite the proportional font. */
+.lb-rank { display: inline-block; width: 60px;  text-align: center; }
+.lb-name { display: inline-block; width: 160px; text-align: center; }
+.lb-time { display: inline-block; width: 200px; text-align: center; }
+/* margin-left separates the revive column from time so they don't read as one
+   string. Widths + this margin total 620 < the 640 list width. Applies to the
+   header label and data cells alike, so the column stays aligned. */
+.lb-rev  { display: inline-block; width: 160px; margin-left: 40px; text-align: center; }
+
+/* ---- Name entry (submit mode) ---- */
+#lb-entry {
+    margin-top: 28px;
+    display: none;   /* GameFlowController flips this to block in submit mode */
+}
+
+#lb-entry-label {
+    font-size: 24px;
+    color: #888888;
+    margin-bottom: 8px;
+}
+
+#lb-initials {
+    display: block;
+    text-align: center;
+}
+
+.lb-slot {
+    display: inline-block;
+    width: 96px;
+    margin-left: 8px;
+    margin-right: 8px;
+    text-align: center;
+}
+
+.lb-arrow {
+    display: block;
+    height: 52px;
+    font-size: 48px;   /* +/- are YOZAKURA glyphs; ~1.5x so they match the letters */
+    color: #e8e8e8;
+    cursor: pointer;
+}
+
+.lb-arrow:hover {
+    color: #ffcc00;
+}
+
+.lb-letter {
+    display: block;
+    height: 64px;
+    padding-top: 6px;
+    font-size: 56px;
+    color: #ffcc00;
+}
+
+#lb-yourtime {
+    font-size: 22px;
+    color: #cccccc;
+    margin-top: 12px;
+}
+
+/* Inline YOZAKURA numbers inside the otherwise-Serpentine "your time" line.
+   GameFlowController wraps the time/revive values in <span class="lb-num">. */
+.lb-num {
+    font-size: 50px;   /* YOZAKURA numerals, scaled up against the 22px line */
+}
+
+/* Fixed-width spacer between the time and revive stats on the submit line —
+   RmlUi collapses literal whitespace, so a real element guarantees the gap. */
+.lb-gap {
+    display: inline-block;
+    width: 56px;
+}
+
+/* ---- Buttons (shared look with pause / death / victory) ---- */
+.text-btn {
+    display: block;
+    width: 360px;
+    margin-top: 24px;
+    margin-left: auto;
+    margin-right: auto;
+    height: 48px;
+    padding-top: 8px;
+    text-align: center;
+    font-size: 28px;
+    color: #e8e8e8;
+    cursor: pointer;
+}
+
+.text-btn:hover {
+    color: #ffcc00;
+}

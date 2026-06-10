@@ -1,0 +1,118 @@
+/* ============================================================
+   In-game HUD stylesheet
+   Expected location:
+   Content/UI/HUD.rcss
+
+   Image path assumption:
+   Content/Texture/HUD/SB_FE/
+   ============================================================ */
+
+body#hud-screen {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    display: block;
+    width: 100%;
+    height: 100%;
+    background-color: transparent;
+    font-family: Serpentine;
+}
+
+/* ============================================================
+   Enemy World-Space HUD Slots
+   ============================================================ */
+
+#enemy-bars {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.enemy-healthbar {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    display: none;
+    width: 120px;
+    height: 19px;
+}
+
+.enemy-health-bg {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    display: block;
+    width: 120px;
+    height: 10px;
+    background-color: rgba(20, 18, 18, 190);
+}
+
+.enemy-hp-mask {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    display: block;
+    width: 100%;
+    height: 10px;
+    overflow: hidden;
+    clip: always;
+}
+
+.enemy-hp-delay-mask {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    display: block;
+    width: 100%;
+    height: 10px;
+    overflow: hidden;
+    clip: always;
+}
+
+.enemy-hp-delay-fill {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    display: block;
+    width: 120px;
+    height: 10px;
+    decorator: image("../Texture/HUD/SB_FE/HealthBar_Delay.png" fill);
+}
+
+.enemy-hp-fill {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    display: block;
+    width: 120px;
+    height: 10px;
+    decorator: image("../Texture/HUD/SB_FE/HealthBar_Bright.png" fill);
+}
+
+/* Shared Player/Boss marker styles */
+.hp-marker {
+    position: absolute;
+    display: block;
+    decorator: image("../Texture/HUD/SB_FE/Marker_Bar.png" contain);
+}
+
+.hp-marker-center {
+    position: absolute;
+    left: 1px;
+    top: 3px;
+    display: block;
+    width: 80%;
+    height: 80%;
+    decorator: image("../Texture/HUD/SB_FE/Marker_Center.png" contain);
+}
+
+.posture-bg-marker {
+    position: absolute;
+    display: block;
+    width: 54px;
+    height: 28px;
+    decorator: image("../Texture/HUD/SB_FE/PostureBar_Marker.png" contain);
+}

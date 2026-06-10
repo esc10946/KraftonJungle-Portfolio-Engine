@@ -1,0 +1,119 @@
+/* ============================================================
+   Controls overlay — shown on top of the title screen.
+   Static control-reference page (keyboard/mouse + gamepad), grouped
+   by category. No form controls or SetText; all text baked in the RML.
+   Font "Serpentine" is registered in C++ (UIManager.cpp); reference
+   that name directly (the engine does not load @font-face fonts).
+   ============================================================ */
+
+/* Full-screen dim behind the panel; also captures clicks so the title
+   buttons underneath can't be hit while Controls is open. */
+body#controls-screen {
+    width: 100%;
+    height: 100%;
+    font-family: Serpentine;
+    background-color: rgba(0, 0, 0, 180);
+}
+
+/* Centered, frameless panel (matches Options). */
+#controls-panel {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 820px;
+    height: 700px;
+    margin-left: -410px;   /* -half width  -> horizontal center */
+    margin-top: -350px;    /* -half height -> vertical center   */
+}
+
+#controls-heading {
+    text-align: center;
+    color: #ffffff;
+    font-size: 56px;
+    margin-top: 16px;
+    margin-bottom: 12px;
+}
+
+/* One control row: action label + keyboard cell + gamepad cell, as
+   fixed-width inline-block columns (no reliance on RmlUi table layout). */
+.ctrl-row {
+    display: block;
+    height: 34px;
+    margin-top: 4px;
+}
+
+.ctrl-action {
+    display: inline-block;
+    width: 240px;
+    font-size: 24px;
+    color: #ffffff;
+}
+
+/* Binding-value cells render in YOZAKURA (the engine's fallback face, addressable
+   by its embedded family name) so the literal keys read distinctly from the
+   Serpentine labels/headers. YOZAKURA sits smaller in the em box, so size up a
+   touch (22 -> 26) to balance against the 24px Serpentine action labels. */
+.ctrl-key {
+    display: inline-block;
+    width: 300px;
+    font-family: YOZAKURA;
+    font-size: 34px;
+    color: #e8e8e8;
+}
+
+.ctrl-pad {
+    display: inline-block;
+    width: 280px;
+    font-family: YOZAKURA;
+    font-size: 34px;
+    color: #e8e8e8;
+}
+
+/* Column header row: accent the two column titles. Keep them in Serpentine
+   (override the YOZAKURA on .ctrl-key/.ctrl-pad) so headers match the labels. */
+.ctrl-head {
+    height: 30px;
+    margin-top: 8px;
+}
+
+.col-head {
+    font-family: Serpentine;
+    color: #ffcc00;
+    font-size: 28px;
+}
+
+/* Category subheading (MOVEMENT / COMBAT / SYSTEM). */
+.ctrl-section {
+    display: block;
+    margin-top: 22px;
+    margin-bottom: 6px;
+    font-size: 26px;
+    color: #ffcc00;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(255, 204, 0, 90);
+}
+
+/* Placeholder for a control with no binding yet (Execution / Pause on
+   gamepad). Dimmed so it reads as "intentionally unfilled". */
+.ctrl-tbd {
+    color: #666666;
+}
+
+/* Text-based Back button — no art needed (matches Options). */
+.text-btn {
+    display: block;
+    width: 320px;
+    margin-top: 36px;
+    margin-left: auto;
+    margin-right: auto;    /* auto margins -> horizontal center */
+    height: 48px;
+    padding-top: 8px;
+    text-align: center;
+    font-size: 28px;
+    color: #e8e8e8;
+    cursor: pointer;
+}
+
+.text-btn:hover {
+    color: #ffcc00;
+}

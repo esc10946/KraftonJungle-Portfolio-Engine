@@ -1,0 +1,59 @@
+/* ============================================================
+   Title screen stylesheet
+   Background: Content/Texture/GameScene/Title.png
+   Paths are resolved relative to this .rcss file's location
+   (Content/UI/), so assets are reached via ../
+   ============================================================ */
+
+/* Font family "Serpentine" is registered in C++ (UIManager.cpp); the engine
+   does not load fonts from @font-face, so reference that name directly. */
+
+/* Fullscreen background image */
+body#title-screen {
+    width: 100%;
+    height: 100%;
+    font-family: Serpentine;
+    decorator: image("../Texture/GameScene/Title/Title.png" cover);
+}
+
+/* Button column — bottom-middle of the screen, buttons stacked top-down.
+   Order (top -> bottom): Start, Options, Credits, Exit. */
+#menu {
+    position: absolute;
+    left: 50%;
+    bottom: 6%;
+    width: 360px;
+    margin-left: -180px;          /* center the 360px column */
+    display: block;
+}
+
+/* Shared button layout. Button art is 2508x627 (~4:1), so at 360px wide
+   the height is 360 / 4 = 90px to preserve aspect ratio. */
+.title-btn {
+    display: block;
+    width: 360px;
+    height: 90px;
+    margin-bottom: -15px;
+    cursor: pointer;
+}
+
+/* ---- START ---- */
+#start_btn          { decorator: image("../Texture/GameScene/Title/Title_Start.png"); }
+#start_btn:hover    { decorator: image("../Texture/GameScene/Title/Title_Start_Hovered.png"); }
+
+/* ---- OPTIONS ---- */
+#options_btn        { decorator: image("../Texture/GameScene/Title/Title_Options.png"); }
+#options_btn:hover  { decorator: image("../Texture/GameScene/Title/Title_Options_Hovered.png"); }
+
+/* ---- CONTROLS ---- */
+#controls_btn       { decorator: image("../Texture/GameScene/Title/Title_Controls.png"); }
+#controls_btn:hover { decorator: image("../Texture/GameScene/Title/Title_Controls_Hovered.png"); }
+
+/* ---- CREDITS ---- */
+#credits_btn        { decorator: image("../Texture/GameScene/Title/Title_Credits.png"); }
+#credits_btn:hover  { decorator: image("../Texture/GameScene/Title/Title_Credits_Hovered.png"); }
+
+/* ---- EXIT ---- */
+#exit_btn           { decorator: image("../Texture/GameScene/Title/Title_Exit.png"); }
+#exit_btn:hover     { decorator: image("../Texture/GameScene/Title/Title_Exit_Hovered.png"); }
+

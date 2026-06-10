@@ -1,0 +1,81 @@
+<rml>
+<head>
+    <title>Controls</title>
+    <link type="text/rcss" href="Controls.rcss"/>
+</head>
+<body id="controls-screen">
+    <!-- Overlay shown on top of the title. The body dims the title behind.
+         Static reference page: all text is baked here (no SetText needed). -->
+    <div id="controls-panel">
+        <div id="controls-heading">CONTROLS</div>
+
+        <!-- Column header -->
+        <div class="ctrl-row ctrl-head">
+            <span class="ctrl-action"></span>
+            <span class="ctrl-key col-head">KEYBOARD / MOUSE</span>
+            <span class="ctrl-pad col-head">GAMEPAD</span>
+        </div>
+
+        <!-- ── MOVEMENT ── -->
+        <div class="ctrl-section">MOVEMENT</div>
+        <div class="ctrl-row">
+            <span class="ctrl-action">Move</span>
+            <span class="ctrl-key">W A S D</span>
+            <span class="ctrl-pad">Left Stick</span>
+        </div>
+        <div class="ctrl-row">
+            <span class="ctrl-action">Camera</span>
+            <span class="ctrl-key">Mouse</span>
+            <span class="ctrl-pad">Right Stick</span>
+        </div>
+
+        <!-- ── COMBAT ── -->
+        <div class="ctrl-section">COMBAT</div>
+        <div class="ctrl-row">
+            <span class="ctrl-action">Attack</span>
+            <span class="ctrl-key">Left Mouse</span>
+            <span class="ctrl-pad">RB</span>
+        </div>
+        <div class="ctrl-row">
+            <span class="ctrl-action">Guard (hold)</span>
+            <span class="ctrl-key">Right Mouse</span>
+            <span class="ctrl-pad">LB</span>
+        </div>
+        <div class="ctrl-row">
+            <span class="ctrl-action">Deflect (tap)</span>
+            <span class="ctrl-key">Right Mouse</span>
+            <span class="ctrl-pad">LB</span>
+        </div>
+        <div class="ctrl-row">
+            <span class="ctrl-action">Execution</span>
+            <span class="ctrl-key">E</span>
+            <span class="ctrl-pad">RT</span>
+        </div>
+        <div class="ctrl-row">
+            <span class="ctrl-action">Lock-On</span>
+            <span class="ctrl-key">Middle Mouse</span>
+            <span class="ctrl-pad">R3</span>
+        </div>
+        <div class="ctrl-row">
+            <span class="ctrl-action">Switch Target</span>
+            <span class="ctrl-key">Mouse (L/R)</span>
+            <span class="ctrl-pad">Right Stick (L/R)</span>
+        </div>
+
+        <!-- ── SYSTEM ── -->
+        <div class="ctrl-section">SYSTEM</div>
+        <div class="ctrl-row">
+            <span class="ctrl-action">Pause</span>
+            <span class="ctrl-key">Esc</span>
+            <span class="ctrl-pad">Start</span>
+        </div>
+        <div class="ctrl-row">
+            <span class="ctrl-action">Revive</span>
+            <span class="ctrl-key">Q</span>
+            <span class="ctrl-pad">&mdash;</span>
+        </div>
+
+        <div id="back_btn" class="text-btn">RETURN TO TITLE</div>
+    </div>
+</body>
+</rml>

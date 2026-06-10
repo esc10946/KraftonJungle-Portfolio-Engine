@@ -1,0 +1,523 @@
+{
+  "format": "KraftonLuaBlueprint",
+  "version": 1,
+  "nodes": [
+    {
+      "id": 1,
+      "type": 0,
+      "displayName": "Event BeginPlay",
+      "pos": [
+        0.0,
+        0.0
+      ],
+      "nameValue": "DefaultSlot",
+      "stringValue": "",
+      "boolValue": false,
+      "intValue": 0,
+      "floatValue": 0.0,
+      "vector": [
+        0,
+        0,
+        0
+      ],
+      "pins": [
+        {
+          "id": 101,
+          "owningNodeId": 1,
+          "kind": 1,
+          "type": 0,
+          "displayName": "Then",
+          "defaultBool": false,
+          "defaultInt": 0,
+          "defaultFloat": 0.0,
+          "defaultString": "",
+          "defaultVector": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": 1,
+      "displayName": "Event Tick",
+      "pos": [
+        0.0,
+        260.0
+      ],
+      "nameValue": "DefaultSlot",
+      "stringValue": "",
+      "boolValue": false,
+      "intValue": 0,
+      "floatValue": 0.0,
+      "vector": [
+        0,
+        0,
+        0
+      ],
+      "pins": [
+        {
+          "id": 201,
+          "owningNodeId": 2,
+          "kind": 1,
+          "type": 0,
+          "displayName": "Then",
+          "defaultBool": false,
+          "defaultInt": 0,
+          "defaultFloat": 0.0,
+          "defaultString": "",
+          "defaultVector": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": 220,
+      "displayName": "Event PostStartMatch",
+      "pos": [
+        0.0,
+        520.0
+      ],
+      "nameValue": "DefaultSlot",
+      "stringValue": "",
+      "boolValue": false,
+      "intValue": 0,
+      "floatValue": 0.0,
+      "vector": [
+        0,
+        0,
+        0
+      ],
+      "pins": [
+        {
+          "id": 601,
+          "owningNodeId": 6,
+          "kind": 1,
+          "type": 0,
+          "displayName": "Then",
+          "defaultBool": false,
+          "defaultInt": 0,
+          "defaultFloat": 0.0,
+          "defaultString": "",
+          "defaultVector": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": 218,
+      "displayName": "Call BP_BeginPlay",
+      "pos": [
+        330.0,
+        0.0
+      ],
+      "nameValue": "BP_BeginPlay",
+      "stringValue": "",
+      "boolValue": false,
+      "intValue": 0,
+      "floatValue": 0.0,
+      "vector": [
+        0,
+        0,
+        0
+      ],
+      "pins": [
+        {
+          "id": 301,
+          "owningNodeId": 3,
+          "kind": 0,
+          "type": 0,
+          "displayName": "In",
+          "defaultBool": false,
+          "defaultInt": 0,
+          "defaultFloat": 0.0,
+          "defaultString": "",
+          "defaultVector": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "id": 302,
+          "owningNodeId": 3,
+          "kind": 0,
+          "type": 33,
+          "displayName": "Function",
+          "defaultBool": false,
+          "defaultInt": 0,
+          "defaultFloat": 0.0,
+          "defaultString": "",
+          "defaultVector": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "id": 303,
+          "owningNodeId": 3,
+          "kind": 0,
+          "type": 21,
+          "displayName": "FunctionName",
+          "defaultBool": false,
+          "defaultInt": 0,
+          "defaultFloat": 0.0,
+          "defaultString": "BP_BeginPlay",
+          "defaultVector": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "id": 304,
+          "owningNodeId": 3,
+          "kind": 1,
+          "type": 0,
+          "displayName": "Then",
+          "defaultBool": false,
+          "defaultInt": 0,
+          "defaultFloat": 0.0,
+          "defaultString": "",
+          "defaultVector": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "id": 305,
+          "owningNodeId": 3,
+          "kind": 1,
+          "type": 7,
+          "displayName": "Return",
+          "defaultBool": false,
+          "defaultInt": 0,
+          "defaultFloat": 0.0,
+          "defaultString": "",
+          "defaultVector": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "id": 306,
+          "owningNodeId": 3,
+          "kind": 1,
+          "type": 1,
+          "displayName": "Success",
+          "defaultBool": false,
+          "defaultInt": 0,
+          "defaultFloat": 0.0,
+          "defaultString": "",
+          "defaultVector": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": 218,
+      "displayName": "Call BP_Tick",
+      "pos": [
+        330.0,
+        260.0
+      ],
+      "nameValue": "BP_Tick",
+      "stringValue": "",
+      "boolValue": false,
+      "intValue": 0,
+      "floatValue": 0.0,
+      "vector": [
+        0,
+        0,
+        0
+      ],
+      "pins": [
+        {
+          "id": 401,
+          "owningNodeId": 4,
+          "kind": 0,
+          "type": 0,
+          "displayName": "In",
+          "defaultBool": false,
+          "defaultInt": 0,
+          "defaultFloat": 0.0,
+          "defaultString": "",
+          "defaultVector": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "id": 402,
+          "owningNodeId": 4,
+          "kind": 0,
+          "type": 33,
+          "displayName": "Function",
+          "defaultBool": false,
+          "defaultInt": 0,
+          "defaultFloat": 0.0,
+          "defaultString": "",
+          "defaultVector": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "id": 403,
+          "owningNodeId": 4,
+          "kind": 0,
+          "type": 21,
+          "displayName": "FunctionName",
+          "defaultBool": false,
+          "defaultInt": 0,
+          "defaultFloat": 0.0,
+          "defaultString": "BP_Tick",
+          "defaultVector": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "id": 404,
+          "owningNodeId": 4,
+          "kind": 1,
+          "type": 0,
+          "displayName": "Then",
+          "defaultBool": false,
+          "defaultInt": 0,
+          "defaultFloat": 0.0,
+          "defaultString": "",
+          "defaultVector": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "id": 405,
+          "owningNodeId": 4,
+          "kind": 1,
+          "type": 7,
+          "displayName": "Return",
+          "defaultBool": false,
+          "defaultInt": 0,
+          "defaultFloat": 0.0,
+          "defaultString": "",
+          "defaultVector": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "id": 406,
+          "owningNodeId": 4,
+          "kind": 1,
+          "type": 1,
+          "displayName": "Success",
+          "defaultBool": false,
+          "defaultInt": 0,
+          "defaultFloat": 0.0,
+          "defaultString": "",
+          "defaultVector": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": 218,
+      "displayName": "Call BP_PostStartMatch",
+      "pos": [
+        330.0,
+        520.0
+      ],
+      "nameValue": "BP_PostStartMatch",
+      "stringValue": "",
+      "boolValue": false,
+      "intValue": 0,
+      "floatValue": 0.0,
+      "vector": [
+        0,
+        0,
+        0
+      ],
+      "pins": [
+        {
+          "id": 701,
+          "owningNodeId": 7,
+          "kind": 0,
+          "type": 0,
+          "displayName": "In",
+          "defaultBool": false,
+          "defaultInt": 0,
+          "defaultFloat": 0.0,
+          "defaultString": "",
+          "defaultVector": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "id": 702,
+          "owningNodeId": 7,
+          "kind": 0,
+          "type": 33,
+          "displayName": "Function",
+          "defaultBool": false,
+          "defaultInt": 0,
+          "defaultFloat": 0.0,
+          "defaultString": "",
+          "defaultVector": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "id": 703,
+          "owningNodeId": 7,
+          "kind": 0,
+          "type": 21,
+          "displayName": "FunctionName",
+          "defaultBool": false,
+          "defaultInt": 0,
+          "defaultFloat": 0.0,
+          "defaultString": "BP_PostStartMatch",
+          "defaultVector": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "id": 704,
+          "owningNodeId": 7,
+          "kind": 1,
+          "type": 0,
+          "displayName": "Then",
+          "defaultBool": false,
+          "defaultInt": 0,
+          "defaultFloat": 0.0,
+          "defaultString": "",
+          "defaultVector": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "id": 705,
+          "owningNodeId": 7,
+          "kind": 1,
+          "type": 7,
+          "displayName": "Return",
+          "defaultBool": false,
+          "defaultInt": 0,
+          "defaultFloat": 0.0,
+          "defaultString": "",
+          "defaultVector": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        },
+        {
+          "id": 706,
+          "owningNodeId": 7,
+          "kind": 1,
+          "type": 1,
+          "displayName": "Success",
+          "defaultBool": false,
+          "defaultInt": 0,
+          "defaultFloat": 0.0,
+          "defaultString": "",
+          "defaultVector": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": 217,
+      "displayName": "BP Runtime Source",
+      "pos": [
+        720.0,
+        -80.0
+      ],
+      "nameValue": "BP_RuntimeSource",
+      "stringValue": "-- Generated runtime for Content/Blueprint/BossIntroDirectorBP.uasset.\n-- BP-only intro director. It never disables player input; previous input lock came from Game.EnterCutscene.\n__events = { BeginPlay = true, PostBeginPlay = false, Tick = true, PostStartMatch = true, OnPlayerCameraReady = false, EndPlay = false, OnOverlap = false, OnEndOverlap = false, OnHit = false, OnEndHit = false }\n\nlocal INTRO_TIME        = 3.0\nlocal STOP_SHORT        = 13.0\nlocal MAX_WALK_DISTANCE = 1.2\nlocal KATANA    = \"Content/Data/FGJ_Character/Weapon/Katana_StaticMesh.uasset\"\nlocal BOSS_WALK = \"Content/Data/Samura2/source/Standing Walk Forward_mixamo_com.uasset\"\nlocal BOSS_IDLE = \"Content/Data/Samura2/source/Standing Idle_mixamo_com.uasset\"\nlocal HAND_BONES = { \"hand_r\", \"RightHand\", \"mixamorig:RightHand\", \"weapon_r\" }\n\nlocal boss, player, cine\nlocal t = 0.0\nlocal started = false\nlocal setup_done = false\nlocal handed_off = false\nlocal walk_from, walk_to\n\nlocal function dbg(m) if print then print(\"[BossIntroBP] \" .. tostring(m)) end end\nlocal function first_by_tag(tag)\n    if World and World.FindActorsByTag then local l = World.FindActorsByTag(tag); if l and #l > 0 then return l[1] end end\n    return nil\nend\nlocal function first_by_class(cn)\n    if World and World.FindActorsByClass then local l = World.FindActorsByClass(cn); if l and #l > 0 then return l[1] end end\n    return nil\nend\nlocal function rcall(o, fn, ...) if o and Reflection and Reflection.Call then return Reflection.Call(o, fn, ...) end return nil end\nlocal function lerp(a,b,s) return a + (b-a)*s end\nlocal function ensure_player_possessed()\n    pcall(function()\n        player = player or first_by_tag(\"Player\") or first_by_class(\"ALuaCharacter\")\n        if World and World.GetFirstPlayerController and player then\n            local pc = World.GetFirstPlayerController()\n            if pc and pc.GetPossessedPawn and pc:GetPossessedPawn() ~= player then pc:Possess(player) end\n        end\n    end)\nend\nfunction BeginPlay()\n    started = true\n    ensure_player_possessed()\n    -- Ensure stale cutscene locks from earlier builds are cleared if this scene was hot-reloaded.\n    if Game and Game.ExitCutscene then Game.ExitCutscene() end\nend\nfunction PostStartMatch()\n    started = true\n    ensure_player_possessed()\n    if Game and Game.ExitCutscene then Game.ExitCutscene() end\nend\nlocal function do_setup()\n    setup_done = true\n    player = player or first_by_tag(\"Player\") or first_by_class(\"ALuaCharacter\")\n    if Combat and Combat.SetTeam and boss then Combat.SetTeam(boss, 2) end\n    local attached = false\n    if Equipment and Equipment.AttachStaticMeshToBone and boss then\n        for _, bone in ipairs(HAND_BONES) do\n            local w = Equipment.AttachStaticMeshToBone(boss, KATANA, bone, Vec3(1.0,1.0,1.0))\n            if w ~= nil then attached = true; break end\n        end\n    end\n    if Animation and Animation.PlayOnActor and boss then Animation.PlayOnActor(boss, BOSS_WALK, true) end\n    pcall(function()\n        local p = boss.Location\n        walk_from = Vec3(p.X,p.Y,p.Z); walk_to = Vec3(p.X,p.Y,p.Z)\n        if player then\n            local pp = player.Location\n            local dx,dy = pp.X-p.X, pp.Y-p.Y\n            local d = math.sqrt(dx*dx+dy*dy)\n            if d > 0.001 then\n                local move = math.min(math.max(0.0, d-STOP_SHORT), MAX_WALK_DISTANCE)\n                local k = move / d\n                walk_to = Vec3(p.X + dx*k, p.Y + dy*k, p.Z)\n            end\n        end\n    end)\n    cine = first_by_tag(\"CinematicIntro\") or first_by_class(\"ACameraCinematicActor\")\n    if cine then rcall(cine,\"Play\") end\n    dbg(\"setup: player=\" .. tostring(player ~= nil) .. \" boss=\" .. tostring(boss ~= nil) .. \" katana=\" .. tostring(attached))\nend\nfunction Tick(dt)\n    if not started or handed_off then return end\n    ensure_player_possessed()\n    if not boss then boss = first_by_tag(\"Boss\") or first_by_class(\"ABossEnemyCharacter\") end\n    if boss and not setup_done then do_setup() end\n    t = t + (dt or 0.0)\n    if boss and walk_from and walk_to and t < INTRO_TIME then\n        pcall(function()\n            local s = math.min(1.0, t / INTRO_TIME)\n            boss.Location = Vec3(lerp(walk_from.X,walk_to.X,s), lerp(walk_from.Y,walk_to.Y,s), lerp(walk_from.Z,walk_to.Z,s))\n        end)\n    end\n    if t >= INTRO_TIME then\n        handed_off = true\n        if Game and Game.ExitCutscene then Game.ExitCutscene() end\n        if cine then rcall(cine,\"Stop\") end\n        if boss then\n            if Animation and Animation.PlayOnActor then Animation.PlayOnActor(boss, BOSS_IDLE, true) end\n            if Combat and Combat.SetTeam then Combat.SetTeam(boss, 2) end\n        end\n    end\nend\n",
+      "boolValue": false,
+      "intValue": 0,
+      "floatValue": 0.0,
+      "vector": [
+        0,
+        0,
+        0
+      ],
+      "pins": [
+        {
+          "id": 501,
+          "owningNodeId": 5,
+          "kind": 1,
+          "type": 33,
+          "displayName": "Function",
+          "defaultBool": false,
+          "defaultInt": 0,
+          "defaultFloat": 0.0,
+          "defaultString": "",
+          "defaultVector": [
+            0.0,
+            0.0,
+            0.0
+          ]
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "id": 900,
+      "from": 101,
+      "to": 301
+    },
+    {
+      "id": 901,
+      "from": 201,
+      "to": 401
+    },
+    {
+      "id": 902,
+      "from": 601,
+      "to": 701
+    }
+  ],
+  "variables": []
+}
