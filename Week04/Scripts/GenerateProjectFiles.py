@@ -1,6 +1,6 @@
 """
 GenerateProjectFiles.py — Auto-generate .vcxproj, .vcxproj.filters
-for KraftonEngine from the on-disk folder structure.
+for W3_Jungle_Team6 from the on-disk folder structure.
 
 Usage:
     python Scripts/GenerateProjectFiles.py
@@ -16,7 +16,7 @@ from pathlib import Path
 # ──────────────────────────────────────────────
 ROOT = Path(__file__).resolve().parent.parent
 
-PROJECT_NAME = "KraftonEngine"
+PROJECT_NAME = "W4_Jungle_Team4"
 PROJECT_DIR = ROOT / PROJECT_NAME
 PROJECT_GUID = "{55068e81-c0a0-49f9-ab7b-54aea968722b}"
 ROOT_NAMESPACE = "Week2"
@@ -29,19 +29,7 @@ CONFIGURATIONS = [
     ("Release", "Win32"),
     ("Debug", "x64"),
     ("Release", "x64"),
-    ("ObjViewDebug", "x64"),
 ]
-
-# Per-configuration overrides (base is derived from the name)
-#   "release_like"  : True = Release optimizations, False = Debug
-#   "extra_defines" : additional preprocessor definitions
-#   "subsystem"     : override link subsystem (default: per-platform)
-CONFIG_PROPS = {
-    "ObjViewDebug": {
-        "release_like": True,
-        "extra_defines": ["IS_OBJ_VIEWER=1"],
-    },
-}
 
 # Directories to recursively scan for source files
 SCAN_DIRS = ["Source", "ThirdParty"]
@@ -56,8 +44,6 @@ SHADER_EXTS = {".hlsl", ".hlsli"}
 NATVIS_EXTS = {".natvis"}
 NONE_EXTS = {".natstepfilter", ".config"}
 
-RC_EXTS = {".rc"}
-
 # Root-level files to include (relative to project dir)
 ROOT_FILES = ["main.cpp"]
 
@@ -68,7 +54,6 @@ INCLUDE_PATHS = [
     "ThirdParty",
     "ThirdParty\\ImGui",
     "Source\\Editor",
-    "Source\\ObjViewer",
     ".",
 ]
 
@@ -88,7 +73,7 @@ NS = "http://schemas.microsoft.com/developer/msbuild/2003"
 # ──────────────────────────────────────────────
 def scan_files(project_dir: Path) -> dict[str, list[str]]:
     """Scan directories and collect files grouped by type."""
-    result = {"ClCompile": [], "ClInclude": [], "FxCompile": [], "ResourceCompile": [], "Natvis": [], "None": []}
+    result = {"ClCompile": [], "ClInclude": [], "FxCompile": [], "Natvis": [], "None": []}
 
     # Scan source/header directories
     for scan_dir in SCAN_DIRS:
@@ -131,11 +116,6 @@ def scan_files(project_dir: Path) -> dict[str, list[str]]:
         full = project_dir / root_file
         if full.exists():
             result["ClCompile"].append(root_file.replace("/", "\\"))
-
-    # Add root-level .rc files
-    for f in sorted(project_dir.glob("*.rc")):
-        rel_str = f.name
-        result["ResourceCompile"].append(rel_str)
 
     return result
 
@@ -217,10 +197,9 @@ def generate_vcxproj(files: dict[str, list[str]]):
 
     # Configuration properties
     for cfg, plat in CONFIGURATIONS:
-        props = CONFIG_PROPS.get(cfg, {})
         cond = f"'$(Configuration)|$(Platform)'=='{cfg}|{plat}'"
         pg = ET.SubElement(proj, "PropertyGroup", Condition=cond, Label="Configuration")
-        is_release = props.get("release_like", cfg == "Release")
+        is_release = cfg == "Release"
         ET.SubElement(pg, "ConfigurationType").text = "Application"
         ET.SubElement(pg, "UseDebugLibraries").text = "false" if is_release else "true"
         ET.SubElement(pg, "PlatformToolset").text = "v143"
@@ -257,13 +236,12 @@ def generate_vcxproj(files: dict[str, list[str]]):
 
     # ItemDefinitionGroups
     for cfg, plat in CONFIGURATIONS:
-        props = CONFIG_PROPS.get(cfg, {})
         cond = f"'$(Configuration)|$(Platform)'=='{cfg}|{plat}'"
         idg = ET.SubElement(proj, "ItemDefinitionGroup", Condition=cond)
         cl = ET.SubElement(idg, "ClCompile")
         ET.SubElement(cl, "WarningLevel").text = "Level3"
 
-        is_release = props.get("release_like", cfg == "Release")
+        is_release = cfg == "Release"
         is_win32 = plat == "Win32"
         is_x64 = plat == "x64"
 
@@ -273,26 +251,21 @@ def generate_vcxproj(files: dict[str, list[str]]):
 
         ET.SubElement(cl, "SDLCheck").text = "true"
 
-        base_defs = []
         if is_win32:
-            base_defs.append("WIN32")
-        base_defs.append("NDEBUG" if is_release else "_DEBUG")
-        base_defs.extend(["_CONSOLE", "WITH_EDITOR=1"])
-        base_defs.extend(props.get("extra_defines", []))
-        base_defs.append("%(PreprocessorDefinitions)")
-        ET.SubElement(cl, "PreprocessorDefinitions").text = ";".join(base_defs)
+            defs = f"WIN32;{'NDEBUG' if is_release else '_DEBUG'};_CONSOLE;WITH_EDITOR=1;%(PreprocessorDefinitions)"
+        else:
+            defs = f"{'NDEBUG' if is_release else '_DEBUG'};_CONSOLE;WITH_EDITOR=1;%(PreprocessorDefinitions)"
+        ET.SubElement(cl, "PreprocessorDefinitions").text = defs
 
         ET.SubElement(cl, "ConformanceMode").text = "true"
         ET.SubElement(cl, "AdditionalOptions").text = "/utf-8 %(AdditionalOptions)"
         ET.SubElement(cl, "ExceptionHandling").text = "Async"
-        ET.SubElement(cl, "MultiProcessorCompilation").text = "true"
 
         if is_x64:
             ET.SubElement(cl, "LanguageStandard").text = "stdcpp20"
 
         link = ET.SubElement(idg, "Link")
-        subsystem = props.get("subsystem", "Windows" if is_x64 else "Console")
-        ET.SubElement(link, "SubSystem").text = subsystem
+        ET.SubElement(link, "SubSystem").text = "Windows" if is_x64 else "Console"
         ET.SubElement(link, "GenerateDebugInformation").text = "true"
 
     # ClCompile items
@@ -315,12 +288,6 @@ def generate_vcxproj(files: dict[str, list[str]]):
                 if plat == "x64":
                     cond = f"'$(Configuration)|$(Platform)'=='{cfg}|{plat}'"
                     ET.SubElement(elem, "ExcludedFromBuild", Condition=cond).text = "true"
-
-    # ResourceCompile items (.rc)
-    if files["ResourceCompile"]:
-        ig = ET.SubElement(proj, "ItemGroup")
-        for f in files["ResourceCompile"]:
-            ET.SubElement(ig, "ResourceCompile", Include=f)
 
     # Natvis items
     if files["Natvis"]:
@@ -410,15 +377,6 @@ def generate_filters(files: dict[str, list[str]]):
             if filt:
                 ET.SubElement(elem, "Filter").text = filt
 
-    # ResourceCompile items with filters
-    if files["ResourceCompile"]:
-        ig = ET.SubElement(proj, "ItemGroup")
-        for f in files["ResourceCompile"]:
-            filt = get_filter(f)
-            elem = ET.SubElement(ig, "ResourceCompile", Include=f)
-            if filt:
-                ET.SubElement(elem, "Filter").text = filt
-
     # None items with filters
     if files["None"]:
         ig = ET.SubElement(proj, "ItemGroup")
@@ -502,7 +460,6 @@ def main():
     print(f"  ClCompile:  {len(files['ClCompile'])} files")
     print(f"  ClInclude:  {len(files['ClInclude'])} files")
     print(f"  FxCompile:  {len(files['FxCompile'])} files")
-    print(f"  RC:         {len(files['ResourceCompile'])} files")
     print(f"  Natvis:     {len(files['Natvis'])} files")
     print(f"  None:       {len(files['None'])} files")
 

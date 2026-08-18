@@ -1,0 +1,168 @@
+﻿#include "Engine/Runtime/WindowsApplication.h"
+
+#include <windowsx.h>
+
+#include "Engine/Core/InputSystem.h"
+#include <shellapi.h>
+#include "Core/CoreTypes.h"
+#include <filesystem>
+#include "Editor/EditorEngine.h"
+
+// ImGui Win32 메시지 핸들러
+extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, unsigned int Msg, WPARAM wParam, LPARAM lParam);
+
+LRESULT CALLBACK FWindowsApplication::StaticWndProc(HWND hWnd, unsigned int Msg, WPARAM wParam, LPARAM lParam)
+{
+	FWindowsApplication* App = reinterpret_cast<FWindowsApplication*>(GetWindowLongPtr(hWnd, GWLP_USERDATA));
+
+	if (Msg == WM_NCCREATE)
+	{
+		CREATESTRUCT* CreateStruct = reinterpret_cast<CREATESTRUCT*>(lParam);
+		App = reinterpret_cast<FWindowsApplication*>(CreateStruct->lpCreateParams);
+		SetWindowLongPtr(hWnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(App));
+	}
+
+	if (App)
+	{
+		return App->WndProc(hWnd, Msg, wParam, lParam);
+	}
+
+	return DefWindowProc(hWnd, Msg, wParam, lParam);
+}
+
+LRESULT FWindowsApplication::WndProc(HWND hWnd, unsigned int Msg, WPARAM wParam, LPARAM lParam)
+{
+	if (ImGui_ImplWin32_WndProcHandler(hWnd, Msg, wParam, lParam))
+	{
+		return true;
+	}
+
+	switch (Msg)
+	{
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		return 0;
+	case WM_MOUSEWHEEL:
+		
+		InputSystem::Get().AddScrollDelta(GET_WHEEL_DELTA_WPARAM(wParam));
+		return 0;
+	case WM_SIZE:
+		if (wParam != SIZE_MINIMIZED)
+		{
+			unsigned int Width = LOWORD(lParam);
+			unsigned int Height = HIWORD(lParam);
+			Window.OnResized(Width, Height);
+			if (OnResizedCallback)
+			{
+				OnResizedCallback(Width, Height);
+			}
+		}
+		return 0;
+	case WM_ENTERSIZEMOVE:bool HandleImportedFile(const FString & SourceObjPath);
+		bIsResizing = true;
+		return 0;
+	case WM_EXITSIZEMOVE:
+		bIsResizing = false;
+		return 0;
+	case WM_SIZING:
+		if (OnSizingCallback)
+		{
+			OnSizingCallback();
+		}
+		return 0;
+	case WM_DROPFILES:
+	{
+		HDROP hDrop = reinterpret_cast<HDROP>(wParam);
+
+		char filePath[MAX_PATH] = {};
+		const UINT fileCount = DragQueryFileA(hDrop, 0xFFFFFFFF, nullptr, 0);
+		if (fileCount > 0)
+		{
+			DragQueryFileA(hDrop, 0, filePath, MAX_PATH);
+
+			std::filesystem::path Path(filePath);
+			// OBJ 처리
+			std::string Ext = Path.extension().string();
+			std::transform(Ext.begin(), Ext.end(), Ext.begin(), ::tolower);
+
+			if (Ext == ".obj" || Ext == ".smbin")
+			{
+				if (GEngine)
+				{
+					if (UEditorEngine* Editor = dynamic_cast<UEditorEngine*>(GEngine))
+					{
+						Editor->HandleImportedFile(filePath);
+					}
+				}
+			}
+
+			// Viewer 콜백
+			if (OnDropOBJViewerCallback)
+			{
+				OnDropOBJViewerCallback(filePath);
+			}
+		}
+
+		DragFinish(hDrop);
+		return 0;
+	}
+	default:
+		break;
+	}
+
+	return DefWindowProc(hWnd, Msg, wParam, lParam);
+}
+
+bool FWindowsApplication::Init(HINSTANCE InHInstance)
+{
+	HInstance = InHInstance;
+
+	WCHAR WindowClass[] = L"JungleWindowClass";
+	WCHAR Title[] = L"Game Tech Lab";
+	WNDCLASSW WndClass = { 0, StaticWndProc, 0, 0, 0, 0, 0, 0, 0, WindowClass };
+
+	RegisterClassW(&WndClass);
+
+	HWND HWindow = CreateWindowExW(
+		0,
+		WindowClass,
+		Title,
+		WS_POPUP | WS_VISIBLE | WS_OVERLAPPEDWINDOW,
+		CW_USEDEFAULT, CW_USEDEFAULT,
+		1920, 1080,
+		nullptr, nullptr, HInstance, this);
+
+	DragAcceptFiles(HWindow, TRUE);
+
+	if (!HWindow)
+	{
+		return false;
+	}
+
+	Window.Initialize(HWindow);
+	return true;
+}
+
+void FWindowsApplication::PumpMessages()
+{
+	MSG Msg;
+	while (PeekMessage(&Msg, nullptr, 0, 0, PM_REMOVE))
+	{
+		TranslateMessage(&Msg);
+		DispatchMessage(&Msg);
+
+		if (Msg.message == WM_QUIT)
+		{
+			bIsExitRequested = true;
+			break;
+		}
+	}
+}
+
+void FWindowsApplication::Destroy()
+{
+	if (Window.GetHWND())
+	{
+		DestroyWindow(Window.GetHWND());
+	}
+}

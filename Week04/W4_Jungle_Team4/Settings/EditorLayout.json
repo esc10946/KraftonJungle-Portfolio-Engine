@@ -1,0 +1,216 @@
+{
+  "Default": {
+    "WidgetType": "SSplitterV",
+    "SideLT": {
+      "WidgetType": "SSplitterH",
+      "SideLT": {
+        "WidgetType": "SSplitterV",
+        "SideLT": {
+          "WidgetType": "SImGuiControlWidget"
+        },
+        "SideRB": {
+          "Name": "ViewportRoot",
+          "WidgetType": "SViewportRoot"
+        }
+      },
+      "SideRB": {
+        "WidgetType": "SImGuiConsoleWidget"
+      }
+    },
+    "SideRB": {
+      "WidgetType": "SSplitterH",
+      "SideLT": {
+        "WidgetType": "SImGuiSceneWidget"
+      },
+      "SideRB": {
+        "WidgetType": "SImGuiPropertyWidget"
+      }
+    }
+  },
+  "Single": {
+    "WidgetType": "SViewport"
+  },
+  "TwoVertical": {
+    "WidgetType": "SSplitterV",
+    "SideLT": {
+      "WidgetType": "SViewport"
+    },
+    "SideRB": {
+      "WidgetType": "SViewport"
+    }
+  },
+  "TwoHorizontal": {
+    "WidgetType": "SSplitterH",
+    "SideLT": {
+      "WidgetType": "SViewport"
+    },
+    "SideRB": {
+      "WidgetType": "SViewport"
+    }
+  },
+  "ThreeTopMain": {
+    "WidgetType": "SSplitterH",
+    "SideLT": {
+      "WidgetType": "SViewport"
+    },
+    "SideRB": {
+      "WidgetType": "SSplitterV",
+      "SideLT": {
+        "WidgetType": "SViewport"
+      },
+      "SideRB": {
+        "WidgetType": "SViewport"
+      }
+    }
+  },
+  "ThreeBottomMain": {
+    "WidgetType": "SSplitterH",
+    "SideLT": {
+      "WidgetType": "SSplitterV",
+      "SideLT": {
+        "WidgetType": "SViewport"
+      },
+      "SideRB": {
+        "WidgetType": "SViewport"
+      }
+    },
+    "SideRB": {
+      "WidgetType": "SViewport"
+    }
+  },
+  "ThreeLeftMain": {
+    "WidgetType": "SSplitterV",
+    "SideLT": {
+      "WidgetType": "SViewport"
+    },
+    "SideRB": {
+      "WidgetType": "SSplitterH",
+      "SideLT": {
+        "WidgetType": "SViewport"
+      },
+      "SideRB": {
+        "WidgetType": "SViewport"
+      }
+    }
+  },
+  "ThreeRightMain": {
+    "WidgetType": "SSplitterV",
+    "SideLT": {
+      "WidgetType": "SSplitterH",
+      "SideLT": {
+        "WidgetType": "SViewport"
+      },
+      "SideRB": {
+        "WidgetType": "SViewport"
+      }
+    },
+    "SideRB": {
+      "WidgetType": "SViewport"
+    }
+  },
+  "FourQuad": {
+    "WidgetType": "SSplitterH",
+    "SideLT": {
+      "WidgetType": "SSplitterV",
+      "SideLT": {
+        "WidgetType": "SViewport"
+      },
+      "SideRB": {
+        "WidgetType": "SViewport"
+      }
+    },
+    "SideRB": {
+      "WidgetType": "SSplitterV",
+      "SideLT": {
+        "WidgetType": "SViewport"
+      },
+      "SideRB": {
+        "WidgetType": "SViewport"
+      }
+    }
+  },
+  "FourTopMain": {
+    "WidgetType": "SSplitterH",
+    "SideLT": {
+      "WidgetType": "SViewport"
+    },
+    "SideRB": {
+      "WidgetType": "SSplitterV",
+      "SideLT": {
+        "WidgetType": "SViewport"
+      },
+      "SideRB": {
+        "WidgetType": "SSplitterV",
+        "SideLT": {
+          "WidgetType": "SViewport"
+        },
+        "SideRB": {
+          "WidgetType": "SViewport"
+        }
+      }
+    }
+  },
+  "FourBottomMain": {
+    "WidgetType": "SSplitterH",
+    "SideLT": {
+      "WidgetType": "SSplitterV",
+      "SideLT": {
+        "WidgetType": "SViewport"
+      },
+      "SideRB": {
+        "WidgetType": "SSplitterV",
+        "SideLT": {
+          "WidgetType": "SViewport"
+        },
+        "SideRB": {
+          "WidgetType": "SViewport"
+        }
+      }
+    },
+    "SideRB": {
+      "WidgetType": "SViewport"
+    }
+  },
+  "FourLeftMain": {
+    "WidgetType": "SSplitterV",
+    "SideLT": {
+      "WidgetType": "SViewport"
+    },
+    "SideRB": {
+      "WidgetType": "SSplitterH",
+      "SideLT": {
+        "WidgetType": "SViewport"
+      },
+      "SideRB": {
+        "WidgetType": "SSplitterH",
+        "SideLT": {
+          "WidgetType": "SViewport"
+        },
+        "SideRB": {
+          "WidgetType": "SViewport"
+        }
+      }
+    }
+  },
+  "FourRightMain": {
+    "WidgetType": "SSplitterV",
+    "SideLT": {
+      "WidgetType": "SSplitterH",
+      "SideLT": {
+        "WidgetType": "SViewport"
+      },
+      "SideRB": {
+        "WidgetType": "SSplitterH",
+        "SideLT": {
+          "WidgetType": "SViewport"
+        },
+        "SideRB": {
+          "WidgetType": "SViewport"
+        }
+      }
+    },
+    "SideRB": {
+      "WidgetType": "SViewport"
+    }
+  }
+}

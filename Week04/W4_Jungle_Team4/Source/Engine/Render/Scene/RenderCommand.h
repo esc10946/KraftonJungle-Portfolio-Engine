@@ -1,0 +1,168 @@
+﻿#pragma once
+
+/*
+	Constants Buffer에 사용될 구조체와 
+	에 담길 RenderCommand 구조체를 정의하고 있습니다.
+	RenderCommand는 Renderer에서 Draw Call을 1회 수행하기 위해 필요한 정보를 담고 있습니다.
+*/
+
+#include "Render/Common/RenderTypes.h"
+#include "Render/Resource/Buffer.h"
+#include "Render/Device/D3DDevice.h"
+#include "Core/EngineTypes.h"
+#include "Core/ResourceTypes.h"
+
+#include "Math/Matrix.h"
+#include "Math/Vector.h"
+
+class UMaterialInterface;
+class UShader;
+
+enum class ERenderCommandType
+{
+	Primitive,
+	StaticMesh,
+	Gizmo,
+	StencilMask,
+	SelectionOutline,
+	Billboard,
+	DebugBox,
+	Grid,		// Grid 패스 — LineBatcher 경유
+	Font,		// TextRenderComponent — FontBatcher 경유
+	SubUV,		// SubUVComponent     — SubUVBatcher 경유
+	Slate,		// Slate UI 요소     — SlateBatcher 경유 (나눠야 할까?)
+};
+
+//PerObject
+struct FPerObjectConstants
+{
+	FMatrix Model;
+	FVector4 Color = FVector4(1.0f, 1.0f, 1.0f, 1.0f);
+};
+
+struct FFrameConstants
+{
+	FMatrix View;          
+	FMatrix Projection;    
+    float GlobalTime;     // 추가
+	float bIsWireframe;
+	FVector WireframeColor;
+    float Padding;        // 16바이트 정렬 맞추기
+};
+
+struct FGizmoConstants
+{
+	FVector4 ColorTint;
+	uint32 bIsInnerGizmo;	
+	uint32 bClicking;
+	uint32 SelectedAxis;
+	float HoveredAxisOpacity;
+};
+
+struct FEditorConstants
+{
+	FVector CameraPosition; // xyz 사용, w padding
+	uint32 Flag;
+};
+
+struct FOutlineConstants
+{
+	FVector4 OutlineColor = FVector4(1.0f, 0.5f, 0.0f, 1.0f); // RGBA
+	FVector OutlineInvScale;
+	float OutlineOffset = 0.05f;
+	uint32 PrimitiveType; // EPrimitiveType enum value
+	float Padding0[3];
+};
+
+struct FAABBConstants
+{
+	FVector Min;
+	float Padding0;
+
+	FVector Max;
+	float Padding1;
+
+	FColor Color;
+};
+
+struct FGridConstants
+{
+	float GridSpacing;
+	int32 GridHalfLineCount;
+	float Padding0[2];
+};
+
+struct FFontConstants
+{
+	const FString* Text = nullptr;			// 컴포넌트 소유 문자열 참조 (프레임 내 유효)
+	const FFontResource* Font = nullptr;
+	float Scale = 1.0f;
+};
+
+struct FSubUVConstants
+{
+	const FParticleResource* Particle = nullptr;
+	uint32 FrameIndex = 0;
+	float Width  = 1.0f;
+	float Height = 1.0f;
+};
+
+struct FStaticMeshData
+{
+	UShader* Shader = nullptr;
+	UMaterialInterface* Material = nullptr;
+	ID3D11ShaderResourceView* DiffuseSRV = nullptr;
+	ID3D11ShaderResourceView* NormalSRV = nullptr;
+	uint32 FirstIndex = 0;
+	uint32 IndexCount = 0;
+};
+
+struct FStaticMeshConstants
+{
+    uint32 StaticMeshUseTexture = 0;
+    uint32 bUseAtlas = 0;
+    uint32 bSourceUVsUseAtlasTiles = 0;
+    float SourceAtlasTileScale = 1.0f;
+
+    FVector4 TopUVRect = FVector4(0.0f, 0.0f, 1.0f, 1.0f);
+    FVector4 SideUVRect = FVector4(0.0f, 0.0f, 1.0f, 1.0f);
+    FVector4 BottomUVRect = FVector4(0.0f, 0.0f, 1.0f, 1.0f);
+
+    float UVScrollSpeed[2] = { 0.0f, 0.0f };
+    float UVTiling[2]      = { 1.0f, 1.0f };
+
+    float UVOffset[2]      = { 0.0f, 0.0f };
+    float Padding1[2]      = { 0.0f, 0.0f };
+};
+
+struct FSlateConstants
+{
+	FVector2 ScreenPosition;
+	FVector2 ScreenSize;
+};
+
+struct FRenderCommand
+{
+	//	VB, IB 모두 담고 있는 MB
+	FMeshBuffer* MeshBuffer = nullptr;
+	FTextureMeshBuffer* TextureMeshBuffer = nullptr;
+	FPerObjectConstants PerObjectConstants = {};
+	FStaticMeshData MeshRenderData;
+
+	union
+	{
+		FGizmoConstants Gizmo;
+		FEditorConstants Editor;
+		FOutlineConstants Outline;
+		FAABBConstants AABB;
+		FGridConstants Grid;
+		FFontConstants Font;
+		FSubUVConstants SubUV;
+		FStaticMeshConstants StaticMesh;
+		FSlateConstants Slate;
+	} Constants;
+
+	EDepthStencilState DepthStencilState = static_cast<EDepthStencilState>(-1);
+	EBlendState BlendState = static_cast<EBlendState>(-1);
+	ERenderCommandType Type = ERenderCommandType::Primitive;
+};
